@@ -7,7 +7,8 @@ console.log('🚀 Starting Build Process...');
 try {
   // 1. Install Client Dependencies
   console.log('📦 Installing Client Dependencies...');
-  execSync('cd client && npm install', { stdio: 'inherit' });
+  // Force install dev dependencies too, just in case
+  execSync('cd client && npm install --include=dev --no-audit', { stdio: 'inherit' });
 
   // 2. Build Client
   console.log('🏗️ Building Client...');
@@ -15,7 +16,7 @@ try {
 
   // 3. Install Server Dependencies
   console.log('📦 Installing Server Dependencies...');
-  execSync('cd server && npm install', { stdio: 'inherit' });
+  execSync('cd server && npm install --no-audit', { stdio: 'inherit' });
 
   // 4. Update Prisma Schema for PostgreSQL (Render)
   console.log('🔄 Configuring Database for Cloud (PostgreSQL)...');
