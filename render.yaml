@@ -3,7 +3,7 @@ services:
     name: school-management-system
     env: node
     plan: free
-    buildCommand: ./render-build.sh
+    buildCommand: cd client && npm install && npm run build && cd ../server && npm install && sed -i 's/provider = "sqlite"/provider = "postgresql"/g' prisma/schema.prisma && npx prisma generate
     startCommand: cd server && npx prisma db push && node prisma/seed.js && npm start
     envVars:
       - key: NODE_ENV
