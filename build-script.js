@@ -26,6 +26,7 @@ try {
   // Replace sqlite with postgresql
   if (schema.includes('provider = "sqlite"')) {
     schema = schema.replace('provider = "sqlite"', 'provider = "postgresql"');
+    schema = schema.replace('url      = "file:./dev.db"', 'url      = env("DATABASE_URL")');
     fs.writeFileSync(schemaPath, schema);
     console.log('✅ Database provider updated to PostgreSQL');
   } else {
