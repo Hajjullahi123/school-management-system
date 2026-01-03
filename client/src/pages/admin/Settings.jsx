@@ -1,0 +1,1038 @@
+import React, { useState, useEffect } from 'react';
+import { toast } from '../../utils/toast';
+import { api, API_BASE_URL } from '../../api';
+import SystemSettings from './SystemSettings';
+import DocumentUploader from '../../components/DocumentUploader';
+
+const Settings = () => {
+  const [activeTab, setActiveTab] = useState('branding');
+  const [settings, setSettings] = useState({
+    schoolName: '',
+    schoolAddress: '',
+    schoolPhone: '',
+    schoolEmail: '',
+    schoolMotto: '',
+    primaryColor: '#1e40af',
+    secondaryColor: '#3b82f6',
+    accentColor: '#60a5fa',
+    paystackPublicKey: '',
+    paystackSecretKey: '',
+    flutterwavePublicKey: '',
+    flutterwaveSecretKey: '',
+    enableOnlinePayment: false,
+    facebookUrl: '',
+    instagramUrl: '',
+    whatsappUrl: '',
+    academicCalendarUrl: '',
+    eLibraryUrl: '',
+    alumniNetworkUrl: '',
+    brochureFileUrl: '',
+    admissionGuideFileUrl: '',
+    emailUser: '',
+    emailPassword: '',
+    emailHost: '',
+    emailPort: 465,
+    emailSecure: true,
+    smsUsername: '',
+    smsApiKey: '',
+    smsSenderId: '',
+    enableSMS: false
+  });
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [licenseKey, setLicenseKey] = useState('');
+  const [licenseStatus, setLicenseStatus] = useState(null);
+
+  useEffect(() => {
+    fetchSettings();
+    fetchLicenseStatus();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await api.get('/api/settings');
+      const data = await response.json();
+      setSettings(data);
+      if (data.logoUrl) {
+        setLogoPreview(`${API_BASE_URL}${data.logoUrl}`);
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+      toast.error('Failed to load settings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchLicenseStatus = async () => {
+    try {
+      const response = await api.get('/api/license/status');
+      const data = await response.json();
+      setLicenseStatus(data);
+    } catch (error) {
+      console.error('Error fetching license status:', error);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setSettings(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        toast.error('File size must be less than 2MB');
+        return;
+      }
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      // 1. Upload logo if changed (NEW: Use base64!)
+      if (logoFile) {
+        console.log('Converting logo to base64...');
+
+        // Convert file to base64
+        const reader = new FileReader();
+        const base64Data = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(logoFile);
+        });
+
+        console.log('Uploading logo as base64...');
+
+        // Send as JSON (no multipart issues!)
+        const response = await api.post('/api/settings/logo-base64', {
+          imageData: base64Data,
+          fileName: logoFile.name
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to upload logo');
+        }
+
+        console.log('Logo uploaded successfully!', data);
+        toast.success('Logo uploaded successfully');
+      }
+
+      // 2. Update settings
+      console.log('Saving settings...');
+      const response = await api.put('/api/settings', settings);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save settings');
+      }
+
+      toast.success('Settings saved successfully');
+
+      // Reload to reflect changes
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Failed to save settings: ' + error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    try {
+      const smtpConfig = {
+        host: settings.emailHost,
+        port: parseInt(settings.emailPort),
+        user: settings.emailUser,
+        pass: settings.emailPassword
+      };
+
+      if (!smtpConfig.host || !smtpConfig.user || !smtpConfig.pass) {
+        toast.error('Please fill in Host, User, and Password to test');
+        return;
+      }
+
+      toast.info('Testing SMTP connection...');
+      const response = await api.post('/api/email/test-config', { smtpConfig });
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('SMTP Connection Successful!');
+      } else {
+        toast.error(data.error || 'SMTP Connection Failed');
+      }
+    } catch (error) {
+      console.error('Test email error:', error);
+      toast.error('Failed to test SMTP connection');
+    }
+  };
+
+  const handleTestSMS = async () => {
+    try {
+      if (!settings.smsUsername || !settings.smsApiKey) {
+        toast.error('Please fill in SMS Username and API Key to test');
+        return;
+      }
+
+      const testPhone = prompt('Enter phone number to receive test SMS (international format, e.g., +234...):');
+      if (!testPhone) return;
+
+      toast.info('Sending test SMS...');
+      const response = await api.post('/api/settings/test-sms', {
+        smsUsername: settings.smsUsername,
+        smsApiKey: settings.smsApiKey,
+        smsSenderId: settings.smsSenderId,
+        testPhone
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.success('Test SMS sent successfully!');
+      } else {
+        toast.error(data.error || 'Failed to send test SMS');
+      }
+    } catch (error) {
+      console.error('Test SMS error:', error);
+      toast.error('Failed to test SMS connection');
+    }
+  };
+
+  const handleActivateLicense = async (e) => {
+    e.preventDefault();
+    if (!licenseKey.trim()) {
+      toast.error('Please enter a license key');
+      return;
+    }
+
+    try {
+      const response = await api.post('/api/license/activate', { licenseKey });
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('License activated successfully!');
+        setLicenseKey('');
+        fetchLicenseStatus();
+      } else {
+        toast.error(data.error || 'License activation failed');
+      }
+    } catch (error) {
+      console.error('Error activating license:', error);
+      toast.error('Failed to activate license');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto">
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
+
+      {!settings.isSetupComplete && (
+        <div className="bg-primary/10 border border-primary/30 rounded-lg p-6 mb-8 animate-pulse text-center">
+          <h2 className="text-xl font-bold text-primary mb-2">🚀 Welcome to [School Name] Setup!</h2>
+          <p className="text-gray-700">
+            Please fill in your <strong>School Name, Address, and Phone Number</strong> to complete your initial setup and unlock the full dashboard.
+          </p>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="bg-white rounded-lg shadow mb-6">
+        <div className="border-b border-gray-200">
+          <nav className="flex -mb-px">
+            <button
+              onClick={() => setActiveTab('branding')}
+              className={`px-6 py-3 border-b-2 font-medium text-sm ${activeTab === 'branding'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              School Branding
+            </button>
+            <button
+              onClick={() => setActiveTab('payment')}
+              className={`px-6 py-3 border-b-2 font-medium text-sm ${activeTab === 'payment'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              Payment Integration
+            </button>
+            <button
+              onClick={() => setActiveTab('license')}
+              className={`px-6 py-3 border-b-2 font-medium text-sm ${activeTab === 'license'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              License Activation
+            </button>
+            <button
+              onClick={() => setActiveTab('system')}
+              className={`px-6 py-3 border-b-2 font-medium text-sm ${activeTab === 'system'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              Academic Session
+            </button>
+            <button
+              onClick={() => setActiveTab('email')}
+              className={`px-6 py-3 border-b-2 font-medium text-sm ${activeTab === 'email'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              Email Config
+            </button>
+            <button
+              onClick={() => setActiveTab('sms')}
+              className={`px-6 py-3 border-b-2 font-medium text-sm ${activeTab === 'sms'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              SMS Config
+            </button>
+          </nav>
+        </div>
+
+        {/* Tab Content */}
+        <div className="p-6">
+          {/* Branding Tab */}
+          {activeTab === 'branding' && (
+            <form onSubmit={handleSaveSettings} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  School Logo
+                </label>
+                <div className="flex items-center space-x-4">
+                  {logoPreview && (
+                    <img src={logoPreview} alt="Logo Preview" className="h-20 w-20 object-contain border rounded" />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    className="text-sm w-full"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB (Recommended: 500x500px)</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    School Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="schoolName"
+                    value={settings.schoolName}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    School Motto
+                  </label>
+                  <input
+                    type="text"
+                    name="schoolMotto"
+                    value={settings.schoolMotto}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    School Address
+                  </label>
+                  <input
+                    type="text"
+                    name="schoolAddress"
+                    value={settings.schoolAddress}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    School Phone
+                  </label>
+                  <input
+                    type="text"
+                    name="schoolPhone"
+                    value={settings.schoolPhone}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    School Email
+                  </label>
+                  <input
+                    type="email"
+                    name="schoolEmail"
+                    value={settings.schoolEmail || ''}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Opening Hours
+                  </label>
+                  <input
+                    type="text"
+                    name="openingHours"
+                    value={settings.openingHours || ''}
+                    onChange={handleInputChange}
+                    placeholder="Mon - Fri: 8:00 AM - 4:00 PM"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Landing Page Welcome Title
+                  </label>
+                  <input
+                    type="text"
+                    name="welcomeTitle"
+                    value={settings.welcomeTitle || ''}
+                    onChange={handleInputChange}
+                    placeholder="e.g. Building a Brighter Future Together"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Landing Page Welcome Message
+                  </label>
+                  <textarea
+                    name="welcomeMessage"
+                    value={settings.welcomeMessage || ''}
+                    onChange={handleInputChange}
+                    rows="3"
+                    placeholder="Enter a brief welcome message for the landing page hero section..."
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Social Media Links</h3>
+                <p className="text-sm text-gray-600 mb-4">These links will appear in the landing page footer</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Facebook URL
+                    </label>
+                    <div className="flex items-center">
+                      <span className="inline-flex items-center px-3 py-2 border border-r-0 border-gray-300 rounded-l-md bg-gray-50 text-gray-500 text-sm">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z" />
+                        </svg>
+                      </span>
+                      <input
+                        type="url"
+                        name="facebookUrl"
+                        value={settings.facebookUrl || ''}
+                        onChange={handleInputChange}
+                        placeholder="https://facebook.com/yourschool"
+                        className="flex-1 border border-gray-300 rounded-r-md px-3 py-2 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Instagram URL
+                    </label>
+                    <div className="flex items-center">
+                      <span className="inline-flex items-center px-3 py-2 border border-r-0 border-gray-300 rounded-l-md bg-gray-50 text-gray-500 text-sm">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                        </svg>
+                      </span>
+                      <input
+                        type="url"
+                        name="instagramUrl"
+                        value={settings.instagramUrl || ''}
+                        onChange={handleInputChange}
+                        placeholder="https://instagram.com/yourschool"
+                        className="flex-1 border border-gray-300 rounded-r-md px-3 py-2 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      WhatsApp Number
+                    </label>
+                    <div className="flex items-center">
+                      <span className="inline-flex items-center px-3 py-2 border border-r-0 border-gray-300 rounded-l-md bg-gray-50 text-gray-500 text-sm">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+                        </svg>
+                      </span>
+                      <input
+                        type="text"
+                        name="whatsappUrl"
+                        value={settings.whatsappUrl || ''}
+                        onChange={handleInputChange}
+                        placeholder="2348012345678 (without +)"
+                        className="flex-1 border border-gray-300 rounded-r-md px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Enter phone number without + or spaces</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Links & Documents */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Footer Links & Documents</h3>
+                <p className="text-sm text-gray-600 mb-4">Manage footer links that appear on the landing page</p>
+
+                <div className="space-y-4">
+                  {/* Academic Calendar */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Academic Calendar URL
+                    </label>
+                    <input
+                      type="url"
+                      name="academicCalendarUrl"
+                      value={settings.academicCalendarUrl || ''}
+                      onChange={handleInputChange}
+                      placeholder="https://example.com/calendar or external link"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Link to your school's academic calendar</p>
+                  </div>
+
+                  {/* E-Library */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      E-Library URL
+                    </label>
+                    <input
+                      type="url"
+                      name="eLibraryUrl"
+                      value={settings.eLibraryUrl || ''}
+                      onChange={handleInputChange}
+                      placeholder="https://example.com/library or external link"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Link to digital library or resources</p>
+                  </div>
+
+                  {/* Alumni Network */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Alumni Network URL
+                    </label>
+                    <input
+                      type="url"
+                      name="alumniNetworkUrl"
+                      value={settings.alumniNetworkUrl || ''}
+                      onChange={handleInputChange}
+                      placeholder="https://example.com/alumni or external link"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Link to alumni portal or network</p>
+                  </div>
+
+
+                  <div className="space-y-4">
+                    {/* Brochure - URL Input */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        School Brochure (PDF Link)
+                      </label>
+                      <input
+                        type="url"
+                        name="brochureFileUrl"
+                        value={settings.brochureFileUrl || ''}
+                        onChange={handleInputChange}
+                        placeholder="https://example.com/brochure.pdf or Google Drive link"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Paste a link to your PDF (Google Drive, Dropbox, or direct URL)
+                      </p>
+                    </div>
+
+                    {/* Admission Guide - URL Input */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Admission Guide (PDF Link)
+                      </label>
+                      <input
+                        type="url"
+                        name="admissionGuideFileUrl"
+                        value={settings.admissionGuideFileUrl || ''}
+                        onChange={handleInputChange}
+                        placeholder="https://example.com/admission-guide.pdf or Google Drive link"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Paste a link to your PDF (Google Drive, Dropbox, or direct URL)
+                      </p>
+                    </div>
+                  </div>
+
+
+                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mt-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-blue-700">
+                          <strong>Note:</strong> You can link to external URLs or uploaded PDFs. For now, paste any publicly accessible URLs. File upload feature coming soon!
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Theme Colors</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Primary Color
+                    </label>
+                    <input
+                      type="color"
+                      name="primaryColor"
+                      value={settings.primaryColor}
+                      onChange={handleInputChange}
+                      className="h-10 w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Secondary Color
+                    </label>
+                    <input
+                      type="color"
+                      name="secondaryColor"
+                      value={settings.secondaryColor}
+                      onChange={handleInputChange}
+                      className="h-10 w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Accent Color
+                    </label>
+                    <input
+                      type="color"
+                      name="accentColor"
+                      value={settings.accentColor}
+                      onChange={handleInputChange}
+                      className="h-10 w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2 bg-primary text-white rounded-md hover:brightness-90 disabled:bg-gray-400"
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Payment Tab */}
+          {activeTab === 'payment' && (
+            <form onSubmit={handleSaveSettings} className="space-y-6">
+              <div className="flex items-center mb-4">
+                <input
+                  type="checkbox"
+                  name="enableOnlinePayment"
+                  checked={settings.enableOnlinePayment}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 text-primary"
+                />
+                <label className="ml-2 text-sm font-medium text-gray-700">
+                  Enable Online Payment
+                </label>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-900">Paystack Integration</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Public Key
+                    </label>
+                    <input
+                      type="text"
+                      name="paystackPublicKey"
+                      value={settings.paystackPublicKey}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Secret Key
+                    </label>
+                    <input
+                      type="password"
+                      name="paystackSecretKey"
+                      value={settings.paystackSecretKey}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-900">Flutterwave Integration</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Public Key
+                    </label>
+                    <input
+                      type="text"
+                      name="flutterwavePublicKey"
+                      value={settings.flutterwavePublicKey}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Secret Key
+                    </label>
+                    <input
+                      type="password"
+                      name="flutterwaveSecretKey"
+                      value={settings.flutterwaveSecretKey}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2 bg-primary text-white rounded-md hover:brightness-90 disabled:bg-gray-400"
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* License Tab */}
+          {activeTab === 'license' && (
+            <div className="space-y-6">
+              {licenseStatus && (
+                <div className={`p-4 rounded-lg ${licenseStatus.isActivated ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'}`}>
+                  <h3 className="font-medium text-lg mb-2">
+                    {licenseStatus.isActivated ? '✅ License Active' : '⚠️ License Not Activated'}
+                  </h3>
+                  {licenseStatus.isActivated && (
+                    <div className="text-sm text-gray-700 space-y-1">
+                      <p><strong>Activated:</strong> {new Date(licenseStatus.activatedAt).toLocaleDateString()}</p>
+                      <p><strong>Expires:</strong> {new Date(licenseStatus.expiresAt).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <form onSubmit={handleActivateLicense} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    License Key
+                  </label>
+                  <input
+                    type="text"
+                    value={licenseKey}
+                    onChange={(e) => setLicenseKey(e.target.value)}
+                    placeholder="XXXX-XXXX-XXXX-XXXX"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-primary text-white rounded-md hover:brightness-90"
+                >
+                  Activate License
+                </button>
+              </form>
+            </div>
+          )}
+
+
+          {/* Email Settings Tab */}
+          {activeTab === 'email' && (
+            <form onSubmit={handleSaveSettings} className="space-y-6">
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      Configure your school's SMTP settings to enable automated notifications for payments, absences, and results.
+                      <strong> Tip:</strong> For Gmail, use host <code>smtp.gmail.com</code> and an <strong>App Password</strong>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    SMTP Host
+                  </label>
+                  <input
+                    type="text"
+                    name="emailHost"
+                    value={settings.emailHost || ''}
+                    onChange={handleInputChange}
+                    placeholder="e.g., smtp.gmail.com"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    SMTP Port
+                  </label>
+                  <input
+                    type="number"
+                    name="emailPort"
+                    value={settings.emailPort || ''}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 465 or 587"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div className="flex items-center mt-8">
+                  <input
+                    type="checkbox"
+                    name="emailSecure"
+                    checked={settings.emailSecure}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-primary rounded"
+                  />
+                  <label className="ml-2 text-sm font-medium text-gray-700">
+                    Use SSL/TLS (Secure)
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    SMTP Username / Email
+                  </label>
+                  <input
+                    type="text"
+                    name="emailUser"
+                    value={settings.emailUser || ''}
+                    onChange={handleInputChange}
+                    placeholder="your-email@school.com"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    SMTP Password / App Password
+                  </label>
+                  <input
+                    type="password"
+                    name="emailPassword"
+                    value={settings.emailPassword || ''}
+                    onChange={handleInputChange}
+                    placeholder="••••••••••••••••"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={handleTestEmail}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                >
+                  Test Connection
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2 bg-primary text-white rounded-md hover:brightness-90 disabled:bg-gray-400"
+                >
+                  {saving ? 'Saving...' : 'Save Email Settings'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* SMS Settings Tab */}
+          {activeTab === 'sms' && (
+            <form onSubmit={handleSaveSettings} className="space-y-6">
+              <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-6">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-orange-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-orange-700">
+                      Configure your <strong>Africa's Talking</strong> credentials to enable SMS notifications.
+                      Ensure you use international phone number formats (e.g., +234...) for all users.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center mb-6 p-4 bg-gray-50 rounded-lg border">
+                <input
+                  type="checkbox"
+                  name="enableSMS"
+                  checked={settings.enableSMS}
+                  onChange={handleInputChange}
+                  className="h-5 w-5 text-primary rounded"
+                />
+                <div className="ml-3">
+                  <label className="text-sm font-bold text-gray-900">Enable SMS Notifications</label>
+                  <p className="text-xs text-gray-500">Master switch to turn all SMS alerts on/off</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Africa's Talking Username
+                  </label>
+                  <input
+                    type="text"
+                    name="smsUsername"
+                    value={settings.smsUsername || ''}
+                    onChange={handleInputChange}
+                    placeholder="e.g., sandbox or your_username"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    API Key
+                  </label>
+                  <input
+                    type="password"
+                    name="smsApiKey"
+                    value={settings.smsApiKey || ''}
+                    onChange={handleInputChange}
+                    placeholder="Your AT API Key"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Sender ID (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    name="smsSenderId"
+                    value={settings.smsSenderId || ''}
+                    onChange={handleInputChange}
+                    placeholder="Short code or alphanumeric ID"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={handleTestSMS}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                >
+                  Send Test SMS
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2 bg-primary text-white rounded-md hover:brightness-90 disabled:bg-gray-400"
+                >
+                  {saving ? 'Saving...' : 'Save SMS Settings'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* System Settings Tab */}
+          {activeTab === 'system' && (
+            <SystemSettings />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Settings;

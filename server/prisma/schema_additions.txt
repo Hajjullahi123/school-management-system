@@ -1,0 +1,32 @@
+
+// ============ GALLERY & NEWS/EVENTS ============
+
+model GalleryImage {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  imageUrl    String
+  category    String   // "events", "facilities", "students", "sports", "academic", "other"
+  uploadedBy  Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  uploader    User     @relation("GalleryUploads", fields: [uploadedBy], references: [id])
+}
+
+model NewsEvent {
+  id          Int      @id @default(autoincrement())
+  title       String
+  content     String   // Rich text content
+  type        String   // "news" or "event"
+  eventDate   DateTime? // For events only
+  imageUrl    String?
+  isPublished Boolean  @default(false)
+  authorId    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  author      User     @relation("NewsEventAuthor", fields: [authorId], references: [id])
+}

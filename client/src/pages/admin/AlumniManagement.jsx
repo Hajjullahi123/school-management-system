@@ -1,0 +1,800 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { api, API_BASE_URL } from '../../api';
+import { useSchoolSettings } from '../../hooks/useSchoolSettings';
+import AlumniIDCard from '../../components/AlumniIDCard';
+import { useReactToPrint } from 'react-to-print';
+
+const AlumniManagement = () => {
+  const { schoolSettings } = useSchoolSettings();
+  const [activeTab, setActiveTab] = useState('directory');
+  const [alumniList, setAlumniList] = useState([]);
+  const [donations, setDonations] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Modals
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDonationModal, setShowDonationModal] = useState(false);
+  const [selectedAlumni, setSelectedAlumni] = useState(null);
+  const [editingDonation, setEditingDonation] = useState(null);
+  const [generatedCredentials, setGeneratedCredentials] = useState(null);
+  const [editingAlumni, setEditingAlumni] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [expandedYears, setExpandedYears] = useState({});
+
+  // Form States
+  const [createForm, setCreateForm] = useState({ studentId: '', graduationYear: new Date().getFullYear(), alumniId: '' });
+  const [donationForm, setDonationForm] = useState({ donorName: '', amount: '', message: '', isAnonymous: false, alumniId: '' });
+
+  const componentRef = useRef();
+  const credentialPrintRef = useRef();
+
+  const handlePrint = useReactToPrint({
+    contentRef: componentRef,
+  });
+
+  const handlePrintCredentials = useReactToPrint({
+    contentRef: credentialPrintRef,
+  });
+
+  useEffect(() => {
+    fetchAlumni();
+    fetchDonations();
+  }, []);
+
+  const fetchAlumni = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/api/alumni/directory');
+      if (res.ok) setAlumniList(await res.json());
+    } catch (error) {
+      console.error('Error fetching alumni:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDonations = async () => {
+    try {
+      const res = await api.get('/api/alumni/donations');
+      if (res.ok) setDonations(await res.json());
+    } catch (err) { console.error(err); }
+  };
+
+  const handleCreateAlumni = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.post('/api/alumni/admin/create', createForm);
+      if (res.ok) {
+        alert('Alumni created successfully!');
+        setShowCreateModal(false);
+        fetchAlumni();
+        setCreateForm({ studentId: '', graduationYear: new Date().getFullYear(), alumniId: '' });
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to create');
+      }
+    } catch (err) {
+      alert('Error creating alumni');
+    }
+  };
+
+  const handleGenerateCredentials = async (studentId) => {
+    console.log('Generate credentials clicked for student ID:', studentId);
+    if (!confirm('Generate/Reset credentials for this alumni?')) {
+      console.log('User cancelled confirmation');
+      return;
+    }
+    console.log('Starting credential generation API call...');
+    try {
+      const res = await api.post('/api/alumni/admin/generate-credentials', { studentId });
+      console.log('API response status:', res.status);
+      const data = await res.json();
+      console.log('API response data:', data);
+      if (res.ok) {
+        setGeneratedCredentials({
+          username: data.username,
+          password: data.password,
+          name: alumniList.find(a => a.student.id === studentId)?.student?.user?.firstName || 'Alumni'
+        });
+      } else {
+        alert(data.error);
+      }
+    } catch (err) {
+      console.error('Error generating credentials:', err);
+      alert('Error generating credentials');
+    }
+  };
+
+  const handleRecordDonation = async (e) => {
+    e.preventDefault();
+    try {
+      let res;
+      if (editingDonation) {
+        res = await api.put(`/api/alumni/donation/${editingDonation.id}`, donationForm);
+      } else {
+        res = await api.post('/api/alumni/donation', donationForm);
+      }
+
+      if (res.ok) {
+        alert(editingDonation ? 'Donation updated!' : 'Donation recorded!');
+        setShowDonationModal(false);
+        setEditingDonation(null);
+        fetchDonations();
+        setDonationForm({ donorName: '', amount: '', message: '', isAnonymous: false, alumniId: '' });
+      }
+    } catch (error) {
+      alert('Failed to save donation');
+    }
+  };
+
+  const handleDeleteDonation = async (id) => {
+    if (!confirm('Are you sure you want to delete this donation?')) return;
+    try {
+      const res = await api.delete(`/api/alumni/donation/${id}`);
+      if (res.ok) {
+        fetchDonations();
+        alert('Donation deleted');
+      }
+    } catch (error) {
+      alert('Failed to delete');
+    }
+  };
+
+  const openDonationModal = (donation = null) => {
+    if (donation) {
+      setEditingDonation(donation);
+      setDonationForm({
+        donorName: donation.donorName,
+        amount: donation.amount,
+        message: donation.message || '',
+        isAnonymous: donation.isAnonymous,
+        alumniId: donation.alumniId || ''
+      });
+    } else {
+      setEditingDonation(null);
+      setDonationForm({ donorName: '', amount: '', message: '', isAnonymous: false, alumniId: '' });
+    }
+    setShowDonationModal(true);
+  };
+
+  const handleEditAlumni = (alumni) => {
+    setEditingAlumni({
+      id: alumni.id,
+      currentJob: alumni.currentJob || '',
+      currentCompany: alumni.currentCompany || '',
+      university: alumni.university || '',
+      courseOfStudy: alumni.courseOfStudy || '',
+      bio: alumni.bio || '',
+      linkedinUrl: alumni.linkedinUrl || '',
+      twitterUrl: alumni.twitterUrl || '',
+      portfolioUrl: alumni.portfolioUrl || '',
+      skills: alumni.skills || '',
+      achievements: alumni.achievements || '',
+      profilePicture: alumni.profilePicture || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateAlumni = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.put(`/api/alumni/${editingAlumni.id}`, editingAlumni);
+      if (res.ok) {
+        alert('Alumni profile updated successfully!');
+        setShowEditModal(false);
+        setEditingAlumni(null);
+        fetchAlumni();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update');
+      }
+    } catch (err) {
+      alert('Error updating alumni profile');
+    }
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    try {
+      const response = await api.post(`/api/alumni/${editingAlumni.id}/photo`, formData, {
+        headers: {
+          // Let browser set Content-Type for FormData
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const fullPhotoUrl = `${API_BASE_URL}${data.photoUrl}`;
+        setEditingAlumni({ ...editingAlumni, profilePicture: fullPhotoUrl });
+        alert('Photo uploaded successfully!');
+        // Refresh alumni list to show updated photo
+        fetchAlumni();
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to upload photo');
+      }
+    } catch (error) {
+      console.error('Photo upload error:', error);
+      alert('Error uploading photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const filteredAlumni = alumniList.filter(a =>
+    a.student?.user?.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    a.student?.user?.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    a.alumniId?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Group alumni by graduation year
+  const alumniByYear = filteredAlumni.reduce((groups, alumni) => {
+    const year = alumni.graduationYear;
+    if (!groups[year]) {
+      groups[year] = [];
+    }
+    groups[year].push(alumni);
+    return groups;
+  }, {});
+
+  // Sort years in descending order (newest first)
+  const sortedYears = Object.keys(alumniByYear).sort((a, b) => b - a);
+
+  const toggleYear = (year) => {
+    setExpandedYears(prev => ({
+      ...prev,
+      [year]: !prev[year]
+    }));
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Alumni Management System</h1>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-primary">
+          <h3 className="text-gray-500 text-sm font-medium">Total Alumni</h3>
+          <p className="text-3xl font-bold mt-2">{alumniList.length}</p>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+          <h3 className="text-gray-500 text-sm font-medium">Total Donations</h3>
+          <p className="text-3xl font-bold mt-2">
+            ₦{donations.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()}
+          </p>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
+          <h3 className="text-gray-500 text-sm font-medium">Recent Activity</h3>
+          <p className="text-lg font-semibold mt-2">{donations.length} new donations</p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex space-x-4 border-b mb-6">
+        <button
+          onClick={() => setActiveTab('directory')}
+          className={`pb-2 px-4 ${activeTab === 'directory' ? 'border-b-2 border-primary text-primary font-medium' : 'text-gray-500'}`}
+        >
+          Alumni Directory
+        </button>
+        <button
+          onClick={() => setActiveTab('donations')}
+          className={`pb-2 px-4 ${activeTab === 'donations' ? 'border-b-2 border-primary text-primary font-medium' : 'text-gray-500'}`}
+        >
+          Donations & Funds
+        </button>
+      </div>
+
+      {/* Directory Tab */}
+      {activeTab === 'directory' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-6">
+            <input
+              type="text"
+              placeholder="Search alumni..."
+              className="border rounded-md px-4 py-2 w-64"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-primary text-white px-4 py-2 rounded-md hover:bg-opacity-90"
+            >
+              + Create Alumni
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {loading ? (
+              <div className="text-center py-8">Loading...</div>
+            ) : sortedYears.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">No alumni found</div>
+            ) : (
+              sortedYears.map(year => (
+                <div key={year} className="border rounded-lg overflow-hidden">
+                  {/* Year Header - Clickable */}
+                  <button
+                    onClick={() => toggleYear(year)}
+                    className="w-full bg-gray-50 hover:bg-gray-100 px-6 py-4 flex items-center justify-between transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <svg
+                        className={`w-5 h-5 text-gray-600 transition-transform ${expandedYears[year] ? 'rotate-90' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        Class of {year}
+                      </h3>
+                      <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+                        {alumniByYear[year].length} {alumniByYear[year].length === 1 ? 'Alumni' : 'Alumni'}
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Alumni Table - Expandable */}
+                  {expandedYears[year] && (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Profile</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alumni ID</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Generate/Reset</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {alumniByYear[year].map((alumni) => (
+                            <tr key={alumni.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <div className="h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center text-primary font-bold">
+                                    {alumni.student.user.firstName[0]}{alumni.student.user.lastName[0]}
+                                  </div>
+                                  <div className="ml-4">
+                                    <div className="text-sm font-medium text-gray-900">
+                                      {alumni.student.user.firstName} {alumni.student.user.lastName}
+                                    </div>
+                                    <div className="text-sm text-gray-500">{alumni.currentJob || 'No job listed'}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">{alumni.alumniId || '-'}</td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {alumni.student.user.username && alumni.student.user.username === alumni.alumniId ? (
+                                  <button
+                                    onClick={() => handleGenerateCredentials(alumni.student.id)}
+                                    className="text-orange-600 hover:text-orange-900 text-sm font-medium"
+                                  >
+                                    Reset
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleGenerateCredentials(alumni.student.id)}
+                                    className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                                  >
+                                    Generate
+                                  </button>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button
+                                  onClick={() => handleEditAlumni(alumni)}
+                                  className="text-blue-600 hover:text-blue-900 mr-4"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedAlumni(alumni);
+                                    setTimeout(handlePrint, 100);
+                                  }}
+                                  className="text-primary hover:text-primary-dark"
+                                >
+                                  Print ID
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Donation Modal */}
+      {activeTab === 'donations' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-semibold">Donation History</h3>
+            <button
+              onClick={() => openDonationModal()}
+              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+            >
+              + Record Donation
+            </button>
+          </div>
+          <div className="space-y-4">
+            {donations.map(donation => (
+              <div key={donation.id} className="border p-4 rounded-lg flex justify-between items-center">
+                <div>
+                  <p className="font-bold text-gray-800">{donation.isAnonymous ? 'Anonymous' : donation.donorName}</p>
+                  <p className="text-sm text-gray-600">{donation.message || 'No message'}</p>
+                  <p className="text-xs text-gray-400">{new Date(donation.date).toLocaleDateString()}</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-xl font-bold text-green-600">₦{donation.amount.toLocaleString()}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => openDonationModal(donation)}
+                      className="text-blue-600 hover:text-blue-800 text-sm"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteDonation(donation.id)}
+                      className="text-red-600 hover:text-red-800 text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Hidden Print Components - Positioned off-screen to ensure they render for printing */}
+      <div className="print-content" style={{ position: 'absolute', top: '-10000px', left: '-10000px' }}>
+        <div ref={componentRef} className="p-8">
+          {selectedAlumni && <AlumniIDCard alumni={selectedAlumni} schoolSettings={schoolSettings} />}
+        </div>
+
+        {/* Printable Credential Slip */}
+        <div ref={credentialPrintRef} className="p-8 font-sans">
+          {generatedCredentials && (
+            <div className="border border-gray-300 p-8 max-w-lg mx-auto text-center rounded-lg">
+              <div className="mb-4">
+                <h1 className="text-2xl font-bold uppercase">{schoolSettings?.name || 'School Name'}</h1>
+                <p className="text-gray-500">Alumni Portal Credentials</p>
+              </div>
+              <hr className="my-4 border-gray-200" />
+              <div className="text-left space-y-4 my-6">
+                <div>
+                  <p className="text-sm text-gray-500 uppercase">Username / Alumni ID</p>
+                  <p className="text-xl font-mono font-bold">{generatedCredentials.username}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 uppercase">Password</p>
+                  <p className="text-xl font-mono font-bold bg-gray-100 p-2 rounded inline-block">
+                    {generatedCredentials.password}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-8 text-sm text-gray-500">
+                <p>Please log in and change your password immediately.</p>
+                <p className="mt-2">Visit the Alumni Portal to access your benefits.</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Credentials Modal */}
+      {generatedCredentials && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-96 text-center">
+            <div className="mb-4 text-green-600">
+              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold mb-2">Credentials Generated</h2>
+            <p className="text-gray-600 mb-6">A new password has been generated for this alumni.</p>
+
+            <div className="bg-gray-50 p-4 rounded-md mb-6 text-left">
+              <div className="mb-2">
+                <span className="text-xs text-gray-500 uppercase block">Username</span>
+                <span className="font-mono font-bold">{generatedCredentials.username}</span>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500 uppercase block">Password</span>
+                <span className="font-mono font-bold select-all">{generatedCredentials.password}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handlePrintCredentials}
+                className="w-full bg-primary text-white py-2 rounded-md hover:brightness-90 flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print Slip
+              </button>
+              <button
+                onClick={() => setGeneratedCredentials(null)}
+                className="w-full text-gray-500 py-2 hover:bg-gray-100 rounded-md"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h2 className="text-xl font-bold mb-4">Add Alumni</h2>
+            <form onSubmit={handleCreateAlumni}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Student ID (Internal)</label>
+                <input
+                  type="number"
+                  required
+                  className="w-full border p-2 rounded"
+                  value={createForm.studentId}
+                  onChange={e => setCreateForm({ ...createForm, studentId: e.target.value })}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Graduation Year</label>
+                <input
+                  type="number"
+                  required
+                  className="w-full border p-2 rounded"
+                  value={createForm.graduationYear}
+                  onChange={e => setCreateForm({ ...createForm, graduationYear: e.target.value })}
+                />
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-gray-600">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-primary text-white rounded">Promote to Alumni</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {showDonationModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h2 className="text-xl font-bold mb-4">{editingDonation ? 'Edit Donation' : 'Record Donation'}</h2>
+            <form onSubmit={handleRecordDonation}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Donor Name</label>
+                <input
+                  type="text"
+                  required
+                  className="w-full border p-2 rounded"
+                  value={donationForm.donorName}
+                  onChange={e => setDonationForm({ ...donationForm, donorName: e.target.value })}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Amount (₦)</label>
+                <input
+                  type="number"
+                  required
+                  className="w-full border p-2 rounded"
+                  value={donationForm.amount}
+                  onChange={e => setDonationForm({ ...donationForm, amount: e.target.value })}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Message</label>
+                <textarea
+                  className="w-full border p-2 rounded"
+                  value={donationForm.message}
+                  onChange={e => setDonationForm({ ...donationForm, message: e.target.value })}
+                />
+              </div>
+              <div className="mb-4 flex items-center">
+                <input
+                  type="checkbox"
+                  id="anon"
+                  className="mr-2"
+                  checked={donationForm.isAnonymous}
+                  onChange={e => setDonationForm({ ...donationForm, isAnonymous: e.target.checked })}
+                />
+                <label htmlFor="anon" className="text-sm">Anonymous Donation</label>
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                <button type="button" onClick={() => setShowDonationModal(false)} className="px-4 py-2 text-gray-600">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">Record</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Alumni Modal */}
+      {showEditModal && editingAlumni && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
+          <div className="bg-white p-6 rounded-lg w-[600px] max-h-[90vh] overflow-y-auto m-4">
+            <h2 className="text-xl font-bold mb-4">Edit Alumni Profile</h2>
+            <form onSubmit={handleUpdateAlumni}>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Bio</label>
+                  <textarea
+                    className="w-full border p-2 rounded"
+                    rows="3"
+                    value={editingAlumni.bio}
+                    onChange={e => setEditingAlumni({ ...editingAlumni, bio: e.target.value })}
+                    placeholder="Brief bio about the alumni"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Current Job</label>
+                  <input
+                    type="text"
+                    className="w-full border p-2 rounded"
+                    value={editingAlumni.currentJob}
+                    onChange={e => setEditingAlumni({ ...editingAlumni, currentJob: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Current Company</label>
+                  <input
+                    type="text"
+                    className="w-full border p-2 rounded"
+                    value={editingAlumni.currentCompany}
+                    onChange={e => setEditingAlumni({ ...editingAlumni, currentCompany: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">University</label>
+                  <input
+                    type="text"
+                    className="w-full border p-2 rounded"
+                    value={editingAlumni.university}
+                    onChange={e => setEditingAlumni({ ...editingAlumni, university: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Course of Study</label>
+                  <input
+                    type="text"
+                    className="w-full border p-2 rounded"
+                    value={editingAlumni.courseOfStudy}
+                    onChange={e => setEditingAlumni({ ...editingAlumni, courseOfStudy: e.target.value })}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Skills (comma separated)</label>
+                  <input
+                    type="text"
+                    className="w-full border p-2 rounded"
+                    value={editingAlumni.skills}
+                    onChange={e => setEditingAlumni({ ...editingAlumni, skills: e.target.value })}
+                    placeholder="e.g., Programming, Design, Marketing"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Achievements</label>
+                  <textarea
+                    className="w-full border p-2 rounded"
+                    rows="2"
+                    value={editingAlumni.achievements}
+                    onChange={e => setEditingAlumni({ ...editingAlumni, achievements: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">LinkedIn URL</label>
+                  <input
+                    type="url"
+                    className="w-full border p-2 rounded"
+                    value={editingAlumni.linkedinUrl}
+                    onChange={e => setEditingAlumni({ ...editingAlumni, linkedinUrl: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Twitter URL</label>
+                  <input
+                    type="url"
+                    className="w-full border p-2 rounded"
+                    value={editingAlumni.twitterUrl}
+                    onChange={e => setEditingAlumni({ ...editingAlumni, twitterUrl: e.target.value })}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Portfolio URL</label>
+                  <input
+                    type="url"
+                    className="w-full border p-2 rounded"
+                    value={editingAlumni.portfolioUrl}
+                    onChange={e => setEditingAlumni({ ...editingAlumni, portfolioUrl: e.target.value })}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Profile Picture</label>
+                  {editingAlumni.profilePicture && (
+                    <div className="mb-2">
+                      <img
+                        src={editingAlumni.profilePicture}
+                        alt="Current profile"
+                        className="w-24 h-24 object-cover rounded border"
+                      />
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="w-full border p-2 rounded"
+                    onChange={handlePhotoUpload}
+                    disabled={uploadingPhoto}
+                  />
+                  {uploadingPhoto && <p className="text-sm text-gray-500 mt-1">Uploading...</p>}
+                  <p className="text-xs text-gray-500 mt-1">Max file size: 5MB. Supported: JPG, PNG, GIF</p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingAlumni(null);
+                  }}
+                  className="px-4 py-2 text-gray-600 border rounded hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="px-4 py-2 bg-primary text-white rounded hover:brightness-90">
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AlumniManagement;

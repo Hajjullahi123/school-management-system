@@ -1,0 +1,192 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* FAILSAFE DEFAULT COLORS - RGB Channels (space-separated for Tailwind opacity) */
+  --color-primary: 15 118 110;
+  --color-secondary: 13 148 136;
+  --color-accent: 20 184 166;
+}
+
+/* Force apply these defaults if JS fails */
+.bg-primary {
+  background-color: rgb(var(--color-primary)) !important;
+}
+
+.bg-secondary {
+  background-color: rgb(var(--color-secondary)) !important;
+}
+
+.bg-accent {
+  background-color: rgb(var(--color-accent)) !important;
+}
+
+.text-primary {
+  color: rgb(var(--color-primary)) !important;
+}
+
+.text-secondary {
+  color: rgb(var(--color-secondary)) !important;
+}
+
+.text-accent {
+  color: rgb(var(--color-accent)) !important;
+}
+
+.border-primary {
+  border-color: rgb(var(--color-primary)) !important;
+}
+
+.border-secondary {
+  border-color: rgb(var(--color-secondary)) !important;
+}
+
+.border-accent {
+  border-color: rgb(var(--color-accent)) !important;
+}
+
+/* Gradient utilities */
+.from-primary {
+  --tw-gradient-from: rgb(var(--color-primary)) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(var(--color-primary) / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.from-secondary {
+  --tw-gradient-from: rgb(var(--color-secondary)) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(var(--color-secondary) / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.from-accent {
+  --tw-gradient-from: rgb(var(--color-accent)) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(var(--color-accent) / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.to-primary {
+  --tw-gradient-to: rgb(var(--color-primary)) var(--tw-gradient-to-position) !important;
+}
+
+.to-secondary {
+  --tw-gradient-to: rgb(var(--color-secondary)) var(--tw-gradient-to-position) !important;
+}
+
+.to-accent {
+  --tw-gradient-to: rgb(var(--color-accent)) !important;
+}
+
+/* --- MODERN UI UTILITIES --- */
+
+/* Glassmorphism */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-dark {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Animations */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--color-primary), 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 15px rgba(var(--color-primary), 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--color-primary), 0);
+  }
+}
+
+.reveal-up {
+  animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.pulse-primary {
+  animation: pulse-glow 2s infinite;
+}
+
+/* Hide scrollbar but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Typography Enhancements */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.025em;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 8mm;
+  }
+
+  /* Hide typical layout elements explicitly */
+  nav,
+  header,
+  footer,
+  .sidebar,
+  .no-print {
+    display: none !important;
+  }
+
+  .print-content {
+    display: block !important;
+    position: static !important;
+    visibility: visible !important;
+  }
+
+  /* Reset background colors for printing */
+  .bg-white {
+    background-color: white !important;
+  }
+}

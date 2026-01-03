@@ -1,0 +1,297 @@
+import React, { useState, useEffect } from 'react';
+import { toast } from '../../utils/toast';
+import { api } from '../../api';
+import { useAuth } from '../../context/AuthContext';
+
+const StudentFees = () => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [feeData, setFeeData] = useState(null);
+  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [settings, setSettings] = useState(null);
+  const [paying, setPaying] = useState(false);
+  const [amountToPay, setAmountToPay] = useState('');
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+
+      // 1. Get current session and term
+      const [sessionsRes, termsRes] = await Promise.all([
+        api.get('/api/academic-sessions'),
+        api.get('/api/terms')
+      ]);
+
+      const sessions = await sessionsRes.json();
+      const terms = await termsRes.json();
+
+      const currentSession = sessions.find(s => s.isCurrent);
+      const currentTerm = terms.find(t => t.isCurrent);
+
+      if (!currentSession || !currentTerm) {
+        setLoading(false);
+        return;
+      }
+
+      // 3. Get fee record for this student
+      // We need to find the student ID first
+      const studentRes = await api.get(`/api/students/user/${user.id}`);
+      const studentData = await studentRes.json();
+      const studentId = studentData.id;
+
+      // 3. Get fee record
+      const feeRes = await api.get(`/api/fees/student/${studentId}?termId=${currentTerm.id}&academicSessionId=${currentSession.id}`);
+      const feeRecord = await feeRes.json();
+
+      // 4. Get payment history
+      const historyRes = await api.get(`/api/fees/payments/${studentId}?termId=${currentTerm.id}&academicSessionId=${currentSession.id}`);
+      const paymentHistoryData = await historyRes.json();
+
+      // 5. Get school settings for payment
+      const settingsRes = await api.get('/api/settings');
+      const settingsData = await settingsRes.json();
+
+      setFeeData({
+        ...feeRecord,
+        studentId,
+        termId: currentTerm.id,
+        sessionId: currentSession.id,
+        termName: currentTerm.name,
+        sessionName: currentSession.name
+      });
+
+      setPaymentHistory(paymentHistoryData);
+      setSettings(settingsData);
+
+      // Default amount to pay is the balance
+      if (feeRecord) {
+        setAmountToPay(feeRecord.balance.toString());
+      }
+
+    } catch (error) {
+      console.error('Error fetching fee data:', error);
+      // toast.error('Failed to load fee information');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePayOnline = async () => {
+    if (!amountToPay || parseFloat(amountToPay) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    if (!settings?.enableOnlinePayment) {
+      toast.error('Online payments are currently disabled');
+      return;
+    }
+
+    setPaying(true);
+
+    try {
+      // Initialize payment
+      const response = await api.post('/api/payments/initialize', {
+        email: user.email || `${user.username}@school.com`,
+        amount: parseFloat(amountToPay),
+        studentId: feeData.studentId,
+        feeRecordId: feeData.id,
+        callbackUrl: `${window.location.origin}/student/fees/verify`
+      });
+
+      if (response.data.success) {
+        // Redirect to Paystack
+        window.location.href = response.data.authorization_url;
+      } else {
+        toast.error('Failed to initialize payment');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast.error('Payment initialization failed');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!feeData) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-yellow-700">
+                No fee record found for the current term. Please contact the bursar.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">My School Fees</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Fee Summary Card */}
+        <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-500">
+          <h3 className="text-gray-500 text-sm font-medium uppercase">Total Expected</h3>
+          <p className="text-3xl font-bold text-gray-900 mt-2">₦{feeData.expectedAmount.toLocaleString()}</p>
+          <p className="text-sm text-gray-500 mt-1">{feeData.termName} / {feeData.sessionName}</p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-green-500">
+          <h3 className="text-gray-500 text-sm font-medium uppercase">Total Paid</h3>
+          <p className="text-3xl font-bold text-green-600 mt-2">₦{feeData.paidAmount.toLocaleString()}</p>
+          <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+            <div
+              className="bg-green-500 h-2 rounded-full"
+              style={{ width: `${(feeData.paidAmount / feeData.expectedAmount) * 100}%` }}
+            ></div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-red-500">
+          <h3 className="text-gray-500 text-sm font-medium uppercase">Outstanding Balance</h3>
+          <p className="text-3xl font-bold text-red-600 mt-2">₦{feeData.balance.toLocaleString()}</p>
+          {feeData.isClearedForExam ? (
+            <span className="inline-block mt-2 px-2 py-1 text-xs font-semibold rounded bg-indigo-100 text-indigo-800">
+              ✓ Exam Card: Allowed
+            </span>
+          ) : (
+            <span className="inline-block mt-2 px-2 py-1 text-xs font-semibold rounded bg-amber-100 text-amber-800">
+              🚫 Exam Card: Restricted
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Payment Section */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Make a Payment</h2>
+
+            {feeData.balance <= 0 ? (
+              <div className="text-center py-6">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                  <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">Fees Fully Paid</h3>
+                <p className="mt-1 text-sm text-gray-500">You have no outstanding balance.</p>
+              </div>
+            ) : settings?.enableOnlinePayment ? (
+              <div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount to Pay (₦)</label>
+                  <input
+                    type="number"
+                    value={amountToPay}
+                    onChange={(e) => setAmountToPay(e.target.value)}
+                    className="w-full p-2 border rounded focus:ring-primary focus:border-primary"
+                    min="100"
+                    max={feeData.balance}
+                  />
+                </div>
+
+                <button
+                  onClick={handlePayOnline}
+                  disabled={paying}
+                  className="w-full py-3 bg-primary text-white rounded font-bold hover:brightness-90 disabled:opacity-50 flex justify-center items-center"
+                >
+                  {paying ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </>
+                  ) : (
+                    <>Pay Now with Paystack</>
+                  )}
+                </button>
+
+                <p className="text-xs text-center text-gray-500 mt-3">
+                  Secured by Paystack. A transaction fee may apply.
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-6 bg-gray-50 rounded">
+                <p className="text-gray-600">Online payments are currently disabled. Please pay at the school bursary.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Payment History */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Payment History</h2>
+            </div>
+
+            {paymentHistory.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">
+                No payment history found for this term.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {paymentHistory.map((payment) => (
+                      <tr key={payment.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {new Date(payment.paymentDate).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                          {payment.reference || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                          {payment.paymentMethod}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                          ₦{payment.amount.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default StudentFees;
