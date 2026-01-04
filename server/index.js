@@ -35,8 +35,11 @@ app.use((req, res, next) => {
 // This allows access from any computer on your school network
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    // In production (Render), allow the deployed domain
+    // Also allow no origin (mobile apps, curl)
+    if (!origin || process.env.NODE_ENV === 'production') {
+      return callback(null, true);
+    }
 
     // Allow localhost for development
     if (origin.includes('localhost')) return callback(null, true);
@@ -48,8 +51,8 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // Reject other origins
-    callback(new Error('Not allowed by CORS'));
+    // Valid origin?
+    callback(null, true);
   },
   credentials: true
 }));
