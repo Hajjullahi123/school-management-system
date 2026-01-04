@@ -1,23 +1,33 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>client</title>
-  </head>
-  <body>
-    <div id="root">
-      <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
-        <h1>Loading School Management System...</h1>
-        <p>If this message doesn't disappear in a few seconds, there is a problem.</p>
-      </div>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>client</title>
+</head>
+
+<body>
+  <div id="root">
+    <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
+      <h1>Loading School Management System...</h1>
+      <p>If this message doesn't disappear in a few seconds, there is a problem.</p>
     </div>
-    <script>
-      window.addEventListener('error', function(e) {
-        document.body.innerHTML += '<div style="color:red; padding:20px; border:1px solid red; margin:20px;">Global Error: ' + e.message + '</div>';
-      });
-    </script>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+  </div>
+  <script>
+    window.addEventListener('error', function (e) {
+      var msg = '';
+      if (e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) {
+        msg = 'Resource Failed to Load: ' + (e.target.src || e.target.href);
+      } else {
+        msg = 'Global Error: ' + (e.message || JSON.stringify(e));
+      }
+      document.body.innerHTML += '<div style="color:white; background:red; padding:20px; border:2px solid black; margin:20px; z-index:9999; position:relative;">' + msg + '</div>';
+      console.error('Captured Error:', e);
+    }, true); // CAUTION: true for useCapture is essential for resource errors
+  </script>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
 </html>

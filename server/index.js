@@ -24,6 +24,12 @@ process.on('uncaughtException', (error) => {
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // Middleware
 // CORS configuration for local network hosting
 // This allows access from any computer on your school network
@@ -112,7 +118,13 @@ app.use('/api/superadmin', require('./routes/superadmin'));
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
   // Serve static files from the React app
-  app.use(express.static(path.join(__dirname, '../client/dist')));
+  const clientDistPath = path.join(__dirname, '../client/dist');
+  console.log('Static files path:', clientDistPath);
+  app.use(express.static(clientDistPath, {
+    setHeaders: (res, path, stat) => {
+      console.log('Serving static file:', path);
+    }
+  }));
 
   // Handle client-side routing - return index.html for any remaining requests
   app.get('*', (req, res) => {
