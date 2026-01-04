@@ -145,17 +145,18 @@ app.use('/api/superadmin', require('./routes/superadmin'));
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
   // Serve static files from the React app
+  // Serve static files from the React app
   const clientDistPath = path.join(__dirname, '../client/dist');
   console.log('Static files path:', clientDistPath);
-  app.use(express.static(clientDistPath, {
-    setHeaders: (res, path, stat) => {
-      console.log('Serving static file:', path);
-    }
-  }));
+
+  // Explicitly serve assets to avoid any middleware confusion
+  app.use('/assets', express.static(path.join(clientDistPath, 'assets')));
+
+  app.use(express.static(clientDistPath));
 
   // Handle client-side routing - return index.html for any remaining requests
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
+    res.sendFile(path.join(clientDistPath, 'index.html'));
   });
 } else {
   // 404 handler for development/API only
