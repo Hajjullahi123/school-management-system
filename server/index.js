@@ -73,6 +73,30 @@ app.use(cookieParser());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
+// DEBUG: File system check
+app.get('/api/debug/files', (req, res) => {
+  const fs = require('fs');
+  const distPath = path.join(__dirname, '../client/dist');
+
+  try {
+    if (!fs.existsSync(distPath)) {
+      return res.json({ error: 'Dist folder does not exist', path: distPath });
+    }
+
+    const files = fs.readdirSync(distPath);
+    const assetsPath = path.join(distPath, 'assets');
+    const assets = fs.existsSync(assetsPath) ? fs.readdirSync(assetsPath) : 'Assets folder missing';
+
+    res.json({
+      basePath: distPath,
+      rootFiles: files,
+      assets: assets
+    });
+  } catch (err) {
+    res.json({ error: err.message, stack: err.stack });
+  }
+});
+
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/students', require('./routes/students'));
