@@ -278,7 +278,7 @@ router.post('/stories', authenticate, authorize(['admin']), async (req, res) => 
   }
 });
 
-// 5. Create Alumni Record (Admin Only)
+// 5. Create Alumni Record from Existing Student (Admin Only - Promotion)
 router.post('/admin/create', authenticate, authorize(['admin']), async (req, res) => {
   try {
     const { studentId, graduationYear, alumniId } = req.body;
@@ -334,6 +334,147 @@ router.post('/admin/create', authenticate, authorize(['admin']), async (req, res
   } catch (error) {
     console.error('Create alumni error:', error);
     res.status(500).json({ error: 'Failed to create alumni record' });
+  }
+});
+
+// 5B. Direct Alumni Registration (Admin Only - for alumni not previously in system)
+router.post('/admin/register-direct', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const {
+      // Personal Information
+      firstName, lastName, middleName, email,
+      dateOfBirth, gender, stateOfOrigin, nationality, address,
+      // Academic Information
+      graduationYear, classGraduated,
+      // Alumni-Specific Information
+      currentJob, currentCompany, university, courseOfStudy,
+      bio, linkedinUrl, twitterUrl, portfolioUrl, skills, achievements,
+      // Parent/Guardian Info (optional for records)
+      parentGuardianName, parentGuardianPhone, parentEmail,
+      // Medical Info (optional for records)
+      bloodGroup, genotype, disability
+    } = req.body;
+
+    // Validation
+    if (!firstName || !lastName || !graduationYear) {
+      return res.status(400).json({ error: 'First name, last name, and graduation year are required' });
+    }
+
+    const bcrypt = require('bcryptjs');
+
+    // Generate unique admission number for the alumni
+    const year = graduationYear.toString().slice(-2);
+    const count = await prisma.student.count({
+      where: { schoolId: req.schoolId }
+    });
+    const admissionNumber = `${year}${String(count + 1).padStart(4, '0')}`;
+
+    // Generate alumni ID
+    const alumniId = `AL/${graduationYear}/${admissionNumber}`;
+
+    // Start transaction to create user, student, and alumni records
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create User
+      const generatedEmail = email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@alumni.school`;
+      const defaultPassword = Math.random().toString(36).slice(-8);
+      const passwordHash = await bcrypt.hash(defaultPassword, 10);
+
+      const user = await tx.user.create({
+        data: {
+          schoolId: req.schoolId,
+          username: alumniId,
+          passwordHash,
+          email: generatedEmail,
+          role: 'alumni',
+          firstName,
+          lastName,
+          isActive: true,
+          mustChangePassword: true
+        }
+      });
+
+      // 2. Create Student Record (with alumni status)
+      const student = await tx.student.create({
+        data: {
+          schoolId: req.schoolId,
+          userId: user.id,
+          admissionNumber,
+          status: 'alumni',
+          dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+          gender: gender || null,
+          stateOfOrigin: stateOfOrigin || null,
+          nationality: nationality || 'Nigerian',
+          address: address || null,
+          middleName: middleName || null,
+          parentGuardianName: parentGuardianName || null,
+          parentGuardianPhone: parentGuardianPhone || null,
+          parentEmail: parentEmail || null,
+          bloodGroup: bloodGroup || null,
+          genotype: genotype || null,
+          disability: disability || 'None',
+          classId: null // Alumni don't have current class
+        }
+      });
+
+      // 3. Create Alumni Record
+      const alumni = await tx.alumni.create({
+        data: {
+          schoolId: req.schoolId,
+          studentId: student.id,
+          graduationYear: parseInt(graduationYear),
+          alumniId,
+          currentJob: currentJob || null,
+          currentCompany: currentCompany || null,
+          university: university || null,
+          courseOfStudy: courseOfStudy || null,
+          bio: bio || null,
+          linkedinUrl: linkedinUrl || null,
+          twitterUrl: twitterUrl || null,
+          portfolioUrl: portfolioUrl || null,
+          skills: skills || null,
+          achievements: achievements || null,
+          isPublic: true
+        },
+        include: {
+          student: {
+            include: {
+              user: {
+                select: { firstName: true, lastName: true, email: true, username: true }
+              }
+            }
+          }
+        }
+      });
+
+      return {
+        alumni,
+        credentials: {
+          username: alumniId,
+          password: defaultPassword,
+          email: generatedEmail
+        }
+      };
+    });
+
+    res.status(201).json(result);
+
+    // Log the creation
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'CREATE',
+      resource: 'ALUMNI_DIRECT_REGISTRATION',
+      details: {
+        alumniId: result.alumni.id,
+        studentId: result.alumni.studentId,
+        graduationYear: result.alumni.graduationYear,
+        name: `${firstName} ${lastName}`
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Direct alumni registration error:', error);
+    res.status(500).json({ error: error.message || 'Failed to register alumni' });
   }
 });
 

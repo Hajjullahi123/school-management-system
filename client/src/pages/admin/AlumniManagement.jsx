@@ -22,10 +22,42 @@ const AlumniManagement = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [expandedYears, setExpandedYears] = useState({});
+  const [registrationMethod, setRegistrationMethod] = useState('promotion'); // 'promotion' or 'direct'
 
   // Form States
   const [createForm, setCreateForm] = useState({ studentId: '', graduationYear: new Date().getFullYear(), alumniId: '' });
   const [donationForm, setDonationForm] = useState({ donorName: '', amount: '', message: '', isAnonymous: false, alumniId: '' });
+
+  // Direct Registration Form State
+  const [directRegForm, setDirectRegForm] = useState({
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    email: '',
+    dateOfBirth: '',
+    gender: '',
+    stateOfOrigin: '',
+    nationality: 'Nigerian',
+    address: '',
+    graduationYear: new Date().getFullYear(),
+    classGraduated: '',
+    currentJob: '',
+    currentCompany: '',
+    university: '',
+    courseOfStudy: '',
+    bio: '',
+    linkedinUrl: '',
+    twitterUrl: '',
+    portfolioUrl: '',
+    skills: '',
+    achievements: '',
+    parentGuardianName: '',
+    parentGuardianPhone: '',
+    parentEmail: '',
+    bloodGroup: '',
+    genotype: '',
+    disability: 'None'
+  });
 
   const componentRef = useRef();
   const credentialPrintRef = useRef();
@@ -77,6 +109,64 @@ const AlumniManagement = () => {
       }
     } catch (err) {
       alert('Error creating alumni');
+    }
+  };
+
+  const handleDirectRegistration = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.post('/api/alumni/admin/register-direct', directRegForm);
+      const data = await res.json();
+
+      if (res.ok) {
+        // Show credentials modal
+        setGeneratedCredentials({
+          username: data.credentials.username,
+          password: data.credentials.password,
+          name: `${directRegForm.firstName} ${directRegForm.lastName}`,
+          email: data.credentials.email
+        });
+
+        alert('Alumni registered successfully!');
+        setShowCreateModal(false);
+        fetchAlumni();
+
+        // Reset form
+        setDirectRegForm({
+          firstName: '',
+          middleName: '',
+          lastName: '',
+          email: '',
+          dateOfBirth: '',
+          gender: '',
+          stateOfOrigin: '',
+          nationality: 'Nigerian',
+          address: '',
+          graduationYear: new Date().getFullYear(),
+          classGraduated: '',
+          currentJob: '',
+          currentCompany: '',
+          university: '',
+          courseOfStudy: '',
+          bio: '',
+          linkedinUrl: '',
+          twitterUrl: '',
+          portfolioUrl: '',
+          skills: '',
+          achievements: '',
+          parentGuardianName: '',
+          parentGuardianPhone: '',
+          parentEmail: '',
+          bloodGroup: '',
+          genotype: '',
+          disability: 'None'
+        });
+      } else {
+        alert(data.error || 'Failed to register alumni');
+      }
+    } catch (err) {
+      console.error('Error registering alumni:', err);
+      alert('Error registering alumni');
     }
   };
 
@@ -558,35 +648,321 @@ const AlumniManagement = () => {
 
       {/* Modals */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-96">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto p-4">
+          <div className="bg-white p-6 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Add Alumni</h2>
-            <form onSubmit={handleCreateAlumni}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Student ID (Internal)</label>
-                <input
-                  type="number"
-                  required
-                  className="w-full border p-2 rounded"
-                  value={createForm.studentId}
-                  onChange={e => setCreateForm({ ...createForm, studentId: e.target.value })}
-                />
+
+            {/* Registration Method Toggle */}
+            <div className="mb-6 border rounded-lg p-4 bg-gray-50">
+              <label className="block text-sm font-medium mb-3">Registration Method</label>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setRegistrationMethod('promotion')}
+                  className={`flex-1 p-3 rounded-md border-2 transition-colors ${registrationMethod === 'promotion'
+                      ? 'border-primary bg-primary/10 text-primary font-medium'
+                      : 'border-gray-300 bg-white hover:border-primary/50'
+                    }`}
+                >
+                  <div className="text-center">
+                    <div className="font-semibold">Promote Existing Student</div>
+                    <div className="text-xs mt-1">For students already in the system</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRegistrationMethod('direct')}
+                  className={`flex-1 p-3 rounded-md border-2 transition-colors ${registrationMethod === 'direct'
+                      ? 'border-primary bg-primary/10 text-primary font-medium'
+                      : 'border-gray-300 bg-white hover:border-primary/50'
+                    }`}
+                >
+                  <div className="text-center">
+                    <div className="font-semibold">Register New Alumni</div>
+                    <div className="text-xs mt-1">For alumni not previously in the system</div>
+                  </div>
+                </button>
               </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Graduation Year</label>
-                <input
-                  type="number"
-                  required
-                  className="w-full border p-2 rounded"
-                  value={createForm.graduationYear}
-                  onChange={e => setCreateForm({ ...createForm, graduationYear: e.target.value })}
-                />
-              </div>
-              <div className="flex justify-end gap-2 mt-6">
-                <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-gray-600">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-primary text-white rounded">Promote to Alumni</button>
-              </div>
-            </form>
+            </div>
+
+            {/* Promotion Form */}
+            {registrationMethod === 'promotion' && (
+              <form onSubmit={handleCreateAlumni}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">Student ID (Internal)</label>
+                  <input
+                    type="number"
+                    required
+                    className="w-full border p-2 rounded"
+                    value={createForm.studentId}
+                    onChange={e => setCreateForm({ ...createForm, studentId: e.target.value })}
+                    placeholder="e.g., 123"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Enter the internal database ID of the student</p>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">Graduation Year</label>
+                  <input
+                    type="number"
+                    required
+                    className="w-full border p-2 rounded"
+                    value={createForm.graduationYear}
+                    onChange={e => setCreateForm({ ...createForm, graduationYear: e.target.value })}
+                    min="1950"
+                    max={new Date().getFullYear() + 5}
+                  />
+                </div>
+                <div className="flex justify-end gap-2 mt-6">
+                  <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                  <button type="submit" className="px-4 py-2 bg-primary text-white rounded hover:brightness-90">Promote to Alumni</button>
+                </div>
+              </form>
+            )}
+
+            {/* Direct Registration Form */}
+            {registrationMethod === 'direct' && (
+              <form onSubmit={handleDirectRegistration} className="space-y-6">
+                {/* Basic Information */}
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">Basic Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        First Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.firstName}
+                        onChange={e => setDirectRegForm({ ...directRegForm, firstName: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.middleName}
+                        onChange={e => setDirectRegForm({ ...directRegForm, middleName: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Last Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.lastName}
+                        onChange={e => setDirectRegForm({ ...directRegForm, lastName: e.target.value })}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Email (Optional)</label>
+                      <input
+                        type="email"
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.email}
+                        onChange={e => setDirectRegForm({ ...directRegForm, email: e.target.value })}
+                        placeholder="Auto-generated if empty"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Personal Information */}
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">Personal Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                      <input
+                        type="date"
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.dateOfBirth}
+                        onChange={e => setDirectRegForm({ ...directRegForm, dateOfBirth: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                      <select
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.gender}
+                        onChange={e => setDirectRegForm({ ...directRegForm, gender: e.target.value })}
+                      >
+                        <option value="">Select</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">State of Origin</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.stateOfOrigin}
+                        onChange={e => setDirectRegForm({ ...directRegForm, stateOfOrigin: e.target.value })}
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.address}
+                        onChange={e => setDirectRegForm({ ...directRegForm, address: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Academic Information */}
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">Academic Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Graduation Year <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.graduationYear}
+                        onChange={e => setDirectRegForm({ ...directRegForm, graduationYear: e.target.value })}
+                        min="1950"
+                        max={new Date().getFullYear() + 5}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Class Graduated From</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.classGraduated}
+                        onChange={e => setDirectRegForm({ ...directRegForm, classGraduated: e.target.value })}
+                        placeholder="e.g., SS3 A"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Alumni Professional Information */}
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">Professional Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Current Job</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.currentJob}
+                        onChange={e => setDirectRegForm({ ...directRegForm, currentJob: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Current Company</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.currentCompany}
+                        onChange={e => setDirectRegForm({ ...directRegForm, currentCompany: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">University</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.university}
+                        onChange={e => setDirectRegForm({ ...directRegForm, university: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Course of Study</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.courseOfStudy}
+                        onChange={e => setDirectRegForm({ ...directRegForm, courseOfStudy: e.target.value })}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                      <textarea
+                        className="w-full border rounded-md px-3 py-2"
+                        rows="3"
+                        value={directRegForm.bio}
+                        onChange={e => setDirectRegForm({ ...directRegForm, bio: e.target.value })}
+                        placeholder="Brief biography..."
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Skills (comma separated)</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.skills}
+                        onChange={e => setDirectRegForm({ ...directRegForm, skills: e.target.value })}
+                        placeholder="e.g., Programming, Design, Marketing"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Social Links - Collapsible */}
+                <details className="bg-gray-50 p-4 rounded-lg">
+                  <summary className="cursor-pointer font-medium text-gray-700">Social Links (Optional)</summary>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label>
+                      <input
+                        type="url"
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.linkedinUrl}
+                        onChange={e => setDirectRegForm({ ...directRegForm, linkedinUrl: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Twitter URL</label>
+                      <input
+                        type="url"
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.twitterUrl}
+                        onChange={e => setDirectRegForm({ ...directRegForm, twitterUrl: e.target.value })}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Portfolio URL</label>
+                      <input
+                        type="url"
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.portfolioUrl}
+                        onChange={e => setDirectRegForm({ ...directRegForm, portfolioUrl: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </details>
+
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-primary text-white rounded hover:brightness-90 transition-colors"
+                  >
+                    Register Alumni
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
