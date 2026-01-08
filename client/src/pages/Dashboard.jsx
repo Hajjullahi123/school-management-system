@@ -608,30 +608,30 @@ const Dashboard = () => {
 
   // Student Dashboard
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       {/* Welcome Header with Photo */}
-      <div className="bg-gradient-to-r from-primary to-primary/80 text-white p-6 rounded-lg shadow-lg">
-        <div className="flex items-center gap-6">
+      <div className="bg-gradient-to-r from-primary to-primary/80 text-white p-3 sm:p-6 rounded-lg shadow-lg">
+        <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
           {studentData?.photoUrl ? (
             <img
               src={`${API_BASE_URL}${studentData.photoUrl}`}
               alt="Student"
-              className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white shadow-lg"
             />
           ) : (
-            <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center text-primary font-bold text-3xl border-4 border-white shadow-lg">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white flex items-center justify-center text-primary font-bold text-2xl sm:text-3xl border-4 border-white shadow-lg">
               {user?.firstName?.[0]}{user?.lastName?.[0]}
             </div>
           )}
-          <div>
-            <h1 className="text-3xl font-bold">
+          <div className="text-center sm:text-left">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">
               Welcome, {user?.firstName}!
             </h1>
             <div className="flex flex-col mt-2 space-y-1">
-              <span className="text-white/90 text-lg">
+              <span className="text-white/90 text-sm sm:text-base lg:text-lg">
                 {studentData?.classModel?.name} {studentData?.classModel?.arm || ''}
               </span>
-              <span className="text-white font-medium bg-white/20 px-3 py-1 rounded-full text-sm w-fit">
+              <span className="text-white font-medium bg-white/20 px-3 py-1 rounded-full text-xs sm:text-sm w-fit mx-auto sm:mx-0">
                 Admission No: {studentData?.admissionNumber || 'N/A'}
               </span>
             </div>
@@ -667,12 +667,12 @@ const Dashboard = () => {
 
 
       {/* Personal Information Card */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Personal Information</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Personal Information</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm">
           <div>
             <p className="text-gray-600">Full Name</p>
-            <p className="font-semibold">{user?.firstName} {user?.lastName}</p>
+            <p className="font-semibold break-words">{user?.firstName} {user?.lastName}</p>
           </div>
           <div>
             <p className="text-gray-600">Date of Birth</p>
@@ -702,76 +702,78 @@ const Dashboard = () => {
       </div>
 
       {/* Fee Status */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Fee Status</h2>
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mb-3 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Fee Status</h2>
         {studentFeeRecord ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-              <p className="text-sm text-blue-600 mb-1">Expected Amount</p>
-              <p className="text-2xl font-bold text-blue-900">₦{studentFeeRecord.expectedAmount?.toLocaleString() || '0'}</p>
+          <div className="grid grid-cols-1 gap-3 sm:gap-6">
+            <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-100">
+              <p className="text-xs sm:text-sm text-blue-600 mb-1">Expected Amount</p>
+              <p className="text-xl sm:text-2xl font-bold text-blue-900">₦{studentFeeRecord.expectedAmount?.toLocaleString() || '0'}</p>
             </div>
-            <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-              <p className="text-sm text-green-600 mb-1">Total Paid</p>
-              <p className="text-2xl font-bold text-green-900">₦{studentFeeRecord.paidAmount?.toLocaleString() || '0'}</p>
+            <div className="bg-green-50 p-3 sm:p-4 rounded-lg border border-green-100">
+              <p className="text-xs sm:text-sm text-green-600 mb-1">Total Paid</p>
+              <p className="text-xl sm:text-2xl font-bold text-green-900">₦{studentFeeRecord.paidAmount?.toLocaleString() || '0'}</p>
             </div>
-            <div className={`p-4 rounded-lg border ${studentFeeRecord.balance > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
-              <p className={`text-sm mb-1 ${studentFeeRecord.balance > 0 ? 'text-red-600' : 'text-gray-600'}`}>Outstanding Balance</p>
-              <p className={`text-2xl font-bold ${studentFeeRecord.balance > 0 ? 'text-red-900' : 'text-gray-900'}`}>
+            <div className={`p-3 sm:p-4 rounded-lg border ${studentFeeRecord.balance > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
+              <p className={`text-xs sm:text-sm mb-1 ${studentFeeRecord.balance > 0 ? 'text-red-600' : 'text-gray-600'}`}>Outstanding Balance</p>
+              <p className={`text-xl sm:text-2xl font-bold ${studentFeeRecord.balance > 0 ? 'text-red-900' : 'text-gray-900'}`}>
                 ₦{studentFeeRecord.balance?.toLocaleString() || '0'}
               </p>
             </div>
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
-            <p>No fee records found for the current term.</p>
+            <p className="text-sm">No fee records found for the current term.</p>
           </div>
         )}
       </div>
 
 
       {/* Recent Results */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Performance</h2>
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Recent Performance</h2>
         {recentResults.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Score</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Position</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {recentResults.map((result, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {result.subject?.name || 'Unknown'}
-                    </td>
-                    <td className="px-6 py-4 text-center text-sm font-bold text-primary">
-                      {result.totalScore?.toFixed(1)}%
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`inline - block px - 3 py - 1 rounded - full text - sm font - semibold ${getGradeColor(result.grade)} `}>
-                        {result.grade}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center text-sm text-gray-600">
-                      {result.positionInClass ? `#${result.positionInClass} ` : '--'}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {result.totalScore >= 40 ? (
-                        <span className="text-green-600 font-semibold">✓ Pass</span>
-                      ) : (
-                        <span className="text-red-600 font-semibold">✗ Fail</span>
-                      )}
-                    </td>
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="inline-block min-w-full px-4 sm:px-0">
+              <table className="min-w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Score</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Position</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {recentResults.map((result, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        {result.subject?.name || 'Unknown'}
+                      </td>
+                      <td className="px-6 py-4 text-center text-sm font-bold text-primary">
+                        {result.totalScore?.toFixed(1)}%
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline - block px - 3 py - 1 rounded - full text - sm font - semibold ${getGradeColor(result.grade)} `}>
+                          {result.grade}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center text-sm text-gray-600">
+                        {result.positionInClass ? `#${result.positionInClass} ` : '--'}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {result.totalScore >= 40 ? (
+                          <span className="text-green-600 font-semibold">✓ Pass</span>
+                        ) : (
+                          <span className="text-red-600 font-semibold">✗ Fail</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">
@@ -783,7 +785,7 @@ const Dashboard = () => {
 
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:gap-4">
         <Link
           to="/dashboard/term-report"
           className="bg-primary text-white p-6 rounded-lg shadow-md hover:brightness-90 transition-colors"

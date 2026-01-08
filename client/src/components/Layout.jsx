@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { FiMenu, FiX } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { api, API_BASE_URL } from '../api';
 import { useSchoolSettings } from '../hooks/useSchoolSettings';
@@ -8,6 +9,7 @@ const Layout = () => {
   const { user, lockDashboard } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     lockDashboard();
@@ -397,10 +399,33 @@ const Layout = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <div
-        className="w-64 text-white shadow-xl flex flex-col transition-colors duration-300 bg-gradient-to-b from-secondary to-primary print:hidden"
+        className={`
+          fixed lg:static inset-y-0 left-0 z-50
+          w-64 text-white shadow-xl flex flex-col transition-all duration-300
+          bg-gradient-to-b from-secondary to-primary print:hidden
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
       >
+        {/* Mobile Close Button */}
+        <div className="lg:hidden absolute top-4 right-4">
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+          >
+            <FiX className="w-6 h-6" />
+          </button>
+        </div>
+
         <div className="p-6 border-b border-white/20">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-lg overflow-hidden">
@@ -433,6 +458,7 @@ const Layout = () => {
             <Link
               key={item.path}
               to={item.path}
+              onClick={() => setSidebarOpen(false)}
               className={`block px-6 py-3 text-white hover:bg-white/10 hover:border-l-4 hover:border-white transition-all duration-200 \${location.pathname === item.path ? 'bg-black/20 border-l-4 border-white' : ''
                 }`}
             >
@@ -448,6 +474,7 @@ const Layout = () => {
           {/* Change Password - Available to ALL users */}
           <Link
             to="/dashboard/change-password"
+            onClick={() => setSidebarOpen(false)}
             className="w-full flex items-center justify-center space-x-2 bg-white/10 hover:bg-white/20 text-white py-2 rounded-md transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -473,25 +500,35 @@ const Layout = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="bg-white shadow-md border-b-4 border-secondary print:hidden">
-          <div className="px-8 py-4">
+          <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
             <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">{schoolName}</h2>
-                <p className="text-sm text-gray-600">{schoolMotto}</p>
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                {/* Mobile Hamburger Menu */}
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <FiMenu className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
+                </button>
+
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-sm sm:text-lg lg:text-2xl font-bold text-gray-800 truncate max-w-[140px] sm:max-w-[250px] lg:max-w-none">{schoolName}</h2>
+                  <p className="text-[10px] sm:text-xs lg:text-sm text-gray-600 truncate max-w-[140px] sm:max-w-[250px] lg:max-w-none">{schoolMotto}</p>
+                </div>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 sm:space-x-4">
                 <div className="text-right hidden md:block">
-                  <p className="text-sm font-semibold text-gray-700">Academic Session</p>
-                  <p className="text-xs text-gray-500">{new Date().getFullYear()}/{new Date().getFullYear() + 1}</p>
+                  <p className="text-xs sm:text-sm font-semibold text-gray-700">Academic Session</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500">{new Date().getFullYear()}/{new Date().getFullYear() + 1}</p>
                 </div>
 
-                <div className="flex items-center space-x-3 pl-4 border-l border-gray-200">
+                <div className="flex items-center space-x-2 sm:space-x-3 pl-2 sm:pl-4 border-l border-gray-200">
                   <div className="text-right hidden sm:block">
-                    <p className="text-sm font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
-                    <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+                    <p className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[100px] sm:max-w-none">{user?.firstName} {user?.lastName}</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 capitalize">{user?.role}</p>
                   </div>
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-lg bg-secondary"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white text-xs sm:text-base font-bold shadow-lg bg-secondary flex-shrink-0"
                   >
                     {user?.firstName?.[0]}{user?.lastName?.[0]}
                   </div>
@@ -502,7 +539,7 @@ const Layout = () => {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-x-auto overflow-y-auto bg-gray-50 p-8 print:p-0 print:bg-white print:overflow-visible">
+        <main className="flex-1 overflow-x-auto overflow-y-auto bg-gray-50 p-3 sm:p-6 lg:p-8 print:p-0 print:bg-white print:overflow-visible">
           <Outlet />
         </main>
 
