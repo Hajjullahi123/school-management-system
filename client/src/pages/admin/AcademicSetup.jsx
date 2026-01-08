@@ -86,6 +86,27 @@ const AcademicSetup = () => {
     }
   };
 
+  const handleDeleteSession = async (id) => {
+    if (!confirm('Are you sure you want to delete this academic session? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await api.delete(`/api/academic-sessions/${id}`);
+      if (response.ok) {
+        alert('Session deleted successfully!');
+        fetchSessions();
+        fetchTerms(); // Refresh terms as they're tied to sessions
+      } else {
+        const error = await response.json();
+        alert('Failed to delete session: ' + (error.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      alert('Failed to delete session. It may have associated terms or data.');
+    }
+  };
+
   // ========== TERMS ==========
   const fetchTerms = async () => {
     try {
@@ -357,6 +378,14 @@ const AcademicSetup = () => {
                           >
                             Edit
                           </button>
+                          {!session.isCurrent && (
+                            <button
+                              onClick={() => handleDeleteSession(session.id)}
+                              className="px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                            >
+                              Delete
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
