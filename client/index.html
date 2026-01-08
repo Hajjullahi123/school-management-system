@@ -20,15 +20,19 @@
   </div>
   <script>
     window.addEventListener('error', function (e) {
-      var msg = '';
-      if (e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) {
-        msg = 'Resource Failed to Load: ' + (e.target.src || e.target.href);
-      } else {
-        msg = 'Global Error: ' + (e.message || JSON.stringify(e));
+      // Ignore image/resource load errors (common and not critical)
+      if (e.target && (e.target.tagName === 'IMG' || e.target.tagName === 'LINK')) {
+        console.warn('Resource failed to load:', e.target.src || e.target.href);
+        return; // Don't show error message for images/links
       }
-      document.body.innerHTML += '<div style="color:white; background:red; padding:20px; border:2px solid black; margin:20px; z-index:9999; position:relative;">' + msg + '</div>';
-      console.error('Captured Error:', e);
-    }, true); // CAUTION: true for useCapture is essential for resource errors
+
+      // Only show critical JavaScript errors
+      if (e.target && e.target.tagName === 'SCRIPT') {
+        var msg = 'Critical Script Failed to Load: ' + (e.target.src || 'inline script');
+        document.body.innerHTML += '<div style="color:white; background:red; padding:20px; border:2px solid black; margin:20px; z-index:9999; position:relative;">' + msg + '</div>';
+        console.error('Critical Error:', e);
+      }
+    }, true);
   </script>
   <script type="module" src="/src/main.jsx"></script>
 </body>
