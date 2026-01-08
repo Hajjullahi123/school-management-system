@@ -32,6 +32,7 @@ import PromotionHistory from './pages/admin/PromotionHistory';
 import AlumniPortal from './pages/AlumniPortal';
 import AlumniDirectory from './pages/AlumniDirectory';
 import AlumniDashboard from './pages/alumni/AlumniDashboard';
+import AlumniLogin from './pages/AlumniLogin';
 
 import BulkResultUpload from './pages/teacher/BulkResultUpload';
 import BulkReportDownload from './pages/teacher/BulkReportDownload';
@@ -82,6 +83,7 @@ function App() {
           <Route path="/gallery" element={<Gallery />} />
           <Route path="/alumni" element={<AlumniPortal />} />
           <Route path="/alumni/directory" element={<AlumniDirectory />} />
+          <Route path="/alumni/login" element={<AlumniLogin />} />
           <Route path="/superadmin" element={<Navigate to="/dashboard/superadmin" replace />} />
 
           {/* 404 Catch-all */}

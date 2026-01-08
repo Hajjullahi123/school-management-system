@@ -82,7 +82,7 @@ const AlumniPortal = () => {
               Search Directory
             </Link>
             <Link
-              to="/school-home"
+              to="/alumni/login"
               className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-primary transition-all transform hover:-translate-y-1"
             >
               Alumni Login
