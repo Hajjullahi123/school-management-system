@@ -462,12 +462,12 @@ const Dashboard = () => {
     const isProfileIncomplete = user?.role === 'teacher' && (!user?.teacher?.photoUrl || !user?.teacher?.specialization);
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-3 sm:space-y-6">
         {/* Welcome Message Section - FIRST */}
-        <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-8 rounded-lg shadow-lg">
-          <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.firstName} {user?.lastName}!</h1>
-          <p className="text-white/90 text-lg">{schoolSettings?.schoolName || user?.school?.name || "School Management"} System</p>
-          <p className="text-white/80 text-sm mt-1">Use the sidebar to navigate to different sections of the system.</p>
+        <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-4 sm:p-6 lg:p-8 rounded-lg shadow-lg">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">Welcome back, {user?.firstName} {user?.lastName}!</h1>
+          <p className="text-white/90 text-sm sm:text-base lg:text-lg">{schoolSettings?.schoolName || user?.school?.name || "School Management"} System</p>
+          <p className="text-white/80 text-xs sm:text-sm mt-1">Use the sidebar to navigate to different sections of the system.</p>
         </div>
 
         {/* Profile Completion Reminder */}
@@ -515,16 +515,16 @@ const Dashboard = () => {
 
         {/* Teacher Assignments Section */}
         {user?.role === 'teacher' && (
-          <div className="bg-white p-6 rounded-lg shadow-md border-t-4 border-primary">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-800">My Assigned Classes</h2>
-              <span className="bg-primary/10 text-primary py-1 px-3 rounded-full text-sm font-semibold">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-t-4 border-primary">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-3 sm:mb-4">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-800">My Assigned Classes</h2>
+              <span className="bg-primary/10 text-primary py-1 px-3 rounded-full text-xs sm:text-sm font-semibold">
                 {assignedClassCount} Classes Assigned
               </span>
             </div>
 
             {teacherAssignments.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {teacherAssignments.map((assignment) => (
                   <Link
                     key={assignment.id}
@@ -564,39 +564,39 @@ const Dashboard = () => {
           </div >
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
           {/* Quick Stats */}
-          <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-primary">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-primary">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Students</p>
-                <p className="text-3xl font-bold text-gray-900">{teacherStats?.totalStudents || 0}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Total Students</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900">{teacherStats?.totalStudents || 0}</p>
               </div>
-              <svg className="w-12 h-12 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-10 h-10 sm:w-12 sm:h-12 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-600">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-blue-600">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Active Classes</p>
-                <p className="text-3xl font-bold text-gray-900">{teacherStats?.activeClasses || 0}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Active Classes</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900">{teacherStats?.activeClasses || 0}</p>
               </div>
-              <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-10 h-10 sm:w-12 sm:h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-600">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-green-600">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Current Session</p>
-                <p className="text-xl font-bold text-gray-900">{currentSession?.name || '...'}</p>
+              <div className="min-w-0 flex-1 pr-2">
+                <p className="text-xs sm:text-sm text-gray-600">Current Session</p>
+                <p className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 truncate">{currentSession?.name || '...'}</p>
               </div>
-              <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-10 h-10 sm:w-12 sm:h-12 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
