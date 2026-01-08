@@ -280,10 +280,10 @@ const Dashboard = () => {
   // Accountant Dashboard
   if (user?.role === 'accountant') {
     return (
-      <div className="space-y-6">
-        <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-6 rounded-lg shadow-lg">
-          <h1 className="text-3xl font-bold">Welcome back, {user?.firstName}!</h1>
-          <p className="text-white/90 mt-2">School Accountant Dashboard</p>
+      <div className="space-y-3 sm:space-y-6">
+        <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-4 sm:p-6 rounded-lg shadow-lg">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Welcome back, {user?.firstName}!</h1>
+          <p className="text-white/90 text-sm sm:text-base mt-2">School Accountant Dashboard</p>
         </div>
 
         {/* Notices Section */}
@@ -313,50 +313,50 @@ const Dashboard = () => {
         {/* Fee Statistics */}
         {feeStats && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-600">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-green-600">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Total Expected</p>
-                    <p className="text-2xl font-bold text-gray-900">₦{feeStats.totalExpected.toLocaleString()}</p>
+                  <div className="min-w-0 flex-1 pr-2">
+                    <p className="text-xs sm:text-sm text-gray-600">Total Expected</p>
+                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">₦{feeStats.totalExpected.toLocaleString()}</p>
                   </div>
-                  <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-600">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-blue-600">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Total Collected</p>
-                    <p className="text-2xl font-bold text-gray-900">₦{feeStats.totalPaid.toLocaleString()}</p>
+                  <div className="min-w-0 flex-1 pr-2">
+                    <p className="text-xs sm:text-sm text-gray-600">Total Collected</p>
+                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">₦{feeStats.totalPaid.toLocaleString()}</p>
                   </div>
-                  <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-orange-600">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-orange-600">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Outstanding</p>
-                    <p className="text-2xl font-bold text-gray-900">₦{feeStats.totalBalance.toLocaleString()}</p>
+                  <div className="min-w-0 flex-1 pr-2">
+                    <p className="text-xs sm:text-sm text-gray-600">Outstanding</p>
+                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">₦{feeStats.totalBalance.toLocaleString()}</p>
                   </div>
-                  <svg className="w-10 h-10 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-orange-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-600">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-purple-600">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Cleared Students</p>
-                    <p className="text-2xl font-bold text-gray-900">{feeStats.clearedStudents}/{feeStats.totalStudents}</p>
+                  <div className="min-w-0 flex-1 pr-2">
+                    <p className="text-xs sm:text-sm text-gray-600">Cleared Students</p>
+                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{feeStats.clearedStudents}/{feeStats.totalStudents}</p>
                   </div>
-                  <svg className="w-10 h-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
@@ -364,39 +364,39 @@ const Dashboard = () => {
             </div>
 
             {/* Payment Breakdown */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Status</h3>
+            <div className="grid grid-cols-1 gap-3 sm:gap-4">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Payment Status</h3>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Fully Paid</span>
-                    <span className="font-bold text-green-600">{feeStats.fullyPaid} students</span>
+                    <span className="text-xs sm:text-sm text-gray-600">Fully Paid</span>
+                    <span className="text-xs sm:text-sm font-bold text-green-600">{feeStats.fullyPaid} students</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Partially Paid</span>
-                    <span className="font-bold text-yellow-600">{feeStats.partiallyPaid} students</span>
+                    <span className="text-xs sm:text-sm text-gray-600">Partially Paid</span>
+                    <span className="text-xs sm:text-sm font-bold text-yellow-600">{feeStats.partiallyPaid} students</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Not Paid</span>
-                    <span className="font-bold text-red-600">{feeStats.notPaid} students</span>
+                    <span className="text-xs sm:text-sm text-gray-600">Not Paid</span>
+                    <span className="text-xs sm:text-sm font-bold text-red-600">{feeStats.notPaid} students</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Clearance Status</h3>
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Clearance Status</h3>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Cleared for Exam</span>
-                    <span className="font-bold text-green-600">{feeStats.clearedStudents}</span>
+                    <span className="text-xs sm:text-sm text-gray-600">Cleared for Exam</span>
+                    <span className="text-xs sm:text-sm font-bold text-green-600">{feeStats.clearedStudents}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Not Cleared</span>
-                    <span className="font-bold text-red-600">{feeStats.unclearedStudents}</span>
+                    <span className="text-xs sm:text-sm text-gray-600">Not Cleared</span>
+                    <span className="text-xs sm:text-sm font-bold text-red-600">{feeStats.unclearedStudents}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Collection Rate</span>
-                    <span className="font-bold text-blue-600">
+                    <span className="text-xs sm:text-sm text-gray-600">Collection Rate</span>
+                    <span className="text-xs sm:text-sm font-bold text-blue-600">
                       {feeStats.totalExpected > 0
                         ? ((feeStats.totalPaid / feeStats.totalExpected) * 100).toFixed(1)
                         : 0}%
@@ -405,9 +405,9 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-primary to-primary/90 text-white p-6 rounded-lg shadow-md">
-                <h3 className="text-lg font-semibold mb-4">Quick Info</h3>
-                <div className="space-y-3 text-sm">
+              <div className="bg-gradient-to-br from-primary to-primary/90 text-white p-4 sm:p-6 rounded-lg shadow-md">
+                <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Quick Info</h3>
+                <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
                   <p className="text-white/90">📊 Total Students: <span className="font-bold text-white">{feeStats.totalStudents}</span></p>
                   <p className="text-white/90">💰 Avg. Payment: <span className="font-bold text-white">
                     ₦{feeStats.totalStudents > 0
@@ -427,28 +427,28 @@ const Dashboard = () => {
         )}
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Link to="/fees" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border-l-4 border-primary">
-            <div className="flex items-center gap-4">
-              <svg className="w-12 h-12 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4">
+          <Link to="/fees" className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border-l-4 border-primary">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <svg className="w-10 h-10 sm:w-12 sm:h-12 text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Fee Management</h3>
-                <p className="text-sm text-gray-600">Manage student payments and clearances</p>
+              <div className="min-w-0">
+                <h3 className="text-base sm:text-lg font-bold text-gray-900">Fee Management</h3>
+                <p className="text-xs sm:text-sm text-gray-600">Manage student payments and clearances</p>
               </div>
             </div>
           </Link>
 
-          <Link to="/fee-structure" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border-l-4 border-blue-600">
-            <div className="flex items-center gap-4">
-              <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <Link to="/fee-structure" className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border-l-4 border-blue-600">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <svg className="w-10 h-10 sm:w-12 sm:h-12 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Fee Structure</h3>
-                <p className="text-sm text-gray-600">Set and manage class fee structures</p>
+              <div className="min-w-0">
+                <h3 className="text-base sm:text-lg font-bold text-gray-900">Fee Structure</h3>
+                <p className="text-xs sm:text-sm text-gray-600">Set and manage class fee structures</p>
               </div>
             </div>
           </Link>
