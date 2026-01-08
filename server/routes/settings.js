@@ -12,13 +12,23 @@ const { optionalAuthenticate } = require('../middleware/auth');
 // Can be accessed via schoolSlug (public) or via auth token (private)
 router.get('/', async (req, res) => {
   try {
-    const { schoolSlug } = req.query;
+    const schoolSlug = req.query.schoolSlug?.trim().toLowerCase();
+    console.log(`Settings request for School Slug: [${schoolSlug}]`);
     let settings;
 
-    if (schoolSlug) {
-      settings = await prisma.school.findUnique({
+    if (schoolSlug && schoolSlug !== 'null' && schoolSlug !== 'undefined') {
+      const fs = require('fs');
+      fs.appendFileSync('server-debug.log', `[${new Date().toISOString()}] Settings request for slug: [${schoolSlug}]\n`);
+
+      settings = await prisma.school.findFirst({
         where: { slug: schoolSlug }
       });
+
+      if (!settings) {
+        fs.appendFileSync('server-debug.log', `[${new Date().toISOString()}] Settings - School NOT FOUND for slug: [${schoolSlug}]\n`);
+      } else {
+        fs.appendFileSync('server-debug.log', `[${new Date().toISOString()}] Settings - School FOUND: ID: ${settings.id}\n`);
+      }
     } else {
       // Try to get from token if no slug (for logged in users)
       const token = req.headers.authorization?.split(' ')[1];
@@ -42,7 +52,7 @@ router.get('/', async (req, res) => {
     }
 
     if (!settings) {
-      return res.status(404).json({ error: 'School not found' });
+      return res.status(404).json({ error: `School domain '${schoolSlug}' not found` });
     }
 
     // Map fields for frontend compatibility if needed
@@ -176,7 +186,7 @@ router.put('/', authenticate, async (req, res) => {
   }
 });
 
-// NEW: Simple Base64 Logo Upload (No multipart!)
+// NEW: Simple Base64 Logo Upload (No multipart!)\n// Updated to store base64 in database to persist across server restarts
 router.post('/logo-base64', authenticate, async (req, res) => {
   console.log('===Base64 logo upload received===');
 
@@ -187,48 +197,19 @@ router.post('/logo-base64', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'No image data provided' });
     }
 
-    // Extract base64 data (remove data:image/png;base64, prefix)
-    const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
-    const buffer = Buffer.from(base64Data, 'base64');
+    // Store the FULL base64 data URL (including prefix) in database
+    // This ensures it persists across server restarts
+    const logoData = imageData; // Keep as data:image/png;base64,xxx format
 
-    // Create uploads directory if it doesn't exist
-    const uploadDir = path.join(__dirname, '..', 'uploads', 'branding');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    // Generate filename
-    const ext = fileName ? path.extname(fileName) : '.png';
-    const filename = `school-${req.schoolId}-logo-${Date.now()}${ext}`;
-    const filepath = path.join(uploadDir, filename);
-
-    // Save file
-    fs.writeFileSync(filepath, buffer);
-
-    const logoUrl = `/uploads/branding/${filename}`;
-
-    // Update database
-    const settings = await prisma.school.findUnique({
-      where: { id: req.schoolId }
-    });
-
-    if (settings && settings.logoUrl) {
-      try {
-        const oldPath = path.join(__dirname, '..', settings.logoUrl);
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
-        }
-      } catch (e) {
-        console.warn('Failed to delete old logo');
-      }
-    }
-
+    // Update database with base64 data
     await prisma.school.update({
       where: { id: req.schoolId },
-      data: { logoUrl }
+      data: {
+        logoUrl: logoData  // Store base64 data URL directly
+      }
     });
 
-    res.json({ success: true, logoUrl });
+    res.json({ success: true, logoUrl: logoData });
 
     // Log the action
     logAction({
@@ -237,7 +218,7 @@ router.post('/logo-base64', authenticate, async (req, res) => {
       action: 'UPDATE',
       resource: 'SCHOOL_LOGO',
       details: {
-        logoUrl
+        method: 'base64_database_storage'
       },
       ipAddress: req.ip
     });
