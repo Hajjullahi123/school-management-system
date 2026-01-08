@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { FiMenu, FiX } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,47 @@ const Layout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [hasQuranAccess, setHasQuranAccess] = useState(false);
+
+  // Check if user has access to Quran features
+  useEffect(() => {
+    const checkQuranAccess = async () => {
+      try {
+        // For teachers: check if they teach Quran
+        if (user?.role === 'teacher') {
+          const response = await api.get(`/api/teacher-assignments/teacher/${user.id}`);
+          if (response.ok) {
+            const assignments = await response.json();
+            const teachesQuran = assignments.some(
+              assignment => assignment.subject?.name?.toLowerCase().includes('quran') ||
+                assignment.subject?.name?.toLowerCase().includes('qur')
+            );
+            setHasQuranAccess(teachesQuran);
+          }
+        }
+
+        // For students: check if their class has Quran as a subject
+        if (user?.role === 'student' && user?.student?.classId) {
+          const response = await api.get(`/api/class-subjects/class/${user.student.classId}`);
+          if (response.ok) {
+            const classSubjects = await response.json();
+            const hasQuran = classSubjects.some(
+              cs => cs.subject?.name?.toLowerCase().includes('quran') ||
+                cs.subject?.name?.toLowerCase().includes('qur')
+            );
+            setHasQuranAccess(hasQuran);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking Quran access:', error);
+        setHasQuranAccess(false);
+      }
+    };
+
+    if (user) {
+      checkQuranAccess();
+    }
+  }, [user]);
 
   const handleLogout = () => {
     lockDashboard();
@@ -17,6 +58,7 @@ const Layout = () => {
   };
 
   const menuItems = [];
+
 
   // Logic-based Dashboard Link
   if (user?.role === 'superadmin') {
@@ -127,15 +169,19 @@ const Layout = () => {
       ),
       label: 'Parent Messages'
     });
-    menuItems.push({
-      path: '/dashboard/quran-tracker',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-        </svg>
-      ),
-      label: 'Qur\'an Tracker'
-    });
+
+    // Only show Quran Tracker for teachers who teach Quran
+    if (hasQuranAccess) {
+      menuItems.push({
+        path: '/dashboard/quran-tracker',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        ),
+        label: 'Qur\'an Tracker'
+      });
+    }
   }
 
   // Add Accountant items
@@ -198,15 +244,19 @@ const Layout = () => {
       ),
       label: 'Online Exams'
     });
-    menuItems.push({
-      path: '/dashboard/quran-progress',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-        </svg>
-      ),
-      label: 'Qur\'an Progress'
-    });
+
+    // Only show Quran Progress for students whose class has Quran subject
+    if (hasQuranAccess) {
+      menuItems.push({
+        path: '/dashboard/quran-progress',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        ),
+        label: 'Qur\'an Progress'
+      });
+    }
   }
 
   // Add Parent items
