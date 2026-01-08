@@ -414,6 +414,7 @@ const Layout = () => {
           w-64 text-white shadow-xl flex flex-col transition-all duration-300
           bg-gradient-to-b from-secondary to-primary print:hidden
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${!sidebarOpen ? 'hidden lg:flex' : 'flex'}
         `}
       >
         {/* Mobile Close Button */}
