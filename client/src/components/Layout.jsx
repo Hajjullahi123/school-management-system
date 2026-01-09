@@ -14,12 +14,14 @@ const Layout = () => {
 
   // Check if user has access to Quran features
   useEffect(() => {
+    let isMounted = true;
+
     const checkQuranAccess = async () => {
       try {
         // For teachers: check if they teach Quran
         if (user?.role === 'teacher') {
           const response = await api.get(`/api/teacher-assignments/teacher/${user.id}`);
-          if (response.ok) {
+          if (response.ok && isMounted) {
             const assignments = await response.json();
             const teachesQuran = assignments.some(
               assignment => assignment.subject?.name?.toLowerCase().includes('quran') ||
@@ -32,7 +34,7 @@ const Layout = () => {
         // For students: check if their class has Quran as a subject
         if (user?.role === 'student' && user?.student?.classId) {
           const response = await api.get(`/api/class-subjects/class/${user.student.classId}`);
-          if (response.ok) {
+          if (response.ok && isMounted) {
             const classSubjects = await response.json();
             const hasQuran = classSubjects.some(
               cs => cs.subject?.name?.toLowerCase().includes('quran') ||
@@ -43,14 +45,20 @@ const Layout = () => {
         }
       } catch (error) {
         console.error('Error checking Quran access:', error);
-        setHasQuranAccess(false);
+        if (isMounted) {
+          setHasQuranAccess(false);
+        }
       }
     };
 
-    if (user) {
+    if (user?.id) {
       checkQuranAccess();
     }
-  }, [user]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id, user?.role, user?.student?.classId]);
 
   const handleLogout = () => {
     lockDashboard();

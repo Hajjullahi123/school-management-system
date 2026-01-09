@@ -31,11 +31,8 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    if (user) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [user, navigate]);
+  // Removed auto-redirect - let handleSubmit handle navigation
+  // This was causing redirect loops
 
   useEffect(() => {
     if (schoolSettings?.slug && !schoolSlug) {
@@ -55,10 +52,11 @@ const Login = () => {
 
       if (result.success) {
         if (result.mustChangePassword) {
-          navigate('/change-password', { replace: true, state: { forced: true } });
+          navigate('/dashboard/change-password', { replace: true, state: { forced: true } });
         } else {
-          // Superadmins skip the landing page and go straight to dashboard
-          const redirectPath = result.role === 'superadmin' ? '/dashboard' : from;
+          // Superadmins go straight to dashboard (they have dashboardUnlocked=true)
+          // Regular users go to school-home (landing page)
+          const redirectPath = result.role === 'superadmin' ? '/dashboard' : '/school-home';
           navigate(redirectPath, { replace: true });
         }
       } else {

@@ -33,7 +33,46 @@ const SuperAdminDashboard = () => {
   const [updatingSettings, setUpdatingSettings] = useState(false);
 
   useEffect(() => {
-    fetchData();
+    let isMounted = true;
+
+    const loadData = async () => {
+      if (!isMounted) return;
+
+      try {
+        setLoading(true);
+        const t = Date.now();
+        const [statsRes, schoolsRes, auditsRes, settingsRes] = await Promise.all([
+          apiCall(`/api/superadmin/stats?t=${t}`),
+          apiCall(`/api/superadmin/schools?t=${t}`),
+          apiCall(`/api/superadmin/audit?limit=10&t=${t}`),
+          apiCall(`/api/superadmin/global-settings?t=${t}`)
+        ]);
+
+        if (!isMounted) return;
+
+        console.log('Fetched SuperAdmin Data:', statsRes.data);
+        setStats(statsRes.data);
+        setSchools(schoolsRes.data);
+        setAudits(auditsRes.data.logs);
+        if (settingsRes.data) {
+          setGlobalSettings(settingsRes.data);
+        }
+      } catch (error) {
+        if (isMounted) {
+          toast.error('Failed to fetch global data');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const fetchData = async () => {

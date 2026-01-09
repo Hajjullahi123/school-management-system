@@ -63,7 +63,7 @@ const ChangePassword = () => {
         if (isForced) {
           setMessage({ type: 'success', text: 'Password changed successfully! Redirecting you to the portal...' });
           setTimeout(() => {
-            navigate('/', { replace: true });
+            navigate('/school-home', { replace: true });
           }, 2000);
         } else {
           setMessage({ type: 'success', text: 'Password changed successfully!' });

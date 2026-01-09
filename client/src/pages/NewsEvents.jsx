@@ -49,7 +49,7 @@ const NewsEvents = () => {
       <div className="bg-gradient-to-r from-primary to-secondary text-white py-16">
         <div className="max-w-7xl mx-auto px-4">
           <button
-            onClick={() => navigate('/landing')}
+            onClick={() => navigate('/school-home')}
             className="mb-4 flex items-center text-white/80 hover:text-white transition-colors"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,7 +166,7 @@ const NewsEvents = () => {
           <h2 className="text-3xl font-bold mb-4">Stay Connected</h2>
           <p className="text-white/90 mb-6">Don't miss out on important updates and events</p>
           <button
-            onClick={() => navigate('/landing')}
+            onClick={() => navigate('/school-home')}
             className="bg-white text-primary px-8 py-3 rounded-md font-medium hover:bg-gray-100 transition-colors"
           >
             Back to Home

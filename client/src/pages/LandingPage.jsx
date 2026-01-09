@@ -210,11 +210,11 @@ const LandingPage = () => {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                 Logout / Switch
               </button>
-              <Link to="/dashboard" className={`font-semibold text-sm transition-colors ${isScrolled ? 'text-gray-600 hover:text-primary' : 'text-white hover:text-white/80'
+              <Link to="/verify-dashboard" className={`font-semibold text-sm transition-colors ${isScrolled ? 'text-gray-600 hover:text-primary' : 'text-white hover:text-white/80'
                 }`}>
                 Personal Dashboard
               </Link>
-              <Link to="/dashboard" className={`px-6 py-3 rounded-full font-bold text-sm shadow-xl transition-all transform hover:-translate-y-1 active:scale-95 ${isScrolled ? 'bg-primary text-white hover:brightness-90' : 'bg-white text-primary hover:bg-gray-100'
+              <Link to="/verify-dashboard" className={`px-6 py-3 rounded-full font-bold text-sm shadow-xl transition-all transform hover:-translate-y-1 active:scale-95 ${isScrolled ? 'bg-primary text-white hover:brightness-90' : 'bg-white text-primary hover:bg-gray-100'
                 }`}>
                 Enter Portal
               </Link>
@@ -261,7 +261,7 @@ const LandingPage = () => {
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-6">
               <Link
-                to="/dashboard"
+                to="/verify-dashboard"
                 className="px-10 py-5 bg-primary text-white font-black rounded-2xl shadow-[0_20px_50px_rgba(15,118,110,0.3)] hover:brightness-110 transition-all transform hover:-translate-y-2 text-lg uppercase tracking-wider active:scale-95"
               >
                 Go to My Dashboard
@@ -500,7 +500,7 @@ const LandingPage = () => {
           {/* View All Button */}
           <div className="text-center mt-12">
             <Link
-              to="/dashboard"
+              to="/verify-dashboard"
               className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-full shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300"
             >
               <span>View All Top Performers</span>
@@ -549,7 +549,7 @@ const LandingPage = () => {
               Join thousands of students and parents already experiencing the future of education management.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-6">
-              <Link to="/dashboard" className="px-10 py-5 bg-white text-gray-900 font-black rounded-2xl hover:bg-gray-100 transition-all transform hover:-translate-y-2 uppercase tracking-widest active:scale-95">
+              <Link to="/verify-dashboard" className="px-10 py-5 bg-white text-gray-900 font-black rounded-2xl hover:bg-gray-100 transition-all transform hover:-translate-y-2 uppercase tracking-widest active:scale-95">
                 Go to Dashboard
               </Link>
               <button className="px-10 py-5 bg-transparent border-2 border-white/20 text-white font-black rounded-2xl hover:bg-white/5 transition-all transform hover:-translate-y-2 uppercase tracking-widest active:scale-95">
@@ -726,9 +726,9 @@ const LandingPage = () => {
             <div>
               <h4 className="text-lg font-bold text-white mb-6 border-b border-gray-700 pb-2 inline-block">Quick Links</h4>
               <ul className="space-y-3">
-                <li><Link to="/dashboard" className="text-gray-400 hover:text-primary hover:translate-x-1 transition-all duration-200 block">Student Dashboard</Link></li>
-                <li><Link to="/dashboard" className="text-gray-400 hover:text-primary hover:translate-x-1 transition-all duration-200 block">Staff Dashboard</Link></li>
-                <li><Link to="/dashboard" className="text-gray-400 hover:text-primary hover:translate-x-1 transition-all duration-200 block">Parent Dashboard</Link></li>
+                <li><Link to="/verify-dashboard" className="text-gray-400 hover:text-primary hover:translate-x-1 transition-all duration-200 block">Student Dashboard</Link></li>
+                <li><Link to="/verify-dashboard" className="text-gray-400 hover:text-primary hover:translate-x-1 transition-all duration-200 block">Staff Dashboard</Link></li>
+                <li><Link to="/verify-dashboard" className="text-gray-400 hover:text-primary hover:translate-x-1 transition-all duration-200 block">Parent Dashboard</Link></li>
                 <li><a href="#" className="text-gray-400 hover:text-primary hover:translate-x-1 transition-all duration-200 block">Admission Guide</a></li>
                 <li><Link to="/gallery" className="text-gray-400 hover:text-primary hover:translate-x-1 transition-all duration-200 block">School Gallery</Link></li>
               </ul>

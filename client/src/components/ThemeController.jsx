@@ -40,7 +40,7 @@ const ThemeController = () => {
       applyColor('--color-secondary', settings.secondaryColor);
       applyColor('--color-accent', settings.accentColor);
     }
-  }, [settings, loading]);
+  }, [settings?.primaryColor, settings?.secondaryColor, settings?.accentColor, loading]);
 
   return null;
 };

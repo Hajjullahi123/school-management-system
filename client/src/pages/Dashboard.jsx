@@ -13,9 +13,9 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (user?.role === 'superadmin') {
-      navigate('/superadmin', { replace: true });
+      navigate('/dashboard/superadmin', { replace: true });
     } else if (user?.role === 'admin' && schoolSettings && !schoolSettings.isSetupComplete) {
-      navigate('/settings', { replace: true });
+      navigate('/dashboard/settings', { replace: true });
     }
   }, [user, navigate, schoolSettings]);
   const [recentResults, setRecentResults] = useState([]);

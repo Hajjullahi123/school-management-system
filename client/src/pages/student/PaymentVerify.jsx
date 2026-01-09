@@ -65,7 +65,7 @@ const PaymentVerify = () => {
             <h2 className="text-2xl font-bold text-green-600">Payment Successful!</h2>
             <p className="text-gray-600 mt-2 mb-6">{message}</p>
             <button
-              onClick={() => navigate('/student/fees')}
+              onClick={() => navigate('/dashboard/student/fees')}
               className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
             >
               Return to Fees
@@ -81,7 +81,7 @@ const PaymentVerify = () => {
             <h2 className="text-2xl font-bold text-red-600">Payment Failed</h2>
             <p className="text-gray-600 mt-2 mb-6">{message}</p>
             <button
-              onClick={() => navigate('/student/fees')}
+              onClick={() => navigate('/dashboard/student/fees')}
               className="px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
             >
               Return to Fees

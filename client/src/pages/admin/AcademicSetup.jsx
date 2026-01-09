@@ -29,9 +29,44 @@ const AcademicSetup = () => {
   const [savingWeights, setSavingWeights] = useState(false);
 
   useEffect(() => {
-    fetchSessions();
-    fetchTerms();
-    fetchSchoolSettings();
+    let isMounted = true;
+
+    const loadData = async () => {
+      if (!isMounted) return;
+
+      try {
+        // Fetch sessions
+        const sessionsRes = await api.get('/api/academic-sessions');
+        const sessionsData = await sessionsRes.json();
+        if (isMounted) setSessions(sessionsData);
+
+        // Fetch terms
+        const termsRes = await api.get('/api/terms');
+        const termsData = await termsRes.json();
+        if (isMounted) setTerms(termsData);
+
+        // Fetch settings
+        const settingsRes = await api.get('/api/settings');
+        const settingsData = await settingsRes.json();
+        if (isMounted) {
+          setSchoolSettings({
+            assignment1Weight: settingsData.assignment1Weight || 5,
+            assignment2Weight: settingsData.assignment2Weight || 5,
+            test1Weight: settingsData.test1Weight || 10,
+            test2Weight: settingsData.test2Weight || 10,
+            examWeight: settingsData.examWeight || 70
+          });
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // ========== ACADEMIC SESSIONS ==========

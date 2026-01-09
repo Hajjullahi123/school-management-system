@@ -17,15 +17,25 @@ router.post('/login', async (req, res) => {
     username = username.trim();
     password = password.trim();
     schoolSlug = schoolSlug.trim().toLowerCase();
+    const fs = require('fs');
+    const logPath = 'C:\\Users\\IT-LAB\\School Mn\\server\\auth-debug.log';
+    fs.appendFileSync(logPath, `[${new Date().toISOString()}] Login attempt - username: [${username}], schoolSlug: [${schoolSlug}], origin: ${req.headers.origin}\n`);
+
+    if (schoolSlug === 'null' || schoolSlug === 'undefined') {
+      return res.status(400).json({ error: 'Invalid school domain' });
+    }
 
     // 1. Find school by slug
-    const school = await prisma.school.findUnique({
+    const school = await prisma.school.findFirst({
       where: { slug: schoolSlug }
     });
 
     if (!school) {
-      return res.status(404).json({ error: 'School not found' });
+      fs.appendFileSync(logPath, `[${new Date().toISOString()}] School NOT FOUND for slug: [${schoolSlug}]\n`);
+      console.log(`School not found for slug: [${schoolSlug}]`);
+      return res.status(404).json({ error: `School domain '${schoolSlug}' not found` });
     }
+    fs.appendFileSync(logPath, `[${new Date().toISOString()}] School FOUND: ID: ${school.id}, Slug: ${school.slug}\n`);
 
     // Check if school is activated
     if (!school.isActivated) {

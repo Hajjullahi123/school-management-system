@@ -14,13 +14,28 @@ const ProtectedRoute = ({ children, roles = [] }) => {
     );
   }
 
+  // If user is null but token exists, keep showing loading
+  // This prevents redirect during navigation race condition
+  if (!user && localStorage.getItem('token')) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Double Auth Check for Dashboard
-  // We use /verify-dashboard to avoid the startsWith('/dashboard') check triggering an infinite loop
-  if (location.pathname.startsWith('/dashboard') && !dashboardUnlocked) {
+  // Exclude /verify-dashboard itself from this check to avoid infinite loop
+  // Also exclude /dashboard/change-password to allow users to change password even if dashboard is locked
+  const isDashboardPath = location.pathname.startsWith('/dashboard');
+  const isVerifyPath = location.pathname === '/verify-dashboard';
+  const isChangePasswordPath = location.pathname === '/dashboard/change-password';
+
+  if (isDashboardPath && !isVerifyPath && !isChangePasswordPath && !dashboardUnlocked) {
     return <Navigate to="/verify-dashboard" state={{ from: location }} replace />;
   }
 

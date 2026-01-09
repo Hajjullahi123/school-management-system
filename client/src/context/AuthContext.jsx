@@ -10,49 +10,65 @@ export const AuthProvider = ({ children }) => {
   const [dashboardUnlocked, setDashboardUnlocked] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        console.log('Checking auth, token:', token ? 'exists' : 'missing');
+
+        if (!token) {
+          if (isMounted) {
+            console.log('No token found, setting user to null');
+            setUser(null);
+            setDashboardUnlocked(false);
+            setLoading(false);
+          }
+          return;
+        }
+
+        const response = await api.get('/api/auth/me');
+
+        console.log('Auth check response status:', response.status);
+
+        if (response.ok) {
+          const userData = await response.json();
+          if (isMounted) {
+            console.log('User authenticated:', userData.role);
+            setUser(userData);
+
+            // Restore dashboard unlocked state from session storage
+            const isUnlocked = sessionStorage.getItem('dashboardUnlocked') === 'true';
+            setDashboardUnlocked(isUnlocked);
+          }
+        } else {
+          if (isMounted) {
+            console.log('Auth check failed, clearing token');
+            setUser(null);
+            setDashboardUnlocked(false);
+            localStorage.removeItem('token');
+            sessionStorage.removeItem('dashboardUnlocked');
+          }
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error('Auth check error:', error);
+          setUser(null);
+          setDashboardUnlocked(false);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
     checkAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
-
-  const checkAuth = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      console.log('Checking auth, token:', token ? 'exists' : 'missing');
-
-      if (!token) {
-        console.log('No token found, setting user to null');
-        setUser(null);
-        setDashboardUnlocked(false);
-        setLoading(false);
-        return;
-      }
-
-      const response = await api.get('/api/auth/me');
-
-      console.log('Auth check response status:', response.status);
-
-      if (response.ok) {
-        const userData = await response.json();
-        console.log('User authenticated:', userData.role);
-        setUser(userData);
-
-        // Restore dashboard unlocked state from session storage
-        const isUnlocked = sessionStorage.getItem('dashboardUnlocked') === 'true';
-        setDashboardUnlocked(isUnlocked);
-      } else {
-        console.log('Auth check failed, clearing token');
-        setUser(null);
-        setDashboardUnlocked(false);
-        localStorage.removeItem('token');
-        sessionStorage.removeItem('dashboardUnlocked');
-      }
-    } catch (error) {
-      console.error('Auth check error:', error);
-      setUser(null);
-      setDashboardUnlocked(false);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const login = async (username, password, schoolSlug) => {
     try {

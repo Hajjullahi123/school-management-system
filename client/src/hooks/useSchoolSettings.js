@@ -23,6 +23,8 @@ export const useSchoolSettings = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchSettings = async () => {
       try {
         // Get slug from URL or localStorage or default to 'default'
@@ -33,7 +35,7 @@ export const useSchoolSettings = () => {
         const response = await api.get(endpoint);
         const data = await response.json();
 
-        if (response.ok && data) {
+        if (response.ok && data && isMounted) {
           setSettings({
             schoolId: data.id,
             schoolName: data.schoolName || data.name || "School Management",
@@ -64,15 +66,24 @@ export const useSchoolSettings = () => {
             isSetupComplete: data.isSetupComplete ?? true
           });
         }
-        setLoading(false);
+
+        if (isMounted) {
+          setLoading(false);
+        }
       } catch (err) {
         console.error('Error fetching school settings:', err);
-        setError(err);
-        setLoading(false);
+        if (isMounted) {
+          setError(err);
+          setLoading(false);
+        }
       }
     };
 
     fetchSettings();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return { settings, loading, error };

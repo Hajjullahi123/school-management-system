@@ -27,13 +27,16 @@ const DashboardLogin = () => {
       const result = await unlockDashboard(password);
 
       if (result.success) {
-        navigate(from, { replace: true });
+        // Small delay to allow AuthContext state to propagate
+        setTimeout(() => {
+          navigate(from, { replace: true });
+        }, 100);
       } else {
         setError(result.error);
+        setLoading(false);
       }
     } catch (err) {
       setError('Verification failed');
-    } finally {
       setLoading(false);
     }
   };
