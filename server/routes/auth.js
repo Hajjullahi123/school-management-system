@@ -37,10 +37,6 @@ router.post('/login', async (req, res) => {
     }
     fs.appendFileSync(logPath, `[${new Date().toISOString()}] School FOUND: ID: ${school.id}, Slug: ${school.slug}\n`);
 
-    // Check if school is activated
-    if (!school.isActivated) {
-      return res.status(403).json({ error: 'This school portal is currently deactivated. Please contact the system administrator.' });
-    }
 
     // 2. Find user by username OR admissionNumber (for students) OR email
     let user = await prisma.user.findUnique({
@@ -99,6 +95,11 @@ router.post('/login', async (req, res) => {
     if (!user) {
       console.log('Login failed: User not found');
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Check if school is activated (Exempt SuperAdmins)
+    if (user.role !== 'superadmin' && !school.isActivated) {
+      return res.status(403).json({ error: 'This school portal is currently deactivated. Please contact the system administrator.' });
     }
 
     if (!user.isActive) {
