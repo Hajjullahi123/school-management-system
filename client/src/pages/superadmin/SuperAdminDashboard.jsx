@@ -44,7 +44,7 @@ const SuperAdminDashboard = () => {
         const [statsRes, schoolsRes, auditsRes, settingsRes] = await Promise.all([
           apiCall(`/api/superadmin/stats?t=${t}`),
           apiCall(`/api/superadmin/schools?t=${t}`),
-          apiCall(`/api/superadmin/audit?limit=10&t=${t}`),
+          apiCall(`/api/superadmin/audit?limit=50&t=${t}`),
           apiCall(`/api/superadmin/global-settings?t=${t}`)
         ]);
 
@@ -82,7 +82,7 @@ const SuperAdminDashboard = () => {
       const [statsRes, schoolsRes, auditsRes, settingsRes] = await Promise.all([
         apiCall(`/api/superadmin/stats?t=${t}`),
         apiCall(`/api/superadmin/schools?t=${t}`),
-        apiCall(`/api/superadmin/audit?limit=10&t=${t}`),
+        apiCall(`/api/superadmin/audit?limit=50&t=${t}`),
         apiCall(`/api/superadmin/global-settings?t=${t}`)
       ]);
       console.log('Fetched SuperAdmin Data:', statsRes.data);
@@ -621,6 +621,90 @@ const SuperAdminDashboard = () => {
                     Updating these links affects the **Primary Login Gateway**. Changes are reflected immediately for all users system-wide. Ensure links are full absolute URLs starting with **https://**.
                   </p>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'audits' && (
+            <div className="animate-in slide-in-from-right-5 duration-500">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">System-Wide Activity Log</h3>
+                  <p className="text-xs text-gray-500">Real-time chronicle of all administrative actions across the platform</p>
+                </div>
+                <button
+                  onClick={fetchData}
+                  className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all text-gray-600"
+                  title="Refresh Logs"
+                >
+                  <FiActivity className={loading ? 'animate-pulse' : ''} />
+                </button>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="bg-gray-50/80 border-b border-gray-100 uppercase text-[10px] font-bold text-gray-500 tracking-widest">
+                      <th className="px-6 py-4">Timestamp</th>
+                      <th className="px-6 py-4">Actor</th>
+                      <th className="px-6 py-4">School</th>
+                      <th className="px-6 py-4">Action Type</th>
+                      <th className="px-6 py-4">Resource</th>
+                      <th className="px-6 py-4 text-right">IP Address</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {audits && audits.length > 0 ? (
+                      audits.map((log) => (
+                        <tr key={log.id} className="hover:bg-indigo-50/30 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-gray-700">{new Date(log.createdAt).toLocaleDateString()}</span>
+                              <span className="text-[10px] text-gray-400 font-medium lowercase">{new Date(log.createdAt).toLocaleTimeString()}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-black text-gray-600 border border-gray-200">
+                                {log.user?.firstName?.[0] || 'S'}
+                              </div>
+                              <div>
+                                <p className="font-bold text-gray-800">{log.user ? `${log.user.firstName} ${log.user.lastName}` : 'System'}</p>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase">{log.user?.role || 'Service'}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                              {log.school?.name || 'Central Platform'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-tighter ${log.action === 'CREATE' ? 'bg-emerald-100 text-emerald-700' :
+                              log.action === 'DELETE' ? 'bg-rose-100 text-rose-700' :
+                                'bg-amber-100 text-amber-700'
+                              }`}>
+                              {log.action}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <code className="text-[11px] font-bold text-gray-500">{log.resource}</code>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <span className="text-[10px] font-mono text-gray-400">{log.ipAddress || '—'}</span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="6" className="px-6 py-20 text-center">
+                          <FiShield className="w-12 h-12 mx-auto text-gray-200 mb-3" />
+                          <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">No activity records found</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
