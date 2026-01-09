@@ -77,6 +77,9 @@ const DashboardLogin = () => {
             )}
 
             <div>
+              {/* Accessibility: Hidden username for password managers */}
+              <input type="text" name="username" autoComplete="username" value={usernameDisplay} readOnly className="hidden" />
+
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
               </label>

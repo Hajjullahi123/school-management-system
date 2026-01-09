@@ -43,7 +43,7 @@ export const useSchoolSettings = () => {
             schoolAddress: data.schoolAddress || data.address || "",
             schoolPhone: data.schoolPhone || data.phone || "",
             schoolEmail: data.schoolEmail || data.email || "",
-            logoUrl: data.logoUrl ? `${API_BASE_URL}${data.logoUrl}` : null,
+            logoUrl: data.logoUrl ? (data.logoUrl.startsWith('data:') || data.logoUrl.startsWith('http') ? data.logoUrl : `${API_BASE_URL}${data.logoUrl}`) : null,
             primaryColor: data.primaryColor || '#0f766e',
             secondaryColor: data.secondaryColor || '#0d9488',
             accentColor: data.accentColor || '#14b8a6',
