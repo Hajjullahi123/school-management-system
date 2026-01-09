@@ -80,6 +80,9 @@ router.post('/setup', authenticate, authorize(['admin', 'accountant']), async (r
     let createdCount = 0;
 
     for (const student of students) {
+      // Respect scholarship status
+      const expectedForThisStudent = student.isScholarship ? 0 : parseFloat(amount);
+
       // Check if fee record exists
       const existingRecord = await prisma.feeRecord.findUnique({
         where: {
@@ -95,12 +98,12 @@ router.post('/setup', authenticate, authorize(['admin', 'accountant']), async (r
       if (existingRecord) {
         // Update expected amount and balance
         // We preserve the paidAmount
-        const newBalance = parseFloat(amount) - existingRecord.paidAmount;
+        const newBalance = expectedForThisStudent - existingRecord.paidAmount;
 
         await prisma.feeRecord.update({
           where: { id: existingRecord.id },
           data: {
-            expectedAmount: parseFloat(amount),
+            expectedAmount: expectedForThisStudent,
             balance: newBalance
           }
         });
@@ -113,9 +116,9 @@ router.post('/setup', authenticate, authorize(['admin', 'accountant']), async (r
             studentId: student.id,
             termId: parseInt(termId),
             academicSessionId: parseInt(academicSessionId),
-            expectedAmount: parseFloat(amount),
+            expectedAmount: expectedForThisStudent,
             paidAmount: 0,
-            balance: parseFloat(amount),
+            balance: expectedForThisStudent,
             isClearedForExam: true
           }
         });

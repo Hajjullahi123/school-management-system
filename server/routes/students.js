@@ -727,15 +727,16 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
         });
 
         if (feeStructure) {
+          const expectedAmount = isScholarship === 'true' || isScholarship === true ? 0 : feeStructure.amount;
           await prisma.feeRecord.create({
             data: {
               schoolId: req.schoolId,
               studentId: student.id,
               termId: currentTerm.id,
               academicSessionId: currentTerm.academicSessionId,
-              expectedAmount: feeStructure.amount,
+              expectedAmount,
               paidAmount: 0,
-              balance: feeStructure.amount,
+              balance: expectedAmount,
               isClearedForExam: true
             }
           });
@@ -922,6 +923,57 @@ router.put('/:id', authenticate, authorize(['admin', 'accountant']), async (req,
         classModel: true
       }
     });
+
+    // Sync fee record if scholarship status changed
+    if (isScholarship !== undefined) {
+      const isScholarshipBool = isScholarship === 'true' || isScholarship === true;
+      const currentTerm = await prisma.term.findFirst({
+        where: { isCurrent: true, schoolId: req.schoolId }
+      });
+
+      if (currentTerm) {
+        const feeRecord = await prisma.feeRecord.findUnique({
+          where: {
+            schoolId_studentId_termId_academicSessionId: {
+              schoolId: req.schoolId,
+              studentId: studentId,
+              termId: currentTerm.id,
+              academicSessionId: currentTerm.academicSessionId
+            }
+          }
+        });
+
+        if (feeRecord) {
+          let newExpected = feeRecord.expectedAmount;
+          if (isScholarshipBool) {
+            newExpected = 0;
+          } else {
+            // If removed from scholarship, get class fee structure
+            const feeStructure = await prisma.classFeeStructure.findFirst({
+              where: {
+                classId: updatedStudent.classId,
+                termId: currentTerm.id,
+                academicSessionId: currentTerm.academicSessionId,
+                schoolId: req.schoolId
+              }
+            });
+            if (feeStructure) {
+              newExpected = feeStructure.amount;
+            }
+          }
+
+          if (newExpected !== feeRecord.expectedAmount) {
+            await prisma.feeRecord.update({
+              where: { id: feeRecord.id },
+              data: {
+                expectedAmount: newExpected,
+                balance: newExpected - feeRecord.paidAmount
+              }
+            });
+          }
+        }
+      }
+    }
 
     res.json({
       message: 'Student updated successfully',
