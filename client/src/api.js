@@ -6,7 +6,8 @@ import { API_BASE_URL } from './config';
 // Helper function to make API calls
 export const apiCall = async (endpoint, options = {}) => {
   // Ensure no double slashes when joining base URL and endpoint
-  const baseURL = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+  const rawBase = API_BASE_URL || window.location.origin;
+  const baseURL = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${baseURL}${path}`;
 
@@ -62,91 +63,42 @@ export const apiCall = async (endpoint, options = {}) => {
 };
 
 // Convenience methods
+// These return the raw fetch Promise (Response object) for components that handle status/json themselves
 export const api = {
   get: async (endpoint, options = {}) => {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const baseURL = API_BASE_URL || window.location.origin;
+    const url = `${baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
     const token = localStorage.getItem('token');
-
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return fetch(url, {
-      ...options,
-      method: 'GET',
-      headers,
-      credentials: 'include'
-    });
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(url, { ...options, method: 'GET', headers, credentials: 'include' });
   },
 
   post: async (endpoint, data, options = {}) => {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const baseURL = API_BASE_URL || window.location.origin;
+    const url = `${baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
     const token = localStorage.getItem('token');
-
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return fetch(url, {
-      ...options,
-      method: 'POST',
-      headers,
-      credentials: 'include',
-      body: JSON.stringify(data)
-    });
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(url, { ...options, method: 'POST', headers, credentials: 'include', body: JSON.stringify(data) });
   },
 
   put: async (endpoint, data, options = {}) => {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const baseURL = API_BASE_URL || window.location.origin;
+    const url = `${baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
     const token = localStorage.getItem('token');
-
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return fetch(url, {
-      ...options,
-      method: 'PUT',
-      headers,
-      credentials: 'include',
-      body: JSON.stringify(data)
-    });
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(url, { ...options, method: 'PUT', headers, credentials: 'include', body: JSON.stringify(data) });
   },
 
   delete: async (endpoint, options = {}) => {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const baseURL = API_BASE_URL || window.location.origin;
+    const url = `${baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
     const token = localStorage.getItem('token');
-
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return fetch(url, {
-      ...options,
-      method: 'DELETE',
-      headers,
-      credentials: 'include'
-    });
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(url, { ...options, method: 'DELETE', headers, credentials: 'include' });
   }
 };
 

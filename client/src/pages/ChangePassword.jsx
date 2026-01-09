@@ -173,6 +173,7 @@ const ChangePassword = () => {
               </label>
               <input
                 type="password"
+                autoComplete="current-password"
                 value={formData.currentPassword}
                 onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
                 className="w-full border border-gray-300 rounded-md px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -188,6 +189,7 @@ const ChangePassword = () => {
               </label>
               <input
                 type="password"
+                autoComplete="new-password"
                 value={formData.newPassword}
                 onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
                 className="w-full border border-gray-300 rounded-md px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -224,6 +226,7 @@ const ChangePassword = () => {
               </label>
               <input
                 type="password"
+                autoComplete="new-password"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 className="w-full border border-gray-300 rounded-md px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent"

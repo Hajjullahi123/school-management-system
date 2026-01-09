@@ -728,6 +728,7 @@ const Settings = () => {
                     <input
                       type="password"
                       name="paystackSecretKey"
+                      autoComplete="new-password"
                       value={settings.paystackSecretKey}
                       onChange={handleInputChange}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
@@ -758,6 +759,7 @@ const Settings = () => {
                     <input
                       type="password"
                       name="flutterwaveSecretKey"
+                      autoComplete="new-password"
                       value={settings.flutterwaveSecretKey}
                       onChange={handleInputChange}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
@@ -902,6 +904,7 @@ const Settings = () => {
                   <input
                     type="password"
                     name="emailPassword"
+                    autoComplete="new-password"
                     value={settings.emailPassword || ''}
                     onChange={handleInputChange}
                     placeholder="••••••••••••••••"
@@ -984,6 +987,7 @@ const Settings = () => {
                   <input
                     type="password"
                     name="smsApiKey"
+                    autoComplete="new-password"
                     value={settings.smsApiKey || ''}
                     onChange={handleInputChange}
                     placeholder="Your AT API Key"
