@@ -13,6 +13,7 @@ const CBTPortal = () => {
   const [activeExam, setActiveExam] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({}); // { questionId: optionId }
+  const [flaggedQuestions, setFlaggedQuestions] = useState({}); // { questionId: boolean }
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0); // in seconds
   const [submissionResult, setSubmissionResult] = useState(null);
@@ -38,6 +39,19 @@ const CBTPortal = () => {
   };
 
   const handleStartExam = async (examId) => {
+    const examToStart = exams.find(e => e.id === examId);
+    const now = new Date();
+
+    if (examToStart?.startDate && new Date(examToStart.startDate) > now) {
+      toast.error(`This exam has not started yet. It starts at ${new Date(examToStart.startDate).toLocaleString()}`);
+      return;
+    }
+
+    if (examToStart?.endDate && new Date(examToStart.endDate) < now) {
+      toast.error('This exam has expired and can no longer be taken.');
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await api.get(`/api/cbt/${examId}`);
@@ -52,14 +66,17 @@ const CBTPortal = () => {
       // Prepare exam state
       setActiveExam(data);
 
-      // Parse questions options
-      const parsedQuestions = data.questions.map(q => ({
-        ...q,
-        options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options
-      }));
-      setQuestions(parsedQuestions);
+      // Parse and Randomize questions
+      const shuffledQuestions = data.questions.map(q => {
+        const options = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+        // Shuffle options
+        const shuffledOptions = [...options].sort(() => Math.random() - 0.5);
+        return { ...q, options: shuffledOptions };
+      }).sort(() => Math.random() - 0.5); // Shuffle questions
 
+      setQuestions(shuffledQuestions);
       setAnswers({});
+      setFlaggedQuestions({});
       setCurrentQuestionIndex(0);
       setTimeLeft(data.durationMinutes * 60);
       setView('taking');
@@ -91,6 +108,13 @@ const CBTPortal = () => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: optionId
+    }));
+  };
+
+  const handleToggleFlag = (questionId) => {
+    setFlaggedQuestions(prev => ({
+      ...prev,
+      [questionId]: !prev[questionId]
     }));
   };
 
@@ -133,9 +157,6 @@ const CBTPortal = () => {
 
   // VIEW: Exam Result
   if (view === 'result' && submissionResult) {
-    const percentage = Math.round((submissionResult.score / (submissionResult.totalQuestions * 1)) * 100); // Assuming 1 point per q approx, but score is accurate from backend
-    // Or better: (submissionResult.score / activeExam.totalMarks) if we had ActiveExam. 
-    // Actually simplicity:
     const scorePercentage = Math.round((submissionResult.correctAnswers / submissionResult.totalQuestions) * 100);
 
     return (
@@ -184,7 +205,6 @@ const CBTPortal = () => {
   // VIEW: Taking Exam
   if (view === 'taking' && activeExam) {
     const currentQ = questions[currentQuestionIndex];
-    const isAnswered = !!answers[currentQ.id];
 
     return (
       <div className="flex flex-col h-[calc(100vh-100px)]">
@@ -232,7 +252,7 @@ const CBTPortal = () => {
                 <button
                   key={q.id}
                   onClick={() => setCurrentQuestionIndex(idx)}
-                  className={`h-10 w-10 text-sm font-medium rounded-lg flex items-center justify-center transition-colors ${currentQuestionIndex === idx
+                  className={`h-10 w-10 text-sm font-medium rounded-lg flex items-center justify-center transition-colors relative ${currentQuestionIndex === idx
                     ? 'bg-primary text-white ring-2 ring-primary/30'
                     : answers[q.id]
                       ? 'bg-primary-100 text-primary-700 border border-primary-200'
@@ -240,6 +260,12 @@ const CBTPortal = () => {
                     }`}
                 >
                   {idx + 1}
+                  {flaggedQuestions[q.id] && (
+                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -250,7 +276,21 @@ const CBTPortal = () => {
             <div className="max-w-3xl mx-auto">
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 min-h-[400px] flex flex-col">
                 <div className="flex-1">
-                  <span className="text-sm font-bold text-primary mb-2 block">Question {currentQuestionIndex + 1} of {questions.length}</span>
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-sm font-bold text-primary block">Question {currentQuestionIndex + 1} of {questions.length}</span>
+                    <button
+                      onClick={() => handleToggleFlag(currentQ.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${flaggedQuestions[currentQ.id]
+                        ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-amber-50 hover:text-amber-600'
+                        }`}
+                    >
+                      <svg className={`w-3.5 h-3.5 ${flaggedQuestions[currentQ.id] ? 'fill-current' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                      </svg>
+                      {flaggedQuestions[currentQ.id] ? 'Flagged for Review' : 'Flag for Review'}
+                    </button>
+                  </div>
                   <h2 className="text-xl md:text-2xl font-medium text-gray-900 mb-8 leading-relaxed">
                     {currentQ.questionText}
                   </h2>
@@ -362,8 +402,27 @@ const CBTPortal = () => {
                   )}
                 </div>
 
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{exam.title}</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">{exam.title}</h3>
                 <p className="text-gray-600 text-sm mb-4 line-clamp-2">{exam.description || 'No description provided.'}</p>
+
+                <div className="space-y-2 mb-4">
+                  {exam.startDate && (
+                    <div className="flex items-center text-xs text-gray-500">
+                      <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Starts: {new Date(exam.startDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                    </div>
+                  )}
+                  {exam.endDate && (
+                    <div className="flex items-center text-xs text-gray-500">
+                      <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Ends: {new Date(exam.endDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                    </div>
+                  )}
+                </div>
 
                 <div className="border-t border-gray-100 pt-4 mt-auto">
                   {hasTaken ? (
@@ -374,15 +433,27 @@ const CBTPortal = () => {
                       </p>
                     </div>
                   ) : (
-                    <button
-                      onClick={() => handleStartExam(exam.id)}
-                      className="w-full py-2 bg-primary text-white rounded-md font-medium hover:brightness-90 transition flex justify-center items-center"
-                    >
-                      Start Exam
-                      <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                      </svg>
-                    </button>
+                    <>
+                      {exam.startDate && new Date(exam.startDate) > new Date() ? (
+                        <div className="w-full py-2 bg-gray-100 text-gray-500 rounded-md font-medium text-center flex justify-center items-center cursor-not-allowed">
+                          Upcoming
+                        </div>
+                      ) : exam.endDate && new Date(exam.endDate) < new Date() ? (
+                        <div className="w-full py-2 bg-red-50 text-red-500 rounded-md font-medium text-center flex justify-center items-center cursor-not-allowed">
+                          Expired
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleStartExam(exam.id)}
+                          className="w-full py-2 bg-primary text-white rounded-md font-medium hover:brightness-90 transition flex justify-center items-center"
+                        >
+                          Start Exam
+                          <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                          </svg>
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

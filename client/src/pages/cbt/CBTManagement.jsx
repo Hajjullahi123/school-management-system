@@ -268,6 +268,70 @@ const CBTManagement = () => {
     }
   };
 
+  const handleDownloadTemplate = () => {
+    const url = `${API_BASE_URL}/api/cbt/template/questions`;
+    const token = localStorage.getItem('token');
+
+    fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then(response => response.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `CBT_Questions_Template.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+      })
+      .catch(error => {
+        console.error('Download error:', error);
+        toast.error('Failed to download template');
+      });
+  };
+
+  const handleBulkUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!confirm(`Importing questions from "${file.name}" to "${selectedExam.title}". Continue?`)) {
+      e.target.value = '';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/cbt/${selectedExam.id}/questions/bulk`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(data.message || 'Questions imported successfully');
+        // Refresh questions list
+        handleManageQuestions(selectedExam);
+      } else {
+        toast.error(data.error || 'Import failed');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload file');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
   const updateOptionText = (index, text) => {
     const newOptions = [...newQuestion.options];
     newOptions[index].text = text;
@@ -605,6 +669,29 @@ const CBTManagement = () => {
               <div>
                 <h2 className="text-xl font-bold text-blue-900">{selectedExam.title}</h2>
                 <p className="text-sm text-blue-700">Total Questions: {questions.length} | Est. Marks: {questions.reduce((sum, q) => sum + q.points, 0)}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDownloadTemplate}
+                  className="px-3 py-1.4 bg-white border border-blue-300 text-blue-700 rounded text-sm font-medium hover:bg-blue-50 transition flex items-center gap-1.5"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Template
+                </button>
+                <label className="px-3 py-1.4 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition cursor-pointer flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Import
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".csv,.xlsx"
+                    onChange={handleBulkUpload}
+                  />
+                </label>
               </div>
             </div>
 

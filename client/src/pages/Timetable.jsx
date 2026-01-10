@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSchoolSettings } from '../hooks/useSchoolSettings';
+import { toast } from '../utils/toast';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
@@ -73,15 +74,24 @@ const Timetable = () => {
 
     try {
       const response = await api.get('/api/classes');
-      setClasses(await response.json());
-    } catch (e) { console.error(e); }
+      if (response.ok) {
+        setClasses(await response.json());
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to load classes');
+    }
   };
 
   const fetchSubjects = async () => {
     try {
       const response = await api.get('/api/subjects');
-      setSubjects(await response.json());
-    } catch (e) { console.error(e); }
+      if (response.ok) {
+        setSubjects(await response.json());
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const fetchTimetable = async () => {
@@ -89,9 +99,17 @@ const Timetable = () => {
     setLoading(true);
     try {
       const response = await api.get(`/api/timetable/class/${selectedClassId}`);
-      setSchedule(await response.json());
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+      if (response.ok) {
+        setSchedule(await response.json());
+      } else {
+        setSchedule([]);
+      }
+    } catch (e) {
+      console.error(e);
+      setSchedule([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchPublishStatus = async () => {

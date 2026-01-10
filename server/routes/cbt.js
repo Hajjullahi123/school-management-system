@@ -4,8 +4,132 @@ const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 const { calculateTotalScore, getGrade, calculateClassAverage, calculatePositions } = require('../utils/grading');
+const multer = require('multer');
+const ExcelJS = require('exceljs');
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 // ============ TEACHER ROUTES ============
+
+// Download Bulk Question Template (CSV)
+router.get('/template/questions', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('CBT Questions');
+
+    worksheet.columns = [
+      { header: 'Question Text', key: 'questionText', width: 50 },
+      { header: 'Option A', key: 'a', width: 25 },
+      { header: 'Option B', key: 'b', width: 25 },
+      { header: 'Option C', key: 'c', width: 25 },
+      { header: 'Option D', key: 'd', width: 25 },
+      { header: 'Correct Option (a, b, c, or d)', key: 'correctOption', width: 25 },
+      { header: 'Points', key: 'points', width: 10 }
+    ];
+
+    // Add example row
+    worksheet.addRow({
+      questionText: 'What is the capital of France?',
+      a: 'Berlin',
+      b: 'Madrid',
+      c: 'Paris',
+      d: 'London',
+      correctOption: 'c',
+      points: 1
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=CBT_Questions_Template.csv');
+    await workbook.csv.write(res);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk Upload Questions
+router.post('/:id/questions/bulk', authenticate, authorize(['admin', 'teacher']), upload.single('file'), async (req, res) => {
+  try {
+    const examId = parseInt(req.params.id);
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    // Verify ownership
+    const exam = await prisma.cBTExam.findUnique({ where: { id: examId } });
+    if (!exam) return res.status(404).json({ error: 'Exam not found' });
+    if (req.user.role === 'teacher' && exam.teacherId !== req.user.id) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    let rows = [];
+
+    if (req.file.originalname.endsWith('.csv')) {
+      const csvStr = req.file.buffer.toString();
+      const stream = require('stream');
+      const bufferStream = new stream.PassThrough();
+      bufferStream.end(req.file.buffer);
+      await workbook.csv.read(bufferStream);
+    } else {
+      await workbook.xlsx.load(req.file.buffer);
+    }
+
+    const worksheet = workbook.worksheets[0];
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header
+
+      const questionText = row.getCell(1).value?.toString();
+      const optA = row.getCell(2).value?.toString();
+      const optB = row.getCell(3).value?.toString();
+      const optC = row.getCell(4).value?.toString();
+      const optD = row.getCell(5).value?.toString();
+      const correct = row.getCell(6).value?.toString()?.toLowerCase();
+      const points = parseFloat(row.getCell(7).value) || 1;
+
+      if (questionText && optA && optB && optC && optD && correct) {
+        rows.push({
+          questionText,
+          options: [
+            { id: 'a', text: optA },
+            { id: 'b', text: optB },
+            { id: 'c', text: optC },
+            { id: 'd', text: optD }
+          ],
+          correctOption: correct,
+          points
+        });
+      }
+    });
+
+    if (rows.length === 0) return res.status(400).json({ error: 'No valid questions found in file' });
+
+    // Transaction to create questions
+    const createdQuestions = await prisma.$transaction(
+      rows.map(q => prisma.cBTQuestion.create({
+        data: {
+          schoolId: req.schoolId,
+          examId,
+          questionText: q.questionText,
+          options: JSON.stringify(q.options),
+          correctOption: q.correctOption,
+          points: q.points
+        }
+      }))
+    );
+
+    res.json({ message: `Successfully imported ${createdQuestions.length} questions`, count: createdQuestions.length });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'IMPORT',
+      resource: 'CBT_QUESTIONS',
+      details: { examId, count: createdQuestions.length },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Bulk upload error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Get all exams created by teacher or all for admin
 router.get('/teacher', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
@@ -239,8 +363,16 @@ router.get('/:id', authenticate, async (req, res) => {
     if (req.user.role === 'student') {
       // Check if student belongs to class
       // Check if exam is published
-      // Don't return correct answers!
       if (!exam.isPublished) return res.status(403).json({ error: 'Exam not published' });
+
+      // Check Timing
+      const now = new Date();
+      if (exam.startDate && new Date(exam.startDate) > now) {
+        return res.status(403).json({ error: `Exam starts at ${new Date(exam.startDate).toLocaleString()}` });
+      }
+      if (exam.endDate && new Date(exam.endDate) < now) {
+        return res.status(403).json({ error: 'Exam has ended and is no longer accessible' });
+      }
 
       // Return without correctOption
       const studentExam = {
