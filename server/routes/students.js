@@ -117,7 +117,7 @@ router.get('/my-profile', authenticate, async (req, res) => {
   }
 });
 
-// Update my profile (limited fields - for logged-in student)
+// Update my profile (expanded fields - for logged-in student)
 router.put('/my-profile', authenticate, async (req, res) => {
   try {
     // Ensure user is a student
@@ -126,10 +126,19 @@ router.put('/my-profile', authenticate, async (req, res) => {
     }
 
     const {
+      firstName, // Student might want to suggest a fix, but usually read-only. Let's allow middleName.
+      middleName,
+      lastName,
       address,
       parentGuardianPhone,
       parentEmail,
-      disability
+      disability,
+      dateOfBirth,
+      gender,
+      stateOfOrigin,
+      nationality,
+      bloodGroup,
+      genotype
     } = req.body;
 
     console.log('Update My Profile Request:', { userId: req.user.id, body: req.body });
@@ -139,21 +148,39 @@ router.put('/my-profile', authenticate, async (req, res) => {
       where: {
         userId: req.user.id,
         schoolId: req.schoolId
-      }
+      },
+      include: { user: true }
     });
 
     if (!existingStudent) {
       return res.status(404).json({ error: 'Student profile not found' });
     }
 
-    // Filter out undefined values
+    // Filter out undefined values and update allowed fields
     const dataToUpdate = {};
+    if (middleName !== undefined) {
+      dataToUpdate.middleName = middleName;
+      // Also update the full name field in Student model
+      const firstName = existingStudent.user?.firstName || '';
+      const lastName = existingStudent.user?.lastName || '';
+      dataToUpdate.name = middleName ? `${firstName} ${middleName} ${lastName}` : `${firstName} ${lastName}`;
+    }
     if (address !== undefined) dataToUpdate.address = address;
     if (parentGuardianPhone !== undefined) dataToUpdate.parentGuardianPhone = parentGuardianPhone;
     if (parentEmail !== undefined) dataToUpdate.parentEmail = parentEmail;
     if (disability !== undefined) dataToUpdate.disability = disability;
+    if (gender !== undefined) dataToUpdate.gender = gender;
+    if (stateOfOrigin !== undefined) dataToUpdate.stateOfOrigin = stateOfOrigin;
+    if (nationality !== undefined) dataToUpdate.nationality = nationality;
+    if (bloodGroup !== undefined) dataToUpdate.bloodGroup = bloodGroup;
+    if (genotype !== undefined) dataToUpdate.genotype = genotype;
 
-    // Update only allowed fields
+    // Handle dateOfBirth specifically
+    if (dateOfBirth !== undefined) {
+      dataToUpdate.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+    }
+
+    // Update only allowed fields in the Student model
     const updatedStudent = await prisma.student.update({
       where: {
         id: existingStudent.id,
@@ -186,90 +213,6 @@ router.put('/my-profile', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating student profile:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get my profile (for logged-in student)
-router.get('/my-profile', authenticate, async (req, res) => {
-  try {
-    const student = await prisma.student.findFirst({
-      where: {
-        userId: req.user.id,
-        schoolId: req.schoolId
-      },
-      include: {
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-            username: true
-          }
-        },
-        classModel: true
-      }
-    });
-
-    if (!student) {
-      return res.status(404).json({ error: 'Student profile not found' });
-    }
-
-    res.json(student);
-  } catch (error) {
-    console.error('Error fetching profile:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Update my profile
-router.put('/my-profile', authenticate, async (req, res) => {
-  try {
-    const {
-      address,
-      parentGuardianPhone,
-      parentEmail,
-      disability
-    } = req.body;
-
-    const student = await prisma.student.findFirst({
-      where: {
-        userId: req.user.id,
-        schoolId: req.schoolId
-      }
-    });
-
-    if (!student) {
-      return res.status(404).json({ error: 'Student profile not found' });
-    }
-
-    const updatedStudent = await prisma.student.update({
-      where: { id: student.id },
-      data: {
-        address,
-        parentGuardianPhone,
-        parentEmail,
-        disability
-      },
-      include: {
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-            username: true
-          }
-        },
-        classModel: true
-      }
-    });
-
-    res.json({
-      message: 'Profile updated successfully',
-      student: updatedStudent
-    });
-  } catch (error) {
-    console.error('Error updating profile:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -830,6 +773,7 @@ router.put('/:id', authenticate, authorize(['admin', 'accountant']), async (req,
   try {
     const {
       firstName,
+      middleName,
       lastName,
       email,
       classId,
@@ -900,6 +844,7 @@ router.put('/:id', authenticate, authorize(['admin', 'accountant']), async (req,
         ...(nationality && { nationality }),
         ...(address && { address }),
         ...(photoUrl && { photoUrl }),
+        ...(middleName !== undefined && { middleName }),
         ...(parentGuardianName && { parentGuardianName }),
         ...(parentGuardianPhone && { parentGuardianPhone }),
         ...(parentEmail && { parentEmail }),
@@ -909,7 +854,10 @@ router.put('/:id', authenticate, authorize(['admin', 'accountant']), async (req,
         ...(isScholarship !== undefined && { isScholarship: isScholarship === 'true' || isScholarship === true }),
         ...(isExamRestricted !== undefined && { isExamRestricted: isExamRestricted === 'true' || isExamRestricted === true }),
         ...(examRestrictionReason !== undefined && { examRestrictionReason }),
-        ...(firstName && lastName && { name: `${firstName} ${lastName}` }),
+        // Update full name if any component changed
+        ...((firstName || lastName || middleName !== undefined) && {
+          name: `${firstName || existingStudent.user.firstName} ${middleName !== undefined ? middleName : (existingStudent.middleName || '')} ${lastName || existingStudent.user.lastName}`.replace(/\s+/g, ' ').trim()
+        }),
         ...(clubs && { clubs })
       },
       include: {

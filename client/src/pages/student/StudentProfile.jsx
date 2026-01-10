@@ -7,10 +7,17 @@ const StudentProfile = () => {
   const [editing, setEditing] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [formData, setFormData] = useState({
+    middleName: '',
     address: '',
     parentGuardianPhone: '',
     parentEmail: '',
-    disability: 'None'
+    disability: 'None',
+    dateOfBirth: '',
+    gender: '',
+    stateOfOrigin: '',
+    nationality: 'Nigerian',
+    bloodGroup: '',
+    genotype: ''
   });
   const [error, setError] = useState(null);
 
@@ -37,10 +44,17 @@ const StudentProfile = () => {
       if (response.ok) {
         setStudent(data);
         setFormData({
+          middleName: data.middleName || '',
           address: data.address || '',
           parentGuardianPhone: data.parentGuardianPhone || '',
           parentEmail: data.parentEmail || '',
-          disability: data.disability || 'None'
+          disability: data.disability || 'None',
+          dateOfBirth: data.dateOfBirth ? data.dateOfBirth.split('T')[0] : '',
+          gender: data.gender || '',
+          stateOfOrigin: data.stateOfOrigin || '',
+          nationality: data.nationality || 'Nigerian',
+          bloodGroup: data.bloodGroup || '',
+          genotype: data.genotype || ''
         });
       } else {
         setError(data.error || `Failed to load profile (${response.status})`);
@@ -280,47 +294,23 @@ const StudentProfile = () => {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-md">
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    value={`${student.user.firstName} ${student.middleName || ''} ${student.user.lastName}`}
-                    disabled
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100 text-gray-600 cursor-not-allowed"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Admission Number</label>
-                  <input
-                    type="text"
-                    value={student.admissionNumber}
-                    disabled
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100 text-gray-600 cursor-not-allowed"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Class</label>
-                  <input
-                    type="text"
-                    value={student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'Not Assigned'}
-                    disabled
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100 text-gray-600 cursor-not-allowed"
-                  />
-                </div>
-                <div>
                   <label className="block text-sm font-medium text-gray-500 mb-1">Gender</label>
-                  <input
-                    type="text"
-                    value={student.gender || '-'}
-                    disabled
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100 text-gray-600 cursor-not-allowed"
-                  />
+                  <select
+                    value={formData.gender}
+                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-2">
                 <svg className="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
-                Contact your admin to update these fields
+                Contact your admin to update name, admission number or class
               </p>
             </div>
 
@@ -333,6 +323,56 @@ const StudentProfile = () => {
                 Information You Can Update
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Middle Name / Other Name
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.middleName}
+                    onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="Provide middle name if missing"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Date of Birth
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    State of Origin
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.stateOfOrigin}
+                    onChange={(e) => setFormData({ ...formData, stateOfOrigin: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="e.g. Lagos"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nationality
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.nationality}
+                    onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Residential Address
@@ -374,6 +414,45 @@ const StudentProfile = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Blood Group
+                  </label>
+                  <select
+                    value={formData.bloodGroup}
+                    onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="">Select Blood Group</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Genotype
+                  </label>
+                  <select
+                    value={formData.genotype}
+                    onChange={(e) => setFormData({ ...formData, genotype: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="">Select Genotype</option>
+                    <option value="AA">AA</option>
+                    <option value="AS">AS</option>
+                    <option value="SS">SS</option>
+                    <option value="AC">AC</option>
+                    <option value="SC">SC</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Disability (if any)
                   </label>
                   <select
@@ -405,10 +484,17 @@ const StudentProfile = () => {
                 onClick={() => {
                   setEditing(false);
                   setFormData({
+                    middleName: student.middleName || '',
                     address: student.address || '',
                     parentGuardianPhone: student.parentGuardianPhone || '',
                     parentEmail: student.parentEmail || '',
-                    disability: student.disability || 'None'
+                    disability: student.disability || 'None',
+                    dateOfBirth: student.dateOfBirth ? student.dateOfBirth.split('T')[0] : '',
+                    gender: student.gender || '',
+                    stateOfOrigin: student.stateOfOrigin || '',
+                    nationality: student.nationality || 'Nigerian',
+                    bloodGroup: student.bloodGroup || '',
+                    genotype: student.genotype || ''
                   });
                 }}
                 className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition-colors"
@@ -513,7 +599,7 @@ const StudentProfile = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 
