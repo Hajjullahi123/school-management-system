@@ -23,6 +23,7 @@ const UserManagement = () => {
   const [filter, setFilter] = useState('all'); // all, student, teacher, admin
   const [searchTerm, setSearchTerm] = useState('');
   const [generatedCredentials, setGeneratedCredentials] = useState(null);
+  const [expandedRoles, setExpandedRoles] = useState({}); // Tracking expanded state for each role
   const credentialPrintRef = useRef();
 
   const handlePrintCredentials = useReactToPrint({
@@ -148,6 +149,13 @@ const UserManagement = () => {
     return matchesRole && matchesSearch;
   });
 
+  const toggleRole = (role) => {
+    setExpandedRoles(prev => ({
+      ...prev,
+      [role]: !prev[role]
+    }));
+  };
+
   return (
     <div className="space-y-6 pb-20">
       <div className="flex justify-between items-center">
@@ -201,14 +209,20 @@ const UserManagement = () => {
             if (filter !== 'all' && filter !== role) return null;
             if (usersInRole.length === 0 && filter !== role) return null;
 
+            const isExpanded = expandedRoles[role] || (filter !== 'all' && filter === role);
+
             return (
               <div key={role} className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 transition-all hover:shadow-2xl">
-                <div className={`px-6 py-4 flex justify-between items-center ${role === 'admin' ? 'bg-indigo-600' :
-                    role === 'teacher' ? 'bg-blue-600' :
-                      role === 'accountant' ? 'bg-amber-600' :
-                        role === 'parent' ? 'bg-rose-600' :
-                          'bg-emerald-600'
-                  } text-white`}>
+                {/* Category Header - Clickable for toggle */}
+                <div
+                  onClick={() => toggleRole(role)}
+                  className={`px-6 py-4 flex justify-between items-center cursor-pointer select-none transition-colors ${role === 'admin' ? 'bg-indigo-600 hover:bg-indigo-700' :
+                      role === 'teacher' ? 'bg-blue-600 hover:bg-blue-700' :
+                        role === 'accountant' ? 'bg-amber-600 hover:bg-amber-700' :
+                          role === 'parent' ? 'bg-rose-600 hover:bg-rose-700' :
+                            'bg-emerald-600 hover:bg-emerald-700'
+                    } text-white`}
+                >
                   <div className="flex items-center gap-3">
                     <span className="p-2 bg-white/20 rounded-lg">
                       {role === 'admin' ? (
@@ -223,87 +237,97 @@ const UserManagement = () => {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                       )}
                     </span>
-                    <h2 className="text-lg font-black uppercase tracking-widest">{role}s Catalog</h2>
+                    <h2 className="text-lg font-black uppercase tracking-widest leading-none">{role}s Catalog</h2>
                   </div>
-                  <div className="bg-white/20 px-4 py-1.5 rounded-full text-xs font-black">
-                    {usersInRole.length} MEMBERS
+                  <div className="flex items-center gap-4">
+                    <div className="bg-white/20 px-4 py-1.5 rounded-full text-xs font-black">
+                      {usersInRole.length} MEMBERS
+                    </div>
+                    <svg
+                      className={`w-6 h-6 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                      fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                    </svg>
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-100">
-                    <thead className="bg-gray-50/50">
-                      <tr>
-                        <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">User Profile</th>
-                        <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Role Specifics</th>
-                        <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                        <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-50">
-                      {usersInRole.length === 0 ? (
+                <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-100">
+                      <thead className="bg-gray-50/50">
                         <tr>
-                          <td colSpan="4" className="px-6 py-10 text-center text-gray-400 italic">No {role}s found matching your search...</td>
+                          <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">User Profile</th>
+                          <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Role Specifics</th>
+                          <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                          <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
                         </tr>
-                      ) : (
-                        usersInRole.map((user) => (
-                          <tr key={user.id} className="hover:bg-gray-50 transition-colors group">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <div className={`h-11 w-11 rounded-2xl flex items-center justify-center text-white font-black shadow-lg transform transition-transform group-hover:rotate-6 ${role === 'admin' ? 'bg-indigo-500' :
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-50">
+                        {usersInRole.length === 0 ? (
+                          <tr>
+                            <td colSpan="4" className="px-6 py-10 text-center text-gray-400 italic">No {role}s found matching your search...</td>
+                          </tr>
+                        ) : (
+                          usersInRole.map((user) => (
+                            <tr key={user.id} className="hover:bg-gray-50 transition-colors group">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <div className={`h-11 w-11 rounded-2xl flex items-center justify-center text-white font-black shadow-lg transform transition-transform group-hover:rotate-6 ${role === 'admin' ? 'bg-indigo-500' :
                                     role === 'teacher' ? 'bg-blue-500' :
                                       role === 'accountant' ? 'bg-amber-500' :
                                         role === 'parent' ? 'bg-rose-500' :
                                           'bg-emerald-500'
-                                  }`}>
-                                  {user.firstName[0]}{user.lastName[0]}
+                                    }`}>
+                                    {user.firstName[0]}{user.lastName[0]}
+                                  </div>
+                                  <div className="ml-4">
+                                    <div className="text-sm font-black text-gray-900 uppercase tracking-tighter">{user.firstName} {user.lastName}</div>
+                                    <div className="text-xs text-gray-400 font-mono">@{user.username}</div>
+                                  </div>
                                 </div>
-                                <div className="ml-4">
-                                  <div className="text-sm font-black text-gray-900 uppercase tracking-tighter">{user.firstName} {user.lastName}</div>
-                                  <div className="text-xs text-gray-400 font-mono">@{user.username}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                              {role === 'student' && (
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-1.5"><span className="text-[10px] font-black bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">ADM</span> {user.student?.admissionNumber}</div>
-                                  <div className="flex items-center gap-1.5"><span className="text-[10px] font-black bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">CLASS</span> {user.student?.classModel?.name || '---'}</div>
-                                </div>
-                              )}
-                              {role === 'teacher' && (
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-1.5"><span className="text-[10px] font-black bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">STAFF</span> {user.teacher?.staffId}</div>
-                                  <div className="flex items-center gap-1.5"><span className="text-[10px] font-black bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">FLD</span> {user.teacher?.specialization || 'General'}</div>
-                                </div>
-                              )}
-                              {role === 'accountant' && <div className="text-amber-700 font-bold text-xs bg-amber-50 px-3 py-1 rounded-full w-fit border border-amber-100 tracking-tight">FINANCIAL DEPT</div>}
-                              {role === 'admin' && <div className="text-indigo-700 font-bold text-xs bg-indigo-50 px-3 py-1 rounded-full w-fit border border-indigo-100 tracking-tight">SYSTEM ADMIN</div>}
-                              {role === 'parent' && <div className="text-rose-700 font-bold text-xs bg-rose-50 px-3 py-1 rounded-full w-fit border border-rose-100 tracking-tight">GUARDIAN ACCOUNT</div>}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-center">
-                              <span className={`px-3 py-1 inline-flex text-[10px] leading-5 font-black rounded-full border ${user.isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'
-                                }`}>
-                                {user.isActive ? 'ACTIVE' : 'LOCKED'}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <div className="flex justify-end gap-2">
-                                <button onClick={() => handleEdit(user)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Edit">
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                </button>
-                                {user.id !== currentUser?.id && (
-                                  <button onClick={() => handleDelete(user.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Delete">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                  </button>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {role === 'student' && (
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5"><span className="text-[10px] font-black bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">ADM</span> {user.student?.admissionNumber}</div>
+                                    <div className="flex items-center gap-1.5"><span className="text-[10px] font-black bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">CLASS</span> {user.student?.classModel?.name || '---'}</div>
+                                  </div>
                                 )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                                {role === 'teacher' && (
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5"><span className="text-[10px] font-black bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">STAFF</span> {user.teacher?.staffId}</div>
+                                    <div className="flex items-center gap-1.5"><span className="text-[10px] font-black bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">FLD</span> {user.teacher?.specialization || 'General'}</div>
+                                  </div>
+                                )}
+                                {role === 'accountant' && <div className="text-amber-700 font-bold text-xs bg-amber-50 px-3 py-1 rounded-full w-fit border border-amber-100 tracking-tight">FINANCIAL DEPT</div>}
+                                {role === 'admin' && <div className="text-indigo-700 font-bold text-xs bg-indigo-50 px-3 py-1 rounded-full w-fit border border-indigo-100 tracking-tight">SYSTEM ADMIN</div>}
+                                {role === 'parent' && <div className="text-rose-700 font-bold text-xs bg-rose-50 px-3 py-1 rounded-full w-fit border border-rose-100 tracking-tight">GUARDIAN ACCOUNT</div>}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-center">
+                                <span className={`px-3 py-1 inline-flex text-[10px] leading-5 font-black rounded-full border ${user.isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'
+                                  }`}>
+                                  {user.isActive ? 'ACTIVE' : 'LOCKED'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div className="flex justify-end gap-2">
+                                  <button onClick={() => handleEdit(user)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Edit">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                  </button>
+                                  {user.id !== currentUser?.id && (
+                                    <button onClick={() => handleDelete(user.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Delete">
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             );
