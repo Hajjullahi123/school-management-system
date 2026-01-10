@@ -1004,4 +1004,132 @@ router.delete('/:id', authenticate, authorize(['admin']), async (req, res) => {
   }
 });
 
+// Create Parent Account from Student Details
+router.post('/:id/create-parent', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const studentId = parseInt(req.params.id);
+
+    // 1. Find student with parent details
+    const student = await prisma.student.findFirst({
+      where: {
+        id: studentId,
+        schoolId: req.schoolId
+      }
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    if (student.parentId) {
+      return res.status(400).json({ error: 'Student already has a linked parent account' });
+    }
+
+    if (!student.parentGuardianPhone || !student.parentGuardianName) {
+      return res.status(400).json({ error: 'Parent details (Name and Phone) are missing from student record' });
+    }
+
+    const phone = student.parentGuardianPhone.replace(/\s+/g, '');
+    const fullName = student.parentGuardianName;
+    const nameParts = fullName.split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Parent';
+
+    // 2. Check if a user with this phone number already exists in this school
+    let user = await prisma.user.findFirst({
+      where: {
+        username: phone,
+        schoolId: req.schoolId
+      }
+    });
+
+    let parent;
+
+    if (user) {
+      // User exists, find associated parent
+      parent = await prisma.parent.findUnique({
+        where: { userId: user.id }
+      });
+
+      if (!parent) {
+        // User exists but has no parent profile (unlikely but handle it)
+        parent = await prisma.parent.create({
+          data: {
+            schoolId: req.schoolId,
+            userId: user.id,
+            phone: phone,
+            address: student.address
+          }
+        });
+      }
+    } else {
+      // 3. Create new User + Parent
+      const passwordHash = await bcrypt.hash('123456', 10);
+
+      const result = await prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            schoolId: req.schoolId,
+            username: phone,
+            passwordHash,
+            firstName,
+            lastName,
+            role: 'parent',
+            isActive: true,
+            mustChangePassword: true,
+            email: student.parentEmail || `${phone}@parent.school`
+          }
+        });
+
+        const newParent = await tx.parent.create({
+          data: {
+            schoolId: req.schoolId,
+            userId: newUser.id,
+            phone: phone,
+            address: student.address
+          }
+        });
+
+        return { user: newUser, parent: newParent };
+      });
+
+      user = result.user;
+      parent = result.parent;
+    }
+
+    // 4. Link student to parent
+    await prisma.student.update({
+      where: { id: studentId },
+      data: { parentId: parent.id }
+    });
+
+    // 5. Log Action
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'CREATE',
+      resource: 'PARENT_ACCOUNT',
+      details: {
+        studentId,
+        parentId: parent.id,
+        phone,
+        message: 'Auto-created from student record'
+      },
+      ipAddress: req.ip
+    });
+
+    res.json({
+      message: 'Parent account created/linked successfully',
+      credentials: {
+        username: phone,
+        password: '123456'
+      }
+    });
+
+  } catch (error) {
+    console.error('Error auto-creating parent:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

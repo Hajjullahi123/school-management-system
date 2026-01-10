@@ -178,6 +178,32 @@ const StudentManagement = () => {
     }
   };
 
+  const handleAutoCreateParent = async (student) => {
+    if (!student.parentGuardianPhone || !student.parentGuardianName) {
+      alert('This student record is missing parent name or phone number. Please edit the student first.');
+      return;
+    }
+
+    if (!confirm(`Create a parent account for ${student.parentGuardianName}? \n\nUsername: ${student.parentGuardianPhone}\nPassword: 123456`)) {
+      return;
+    }
+
+    try {
+      const response = await api.post(`/api/students/${student.id}/create-parent`);
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`Parent account created successfully!\n\nUsername: ${data.credentials.username}\nPassword: ${data.credentials.password}\n\nPlease share these credentials with the parent.`);
+        fetchStudents(); // Refresh list to update parentId status
+      } else {
+        alert(`Failed to create parent account: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating parent account:', error);
+      alert('An error occurred while creating the parent account.');
+    }
+  };
+
   const downloadCredentials = () => {
     if (!newStudentCredentials) return;
 
@@ -596,21 +622,23 @@ Note: Password must be changed on first login.
               <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">Parent/Guardian Information</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Parent/Guardian Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Parent/Guardian Name <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     value={formData.parentGuardianName}
                     onChange={(e) => setFormData({ ...formData, parentGuardianName: e.target.value })}
                     className="w-full border rounded-md px-3 py-2"
+                    required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Parent/Guardian Phone</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Parent/Guardian Phone <span className="text-red-500">*</span></label>
                   <input
                     type="tel"
                     value={formData.parentGuardianPhone}
                     onChange={(e) => setFormData({ ...formData, parentGuardianPhone: e.target.value })}
                     className="w-full border rounded-md px-3 py-2"
+                    required
                   />
                 </div>
                 <div>
@@ -830,6 +858,15 @@ Note: Password must be changed on first login.
                                 >
                                   Credentials
                                 </button>
+                                {!student.parentId && student.parentGuardianPhone && (
+                                  <button
+                                    onClick={() => handleAutoCreateParent(student)}
+                                    className="text-green-600 hover:text-green-800 mr-4"
+                                    title="Create Parent Account"
+                                  >
+                                    Create Parent
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => handleEdit(student)}
                                   className="text-indigo-600 hover:text-indigo-900 mr-4"
