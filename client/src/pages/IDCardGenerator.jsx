@@ -242,10 +242,13 @@ const IDCardGenerator = () => {
   const fetchMyCard = async () => {
     setLoading(true);
     try {
-      if (user.role === 'student') {
-        const response = await api.get(`/students/${user.student.id}`);
-        setCardsToPrint([{ ...response.data, type: 'student' }]);
-      } else {
+      if (user?.role === 'student' && user?.student?.id) {
+        const response = await api.get(`/api/students/${user.student.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setCardsToPrint([{ ...data, type: 'student' }]);
+        }
+      } else if (user) {
         // For teachers/staff
         setCardsToPrint([{
           ...user,
@@ -416,7 +419,7 @@ const IDCardGenerator = () => {
                           </div>
                           <h3 className="font-bold text-gray-900 text-lg">{classItem.name} {classItem.arm}</h3>
                           <p className="text-sm text-gray-600 mt-1">
-                            {classItem.students?.length || 0} Students
+                            {classItem._count?.students || 0} Students
                           </p>
                           <div className="mt-3 text-xs text-primary font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
                             Click to generate ID cards →
