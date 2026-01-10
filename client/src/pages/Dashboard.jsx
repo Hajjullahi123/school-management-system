@@ -602,6 +602,23 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Quick Actions for Admin - More visible */}
+        {user?.role === 'admin' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Link to="/dashboard/timetable" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all border-l-8 border-indigo-600 flex items-center gap-4">
+              <div className="bg-indigo-100 p-3 rounded-full">
+                <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Timetable Management</h3>
+                <p className="text-sm text-gray-600">Generate, view, and manage class schedules</p>
+              </div>
+            </Link>
+          </div>
+        )}
       </div >
     );
   }

@@ -132,6 +132,51 @@ router.patch('/class/:classId/publish', authenticate, authorize(['admin']), asyn
   }
 });
 
+// Update a Slot (Admin Only)
+router.patch('/:id', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const { dayOfWeek, startTime, endTime, type, subjectId } = req.body;
+
+    const slot = await prisma.timetable.update({
+      where: {
+        id: parseInt(req.params.id),
+        schoolId: req.schoolId
+      },
+      data: {
+        dayOfWeek,
+        startTime,
+        endTime,
+        type,
+        subjectId: subjectId ? parseInt(subjectId) : null
+      },
+      include: {
+        subject: true
+      }
+    });
+
+    res.json(slot);
+
+    // Log the update
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPDATE',
+      resource: 'TIMETABLE_SLOT',
+      details: {
+        slotId: slot.id,
+        classId: slot.classId,
+        dayOfWeek,
+        startTime,
+        endTime
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Update timetable slot error:', error);
+    res.status(500).json({ error: 'Failed to update slot' });
+  }
+});
+
 // Get Publish Status for a Class
 router.get('/class/:classId/status', authenticate, async (req, res) => {
   try {
@@ -180,6 +225,157 @@ router.delete('/:id', authenticate, authorize(['admin']), async (req, res) => {
   } catch (error) {
     console.error('Delete slot error:', error);
     res.status(500).json({ error: 'Failed to delete slot' });
+  }
+});
+
+// Generate Intelligent Timetable (Admin Only)
+router.post('/generate/:classId', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const classId = parseInt(req.params.classId);
+    const schoolId = req.schoolId;
+
+    // 1. Fetch slots, assigned subjects (with teachers), and current school schedule
+    const [slots, classSubjects, allExistingTimetables] = await Promise.all([
+      prisma.timetable.findMany({
+        where: { schoolId, classId, type: 'lesson' },
+        orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }]
+      }),
+      prisma.classSubject.findMany({
+        where: { schoolId, classId },
+        include: { subject: true, teacherAssignments: { include: { teacher: true } } }
+      }),
+      prisma.timetable.findMany({
+        where: { schoolId, subjectId: { not: null } },
+        include: { subject: true }
+      })
+    ]);
+
+    if (slots.length === 0) return res.status(400).json({ error: 'No lesson slots defined for this class. Please add slots first.' });
+
+    // Only work with subjects that have teachers assigned
+    const assignableSubjects = classSubjects.filter(cs => cs.teacherAssignments.length > 0);
+    if (assignableSubjects.length === 0) {
+      return res.status(400).json({ error: 'No subjects with assigned teachers found for this class. Please assign teachers to subjects first.' });
+    }
+
+    // 2. Build a Map of which teacher teaches what per class across the school
+    const schoolClassSubjects = await prisma.classSubject.findMany({
+      where: { schoolId },
+      include: { teacherAssignments: true }
+    });
+
+    const teacherMap = {}; // "classId_subjectId" -> teacherId
+    schoolClassSubjects.forEach(cs => {
+      if (cs.teacherAssignments.length > 0) {
+        teacherMap[`${cs.classId}_${cs.subjectId}`] = cs.teacherAssignments[0].teacherId;
+      }
+    });
+
+    // 3. Map of Teacher Busy Times across ALL classes
+    const teacherBusyMap = {}; // "day_time_teacherId" -> true
+    allExistingTimetables.forEach(t => {
+      // Skip current class's entries as we are re-generating them
+      if (t.classId === classId) return;
+
+      const tid = teacherMap[`${t.classId}_${t.subjectId}`];
+      if (tid) {
+        teacherBusyMap[`${t.dayOfWeek}_${t.startTime}_${tid}`] = true;
+      }
+    });
+
+    // 4. Build a pool of subjects to distribute
+    // We'll aim for balanced distribution
+    let pool = [];
+    const periodsPerSubject = Math.ceil(slots.length / assignableSubjects.length);
+    assignableSubjects.forEach(cs => {
+      for (let i = 0; i < periodsPerSubject; i++) {
+        pool.push(cs);
+      }
+    });
+
+    // Randomize pool for natural distribution
+    pool = pool.sort(() => Math.random() - 0.5);
+
+    const updates = [];
+    const conflicts = [];
+
+    // 5. Intelligent Allocation
+    for (const slot of slots) {
+      let allocated = false;
+
+      // Try each subject in the pool (they are randomized)
+      for (let i = 0; i < pool.length; i++) {
+        const subject = pool[i];
+        const teacherId = subject.teacherAssignments[0].teacherId;
+        const busyKey = `${slot.dayOfWeek}_${slot.startTime}_${teacherId}`;
+
+        if (!teacherBusyMap[busyKey]) {
+          // Free!
+          updates.push({ slotId: slot.id, subjectId: subject.subjectId });
+          teacherBusyMap[busyKey] = true; // Mark as busy for this generation run too
+          pool.splice(i, 1); // Remove from pool
+          allocated = true;
+          break;
+        }
+      }
+
+      // If still not allocated (maybe pool was restricted), try ANY assignable subject as fallback
+      if (!allocated) {
+        for (const subject of assignableSubjects) {
+          const teacherId = subject.teacherAssignments[0].teacherId;
+          const busyKey = `${slot.dayOfWeek}_${slot.startTime}_${teacherId}`;
+
+          if (!teacherBusyMap[busyKey]) {
+            updates.push({ slotId: slot.id, subjectId: subject.subjectId });
+            teacherBusyMap[busyKey] = true;
+            allocated = true;
+            break;
+          }
+        }
+      }
+
+      if (!allocated) {
+        conflicts.push({
+          day: slot.dayOfWeek,
+          time: `${slot.startTime} - ${slot.endTime}`,
+          reason: 'Conflict: No teacher for assigned subjects is available at this time.'
+        });
+      }
+    }
+
+    // 6. Apply Updates
+    await Promise.all(updates.map(upd =>
+      prisma.timetable.update({
+        where: { id: upd.slotId },
+        data: { subjectId: upd.subjectId }
+      })
+    ));
+
+    // 7. Log and Return Result
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'GENERATE_TIMETABLE',
+      resource: 'TIMETABLE',
+      details: {
+        classId,
+        slotsFilled: updates.length,
+        conflictsCount: conflicts.length
+      },
+      ipAddress: req.ip
+    });
+
+    res.json({
+      message: conflicts.length > 0
+        ? `Generated with ${conflicts.length} conflicts. Please resolve manually.`
+        : 'Timetable generated successfully without clashes!',
+      conflicts,
+      successCount: updates.length
+    });
+
+  } catch (error) {
+    console.error('Generation error:', error);
+    res.status(500).json({ error: 'Failed to generate timetable' });
   }
 });
 

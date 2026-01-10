@@ -515,9 +515,9 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!firstName || !lastName || !classId) {
+    if (!firstName || !lastName || !classId || !parentGuardianName || !parentGuardianPhone) {
       console.error('Validation error: Missing required fields');
-      return res.status(400).json({ error: 'First name, last name, and class are required' });
+      return res.status(400).json({ error: 'First name, last name, class, parent name, and parent phone are required' });
     }
 
     // Validate blood group if provided
@@ -1043,8 +1043,7 @@ router.post('/:id/create-parent', authenticate, authorize(['admin']), async (req
       }
     });
 
-    let parent;
-
+    let isNew = false;
     if (user) {
       // User exists, find associated parent
       parent = await prisma.parent.findUnique({
@@ -1052,7 +1051,7 @@ router.post('/:id/create-parent', authenticate, authorize(['admin']), async (req
       });
 
       if (!parent) {
-        // User exists but has no parent profile (unlikely but handle it)
+        // User exists but has no parent profile (e.g. they were only a staff member)
         parent = await prisma.parent.create({
           data: {
             schoolId: req.schoolId,
@@ -1061,9 +1060,11 @@ router.post('/:id/create-parent', authenticate, authorize(['admin']), async (req
             address: student.address
           }
         });
+        isNew = true; // Still "new" in terms of parent access
       }
     } else {
       // 3. Create new User + Parent
+      isNew = true;
       const passwordHash = await bcrypt.hash('123456', 10);
 
       const result = await prisma.$transaction(async (tx) => {
@@ -1107,22 +1108,23 @@ router.post('/:id/create-parent', authenticate, authorize(['admin']), async (req
     logAction({
       schoolId: req.schoolId,
       userId: req.user.id,
-      action: 'CREATE',
+      action: isNew ? 'CREATE' : 'LINK',
       resource: 'PARENT_ACCOUNT',
       details: {
         studentId,
         parentId: parent.id,
         phone,
-        message: 'Auto-created from student record'
+        message: isNew ? 'Auto-created from student record' : 'Linked to existing parent account (sibling detection)'
       },
       ipAddress: req.ip
     });
 
     res.json({
-      message: 'Parent account created/linked successfully',
+      message: isNew ? 'Parent account created successfully' : 'Student linked to existing parent account',
+      isNewAccount: isNew,
       credentials: {
         username: phone,
-        password: '123456'
+        password: isNew ? '123456' : '(Existing Password)'
       }
     });
 

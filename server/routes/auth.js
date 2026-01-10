@@ -178,7 +178,16 @@ router.get('/me', authenticate, async (req, res) => {
             classModel: true
           }
         },
-        teacher: true
+        teacher: true,
+        parent: {
+          include: {
+            students: {
+              include: {
+                classModel: true
+              }
+            }
+          }
+        }
       }
     });
 

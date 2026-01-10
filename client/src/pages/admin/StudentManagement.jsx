@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import PhotoUpload from '../../components/PhotoUpload';
 import { api, API_BASE_URL } from '../../api';
@@ -12,6 +12,8 @@ const StudentManagement = () => {
   const [editingStudent, setEditingStudent] = useState(null);
   const [showCredentialsModal, setShowCredentialsModal] = useState(false);
   const [newStudentCredentials, setNewStudentCredentials] = useState(null);
+  const [showParentCredentialsModal, setShowParentCredentialsModal] = useState(false);
+  const [newParentCredentials, setNewParentCredentials] = useState(null);
   const [expandedClasses, setExpandedClasses] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -184,16 +186,20 @@ const StudentManagement = () => {
       return;
     }
 
-    if (!confirm(`Create a parent account for ${student.parentGuardianName}? \n\nUsername: ${student.parentGuardianPhone}\nPassword: 123456`)) {
-      return;
-    }
-
     try {
       const response = await api.post(`/api/students/${student.id}/create-parent`);
       const data = await response.json();
 
       if (response.ok) {
-        alert(`Parent account created successfully!\n\nUsername: ${data.credentials.username}\nPassword: ${data.credentials.password}\n\nPlease share these credentials with the parent.`);
+        setNewParentCredentials({
+          name: student.parentGuardianName,
+          phone: student.parentGuardianPhone,
+          username: data.credentials.username,
+          password: data.credentials.password,
+          isNewAccount: data.isNewAccount,
+          studentName: student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || 'Student')
+        });
+        setShowParentCredentialsModal(true);
         fetchStudents(); // Refresh list to update parentId status
       } else {
         alert(`Failed to create parent account: ${data.error}`);
@@ -201,6 +207,87 @@ const StudentManagement = () => {
     } catch (error) {
       console.error('Error creating parent account:', error);
       alert('An error occurred while creating the parent account.');
+    }
+  };
+
+  const downloadParentCredentials = () => {
+    if (!newParentCredentials) return;
+
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      // Background card
+      doc.setFillColor(249, 250, 251); // gray-50
+      doc.roundedRect(20, 20, 170, 80, 3, 3, 'F');
+      doc.setDrawColor(209, 213, 219); // gray-300
+      doc.roundedRect(20, 20, 170, 80, 3, 3, 'S');
+
+      // School Branding
+      if (schoolSettings?.schoolName) {
+        doc.setFontSize(16);
+        doc.setTextColor(17, 24, 39); // gray-900
+        doc.setFont('helvetica', 'bold');
+        doc.text(schoolSettings.schoolName, 105, 35, { align: 'center' });
+        doc.setFontSize(12);
+        doc.setTextColor(75, 85, 99); // gray-600
+        doc.setFont('helvetica', 'normal');
+        doc.text('Parent Login Credentials', 105, 42, { align: 'center' });
+      } else {
+        doc.setFontSize(16);
+        doc.setTextColor(17, 24, 39); // gray-900
+        doc.setFont('helvetica', 'bold');
+        doc.text('Parent Login Credentials', 105, 35, { align: 'center' });
+      }
+
+      // Credentials Content
+      doc.setFontSize(12);
+      doc.setTextColor(75, 85, 99); // gray-600
+
+      const startX = 40;
+      let startY = 55;
+      const lineSpacing = 10;
+
+      doc.text('Parent Name:', startX, startY);
+      doc.setTextColor(17, 24, 39);
+      doc.text(newParentCredentials.name, 90, startY);
+
+      startY += lineSpacing;
+      doc.setTextColor(75, 85, 99);
+      doc.text('Ward/Student:', startX, startY);
+      doc.setTextColor(17, 24, 39);
+      doc.text(newParentCredentials.studentName, 90, startY);
+
+      startY += lineSpacing;
+      doc.setTextColor(75, 85, 99);
+      doc.text('Username:', startX, startY);
+      doc.setTextColor(17, 24, 39);
+      doc.text(newParentCredentials.username, 90, startY);
+
+      startY += lineSpacing;
+      doc.setTextColor(75, 85, 99);
+      doc.text('Password:', startX, startY);
+      doc.setTextColor(17, 24, 39);
+      doc.text(newParentCredentials.isNewAccount ? newParentCredentials.password : '(Existing Password)', 90, startY);
+
+      // Footnote
+      startY += lineSpacing + 5;
+      doc.setFontSize(10);
+      if (newParentCredentials.isNewAccount) {
+        doc.setTextColor(180, 83, 9); // amber-600
+        doc.text('Note: Password must be changed upon first login for security.', 105, startY, { align: 'center' });
+      } else {
+        doc.setTextColor(37, 99, 235); // blue-600
+        doc.text('Note: Student linked to existing account. Use your current password.', 105, startY, { align: 'center' });
+      }
+
+      doc.save(`${newParentCredentials.name}_ParentCredentials.pdf`);
+    } catch (pdfError) {
+      console.error('PDF Generation Error:', pdfError);
+      alert('Failed to generate PDF. Please try the Print option.');
     }
   };
 
@@ -271,7 +358,7 @@ const StudentManagement = () => {
         startY += 15;
         doc.setFontSize(10);
         doc.setTextColor(217, 119, 6); // amber-600
-        doc.text('⚠️ Student will be required to change this password on first login.', 105, startY, { align: 'center' });
+        doc.text('âš ï¸ Student will be required to change this password on first login.', 105, startY, { align: 'center' });
       }
 
       // Footer
@@ -906,7 +993,7 @@ Note: Password must be changed on first login.
 
               {newStudentCredentials.mustChangePassword && (
                 <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-2 rounded">
-                  ⚠️ Student will be required to change this password on first login.
+                  âš ï¸ Student will be required to change this password on first login.
                 </div>
               )}
             </div>
@@ -951,32 +1038,108 @@ Note: Password must be changed on first login.
               </button>
             </div>
           </div>
-
-          <style>{`
-            @media print {
-              body * {
-                visibility: hidden;
-              }
-              #credentials-print-area, #credentials-print-area * {
-                visibility: visible;
-              }
-              #credentials-print-area {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                margin: 0;
-                padding: 20px;
-              }
-              .print\\:hidden {
-                display: none !important;
-                visibility: hidden !important;
-              }
-            }
-          `}</style>
         </div>
       )}
-    </div >
+
+      {/* Parent Credentials Modal */}
+      {showParentCredentialsModal && newParentCredentials && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 print:bg-white print:p-0">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl print:shadow-none print:max-w-none print:w-full print:border-none" id="credentials-print-area">
+            <h3 className="text-xl font-bold mb-4 text-center print:hidden">
+              {newParentCredentials.isNewAccount ? 'Parent Account Created!' : 'Parent Account Linked!'}
+            </h3>
+            <div className="bg-gray-50 p-4 rounded-md mb-6 space-y-2 border border-gray-200">
+              <p className="flex justify-between"><span className="font-semibold text-gray-600">Parent Name:</span> <span className="font-medium">{newParentCredentials.name}</span></p>
+              <p className="flex justify-between"><span className="font-semibold text-gray-600">Ward:</span> <span className="font-medium">{newParentCredentials.studentName}</span></p>
+              <p className="flex justify-between"><span className="font-semibold text-gray-600">Username:</span> <span className="font-mono bg-white px-2 rounded border">{newParentCredentials.username}</span></p>
+              <p className="flex justify-between"><span className="font-semibold text-gray-600">Password:</span> <span className="font-mono bg-white px-2 rounded border">{newParentCredentials.isNewAccount ? newParentCredentials.password : '(Existing Password)'}</span></p>
+
+              {newParentCredentials.isNewAccount ? (
+                <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-2 rounded">
+                  ⚠️ Parent will be required to change this password on first login.
+                </div>
+              ) : (
+                <div className="mt-2 text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                  ℹ️ This phone number is already registered. The parent can login with their existing password to manage both wards.
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 print:hidden">
+              <button
+                onClick={() => {
+                  const passwordText = newParentCredentials.isNewAccount ? newParentCredentials.password : '(Existing Password)';
+                  const noteText = newParentCredentials.isNewAccount
+                    ? 'Note: Password must be changed on first login'
+                    : 'Note: This student has been linked to your existing parent account. Use your current password to login.';
+
+                  const text = `Parent Login Credentials\n\nName: ${newParentCredentials.name}\nWard: ${newParentCredentials.studentName}\nUsername: ${newParentCredentials.username}\nPassword: ${passwordText}\n\n${noteText}`;
+                  navigator.clipboard.writeText(text);
+                  alert('Credentials copied to clipboard!');
+                }}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm font-semibold"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+                Copy
+              </button>
+              <button
+                onClick={downloadParentCredentials}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm font-semibold"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 text-sm font-semibold print:hidden"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print
+              </button>
+              <button
+                onClick={() => setShowParentCredentialsModal(false)}
+                className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors text-sm font-semibold"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unified Print Styles */}
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #credentials-print-area, #credentials-print-area * {
+            visibility: visible;
+          }
+          #credentials-print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0 !important;
+            padding: 10mm !important;
+            background: white !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+          .print\\:hidden {
+            display: none !important;
+            visibility: hidden !important;
+          }
+        }
+      `}</style>
+    </div>
   );
 };
 

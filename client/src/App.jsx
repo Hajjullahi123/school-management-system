@@ -129,7 +129,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="timetable" element={
-              <ProtectedRoute roles={['admin', 'teacher', 'student']}>
+              <ProtectedRoute roles={['admin', 'teacher', 'student', 'parent']}>
                 <Timetable />
               </ProtectedRoute>
             } />
