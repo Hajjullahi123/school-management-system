@@ -6,6 +6,7 @@ import StudentList from './pages/StudentList';
 import ResultManager from './pages/ResultManager';
 import ReportCard from './pages/ReportCard';
 import LandingPage from './pages/LandingPage';
+import Contact from './pages/Contact';
 import NewsEvents from './pages/NewsEvents';
 import Gallery from './pages/Gallery';
 import Analytics from './pages/Analytics';
@@ -80,6 +81,7 @@ function App() {
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
           <Route path="/news-events" element={<NewsEvents />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/gallery" element={<Gallery />} />
           <Route path="/alumni" element={<AlumniPortal />} />
           <Route path="/alumni/directory" element={<AlumniDirectory />} />

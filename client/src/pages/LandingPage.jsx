@@ -250,7 +250,7 @@ const LandingPage = () => {
         {/* Content */}
         <div className="relative z-30 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-20">
           <div className="reveal-up">
-            <span className="inline-block px-4 py-1.5 mb-6 glass text-white text-xs font-bold tracking-[0.3em] uppercase rounded-full shadow-lg">
+            <span className="inline-block px-4 py-1.5 mb-10 glass text-white text-xs font-bold tracking-[0.3em] uppercase rounded-full shadow-lg">
               Premium Education • High Standards • Character Building
             </span>
             <h1 className="text-5xl md:text-8xl font-black text-white mb-8 tracking-tighter drop-shadow-2xl leading-[0.9]">
@@ -316,8 +316,8 @@ const LandingPage = () => {
           <div className="flex flex-col lg:flex-row gap-20">
             {/* Left: Content */}
             <div className="lg:w-1/2">
-              <span className="text-primary font-black tracking-widest uppercase text-sm mb-4 block">Our DNA</span>
-              <h2 className="text-5xl font-black text-gray-900 mb-8 leading-[1.1]">The Core Pillars of Our Excellence</h2>
+              <span className="text-primary font-black tracking-widest uppercase text-sm mb-6 block">Our DNA</span>
+              <h2 className="text-5xl font-black text-gray-900 mb-12 leading-[1.1]">The Core Pillars of Our Excellence</h2>
               <div className="space-y-12">
                 {[
                   {
@@ -552,9 +552,9 @@ const LandingPage = () => {
               <Link to="/verify-dashboard" className="px-10 py-5 bg-white text-gray-900 font-black rounded-2xl hover:bg-gray-100 transition-all transform hover:-translate-y-2 uppercase tracking-widest active:scale-95">
                 Go to Dashboard
               </Link>
-              <button className="px-10 py-5 bg-transparent border-2 border-white/20 text-white font-black rounded-2xl hover:bg-white/5 transition-all transform hover:-translate-y-2 uppercase tracking-widest active:scale-95">
+              <Link to="/contact" className="px-10 py-5 bg-transparent border-2 border-white/20 text-white font-black rounded-2xl hover:bg-white/5 transition-all transform hover:-translate-y-2 uppercase tracking-widest active:scale-95 text-center">
                 Contact Office
-              </button>
+              </Link>
             </div>
           </div>
         </div>
