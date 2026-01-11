@@ -32,7 +32,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher']), 
       { header: 'Parent Name*', key: 'parentName', width: 25 },
       { header: 'Parent Phone*', key: 'parentPhone', width: 20 },
       { header: 'Address', key: 'address', width: 40 },
-      { header: 'Date of Birth (YYYY-MM-DD)', key: 'dob', width: 20 }
+      { header: 'Date of Birth (YYYY-MM-DD)', key: 'dob', width: 20 },
+      { header: 'Scholarship (Yes/No)', key: 'isScholarship', width: 20 }
     ];
 
     // Add example row
@@ -47,7 +48,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher']), 
         parentName: 'Jane Doe',
         parentPhone: '08012345678',
         address: '123 School Road',
-        dob: '2015-05-15'
+        dob: '2015-05-15',
+        isScholarship: 'No'
       });
     }
 
@@ -99,7 +101,8 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
         parentGuardianName: row.getCell(7).value?.toString()?.trim(),
         parentGuardianPhone: row.getCell(8).value?.toString()?.trim(),
         address: row.getCell(9).value?.toString()?.trim(),
-        dateOfBirth: row.getCell(10).value?.toString()?.trim()
+        dateOfBirth: row.getCell(10).value?.toString()?.trim(),
+        isScholarship: row.getCell(11).value?.toString()?.trim()
       });
     });
 
@@ -200,7 +203,8 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
             address: studentData.address,
             parentGuardianName: studentData.parentGuardianName,
             parentGuardianPhone: studentData.parentGuardianPhone,
-            nationality: 'Nigerian'
+            nationality: 'Nigerian',
+            isScholarship: studentData.isScholarship?.toLowerCase() === 'yes' || studentData.isScholarship?.toLowerCase() === 'true'
           }
         });
 
@@ -229,9 +233,9 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
                 studentId: student.id,
                 termId: currentTerm.id,
                 academicSessionId: currentTerm.academicSessionId,
-                expectedAmount: feeStructure.amount,
+                expectedAmount: student.isScholarship ? 0 : feeStructure.amount,
                 paidAmount: 0,
-                balance: feeStructure.amount,
+                balance: student.isScholarship ? 0 : feeStructure.amount,
                 isClearedForExam: true
               }
             });
@@ -399,7 +403,8 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher']), async
             parentEmail: studentData.parentEmail || null,
             bloodGroup: studentData.bloodGroup || null,
             genotype: studentData.genotype || null,
-            disability: studentData.disability || 'None'
+            disability: studentData.disability || 'None',
+            isScholarship: studentData.isScholarship?.toLowerCase() === 'yes' || studentData.isScholarship?.toLowerCase() === 'true'
           }
         });
 
@@ -433,9 +438,9 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher']), async
                 studentId: student.id,
                 termId: currentTerm.id,
                 academicSessionId: currentTerm.academicSessionId,
-                expectedAmount: feeStructure.amount,
+                expectedAmount: student.isScholarship ? 0 : feeStructure.amount,
                 paidAmount: 0,
-                balance: feeStructure.amount,
+                balance: student.isScholarship ? 0 : feeStructure.amount,
                 isClearedForExam: true
               }
             });

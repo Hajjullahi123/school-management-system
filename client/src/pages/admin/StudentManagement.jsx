@@ -527,8 +527,9 @@ Note: Password must be changed on first login.
       '2. Open the template in Excel, Google Sheets, or a text editor.',
       '3. Fill in the student data. Ensure firstName, lastName, and classId are provided.',
       '4. The "classId" MUST be numeric. Refer to the table below for correct IDs.',
-      '5. Save your file as "Comma Separated Values (.csv)".',
-      '6. Click "Bulk Import" on the dashboard to upload your file.'
+      '5. For the "Scholarship" column, use "Yes" for scholarship students and "No" for others.',
+      '6. Save your file as "Comma Separated Values (.csv)".',
+      '7. Click "Bulk Import" on the dashboard to upload your file.'
     ];
     doc.text(instructions, 20, 45);
 
