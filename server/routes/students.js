@@ -379,11 +379,19 @@ router.delete('/my-photo', authenticate, async (req, res) => {
 // Get all students with full details
 router.get('/', authenticate, async (req, res) => {
   try {
-    const { classId } = req.query;
+    const { classId, status } = req.query;
     const where = { schoolId: req.schoolId };
 
     if (classId) {
       where.classId = parseInt(classId);
+    }
+
+    // Default to 'active' if no status is provided, 
+    // but allow searching for others if explicitly requested
+    if (status) {
+      where.status = status;
+    } else {
+      where.status = 'active';
     }
 
     const students = await prisma.student.findMany({

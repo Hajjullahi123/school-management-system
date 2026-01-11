@@ -209,7 +209,7 @@ model Student {
   parentPhone         String?
   createdAt           DateTime            @default(now())
   middleName          String?
-  status              String              @default("active") // active, graduated, withdrawn, alumi
+  status              String              @default("active") // active, graduated, withdrawn, alumni
   clubs               String?
   isScholarship       Boolean             @default(false)
   isExamRestricted    Boolean             @default(false)

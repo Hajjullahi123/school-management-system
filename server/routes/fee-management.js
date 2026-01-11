@@ -11,7 +11,7 @@ router.get('/students', authenticate, authorize(['admin', 'accountant']), async 
   try {
     const { termId, academicSessionId, classId } = req.query;
 
-    const where = { schoolId: req.schoolId };
+    const where = { schoolId: req.schoolId, status: 'active' };
     if (classId) where.classId = parseInt(classId);
 
     const students = await prisma.student.findMany({
