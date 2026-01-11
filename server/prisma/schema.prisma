@@ -117,6 +117,7 @@ model School {
   alumniStories         AlumniStory[]
   alumniDonations       AlumniDonation[]
   promotionHistory      PromotionHistory[]
+  homeworkSubmissions   HomeworkSubmission[]
   auditLogs             AuditLog[]
 }
 
@@ -162,6 +163,7 @@ model User {
   teacher            Teacher?
   teacherAssignments TeacherAssignment[]
   quranRecords       QuranRecord[]      @relation("QuranTeacher")
+  gradedSubmissions  HomeworkSubmission[]
 
   @@unique([schoolId, username]) // Username unique PER school
   @@unique([schoolId, email])    // Email unique PER school
@@ -227,6 +229,7 @@ model Student {
   reportCards         StudentReportCard[]
   promotionHistory    PromotionHistory[]
   quranRecords        QuranRecord[]
+  homeworkSubmissions HomeworkSubmission[]
 
   @@unique([schoolId, admissionNumber])
   @@unique([schoolId, rollNo])
@@ -473,6 +476,8 @@ model Homework {
   teacherId   Int
   title       String
   description String?
+  fileUrl     String?
+  fileName    String?
   dueDate     DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -481,6 +486,27 @@ model Homework {
   teacher     User      @relation(fields: [teacherId], references: [id])
   subject     Subject   @relation(fields: [subjectId], references: [id])
   class       Class     @relation(fields: [classId], references: [id])
+  submissions HomeworkSubmission[]
+}
+
+model HomeworkSubmission {
+  id           Int      @id @default(autoincrement())
+  schoolId     Int
+  homeworkId   Int
+  studentId    Int
+  fileUrl      String
+  fileName     String
+  submittedAt  DateTime @default(now())
+  grade        String?
+  feedback     String?
+  gradedBy     Int?
+
+  school       School   @relation(fields: [schoolId], references: [id])
+  homework     Homework @relation(fields: [homeworkId], references: [id])
+  student      Student  @relation(fields: [studentId], references: [id])
+  grader       User?    @relation(fields: [gradedBy], references: [id])
+
+  @@unique([homeworkId, studentId])
 }
 
 model LearningResource {
@@ -492,6 +518,7 @@ model LearningResource {
   title       String
   description String?
   fileUrl     String?
+  fileName    String?
   type        String   @default("note")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
