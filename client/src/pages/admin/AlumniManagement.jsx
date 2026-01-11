@@ -5,7 +5,7 @@ import AlumniIDCard from '../../components/AlumniIDCard';
 import { useReactToPrint } from 'react-to-print';
 
 const AlumniManagement = () => {
-  const { schoolSettings } = useSchoolSettings();
+  const { settings: schoolSettings } = useSchoolSettings();
   const [activeTab, setActiveTab] = useState('directory');
   const [alumniList, setAlumniList] = useState([]);
   const [donations, setDonations] = useState([]);
@@ -577,7 +577,7 @@ const AlumniManagement = () => {
           {generatedCredentials && (
             <div className="border border-gray-300 p-8 max-w-lg mx-auto text-center rounded-lg">
               <div className="mb-4">
-                <h1 className="text-2xl font-bold uppercase">{schoolSettings?.name || 'School Name'}</h1>
+                <h1 className="text-2xl font-bold uppercase">{schoolSettings?.schoolName || 'School Name'}</h1>
                 <p className="text-gray-500">Alumni Portal Credentials</p>
               </div>
               <hr className="my-4 border-gray-200" />
@@ -660,8 +660,8 @@ const AlumniManagement = () => {
                   type="button"
                   onClick={() => setRegistrationMethod('promotion')}
                   className={`flex-1 p-3 rounded-md border-2 transition-colors ${registrationMethod === 'promotion'
-                      ? 'border-primary bg-primary/10 text-primary font-medium'
-                      : 'border-gray-300 bg-white hover:border-primary/50'
+                    ? 'border-primary bg-primary/10 text-primary font-medium'
+                    : 'border-gray-300 bg-white hover:border-primary/50'
                     }`}
                 >
                   <div className="text-center">
@@ -673,8 +673,8 @@ const AlumniManagement = () => {
                   type="button"
                   onClick={() => setRegistrationMethod('direct')}
                   className={`flex-1 p-3 rounded-md border-2 transition-colors ${registrationMethod === 'direct'
-                      ? 'border-primary bg-primary/10 text-primary font-medium'
-                      : 'border-gray-300 bg-white hover:border-primary/50'
+                    ? 'border-primary bg-primary/10 text-primary font-medium'
+                    : 'border-gray-300 bg-white hover:border-primary/50'
                     }`}
                 >
                   <div className="text-center">
