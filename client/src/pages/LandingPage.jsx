@@ -251,7 +251,7 @@ const LandingPage = () => {
         <div className="relative z-30 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-20">
           <div className="reveal-up">
             <span className="inline-block px-4 py-1.5 mb-6 glass text-white text-xs font-bold tracking-[0.3em] uppercase rounded-full shadow-lg">
-              Est. {new Date().getFullYear() - 15} • High Standard Education
+              Premium Education • High Standards • Character Building
             </span>
             <h1 className="text-5xl md:text-8xl font-black text-white mb-8 tracking-tighter drop-shadow-2xl leading-[0.9]">
               {schoolSettings?.welcomeTitle || "Building Future Leaders Today"}
@@ -278,10 +278,10 @@ const LandingPage = () => {
           {/* Floating Stats Bar */}
           <div className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-4 reveal-up delay-300">
             {[
-              { label: "Active Students", value: "1,200+", icon: "👨‍🎓" },
-              { label: "Expert Faculty", value: "50+", icon: "👨‍🏫" },
-              { label: "Success Rate", value: "99%", icon: "⭐" },
-              { label: "Years of Excellence", value: "15+", icon: "🏆" }
+              { label: "Student Focused", value: "Future Leaders", icon: "👨‍🎓" },
+              { label: "Expert Faculty", value: "Qualified Staff", icon: "👨‍🏫" },
+              { label: "Academic Depth", value: "High Excellence", icon: "⭐" },
+              { label: "Standard Infrastructure", value: "Modern & Safe", icon: "🛡️" }
             ].map((stat, i) => (
               <div key={i} className="glass p-6 rounded-3xl shadow-2xl transform transition-transform hover:scale-105 border-white/10">
                 <div className="text-3xl mb-2">{stat.icon}</div>
