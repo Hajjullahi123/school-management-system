@@ -1,10 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const BulkStudentUpload = () => {
   const [csvData, setCsvData] = useState('');
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [classes, setClasses] = useState([]);
+
+  useEffect(() => {
+    fetchClasses();
+  }, []);
+
+  const fetchClasses = async () => {
+    try {
+      const response = await api.get('/api/classes');
+      if (response.ok) {
+        const data = await response.json();
+        setClasses(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    }
+  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -83,8 +102,8 @@ const BulkStudentUpload = () => {
   const downloadTemplate = () => {
     const template =
       `firstName,lastName,classId,dateOfBirth,gender,email,parentGuardianName,parentGuardianPhone,parentEmail,bloodGroup,genotype,stateOfOrigin,nationality,address,disability
-John,Doe,1,2010-01-15,Male,john@example.com,Mr. Doe,08012345678,parent@example.com,O+,AA,Lagos,Nigerian,123 Street,None
-Jane,Smith,1,2010-03-20,Female,jane@example.com,Mrs. Smith,08087654321,parent2@example.com,A+,AS,Abuja,Nigerian,456 Avenue,None`;
+John,Doe,${classes[0]?.id || 1},2010-01-15,Male,john@example.com,Mr. Doe,08012345678,parent@example.com,O+,AA,Lagos,Nigerian,123 Street,None
+Jane,Smith,${classes[0]?.id || 1},2010-03-20,Female,jane@example.com,Mrs. Smith,08087654321,parent2@example.com,A+,AS,Abuja,Nigerian,456 Avenue,None`;
 
     const blob = new Blob([template], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -92,6 +111,53 @@ Jane,Smith,1,2010-03-20,Female,jane@example.com,Mrs. Smith,08087654321,parent2@e
     a.href = url;
     a.download = 'student_upload_template.csv';
     a.click();
+  };
+
+  const downloadGuidancePDF = () => {
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(44, 62, 80);
+    doc.text('Bulk Student Upload Guidance', 105, 20, { align: 'center' });
+
+    // Instructions
+    doc.setFontSize(14);
+    doc.setTextColor(52, 73, 94);
+    doc.text('Step-by-Step Instructions:', 20, 35);
+
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    const instructions = [
+      '1. Download the CSV template from the admin dashboard.',
+      '2. Open the template in Excel, Google Sheets, or a text editor.',
+      '3. Fill in the student data. Ensure firstName, lastName, and classId are provided.',
+      '4. The "classId" MUST be numeric. Refer to the table below for correct IDs.',
+      '5. Save your file as "Comma Separated Values (.csv)".',
+      '6. Upload the saved CSV file through the system to complete import.'
+    ];
+    doc.text(instructions, 20, 45);
+
+    // Class IDs Table
+    doc.setFontSize(14);
+    doc.setTextColor(52, 73, 94);
+    doc.text('Official Class IDs Reference:', 20, 90);
+
+    autoTable(doc, {
+      startY: 95,
+      head: [['ID (Value for CSV)', 'Class Name', 'Class Arm']],
+      body: classes.map(c => [c.id, c.name, c.arm || 'N/A']),
+      headStyles: { fillColor: [43, 108, 176] },
+      margin: { top: 10 }
+    });
+
+    // Formatting Note
+    const finalY = (doc).lastAutoTable.finalY + 15;
+    doc.setFontSize(10);
+    doc.setTextColor(150, 0, 0);
+    doc.text('IMPORTANT: Dates must be in YYYY-MM-DD format (e.g., 2015-05-15).', 20, finalY);
+
+    doc.save('Bulk_Upload_Guidance_IDs.pdf');
   };
 
 
@@ -116,17 +182,31 @@ Jane,Smith,1,2010-03-20,Female,jane@example.com,Mrs. Smith,08087654321,parent2@e
       </div>
 
       {/* Template Download */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-4">Step 1: Download Template</h3>
-        <button
-          onClick={downloadTemplate}
-          className="bg-primary text-white px-6 py-3 rounded-md hover:brightness-90 flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          Download CSV Template
-        </button>
+      <div className="bg-white p-6 rounded-lg shadow grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Step 1: Download Template</h3>
+          <button
+            onClick={downloadTemplate}
+            className="w-full bg-primary text-white px-6 py-3 rounded-xl hover:brightness-90 flex items-center justify-center gap-2 font-bold transition-all shadow-lg active:scale-95"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download CSV Template
+          </button>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Need Help? Get IDs</h3>
+          <button
+            onClick={downloadGuidancePDF}
+            className="w-full bg-amber-500 text-white px-6 py-3 rounded-xl hover:brightness-90 flex items-center justify-center gap-2 font-bold transition-all shadow-lg active:scale-95"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download Guidance PDF (incl. IDs)
+          </button>
+        </div>
       </div>
 
       {/* File Upload */}
