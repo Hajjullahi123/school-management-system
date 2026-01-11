@@ -134,6 +134,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
         }
 
         const classIdInt = parseInt(studentData.classId);
+        const schoolIdInt = parseInt(req.schoolId);
 
         // Check permission for teacher
         if (allowedClassIds && !allowedClassIds.has(classIdInt)) {
@@ -146,7 +147,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
 
         // Generate admission number
         const classInfo = await prisma.class.findFirst({
-          where: { id: classIdInt, schoolId: req.schoolId }
+          where: { id: classIdInt, schoolId: schoolIdInt }
         });
 
         if (!classInfo) {
@@ -163,14 +164,14 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
           studentData.lastName
         );
 
-        const admissionNumber = await getUniqueAdmissionNumber(prisma, baseAdmissionNumber, classIdInt, req.schoolId);
+        const admissionNumber = await getUniqueAdmissionNumber(prisma, baseAdmissionNumber, classIdInt, schoolIdInt);
 
         // Unique username
         const baseUsername = `${studentData.firstName.toLowerCase()}.${studentData.lastName.toLowerCase()}`;
         let username = baseUsername;
         let counter = 1;
         while (await prisma.user.findUnique({
-          where: { schoolId_username: { schoolId: req.schoolId, username } }
+          where: { schoolId_username: { schoolId: schoolIdInt, username } }
         })) {
           username = `${baseUsername}${counter}`;
           counter++;
@@ -181,7 +182,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
         // Database writes
         const user = await prisma.user.create({
           data: {
-            schoolId: req.schoolId,
+            schoolId: schoolIdInt,
             username,
             passwordHash: hashedPassword,
             role: 'student',
@@ -193,7 +194,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
 
         const student = await prisma.student.create({
           data: {
-            schoolId: req.schoolId,
+            schoolId: schoolIdInt,
             userId: user.id,
             admissionNumber,
             classId: classIdInt,
@@ -210,7 +211,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
 
         // Initialize Fee Record
         const currentTerm = await prisma.term.findFirst({
-          where: { isCurrent: true, schoolId: req.schoolId },
+          where: { isCurrent: true, schoolId: schoolIdInt },
           include: { academicSession: true }
         });
 
@@ -218,7 +219,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
           const feeStructure = await prisma.classFeeStructure.findUnique({
             where: {
               schoolId_classId_termId_academicSessionId: {
-                schoolId: req.schoolId,
+                schoolId: schoolIdInt,
                 classId: classIdInt,
                 termId: currentTerm.id,
                 academicSessionId: currentTerm.academicSessionId
@@ -229,7 +230,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
           if (feeStructure) {
             await prisma.feeRecord.create({
               data: {
-                schoolId: req.schoolId,
+                schoolId: schoolIdInt,
                 studentId: student.id,
                 termId: currentTerm.id,
                 academicSessionId: currentTerm.academicSessionId,

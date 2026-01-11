@@ -914,24 +914,99 @@ router.post('/bulk-reminder', authenticate, authorize(['admin', 'accountant']), 
       message: `Reminders are being sent to ${sentCount} parents`,
       sentCount
     });
+  } catch (error) {
+    console.error('Bulk reminder error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
-    // Log the bulk action
-    logAction({
-      schoolId: req.schoolId,
-      userId: req.user.id,
-      action: 'BULK_REMINDER',
-      resource: 'FEE_MANAGEMENT',
-      details: {
+// Sync missing fee records for all active students (Admin/Accountant)
+router.post('/sync-records', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
+  try {
+    const { termId, academicSessionId } = req.body;
+    if (!termId || !academicSessionId) {
+      return res.status(400).json({ error: 'Term and Session are required for sync' });
+    }
+
+    const schoolIdInt = parseInt(req.schoolId);
+
+    // 1. Get all active students in the school
+    const students = await prisma.student.findMany({
+      where: { schoolId: schoolIdInt, status: 'active' }
+    });
+
+    // 2. Get all fee structures for this school/term/session
+    const feeStructures = await prisma.classFeeStructure.findMany({
+      where: {
+        schoolId: schoolIdInt,
         termId: parseInt(termId),
-        academicSessionId: parseInt(academicSessionId),
-        classId: classId ? parseInt(classId) : 'all',
-        sentCount
-      },
+        academicSessionId: parseInt(academicSessionId)
+      }
+    });
+
+    const structureMap = {};
+    feeStructures.forEach(fs => {
+      structureMap[fs.classId] = fs.amount;
+    });
+
+    let createdCount = 0;
+    let skippedCount = 0;
+
+    // 3. For each student, check if record exists, if not create it
+    for (const student of students) {
+      // Check if fee record exists for this term
+      const existingRecord = await prisma.feeRecord.findUnique({
+        where: {
+          schoolId_studentId_termId_academicSessionId: {
+            schoolId: schoolIdInt,
+            studentId: student.id,
+            termId: parseInt(termId),
+            academicSessionId: parseInt(academicSessionId)
+          }
+        }
+      });
+
+      if (!existingRecord) {
+        // Find structure for their class
+        const amount = student.isScholarship ? 0 : (structureMap[student.classId] || 0);
+
+        // Only create if we have a structure or they are on scholarship
+        // We create it even if amount is 0 so they show up as clear
+        await prisma.feeRecord.create({
+          data: {
+            schoolId: schoolIdInt,
+            studentId: student.id,
+            termId: parseInt(termId),
+            academicSessionId: parseInt(academicSessionId),
+            expectedAmount: amount,
+            paidAmount: 0,
+            balance: amount,
+            isClearedForExam: true
+          }
+        });
+        createdCount++;
+      } else {
+        skippedCount++;
+      }
+    }
+
+    res.json({
+      message: `Sync completed: ${createdCount} records created, ${skippedCount} already existed.`,
+      createdCount,
+      skippedCount
+    });
+
+    logAction({
+      schoolId: schoolIdInt,
+      userId: req.user.id,
+      action: 'SYNC_FEE_RECORDS',
+      resource: 'FEE_MANAGEMENT',
+      details: { termId, academicSessionId, createdCount },
       ipAddress: req.ip
     });
 
   } catch (error) {
-    console.error('Bulk reminder error:', error);
+    console.error('Sync fee records error:', error);
     res.status(500).json({ error: error.message });
   }
 });
