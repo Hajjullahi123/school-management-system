@@ -606,6 +606,38 @@ router.get('/donations', async (req, res) => {
   }
 });
 
+// 8.1 Get My Donations (Logged-in Alumni)
+router.get('/my-donations', authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findFirst({
+      where: { id: req.user.id, schoolId: req.schoolId },
+      include: { student: { where: { schoolId: req.schoolId } } }
+    });
+
+    if (!user?.student) {
+      return res.status(404).json({ error: 'Alumni record not found' });
+    }
+
+    const alumni = await prisma.alumni.findUnique({
+      where: { studentId: user.student.id, schoolId: req.schoolId }
+    });
+
+    if (!alumni) {
+      return res.status(404).json({ error: 'Alumni record not found' });
+    }
+
+    const donations = await prisma.alumniDonation.findMany({
+      where: { alumniId: alumni.id, schoolId: req.schoolId },
+      orderBy: { date: 'desc' }
+    });
+
+    res.json(donations);
+  } catch (error) {
+    console.error('Fetch my donations error:', error);
+    res.status(500).json({ error: 'Failed to fetch donations' });
+  }
+});
+
 // 9. Delete Donation (Admin Only)
 router.delete('/donation/:id', authenticate, authorize(['admin']), async (req, res) => {
   try {

@@ -47,7 +47,7 @@ const AlumniLogin = () => {
         await login(data.token);
 
         // Redirect to alumni dashboard
-        navigate('/dashboard/alumni-dashboard');
+        navigate('/dashboard/alumni');
       } else {
         const errorData = await response.json();
         setError(errorData.error || 'Login failed. Please check your credentials.');

@@ -232,8 +232,8 @@ function App() {
                 <CBTPortal />
               </ProtectedRoute>
             } />
-            <Route path="alumni/dashboard" element={
-              <ProtectedRoute roles={['student', 'admin']}>
+            <Route path="alumni" element={
+              <ProtectedRoute roles={['alumni', 'admin']}>
                 <AlumniDashboard />
               </ProtectedRoute>
             } />

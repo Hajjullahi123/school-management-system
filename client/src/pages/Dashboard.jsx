@@ -16,6 +16,8 @@ const Dashboard = () => {
       navigate('/dashboard/superadmin', { replace: true });
     } else if (user?.role === 'admin' && schoolSettings && !schoolSettings.isSetupComplete) {
       navigate('/dashboard/settings', { replace: true });
+    } else if (user?.role === 'alumni') {
+      navigate('/dashboard/alumni', { replace: true });
     }
   }, [user, navigate, schoolSettings]);
   const [recentResults, setRecentResults] = useState([]);
