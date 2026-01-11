@@ -11,6 +11,7 @@ const authenticate = (req, res, next) => {
       req.query.token;
 
     if (!token) {
+      console.log(`[AUTH] Missing token for ${req.method} ${req.url}`);
       return res.status(401).json({ error: 'Authentication required' });
     }
 
@@ -19,6 +20,7 @@ const authenticate = (req, res, next) => {
     req.schoolId = decoded.schoolId; // Attach schoolId directly to req
     next();
   } catch (error) {
+    console.log(`[AUTH] Invalid token for ${req.method} ${req.url}: ${error.message}`);
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 };

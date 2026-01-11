@@ -11,6 +11,8 @@ export const apiCall = async (endpoint, options = {}) => {
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${baseURL}${path}`;
 
+  console.log(`[API DEBUG] ${options.method || 'GET'} ${url} - Token: ${localStorage.getItem('token') ? 'Yes' : 'No'}`);
+
   const defaultOptions = {
     headers: {
       'Content-Type': 'application/json',
@@ -69,6 +71,7 @@ export const api = {
     const baseURL = API_BASE_URL || window.location.origin;
     const url = `${baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
     const token = localStorage.getItem('token');
+    console.log(`[API GET] ${url} - Token: ${token ? 'Yes' : 'No'}`);
     const headers = { 'Content-Type': 'application/json', ...options.headers };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     return fetch(url, { ...options, method: 'GET', headers, credentials: 'include' });
@@ -78,6 +81,7 @@ export const api = {
     const baseURL = API_BASE_URL || window.location.origin;
     const url = `${baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
     const token = localStorage.getItem('token');
+    console.log(`[API POST] ${url} - Token: ${token ? 'Yes' : 'No'}`);
     const headers = { 'Content-Type': 'application/json', ...options.headers };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     return fetch(url, { ...options, method: 'POST', headers, credentials: 'include', body: JSON.stringify(data) });

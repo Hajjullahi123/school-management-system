@@ -5,8 +5,273 @@ const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 const { generateAdmissionNumber, getUniqueAdmissionNumber } = require('../utils/studentUtils');
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const ExcelJS = require('exceljs');
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
-// Bulk upload students from CSV data
+// Download Bulk Student Template (CSV)
+router.get('/template/students', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Students');
+
+    // Get classes for ID reference
+    const classes = await prisma.class.findMany({
+      where: { schoolId: req.schoolId, isActive: true },
+      select: { id: true, name: true, arm: true }
+    });
+
+    worksheet.columns = [
+      { header: 'First Name*', key: 'firstName', width: 20 },
+      { header: 'Last Name*', key: 'lastName', width: 20 },
+      { header: 'Middle Name', key: 'middleName', width: 20 },
+      { header: 'Class ID*', key: 'classId', width: 10 },
+      { header: 'Class Name (Info)', key: 'className', width: 20 },
+      { header: 'Gender (Male/Female)', key: 'gender', width: 15 },
+      { header: 'Parent Name*', key: 'parentName', width: 25 },
+      { header: 'Parent Phone*', key: 'parentPhone', width: 20 },
+      { header: 'Address', key: 'address', width: 40 },
+      { header: 'Date of Birth (YYYY-MM-DD)', key: 'dob', width: 20 }
+    ];
+
+    // Add example row
+    if (classes.length > 0) {
+      worksheet.addRow({
+        firstName: 'John',
+        lastName: 'Doe',
+        middleName: 'Junior',
+        classId: classes[0].id,
+        className: `${classes[0].name} ${classes[0].arm || ''}`,
+        gender: 'Male',
+        parentName: 'Jane Doe',
+        parentPhone: '08012345678',
+        address: '123 School Road',
+        dob: '2015-05-15'
+      });
+    }
+
+    // Add a second sheet with Class IDs for reference
+    const refSheet = workbook.addWorksheet('Class Reference');
+    refSheet.columns = [
+      { header: 'Class ID', key: 'id', width: 10 },
+      { header: 'Class Name', key: 'name', width: 30 }
+    ];
+    classes.forEach(c => {
+      refSheet.addRow({ id: c.id, name: `${c.name} ${c.arm || ''}` });
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=Student_Import_Template.csv');
+    await workbook.csv.write(res);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk upload students from file
+router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const workbook = new ExcelJS.Workbook();
+    if (req.file.originalname.endsWith('.csv')) {
+      const stream = require('stream');
+      const bufferStream = new stream.PassThrough();
+      bufferStream.end(req.file.buffer);
+      await workbook.csv.read(bufferStream);
+    } else {
+      await workbook.xlsx.load(req.file.buffer);
+    }
+
+    const worksheet = workbook.worksheets[0];
+    const studentsRaw = [];
+
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header
+
+      studentsRaw.push({
+        firstName: row.getCell(1).value?.toString()?.trim(),
+        lastName: row.getCell(2).value?.toString()?.trim(),
+        middleName: row.getCell(3).value?.toString()?.trim(),
+        classId: row.getCell(4).value?.toString()?.trim(),
+        gender: row.getCell(6).value?.toString()?.trim(),
+        parentGuardianName: row.getCell(7).value?.toString()?.trim(),
+        parentGuardianPhone: row.getCell(8).value?.toString()?.trim(),
+        address: row.getCell(9).value?.toString()?.trim(),
+        dateOfBirth: row.getCell(10).value?.toString()?.trim()
+      });
+    });
+
+    if (studentsRaw.length === 0) {
+      return res.status(400).json({ error: 'No student data found in file' });
+    }
+
+    const results = { successful: [], failed: [] };
+
+    // If user is a teacher, get their assigned classes
+    let allowedClassIds = null;
+    if (req.user.role === 'teacher') {
+      const assignedClasses = await prisma.class.findMany({
+        where: { classTeacherId: req.user.id, schoolId: req.schoolId },
+        select: { id: true }
+      });
+      allowedClassIds = new Set(assignedClasses.map(c => c.id));
+    }
+
+    for (const studentData of studentsRaw) {
+      try {
+        // Validate required fields
+        if (!studentData.firstName || !studentData.lastName || !studentData.classId || !studentData.parentGuardianPhone) {
+          results.failed.push({
+            data: studentData,
+            error: 'Missing required fields (firstName, lastName, classId, or parentPhone)'
+          });
+          continue;
+        }
+
+        const classIdInt = parseInt(studentData.classId);
+
+        // Check permission for teacher
+        if (allowedClassIds && !allowedClassIds.has(classIdInt)) {
+          results.failed.push({
+            data: studentData,
+            error: `Unauthorized access to class ID ${classIdInt}`
+          });
+          continue;
+        }
+
+        // Generate admission number
+        const classInfo = await prisma.class.findFirst({
+          where: { id: classIdInt, schoolId: req.schoolId }
+        });
+
+        if (!classInfo) {
+          results.failed.push({ data: studentData, error: `Invalid class ID: ${studentData.classId}` });
+          continue;
+        }
+
+        const admissionYear = new Date().getFullYear();
+        const baseAdmissionNumber = generateAdmissionNumber(
+          admissionYear,
+          classInfo.name,
+          classInfo.arm || '',
+          studentData.firstName,
+          studentData.lastName
+        );
+
+        const admissionNumber = await getUniqueAdmissionNumber(prisma, baseAdmissionNumber, classIdInt, req.schoolId);
+
+        // Unique username
+        const baseUsername = `${studentData.firstName.toLowerCase()}.${studentData.lastName.toLowerCase()}`;
+        let username = baseUsername;
+        let counter = 1;
+        while (await prisma.user.findUnique({
+          where: { schoolId_username: { schoolId: req.schoolId, username } }
+        })) {
+          username = `${baseUsername}${counter}`;
+          counter++;
+        }
+
+        const hashedPassword = await bcrypt.hash('student123', 10);
+
+        // Database writes
+        const user = await prisma.user.create({
+          data: {
+            schoolId: req.schoolId,
+            username,
+            passwordHash: hashedPassword,
+            role: 'student',
+            firstName: studentData.firstName,
+            lastName: studentData.lastName,
+            isActive: true
+          }
+        });
+
+        const student = await prisma.student.create({
+          data: {
+            schoolId: req.schoolId,
+            userId: user.id,
+            admissionNumber,
+            classId: classIdInt,
+            middleName: studentData.middleName,
+            dateOfBirth: studentData.dateOfBirth ? new Date(studentData.dateOfBirth) : null,
+            gender: studentData.gender,
+            address: studentData.address,
+            parentGuardianName: studentData.parentGuardianName,
+            parentGuardianPhone: studentData.parentGuardianPhone,
+            nationality: 'Nigerian'
+          }
+        });
+
+        // Initialize Fee Record
+        const currentTerm = await prisma.term.findFirst({
+          where: { isCurrent: true, schoolId: req.schoolId },
+          include: { academicSession: true }
+        });
+
+        if (currentTerm) {
+          const feeStructure = await prisma.classFeeStructure.findUnique({
+            where: {
+              schoolId_classId_termId_academicSessionId: {
+                schoolId: req.schoolId,
+                classId: classIdInt,
+                termId: currentTerm.id,
+                academicSessionId: currentTerm.academicSessionId
+              }
+            }
+          });
+
+          if (feeStructure) {
+            await prisma.feeRecord.create({
+              data: {
+                schoolId: req.schoolId,
+                studentId: student.id,
+                termId: currentTerm.id,
+                academicSessionId: currentTerm.academicSessionId,
+                expectedAmount: feeStructure.amount,
+                paidAmount: 0,
+                balance: feeStructure.amount,
+                isClearedForExam: true
+              }
+            });
+          }
+        }
+
+        results.successful.push({
+          admissionNumber,
+          username,
+          name: `${studentData.firstName} ${studentData.lastName}`,
+          class: `${classInfo.name} ${classInfo.arm || ''}`.trim()
+        });
+
+      } catch (err) {
+        results.failed.push({ data: studentData, error: err.message });
+      }
+    }
+
+    res.json({
+      message: `Import completed. ${results.successful.length} successful, ${results.failed.length} failed.`,
+      successful: results.successful,
+      failed: results.failed
+    });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'BULK_IMPORT',
+      resource: 'STUDENT',
+      details: { successCount: results.successful.length, failedCount: results.failed.length },
+      ipAddress: req.ip
+    });
+
+  } catch (error) {
+    console.error('Bulk student import error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk upload students from CSV data (JSON format - Legacy)
 router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
   try {
     const { students } = req.body;

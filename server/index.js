@@ -116,7 +116,7 @@ app.use('/api/bulk-results', require('./routes/bulk-results'));
 app.use('/api/email', require('./routes/email'));
 app.use('/api/upload', require('./routes/upload')); // File upload for student photos
 app.use('/api/teacher-assignments', require('./routes/teacher-assignments')); // Teacher-Subject-Class assignments
-// app.use('/api/bulk-upload', require('./routes/bulk-upload')); // Bulk student upload - DISABLED (use Student Management instead)
+app.use('/api/bulk-upload', require('./routes/bulk-upload')); // Bulk student upload
 app.use('/api/scoresheet', require('./routes/generate-scoresheet')); // CSV scoresheet generation
 app.use('/api/fees', require('./routes/fee-management')); // Fee management
 app.use('/api/fee-structure', require('./routes/fee-structure')); // Fee structure setup

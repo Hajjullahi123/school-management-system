@@ -472,29 +472,119 @@ Note: Password must be changed on first login.
     return `${classA.name} ${classA.arm}`.localeCompare(`${classB.name} ${classB.arm}`);
   });
 
+  const handleDownloadTemplate = () => {
+    const url = `${API_BASE_URL}/api/bulk-upload/template/students`;
+    const token = localStorage.getItem('token');
+
+    fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then(response => response.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Student_Import_Template.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+      })
+      .catch(error => {
+        console.error('Download error:', error);
+        alert('Failed to download template');
+      });
+  };
+
+  const handleBulkUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!confirm(`Registering students from "${file.name}". This will create user accounts and admission numbers automatically. Continue?`)) {
+      e.target.value = '';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/bulk-upload/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.message || 'Import completed successfully');
+        if (data.failed && data.failed.length > 0) {
+          console.error('Failed students:', data.failed);
+          alert(`Warning: ${data.failed.length} students failed to import. Check console for details.`);
+        }
+        fetchStudents();
+      } else {
+        alert(`Import failed: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload file');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Student Management</h1>
           <p className="text-sm text-gray-500 mt-1">
             {students.length} {students.length === 1 ? 'student' : 'students'} registered across {Object.keys(grouped).length} {Object.keys(grouped).length === 1 ? 'group' : 'groups'}
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 transition-colors flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            {showForm ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-            )}
-          </svg>
-          {showForm ? 'Cancel' : 'Add New Student'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDownloadTemplate}
+            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
+          >
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Template
+          </button>
+          <label className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm cursor-pointer">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            Bulk Import
+            <input
+              type="file"
+              className="hidden"
+              accept=".csv,.xlsx"
+              onChange={handleBulkUpload}
+            />
+          </label>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 transition-colors flex items-center gap-2 shadow-sm font-medium"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {showForm ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              )}
+            </svg>
+            {showForm ? 'Cancel' : 'Add Student'}
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}
