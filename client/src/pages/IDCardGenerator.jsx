@@ -346,9 +346,13 @@ const IDCardGenerator = () => {
     setLoading(true);
     try {
       const response = await api.get(`/api/students?classId=${classId}`);
-      const data = await response.json();
-      setCardsToPrint(data.map(s => ({ ...s, type: 'student' })));
-      if (data.length === 0) toast.error('No students found in this class');
+      if (response.ok) {
+        const data = await response.json();
+        setCardsToPrint(Array.isArray(data) ? data.map(s => ({ ...s, type: 'student' })) : []);
+        if (data.length === 0) toast.error('No students found in this class');
+      } else {
+        toast.error('Failed to fetch class students');
+      }
     } catch (error) {
       console.error('Class fetch error:', error);
       toast.error('Failed to fetch class students');
@@ -362,9 +366,13 @@ const IDCardGenerator = () => {
     setLoading(true);
     try {
       const response = await api.get(`/api/users?role=${type}`);
-      const data = await response.json();
-      setCardsToPrint(data.map(u => ({ ...u, type: 'staff' })));
-      if (data.length === 0) toast.error(`No ${type}s found`);
+      if (response.ok) {
+        const data = await response.json();
+        setCardsToPrint(Array.isArray(data) ? data.map(u => ({ ...u, type: 'staff' })) : []);
+        if (data.length === 0) toast.error(`No ${type}s found`);
+      } else {
+        toast.error('Failed to fetch staff');
+      }
     } catch (error) {
       console.error('Staff fetch error:', error);
       toast.error('Failed to fetch staff');

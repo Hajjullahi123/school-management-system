@@ -4,6 +4,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'darul-quran-secret-key-change-in-p
 
 // Authentication middleware
 const authenticate = (req, res, next) => {
+  const fs = require('fs');
+  const logFile = 'auth-debug.log';
+  const log = (msg) => {
+    try {
+      fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${msg}\n`);
+    } catch (e) { }
+  };
+
   try {
     // Check token in: cookies, authorization header, OR query params (for file uploads)
     const token = req.headers.authorization?.split(' ')[1] ||
@@ -11,7 +19,7 @@ const authenticate = (req, res, next) => {
       req.query.token;
 
     if (!token) {
-      console.log(`[AUTH] Missing token for ${req.method} ${req.url}`);
+      log(`MISSING TOKEN for ${req.method} ${req.url}. Headers: ${JSON.stringify(req.headers)}`);
       return res.status(401).json({ error: 'Authentication required' });
     }
 
@@ -20,7 +28,7 @@ const authenticate = (req, res, next) => {
     req.schoolId = decoded.schoolId; // Attach schoolId directly to req
     next();
   } catch (error) {
-    console.log(`[AUTH] Invalid token for ${req.method} ${req.url}: ${error.message}`);
+    log(`INVALID TOKEN for ${req.method} ${req.url}: ${error.message}`);
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 };

@@ -1,17 +1,8 @@
-const express = require('express');
-const router = express.Router();
-const prisma = require('../db');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
-// SECRET EMERGENCY CLEANUP ROUTE
-// Usage: GET /api/system/emergency-db-fix?secret=REPAIR2026
-router.get('/emergency-db-fix', async (req, res) => {
-  const { secret } = req.query;
-  if (secret !== 'REPAIR2026') {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
-
-  console.log('--- LIVE DB SANITIZATION STARTED ---');
-  const results = [];
+async function deepSanitize() {
+  console.log('--- DEEP SANITIZATION STARTED ---');
 
   const modelsToClean = [
     { name: 'school', field: 'logoUrl' },
@@ -25,6 +16,8 @@ router.get('/emergency-db-fix', async (req, res) => {
 
   try {
     for (const item of modelsToClean) {
+      console.log(`Checking ${item.name}.${item.field}...`);
+
       const records = await prisma[item.name].findMany({
         where: {
           OR: [
@@ -34,7 +27,7 @@ router.get('/emergency-db-fix', async (req, res) => {
         }
       });
 
-      results.push(`Model ${item.name}: Found ${records.length} absolute links.`);
+      console.log(`Found ${records.length} matches in ${item.name}.`);
 
       for (const record of records) {
         const val = record[item.field];
@@ -47,20 +40,25 @@ router.get('/emergency-db-fix', async (req, res) => {
               where: { id: record.id },
               data: { [item.field]: newPath }
             });
+            console.log(`  Updated ${item.name} ID ${record.id}: ${val} -> ${newPath}`);
+          } else if (val.startsWith('http')) {
+            // Catch-all: check if it still points to onrender.com even without /uploads/
+            if (val.includes('onrender.com')) {
+              // If it's something weird, just clear it or handle it.
+              // Usually it's an image link.
+              console.log(`  Skipping non-upload absolute URL: ${val}`);
+            }
           }
         }
       }
     }
 
-    res.json({
-      success: true,
-      message: 'Live database links have been converted to relative paths.',
-      details: results
-    });
+    console.log('--- SANITIZATION COMPLETE ---');
   } catch (error) {
-    console.error('CRITICAL ERROR during live sanitization:', error);
-    res.status(500).json({ error: error.message });
+    console.error('CRITICAL ERROR during sanitization:', error);
+  } finally {
+    await prisma.$disconnect();
   }
-});
+}
 
-module.exports = router;
+deepSanitize();

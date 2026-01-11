@@ -41,10 +41,14 @@ const UserManagement = () => {
       const response = await api.get('/api/users');
       if (response.ok) {
         const data = await response.json();
-        setUsers(data);
+        setUsers(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Failed to fetch users:', response.status);
+        setUsers([]);
       }
     } catch (error) {
       console.error('Failed to fetch users:', error);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -217,10 +221,10 @@ const UserManagement = () => {
                 <div
                   onClick={() => toggleRole(role)}
                   className={`px-6 py-4 flex justify-between items-center cursor-pointer select-none transition-colors ${role === 'admin' ? 'bg-indigo-600 hover:bg-indigo-700' :
-                      role === 'teacher' ? 'bg-blue-600 hover:bg-blue-700' :
-                        role === 'accountant' ? 'bg-amber-600 hover:bg-amber-700' :
-                          role === 'parent' ? 'bg-rose-600 hover:bg-rose-700' :
-                            'bg-emerald-600 hover:bg-emerald-700'
+                    role === 'teacher' ? 'bg-blue-600 hover:bg-blue-700' :
+                      role === 'accountant' ? 'bg-amber-600 hover:bg-amber-700' :
+                        role === 'parent' ? 'bg-rose-600 hover:bg-rose-700' :
+                          'bg-emerald-600 hover:bg-emerald-700'
                     } text-white`}
                 >
                   <div className="flex items-center gap-3">

@@ -50,18 +50,26 @@ const StudentManagement = () => {
   const fetchStudents = async () => {
     try {
       const response = await api.get('/api/students');
-      const data = await response.json();
-      setStudents(data);
+      if (response.ok) {
+        const data = await response.json();
+        setStudents(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Failed to fetch students:', response.status);
+        setStudents([]);
+      }
     } catch (error) {
       console.error('Error fetching students:', error);
+      setStudents([]);
     }
   };
 
   const fetchClasses = async () => {
     try {
       const response = await api.get('/api/classes');
-      const data = await response.json();
-      setClasses(data);
+      if (response.ok) {
+        const data = await response.json();
+        setClasses(Array.isArray(data) ? data : []);
+      }
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
