@@ -23,7 +23,6 @@ import UserManagement from './pages/admin/UserManagement';
 import StudentManagement from './pages/admin/StudentManagement';
 import AcademicSetup from './pages/admin/AcademicSetup';
 import ClassManagement from './pages/admin/ClassManagement';
-import BulkStudentUpload from './pages/admin/BulkStudentUpload';
 import AlumniManagement from './pages/admin/AlumniManagement';
 import SubjectManagement from './pages/admin/SubjectManagement';
 import TeacherAssignments from './pages/admin/TeacherAssignments';
@@ -275,11 +274,6 @@ function App() {
             <Route path="student-management" element={
               <ProtectedRoute roles={['admin']}>
                 <StudentManagement />
-              </ProtectedRoute>
-            } />
-            <Route path="bulk-student-upload" element={
-              <ProtectedRoute roles={['admin']}>
-                <BulkStudentUpload />
               </ProtectedRoute>
             } />
             <Route path="promotions" element={
