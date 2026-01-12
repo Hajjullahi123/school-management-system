@@ -177,78 +177,46 @@ router.post('/record', authenticate, authorize(['admin', 'accountant']), async (
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Check if student is on scholarship
+    // Check if student details
     const student = await prisma.student.findUnique({
       where: { id: parseInt(studentId) },
-      select: { isScholarship: true }
+      select: { isScholarship: true, classId: true }
     });
 
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
     }
 
-    // Override expected amount to 0 for scholarship students
-    const finalExpectedAmount = student.isScholarship ? 0 : parseFloat(expectedAmount);
-    const balance = finalExpectedAmount - (paidAmount || 0);
-
-    // Check if record exists
-    const existing = await prisma.feeRecord.findUnique({
-      where: {
-        schoolId_studentId_termId_academicSessionId: {
-          schoolId: req.schoolId,
-          studentId: parseInt(studentId),
-          termId: parseInt(termId),
-          academicSessionId: parseInt(academicSessionId)
-        }
-      }
-    });
-
-    let feeRecord;
-
-    if (existing) {
-      // Update existing record
-      feeRecord = await prisma.feeRecord.update({
+    // Fetch school fee structure for this class/term
+    if (!student.isScholarship) {
+      const feeStructure = await prisma.classFeeStructure.findFirst({
         where: {
-          id: existing.id,
-          schoolId: req.schoolId
-        },
-        data: {
-          expectedAmount: finalExpectedAmount,
-          paidAmount: parseFloat(paidAmount || 0),
-          balance
-        },
-        include: {
-          student: {
-            include: {
-              user: true
-            }
-          }
-        }
-      });
-    } else {
-      // Create new record
-      feeRecord = await prisma.feeRecord.create({
-        data: {
-          schoolId: req.schoolId,
-          studentId: parseInt(studentId),
+          classId: student.classId,
           termId: parseInt(termId),
           academicSessionId: parseInt(academicSessionId),
-          expectedAmount: finalExpectedAmount,
-          paidAmount: parseFloat(paidAmount || 0),
-          balance
-        },
-        include: {
-          student: {
-            include: {
-              user: true
-            }
-          }
+          schoolId: req.schoolId
         }
       });
+      const maxAllowed = feeStructure?.amount || 0;
+      if (parseFloat(expectedAmount) > maxAllowed) {
+        return res.status(400).json({
+          error: `Charge amount (₦${parseFloat(expectedAmount).toLocaleString()}) cannot exceed the standard school fee for this class (₦${maxAllowed.toLocaleString()})`
+        });
+      }
     }
 
+    // Use centralized utility to handle opening balance and calculations
+    const feeRecord = await createOrUpdateFeeRecordWithOpening({
+      schoolId: req.schoolId,
+      studentId: parseInt(studentId),
+      termId: parseInt(termId),
+      academicSessionId: parseInt(academicSessionId),
+      expectedAmount: student.isScholarship ? 0 : parseFloat(expectedAmount),
+      paidAmount: parseFloat(paidAmount || 0)
+    });
+
     res.json({
-      message: existing ? 'Fee record updated' : 'Fee record created',
+      message: 'Fee record saved successfully',
       feeRecord,
       ...(student.isScholarship && {
         warning: 'This student is on scholarship. Fee amount has been automatically set to ₦0.'
@@ -316,8 +284,15 @@ router.post('/payment', authenticate, authorize(['admin', 'accountant']), async 
       return res.status(404).json({ error: 'Fee record not found. Please create a fee record first.' });
     }
 
-    const newPaidAmount = feeRecord.paidAmount + parseFloat(amount);
-    const newBalance = feeRecord.expectedAmount - newPaidAmount;
+    const paymentAmountNum = parseFloat(amount);
+    if (paymentAmountNum > feeRecord.balance) {
+      return res.status(400).json({
+        error: `Payment amount (₦${paymentAmountNum.toLocaleString()}) cannot exceed the total outstanding balance (₦${feeRecord.balance.toLocaleString()})`
+      });
+    }
+
+    const newPaidAmount = feeRecord.paidAmount + paymentAmountNum;
+    const newBalance = (feeRecord.openingBalance + feeRecord.expectedAmount) - newPaidAmount;
 
     // Use transaction to update fee record and create payment history
     const result = await prisma.$transaction(async (tx) => {
@@ -329,7 +304,8 @@ router.post('/payment', authenticate, authorize(['admin', 'accountant']), async 
         },
         data: {
           paidAmount: newPaidAmount,
-          balance: newBalance
+          balance: newBalance,
+          isClearedForExam: (feeRecord.expectedAmount === 0 || newBalance <= 0)
         },
         include: {
           student: {
@@ -471,7 +447,11 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'accountant'
       });
 
       const newPaidAmount = feeRecord.paidAmount + difference;
-      const newBalance = feeRecord.expectedAmount - newPaidAmount;
+      const newBalance = (feeRecord.openingBalance + feeRecord.expectedAmount) - newPaidAmount;
+
+      if (newBalance < 0) {
+        throw new Error(`Updated payment amount would exceed the total balance. Maximum allowed change: ₦${feeRecord.balance.toLocaleString()}`);
+      }
 
       const updatedFeeRecord = await tx.feeRecord.update({
         where: {
@@ -480,7 +460,8 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'accountant'
         },
         data: {
           paidAmount: newPaidAmount,
-          balance: newBalance
+          balance: newBalance,
+          isClearedForExam: (feeRecord.expectedAmount === 0) || (newBalance <= 0)
         },
         include: {
           student: {

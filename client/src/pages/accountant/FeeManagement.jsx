@@ -271,6 +271,12 @@ export default function FeeManagement() {
       return;
     }
 
+    const currentBalance = selectedStudent.feeRecords[0]?.balance || 0;
+    if (parseFloat(paymentAmount) > currentBalance) {
+      alert(`Payment amount cannot exceed the outstanding balance (₦${currentBalance.toLocaleString()})`);
+      return;
+    }
+
     try {
       const response = await api.post('/api/fees/payment', {
         studentId,
@@ -1231,9 +1237,13 @@ export default function FeeManagement() {
                   type="number"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
+                  max={selectedStudent.feeRecords[0]?.balance || 0}
                   className="w-full p-2 border rounded focus:ring-primary focus:border-primary"
                   placeholder="0.00"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Outstanding: ₦{selectedStudent.feeRecords[0]?.balance.toLocaleString() || 0}
+                </p>
               </div>
 
               <div>
