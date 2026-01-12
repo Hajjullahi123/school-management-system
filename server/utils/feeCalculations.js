@@ -40,9 +40,10 @@ async function calculatePreviousOutstanding(schoolId, studentId, currentSessionI
       }
     });
 
-    // Sum up all outstanding balances
+    // Sum up all outstanding balances with NaN protection
     const totalOutstanding = previousRecords.reduce((sum, record) => {
-      return sum + (record.balance || 0);
+      const bal = parseFloat(record.balance) || 0;
+      return sum + (isNaN(bal) ? 0 : bal);
     }, 0);
 
     return totalOutstanding;
@@ -86,6 +87,12 @@ async function getStudentFeeSummary(schoolId, studentId, sessionId, termId) {
       }
     });
 
+    // Helper to safely parse numbers
+    const safeParse = (val, fallback = 0) => {
+      const parsed = parseFloat(val);
+      return isNaN(parsed) ? fallback : parsed;
+    };
+
     // If no current record, check if we need to fetch default structure
     let defaultExpected = 0;
 
@@ -104,7 +111,7 @@ async function getStudentFeeSummary(schoolId, studentId, sessionId, termId) {
             termId: tId
           }
         });
-        defaultExpected = feeStructure?.amount || 0;
+        defaultExpected = safeParse(feeStructure?.amount, 0);
       }
     }
 
@@ -116,24 +123,22 @@ async function getStudentFeeSummary(schoolId, studentId, sessionId, termId) {
       tId
     );
 
-    // Calculate totals
-    const openingBalance = currentRecord?.openingBalance || previousOutstanding;
-    const currentTermFee = currentRecord?.expectedAmount || defaultExpected;
+    // Calculate totals with NaN protection
+    const openingBalance = safeParse(currentRecord?.openingBalance, previousOutstanding);
+    const currentTermFee = safeParse(currentRecord?.expectedAmount, defaultExpected);
     const totalExpected = openingBalance + currentTermFee;
-    const totalPaid = currentRecord?.paidAmount || 0;
+    const totalPaid = safeParse(currentRecord?.paidAmount, 0);
 
-    // Balance calculation:
-    // If record exists, use stored balance.
-    // If not, calculate: opening + currentTermFee - paid (which is 0)
-    const currentBalance = currentRecord ? currentRecord.balance : (totalExpected - totalPaid);
-    const grandTotal = currentBalance; // Total outstanding is the current balance
+    // Balance calculation
+    const currentBalance = currentRecord ? safeParse(currentRecord.balance, 0) : (totalExpected - totalPaid);
+    const grandTotal = currentBalance;
 
     // Construct a virtual record if needed for frontend consistency
     const effectiveRecord = currentRecord || {
       id: null,
       expectedAmount: currentTermFee,
       paidAmount: 0,
-      balance: currentBalance,
+      balance: isNaN(currentBalance) ? 0 : currentBalance,
       isClearedForExam: false
     };
 
@@ -144,11 +149,11 @@ async function getStudentFeeSummary(schoolId, studentId, sessionId, termId) {
       currentTermFee,
       totalExpected,
       totalPaid,
-      currentBalance,
-      grandTotal,
+      currentBalance: isNaN(currentBalance) ? 0 : currentBalance,
+      grandTotal: isNaN(grandTotal) ? 0 : grandTotal,
       payments: currentRecord?.payments || [],
-      expectedAmount: currentTermFee, // Match frontend expectations usually looking for this on root or record
-      balance: currentBalance,
+      expectedAmount: currentTermFee,
+      balance: isNaN(currentBalance) ? 0 : currentBalance,
       paidAmount: totalPaid
     };
   } catch (error) {
@@ -191,10 +196,17 @@ async function createOrUpdateFeeRecordWithOpening(data) {
       }
     });
 
+    // Helper to safely parse numbers
+    const safeParse = (val, fallback = 0) => {
+      const parsed = parseFloat(val);
+      return isNaN(parsed) ? fallback : parsed;
+    };
+
     // Calculate values, using existing if not provided
-    const numExpected = expectedAmount !== undefined ? parseFloat(expectedAmount) : (existing?.expectedAmount || 0);
-    const numPaid = paidAmount !== undefined ? parseFloat(paidAmount) : (existing?.paidAmount || 0);
-    const balance = openingBalance + numExpected - numPaid;
+    const numExpected = expectedAmount !== undefined ? safeParse(expectedAmount, existing?.expectedAmount || 0) : (existing?.expectedAmount || 0);
+    const numPaid = paidAmount !== undefined ? safeParse(paidAmount, existing?.paidAmount || 0) : (existing?.paidAmount || 0);
+    const safeOpening = safeParse(openingBalance, 0);
+    const balance = safeOpening + numExpected - numPaid;
 
     // Exam clearance logic
     const isClearedForExam = (numExpected === 0) || (balance <= 0);
@@ -204,10 +216,10 @@ async function createOrUpdateFeeRecordWithOpening(data) {
       return await prisma.feeRecord.update({
         where: { id: existing.id },
         data: {
-          openingBalance,
+          openingBalance: safeOpening,
           expectedAmount: numExpected,
           paidAmount: numPaid,
-          balance,
+          balance: isNaN(balance) ? 0 : balance,
           isClearedForExam
         }
       });
@@ -219,10 +231,10 @@ async function createOrUpdateFeeRecordWithOpening(data) {
           studentId: studId,
           termId: tId,
           academicSessionId: sessId,
-          openingBalance,
+          openingBalance: safeOpening,
           expectedAmount: numExpected,
           paidAmount: numPaid,
-          balance,
+          balance: isNaN(balance) ? 0 : balance,
           isClearedForExam
         }
       });

@@ -285,6 +285,9 @@ router.post('/payment', authenticate, authorize(['admin', 'accountant']), async 
     }
 
     const paymentAmountNum = parseFloat(amount);
+    if (isNaN(paymentAmountNum) || paymentAmountNum <= 0) {
+      return res.status(400).json({ error: 'A valid positive payment amount is required' });
+    }
     if (paymentAmountNum > feeRecord.balance) {
       return res.status(400).json({
         error: `Payment amount (₦${paymentAmountNum.toLocaleString()}) cannot exceed the total outstanding balance (₦${feeRecord.balance.toLocaleString()})`
@@ -435,6 +438,11 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'accountant'
     // Calculate difference
     const oldAmount = payment.amount;
     const newAmount = parseFloat(amount);
+
+    if (isNaN(newAmount) || newAmount < 0) {
+      return res.status(400).json({ error: 'Valid payment amount is required' });
+    }
+
     const difference = newAmount - oldAmount;
 
     const result = await prisma.$transaction(async (tx) => {
@@ -449,8 +457,8 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'accountant'
       const newPaidAmount = feeRecord.paidAmount + difference;
       const newBalance = (feeRecord.openingBalance + feeRecord.expectedAmount) - newPaidAmount;
 
-      if (newBalance < 0) {
-        throw new Error(`Updated payment amount would exceed the total balance. Maximum allowed change: ₦${feeRecord.balance.toLocaleString()}`);
+      if (isNaN(newBalance) || newBalance < 0) {
+        throw new Error(`Updated payment amount would exceed the total balance or is invalid. Maximum allowed change: ₦${feeRecord.balance.toLocaleString()}`);
       }
 
       const updatedFeeRecord = await tx.feeRecord.update({
