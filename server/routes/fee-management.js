@@ -4,7 +4,7 @@ const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { sendPaymentConfirmation } = require('../services/emailService');
 const { logAction } = require('../utils/audit');
-const { getStudentFeeSummary, calculatePreviousOutstanding } = require('../utils/feeCalculations');
+const { getStudentFeeSummary, calculatePreviousOutstanding, createOrUpdateFeeRecordWithOpening } = require('../utils/feeCalculations');
 
 // Get all students with fee status (Accountant/Admin)
 router.get('/students', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
@@ -950,12 +950,15 @@ router.post('/sync-records', authenticate, authorize(['admin', 'accountant']), a
     });
 
     let createdCount = 0;
+    let updatedCount = 0;
     let skippedCount = 0;
 
-    // 3. For each student, check if record exists, if not create it
+    // 3. For each student, check if record exists, if not create/update it
     for (const student of students) {
-      // Check if fee record exists for this term
-      const existingRecord = await prisma.feeRecord.findUnique({
+      const stAmount = student.isScholarship ? 0 : (structureMap[student.classId] || 0);
+
+      // Check if record exists just to track counts
+      const existing = await prisma.feeRecord.findUnique({
         where: {
           schoolId_studentId_termId_academicSessionId: {
             schoolId: schoolIdInt,
@@ -966,33 +969,27 @@ router.post('/sync-records', authenticate, authorize(['admin', 'accountant']), a
         }
       });
 
-      if (!existingRecord) {
-        // Find structure for their class
-        const amount = student.isScholarship ? 0 : (structureMap[student.classId] || 0);
+      // Use the utility function to handle opening balances correctly
+      await createOrUpdateFeeRecordWithOpening({
+        schoolId: schoolIdInt,
+        studentId: student.id,
+        termId: parseInt(termId),
+        academicSessionId: parseInt(academicSessionId),
+        expectedAmount: stAmount,
+        paidAmount: existing ? existing.paidAmount : 0
+      });
 
-        // Only create if we have a structure or they are on scholarship
-        // We create it even if amount is 0 so they show up as clear
-        await prisma.feeRecord.create({
-          data: {
-            schoolId: schoolIdInt,
-            studentId: student.id,
-            termId: parseInt(termId),
-            academicSessionId: parseInt(academicSessionId),
-            expectedAmount: amount,
-            paidAmount: 0,
-            balance: amount,
-            isClearedForExam: true
-          }
-        });
+      if (!existing) {
         createdCount++;
       } else {
-        skippedCount++;
+        updatedCount++;
       }
     }
 
     res.json({
-      message: `Sync completed: ${createdCount} records created, ${skippedCount} already existed.`,
+      message: `Sync completed: ${createdCount} records created, ${updatedCount} records updated, ${skippedCount} skipped.`,
       createdCount,
+      updatedCount,
       skippedCount
     });
 
@@ -1001,7 +998,7 @@ router.post('/sync-records', authenticate, authorize(['admin', 'accountant']), a
       userId: req.user.id,
       action: 'SYNC_FEE_RECORDS',
       resource: 'FEE_MANAGEMENT',
-      details: { termId, academicSessionId, createdCount },
+      details: { termId, academicSessionId, createdCount, updatedCount },
       ipAddress: req.ip
     });
 
