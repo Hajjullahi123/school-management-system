@@ -179,16 +179,6 @@ async function createOrUpdateFeeRecordWithOpening(data) {
       tId
     );
 
-    // Calculate balance: opening + expected - paid
-    const numExpected = parseFloat(expectedAmount) || 0;
-    const numPaid = parseFloat(paidAmount) || 0;
-    const balance = openingBalance + numExpected - numPaid;
-
-    // Exam clearance logic: 
-    // Auto-clear if they are scholarship OR balance is 0
-    // Otherwise restrict if they owe money
-    const isClearedForExam = (numExpected === 0) || (balance <= 0);
-
     // Check if record exists
     const existing = await prisma.feeRecord.findUnique({
       where: {
@@ -200,6 +190,14 @@ async function createOrUpdateFeeRecordWithOpening(data) {
         }
       }
     });
+
+    // Calculate values, using existing if not provided
+    const numExpected = expectedAmount !== undefined ? parseFloat(expectedAmount) : (existing?.expectedAmount || 0);
+    const numPaid = paidAmount !== undefined ? parseFloat(paidAmount) : (existing?.paidAmount || 0);
+    const balance = openingBalance + numExpected - numPaid;
+
+    // Exam clearance logic
+    const isClearedForExam = (numExpected === 0) || (balance <= 0);
 
     if (existing) {
       // Update existing record

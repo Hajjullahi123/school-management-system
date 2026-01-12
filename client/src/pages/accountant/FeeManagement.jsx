@@ -50,6 +50,48 @@ export default function FeeManagement() {
   const [isRestricted, setIsRestricted] = useState(false);
   const [restrictionStudent, setRestrictionStudent] = useState(null);
 
+  // Fee Adjustment State
+  const [editingFeeRecord, setEditingFeeRecord] = useState(null);
+  const [adjustedExpected, setAdjustedExpected] = useState('');
+  const [adjustedPaid, setAdjustedPaid] = useState('');
+
+  const handleEditFee = (student) => {
+    const record = student.feeRecords[0];
+    setEditingFeeRecord({ student, record });
+    setAdjustedExpected(record?.expectedAmount.toString() || '0');
+    setAdjustedPaid(record?.paidAmount.toString() || '0');
+  };
+
+  const saveFeeRecord = async () => {
+    if (!editingFeeRecord) return;
+
+    try {
+      setLoading(true);
+      const response = await api.post('/api/fees/record', {
+        studentId: editingFeeRecord.student.id,
+        termId: currentTerm.id,
+        academicSessionId: currentSession.id,
+        expectedAmount: parseFloat(adjustedExpected),
+        paidAmount: parseFloat(adjustedPaid)
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert('Fee record adjusted successfully');
+        setEditingFeeRecord(null);
+        await loadStudents(currentTerm.id, currentSession.id);
+        await loadSummary(currentTerm.id, currentSession.id);
+      } else {
+        alert(data.error || 'Failed to adjust fee record');
+      }
+    } catch (error) {
+      console.error('Error adjusting fee:', error);
+      alert('Failed to save changes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRestrictClick = (student) => {
     setRestrictionStudent(student);
     setIsRestricted(student.isExamRestricted || false);
@@ -1212,6 +1254,12 @@ export default function FeeManagement() {
                             🕒 History
                           </button>
                           <button
+                            onClick={() => handleEditFee(student)}
+                            className="text-orange-600 hover:text-orange-900 font-medium"
+                          >
+                            ⚙️ Adjust
+                          </button>
+                          <button
                             onClick={() => toggleClearance(student.id, !feeRecord?.isClearedForExam)}
                             className={`${feeRecord?.isClearedForExam ? 'text-amber-600 hover:text-amber-900' : 'text-indigo-600 hover:text-indigo-900'} font-medium`}
                             title={feeRecord?.isClearedForExam ? 'Restrict Exam Card' : 'Allow Exam Card'}
@@ -1361,6 +1409,11 @@ export default function FeeManagement() {
             </div>
 
             <div className="p-6 overflow-y-auto flex-1">
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-sm text-gray-500 italic">
+                  📝 You can use the <strong>Edit</strong> button below to update any previous payment records or correct mistakes.
+                </p>
+              </div>
               {paymentHistory.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   No payments found for this term.
@@ -1553,6 +1606,66 @@ export default function FeeManagement() {
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-medium"
               >
                 Save Restriction
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Fee Adjustment Modal */}
+      {editingFeeRecord && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center z-[80]">
+          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <span className="text-orange-600">⚙️</span> Fee Adjustment
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Directly adjust the expected and total paid amounts for <strong>{editingFeeRecord.student.user.firstName} {editingFeeRecord.student.user.lastName}</strong>.
+              <br /><span className="text-red-500 font-semibold">Note:</span> This updates the summary record directly.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Expected Fee (Charge) ₦</label>
+                <input
+                  type="number"
+                  value={adjustedExpected}
+                  onChange={(e) => setAdjustedExpected(e.target.value)}
+                  className="w-full p-2 border rounded focus:ring-orange-500 focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Total Paid (Override) ₦</label>
+                <input
+                  type="number"
+                  value={adjustedPaid}
+                  onChange={(e) => setAdjustedPaid(e.target.value)}
+                  className="w-full p-2 border rounded focus:ring-orange-500 focus:border-orange-500"
+                />
+                <p className="text-[10px] text-gray-400 mt-1 italic">
+                  * Changing this may cause discrepancy with individual payment logs.
+                </p>
+              </div>
+
+              <div className="p-3 bg-orange-50 rounded text-xs text-orange-800">
+                <strong>New Balance:</strong> ₦{((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0) - (parseFloat(adjustedPaid) || 0)).toLocaleString()}
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setEditingFeeRecord(null)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveFeeRecord}
+                className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 font-medium transition-colors"
+                disabled={loading}
+              >
+                {loading ? 'Saving...' : 'Update Record'}
               </button>
             </div>
           </div>

@@ -205,14 +205,14 @@ router.post('/record', authenticate, authorize(['admin', 'accountant']), async (
       }
     }
 
-    // Use centralized utility to handle opening balance and calculations
+    // Use centralized utility
     const feeRecord = await createOrUpdateFeeRecordWithOpening({
       schoolId: req.schoolId,
       studentId: parseInt(studentId),
       termId: parseInt(termId),
       academicSessionId: parseInt(academicSessionId),
       expectedAmount: student.isScholarship ? 0 : parseFloat(expectedAmount),
-      paidAmount: parseFloat(paidAmount || 0)
+      paidAmount: paidAmount !== undefined ? parseFloat(paidAmount) : undefined
     });
 
     res.json({
@@ -223,11 +223,11 @@ router.post('/record', authenticate, authorize(['admin', 'accountant']), async (
       })
     });
 
-    // Log the action
+    // Log the action (we can detect if it was an update via the result)
     logAction({
       schoolId: req.schoolId,
       userId: req.user.id,
-      action: existing ? 'UPDATE' : 'CREATE',
+      action: 'UPDATE_RECORD',
       resource: 'FEE_RECORD',
       details: {
         studentId: parseInt(studentId),
