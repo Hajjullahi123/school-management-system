@@ -10,22 +10,25 @@ const prisma = require('../db');
  */
 async function calculatePreviousOutstanding(schoolId, studentId, currentSessionId, currentTermId) {
   try {
+    const sId = Number(schoolId);
+    const studId = Number(studentId);
+    const sessId = Number(currentSessionId);
+    const termId = Number(currentTermId);
+
     // Get all previous fee records (before current session/term)
     const previousRecords = await prisma.feeRecord.findMany({
       where: {
-        schoolId,
-        studentId,
+        schoolId: sId,
+        studentId: studId,
         OR: [
           // Records from previous sessions
           {
-            academicSession: {
-              id: { not: currentSessionId }
-            }
+            academicSessionId: { not: sessId }
           },
           // Records from previous terms in the same session
           {
-            academicSessionId: currentSessionId,
-            termId: { not: currentTermId }
+            academicSessionId: sessId,
+            termId: { not: termId }
           }
         ]
       },
@@ -59,14 +62,19 @@ async function calculatePreviousOutstanding(schoolId, studentId, currentSessionI
  */
 async function getStudentFeeSummary(schoolId, studentId, sessionId, termId) {
   try {
+    const sId = Number(schoolId);
+    const studId = Number(studentId);
+    const sessId = Number(sessionId);
+    const tId = Number(termId);
+
     // Get current term fee record
     const currentRecord = await prisma.feeRecord.findUnique({
       where: {
         schoolId_studentId_termId_academicSessionId: {
-          schoolId,
-          studentId,
-          termId,
-          academicSessionId: sessionId
+          schoolId: sId,
+          studentId: studId,
+          termId: tId,
+          academicSessionId: sessId
         }
       },
       include: {
@@ -90,10 +98,10 @@ async function getStudentFeeSummary(schoolId, studentId, sessionId, termId) {
       if (student && !student.isScholarship) {
         const feeStructure = await prisma.classFeeStructure.findFirst({
           where: {
-            schoolId,
+            schoolId: sId,
             classId: student.classId,
-            academicSessionId: sessionId,
-            termId: termId
+            academicSessionId: sessId,
+            termId: tId
           }
         });
         defaultExpected = feeStructure?.amount || 0;
@@ -102,10 +110,10 @@ async function getStudentFeeSummary(schoolId, studentId, sessionId, termId) {
 
     // Calculate previous outstanding
     const previousOutstanding = await calculatePreviousOutstanding(
-      schoolId,
-      studentId,
-      sessionId,
-      termId
+      sId,
+      studId,
+      sessId,
+      tId
     );
 
     // Calculate totals
@@ -158,12 +166,17 @@ async function createOrUpdateFeeRecordWithOpening(data) {
   const { schoolId, studentId, termId, academicSessionId, expectedAmount, paidAmount = 0 } = data;
 
   try {
+    const sId = Number(schoolId);
+    const studId = Number(studentId);
+    const tId = Number(termId);
+    const sessId = Number(academicSessionId);
+
     // Calculate opening balance from previous records
     const openingBalance = await calculatePreviousOutstanding(
-      schoolId,
-      studentId,
-      academicSessionId,
-      termId
+      sId,
+      studId,
+      sessId,
+      tId
     );
 
     // Calculate balance: opening + expected - paid
@@ -180,10 +193,10 @@ async function createOrUpdateFeeRecordWithOpening(data) {
     const existing = await prisma.feeRecord.findUnique({
       where: {
         schoolId_studentId_termId_academicSessionId: {
-          schoolId,
-          studentId,
-          termId,
-          academicSessionId
+          schoolId: sId,
+          studentId: studId,
+          termId: tId,
+          academicSessionId: sessId
         }
       }
     });
@@ -204,10 +217,10 @@ async function createOrUpdateFeeRecordWithOpening(data) {
       // Create new record
       return await prisma.feeRecord.create({
         data: {
-          schoolId,
-          studentId,
-          termId,
-          academicSessionId,
+          schoolId: sId,
+          studentId: studId,
+          termId: tId,
+          academicSessionId: sessId,
           openingBalance,
           expectedAmount: numExpected,
           paidAmount: numPaid,

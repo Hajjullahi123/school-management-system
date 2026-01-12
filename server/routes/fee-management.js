@@ -952,11 +952,17 @@ router.post('/sync-records', authenticate, authorize(['admin', 'accountant']), a
     let createdCount = 0;
     let updatedCount = 0;
     let skippedCount = 0;
+    let noStructureCount = 0;
 
     // 3. For each student, check if record exists, if not create/update it
     for (const student of students) {
       try {
-        const stAmount = student.isScholarship ? 0 : (structureMap[student.classId] || 0);
+        const amount = structureMap[student.classId];
+        if (amount === undefined) {
+          noStructureCount++;
+        }
+
+        const stAmount = student.isScholarship ? 0 : (amount || 0);
 
         // Check if record exists just to track counts
         const existing = await prisma.feeRecord.findUnique({
@@ -993,10 +999,11 @@ router.post('/sync-records', authenticate, authorize(['admin', 'accountant']), a
     }
 
     const result = {
-      message: `Sync completed: ${createdCount} records created, ${updatedCount} records updated, ${skippedCount} failed/skipped.`,
+      message: `Sync completed: ${createdCount} created, ${updatedCount} updated. ${noStructureCount > 0 ? `Notice: ${noStructureCount} students have no fee structure defined for their class.` : ''}`,
       createdCount,
       updatedCount,
-      skippedCount
+      skippedCount,
+      noStructureCount
     };
 
     res.json(result);

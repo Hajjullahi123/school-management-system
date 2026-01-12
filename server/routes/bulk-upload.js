@@ -112,6 +112,13 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
     }
 
     const results = { successful: [], failed: [] };
+    const schoolIdInt = parseInt(req.schoolId);
+
+    // Fetch current term once for the school
+    const currentTerm = await prisma.term.findFirst({
+      where: { isCurrent: true, schoolId: schoolIdInt },
+      include: { academicSession: true }
+    });
 
     // If user is a teacher, get their assigned classes
     let allowedClassIds = null;
@@ -135,7 +142,6 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
         }
 
         let classIdInt = parseInt(studentData.classId);
-        const schoolIdInt = parseInt(req.schoolId);
         let classInfo = null;
 
         if (!isNaN(classIdInt)) {
@@ -144,20 +150,24 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
           });
         }
 
-        // If not found by ID, try resolving by name + arm
         if (!classInfo && studentData.classId) {
-          const classNameStr = studentData.classId.toString().trim();
-          // Try to match "JSS 1 A" or "JSS 1"
-          const parts = classNameStr.split(/\s+/);
-          const name = parts.slice(0, -1).join(' ') || parts[0];
-          const arm = parts.length > 1 ? parts[parts.length - 1] : '';
+          const classNameStr = studentData.classId.toString().trim().toLowerCase();
 
+          // Try to match by Arm exactly if it's "JSS 2 B" or "JSS 2B"
+          // We can't easily parse all formats, so we'll try some common ones
           classInfo = await prisma.class.findFirst({
             where: {
               schoolId: schoolIdInt,
-              name: { contains: name },
-              arm: arm ? { contains: arm } : undefined,
-              isActive: true
+              isActive: true,
+              OR: [
+                { name: { contains: classNameStr } },
+                {
+                  AND: [
+                    { name: { contains: classNameStr.split(' ')[0] } },
+                    { arm: { contains: classNameStr.split(' ').pop() } }
+                  ]
+                }
+              ]
             }
           });
 
@@ -238,11 +248,6 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
         });
 
         // Initialize Fee Record
-        const currentTerm = await prisma.term.findFirst({
-          where: { isCurrent: true, schoolId: schoolIdInt },
-          include: { academicSession: true }
-        });
-
         if (currentTerm) {
           const feeStructure = await prisma.classFeeStructure.findUnique({
             where: {
@@ -313,6 +318,15 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher']), async
       successful: [],
       failed: []
     };
+
+    const schoolIdInt = Number(req.schoolId);
+    const currentTerm = await prisma.term.findFirst({
+      where: {
+        isCurrent: true,
+        schoolId: schoolIdInt
+      },
+      include: { academicSession: true }
+    });
 
     // If user is a teacher, get their assigned classes
     let allowedClassIds = null;
@@ -436,20 +450,15 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher']), async
         // Check for active fee structure and create fee record
         // Optimization: Fetch current term once outside loop if possible, but for now inside is safer for correctness if not refactoring whole function
         // Actually, let's fetch it inside to be safe with the existing structure
-        const currentTerm = await prisma.term.findFirst({
-          where: {
-            isCurrent: true,
-            schoolId: req.schoolId
-          },
-          include: { academicSession: true }
-        });
-
         if (currentTerm) {
+          const sId = Number(req.schoolId);
+          const cId = Number(studentData.classId);
+
           const feeStructure = await prisma.classFeeStructure.findUnique({
             where: {
               schoolId_classId_termId_academicSessionId: {
-                schoolId: req.schoolId,
-                classId: parseInt(studentData.classId),
+                schoolId: sId,
+                classId: cId,
                 termId: currentTerm.id,
                 academicSessionId: currentTerm.academicSessionId
               }
@@ -458,7 +467,7 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher']), async
 
           // Always try to create/update record if current term exists
           await createOrUpdateFeeRecordWithOpening({
-            schoolId: req.schoolId,
+            schoolId: sId,
             studentId: student.id,
             termId: currentTerm.id,
             academicSessionId: currentTerm.academicSessionId,

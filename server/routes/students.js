@@ -660,10 +660,13 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
 
     // Create fee record
     if (classId) {
+      const sId = Number(req.schoolId);
+      const cId = Number(classId);
+
       const currentTerm = await prisma.term.findFirst({
         where: {
           isCurrent: true,
-          schoolId: req.schoolId
+          schoolId: sId
         },
         include: { academicSession: true }
       });
@@ -671,16 +674,16 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
       if (currentTerm) {
         const feeStructure = await prisma.classFeeStructure.findFirst({
           where: {
-            classId: parseInt(classId),
+            classId: cId,
             termId: currentTerm.id,
             academicSessionId: currentTerm.academicSessionId,
-            schoolId: req.schoolId
+            schoolId: sId
           }
         });
 
         // Use centralized utility for fee initialization
         await createOrUpdateFeeRecordWithOpening({
-          schoolId: req.schoolId,
+          schoolId: sId,
           studentId: student.id,
           termId: currentTerm.id,
           academicSessionId: currentTerm.academicSessionId,
