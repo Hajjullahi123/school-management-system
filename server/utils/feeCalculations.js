@@ -206,7 +206,12 @@ async function createOrUpdateFeeRecordWithOpening(data) {
     const numExpected = expectedAmount !== undefined ? safeParse(expectedAmount, existing?.expectedAmount || 0) : (existing?.expectedAmount || 0);
     const numPaid = paidAmount !== undefined ? safeParse(paidAmount, existing?.paidAmount || 0) : (existing?.paidAmount || 0);
     const safeOpening = safeParse(openingBalance, 0);
-    const balance = safeOpening + numExpected - numPaid;
+    const totalDue = safeOpening + numExpected;
+    const balance = totalDue - numPaid;
+
+    if (balance < 0) {
+      throw new Error(`Total paid (₦${numPaid.toLocaleString()}) cannot exceed the total amount due (₦${totalDue.toLocaleString()}).`);
+    }
 
     // Exam clearance logic
     const isClearedForExam = (numExpected === 0) || (balance <= 0);
@@ -219,7 +224,7 @@ async function createOrUpdateFeeRecordWithOpening(data) {
           openingBalance: safeOpening,
           expectedAmount: numExpected,
           paidAmount: numPaid,
-          balance: isNaN(balance) ? 0 : balance,
+          balance: balance,
           isClearedForExam
         }
       });

@@ -68,13 +68,23 @@ export default function FeeManagement() {
     if (!editingFeeRecord) return;
 
     try {
+      const expected = parseFloat(adjustedExpected) || 0;
+      const paid = parseFloat(adjustedPaid) || 0;
+      const opening = editingFeeRecord.record?.openingBalance || 0;
+      const totalDue = opening + expected;
+
+      if (paid > totalDue) {
+        alert(`Total Paid (₦${paid.toLocaleString()}) cannot exceed the total amount due (₦${totalDue.toLocaleString()})`);
+        return;
+      }
+
       setLoading(true);
       const response = await api.post('/api/fees/record', {
         studentId: editingFeeRecord.student.id,
         termId: currentTerm.id,
         academicSessionId: currentSession.id,
-        expectedAmount: parseFloat(adjustedExpected),
-        paidAmount: parseFloat(adjustedPaid)
+        expectedAmount: expected,
+        paidAmount: paid
       });
 
       const data = await response.json();
@@ -1660,8 +1670,23 @@ export default function FeeManagement() {
                 </p>
               </div>
 
-              <div className="p-3 bg-orange-50 rounded text-xs text-orange-800">
-                <strong>New Balance:</strong> ₦{((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0) - (parseFloat(adjustedPaid) || 0)).toLocaleString()}
+              <div className="p-4 bg-gray-50 rounded-lg space-y-2 text-xs border border-gray-200">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Arrears/Opening:</span>
+                  <span className="font-semibold text-gray-700">₦{(editingFeeRecord.record?.openingBalance || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Current Expected:</span>
+                  <span className="font-semibold text-gray-700">₦{(parseFloat(adjustedExpected) || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between border-t pt-1 border-gray-200">
+                  <span className="text-gray-600 font-bold">Total Due:</span>
+                  <span className="font-bold text-gray-900 underline">₦{((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0)).toLocaleString()}</span>
+                </div>
+                <div className={`flex justify-between border-t pt-1 mt-1 ${((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0) - (parseFloat(adjustedPaid) || 0)) < 0 ? 'text-red-600' : 'text-orange-800'}`}>
+                  <span className="font-bold">Remaining Balance:</span>
+                  <span className="font-bold">₦{((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0) - (parseFloat(adjustedPaid) || 0)).toLocaleString()}</span>
+                </div>
               </div>
             </div>
 
