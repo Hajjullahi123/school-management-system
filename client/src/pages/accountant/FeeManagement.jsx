@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { saveAs } from 'file-saver';
 import { api } from '../../api';
+import { useAuth } from '../../context/AuthContext';
 
 export default function FeeManagement() {
+  const { user: authUser } = useAuth();
   const [students, setStudents] = useState([]);
   const [currentTerm, setCurrentTerm] = useState(null);
   const [currentSession, setCurrentSession] = useState(null);
@@ -587,6 +589,10 @@ export default function FeeManagement() {
       return;
     }
 
+    const schoolName = authUser?.school?.name || 'AL-BIRR ACADEMY';
+    const schoolAddress = authUser?.school?.address || '';
+    const schoolPhone = authUser?.school?.phone || '';
+
     // Improved Receipt HTML
     const htmlContent = `
       <!DOCTYPE html>
@@ -594,49 +600,54 @@ export default function FeeManagement() {
       <head>
         <title>Payment Receipt #${payment.id}</title>
         <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; background: #f0f2f5; }
-          .receipt { max-width: 700px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; }
-          .header { text-align: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 20px; margin-bottom: 30px; }
-          .school-name { font-size: 24px; font-weight: bold; color: #111827; margin: 0; }
-          .receipt-title { font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #6b7280; margin-top: 5px; }
-          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
-          .label { font-size: 12px; color: #6b7280; text-transform: uppercase; font-weight: 600; }
-          .value { font-size: 16px; color: #111827; font-weight: 500; margin-top: 4px; }
-          .amount-section { background: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; margin: 30px 0; border: 1px dashed #d1d5db; }
-          .amount-label { font-size: 14px; color: #6b7280; margin-bottom: 5px; }
-          .amount-value { font-size: 32px; font-weight: bold; color: #059669; }
-          .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 20px; }
-          .print-btn { display: block; margin: 30px auto 0; padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; transition: background 0.2s; }
-          .print-btn:hover { background: #1d4ed8; }
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+          body { font-family: 'Inter', sans-serif; padding: 40px; background: #f0f2f5; margin: 0; }
+          .receipt { max-width: 600px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-radius: 12px; border: 1px solid #e5e7eb; }
+          .header { text-align: center; border-bottom: 2px dashed #e5e7eb; padding-bottom: 24px; margin-bottom: 24px; }
+          .school-name { font-size: 24px; font-weight: 800; color: #111827; margin: 0; text-transform: uppercase; letter-spacing: -0.025em; }
+          .school-info { font-size: 11px; color: #6b7280; margin-top: 4px; }
+          .receipt-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.1em; color: #374151; margin-top: 12px; font-weight: 700; background: #f3f4f6; padding: 4px 12px; display: inline-block; border-radius: 4px; }
+          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid #f3f4f6; padding-bottom: 24px; }
+          .label { font-size: 10px; color: #9ca3af; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+          .value { font-size: 14px; color: #1f2937; font-weight: 600; margin-top: 2px; }
+          .amount-section { background: #f0fdf4; padding: 24px; border-radius: 12px; text-align: center; margin: 24px 0; border: 1px solid #bbf7d0; }
+          .amount-label { font-size: 12px; color: #166534; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+          .amount-value { font-size: 36px; font-weight: 800; color: #15803d; }
+          .footer { margin-top: 32px; text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px dashed #e5e7eb; padding-top: 20px; }
+          .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 80px; color: rgba(0,0,0,0.03); font-weight: 900; z-index: 0; pointer-events: none; white-space: nowrap; }
+          .print-btn { display: block; margin: 30px auto 0; padding: 12px 24px; background: #111827; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+          .print-btn:hover { background: #1f2937; transform: translateY(-1px); }
           @media print { 
             body { background: white; padding: 0; }
-            .receipt { box-shadow: none; border: none; padding: 0; }
+            .receipt { box-shadow: none; border: none; padding: 20px; }
             .print-btn { display: none; }
           }
         </style>
       </head>
       <body>
-        <div class="receipt">
+        <div class="receipt" style="position: relative;">
+          <div class="watermark">OFFICIAL RECEIPT</div>
           <div class="header">
-            <h1 class="school-name">SCHOOL MANAGEMENT SYSTEM</h1>
-            <div class="receipt-title">Official Payment Receipt</div>
+            <h1 class="school-name">${schoolName}</h1>
+            <div class="school-info">${schoolAddress} ${schoolPhone ? '• ' + schoolPhone : ''}</div>
+            <div class="receipt-title">Payment Receipt</div>
           </div>
           
           <div class="info-grid">
             <div>
-               <div class="label">Date</div>
-               <div class="value">${new Date(payment.paymentDate || new Date()).toLocaleDateString()}</div>
+               <div class="label">Payment Date</div>
+               <div class="value">${new Date(payment.paymentDate || new Date()).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
             </div>
             <div>
-               <div class="label">Receipt No</div>
-               <div class="value">#${payment.id}</div>
+               <div class="label">Receipt Number</div>
+               <div class="value" style="font-family: monospace;">#${payment.id.toString().padStart(6, '0')}</div>
             </div>
             <div>
                <div class="label">Student Name</div>
                <div class="value">${student.user.firstName} ${student.user.lastName}</div>
             </div>
             <div>
-               <div class="label">Admission No</div>
+               <div class="label">Admission No.</div>
                <div class="value">${student.admissionNumber}</div>
             </div>
             <div>
@@ -644,37 +655,39 @@ export default function FeeManagement() {
                <div class="value">${student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'N/A'}</div>
             </div>
             <div>
-               <div class="label">Session / Term</div>
-               <div class="value">${currentSession?.name} - ${currentTerm?.name}</div>
+               <div class="label">Academic Period</div>
+               <div class="value">${currentSession?.name} • ${currentTerm?.name}</div>
             </div>
             <div>
                <div class="label">Payment Method</div>
                <div class="value" style="text-transform: capitalize;">${payment.paymentMethod || 'Cash'}</div>
             </div>
              <div>
-               <div class="label">Reference</div>
-               <div class="value">${payment.reference || 'N/A'}</div>
+               <div class="label">Reference No.</div>
+               <div class="value">${payment.reference || 'None'}</div>
             </div>
           </div>
 
           <div class="amount-section">
-            <div class="amount-label">Amount Paid</div>
+            <div class="amount-label">Total Amount Paid</div>
             <div class="amount-value">₦${parseFloat(payment.amount).toLocaleString()}</div>
           </div>
 
           <div class="footer">
-            <p>This receipt was generated automatically and is valid without a signature.</p>
-            <p>Thank you for your payment.</p>
+            <p>This is a computer-generated receipt. No signature required.</p>
+            <p style="margin-top: 4px; color: #6b7280; font-weight: 600;">Thank you for your prompt payment!</p>
           </div>
           
-          <button class="print-btn" onclick="window.print()">Print Receipt</button>
+          <button class="print-btn" onclick="window.print()">Print Official Receipt</button>
         </div>
       </body>
       </html>
     `;
 
+    receiptWindow.document.open();
     receiptWindow.document.write(htmlContent);
     receiptWindow.document.close();
+    receiptWindow.focus();
   };
 
   // Filter students
