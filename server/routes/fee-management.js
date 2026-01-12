@@ -50,27 +50,37 @@ router.get('/students', authenticate, authorize(['admin', 'accountant']), async 
     });
 
     // Populate missing records with virtual data for display
-    const processedStudents = students.map(student => {
-      // If student has records, return as is (but check for consistency if needed)
-      // If no records, create a virtual one based on structure
-      if (!student.feeRecords || student.feeRecords.length === 0) {
-        const expected = student.isScholarship ? 0 : (structureMap[student.classId] || 0);
-
-        // We attach a virtual record so frontend displays correct 'Expected' and 'Balance'
-        // We use a dummy ID or null, frontend actions usually use studentId + termId
-        student.feeRecords = [{
-          id: null,
-          studentId: student.id,
-          termId: parseInt(termId),
-          academicSessionId: parseInt(academicSessionId),
-          expectedAmount: expected,
-          paidAmount: 0,
-          balance: expected,
-          isClearedForExam: false // Default to restricted
-        }];
+    // IMPORTANT: We also calculate previous outstanding for everyone to show true arrears
+    const processedStudents = await Promise.all(students.map(async (student) => {
+      // If student has records, we use the first one (most recent for this term)
+      if (student.feeRecords && student.feeRecords.length > 0) {
+        return student;
       }
+
+      // No record for current term, calculate virtual data
+      const expected = student.isScholarship ? 0 : (structureMap[student.classId] || 0);
+      const arrears = await calculatePreviousOutstanding(
+        req.schoolId,
+        student.id,
+        parseInt(academicSessionId),
+        parseInt(termId)
+      );
+
+      // We attach a virtual record so frontend displays correct 'Expected', 'Arrears' and 'Balance'
+      student.feeRecords = [{
+        id: null,
+        studentId: student.id,
+        termId: parseInt(termId),
+        academicSessionId: parseInt(academicSessionId),
+        openingBalance: arrears,
+        expectedAmount: expected,
+        paidAmount: 0,
+        balance: arrears + expected,
+        isClearedForExam: (expected === 0 && arrears <= 0)
+      }];
+
       return student;
-    });
+    }));
 
     res.json(processedStudents);
   } catch (error) {
@@ -308,7 +318,7 @@ router.post('/payment', authenticate, authorize(['admin', 'accountant']), async 
         data: {
           paidAmount: newPaidAmount,
           balance: newBalance,
-          isClearedForExam: (feeRecord.expectedAmount === 0 || newBalance <= 0)
+          isClearedForExam: (newBalance <= 0)
         },
         include: {
           student: {
@@ -473,7 +483,7 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'accountant'
         data: {
           paidAmount: newPaidAmount,
           balance: newBalance,
-          isClearedForExam: (feeRecord.expectedAmount === 0) || (newBalance <= 0)
+          isClearedForExam: (newBalance <= 0)
         },
         include: {
           student: {

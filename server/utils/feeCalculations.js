@@ -23,8 +23,8 @@ async function calculatePreviousOutstanding(schoolId, studentId, currentSessionI
 
     if (!currentTerm) return 0;
 
-    // 2. Get all previous fee records (strictly before current term's start date)
-    const previousRecords = await prisma.feeRecord.findMany({
+    // 2. Get the MOST RECENT previous fee record (strictly before current term's start date)
+    const latestPreviousRecord = await prisma.feeRecord.findFirst({
       where: {
         schoolId: sId,
         studentId: studId,
@@ -32,18 +32,17 @@ async function calculatePreviousOutstanding(schoolId, studentId, currentSessionI
           startDate: { lt: currentTerm.startDate }
         }
       },
+      orderBy: {
+        term: {
+          startDate: 'desc'
+        }
+      },
       select: {
         balance: true
       }
     });
 
-    // Sum up all outstanding balances with NaN protection
-    const totalOutstanding = previousRecords.reduce((sum, record) => {
-      const bal = parseFloat(record.balance) || 0;
-      return sum + (isNaN(bal) ? 0 : bal);
-    }, 0);
-
-    return totalOutstanding;
+    return parseFloat(latestPreviousRecord?.balance) || 0;
   } catch (error) {
     console.error('Error calculating previous outstanding:', error);
     return 0;
@@ -215,8 +214,8 @@ async function createOrUpdateFeeRecordWithOpening(data) {
       throw new Error(`Total paid (₦${numPaid.toLocaleString()}) cannot exceed the total amount due (₦${totalDue.toLocaleString()}).`);
     }
 
-    // Exam clearance logic
-    const isClearedForExam = (numExpected === 0) || (balance <= 0);
+    // Exam clearance logic: Must have zero or negative balance (fully paid total due)
+    const isClearedForExam = (balance <= 0);
 
     if (existing) {
       // Update existing record
