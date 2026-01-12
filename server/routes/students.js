@@ -8,6 +8,7 @@ const fs = require('fs');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 const { generateAdmissionNumber, getUniqueAdmissionNumber, isValidBloodGroup, isValidGenotype } = require('../utils/studentUtils');
+const { createOrUpdateFeeRecordWithOpening } = require('../utils/feeCalculations');
 
 // Configure multer for student photo upload
 const storage = multer.diskStorage({
@@ -677,21 +678,15 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
           }
         });
 
-        if (feeStructure) {
-          const expectedAmount = isScholarship === 'true' || isScholarship === true ? 0 : feeStructure.amount;
-          await prisma.feeRecord.create({
-            data: {
-              schoolId: req.schoolId,
-              studentId: student.id,
-              termId: currentTerm.id,
-              academicSessionId: currentTerm.academicSessionId,
-              expectedAmount,
-              paidAmount: 0,
-              balance: expectedAmount,
-              isClearedForExam: true
-            }
-          });
-        }
+        // Use centralized utility for fee initialization
+        await createOrUpdateFeeRecordWithOpening({
+          schoolId: req.schoolId,
+          studentId: student.id,
+          termId: currentTerm.id,
+          academicSessionId: currentTerm.academicSessionId,
+          expectedAmount: (isScholarship === 'true' || isScholarship === true) ? 0 : (feeStructure?.amount || 0),
+          paidAmount: 0
+        });
       }
     }
     // 5. Send welcome email (non-blocking)

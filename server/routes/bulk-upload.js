@@ -4,6 +4,7 @@ const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 const { generateAdmissionNumber, getUniqueAdmissionNumber } = require('../utils/studentUtils');
+const { createOrUpdateFeeRecordWithOpening } = require('../utils/feeCalculations');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const ExcelJS = require('exceljs');
@@ -133,8 +134,45 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
           continue;
         }
 
-        const classIdInt = parseInt(studentData.classId);
+        let classIdInt = parseInt(studentData.classId);
         const schoolIdInt = parseInt(req.schoolId);
+        let classInfo = null;
+
+        if (!isNaN(classIdInt)) {
+          classInfo = await prisma.class.findFirst({
+            where: { id: classIdInt, schoolId: schoolIdInt }
+          });
+        }
+
+        // If not found by ID, try resolving by name + arm
+        if (!classInfo && studentData.classId) {
+          const classNameStr = studentData.classId.toString().trim();
+          // Try to match "JSS 1 A" or "JSS 1"
+          const parts = classNameStr.split(/\s+/);
+          const name = parts.slice(0, -1).join(' ') || parts[0];
+          const arm = parts.length > 1 ? parts[parts.length - 1] : '';
+
+          classInfo = await prisma.class.findFirst({
+            where: {
+              schoolId: schoolIdInt,
+              name: { contains: name },
+              arm: arm ? { contains: arm } : undefined,
+              isActive: true
+            }
+          });
+
+          if (classInfo) {
+            classIdInt = classInfo.id;
+          }
+        }
+
+        if (!classInfo) {
+          results.failed.push({
+            data: studentData,
+            error: `Invalid Class reference: "${studentData.classId}". Please use the numeric ID from the reference sheet.`
+          });
+          continue;
+        }
 
         // Check permission for teacher
         if (allowedClassIds && !allowedClassIds.has(classIdInt)) {
@@ -142,16 +180,6 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
             data: studentData,
             error: `Unauthorized access to class ID ${classIdInt}`
           });
-          continue;
-        }
-
-        // Generate admission number
-        const classInfo = await prisma.class.findFirst({
-          where: { id: classIdInt, schoolId: schoolIdInt }
-        });
-
-        if (!classInfo) {
-          results.failed.push({ data: studentData, error: `Invalid class ID: ${studentData.classId}` });
           continue;
         }
 
@@ -227,20 +255,16 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
             }
           });
 
-          if (feeStructure) {
-            await prisma.feeRecord.create({
-              data: {
-                schoolId: schoolIdInt,
-                studentId: student.id,
-                termId: currentTerm.id,
-                academicSessionId: currentTerm.academicSessionId,
-                expectedAmount: student.isScholarship ? 0 : feeStructure.amount,
-                paidAmount: 0,
-                balance: student.isScholarship ? 0 : feeStructure.amount,
-                isClearedForExam: true
-              }
-            });
-          }
+          // Always try to create/update record if current term exists
+          // This handles the case where structure might be 0 or missing (defaults to 0)
+          await createOrUpdateFeeRecordWithOpening({
+            schoolId: schoolIdInt,
+            studentId: student.id,
+            termId: currentTerm.id,
+            academicSessionId: currentTerm.academicSessionId,
+            expectedAmount: student.isScholarship ? 0 : (feeStructure?.amount || 0),
+            paidAmount: 0
+          });
         }
 
         results.successful.push({
@@ -432,20 +456,15 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher']), async
             }
           });
 
-          if (feeStructure) {
-            await prisma.feeRecord.create({
-              data: {
-                schoolId: req.schoolId,
-                studentId: student.id,
-                termId: currentTerm.id,
-                academicSessionId: currentTerm.academicSessionId,
-                expectedAmount: student.isScholarship ? 0 : feeStructure.amount,
-                paidAmount: 0,
-                balance: student.isScholarship ? 0 : feeStructure.amount,
-                isClearedForExam: true
-              }
-            });
-          }
+          // Always try to create/update record if current term exists
+          await createOrUpdateFeeRecordWithOpening({
+            schoolId: req.schoolId,
+            studentId: student.id,
+            termId: currentTerm.id,
+            academicSessionId: currentTerm.academicSessionId,
+            expectedAmount: student.isScholarship ? 0 : (feeStructure?.amount || 0),
+            paidAmount: 0
+          });
         }
 
         results.successful.push({
