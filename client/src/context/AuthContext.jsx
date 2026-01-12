@@ -139,13 +139,22 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      const isSuperAdmin = user?.role === 'superadmin';
       await api.post('/api/auth/logout');
       localStorage.removeItem('token');
+      if (isSuperAdmin) {
+        localStorage.removeItem('schoolSlug');
+      }
       sessionStorage.removeItem('dashboardUnlocked');
       setUser(null);
       setDashboardUnlocked(false);
     } catch (error) {
       console.error('Logout failed:', error);
+      // Even if API fails, clear local state
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('dashboardUnlocked');
+      setUser(null);
+      setDashboardUnlocked(false);
     }
   };
 

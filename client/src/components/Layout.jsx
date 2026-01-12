@@ -6,7 +6,7 @@ import { api, API_BASE_URL } from '../api';
 import { useSchoolSettings } from '../hooks/useSchoolSettings';
 
 const Layout = () => {
-  const { user, lockDashboard } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -60,9 +60,9 @@ const Layout = () => {
     };
   }, [user?.id, user?.role, user?.student?.classId]);
 
-  const handleLogout = () => {
-    lockDashboard();
-    navigate('/school-home');
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
 
   const menuItems = [];
