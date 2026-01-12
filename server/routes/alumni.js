@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, authorize, optionalAuth } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 const multer = require('multer');
 const path = require('path');
@@ -58,9 +58,15 @@ async function resolveSchoolId(req) {
 }
 
 // 1. Get Public Alumni Directory
-router.get('/directory', async (req, res) => {
+router.get('/directory', optionalAuth, async (req, res) => {
   try {
-    const schoolId = await resolveSchoolId(req);
+    // Priority: 1. Token (if available), 2. Query param
+    let schoolId = req.user?.schoolId;
+
+    if (!schoolId) {
+      schoolId = await resolveSchoolId(req);
+    }
+
     if (!schoolId) {
       return res.status(400).json({ error: 'School identifier is required' });
     }
@@ -69,12 +75,17 @@ router.get('/directory', async (req, res) => {
 
     const where = {
       schoolId: schoolId,
-      isPublic: true,
       student: {
         status: 'alumni',
         schoolId: schoolId
       }
     };
+
+    // If it's a public request, only show public profiles
+    // If it's an admin of THIS school, show everyone
+    if (!req.user || req.user.role !== 'admin' || req.user.schoolId !== schoolId) {
+      where.isPublic = true;
+    }
 
     if (year) {
       where.graduationYear = parseInt(year);

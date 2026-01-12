@@ -78,7 +78,8 @@ const AlumniManagement = () => {
   const fetchAlumni = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/api/alumni/directory');
+      const sId = schoolSettings?.schoolId;
+      const res = await api.get(`/api/alumni/directory${sId ? `?school=${sId}` : ''}`);
       if (res.ok) setAlumniList(await res.json());
     } catch (error) {
       console.error('Error fetching alumni:', error);
