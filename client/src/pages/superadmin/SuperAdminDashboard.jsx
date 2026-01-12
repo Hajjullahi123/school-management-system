@@ -222,9 +222,12 @@ const SuperAdminDashboard = () => {
         localStorage.setItem('schoolSlug', slug);
       }
 
-      toast.success(`Redirecting to ${user.schoolName} Admin Portal...`);
+      // Pre-unlock the dashboard and redirect directly to it
+      sessionStorage.setItem('dashboardUnlocked', 'true');
+      toast.success(`Redirecting to ${user.school?.name || 'School'} Admin Portal...`);
+
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = '/dashboard';
       }, 500);
     } catch (error) {
       toast.error(error.response?.data?.error || 'Impersonation failed');
