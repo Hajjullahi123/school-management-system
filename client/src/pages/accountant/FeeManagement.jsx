@@ -73,6 +73,11 @@ export default function FeeManagement() {
       const opening = editingFeeRecord.record?.openingBalance || 0;
       const totalDue = opening + expected;
 
+      if (expected < 0 || paid < 0) {
+        alert('Fee amounts cannot be negative');
+        return;
+      }
+
       if (paid > totalDue) {
         alert(`Total Paid (₦${paid.toLocaleString()}) cannot exceed the total amount due (₦${totalDue.toLocaleString()})`);
         return;

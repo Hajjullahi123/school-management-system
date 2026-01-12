@@ -205,6 +205,11 @@ async function createOrUpdateFeeRecordWithOpening(data) {
     // Calculate values, using existing if not provided
     const numExpected = expectedAmount !== undefined ? safeParse(expectedAmount, existing?.expectedAmount || 0) : (existing?.expectedAmount || 0);
     const numPaid = paidAmount !== undefined ? safeParse(paidAmount, existing?.paidAmount || 0) : (existing?.paidAmount || 0);
+
+    if (numExpected < 0 || numPaid < 0) {
+      throw new Error("Fee amounts (Expected or Paid) cannot be negative numbers.");
+    }
+
     const safeOpening = safeParse(openingBalance, 0);
     const totalDue = safeOpening + numExpected;
     const balance = totalDue - numPaid;

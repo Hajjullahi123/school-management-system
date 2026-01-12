@@ -457,6 +457,10 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'accountant'
       const newPaidAmount = feeRecord.paidAmount + difference;
       const newBalance = (feeRecord.openingBalance + feeRecord.expectedAmount) - newPaidAmount;
 
+      if (newPaidAmount < 0) {
+        throw new Error(`Invalid change. Total paid amount cannot be negative.`);
+      }
+
       if (isNaN(newBalance) || newBalance < 0) {
         throw new Error(`Updated payment amount would exceed the total balance or is invalid. Maximum allowed change: ₦${feeRecord.balance.toLocaleString()}`);
       }
