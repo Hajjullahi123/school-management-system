@@ -95,9 +95,9 @@ const StudentFees = () => {
     }
   };
 
-  const handlePayOnline = async () => {
-    if (!amountToPay || parseFloat(amountToPay) <= 0) {
-      toast.error('Please enter a valid amount');
+  const handlePayOnline = async (provider = 'paystack') => {
+    if (!amountToPay || isNaN(amountToPay) || parseFloat(amountToPay) < 100) {
+      toast.error('Please enter a valid amount (minimum ₦100)');
       return;
     }
 
@@ -109,24 +109,25 @@ const StudentFees = () => {
     setPaying(true);
 
     try {
-      // Initialize payment
       const response = await api.post('/api/payments/initialize', {
         email: user.email || `${user.username}@school.com`,
         amount: parseFloat(amountToPay),
         studentId: feeData.studentId,
         feeRecordId: feeData.id,
-        callbackUrl: `${window.location.origin}/student/fees/verify`
+        callbackUrl: `${window.location.origin}/dashboard/student/fees/verify`,
+        provider
       });
 
-      if (response.data.success) {
-        // Redirect to Paystack
-        window.location.href = response.data.authorization_url;
+      const data = await response.json();
+
+      if (data.success) {
+        window.location.href = data.authorization_url;
       } else {
-        toast.error('Failed to initialize payment');
+        toast.error(data.error || 'Failed to initialize payment');
       }
     } catch (error) {
       console.error('Payment error:', error);
-      toast.error('Payment initialization failed');
+      toast.error('Payment initialization failed. Please try again or contact support.');
     } finally {
       setPaying(false);
     }
@@ -229,23 +230,47 @@ const StudentFees = () => {
                   />
                 </div>
 
-                <button
-                  onClick={handlePayOnline}
-                  disabled={paying}
-                  className="w-full py-3 bg-primary text-white rounded font-bold hover:brightness-90 disabled:opacity-50 flex justify-center items-center"
-                >
-                  {paying ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Processing...
-                    </>
-                  ) : (
-                    <>Pay Now with Paystack</>
+                <div className="space-y-3">
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+                    <div className="h-px bg-slate-200 flex-1"></div>
+                    Select Secure Gateway
+                    <div className="h-px bg-slate-200 flex-1"></div>
+                  </div>
+
+                  {settings?.paystackPublicKey && (
+                    <button
+                      onClick={() => handlePayOnline('paystack')}
+                      disabled={paying}
+                      className="w-full py-4 bg-[#111827] text-white rounded-xl font-bold hover:bg-black transform transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg shadow-black/10"
+                    >
+                      {paying ? (
+                        <div className="animate-spin h-5 w-5 border-2 border-white/20 border-t-white rounded-full"></div>
+                      ) : (
+                        <>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="#00C3F7"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 18c-3.314 0-6-2.686-6-6s2.686-6 6-6 6 2.686 6 6-2.686 6-6 6z" /></svg>
+                          <span>Pay with Paystack</span>
+                        </>
+                      )}
+                    </button>
                   )}
-                </button>
+
+                  {settings?.flutterwavePublicKey && (
+                    <button
+                      onClick={() => handlePayOnline('flutterwave')}
+                      disabled={paying}
+                      className="w-full py-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transform transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/10"
+                    >
+                      {paying ? (
+                        <div className="animate-spin h-5 w-5 border-2 border-white/20 border-t-white rounded-full"></div>
+                      ) : (
+                        <>
+                          <svg width="20" height="20" viewBox="0 0 130 130"><path fill="#fbb03b" d="M65 0C29.1 0 0 29.1 0 65s29.1 65 65 65 65-29.1 65-65S100.9 0 65 0z" /><path fill="#fff" d="M96.1 40.8L71.4 65.5l24.7 24.7c1.3 1.3 1.3 3.5 0 4.8l-4.8 4.8c-1.3 1.3-3.5 1.3-4.8 0L61.8 75.1l-4.8 4.8 19.9 19.9c1.3 1.3 1.3 3.5 0 4.8l-4.8 4.8c-1.3 1.3-3.5 1.3-4.8 0L42.5 89.6l-4.8-4.8 19.9-19.9-4.8-4.8L28.1 84.8c-1.3 1.3-3.5 1.3-4.8 0l-4.8-4.8c-1.3-1.3-1.3-3.5 0-4.8l24.7-24.7-24.7-24.7c-1.3-1.3-1.3-3.5 0-4.8l4.8-4.8c1.3-1.3 3.5-1.3 4.8 0l24.7 24.7 24.7-24.7c1.3-1.3 3.5-1.3 4.8 0l4.8 4.8c1.3 1.4 1.3 3.5 0 4.8z" /></svg>
+                          <span>Pay with Flutterwave</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
 
                 <p className="text-xs text-center text-gray-500 mt-3">
                   Secured by Paystack. A transaction fee may apply.

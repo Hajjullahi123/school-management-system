@@ -55,22 +55,17 @@ router.get('/', async (req, res) => {
       return res.status(404).json({ error: `School domain '${schoolSlug}' not found` });
     }
 
-    // Map fields for frontend compatibility if needed
-    if (settings) {
-      settings.schoolName = settings.name; // compatibility mapping
-    } else {
-      settings = {
-        name: 'School Management System',
-        schoolName: 'School Management System',
-        primaryColor: '#1e40af',
-        secondaryColor: '#3b82f6',
-        accentColor: '#60a5fa',
-        isActivated: false,
-        isSetupComplete: false
-      };
-    }
+    // Sanitize sensitive fields
+    const sanitizedSettings = { ...settings };
+    delete sanitizedSettings.paystackSecretKey;
+    delete sanitizedSettings.flutterwaveSecretKey;
+    delete sanitizedSettings.emailPassword;
+    delete sanitizedSettings.smsApiKey;
 
-    res.json(settings);
+    // Map fields for frontend compatibility
+    sanitizedSettings.schoolName = sanitizedSettings.name;
+
+    res.json(sanitizedSettings);
   } catch (error) {
     console.error('Error fetching settings:', error);
     res.status(500).json({ error: 'Failed to fetch settings' });
@@ -167,7 +162,15 @@ router.put('/', authenticate, async (req, res) => {
       data: updateData
     });
 
-    res.json({ success: true, settings: { ...settings, schoolName: settings.name } });
+    // Sanitize response
+    const sanitizedSettings = { ...settings };
+    delete sanitizedSettings.paystackSecretKey;
+    delete sanitizedSettings.flutterwaveSecretKey;
+    delete sanitizedSettings.emailPassword;
+    delete sanitizedSettings.smsApiKey;
+    sanitizedSettings.schoolName = sanitizedSettings.name;
+
+    res.json({ success: true, settings: sanitizedSettings });
 
     // Log the update
     logAction({
