@@ -272,6 +272,10 @@ export default function FeeManagement() {
     }
 
     const currentBalance = selectedStudent.feeRecords[0]?.balance || 0;
+    if (currentBalance <= 0) {
+      alert(`This student has no outstanding balance for this term. No further payments can be recorded.`);
+      return;
+    }
     if (parseFloat(paymentAmount) > currentBalance) {
       alert(`Payment amount cannot exceed the outstanding balance (₦${currentBalance.toLocaleString()})`);
       return;
@@ -289,21 +293,29 @@ export default function FeeManagement() {
       });
 
       const data = await response.json();
-      if (data) {
-        alert('Payment recorded successfully');
 
-        // Generate receipt
-        if (confirm('Would you like to print a receipt?')) {
-          printReceipt(data.payment, selectedStudent);
-        }
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to record payment');
+      }
 
-        // Reset form
-        setPaymentAmount('');
-        setPaymentMethod('cash');
-        setPaymentReference('');
-        setPaymentNotes('');
-        setSelectedStudent(null);
+      alert('Payment recorded successfully');
 
+      // Generate receipt
+      if (confirm('Would you like to print a receipt?')) {
+        printReceipt(data.payment, selectedStudent);
+      }
+
+      // Reset form
+      setPaymentAmount('');
+      setPaymentMethod('cash');
+      setPaymentReference('');
+      setPaymentNotes('');
+      setSelectedStudent(null);
+
+      // Refresh data
+      if (viewAllTerms) {
+        await loadStudentsAllTerms(selectedViewSession.id);
+      } else {
         await loadStudents(currentTerm.id, currentSession.id);
         await loadSummary(currentTerm.id, currentSession.id);
       }
@@ -328,23 +340,30 @@ export default function FeeManagement() {
       });
 
       const data = await response.json();
-      if (data) {
-        alert('Payment updated successfully');
 
-        // Refresh history
-        await viewPaymentHistory(historyStudent);
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update payment');
+      }
 
-        // Refresh main data
+      alert('Payment updated successfully');
+
+      // Refresh history
+      await viewPaymentHistory(historyStudent);
+
+      // Refresh main data
+      if (viewAllTerms) {
+        await loadStudentsAllTerms(selectedViewSession.id);
+      } else {
         await loadStudents(currentTerm.id, currentSession.id);
         await loadSummary(currentTerm.id, currentSession.id);
-
-        // Close modal
-        setEditingPayment(null);
-        setPaymentAmount('');
-        setPaymentMethod('cash');
-        setPaymentReference('');
-        setPaymentNotes('');
       }
+
+      // Close modal
+      setEditingPayment(null);
+      setPaymentAmount('');
+      setPaymentMethod('cash');
+      setPaymentReference('');
+      setPaymentNotes('');
     } catch (error) {
       console.error('Error updating payment:', error);
       alert(error.message || 'Failed to update payment');
