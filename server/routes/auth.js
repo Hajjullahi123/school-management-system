@@ -18,8 +18,14 @@ router.post('/login', async (req, res) => {
     password = password.trim();
     schoolSlug = schoolSlug.trim().toLowerCase();
     const fs = require('fs');
-    const logPath = 'C:\\Users\\IT-LAB\\School Mn\\server\\auth-debug.log';
-    fs.appendFileSync(logPath, `[${new Date().toISOString()}] Login attempt - username: [${username}], schoolSlug: [${schoolSlug}], origin: ${req.headers.origin}\n`);
+    const path = require('path');
+    const logPath = path.join(__dirname, '../auth-debug.log');
+
+    try {
+      fs.appendFileSync(logPath, `[${new Date().toISOString()}] Login attempt - username: [${username}], schoolSlug: [${schoolSlug}], origin: ${req.headers.origin}\n`);
+    } catch (err) {
+      console.error('Logging failed:', err.message);
+    }
 
     if (schoolSlug === 'null' || schoolSlug === 'undefined') {
       return res.status(400).json({ error: 'Invalid school domain' });

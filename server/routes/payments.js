@@ -6,7 +6,19 @@ const { sendPaymentConfirmation } = require('../services/emailService');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 
-// Initialize a payment (Unified: Paystack or Flutterwave)
+// Cache school logo base URL helper
+const getLogoUrl = (school, logoPath) => {
+  if (!logoPath) return null;
+  if (logoPath.startsWith('http')) return logoPath;
+  const baseUrl = process.env.BASE_URL || '';
+  return `${baseUrl}${logoPath}`;
+};
+
+/**
+ * @route   POST /api/payments/initialize
+ * @desc    Initialize a payment (Unified: Paystack or Flutterwave)
+ * @access  Authenticated
+ */
 router.post('/initialize', authenticate, async (req, res) => {
   const { email, amount, studentId, feeRecordId, callbackUrl, provider = 'paystack' } = req.body;
 
@@ -48,22 +60,26 @@ router.post('/initialize', authenticate, async (req, res) => {
         let data = '';
         paystackRes.on('data', chunk => data += chunk);
         paystackRes.on('end', async () => {
-          const response = JSON.parse(data);
-          if (response.status) {
-            await prisma.onlinePayment.create({
-              data: {
-                schoolId: req.schoolId,
-                feeRecordId: parseInt(feeRecordId),
-                studentId: parseInt(studentId),
-                amount: parseFloat(amount),
-                provider: 'paystack',
-                reference,
-                status: 'pending'
-              }
-            });
-            res.json({ success: true, authorization_url: response.data.authorization_url, reference });
-          } else {
-            res.status(400).json({ error: response.message });
+          try {
+            const response = JSON.parse(data);
+            if (response.status) {
+              await prisma.onlinePayment.create({
+                data: {
+                  schoolId: req.schoolId,
+                  feeRecordId: parseInt(feeRecordId),
+                  studentId: parseInt(studentId),
+                  amount: parseFloat(amount),
+                  provider: 'paystack',
+                  reference,
+                  status: 'pending'
+                }
+              });
+              res.json({ success: true, authorization_url: response.data.authorization_url, reference });
+            } else {
+              res.status(400).json({ error: response.message });
+            }
+          } catch (e) {
+            res.status(500).json({ error: 'Failed to parse Paystack response' });
           }
         });
       });
@@ -84,8 +100,8 @@ router.post('/initialize', authenticate, async (req, res) => {
         customer: { email, name: email.split('@')[0] },
         meta: { studentId, feeRecordId },
         customizations: {
-          title: school.schoolName || 'School Fee Payment',
-          logo: school.logoUrl ? `${API_BASE_URL}${school.logoUrl}` : null
+          title: school.name || 'School Fee Payment',
+          logo: getLogoUrl(school, school.logoUrl)
         }
       });
 
@@ -104,22 +120,26 @@ router.post('/initialize', authenticate, async (req, res) => {
         let data = '';
         fwRes.on('data', chunk => data += chunk);
         fwRes.on('end', async () => {
-          const response = JSON.parse(data);
-          if (response.status === 'success') {
-            await prisma.onlinePayment.create({
-              data: {
-                schoolId: req.schoolId,
-                feeRecordId: parseInt(feeRecordId),
-                studentId: parseInt(studentId),
-                amount: parseFloat(amount),
-                provider: 'flutterwave',
-                reference,
-                status: 'pending'
-              }
-            });
-            res.json({ success: true, authorization_url: response.data.link, reference });
-          } else {
-            res.status(400).json({ error: response.message });
+          try {
+            const response = JSON.parse(data);
+            if (response.status === 'success') {
+              await prisma.onlinePayment.create({
+                data: {
+                  schoolId: req.schoolId,
+                  feeRecordId: parseInt(feeRecordId),
+                  studentId: parseInt(studentId),
+                  amount: parseFloat(amount),
+                  provider: 'flutterwave',
+                  reference,
+                  status: 'pending'
+                }
+              });
+              res.json({ success: true, authorization_url: response.data.link, reference });
+            } else {
+              res.status(400).json({ error: response.message });
+            }
+          } catch (e) {
+            res.status(500).json({ error: 'Failed to parse Flutterwave response' });
           }
         });
       });
@@ -128,18 +148,31 @@ router.post('/initialize', authenticate, async (req, res) => {
       fwReq.end();
     }
   } catch (error) {
+    console.error('Payment initialization error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Verify a payment (Unified: Paystack or Flutterwave)
+/**
+ * @route   GET /api/payments/verify/:reference
+ * @desc    Verify a payment (Unified: Paystack or Flutterwave)
+ * @access  Authenticated
+ */
 router.get('/verify/:reference', authenticate, async (req, res) => {
   const { reference } = req.params;
 
   try {
     const payment = await prisma.onlinePayment.findFirst({
       where: { reference, schoolId: req.schoolId },
-      include: { student: { include: { user: true, parent: { include: { user: true } }, classModel: true } } }
+      include: {
+        student: {
+          include: {
+            user: true,
+            parent: { include: { user: true } },
+            classModel: true
+          }
+        }
+      }
     });
 
     if (!payment) return res.status(404).json({ error: 'Payment record not found' });
@@ -161,13 +194,19 @@ router.get('/verify/:reference', authenticate, async (req, res) => {
       };
 
       const verifyData = await new Promise((resolve, reject) => {
-        const req = https.request(options, res => {
+        const payReq = https.request(options, payRes => {
           let d = '';
-          res.on('data', c => d += c);
-          res.on('end', () => resolve(JSON.parse(d)));
+          payRes.on('data', c => d += c);
+          payRes.on('end', () => {
+            try {
+              resolve(JSON.parse(d));
+            } catch (e) {
+              reject(new Error('Failed to parse Paystack verification response'));
+            }
+          });
         });
-        req.on('error', reject);
-        req.end();
+        payReq.on('error', reject);
+        payReq.end();
       });
 
       if (verifyData.status && verifyData.data.status === 'success') {
@@ -178,10 +217,6 @@ router.get('/verify/:reference', authenticate, async (req, res) => {
 
     // --- VERIFY FLUTTERWAVE ---
     else if (payment.provider === 'flutterwave') {
-      // Flutterwave sends transaction_id in query usually, but we use our internal ref tx_ref
-      // To verify correctly by tx_ref, we might need list or just use the ID if we have it.
-      // But Flutterwave's best practice is to verify by their ID.
-      // If we only have reference, we use the status check by tx_ref.
       const options = {
         hostname: 'api.flutterwave.com',
         port: 443,
@@ -191,13 +226,19 @@ router.get('/verify/:reference', authenticate, async (req, res) => {
       };
 
       const verifyData = await new Promise((resolve, reject) => {
-        const req = https.request(options, res => {
+        const fwReq = https.request(options, fwRes => {
           let d = '';
-          res.on('data', c => d += c);
-          res.on('end', () => resolve(JSON.parse(d)));
+          fwRes.on('data', c => d += c);
+          fwRes.on('end', () => {
+            try {
+              resolve(JSON.parse(d));
+            } catch (e) {
+              reject(new Error('Failed to parse Flutterwave verification response'));
+            }
+          });
         });
-        req.on('error', reject);
-        req.end();
+        fwReq.on('error', reject);
+        fwReq.end();
       });
 
       if (verifyData.status === 'success' && verifyData.data.status === 'successful') {
@@ -207,191 +248,138 @@ router.get('/verify/:reference', authenticate, async (req, res) => {
     }
 
     if (isSuccess) {
-      // Update payment record
-      const payment = await prisma.onlinePayment.findFirst({
-        where: {
-          reference,
-          schoolId: req.schoolId
-        },
-        include: {
-          student: {
-            where: { schoolId: req.schoolId },
-            include: {
-              user: {
-                where: { schoolId: req.schoolId }
-              },
-              parent: {
-                where: { schoolId: req.schoolId },
-                include: {
-                  user: {
-                    where: { schoolId: req.schoolId }
-                  }
-                }
-              },
-              classModel: {
-                where: { schoolId: req.schoolId }
-              }
+      if (payment.status !== 'success') {
+        // Use a transaction for consistency
+        await prisma.$transaction(async (tx) => {
+          // 1. Update online payment status
+          await tx.onlinePayment.update({
+            where: { id: payment.id },
+            data: {
+              status: 'success',
+              paidAt: new Date(),
+              providerResponse: JSON.stringify(providerData)
             }
-          }
-        }
-      });
+          });
 
-      if (payment && payment.status !== 'success') {
-        // 1. Update online payment status
-        await prisma.onlinePayment.update({
-          where: {
-            id: payment.id,
-            schoolId: req.schoolId
-          },
-          data: {
-            status: 'success',
-            paidAt: new Date(),
-            providerResponse: JSON.stringify(response.data)
-          }
-        });
+          // 2. Fetch and update fee record
+          const feeRecord = await tx.feeRecord.findFirst({
+            where: { id: payment.feeRecordId, schoolId: req.schoolId },
+            include: { term: true, academicSession: true }
+          });
 
-        // 2. Update fee record
-        const feeRecord = await prisma.feeRecord.findFirst({
-          where: {
-            id: payment.feeRecordId,
-            schoolId: req.schoolId
-          },
-          include: {
-            term: true,
-            academicSession: true
-          }
-        });
+          if (feeRecord) {
+            const newPaidAmount = feeRecord.paidAmount + payment.amount;
+            const newBalance = Math.max(0, feeRecord.expectedAmount - newPaidAmount);
 
-        const newPaidAmount = feeRecord.paidAmount + payment.amount;
-        const newBalance = feeRecord.expectedAmount - newPaidAmount;
+            await tx.feeRecord.update({
+              where: { id: feeRecord.id },
+              data: {
+                paidAmount: newPaidAmount,
+                balance: newBalance
+              }
+            });
 
-        await prisma.feeRecord.update({
-          where: {
-            id: feeRecord.id,
-            schoolId: req.schoolId
-          },
-          data: {
-            paidAmount: newPaidAmount,
-            balance: newBalance
+            // 3. Create fee payment record
+            const feePayment = await tx.feePayment.create({
+              data: {
+                schoolId: req.schoolId,
+                feeRecordId: feeRecord.id,
+                amount: payment.amount,
+                paymentMethod: 'online',
+                reference: reference,
+                notes: `Online payment via ${payment.provider}`,
+                recordedBy: 1 // System
+              }
+            });
+
+            // 4. Send notifications (Non-blocking)
+            // Trigger notifications after transaction commits
           }
         });
 
-        // 3. Create fee payment record (for accounting)
-        const feePayment = await prisma.feePayment.create({
-          data: {
-            schoolId: req.schoolId,
-            feeRecordId: feeRecord.id,
-            amount: payment.amount,
-            paymentMethod: 'online',
-            reference: reference,
-            notes: `Online payment via Paystack`,
-            recordedBy: 1 // System/Admin ID
-          }
+        // Notifications after successful transaction
+        const freshRecord = await prisma.feeRecord.findFirst({
+          where: { id: payment.feeRecordId },
+          include: { term: true, academicSession: true }
         });
 
-        // 4. Send email notification (non-blocking)
+        const newBalance = freshRecord ? Math.max(0, freshRecord.expectedAmount - freshRecord.paidAmount) : 0;
+
+        // Email
         if (payment.student.parent?.user?.email) {
-          const emailData = {
+          sendPaymentConfirmation({
             parentEmail: payment.student.parent.user.email,
             studentName: `${payment.student.user.firstName} ${payment.student.user.lastName}`,
             amount: payment.amount,
-            paymentMethod: 'Online (Paystack)',
+            paymentMethod: `Online (${payment.provider})`,
             date: new Date(),
-            receiptNumber: feePayment.id,
+            receiptNumber: reference,
             balance: newBalance,
-            termName: feeRecord.term?.name || 'Current Term',
-            sessionName: feeRecord.academicSession?.name || 'Current Session',
-            schoolName: school.name || process.env.SCHOOL_NAME || 'School Management System',
+            termName: freshRecord?.term?.name || 'Current Term',
+            sessionName: freshRecord?.academicSession?.name || 'Current Session',
+            schoolName: school.name || 'School Management System',
             className: payment.student.classModel?.name || 'N/A'
-          };
-
-          sendPaymentConfirmation(emailData)
-            .then(result => {
-              if (result.success) console.log('✅ Payment email sent');
-              else console.warn('⚠️ Payment email failed:', result.error);
-            })
-            .catch(err => console.error('❌ Payment email error:', err));
+          }).catch(err => console.error('Email error:', err));
         }
 
-        // NEW: Send SMS confirmation (non-blocking)
+        // SMS
         if (payment.student.parent?.phoneNumber) {
-          const { sendPaymentSMS } = require('../services/smsService');
-          sendPaymentSMS({
-            phone: payment.student.parent.phoneNumber,
-            studentName: `${payment.student.user.firstName} ${payment.student.user.lastName}`,
-            amount: payment.amount,
-            balance: newBalance,
-            schoolName: school.name || process.env.SCHOOL_NAME || 'School Management System'
-          }).catch(e => console.error('Payment SMS error:', e));
+          try {
+            const { sendPaymentSMS } = require('../services/smsService');
+            sendPaymentSMS({
+              phone: payment.student.parent.phoneNumber,
+              studentName: `${payment.student.user.firstName} ${payment.student.user.lastName}`,
+              amount: payment.amount,
+              balance: newBalance,
+              schoolName: school.name || 'School Management System'
+            }).catch(e => console.error('SMS error:', e));
+          } catch (e) { }
         }
 
-        res.json({ success: true, message: 'Payment verified successfully' });
-
-        // Log the verification
         logAction({
           schoolId: req.schoolId,
           userId: req.user.id,
           action: 'VERIFY',
           resource: 'ONLINE_PAYMENT',
-          details: {
-            paymentId: payment.id,
-            reference: reference,
-            amount: payment.amount,
-            studentId: payment.studentId,
-            status: 'SUCCESS'
-          },
+          details: { reference, amount: payment.amount, status: 'SUCCESS' },
           ipAddress: req.ip
         });
-      } else {
-        res.json({ success: true, message: 'Payment already verified' });
+
+        return res.json({ success: true, message: 'Payment verified successfully' });
       }
+      return res.json({ success: true, message: 'Payment already verified' });
     } else {
-      // Update as failed if not pending
       await prisma.onlinePayment.update({
-        where: { reference },
+        where: { id: payment.id },
         data: {
           status: 'failed',
-          providerResponse: JSON.stringify(response)
+          providerResponse: JSON.stringify(providerData)
         }
       });
-
-      res.status(400).json({ error: 'Payment verification failed' });
+      return res.status(400).json({ error: 'Payment verification failed' });
     }
-  });
-    });
-
-paystackReq.on('error', error => {
-  console.error(error);
-  res.status(500).json({ error: 'Verification request failed' });
-});
-
-paystackReq.write(''); // Need to write something to fire end for GET? No, but good practice.
-paystackReq.end();
-
   } catch (error) {
-  console.error('Verification error:', error);
-  res.status(500).json({ error: 'Internal server error' });
-}
+    console.error('Verification error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-// Get payment history
+/**
+ * @route   GET /api/payments/history
+ * @desc    Get payment history for the school
+ * @access  Admin only
+ */
 router.get('/history', authenticate, authorize(['admin']), async (req, res) => {
   try {
     const payments = await prisma.onlinePayment.findMany({
       where: { schoolId: req.schoolId },
       include: {
         student: {
-          where: { schoolId: req.schoolId },
           select: {
             id: true,
-            userId: true,
             admissionNumber: true,
             user: {
-              where: { schoolId: req.schoolId },
-              select: {
-                firstName: true,
-                lastName: true
-              }
+              select: { firstName: true, lastName: true }
             }
           }
         }
