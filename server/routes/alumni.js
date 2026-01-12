@@ -579,7 +579,7 @@ router.post('/admin/generate-credentials', authenticate, authorize(['admin']), a
 });
 
 // 7. Record Donation
-router.post('/donation', async (req, res) => {
+router.post('/donation', optionalAuth, async (req, res) => {
   try {
     const { donorName, amount, message, isAnonymous, alumniId } = req.body;
     const schoolId = await resolveSchoolId(req) || parseInt(req.body.schoolId);
@@ -619,7 +619,7 @@ router.post('/donation', async (req, res) => {
 });
 
 // 8. Get Donations (Public/Alumni)
-router.get('/donations', async (req, res) => {
+router.get('/donations', optionalAuth, async (req, res) => {
   try {
     const schoolId = await resolveSchoolId(req);
     if (!schoolId) {
