@@ -99,6 +99,19 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const handleNameChange = (e) => {
+    const name = e.target.value;
+    const slug = name.toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')     // Remove non-word chars
+      .replace(/\s+/g, '-')         // Replace spaces with dash
+      .replace(/--+/g, '-')         // Replace multiple dashes
+      .replace(/^-+/, '')           // Trim dash from start
+      .replace(/-+$/, '');          // Trim dash from end
+
+    setNewSchool({ ...newSchool, name, slug });
+  };
+
   const [creating, setCreating] = useState(false);
   const handleCreateSchool = async (e) => {
     e.preventDefault();
@@ -805,7 +818,7 @@ const SuperAdminDashboard = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Official School Name</label>
-                  <input required value={newSchool.name} onChange={e => setNewSchool({ ...newSchool, name: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 transition-all font-medium" placeholder="E.g. Royal Academy" />
+                  <input required value={newSchool.name} onChange={handleNameChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 transition-all font-medium" placeholder="E.g. Royal Academy" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Unique Slug</label>
