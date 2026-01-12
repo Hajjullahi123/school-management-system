@@ -162,8 +162,7 @@ router.get('/profile/current', authenticate, async (req, res) => {
 
     const alumni = await prisma.alumni.findUnique({
       where: {
-        studentId: userWithStudent.student.id,
-        schoolId: req.schoolId
+        studentId: userWithStudent.student.id
       },
       include: {
         student: {
@@ -203,8 +202,7 @@ router.get('/profile/:studentId', authenticate, async (req, res) => {
 
     const alumni = await prisma.alumni.findUnique({
       where: {
-        studentId,
-        schoolId: req.schoolId
+        studentId
       },
       include: {
         student: {
@@ -244,8 +242,7 @@ router.put('/profile', authenticate, async (req, res) => {
 
     const updated = await prisma.alumni.update({
       where: {
-        studentId: user.student.id,
-        schoolId: req.schoolId
+        studentId: user.student.id
       },
       data: {
         currentJob, currentCompany, university, courseOfStudy,
@@ -595,8 +592,11 @@ router.post('/donation', optionalAuth, async (req, res) => {
 
     let verifiedAlumniId = null;
     if (alumniId && !isNaN(parseInt(alumniId))) {
-      const alumni = await prisma.alumni.findUnique({
-        where: { id: parseInt(alumniId), schoolId }
+      const alumni = await prisma.alumni.findFirst({
+        where: {
+          id: parseInt(alumniId),
+          schoolId: schoolId
+        }
       });
       if (alumni) verifiedAlumniId = alumni.id;
     }
@@ -657,7 +657,7 @@ router.get('/my-donations', authenticate, async (req, res) => {
     }
 
     const alumni = await prisma.alumni.findUnique({
-      where: { studentId: user.student.id, schoolId: req.schoolId }
+      where: { studentId: user.student.id }
     });
 
     if (!alumni) {
@@ -706,7 +706,19 @@ router.delete('/donation/:id', authenticate, authorize(['admin']), async (req, r
 router.put('/donation/:id', authenticate, authorize(['admin']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { donorName, amount, message, isAnonymous } = req.body;
+    const { donorName, amount, message, isAnonymous, alumniId } = req.body;
+
+    let verifiedAlumniId = undefined;
+    if (alumniId !== undefined) {
+      if (alumniId && !isNaN(parseInt(alumniId))) {
+        const alumni = await prisma.alumni.findFirst({
+          where: { id: parseInt(alumniId), schoolId: req.schoolId }
+        });
+        verifiedAlumniId = alumni ? alumni.id : null;
+      } else {
+        verifiedAlumniId = null;
+      }
+    }
 
     const updated = await prisma.alumniDonation.update({
       where: { id, schoolId: req.schoolId },
@@ -714,7 +726,8 @@ router.put('/donation/:id', authenticate, authorize(['admin']), async (req, res)
         donorName,
         amount: parseFloat(amount),
         message,
-        isAnonymous
+        isAnonymous,
+        ...(verifiedAlumniId !== undefined && { alumniId: verifiedAlumniId })
       }
     });
 
