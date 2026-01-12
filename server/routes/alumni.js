@@ -120,7 +120,7 @@ router.get('/directory', optionalAuth, async (req, res) => {
 });
 
 // 2. Get Success Stories
-router.get('/stories', async (req, res) => {
+router.get('/stories', optionalAuth, async (req, res) => {
   try {
     const schoolId = await resolveSchoolId(req);
     if (!schoolId) {
