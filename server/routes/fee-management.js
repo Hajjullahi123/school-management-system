@@ -955,50 +955,58 @@ router.post('/sync-records', authenticate, authorize(['admin', 'accountant']), a
 
     // 3. For each student, check if record exists, if not create/update it
     for (const student of students) {
-      const stAmount = student.isScholarship ? 0 : (structureMap[student.classId] || 0);
+      try {
+        const stAmount = student.isScholarship ? 0 : (structureMap[student.classId] || 0);
 
-      // Check if record exists just to track counts
-      const existing = await prisma.feeRecord.findUnique({
-        where: {
-          schoolId_studentId_termId_academicSessionId: {
-            schoolId: schoolIdInt,
-            studentId: student.id,
-            termId: parseInt(termId),
-            academicSessionId: parseInt(academicSessionId)
+        // Check if record exists just to track counts
+        const existing = await prisma.feeRecord.findUnique({
+          where: {
+            schoolId_studentId_termId_academicSessionId: {
+              schoolId: schoolIdInt,
+              studentId: student.id,
+              termId: parseInt(termId),
+              academicSessionId: parseInt(academicSessionId)
+            }
           }
+        });
+
+        // Use the utility function to handle opening balances correctly
+        // This function will create if missing, or update if existing
+        await createOrUpdateFeeRecordWithOpening({
+          schoolId: schoolIdInt,
+          studentId: student.id,
+          termId: parseInt(termId),
+          academicSessionId: parseInt(academicSessionId),
+          expectedAmount: stAmount,
+          paidAmount: existing ? existing.paidAmount : 0
+        });
+
+        if (!existing) {
+          createdCount++;
+        } else {
+          updatedCount++;
         }
-      });
-
-      // Use the utility function to handle opening balances correctly
-      await createOrUpdateFeeRecordWithOpening({
-        schoolId: schoolIdInt,
-        studentId: student.id,
-        termId: parseInt(termId),
-        academicSessionId: parseInt(academicSessionId),
-        expectedAmount: stAmount,
-        paidAmount: existing ? existing.paidAmount : 0
-      });
-
-      if (!existing) {
-        createdCount++;
-      } else {
-        updatedCount++;
+      } catch (err) {
+        console.error(`Failed to sync student ${student.id}:`, err);
+        skippedCount++;
       }
     }
 
-    res.json({
-      message: `Sync completed: ${createdCount} records created, ${updatedCount} records updated, ${skippedCount} skipped.`,
+    const result = {
+      message: `Sync completed: ${createdCount} records created, ${updatedCount} records updated, ${skippedCount} failed/skipped.`,
       createdCount,
       updatedCount,
       skippedCount
-    });
+    };
+
+    res.json(result);
 
     logAction({
       schoolId: schoolIdInt,
       userId: req.user.id,
       action: 'SYNC_FEE_RECORDS',
       resource: 'FEE_MANAGEMENT',
-      details: { termId, academicSessionId, createdCount, updatedCount },
+      details: { termId, academicSessionId, ...result },
       ipAddress: req.ip
     });
 
