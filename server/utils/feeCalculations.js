@@ -15,28 +15,25 @@ async function calculatePreviousOutstanding(schoolId, studentId, currentSessionI
     const sessId = Number(currentSessionId);
     const termId = Number(currentTermId);
 
-    // Get all previous fee records (before current session/term)
+    // 1. Get current session and term dates
+    const currentTerm = await prisma.term.findUnique({
+      where: { id: termId },
+      include: { academicSession: true }
+    });
+
+    if (!currentTerm) return 0;
+
+    // 2. Get all previous fee records (strictly before current term's start date)
     const previousRecords = await prisma.feeRecord.findMany({
       where: {
         schoolId: sId,
         studentId: studId,
-        OR: [
-          // Records from previous sessions
-          {
-            academicSessionId: { not: sessId }
-          },
-          // Records from previous terms in the same session
-          {
-            academicSessionId: sessId,
-            termId: { not: termId }
-          }
-        ]
+        term: {
+          startDate: { lt: currentTerm.startDate }
+        }
       },
       select: {
-        balance: true,
-        openingBalance: true,
-        expectedAmount: true,
-        paidAmount: true
+        balance: true
       }
     });
 
