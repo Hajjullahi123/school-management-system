@@ -41,6 +41,7 @@ const upload = multer({
 // Helper function to resolve schoolId from query or authenticated request
 async function resolveSchoolId(req) {
   if (req.schoolId) return req.schoolId;
+  if (req.user?.schoolId) return req.user.schoolId;
 
   const schoolParam = req.query.school;
   if (schoolParam) {
@@ -593,7 +594,7 @@ router.post('/donation', optionalAuth, async (req, res) => {
     }
 
     let verifiedAlumniId = null;
-    if (alumniId) {
+    if (alumniId && !isNaN(parseInt(alumniId))) {
       const alumni = await prisma.alumni.findUnique({
         where: { id: parseInt(alumniId), schoolId }
       });

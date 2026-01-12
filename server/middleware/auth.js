@@ -60,6 +60,7 @@ const optionalAuth = (req, res, next) => {
     if (token) {
       const decoded = jwt.verify(token, JWT_SECRET);
       req.user = decoded;
+      req.schoolId = decoded.schoolId;
     }
   } catch (error) {
     // Ignore errors for optional auth
