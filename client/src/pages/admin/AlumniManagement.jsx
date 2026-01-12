@@ -973,6 +973,35 @@ const AlumniManagement = () => {
             <h2 className="text-xl font-bold mb-4">{editingDonation ? 'Edit Donation' : 'Record Donation'}</h2>
             <form onSubmit={handleRecordDonation}>
               <div className="mb-4">
+                <label className="block text-sm font-medium mb-1 text-gray-700">Select Alumni (Optional)</label>
+                <select
+                  className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                  value={donationForm.alumniId}
+                  onChange={e => {
+                    const id = e.target.value;
+                    const alum = alumniList.find(a => a.id.toString() === id);
+                    if (alum) {
+                      setDonationForm({
+                        ...donationForm,
+                        alumniId: id,
+                        donorName: `${alum.student.user.firstName} ${alum.student.user.lastName}`
+                      });
+                    } else {
+                      setDonationForm({ ...donationForm, alumniId: '', donorName: '' });
+                    }
+                  }}
+                >
+                  <option value="">-- External Donor / Not Listed --</option>
+                  {alumniList.sort((a, b) => a.student.user.firstName.localeCompare(b.student.user.firstName)).map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.student.user.firstName} {a.student.user.lastName} (Class of {a.graduationYear})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-gray-500 mt-1 italic">Picking an alumni ensures the donation appears on their private dashboard.</p>
+              </div>
+
+              <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">Donor Name</label>
                 <input
                   type="text"
@@ -980,6 +1009,7 @@ const AlumniManagement = () => {
                   className="w-full border p-2 rounded"
                   value={donationForm.donorName}
                   onChange={e => setDonationForm({ ...donationForm, donorName: e.target.value })}
+                  placeholder="e.g. John Doe"
                 />
               </div>
               <div className="mb-4">
