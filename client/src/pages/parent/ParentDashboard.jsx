@@ -3,6 +3,7 @@ import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
+import PrintReceiptModal from '../../components/PrintReceiptModal';
 
 const ParentDashboard = () => {
   const { user } = useAuth();
@@ -12,9 +13,37 @@ const ParentDashboard = () => {
   const [showFeeModal, setShowFeeModal] = useState(false);
   const { settings: schoolSettings } = useSchoolSettings();
 
+  // Receipt Modal State
+  const [allSessions, setAllSessions] = useState([]);
+  const [allTerms, setAllTerms] = useState([]);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [receiptPayment, setReceiptPayment] = useState(null);
+  const [currentSession, setCurrentSession] = useState(null);
+  const [currentTerm, setCurrentTerm] = useState(null);
+
   useEffect(() => {
     fetchWards();
+    fetchAcademicData();
   }, []);
+
+  const fetchAcademicData = async () => {
+    try {
+      const [sessionsRes, termsRes] = await Promise.all([
+        api.get('/api/academic-sessions'),
+        api.get('/api/terms')
+      ]);
+      if (sessionsRes.ok && termsRes.ok) {
+        const sessions = await sessionsRes.json();
+        const terms = await termsRes.json();
+        setAllSessions(sessions);
+        setAllTerms(terms);
+        setCurrentSession(sessions.find(s => s.isCurrent));
+        setCurrentTerm(terms.find(t => t.isCurrent));
+      }
+    } catch (e) {
+      console.error('Error fetching academic data:', e);
+    }
+  };
 
   const fetchWards = async () => {
     try {
@@ -489,7 +518,7 @@ const ParentDashboard = () => {
                             <div className="space-y-2">
                               {feeRecord.payments.map((payment) => (
                                 <div key={payment.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                  <div>
+                                  <div className="flex-1">
                                     <p className="text-sm font-medium text-gray-900">
                                       {formatCurrency(payment.amount)}
                                     </p>
@@ -497,9 +526,23 @@ const ParentDashboard = () => {
                                       {new Date(payment.paymentDate).toLocaleDateString()} - {payment.paymentMethod}
                                     </p>
                                   </div>
-                                  {payment.reference && (
-                                    <span className="text-xs text-gray-500">Ref: {payment.reference}</span>
-                                  )}
+                                  <div className="flex items-center gap-3">
+                                    {payment.reference && (
+                                      <span className="text-xs text-gray-400 font-mono">Ref: {payment.reference}</span>
+                                    )}
+                                    <button
+                                      onClick={() => {
+                                        setReceiptPayment(payment);
+                                        setReceiptModalOpen(true);
+                                      }}
+                                      className="text-xs bg-white border border-primary text-primary px-3 py-1 rounded hover:bg-primary hover:text-white transition-colors flex items-center gap-1 font-semibold"
+                                    >
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                      </svg>
+                                      Receipt
+                                    </button>
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -547,6 +590,22 @@ const ParentDashboard = () => {
           </div>
         </div>
       </div>
+      {/* Receipt Modal */}
+      {receiptPayment && selectedChild && (
+        <PrintReceiptModal
+          isOpen={receiptModalOpen}
+          onClose={() => {
+            setReceiptModalOpen(false);
+            setReceiptPayment(null);
+          }}
+          student={selectedChild}
+          currentPayment={receiptPayment}
+          currentTerm={currentTerm}
+          currentSession={currentSession}
+          allTerms={allTerms}
+          allSessions={allSessions}
+        />
+      )}
     </div>
   );
 };

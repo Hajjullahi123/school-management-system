@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from '../../utils/toast';
 import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import PrintReceiptModal from '../../components/PrintReceiptModal';
 
 const StudentFees = () => {
   const { user } = useAuth();
@@ -11,6 +12,15 @@ const StudentFees = () => {
   const [settings, setSettings] = useState(null);
   const [paying, setPaying] = useState(false);
   const [amountToPay, setAmountToPay] = useState('');
+
+  // Receipt Modal State
+  const [studentData, setStudentData] = useState(null);
+  const [allSessions, setAllSessions] = useState([]);
+  const [allTerms, setAllTerms] = useState([]);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [receiptPayment, setReceiptPayment] = useState(null);
+  const [currentSession, setCurrentSession] = useState(null);
+  const [currentTerm, setCurrentTerm] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -66,6 +76,11 @@ const StudentFees = () => {
 
       setPaymentHistory(paymentHistoryData);
       setSettings(settingsData);
+      setStudentData(studentData);
+      setAllSessions(sessions);
+      setAllTerms(terms);
+      setCurrentSession(currentSession);
+      setCurrentTerm(currentTerm);
 
       // Default amount to pay is the balance
       if (feeRecord) {
@@ -264,6 +279,7 @@ const StudentFees = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -281,6 +297,20 @@ const StudentFees = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
                           ₦{payment.amount.toLocaleString()}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => {
+                              setReceiptPayment(payment);
+                              setReceiptModalOpen(true);
+                            }}
+                            className="text-primary hover:text-primary-dark font-bold flex items-center gap-1 ml-auto"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                            Print Receipt
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -290,6 +320,23 @@ const StudentFees = () => {
           </div>
         </div>
       </div>
+
+      {/* Receipt Modal */}
+      {receiptPayment && studentData && (
+        <PrintReceiptModal
+          isOpen={receiptModalOpen}
+          onClose={() => {
+            setReceiptModalOpen(false);
+            setReceiptPayment(null);
+          }}
+          student={studentData}
+          currentPayment={receiptPayment}
+          currentTerm={currentTerm}
+          currentSession={currentSession}
+          allTerms={allTerms}
+          allSessions={allSessions}
+        />
+      )}
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { saveAs } from 'file-saver';
 import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import PrintReceiptModal from '../../components/PrintReceiptModal';
 
 export default function FeeManagement() {
   const { user: authUser } = useAuth();
@@ -26,6 +27,11 @@ export default function FeeManagement() {
 
   // Edit Payment State
   const [editingPayment, setEditingPayment] = useState(null);
+
+  // Print Receipt Modal State
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [receiptPayment, setReceiptPayment] = useState(null);
+  const [receiptStudent, setReceiptStudent] = useState(null);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -361,7 +367,9 @@ export default function FeeManagement() {
 
       // Generate receipt
       if (confirm('Would you like to print a receipt?')) {
-        printReceipt(data.payment, selectedStudent);
+        setReceiptPayment(data.payment);
+        setReceiptStudent(selectedStudent);
+        setReceiptModalOpen(true);
       }
 
       // Reset form
@@ -598,117 +606,15 @@ export default function FeeManagement() {
   };
 
   const printReceipt = (payment, student) => {
-    const receiptWindow = window.open('', '_blank', 'width=800,height=600');
-    if (!receiptWindow) {
-      alert("Pop-up blocked. Please allow pop-ups for this site to print receipts.");
-      return;
-    }
-
-    const schoolName = authUser?.school?.name || 'AL-BIRR ACADEMY';
-    const schoolAddress = authUser?.school?.address || '';
-    const schoolPhone = authUser?.school?.phone || '';
-
-    // Improved Receipt HTML
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Payment Receipt #${payment.id}</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-          body { font-family: 'Inter', sans-serif; padding: 40px; background: #f0f2f5; margin: 0; }
-          .receipt { max-width: 600px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-radius: 12px; border: 1px solid #e5e7eb; }
-          .header { text-align: center; border-bottom: 2px dashed #e5e7eb; padding-bottom: 24px; margin-bottom: 24px; }
-          .school-name { font-size: 24px; font-weight: 800; color: #111827; margin: 0; text-transform: uppercase; letter-spacing: -0.025em; }
-          .school-info { font-size: 11px; color: #6b7280; margin-top: 4px; }
-          .receipt-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.1em; color: #374151; margin-top: 12px; font-weight: 700; background: #f3f4f6; padding: 4px 12px; display: inline-block; border-radius: 4px; }
-          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid #f3f4f6; padding-bottom: 24px; }
-          .label { font-size: 10px; color: #9ca3af; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
-          .value { font-size: 14px; color: #1f2937; font-weight: 600; margin-top: 2px; }
-          .amount-section { background: #f0fdf4; padding: 24px; border-radius: 12px; text-align: center; margin: 24px 0; border: 1px solid #bbf7d0; }
-          .amount-label { font-size: 12px; color: #166534; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
-          .amount-value { font-size: 36px; font-weight: 800; color: #15803d; }
-          .footer { margin-top: 32px; text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px dashed #e5e7eb; padding-top: 20px; }
-          .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 80px; color: rgba(0,0,0,0.03); font-weight: 900; z-index: 0; pointer-events: none; white-space: nowrap; }
-          .print-btn { display: block; margin: 30px auto 0; padding: 12px 24px; background: #111827; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-          .print-btn:hover { background: #1f2937; transform: translateY(-1px); }
-          @media print { 
-            body { background: white; padding: 0; }
-            .receipt { box-shadow: none; border: none; padding: 20px; }
-            .print-btn { display: none; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="receipt" style="position: relative;">
-          <div class="watermark">OFFICIAL RECEIPT</div>
-          <div class="header">
-            <h1 class="school-name">${schoolName}</h1>
-            <div class="school-info">${schoolAddress} ${schoolPhone ? '• ' + schoolPhone : ''}</div>
-            <div class="receipt-title">Payment Receipt</div>
-          </div>
-          
-          <div class="info-grid">
-            <div>
-               <div class="label">Payment Date</div>
-               <div class="value">${new Date(payment.paymentDate || new Date()).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-            </div>
-            <div>
-               <div class="label">Receipt Number</div>
-               <div class="value" style="font-family: monospace;">#${payment.id.toString().padStart(6, '0')}</div>
-            </div>
-            <div>
-               <div class="label">Student Name</div>
-               <div class="value">${student.user.firstName} ${student.user.lastName}</div>
-            </div>
-            <div>
-               <div class="label">Admission No.</div>
-               <div class="value">${student.admissionNumber}</div>
-            </div>
-            <div>
-               <div class="label">Class</div>
-               <div class="value">${student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'N/A'}</div>
-            </div>
-            <div>
-               <div class="label">Academic Period</div>
-               <div class="value">${currentSession?.name} • ${currentTerm?.name}</div>
-            </div>
-            <div>
-               <div class="label">Payment Method</div>
-               <div class="value" style="text-transform: capitalize;">${payment.paymentMethod || 'Cash'}</div>
-            </div>
-             <div>
-               <div class="label">Reference No.</div>
-               <div class="value">${payment.reference || 'None'}</div>
-            </div>
-          </div>
-
-          <div class="amount-section">
-            <div class="amount-label">Total Amount Paid</div>
-            <div class="amount-value">₦${parseFloat(payment.amount).toLocaleString()}</div>
-          </div>
-
-          <div class="footer">
-            <p>This is a computer-generated receipt. No signature required.</p>
-            <p style="margin-top: 4px; color: #6b7280; font-weight: 600;">Thank you for your prompt payment!</p>
-          </div>
-          
-          <button class="print-btn" onclick="window.print()">Print Official Receipt</button>
-        </div>
-      </body>
-      </html>
-    `;
-
-    receiptWindow.document.open();
-    receiptWindow.document.write(htmlContent);
-    receiptWindow.document.close();
-    receiptWindow.focus();
+    setReceiptPayment(payment);
+    setReceiptStudent(student);
+    setReceiptModalOpen(true);
   };
 
   // Filter students
   const filteredStudents = students.filter(student => {
     const feeRecord = student.feeRecords[0];
-    const fullName = `${student.user.firstName} ${student.user.lastName}`.toLowerCase();
+    const fullName = `${student.user.firstName} ${student.user.lastName} `.toLowerCase();
     const admissionNumber = student.admissionNumber.toLowerCase();
     const searchLower = searchQuery.toLowerCase();
 
@@ -861,7 +767,7 @@ export default function FeeManagement() {
               <div className="text-primary font-bold">
                 {viewAllTerms
                   ? `${selectedViewSession?.name} - All Terms`
-                  : `${selectedViewSession?.name} - ${selectedViewTerm?.name}`
+                  : `${selectedViewSession?.name} - ${selectedViewTerm?.name} `
                 }
               </div>
             </div>
@@ -967,10 +873,10 @@ export default function FeeManagement() {
           {/* All Classes Card */}
           <button
             onClick={() => setSelectedClassView(null)}
-            className={`p-5 rounded-xl border-2 transition-all transform hover:scale-105 hover:shadow-lg text-left ${selectedClassView === null
-              ? 'border-primary bg-primary/5 shadow-md'
-              : 'border-gray-200 bg-white hover:border-primary/50'
-              }`}
+            className={`p - 5 rounded - xl border - 2 transition - all transform hover: scale - 105 hover: shadow - lg text - left ${selectedClassView === null
+                ? 'border-primary bg-primary/5 shadow-md'
+                : 'border-gray-200 bg-white hover:border-primary/50'
+              } `}
           >
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-bold text-gray-900">All Classes</h3>
@@ -1001,10 +907,10 @@ export default function FeeManagement() {
             <button
               key={classSummary.classId}
               onClick={() => setSelectedClassView(classSummary.classId)}
-              className={`p-5 rounded-xl border-2 transition-all transform hover:scale-105 hover:shadow-lg text-left ${selectedClassView === classSummary.classId
-                ? 'border-primary bg-primary/5 shadow-md'
-                : 'border-gray-200 bg-white hover:border-primary/50'
-                }`}
+              className={`p - 5 rounded - xl border - 2 transition - all transform hover: scale - 105 hover: shadow - lg text - left ${selectedClassView === classSummary.classId
+                  ? 'border-primary bg-primary/5 shadow-md'
+                  : 'border-gray-200 bg-white hover:border-primary/50'
+                } `}
             >
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-bold text-gray-900">{classSummary.className}</h3>
@@ -1047,7 +953,7 @@ export default function FeeManagement() {
                     <div
                       className="bg-gradient-to-r from-green-500 to-primary h-2 rounded-full transition-all"
                       style={{
-                        width: `${classSummary.totalExpected > 0 ? (classSummary.totalPaid / classSummary.totalExpected) * 100 : 0}%`
+                        width: `${classSummary.totalExpected > 0 ? (classSummary.totalPaid / classSummary.totalExpected) * 100 : 0}% `
                       }}
                     ></div>
                   </div>
@@ -1117,13 +1023,13 @@ export default function FeeManagement() {
             <div className="flex gap-2">
               <button
                 onClick={() => setViewMode('table')}
-                className={`flex-1 px-3 py-2 rounded-md ${viewMode === 'table' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'}`}
+                className={`flex - 1 px - 3 py - 2 rounded - md ${viewMode === 'table' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'} `}
               >
                 Table
               </button>
               <button
                 onClick={() => setViewMode('cards')}
-                className={`flex-1 px-3 py-2 rounded-md ${viewMode === 'cards' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'}`}
+                className={`flex - 1 px - 3 py - 2 rounded - md ${viewMode === 'cards' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'} `}
               >
                 Cards
               </button>
@@ -1244,7 +1150,7 @@ export default function FeeManagement() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {student.classModel ?
-                          `${student.classModel.name}${student.classModel.arm || ''}` :
+                          `${student.classModel.name}${student.classModel.arm || ''} ` :
                           'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -1289,14 +1195,14 @@ export default function FeeManagement() {
                           </button>
                           <button
                             onClick={() => toggleClearance(student.id, !feeRecord?.isClearedForExam)}
-                            className={`${feeRecord?.isClearedForExam ? 'text-amber-600 hover:text-amber-900' : 'text-indigo-600 hover:text-indigo-900'} font-medium`}
+                            className={`${feeRecord?.isClearedForExam ? 'text-amber-600 hover:text-amber-900' : 'text-indigo-600 hover:text-indigo-900'} font - medium`}
                             title={feeRecord?.isClearedForExam ? 'Restrict Exam Card' : 'Allow Exam Card'}
                           >
                             {feeRecord?.isClearedForExam ? '🚫 Restrict (Fee)' : '✅ Allow (Fee)'}
                           </button>
                           <button
                             onClick={() => handleRestrictClick(student)}
-                            className={`${student.isExamRestricted ? 'text-red-600 hover:text-red-800 font-bold' : 'text-gray-500 hover:text-gray-700'} font-medium flex items-center gap-1`}
+                            className={`${student.isExamRestricted ? 'text-red-600 hover:text-red-800 font-bold' : 'text-gray-500 hover:text-gray-700'} font - medium flex items - center gap - 1`}
                             title="Manage Global Card Restriction"
                           >
                             {student.isExamRestricted ? (
@@ -1479,9 +1385,10 @@ export default function FeeManagement() {
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button
                             onClick={() => printReceipt(payment, historyStudent)}
-                            className="text-indigo-600 hover:text-indigo-900 mr-4"
+                            className="text-indigo-600 hover:text-indigo-900 mr-4 font-semibold"
+                            title="Regenerate payment receipt"
                           >
-                            Print
+                            📄 Regenerate Receipt
                           </button>
                           <button
                             onClick={() => startEditPayment(payment)}
@@ -1688,7 +1595,7 @@ export default function FeeManagement() {
                   <span className="text-gray-600 font-bold">Total Due:</span>
                   <span className="font-bold text-gray-900 underline">₦{((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0)).toLocaleString()}</span>
                 </div>
-                <div className={`flex justify-between border-t pt-1 mt-1 ${((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0) - (parseFloat(adjustedPaid) || 0)) < 0 ? 'text-red-600' : 'text-orange-800'}`}>
+                <div className={`flex justify - between border - t pt - 1 mt - 1 ${((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0) - (parseFloat(adjustedPaid) || 0)) < 0 ? 'text-red-600' : 'text-orange-800'} `}>
                   <span className="font-bold">Remaining Balance:</span>
                   <span className="font-bold">₦{((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0) - (parseFloat(adjustedPaid) || 0)).toLocaleString()}</span>
                 </div>
@@ -1713,6 +1620,23 @@ export default function FeeManagement() {
             </div>
           </div>
         </div>
+      )}
+      {/* Receipt Modal */}
+      {receiptPayment && receiptStudent && (
+        <PrintReceiptModal
+          isOpen={receiptModalOpen}
+          onClose={() => {
+            setReceiptModalOpen(false);
+            setReceiptPayment(null);
+            setReceiptStudent(null);
+          }}
+          student={receiptStudent}
+          currentPayment={receiptPayment}
+          currentTerm={currentTerm}
+          currentSession={currentSession}
+          allTerms={allTerms}
+          allSessions={allSessions}
+        />
       )}
     </div>
   );

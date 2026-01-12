@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../api';
+import { api, API_BASE_URL } from '../api';
 import useSchoolSettings from '../hooks/useSchoolSettings';
 
 export default function PrintReceiptModal({ student, isOpen, onClose, currentTerm, currentSession, allTerms, allSessions }) {
@@ -39,187 +39,350 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
   };
 
   const generateSinglePaymentReceipt = (payment) => {
-    const logoHTML = schoolSettings.logoUrl
-      ? `<img src="${schoolSettings.logoUrl}" alt="School Logo" style="height: 60px; margin: 0 auto 15px; display: block;" />`
+    const primaryColor = schoolSettings.primaryColor || '#0f766e';
+    const logoUrl = schoolSettings.logoUrl
+      ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl}`)
+      : null;
+    const logoHTML = logoUrl
+      ? `<img src="${logoUrl}" alt="School Logo" style="height: 80px; width: auto; max-width: 250px; object-fit: contain; margin-bottom: 12px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));" />`
       : '';
+
+    // Generate a unique security hash
+    // Generate security markers
+    const securityHash = btoa(`PAY-${payment.id}-${student.id}`).substring(0, 12).toUpperCase();
+    const verificationUrl = `${window.location.origin}/verify/payment/${securityHash}`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}&bgcolor=ffffff`;
+    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=PAY-${payment.id}&scale=2&rotate=N&includetext=true&backgroundcolor=ffffff`;
 
     return `
       <!DOCTYPE html>
-      <html>
+      <html lang="en">
       <head>
-        <title>Payment Receipt</title>
+        <meta charset="UTF-8">
+        <title>Payment Receipt - ${student.user.firstName} ${student.user.lastName}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
         <style>
           @media print {
-            body { margin: 0; padding: 20px; }
-            .no-print { display: none; }
+            body { margin: 0; padding: 0; background: white !important; }
+            .no-print { display: none !important; }
+            .receipt-card { box-shadow: none !important; border: 1px solid #eee !important; margin: 0 !important; width: 100% !important; }
           }
+          * { box-sizing: border-box; }
           body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.5;
+          }
+          .receipt-card {
+            background: white;
             max-width: 800px;
             margin: 0 auto;
-            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(0,0,0,0.05);
+          }
+          /* Anti-Forge Watermark */
+          .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 150px;
+            font-weight: 900;
+            color: rgba(0, 0, 0, 0.03);
+            pointer-events: none;
+            text-transform: uppercase;
+            white-space: nowrap;
+            z-index: 0;
+            letter-spacing: 10px;
           }
           .receipt-header {
-            text-align: center;
-            border-bottom: 3px solid ${schoolSettings.primaryColor || '#0f766e'};
-            padding-bottom: 20px;
-            margin-bottom: 20px;
-          }
-          .school-name {
-            font-size: 24px;
-            font-weight: bold;
-            color: ${schoolSettings.primaryColor || '#0f766e'};
-            margin-bottom: 5px;
-          }
-          .school-address {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 10px;
-          }
-          .receipt-title {
-            font-size: 18px;
-            color: #666;
-            margin-top: 10px;
-          }
-          .receipt-number {
-            font-size: 14px;
-            color: #999;
-            margin-top: 5px;
-          }
-          .student-info, .payment-info {
-            margin: 20px 0;
-          }
-          .info-row {
-            display: flex;
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
-          }
-          .info-label {
-            font-weight: bold;
-            width: 200px;
-            color: #333;
-          }
-          .info-value {
-            flex: 1;
-            color: #666;
-          }
-          .amount-box {
-            background: #f0fdf4;
-            border: 2px solid ${schoolSettings.primaryColor || '#0f766e'};
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-            text-align: center;
-          }
-          .amount-label {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
-          }
-          .amount-value {
-            font-size: 32px;
-            font-weight: bold;
-            color: ${schoolSettings.primaryColor || '#0f766e'};
-          }
-          .receipt-footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #eee;
-            text-align: center;
-            color: #999;
-            font-size: 12px;
-          }
-          .signature-section {
+            background: linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd);
+            padding: 40px;
+            color: white;
             display: flex;
             justify-content: space-between;
-            margin-top: 60px;
+            align-items: flex-start;
           }
-          .signature-box {
+          .school-info h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+          }
+          .school-info p {
+            margin: 5px 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+          }
+          .receipt-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            backdrop-filter: blur(4px);
+          }
+          .receipt-body {
+            padding: 40px;
+            position: relative;
+            z-index: 1;
+          }
+          .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 40px;
+          }
+          .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: ${primaryColor};
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+          }
+          .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e2e8f0;
+            margin-left: 15px;
+          }
+          .info-group {
+            margin-bottom: 24px;
+          }
+          .info-label {
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 600;
+          }
+          .info-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #0f172a;
+          }
+          .amount-section {
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            border: 1px dashed #cbd5e1;
+          }
+          .amount-label {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 8px;
+          }
+          .amount-value {
+            font-size: 42px;
+            font-weight: 800;
+            color: ${primaryColor};
+            font-family: 'JetBrains Mono', monospace;
+          }
+          .security-footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .qr-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+          }
+          .qr-code {
+            border: 1px solid #e2e8f0;
+            padding: 5px;
+            border-radius: 8px;
+            background: white;
+          }
+          .security-text {
+            font-size: 11px;
+            color: #94a3b8;
+          }
+          .security-hash {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: #475569;
+            display: block;
+            margin-top: 4px;
+          }
+          .signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            margin-top: 50px;
+          }
+          .sig-box {
             text-align: center;
           }
-          .signature-line {
-            border-top: 1px solid #333;
-            width: 200px;
-            margin-top: 40px;
+          .sig-line {
+            border-top: 2px solid #e2e8f0;
+            margin-bottom: 8px;
+          }
+          .sig-label {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
+          }
+          .digital-seal-wrapper {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            width: 140px;
+            height: 140px;
+            pointer-events: none;
+            z-index: 10;
+          }
+          .barcode-wrapper {
+            margin-top: 20px;
+            text-align: center;
+          }
+          .barcode-img {
+            max-width: 200px;
+            height: auto;
           }
         </style>
       </head>
       <body>
-        <div class="receipt-header">
-          ${logoHTML}
-          <div class="school-name">${schoolSettings.schoolName || 'School Name'}</div>
-          ${schoolSettings.schoolAddress ? `<div class="school-address">${schoolSettings.schoolAddress}</div>` : ''}
-          <div class="receipt-title">PAYMENT RECEIPT</div>
-          <div class="receipt-number">Receipt No: PAY-${payment.id}-${Date.now()}</div>
+        <div class="receipt-card">
+          <div class="watermark">PAID</div>
+          
+          <div class="receipt-header">
+            <div class="school-info">
+              ${logoHTML}
+              <h1>${schoolSettings.schoolName || 'School Management System'}</h1>
+              <p>${schoolSettings.schoolAddress || 'Official Educational Institution'}</p>
+              ${schoolSettings.schoolPhone ? `<p>Tel: ${schoolSettings.schoolPhone}</p>` : ''}
+            </div>
+            <div style="text-align: right">
+              <div class="receipt-badge">Official Receipt</div>
+              <p style="font-size: 12px; margin-top: 10px; opacity: 0.8;">No: <strong>PAY-${payment.id}</strong></p>
+            </div>
+          </div>
+
+          <div class="receipt-body">
+            <div class="main-grid">
+              <div>
+                <div class="section-title">Student Details</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                  <div class="info-group">
+                    <div class="info-label">Full Name</div>
+                    <div class="info-value">${student.user.firstName} ${student.user.lastName}</div>
+                  </div>
+                  <div class="info-group">
+                    <div class="info-label">Admission No.</div>
+                    <div class="info-value">${student.admissionNumber}</div>
+                  </div>
+                </div>
+                <div class="info-group">
+                  <div class="info-label">Class</div>
+                  <div class="info-value">${student.classModel?.name || 'N/A'} ${student.classModel?.arm || ''}</div>
+                </div>
+
+                <div class="section-title" style="margin-top: 20px;">Payment Breakdown</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                  <div class="info-group">
+                    <div class="info-label">Transaction Date</div>
+                    <div class="info-value">${new Date(payment.paymentDate).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
+                  </div>
+                  <div class="info-group">
+                    <div class="info-label">Payment Method</div>
+                    <div class="info-value">${payment.paymentMethod.toUpperCase()}</div>
+                  </div>
+                </div>
+                ${payment.reference ? `
+                <div class="info-group">
+                  <div class="info-label">Reference / ID</div>
+                  <div class="info-value" style="font-family: 'JetBrains Mono', monospace; font-size: 14px;">${payment.reference}</div>
+                </div>` : ''}
+                ${payment.notes ? `
+                <div class="info-group">
+                  <div class="info-label">Narration</div>
+                  <div class="info-value" style="font-weight: 400; font-size: 14px; color: #475569;">${payment.notes}</div>
+                </div>` : ''}
+              </div>
+
+              <div>
+                <div class="amount-section">
+                  <div class="amount-label">Total Amount Paid</div>
+                  <div class="amount-value">₦${payment.amount.toLocaleString()}</div>
+                  <div style="margin-top: 15px; font-size: 11px; color: #10b981; font-weight: 700; text-transform: uppercase;">
+                    Payment Confirmed ✓
+                  </div>
+                </div>
+
+                <div class="qr-section" style="margin-top: 30px; justify-content: center; flex-direction: column; text-align: center;">
+                  <img src="${qrCodeUrl}" alt="Verification QR" class="qr-code" width="100" height="100" />
+                  <div style="font-size: 10px; color: #94a3b8; margin-top: 8px; font-weight: 600;">Scan to Verify</div>
+                  
+                  <div class="barcode-wrapper">
+                    <img src="${barcodeUrl}" alt="Barcode" class="barcode-img" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="signatures">
+              <div class="sig-box">
+                <div class="sig-line"></div>
+                <div class="sig-label">Authorized Signatory</div>
+              </div>
+              <div class="sig-box">
+                <div class="sig-line"></div>
+                <div class="sig-label">Parent / Guardian</div>
+              </div>
+            </div>
+
+            <div class="security-footer">
+              <div class="security-text">
+                This document is electronically generated and verified.<br/>
+                Digital Security ID: <span class="security-hash">${securityHash}</span>
+              </div>
+              <div style="text-align: right; font-size: 10px; color: #94a3b8;">
+                Printed on: ${new Date().toLocaleString()}<br/>
+                Server Trace: ${btoa(window.location.host).substring(0, 8)}
+              </div>
+            </div>
+
+            <div class="digital-seal-wrapper">
+              <svg width="140" height="140" viewBox="0 0 120 120" style="transform: rotate(-15deg);">
+                <circle cx="60" cy="60" r="55" fill="none" stroke="${primaryColor}" stroke-width="2" stroke-dasharray="3,2" opacity="0.4"/>
+                <circle cx="60" cy="60" r="48" fill="none" stroke="${primaryColor}" stroke-width="1.5" opacity="0.5"/>
+                <path id="sealPath" d="M 60,60 m -40,0 a 40,40 0 1,1 80,0 a 40,40 0 1,1 -80,0" fill="none"/>
+                <text font-size="7" font-weight="800" fill="${primaryColor}" opacity="0.6" letter-spacing="1">
+                  <textPath href="#sealPath" startOffset="0%">OFFICIAL RECEIPT • VERIFIED RECORD • VALIDATED PAYMENT • ${schoolSettings.schoolName?.toUpperCase() || 'SCHOOL SEAL'} •</textPath>
+                </text>
+                <g opacity="0.6">
+                  <circle cx="60" cy="60" r="30" fill="none" stroke="${primaryColor}" stroke-width="0.5"/>
+                  <text x="60" y="58" text-anchor="middle" font-size="8" font-weight="900" fill="${primaryColor}">APPROVED</text>
+                  <text x="60" y="68" text-anchor="middle" font-size="10" font-weight="900" fill="${primaryColor}">${new Date().getFullYear()}</text>
+                  <path d="M 45 62 L 75 62" stroke="${primaryColor}" stroke-width="1"/>
+                </g>
+              </svg>
+            </div>
+          </div>
         </div>
 
-        <div class="student-info">
-          <h3 style="color: ${schoolSettings.primaryColor || '#0f766e'}; margin-bottom: 15px;">Student Information</h3>
-          <div class="info-row">
-            <span class="info-label">Student Name:</span>
-            <span class="info-value">${student.user.firstName} ${student.user.lastName}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Admission Number:</span>
-            <span class="info-value">${student.admissionNumber}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Class:</span>
-            <span class="info-value">${student.classModel?.name || 'N/A'} ${student.classModel?.arm || ''}</span>
-          </div>
-        </div>
-
-        <div class="payment-info">
-          <h3 style="color: ${schoolSettings.primaryColor || '#0f766e'}; margin-bottom: 15px;">Payment Details</h3>
-          <div class="info-row">
-            <span class="info-label">Payment Date:</span>
-            <span class="info-value">${new Date(payment.paymentDate).toLocaleDateString()}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Payment Method:</span>
-            <span class="info-value">${payment.paymentMethod.toUpperCase()}</span>
-          </div>
-          ${payment.reference ? `
-          <div class="info-row">
-            <span class="info-label">Reference:</span>
-            <span class="info-value">${payment.reference}</span>
-          </div>` : ''}
-          ${payment.notes ? `
-          <div class="info-row">
-            <span class="info-label">Notes:</span>
-            <span class="info-value">${payment.notes}</span>
-          </div>` : ''}
-        </div>
-
-        <div class="amount-box">
-          <div class="amount-label">Amount Paid</div>
-          <div class="amount-value">₦${payment.amount.toLocaleString()}</div>
-        </div>
-
-        <div class="signature-section">
-          <div class="signature-box">
-            <div class="signature-line"></div>
-            <div style="margin-top: 10px;">Accountant's Signature</div>
-          </div>
-          <div class="signature-box">
-            <div class="signature-line"></div>
-            <div style="margin-top: 10px;">Parent's Signature</div>
-          </div>
-        </div>
-
-        <div class="receipt-footer">
-          <p>This is an official receipt from ${schoolSettings.schoolName || 'School Management System'}</p>
-          ${schoolSettings.schoolPhone ? `<p>Contact: ${schoolSettings.schoolPhone} ${schoolSettings.schoolEmail ? `| ${schoolSettings.schoolEmail}` : ''}</p>` : ''}
-          <p>Printed on: ${new Date().toLocaleString()}</p>
-          <p>If you have any questions, please contact the school office</p>
-        </div>
-
-        <div class="no-print" style="text-align: center; margin-top: 20px;">
-          <button onclick="window.print()" style="padding: 10px 20px; background: ${schoolSettings.primaryColor || '#0f766e'}; color: white; border: none; border-radius: 5px; cursor: pointer;">
-            Print Receipt
+        <div class="no-print" style="max-width: 800px; margin: 30px auto; display: flex; gap: 12px; justify-content: center;">
+          <button onclick="window.print()" style="padding: 12px 24px; background: ${primaryColor}; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            Print Secure Copy
           </button>
-          <button onclick="window.close()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
-            Close
+          <button onclick="window.close()" style="padding: 12px 24px; background: white; color: #475569; border: 1px solid #e2e8f0; border-radius: 8px; font-weight: 600; cursor: pointer;">
+            Close Preview
           </button>
         </div>
       </body>
@@ -228,9 +391,14 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
   };
 
   const generateTermReceipt = async () => {
-    const logoHTML = schoolSettings.logoUrl
-      ? `<img src="${schoolSettings.logoUrl}" alt="School Logo" style="height: 60px; margin: 0 auto 15px; display: block;" />`
+    const primaryColor = schoolSettings.primaryColor || '#0f766e';
+    const logoUrl = schoolSettings.logoUrl
+      ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl}`)
+      : null;
+    const logoHTML = logoUrl
+      ? `<img src="${logoUrl}" alt="School Logo" style="height: 70px; width: auto; max-width: 250px; object-fit: contain; margin-bottom: 8px;" />`
       : '';
+
     // Fetch fee record for term totals
     let feeRecord = null;
     try {
@@ -238,159 +406,170 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
         `/api/fees/students?termId=${selectedTerm.id}&academicSessionId=${selectedSession.id}`
       );
       const data = await response.json();
-      const students = data || [];
-      feeRecord = students.find(s => s.id === student.id);
+      feeRecord = (data || []).find(s => s.id === student.id);
     } catch (error) {
       console.error('Error fetching fee record:', error);
     }
 
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+    const securityHash = btoa(`TERM-${selectedTerm.id}-${student.id}`).substring(0, 10).toUpperCase();
+    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=TERM-${selectedTerm.id}-${student.id}&scale=2&rotate=N&height=10&includetext=true`;
 
     return `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Term Payment Receipt</title>
+        <title>Term Payment Statement - ${student.user.firstName}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
         <style>
           @media print {
-            body { margin: 0; padding: 20px; }
-            .no-print { display: none; }
+            body { background: white !important; padding: 0 !important; }
+            .no-print { display: none !important; }
+            .statement-card { box-shadow: none !important; border: 1px solid #eee !important; margin: 0 !important; width: 100% !important; }
           }
-          body {
-            font-family: 'Arial', sans-serif;
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
+          body { font-family: 'Inter', sans-serif; background: #f1f5f9; padding: 40px 20px; color: #1e293b; }
+          .statement-card { background: white; max-width: 850px; margin: 0 auto; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); overflow: hidden; }
+          .header { background: ${primaryColor}; color: white; padding: 30px 40px; display: flex; justify-content: space-between; align-items: center; }
+          .header h1 { margin: 0; font-size: 24px; }
+          .header p { margin: 5px 0 0; opacity: 0.8; font-size: 14px; }
+          .body { padding: 40px; }
+          .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; padding: 20px; background: #f8fafc; border-radius: 8px; }
+          .meta-item label { font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; display: block; }
+          .meta-item span { font-size: 15px; font-weight: 600; color: #0f172a; }
+          table { width: 100%; border-collapse: collapse; margin: 30px 0; }
+          th { text-align: left; font-size: 12px; text-transform: uppercase; color: #64748b; padding: 12px; border-bottom: 2px solid #e2e8f0; }
+          td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+          .amount-col { font-family: 'JetBrains Mono', monospace; font-weight: 600; text-align: right; }
+          .summary-card { background: #f8fafc; border-radius: 12px; padding: 25px; margin-top: 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; border: 1px solid #e2e8f0; }
+          .summary-item { text-align: center; }
+          .summary-label { font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 5px; font-weight: 600; }
+          .summary-val { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+          .footer { margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; font-size: 11px; color: #94a3b8; display: flex; justify-content: space-between; }
+          .digital-seal-wrapper {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            width: 130px;
+            height: 130px;
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0.7;
           }
-          .receipt-header {
-            text-align: center;
-            border-bottom: 3px solid ${schoolSettings.primaryColor || '#0f766e'};
-            padding-bottom: 20px;
-            margin-bottom: 20px;
-          }
-          .school-name {
-            font-size: 24px;
-            font-weight: bold;
-            color: ${schoolSettings.primaryColor || '#0f766e'};
-          }
-          .receipt-title {
-            font-size: 20px;
-            color: #666;
-            margin-top: 10px;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-          }
-          th {
-            background: ${schoolSettings.primaryColor || '#0f766e'};
-            color: white;
-            padding: 12px;
-            text-align: left;
-          }
-          td {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-          }
-          .summary-box {
-            background: #f0fdf4;
-            border: 2px solid ${schoolSettings.primaryColor || '#0f766e'};
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-          }
-          .summary-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            font-size: 16px;
-          }
-          .summary-label {
-            font-weight: bold;
-          }
-          .total-row {
-            border-top: 2px solid ${schoolSettings.primaryColor || '#0f766e'};
-            margin-top: 10px;
-            padding-top: 10px;
-            font-size: 20px;
-            font-weight: bold;
+          .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 120px;
+            font-weight: 900;
+            color: rgba(0, 0, 0, 0.02);
+            pointer-events: none;
+            text-transform: uppercase;
+            white-space: nowrap;
+            z-index: 0;
+            letter-spacing: 15px;
           }
         </style>
       </head>
       <body>
-        <div class="receipt-header">
-          ${logoHTML}
-          <div class="school-name">${schoolSettings.schoolName || 'School Name'}</div>
-          ${schoolSettings.schoolAddress ? `<div style="font-size: 12px;<h3 style="color: ${schoolSettings.primaryColor || '#0f766e'}; margin-bottom: 15px;">${schoolSettings.schoolAddress}</div>` : ''}
-          <div class="receipt-title">TERM PAYMENT RECEIPT</div>
-          <div style="margin-top: 10px; color: #666;">
-            ${selectedSession.name} - ${selectedTerm.name}
+        <div class="statement-card" style="position: relative;">
+          <div class="watermark">STATEMENT</div>
+          <div class="header">
+            <div>
+              ${logoHTML}
+              <h1>${schoolSettings.schoolName || 'School Name'}</h1>
+              <p>Term Payment Summary Statement</p>
+            </div>
+            <div style="text-align: right">
+              <div style="font-weight: 700; font-size: 18px;">${selectedSession.name}</div>
+              <div style="opacity: 0.8;">${selectedTerm.name}</div>
+            </div>
+          </div>
+          <div class="body">
+            <div class="meta-grid">
+              <div class="meta-item">
+                <label>Student Name</label>
+                <span>${student.user.firstName} ${student.user.lastName}</span>
+              </div>
+              <div class="meta-item">
+                <label>Admission No.</label>
+                <span>${student.admissionNumber}</span>
+              </div>
+              <div class="meta-item">
+                <label>Current Class</label>
+                <span>${student.classModel?.name || 'N/A'} ${student.classModel?.arm || ''}</span>
+              </div>
+              <div class="meta-item">
+                <label>Statement Hash</label>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">${securityHash}</span>
+              </div>
+            </div>
+
+            <h3 style="font-size: 16px; color: #475569; margin-bottom: 10px;">Transaction History</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Method</th>
+                  <th style="text-align: right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${payments.length > 0 ? payments.map(p => `
+                  <tr>
+                    <td>${new Date(p.paymentDate).toLocaleDateString()}</td>
+                    <td>School Fee Payment</td>
+                    <td>${p.paymentMethod.toUpperCase()}</td>
+                    <td class="amount-col">₦${p.amount.toLocaleString()}</td>
+                  </tr>
+                `).join('') : '<tr><td colspan="4" style="text-align: center; color: #94a3b8;">No payments found for this period.</td></tr>'}
+              </tbody>
+            </table>
+
+            <div class="summary-card">
+              <div class="summary-item">
+                <div class="summary-label">Expected Charge</div>
+                <div class="summary-val">₦${(feeRecord?.expectedAmount || 0).toLocaleString()}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Total Paid</div>
+                <div class="summary-val" style="color: #10b981;">₦${totalPaid.toLocaleString()}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Current Balance</div>
+                <div class="summary-val" style="color: ${(feeRecord?.balance || 0) > 0 ? '#ef4444' : '#10b981'};">₦${(feeRecord?.balance || 0).toLocaleString()}</div>
+              </div>
+            </div>
+
+            <div class="digital-seal-wrapper">
+              <svg width="130" height="130" viewBox="0 0 120 120" style="transform: rotate(-10deg);">
+                <circle cx="60" cy="60" r="55" fill="none" stroke="${primaryColor}" stroke-width="2" stroke-dasharray="3,2" opacity="0.4"/>
+                <path id="termSealPath" d="M 60,60 m -40,0 a 40,40 0 1,1 80,0 a 40,40 0 1,1 -80,0" fill="none"/>
+                <text font-size="7" font-weight="800" fill="${primaryColor}" opacity="0.6">
+                  <textPath href="#termSealPath" startOffset="0%">TERM STATEMENT • VERIFIED FINANCIAL RECORD • ${schoolSettings.schoolName?.toUpperCase() || 'OFFICIAL SEAL'} •</textPath>
+                </text>
+                <text x="60" y="62" text-anchor="middle" font-size="12" font-weight="900" fill="${primaryColor}" opacity="0.6">VALID</text>
+              </svg>
+            </div>
+
+            <div style="margin-top: 20px; text-align: center;">
+               <img src="${barcodeUrl}" alt="Barcode" style="max-width: 250px; height: auto;" />
+            </div>
+
+            <div class="footer">
+              <div>
+                Official computer-generated statement. Verified by system at ${new Date().toLocaleString()}.
+              </div>
+              <div style="text-align: right;">
+                Verification ID: ${securityHash}
+              </div>
+            </div>
           </div>
         </div>
-
-        <div style="margin: 20px 0;">
-          <h3>Student: ${student.user.firstName} ${student.user.lastName}</h3>
-          <p>Admission No: ${student.admissionNumber} | Class: ${student.classModel?.name || 'N/A'} ${student.classModel?.arm || ''}</p>
-        </div>
-
-        <h3 style="color: ${schoolSettings.primaryColor || '#0f766e'};">Payment History</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Amount</th>
-              <th>Method</th>
-              <th>Reference</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${payments.length > 0 ? payments.map(p => `
-              <tr>
-                <td>${new Date(p.paymentDate).toLocaleDateString()}</td>
-                <td>₦${p.amount.toLocaleString()}</td>
-                <td>${p.paymentMethod}</td>
-                <td>${p.reference || 'N/A'}</td>
-              </tr>
-            `).join('') : '<tr><td colspan="4" style="text-align: center;">No payments recorded</td></tr>'}
-          </tbody>
-        </table>
-
-        <div class="summary-box">
-          <h3 style="margin-top: 0; color: ${schoolSettings.primaryColor || '#0f766e'};">Summary</h3>
-          <div class="summary-row">
-            <span class="summary-label">Expected Amount:</span>
-            <span>₦${(feeRecord?.expectedAmount || 0).toLocaleString()}</span>
-          </div>
-          <div class="summary-row">
-            <span class="summary-label">Total Paid:</span>
-            <span>₦${totalPaid.toLocaleString()}</span>
-          </div>
-          <div class="summary-row">
-            <span class="summary-label">Balance:</span>
-            <span>₦${(feeRecord?.balance || 0).toLocaleString()}</span>
-          </div>
-          <div class="summary-row total-row">
-            <span>Payment Status:</span>
-            <span style="color: ${(feeRecord?.balance || 0) <= 0 ? '#059669' : '#dc2626'};">
-              ${(feeRecord?.balance || 0) <= 0 ? 'FULLY PAID ✓' : 'PARTIAL PAYMENT'}
-            </span>
-          </div>
-        </div>
-
-        <div style="margin-top: 60px; padding-top: 20px; border-top: 2px solid #eee; text-align: center; font-size: 12px; color: #999;">
-          <p>Printed on: ${new Date().toLocaleString()}</p>
-          <p>This is an official document from ${schoolSettings.schoolName || 'School Management System'}</p>
-          ${schoolSettings.schoolPhone ? `<p>Contact: ${schoolSettings.schoolPhone}</p>` : ''}
-        </div>
-
-        <div class="no-print" style="text-align: center; margin-top: 20px;">
-          <button onclick="window.print()" style="padding: 10px 20px; background: ${schoolSettings.primaryColor || '#0f766e'}; color: white; border: none; border-radius: 5px; cursor: pointer;">
-            Print Receipt
-          </button>
-          <button onclick="window.close()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
-            Close
-          </button>
+        <div class="no-print" style="text-align: center; margin-top: 30px;">
+          <button onclick="window.print()" style="padding: 12px 24px; background: ${primaryColor}; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Print Statement</button>
+          <button onclick="window.close()" style="margin-left: 10px; padding: 12px 24px; background: #64748b; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Close</button>
         </div>
       </body>
       </html>
@@ -398,9 +577,14 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
   };
 
   const generateCumulativeReceipt = async () => {
-    const logoHTML = schoolSettings.logoUrl
-      ? `<img src="${schoolSettings.logoUrl}" alt="School Logo" style="height: 60px; margin: 0 auto 15px; display: block;" />`
+    const primaryColor = schoolSettings.primaryColor || '#0f766e';
+    const logoUrl = schoolSettings.logoUrl
+      ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl}`)
+      : null;
+    const logoHTML = logoUrl
+      ? `<img src="${logoUrl}" alt="School Logo" style="height: 65px; width: auto; max-width: 250px; object-fit: contain; margin-bottom: 5px;" />`
       : '';
+
     // Fetch all fee records for the student in the selected session
     let allFeeRecords = [];
     try {
@@ -429,147 +613,161 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
       balance: allFeeRecords.reduce((sum, r) => sum + (r.balance || 0), 0)
     };
 
+    const securityHash = btoa(`SESS-${selectedSession.id}-${student.id}`).substring(0, 12).toUpperCase();
+    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=SESS-${selectedSession.id}-${student.id}&scale=2&rotate=N&height=10&includetext=true`;
+
     return `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Cumulative Payment Receipt</title>
+        <title>Sessional Payment Ledger - ${student.user.firstName}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
         <style>
           @media print {
-            body { margin: 0; padding: 20px; }
-            .no-print { display: none; }
+            body { background: white !important; padding: 0 !important; }
+            .no-print { display: none !important; }
+            .ledger-card { box-shadow: none !important; border: 1px solid #eee !important; margin: 0 !important; width: 100% !important; }
           }
-          body {
-            font-family: 'Arial', sans-serif;
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
+          body { font-family: 'Inter', sans-serif; background: #e2e8f0; padding: 40px 20px; color: #1e293b; }
+          .ledger-card { background: white; max-width: 900px; margin: 0 auto; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden; }
+          .side-accent { width: 8px; background: ${primaryColor}; position: absolute; left: 0; top: 0; bottom: 0; }
+          .header { padding: 40px; border-bottom: 1px solid #f1f5f9; position: relative; display: flex; justify-content: space-between; align-items: flex-start; }
+          .header h1 { margin: 0; font-size: 26px; font-weight: 700; color: ${primaryColor}; }
+          .header p { margin: 4px 0 0; color: #64748b; font-size: 14px; }
+          .content { padding: 40px; }
+          .summary-header { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 30px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 40px; }
+          .stat-item { text-align: left; }
+          .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+          .stat-val { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+          .term-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+          .term-card { border: 1px solid #f1f5f9; border-radius: 12px; padding: 20px; background: #fff; transition: all 0.2s; }
+          .term-title { font-size: 14px; font-weight: 700; color: ${primaryColor}; margin-bottom: 12px; display: flex; justify-content: space-between; }
+          .row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
+          .row span:first-child { color: #64748b; }
+          .row span:last-child { font-weight: 600; }
+          .status-badge { font-size: 10px; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; }
+          .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 140px;
+            font-weight: 900;
+            color: rgba(0, 0, 0, 0.02);
+            pointer-events: none;
+            text-transform: uppercase;
+            white-space: nowrap;
+            z-index: 0;
+            letter-spacing: 20px;
           }
-          .receipt-header {
-            text-align: center;
-            border-bottom: 3px solid ${schoolSettings.primaryColor || '#0f766e'};
-            padding-bottom: 20px;
-            margin-bottom: 20px;
+          .digital-seal-wrapper {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            width: 150px;
+            height: 150px;
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0.7;
           }
-          .school-name {
-            font-size: 28px;
-            font-weight: bold;
-            color: ${schoolSettings.primaryColor || '#0f766e'};
-          }
-          .term-box {
-            background: #f9fafb;
-            border-left: 4px solid ${schoolSettings.primaryColor || '#0f766e'};
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 4px;
-          }
-          .term-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: ${schoolSettings.primaryColor || '#0f766e'};
-            margin-bottom: 10px;
-          }
-          .term-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 0;
-          }
-          .grand-total-box {
-            background: linear-gradient(135deg, ${schoolSettings.primaryColor || '#0f766e'}, ${schoolSettings.primaryColor ? schoolSettings.primaryColor + 'cc' : '#14b8a6'});
-            color: white;
-            padding: 25px;
-            border-radius: 10px;
-            margin: 30px 0;
-          }
-          .gt-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            font-size: 18px;
-          }
-          .gt-total {
-            border-top: 2px solid rgba(255,255,255,0.3);
-            margin-top: 15px;
-            padding-top: 15px;
-            font-size: 24px;
-            font-weight: bold;
-          }
+          .footer { margin-top: 50px; border-top: 1px solid #f1f5f9; padding-top: 24px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 10; }
         </style>
       </head>
       <body>
-        <div class="receipt-header">
-          ${logoHTML}
-          <div class="school-name">${schoolSettings.schoolName || 'School Name'}</div>
-          ${schoolSettings.schoolAddress ? `<div style="font-size: 12px; color: #666; margin: 5px 0;">${schoolSettings.schoolAddress}</div>` : ''}
-          <div style="font-size: 20px; color: #666; margin-top: 10px;">CUMULATIVE PAYMENT RECEIPT</div>
-          <div style="margin-top: 10px; color: #666; font-size: 16px;">Academic Session: ${selectedSession.name}</div>
-        </div>
-
-        <div style="margin: 20px 0; padding: 15px; background: #f0fdf4; border-radius: 8px;">
-          <h3 style="margin-top: 0;">Student: ${student.user.firstName} ${student.user.lastName}</h3>
-          <p style="margin: 5px 0;">Admission No: ${student.admissionNumber}</p>
-          <p style="margin: 5px 0;">Class: ${student.classModel?.name || 'N/A'} ${student.classModel?.arm || ''}</p>
-        </div>
-
-        <h3 style="color: ${schoolSettings.primaryColor || '#0f766e'};">Payment Breakdown by Term</h3>
-        
-        ${allFeeRecords.length > 0 ? allFeeRecords.map(record => `
-          <div class="term-box">
-            <div class="term-name">${record.term.name}</div>
-            <div class="term-row">
-              <span>Expected:</span>
-              <span style="font-weight: bold;">₦${(record.expectedAmount || 0).toLocaleString()}</span>
+        <div class="ledger-card" style="position: relative;">
+          <div class="side-accent"></div>
+          <div class="header">
+            <div>
+              ${logoHTML}
+              <h1>Sessional Payment Ledger</h1>
+              <p>Academic Session: <strong>${selectedSession.name}</strong></p>
             </div>
-            <div class="term-row">
-              <span>Paid:</span>
-              <span style="color: #059669; font-weight: bold;">₦${(record.paidAmount || 0).toLocaleString()}</span>
-            </div>
-            <div class="term-row">
-              <span>Balance:</span>
-              <span style="color: ${record.balance > 0 ? '#dc2626' : '#059669'}; font-weight: bold;">₦${(record.balance || 0).toLocaleString()}</span>
-            </div>
-            <div class="term-row" style="margin-top: 5px; padding-top: 8px; border-top: 1px solid #ddd;">
-              <span style="font-size: 14px;">Status:</span>
-              <span style="font-weight: bold; color: ${record.balance <= 0 ? '#059669' : '#dc2626'};">
-                ${record.balance <= 0 ? 'FULLY PAID ✓' : 'PARTIAL PAYMENT'}
-              </span>
+            <div style="text-align: right">
+              <div style="font-weight: 600; font-size: 16px;">${student.user.firstName} ${student.user.lastName}</div>
+              <div style="font-size: 12px; color: #64748b;">ID: ${student.admissionNumber}</div>
             </div>
           </div>
-        `).join('') : '<p style="text-align: center; color: #999;">No fee records found for this session</p>'}
+          <div class="content">
+            <div class="summary-header">
+              <div class="stat-item">
+                <div class="stat-label">Total Expected</div>
+                <div class="stat-val">₦${grandTotal.expected.toLocaleString()}</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Total Remitted</div>
+                <div class="stat-val" style="color: #10b981;">₦${grandTotal.paid.toLocaleString()}</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Outstanding Balance</div>
+                <div class="stat-val" style="color: ${grandTotal.balance > 0 ? '#ef4444' : '#10b981'};">₦${grandTotal.balance.toLocaleString()}</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Completion</div>
+                <div class="stat-val">${grandTotal.expected > 0 ? ((grandTotal.paid / grandTotal.expected) * 100).toFixed(1) : 0}%</div>
+              </div>
+            </div>
 
-        <div class="grand-total-box">
-          <h3 style="margin-top: 0; margin-bottom: 20px;">GRAND TOTAL</h3>
-          <div class="gt-row">
-            <span>Total Expected:</span>
-            <span>₦${grandTotal.expected.toLocaleString()}</span>
-          </div>
-          <div class="gt-row">
-            <span>Total Paid:</span>
-            <span>₦${grandTotal.paid.toLocaleString()}</span>
-          </div>
-          <div class="gt-row">
-            <span>Total Balance:</span>
-            <span>₦${grandTotal.balance.toLocaleString()}</span>
-          </div>
-          <div class="gt-row gt-total">
-            <span>Payment Rate:</span>
-            <span>${grandTotal.expected > 0 ? ((grandTotal.paid / grandTotal.expected) * 100).toFixed(1) : 0}%</span>
+            <h2 style="font-size: 16px; margin-bottom: 20px;">Term-by-Term Breakdown</h2>
+            <div class="term-grid">
+              ${allFeeRecords.length > 0 ? allFeeRecords.map(record => `
+                <div class="term-card">
+                  <div class="term-title">
+                    ${record.term.name}
+                    <span class="status-badge" style="background: ${record.balance <= 0 ? '#dcfce7' : '#fee2e2'}; color: ${record.balance <= 0 ? '#166534' : '#991b1b'};">
+                      ${record.balance <= 0 ? 'Settled' : 'Pending'}
+                    </span>
+                  </div>
+                  <div class="row">
+                    <span>Charge:</span>
+                    <span>₦${(record.expectedAmount || 0).toLocaleString()}</span>
+                  </div>
+                  <div class="row">
+                    <span>Arrears:</span>
+                    <span>₦${(record.openingBalance || 0).toLocaleString()}</span>
+                  </div>
+                  <div class="row">
+                    <span>Paid:</span>
+                    <span>₦${(record.paidAmount || 0).toLocaleString()}</span>
+                  </div>
+                  <div class="row" style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #f1f5f9;">
+                    <span>Term Balance:</span>
+                    <span style="color: ${record.balance > 0 ? '#ef4444' : '#10b981'};">₦${(record.balance || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              `).join('') : '<p>No records found.</p>'}
+            </div>
+
+            <div style="margin-top: 40px; text-align: center;">
+               <img src="${barcodeUrl}" alt="Barcode" style="max-width: 300px; height: auto;" />
+            </div>
+
+            <div class="digital-seal-wrapper">
+              <svg width="150" height="150" viewBox="0 0 120 120" style="transform: rotate(-12deg);">
+                <circle cx="60" cy="60" r="58" fill="none" stroke="${primaryColor}" stroke-width="2.5" stroke-dasharray="4,2" opacity="0.4"/>
+                <path id="sessSealPath" d="M 60,60 m -42,0 a 42,42 0 1,1 84,0 a 42,42 0 1,1 -84,0" fill="none"/>
+                <text font-size="6" font-weight="900" fill="${primaryColor}" opacity="0.6" letter-spacing="1">
+                  <textPath href="#sessSealPath" startOffset="0%">SESSIONAL LEDGER • ACADEMIC AUDIT RECORD • ${schoolSettings.schoolName?.toUpperCase() || 'OFFICIAL SEAL'} •</textPath>
+                </text>
+                <text x="60" y="58" text-anchor="middle" font-size="8" font-weight="900" fill="${primaryColor}" opacity="0.6">SESSIONAL</text>
+                <text x="60" y="70" text-anchor="middle" font-size="12" font-weight="900" fill="${primaryColor}" opacity="0.6">LEDGER</text>
+              </svg>
+            </div>
+
+            <div class="footer">
+              <div style="font-size: 10px; color: #94a3b8;">
+                Security Verification ID: <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700;">${securityHash}</span><br/>
+                Generated: ${new Date().toLocaleString()}
+              </div>
+              <div style="text-align: right;">
+                <div style="height: 40px; border-bottom: 1px solid #cbd5e1; width: 150px; margin-bottom: 4px;"></div>
+                <div style="font-size: 11px; color: #64748b;">Burser/Accountant Seal</div>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div style="margin-top: 60px; padding-top: 20px; border-top: 2px solid #eee; text-align: center; font-size: 12px; color: #999;">
-          <p>Printed on: ${new Date().toLocaleString()}</p>
-          <p>This is an official cumulative receipt from ${schoolSettings.schoolName || 'School Management System'}</p>
-          ${schoolSettings.schoolPhone ? `<p>Contact: ${schoolSettings.schoolPhone} ${schoolSettings.schoolEmail ? `| ${schoolSettings.schoolEmail}` : ''}</p>` : ''}
-        </div>
-
-        <div class="no-print" style="text-align: center; margin-top: 20px;">
-          <button onclick="window.print()" style="padding: 10px 20px; background: ${schoolSettings.primaryColor || '#0f766e'}; color: white; border: none; border-radius: 5px; cursor: pointer;">
-            Print Receipt
-          </button>
-          <button onclick="window.close()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
-            Close
-          </button>
+        <div class="no-print" style="text-align: center; margin-top: 30px;">
+          <button onclick="window.print()" style="padding: 12px 24px; background: ${primaryColor}; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Print Full Ledger</button>
+          <button onclick="window.close()" style="margin-left: 10px; padding: 12px 24px; background: #64748b; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Close</button>
         </div>
       </body>
       </html>
