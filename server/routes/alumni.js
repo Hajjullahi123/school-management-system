@@ -367,15 +367,41 @@ router.post('/admin/register-direct', authenticate, authorize(['admin']), async 
     const count = await prisma.student.count({
       where: { schoolId: req.schoolId }
     });
-    const admissionNumber = `${year}${String(count + 1).padStart(4, '0')}`;
+    const admissionNumber = `ALM${year}${String(count + 1).padStart(4, '0')}`;
 
     // Generate alumni ID
     const alumniId = `AL/${graduationYear}/${admissionNumber}`;
 
+    // 1. Check if email already exists
+    const targetEmail = email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@alumni.school`;
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        schoolId: req.schoolId,
+        email: targetEmail
+      }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        error: `Email Error: The email '${targetEmail}' is already associated with an existing ${existingUser.role} (${existingUser.firstName} ${existingUser.lastName}). Please use a different email or search for this student in the records.`
+      });
+    }
+
+    // 2. Check if username/alumniId already exists
+    const existingUsername = await prisma.user.findFirst({
+      where: {
+        schoolId: req.schoolId,
+        username: alumniId
+      }
+    });
+
+    if (existingUsername) {
+      return res.status(400).json({ error: `Alumni ID conflict: ${alumniId} already exists.` });
+    }
+
     // Start transaction to create user, student, and alumni records
     const result = await prisma.$transaction(async (tx) => {
       // 1. Create User
-      const generatedEmail = email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@alumni.school`;
       const defaultPassword = Math.random().toString(36).slice(-8);
       const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
@@ -384,7 +410,7 @@ router.post('/admin/register-direct', authenticate, authorize(['admin']), async 
           schoolId: req.schoolId,
           username: alumniId,
           passwordHash,
-          email: generatedEmail,
+          email: targetEmail,
           role: 'alumni',
           firstName,
           lastName,
@@ -451,7 +477,7 @@ router.post('/admin/register-direct', authenticate, authorize(['admin']), async 
         credentials: {
           username: alumniId,
           password: defaultPassword,
-          email: generatedEmail
+          email: targetEmail
         }
       };
     });
