@@ -404,7 +404,7 @@ const ParentDashboard = () => {
                       </button>
                     )}
                     <Link
-                      to="/term-report"
+                      to="/dashboard/term-report"
                       className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

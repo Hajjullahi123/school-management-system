@@ -13,6 +13,7 @@ const TermReportCard = () => {
   const [reportData, setReportData] = useState(null);
   const [bulkReports, setBulkReports] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Selection states
   const [searchMode, setSearchMode] = useState('admission'); // 'admission', 'class'
@@ -97,6 +98,7 @@ const TermReportCard = () => {
     setLoading(true);
     setReportData(null);
     setBulkReports([]);
+    setError(null);
 
     try {
       // BULK MODE: All Students in Class
@@ -190,7 +192,7 @@ const TermReportCard = () => {
         msg = "Results have not been published for this term yet.";
       }
 
-      alert(msg);
+      setError(msg);
       // Ensure specific message is shown if it was a 403
     } finally {
       setLoading(false);
@@ -798,10 +800,29 @@ const TermReportCard = () => {
 
       {!reportData && bulkReports.length === 0 && !loading && (
         <div className="bg-white p-12 rounded-lg shadow text-center print:hidden border border-gray-200">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <p className="mt-4 text-gray-600">Select a term and click "Generate Report" to view your report card</p>
+          {error ? (
+            <div className="flex flex-col items-center">
+              <div className="bg-amber-100 p-4 rounded-full mb-4">
+                <svg className="w-12 h-12 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Notice</h2>
+              <p className="text-gray-600 max-w-sm mx-auto mb-6 italic">
+                "{error}"
+              </p>
+              <p className="text-sm text-gray-500">
+                Please check back later or contact the school office.
+              </p>
+            </div>
+          ) : (
+            <>
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="mt-4 text-gray-600 font-medium">Select a term and click "Generate Report" to view your results</p>
+            </>
+          )}
         </div>
       )}
     </div>
