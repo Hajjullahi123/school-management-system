@@ -340,6 +340,55 @@ router.post('/schools/:id/reset-admin', authenticate, authorize(['superadmin']),
 });
 
 /**
+ * @route   PUT /api/superadmin/schools/:id
+ * @desc    Update school details (name, slug, address, phone, email)
+ * @access  SuperAdmin only
+ */
+router.put('/schools/:id', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    const schoolId = parseInt(req.params.id);
+    const { name, slug, address, phone, email } = req.body;
+
+    if (slug) {
+      const existing = await prisma.school.findFirst({
+        where: {
+          slug,
+          NOT: { id: schoolId }
+        }
+      });
+      if (existing) {
+        return res.status(400).json({ error: 'Another school already uses this slug' });
+      }
+    }
+
+    const updatedSchool = await prisma.school.update({
+      where: { id: schoolId },
+      data: {
+        name,
+        slug: slug?.toLowerCase().replace(/\s+/g, '-'),
+        address,
+        phone,
+        email
+      }
+    });
+
+    res.json({ message: 'School details updated successfully', school: updatedSchool });
+
+    logAction({
+      schoolId: 1,
+      userId: req.user.id,
+      action: 'UPDATE_SCHOOL',
+      resource: 'SCHOOL',
+      details: { schoolId, updates: req.body },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Update school error:', error);
+    res.status(500).json({ error: 'Failed to update school details' });
+  }
+});
+
+/**
  * @route   DELETE /api/superadmin/schools/:id
  * @desc    Hard delete a school and ALL its data
  * @access  SuperAdmin only

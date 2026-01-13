@@ -3,7 +3,7 @@ import {
   FiBriefcase, FiUsers, FiUserCheck, FiShield, FiPlus,
   FiTrash2, FiActivity, FiSearch, FiKey, FiGlobe, FiAlertCircle,
   FiPrinter, FiUnlock, FiFacebook, FiInstagram, FiMessageCircle, FiLink,
-  FiPower
+  FiPower, FiEdit2
 } from 'react-icons/fi';
 import { toast } from '../../utils/toast';
 import { apiCall } from '../../api';
@@ -231,6 +231,28 @@ const SuperAdminDashboard = () => {
       }, 500);
     } catch (error) {
       toast.error(error.response?.data?.error || 'Impersonation failed');
+    }
+  };
+
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingSchool, setEditingSchool] = useState(null);
+  const [updatingSchool, setUpdatingSchool] = useState(false);
+
+  const handleUpdateSchool = async (e) => {
+    e.preventDefault();
+    try {
+      setUpdatingSchool(true);
+      await apiCall(`/api/superadmin/schools/${editingSchool.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(editingSchool)
+      });
+      toast.success('School updated successfully!');
+      setShowEditModal(false);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to update school');
+    } finally {
+      setUpdatingSchool(false);
     }
   };
 
@@ -496,6 +518,16 @@ const SuperAdminDashboard = () => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => {
+                              setEditingSchool(s);
+                              setShowEditModal(true);
+                            }}
+                            title="Edit School Details"
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100"
+                          >
+                            <FiEdit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
                               setSelectedSchoolForLicense(s);
                               setShowLicenseModal(true);
                               setGeneratedKey(null);
@@ -513,7 +545,7 @@ const SuperAdminDashboard = () => {
                             <FiUserCheck className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleResetAdminCreds(s.id)}
+                            onClick={() => handleResetAdminCreds(s.id, s.name)}
                             title="Reset Admin Password"
                             className={`p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors border border-amber-100 ${reseting ? 'opacity-50' : ''}`}
                             disabled={reseting}
@@ -927,6 +959,92 @@ const SuperAdminDashboard = () => {
           div, p { visibility: visible !important; }
         }
       `}} />
+
+      {/* Edit School Modal */}
+      {showEditModal && editingSchool && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-blue-600 p-6 text-white">
+              <h3 className="text-xl font-bold flex items-center"><FiEdit2 className="mr-2" /> Edit School Details</h3>
+              <p className="text-blue-100 text-xs text-opacity-80">Update mapping and contact information for {editingSchool.name}</p>
+            </div>
+
+            <form onSubmit={handleUpdateSchool} className="p-8 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">School Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingSchool.name}
+                    onChange={e => setEditingSchool({ ...editingSchool, name: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-600 transition-all text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">URL Slug (Domain)</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingSchool.slug}
+                    onChange={e => setEditingSchool({ ...editingSchool, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-600 transition-all font-mono text-sm"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1 font-medium">Warning: Primary access key</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Contact Email</label>
+                  <input
+                    type="email"
+                    value={editingSchool.email || ''}
+                    onChange={e => setEditingSchool({ ...editingSchool, email: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-600 transition-all text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    value={editingSchool.phone || ''}
+                    onChange={e => setEditingSchool({ ...editingSchool, phone: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-600 transition-all text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Address</label>
+                  <input
+                    type="text"
+                    value={editingSchool.address || ''}
+                    onChange={e => setEditingSchool({ ...editingSchool, address: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-600 transition-all text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 py-3 px-6 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingSchool}
+                  className={`flex-1 py-3 px-6 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all ${updatingSchool ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {updatingSchool ? 'Saving...' : 'Update Records'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
