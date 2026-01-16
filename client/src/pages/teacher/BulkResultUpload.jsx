@@ -61,7 +61,7 @@ export default function BulkResultUpload() {
         );
 
         const data = await scoresheetRes.json();
-        setAssignments(data.scoresheets || []);
+        setAssignments(data || []);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -82,13 +82,8 @@ export default function BulkResultUpload() {
 
       console.log(`Downloading for Class: ${assignment.classId}, Subject: ${assignment.subjectId}`);
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/scoresheet/class/${assignment.classId}/subject/${assignment.subjectId}?termId=${currentTerm.id}&academicSessionId=${currentSession.id}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
+      const response = await api.get(
+        `/api/scoresheet/class/${assignment.classId}/subject/${assignment.subjectId}?termId=${currentTerm.id}&academicSessionId=${currentSession.id}`
       );
 
       if (response.ok) {

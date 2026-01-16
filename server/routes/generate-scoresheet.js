@@ -68,6 +68,7 @@ async function generateExcel(res, titleData, studentData, filename, weights) {
   worksheet.getCell('A5').alignment = centerStyle;
 
   // Table Header Row
+  const headerRow = worksheet.getRow(7);
   headerRow.values = [
     'S/N', 'Admission No', 'Student Name',
     `Assign 1 (${w.assignment1Weight})`, `Assign 2 (${w.assignment2Weight})`,

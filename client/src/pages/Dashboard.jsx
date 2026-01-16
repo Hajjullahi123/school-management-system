@@ -545,7 +545,7 @@ const Dashboard = () => {
                 {teacherAssignments.map((assignment) => (
                   <Link
                     key={assignment.id}
-                    to={`/result-entry?classId=${assignment.classId}&subjectId=${assignment.subjectId}`}
+                    to={`/dashboard/result-entry?classId=${assignment.classId}&subjectId=${assignment.subjectId}`}
                     className="block p-4 border border-gray-200 rounded-lg hover:shadow-md hover:border-primary/50 transition-all group"
                   >
                     <div className="flex justify-between items-start">
