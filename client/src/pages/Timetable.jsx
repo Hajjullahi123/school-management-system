@@ -880,9 +880,8 @@ const Timetable = () => {
                     value={formData.subjectId}
                     onChange={e => setFormData({ ...formData, subjectId: e.target.value })}
                     className="w-full border rounded px-3 py-2"
-                    required
                   >
-                    <option value="">Select Subject</option>
+                    <option value="">-- [Leave Empty for Generation] --</option>
                     {classSubjects.map(cs => {
                       const used = schedule.filter(s => s.subjectId === cs.subjectId && s.type === 'lesson').length;
                       const quota = cs.periodsPerWeek || 0;
