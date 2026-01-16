@@ -8,7 +8,10 @@ const { logAction } = require('../utils/audit');
 router.get('/', authenticate, async (req, res) => {
   try {
     const classes = await prisma.class.findMany({
-      where: { schoolId: req.schoolId },
+      where: {
+        schoolId: req.schoolId,
+        isActive: true
+      },
       include: {
         classTeacher: {
           select: {
@@ -43,7 +46,8 @@ router.get('/my-class', authenticate, async (req, res) => {
     const classData = await prisma.class.findFirst({
       where: {
         classTeacherId: req.user.id,
-        schoolId: req.schoolId
+        schoolId: req.schoolId,
+        isActive: true
       },
       include: {
         students: {
@@ -282,38 +286,16 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
     const { id } = req.params;
     const classId = parseInt(id);
 
-    // Transactional delete to handle dependencies
-    await prisma.$transaction(async (prisma) => {
-      // 1. Delete Student Results
-      const students = await prisma.student.findMany({
-        where: { classId: classId, schoolId: req.schoolId },
-        select: { id: true }
-      });
-      const studentIds = students.map(s => s.id);
-
-      if (studentIds.length > 0) {
-        await prisma.result.deleteMany({
-          where: { studentId: { in: studentIds }, schoolId: req.schoolId }
-        });
-      }
-
-      // 3. Delete Teacher Assignments for this class
-      await prisma.classSubject.deleteMany({
-        where: { classId: classId, schoolId: req.schoolId }
-      });
-
-      // 4. Delete Students in this class
-      await prisma.student.deleteMany({
-        where: { classId: classId, schoolId: req.schoolId }
-      });
-
-      // 5. Finally, Delete the Class
-      await prisma.class.delete({
-        where: { id: classId, schoolId: req.schoolId }
-      });
+    // Implement soft delete: set isActive to false instead of deleting records
+    const classData = await prisma.class.update({
+      where: {
+        id: classId,
+        schoolId: req.schoolId
+      },
+      data: { isActive: false }
     });
 
-    res.json({ message: 'Class and all associated data deleted successfully' });
+    res.json({ message: 'Class deactivated successfully', class: classData });
 
     // Log the deletion
     logAction({

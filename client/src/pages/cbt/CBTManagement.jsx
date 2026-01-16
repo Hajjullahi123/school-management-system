@@ -219,6 +219,90 @@ const CBTManagement = () => {
     }
   };
 
+  const handlePrintExam = async (exam) => {
+    try {
+      const response = await api.get(`/api/cbt/${exam.id}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      const qs = data.questions.map(q => ({
+        ...q,
+        options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options
+      }));
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${exam.title} - Questions</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 40px; line-height: 1.6; }
+              .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+              .school-name { font-size: 24px; font-bold; margin: 0; }
+              .exam-title { font-size: 20px; margin: 10px 0; color: #555; }
+              .meta { font-size: 14px; display: flex; justify-content: space-between; margin-top: 10px; }
+              .question { margin-bottom: 25px; page-break-inside: avoid; }
+              .question-text { font-weight: bold; margin-bottom: 10px; }
+              .options { margin-left: 20px; }
+              .option { margin-bottom: 5px; }
+              @media print {
+                .no-print { display: none; }
+                body { padding: 0; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1 class="school-name">${schoolSettings?.schoolName || 'School Management System'}</h1>
+              <h2 class="exam-title">${exam.title}</h2>
+              <div class="meta">
+                <span>Subject: ${exam.subject?.name}</span>
+                <span>Class: ${exam.class?.name}</span>
+                <span>Time: ${exam.durationMinutes} mins</span>
+              </div>
+            </div>
+            <div class="questions">
+              ${qs.map((q, i) => `
+                <div class="question">
+                  <div class="question-text">${i + 1}. ${q.questionText} (${q.points} marks)</div>
+                  <div class="options">
+                    ${q.options.map(o => `<div class="option">(${o.id.toUpperCase()}) ${o.text}</div>`).join('')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            <script>
+              window.onload = () => {
+                window.print();
+                // window.close();
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    } catch (error) {
+      toast.error('Failed to generate printable exam');
+    }
+  };
+
+  const handleDeleteResult = async (resultId) => {
+    if (!confirm('Are you sure you want to delete this attempt?')) return;
+
+    try {
+      const response = await api.delete(`/api/cbt/results/${resultId}`);
+      if (response.ok) {
+        toast.success('Result deleted');
+        setExamResults(examResults.filter(r => r.id !== resultId));
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to delete result');
+      }
+    } catch (error) {
+      toast.error('Error deleting result');
+    }
+  };
+
   const handleDownloadResults = () => {
     if (!selectedExam) return;
     const url = `${API_BASE_URL}/api/cbt/${selectedExam.id}/results/download`;
@@ -433,7 +517,13 @@ const CBTManagement = () => {
                       onClick={() => handleManageQuestions(exam)}
                       className="text-primary hover:text-primary-dark"
                     >
-                      Manage Questions
+                      Questions
+                    </button>
+                    <button
+                      onClick={() => handlePrintExam(exam)}
+                      className="text-gray-600 hover:text-gray-900"
+                    >
+                      Print
                     </button>
                     <button
                       onClick={() => handleDeleteExam(exam.id)}
@@ -769,6 +859,7 @@ const CBTManagement = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correct Answers</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -794,6 +885,14 @@ const CBTManagement = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {result.correctAnswers} / {result.totalQuestions}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={() => handleDeleteResult(result.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
                       </td>
                     </tr>
                   ))}

@@ -874,8 +874,8 @@ export default function FeeManagement() {
           <button
             onClick={() => setSelectedClassView(null)}
             className={`p - 5 rounded - xl border - 2 transition - all transform hover: scale - 105 hover: shadow - lg text - left ${selectedClassView === null
-                ? 'border-primary bg-primary/5 shadow-md'
-                : 'border-gray-200 bg-white hover:border-primary/50'
+              ? 'border-primary bg-primary/5 shadow-md'
+              : 'border-gray-200 bg-white hover:border-primary/50'
               } `}
           >
             <div className="flex items-center justify-between mb-3">
@@ -908,8 +908,8 @@ export default function FeeManagement() {
               key={classSummary.classId}
               onClick={() => setSelectedClassView(classSummary.classId)}
               className={`p - 5 rounded - xl border - 2 transition - all transform hover: scale - 105 hover: shadow - lg text - left ${selectedClassView === classSummary.classId
-                  ? 'border-primary bg-primary/5 shadow-md'
-                  : 'border-gray-200 bg-white hover:border-primary/50'
+                ? 'border-primary bg-primary/5 shadow-md'
+                : 'border-gray-200 bg-white hover:border-primary/50'
                 } `}
             >
               <div className="flex items-center justify-between mb-3">
@@ -1186,6 +1186,16 @@ export default function FeeManagement() {
                             className="text-blue-600 hover:text-blue-900 font-medium"
                           >
                             🕒 History
+                          </button>
+                          <button
+                            onClick={() => {
+                              setReceiptStudent(student);
+                              setReceiptPayment(null);
+                              setReceiptModalOpen(true);
+                            }}
+                            className="text-indigo-600 hover:text-indigo-900 font-medium"
+                          >
+                            🖨️ Receipt
                           </button>
                           <button
                             onClick={() => handleEditFee(student)}

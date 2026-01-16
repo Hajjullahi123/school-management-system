@@ -323,4 +323,43 @@ router.delete('/:id', authenticate, authorize(['admin']), async (req, res) => {
   }
 });
 
+// Update periods per week
+router.patch('/:id/periods', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { periodsPerWeek } = req.body;
+
+    if (periodsPerWeek === undefined || isNaN(parseInt(periodsPerWeek))) {
+      return res.status(400).json({ error: 'Valid periods per week is required' });
+    }
+
+    const updated = await prisma.classSubject.update({
+      where: {
+        id,
+        schoolId: req.schoolId
+      },
+      data: {
+        periodsPerWeek: parseInt(periodsPerWeek)
+      }
+    });
+
+    res.json({
+      message: 'Periods per week updated successfully',
+      updated
+    });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPDATE_CLASS_SUBJECT_PERIODS',
+      resource: 'CLASS_SUBJECT',
+      details: { id, periodsPerWeek: parseInt(periodsPerWeek) },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error updating periods:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

@@ -354,6 +354,7 @@ model ClassSubject {
   schoolId           Int
   classId            Int
   subjectId          Int
+  periodsPerWeek     Int                 @default(1)
   createdAt          DateTime            @default(now())
   
   school             School              @relation(fields: [schoolId], references: [id])

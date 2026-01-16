@@ -34,12 +34,31 @@ router.get('/class/:classId', authenticate, async (req, res) => {
     const schedule = await prisma.timetable.findMany({
       where,
       include: {
-        subject: true
+        subject: true,
+        class: true
       },
-      orderBy: { startTime: 'asc' }
+      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }]
     });
 
-    res.json(schedule);
+    // Add teacher information helper for the frontend
+    const scheduleWithTeachers = await Promise.all(schedule.map(async (slot) => {
+      if (!slot.subjectId) return { ...slot, teacher: null };
+
+      const assignment = await prisma.teacherAssignment.findFirst({
+        where: {
+          schoolId: req.schoolId,
+          classSubject: {
+            classId: slot.classId,
+            subjectId: slot.subjectId
+          }
+        },
+        include: { teacher: { select: { id: true, firstName: true, lastName: true } } }
+      });
+
+      return { ...slot, teacher: assignment?.teacher || null };
+    }));
+
+    res.json(scheduleWithTeachers);
   } catch (error) {
     console.error('Get timetable error:', error);
     res.status(500).json({ error: 'Failed to fetch timetable' });
@@ -252,82 +271,76 @@ router.post('/generate/:classId', authenticate, authorize(['admin']), async (req
 
     if (slots.length === 0) return res.status(400).json({ error: 'No lesson slots defined for this class. Please add slots first.' });
 
-    // Only work with subjects that have teachers assigned
-    const assignableSubjects = classSubjects.filter(cs => cs.teacherAssignments.length > 0);
-    if (assignableSubjects.length === 0) {
-      return res.status(400).json({ error: 'No subjects with assigned teachers found for this class. Please assign teachers to subjects first.' });
-    }
-
-    // 2. Build a Map of which teacher teaches what per class across the school
+    // 2. Build map of teacher busy times (excluding current class)
     const schoolClassSubjects = await prisma.classSubject.findMany({
       where: { schoolId },
       include: { teacherAssignments: true }
     });
 
-    const teacherMap = {}; // "classId_subjectId" -> teacherId
+    const teacherMapByCS = {}; // "classId_subjectId" -> teacherId
     schoolClassSubjects.forEach(cs => {
       if (cs.teacherAssignments.length > 0) {
-        teacherMap[`${cs.classId}_${cs.subjectId}`] = cs.teacherAssignments[0].teacherId;
+        teacherMapByCS[`${cs.classId}_${cs.subjectId}`] = cs.teacherAssignments[0].teacherId;
       }
     });
 
-    // 3. Map of Teacher Busy Times across ALL classes
     const teacherBusyMap = {}; // "day_time_teacherId" -> true
     allExistingTimetables.forEach(t => {
-      // Skip current class's entries as we are re-generating them
       if (t.classId === classId) return;
-
-      const tid = teacherMap[`${t.classId}_${t.subjectId}`];
-      if (tid) {
-        teacherBusyMap[`${t.dayOfWeek}_${t.startTime}_${tid}`] = true;
-      }
+      const tid = teacherMapByCS[`${t.classId}_${t.subjectId}`];
+      if (tid) teacherBusyMap[`${t.dayOfWeek}_${t.startTime}_${tid}`] = true;
     });
 
-    // 4. Build a pool of subjects to distribute
-    // We'll aim for balanced distribution
+    // 3. Build pool based on periodsPerWeek
     let pool = [];
-    const periodsPerSubject = Math.ceil(slots.length / assignableSubjects.length);
-    assignableSubjects.forEach(cs => {
-      for (let i = 0; i < periodsPerSubject; i++) {
+    classSubjects.forEach(cs => {
+      const periods = cs.periodsPerWeek || 0;
+      for (let i = 0; i < periods; i++) {
         pool.push(cs);
       }
     });
 
-    // Randomize pool for natural distribution
+    // Shuffle pool for better distribution
     pool = pool.sort(() => Math.random() - 0.5);
 
     const updates = [];
     const conflicts = [];
 
-    // 5. Intelligent Allocation
+    // 4. Allocation
     for (const slot of slots) {
       let allocated = false;
 
-      // Try each subject in the pool (they are randomized)
+      // Try candidates from pool
       for (let i = 0; i < pool.length; i++) {
-        const subject = pool[i];
-        const teacherId = subject.teacherAssignments[0].teacherId;
-        const busyKey = `${slot.dayOfWeek}_${slot.startTime}_${teacherId}`;
+        const candidate = pool[i];
+        const teacherId = candidate.teacherAssignments[0]?.teacherId;
 
-        if (!teacherBusyMap[busyKey]) {
-          // Free!
-          updates.push({ slotId: slot.id, subjectId: subject.subjectId });
-          teacherBusyMap[busyKey] = true; // Mark as busy for this generation run too
-          pool.splice(i, 1); // Remove from pool
+        // Skip if no teacher (as per previous logic, but optional)
+        if (!teacherId) {
+          // If we want to allow subject without teacher in timetable, remove this check
+          // But usually, user expects a teacher.
+        }
+
+        const busyKey = teacherId ? `${slot.dayOfWeek}_${slot.startTime}_${teacherId}` : null;
+
+        if (!busyKey || !teacherBusyMap[busyKey]) {
+          updates.push({ slotId: slot.id, subjectId: candidate.subjectId });
+          if (busyKey) teacherBusyMap[busyKey] = true;
+          pool.splice(i, 1);
           allocated = true;
           break;
         }
       }
 
-      // If still not allocated (maybe pool was restricted), try ANY assignable subject as fallback
+      // Fallback: If no candidate from pool works, try ANY subject from classSubjects (even if quota reached)
       if (!allocated) {
-        for (const subject of assignableSubjects) {
-          const teacherId = subject.teacherAssignments[0].teacherId;
-          const busyKey = `${slot.dayOfWeek}_${slot.startTime}_${teacherId}`;
+        for (const candidate of classSubjects) {
+          const teacherId = candidate.teacherAssignments[0]?.teacherId;
+          const busyKey = teacherId ? `${slot.dayOfWeek}_${slot.startTime}_${teacherId}` : null;
 
-          if (!teacherBusyMap[busyKey]) {
-            updates.push({ slotId: slot.id, subjectId: subject.subjectId });
-            teacherBusyMap[busyKey] = true;
+          if (!busyKey || !teacherBusyMap[busyKey]) {
+            updates.push({ slotId: slot.id, subjectId: candidate.subjectId });
+            if (busyKey) teacherBusyMap[busyKey] = true;
             allocated = true;
             break;
           }
@@ -338,44 +351,30 @@ router.post('/generate/:classId', authenticate, authorize(['admin']), async (req
         conflicts.push({
           day: slot.dayOfWeek,
           time: `${slot.startTime} - ${slot.endTime}`,
-          reason: 'Conflict: No teacher for assigned subjects is available at this time.'
+          reason: 'Teacher conflict: No subject teacher is available for this slot.'
         });
       }
     }
 
-    // 6. Apply Updates
-    await Promise.all(updates.map(upd =>
-      prisma.timetable.update({
-        where: { id: upd.slotId },
-        data: { subjectId: upd.subjectId }
-      })
-    ));
-
-    // 7. Log and Return Result
-    logAction({
-      schoolId: req.schoolId,
-      userId: req.user.id,
-      action: 'GENERATE_TIMETABLE',
-      resource: 'TIMETABLE',
-      details: {
-        classId,
-        slotsFilled: updates.length,
-        conflictsCount: conflicts.length
-      },
-      ipAddress: req.ip
-    });
+    // 5. Apply updates
+    await prisma.$transaction(
+      updates.map(u => prisma.timetable.update({
+        where: { id: u.slotId },
+        data: { subjectId: u.subjectId }
+      }))
+    );
 
     res.json({
       message: conflicts.length > 0
-        ? `Generated with ${conflicts.length} conflicts. Please resolve manually.`
-        : 'Timetable generated successfully without clashes!',
+        ? `Generated with ${conflicts.length} conflicts.`
+        : 'Timetable generated successfully!',
       conflicts,
       successCount: updates.length
     });
 
   } catch (error) {
     console.error('Generation error:', error);
-    res.status(500).json({ error: 'Failed to generate timetable' });
+    res.status(500).json({ error: 'Generation failed: ' + error.message });
   }
 });
 

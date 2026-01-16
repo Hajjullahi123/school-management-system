@@ -389,7 +389,14 @@ router.get('/teacher/:teacherId/effectiveness', authenticate, async (req, res) =
         teacherId,
         schoolId: req.schoolId
       },
-      include: { subject: true, class: true }
+      include: {
+        classSubject: {
+          include: {
+            subject: true,
+            class: true
+          }
+        }
+      }
     });
 
     if (assignments.length === 0) {
@@ -398,7 +405,8 @@ router.get('/teacher/:teacherId/effectiveness', authenticate, async (req, res) =
 
     const effectiveness = [];
 
-    for (const assignment of assignments) {
+    for (const ta of assignments) {
+      const assignment = ta.classSubject;
       // Get results for this subject in this class
       const students = await prisma.student.findMany({
         where: {

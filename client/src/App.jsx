@@ -30,6 +30,7 @@ import TeacherAssignments from './pages/admin/TeacherAssignments';
 import ClassSubjects from './pages/admin/ClassSubjects';
 import PromotionManager from './pages/admin/PromotionManager';
 import PromotionHistory from './pages/admin/PromotionHistory';
+import PeriodSetup from './pages/admin/PeriodSetup';
 import AlumniPortal from './pages/AlumniPortal';
 import AlumniDirectory from './pages/AlumniDirectory';
 import AlumniDashboard from './pages/alumni/AlumniDashboard';
@@ -296,6 +297,11 @@ function App() {
             <Route path="class-management" element={
               <ProtectedRoute roles={['admin']}>
                 <ClassManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="period-setup" element={
+              <ProtectedRoute roles={['admin']}>
+                <PeriodSetup />
               </ProtectedRoute>
             } />
             <Route path="subject-management" element={

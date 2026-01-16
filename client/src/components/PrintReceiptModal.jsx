@@ -2,14 +2,21 @@ import { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../api';
 import useSchoolSettings from '../hooks/useSchoolSettings';
 
-export default function PrintReceiptModal({ student, isOpen, onClose, currentTerm, currentSession, allTerms, allSessions }) {
+export default function PrintReceiptModal({ student, isOpen, onClose, currentTerm, currentSession, allTerms, allSessions, currentPayment }) {
   const { settings: schoolSettings } = useSchoolSettings();
-  const [receiptType, setReceiptType] = useState('single');
-  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [receiptType, setReceiptType] = useState(currentPayment ? 'single' : 'summary');
+  const [selectedPayment, setSelectedPayment] = useState(currentPayment || null);
   const [selectedTerm, setSelectedTerm] = useState(currentTerm);
   const [selectedSession, setSelectedSession] = useState(currentSession);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && currentPayment) {
+      setSelectedPayment(currentPayment);
+      setReceiptType('single');
+    }
+  }, [isOpen, currentPayment]);
 
   useEffect(() => {
     if (isOpen && student) {

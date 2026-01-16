@@ -143,7 +143,7 @@ const Timetable = () => {
   };
 
   const handleGenerate = async () => {
-    if (!confirm('This will automatically assign subjects to all empty lesson slots while avoiding teacher clashes. Existing subjects in this class will be reassigned. Proceed?')) return;
+    if (!confirm('This will automatically fill empty lesson slots using the "Periods Per Week" defined in Class Subjects. It also checks for teacher clashes across the school. Proceed?')) return;
 
     setGenerationLoading(true);
     try {
@@ -448,6 +448,14 @@ const Timetable = () => {
                       <div className="text-gray-700 font-medium">
                         {slot.type === 'break' ? 'Break / Assembly' : slot.subject?.name}
                       </div>
+                      {slot.teacher && (
+                        <div className="text-[10px] text-primary font-semibold mt-1 flex items-center gap-1">
+                          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          {slot.teacher.firstName} {slot.teacher.lastName}
+                        </div>
+                      )}
 
                       {isAdmin && (
                         <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

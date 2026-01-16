@@ -175,8 +175,10 @@ router.post('/', authenticate, authorize(['admin', 'teacher']), async (req, res)
         where: {
           schoolId: req.schoolId,
           teacherId: req.user.id,
-          classId: parseInt(classId),
-          subjectId: parseInt(subjectId)
+          classSubject: {
+            classId: parseInt(classId),
+            subjectId: parseInt(subjectId)
+          }
         }
       });
       if (!assignment) {
@@ -730,6 +732,42 @@ router.post('/:id/submit', authenticate, authorize(['student']), async (req, res
         score: score,
         total: exam.questions.length
       },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a Result
+router.delete('/results/:id', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+  try {
+    const resultId = parseInt(req.params.id);
+
+    // Verify ownership/permission
+    const result = await prisma.cBTResult.findUnique({
+      where: { id: resultId },
+      include: { exam: true }
+    });
+
+    if (!result) return res.status(404).json({ error: 'Result not found' });
+
+    if (req.user.role === 'teacher' && result.exam.teacherId !== req.user.id) {
+      return res.status(403).json({ error: 'Unauthorized to delete this result' });
+    }
+
+    await prisma.cBTResult.delete({
+      where: { id: resultId }
+    });
+
+    res.json({ message: 'Result deleted' });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'DELETE',
+      resource: 'CBT_RESULT',
+      details: { resultId },
       ipAddress: req.ip
     });
   } catch (error) {

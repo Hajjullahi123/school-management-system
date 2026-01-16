@@ -174,27 +174,30 @@ router.get('/teacher/:teacherId', authenticate, authorize(['admin', 'teacher']),
         schoolId: req.schoolId
       },
       include: {
-        class: {
+        classSubject: {
           include: {
-            _count: {
-              select: {
-                students: { where: { schoolId: req.schoolId } }
+            class: {
+              include: {
+                _count: {
+                  select: {
+                    students: { where: { schoolId: req.schoolId } }
+                  }
+                }
               }
-            }
+            },
+            subject: true
           }
-        },
-        subject: true
-      },
-      orderBy: { class: { name: 'asc' } }
+        }
+      }
     });
 
     const scoresheets = assignments.map(a => ({
-      classId: a.classId,
-      subjectId: a.subjectId,
-      className: `${a.class.name} ${a.class.arm || ''}`.trim(),
-      subjectName: a.subject.name,
-      studentCount: a.class._count.students,
-      filename: `${a.class.name}_${a.subject.name}_Scoresheet.xlsx`.replace(/\s+/g, '_')
+      classId: a.classSubject.class.id,
+      subjectId: a.classSubject.subject.id,
+      className: `${a.classSubject.class.name} ${a.classSubject.class.arm || ''}`.trim(),
+      subjectName: a.classSubject.subject.name,
+      studentCount: a.classSubject.class._count.students,
+      filename: `${a.classSubject.class.name}_${a.classSubject.subject.name}_Scoresheet.xlsx`.replace(/\s+/g, '_')
     }));
 
     res.json(scoresheets);
@@ -259,8 +262,10 @@ router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin
     // 2. Fetch Teacher info (Assignee)
     const assignment = await prisma.teacherAssignment.findFirst({
       where: {
-        classId,
-        subjectId,
+        classSubject: {
+          classId,
+          subjectId
+        },
         schoolId: req.schoolId
       },
       include: { teacher: true }

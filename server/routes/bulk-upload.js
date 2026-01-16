@@ -535,8 +535,10 @@ router.post('/results', authenticate, authorize(['admin', 'teacher']), async (re
         where: {
           schoolId: req.schoolId,
           teacherId: req.user.id,
-          subjectId: parseInt(subjectId),
-          classId: parseInt(classId)
+          classSubject: {
+            subjectId: parseInt(subjectId),
+            classId: parseInt(classId)
+          }
         }
       });
 
