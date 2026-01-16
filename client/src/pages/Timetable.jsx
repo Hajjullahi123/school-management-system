@@ -350,6 +350,24 @@ const Timetable = () => {
     }
   };
 
+  const handleResetDay = async (day) => {
+    if (!selectedClassId) return;
+    if (!confirm(`Wipe all slots for ${day}? This cannot be undone.`)) return;
+
+    try {
+      const response = await api.delete(`/api/timetable/reset/class/${selectedClassId}/day/${day}`);
+      if (response.ok) {
+        toast.success(`${day}'s schedule has been reset.`);
+        fetchTimetable();
+        fetchPublishStatus();
+      } else {
+        toast.error('Failed to reset day');
+      }
+    } catch (e) {
+      toast.error('Network error');
+    }
+  };
+
   const handleDownload = () => {
     const selectedClass = classes.find(c => c.id === parseInt(selectedClassId));
     const className = selectedClass ? `${selectedClass.name} ${selectedClass.arm || ''}` : 'Class';
@@ -613,19 +631,30 @@ const Timetable = () => {
                 <div className="p-3 bg-gradient-to-r from-primary to-primary/90 border-b font-bold text-center text-white rounded-t-lg flex justify-between items-center group/header">
                   <span className="flex-1">{day}</span>
                   {isAdmin && schedule.length > 0 && (
-                    <button
-                      onClick={() => {
-                        setSourceDay(day);
-                        setTargetDays(DAYS.filter(d => d !== day));
-                        setShowDaySyncModal(true);
-                      }}
-                      title={`Copy ${day}'s structure to other days`}
-                      className="p-1 hover:bg-white/20 rounded transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                      </svg>
-                    </button>
+                    <div className="flex gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => {
+                          setSourceDay(day);
+                          setTargetDays(DAYS.filter(d => d !== day));
+                          setShowDaySyncModal(true);
+                        }}
+                        title={`Copy ${day}'s structure to other days`}
+                        className="p-1 hover:bg-white/20 rounded transition-colors text-white"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleResetDay(day)}
+                        title={`Reset ${day}`}
+                        className="p-1 hover:bg-red-500/20 rounded transition-colors text-red-100"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   )}
                 </div>
                 <div className="p-2 space-y-2 flex-1 min-h-[200px]">

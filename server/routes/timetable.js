@@ -580,4 +580,34 @@ router.delete('/reset/all', authenticate, authorize(['admin']), async (req, res)
   }
 });
 
+// Reset Timetable for a Specific Day in a Class (Admin Only)
+router.delete('/reset/class/:classId/day/:day', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const classId = parseInt(req.params.classId);
+    const { day } = req.params;
+
+    await prisma.timetable.deleteMany({
+      where: {
+        classId,
+        dayOfWeek: day,
+        schoolId: req.schoolId
+      }
+    });
+
+    res.json({ message: `Timetable for ${day} reset successfully` });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'RESET_DAY_TIMETABLE',
+      resource: 'TIMETABLE',
+      details: { classId, day },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Reset day timetable error:', error);
+    res.status(500).json({ error: 'Failed to reset day timetable' });
+  }
+});
+
 module.exports = router;
