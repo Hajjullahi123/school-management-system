@@ -350,6 +350,23 @@ const Timetable = () => {
     }
   };
 
+  const handleClearSubjects = async () => {
+    if (!selectedClassId) return;
+    if (!confirm('This will keep the time periods (slots) but remove all assigned subjects. Perfect for starting a new term. Proceed?')) return;
+
+    try {
+      const response = await api.patch(`/api/timetable/reset/class/${selectedClassId}/clear-subjects`);
+      if (response.ok) {
+        toast.success('All subjects cleared! You can now re-enter or generate them.');
+        fetchTimetable();
+      } else {
+        toast.error('Failed to clear subjects');
+      }
+    } catch (e) {
+      toast.error('Network error');
+    }
+  };
+
   const handleResetDay = async (day) => {
     if (!selectedClassId) return;
     if (!confirm(`Wipe all slots for ${day}? This cannot be undone.`)) return;
@@ -514,16 +531,28 @@ const Timetable = () => {
           {isAdmin && (
             <div className="flex gap-2 ml-4 border-l pl-4">
               {selectedClassId && (
-                <button
-                  onClick={handleResetClass}
-                  className="bg-red-100 text-red-600 px-4 py-2 rounded-md hover:bg-red-200 font-bold flex items-center gap-2"
-                  title="Wipe current class timetable"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  Reset Class
-                </button>
+                <>
+                  <button
+                    onClick={handleResetClass}
+                    className="bg-red-100 text-red-600 px-4 py-2 rounded-md hover:bg-red-200 font-bold flex items-center gap-2"
+                    title="Wipe current class timetable"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Reset Class
+                  </button>
+                  <button
+                    onClick={handleClearSubjects}
+                    className="bg-indigo-100 text-indigo-600 px-4 py-2 rounded-md hover:bg-indigo-200 font-bold flex items-center gap-2"
+                    title="Wipe subjects but keep time periods"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    </svg>
+                    Clear Subjects
+                  </button>
+                </>
               )}
               <button
                 onClick={handleResetAll}
@@ -712,17 +741,35 @@ const Timetable = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">System Initialization Required</h3>
+            <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Schedule Empty</h3>
             <p className="text-gray-500 mb-8 px-8 max-w-md mx-auto font-medium">
-              We couldn't find a timetable for this class. You need to define the daily periods (lessons and breaks) before subjects can be assigned or generated.
+              You can adopt a structure from another class, use the global structure setup, or start adding slots manually.
             </p>
             {isAdmin && (
-              <button
-                onClick={() => navigate('/dashboard/period-setup')}
-                className="bg-primary text-white px-8 py-3 rounded-xl font-black uppercase text-xs tracking-[0.15em] shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-              >
-                Setup Daily Structure
-              </button>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <button
+                  onClick={() => navigate('/dashboard/period-setup')}
+                  className="bg-white text-primary border-2 border-primary px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-primary/5 transition-all"
+                >
+                  Daily Structure Setup
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingSlotId(null);
+                    setFormData({
+                      dayOfWeek: 'Monday',
+                      startTime: '08:00',
+                      endTime: '08:40',
+                      type: 'lesson',
+                      subjectId: ''
+                    });
+                    setShowModal(true);
+                  }}
+                  className="bg-primary text-white px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-all"
+                >
+                  Add First Slot
+                </button>
+              </div>
             )}
           </div>
         )

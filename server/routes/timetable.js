@@ -580,6 +580,38 @@ router.delete('/reset/all', authenticate, authorize(['admin']), async (req, res)
   }
 });
 
+// Clear all subject assignments for a class (Admin Only)
+router.patch('/reset/class/:classId/clear-subjects', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const classId = parseInt(req.params.classId);
+
+    await prisma.timetable.updateMany({
+      where: {
+        classId,
+        schoolId: req.schoolId,
+        type: 'lesson'
+      },
+      data: {
+        subjectId: null
+      }
+    });
+
+    res.json({ message: 'All subjects cleared from this class timetable' });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'CLEAR_TIMETABLE_SUBJECTS',
+      resource: 'TIMETABLE',
+      details: { classId },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Clear subjects error:', error);
+    res.status(500).json({ error: 'Failed to clear subjects' });
+  }
+});
+
 // Reset Timetable for a Specific Day in a Class (Admin Only)
 router.delete('/reset/class/:classId/day/:day', authenticate, authorize(['admin']), async (req, res) => {
   try {
