@@ -103,6 +103,15 @@ export const api = {
     const headers = { 'Content-Type': 'application/json', ...options.headers };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     return fetch(url, { ...options, method: 'DELETE', headers, credentials: 'include' });
+  },
+
+  patch: async (endpoint, data, options = {}) => {
+    const baseURL = API_BASE_URL || window.location.origin;
+    const url = `${baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+    const token = localStorage.getItem('token');
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(url, { ...options, method: 'PATCH', headers, credentials: 'include', body: JSON.stringify(data) });
   }
 };
 

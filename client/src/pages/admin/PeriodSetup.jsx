@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
+import { toast } from '../../utils/toast';
 
 const PeriodSetup = () => {
   const [activeTab, setActiveTab] = useState('lessons'); // lessons, breaks
@@ -58,15 +59,21 @@ const PeriodSetup = () => {
       setFormData({ name: '', startTime: '08:00', endTime: '08:40', type: activeTab === 'lessons' ? 'lesson' : 'break', dayOfWeek: 'Monday' });
       setEditingId(null);
       fetchSlots();
-    } catch (e) { alert('Failed to save Period'); }
+      toast.success(editingId ? 'Structure updated' : 'Slot added to structure');
+    } catch (e) { toast.error('Check time alignment or fields'); }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this period?')) return;
+    if (!confirm('🗑️ Remove this slot from the basic structure?')) return;
     try {
-      await api.delete(`/api/timetable/${id}`);
-      fetchSlots();
-    } catch (e) { alert('Failed to delete'); }
+      const response = await api.delete(`/api/timetable/${id}`);
+      if (response.ok) {
+        toast.success('Structure slot removed');
+        fetchSlots();
+      } else {
+        toast.error('Deletion failed');
+      }
+    } catch (e) { toast.error('Server error'); }
   };
 
   return (

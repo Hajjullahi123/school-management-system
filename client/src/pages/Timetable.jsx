@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSchoolSettings } from '../hooks/useSchoolSettings';
@@ -8,6 +9,7 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
 const Timetable = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { settings } = useSchoolSettings();
 
   // State
@@ -122,12 +124,19 @@ const Timetable = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this slot?')) return;
+    if (!confirm('🗑️ Are you sure you want to delete this slot?')) return;
     try {
-      await api.delete(`/api/timetable/${id}`);
-      fetchTimetable();
-      fetchPublishStatus();
-    } catch (e) { alert('Failed to delete'); }
+      const response = await api.delete(`/api/timetable/${id}`);
+      if (response.ok) {
+        toast.success('Slot deleted successfully');
+        fetchTimetable();
+        fetchPublishStatus();
+      } else {
+        toast.error('Failed to delete slot');
+      }
+    } catch (e) {
+      toast.error('An unexpected error occurred');
+    }
   };
 
   const handleEdit = (slot) => {
@@ -151,14 +160,15 @@ const Timetable = () => {
       const data = await response.json();
 
       if (response.ok) {
+        toast.success(data.message || 'Timetable generated successfully!');
         setGenerationReport(data);
         fetchTimetable();
         fetchPublishStatus();
       } else {
-        alert(data.error || 'Failed to generate timetable');
+        toast.error(data.error || 'Failed to generate timetable');
       }
     } catch (e) {
-      alert('An error occurred during generation');
+      toast.error('An error occurred during generation');
     } finally {
       setGenerationLoading(false);
     }
@@ -180,6 +190,7 @@ const Timetable = () => {
       setEditingSlotId(null);
       fetchTimetable();
       fetchPublishStatus();
+      toast.success(editingSlotId ? 'Slot updated' : 'New slot added');
       setFormData({
         dayOfWeek: 'Monday',
         startTime: '08:00',
@@ -188,7 +199,7 @@ const Timetable = () => {
         subjectId: ''
       });
     } catch (e) {
-      alert('Failed to save. Make sure all fields are correct.');
+      toast.error('Failed to save. Check your inputs.');
     }
   };
 
@@ -203,12 +214,14 @@ const Timetable = () => {
       const data = await response.json();
 
       if (response.ok) {
-        alert(data.message);
+        toast.success(willPublish ? '📅 Timetable Published!' : '📝 Timetable set to Draft');
         setPublishStatus({ ...publishStatus, isPublished: willPublish });
         fetchTimetable();
+      } else {
+        toast.error('Failed to update status');
       }
     } catch (e) {
-      alert('Failed to update publish status');
+      toast.error('Connection error');
     }
   };
 
@@ -484,13 +497,23 @@ const Timetable = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-gray-500 text-lg">No timetable available for this class</p>
+          <div className="text-center py-20 bg-white rounded-2xl shadow-sm border-2 border-dashed border-gray-100 max-w-2xl mx-auto mt-10">
+            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">System Initialization Required</h3>
+            <p className="text-gray-500 mb-8 px-8 max-w-md mx-auto font-medium">
+              We couldn't find a timetable for this class. You need to define the daily periods (lessons and breaks) before subjects can be assigned or generated.
+            </p>
             {isAdmin && (
-              <p className="text-gray-400 text-sm mt-2">Click "Add Slot" to create timetable entries</p>
+              <button
+                onClick={() => navigate('/dashboard/period-setup')}
+                className="bg-primary text-white px-8 py-3 rounded-xl font-black uppercase text-xs tracking-[0.15em] shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+              >
+                Setup Daily Structure
+              </button>
             )}
           </div>
         )

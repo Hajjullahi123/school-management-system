@@ -300,39 +300,50 @@ router.post('/generate/:classId', authenticate, authorize(['admin']), async (req
       }
     });
 
-    // Shuffle pool for better distribution
-    pool = pool.sort(() => Math.random() - 0.5);
+    // 4. Allocation with Spreading Logic
+    const daySubjectMap = {}; // "day_subjectId" -> count
 
-    const updates = [];
-    const conflicts = [];
-
-    // 4. Allocation
     for (const slot of slots) {
       let allocated = false;
 
-      // Try candidates from pool
+      // Try candidates from pool with Day-Spreading Priority
+      // Priority 1: Subject NOT already on this day for this class
       for (let i = 0; i < pool.length; i++) {
         const candidate = pool[i];
         const teacherId = candidate.teacherAssignments[0]?.teacherId;
-
-        // Skip if no teacher (as per previous logic, but optional)
-        if (!teacherId) {
-          // If we want to allow subject without teacher in timetable, remove this check
-          // But usually, user expects a teacher.
-        }
-
         const busyKey = teacherId ? `${slot.dayOfWeek}_${slot.startTime}_${teacherId}` : null;
+        const daySubKey = `${slot.dayOfWeek}_${candidate.subjectId}`;
 
-        if (!busyKey || !teacherBusyMap[busyKey]) {
+        if ((!busyKey || !teacherBusyMap[busyKey]) && !daySubjectMap[daySubKey]) {
           updates.push({ slotId: slot.id, subjectId: candidate.subjectId });
           if (busyKey) teacherBusyMap[busyKey] = true;
+          daySubjectMap[daySubKey] = (daySubjectMap[daySubKey] || 0) + 1;
           pool.splice(i, 1);
           allocated = true;
           break;
         }
       }
 
-      // Fallback: If no candidate from pool works, try ANY subject from classSubjects (even if quota reached)
+      // Priority 2: If Priority 1 fails, try candidates that ARE on this day but teacher is free
+      if (!allocated) {
+        for (let i = 0; i < pool.length; i++) {
+          const candidate = pool[i];
+          const teacherId = candidate.teacherAssignments[0]?.teacherId;
+          const busyKey = teacherId ? `${slot.dayOfWeek}_${slot.startTime}_${teacherId}` : null;
+
+          if (!busyKey || !teacherBusyMap[busyKey]) {
+            updates.push({ slotId: slot.id, subjectId: candidate.subjectId });
+            if (busyKey) teacherBusyMap[busyKey] = true;
+            const daySubKey = `${slot.dayOfWeek}_${candidate.subjectId}`;
+            daySubjectMap[daySubKey] = (daySubjectMap[daySubKey] || 0) + 1;
+            pool.splice(i, 1);
+            allocated = true;
+            break;
+          }
+        }
+      }
+
+      // Priority 3: Fallback to any class subject if pool exhausted but slots remain
       if (!allocated) {
         for (const candidate of classSubjects) {
           const teacherId = candidate.teacherAssignments[0]?.teacherId;
