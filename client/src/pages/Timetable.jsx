@@ -17,6 +17,7 @@ const Timetable = () => {
   const [selectedClassId, setSelectedClassId] = useState('');
   const [schedule, setSchedule] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [classSubjects, setClassSubjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [publishStatus, setPublishStatus] = useState({ isPublished: false, hasSlots: false });
   const [generationLoading, setGenerationLoading] = useState(false);
@@ -60,6 +61,7 @@ const Timetable = () => {
     if (selectedClassId) {
       fetchTimetable();
       fetchPublishStatus();
+      fetchClassSubjects();
     }
   }, [selectedClassId]);
 
@@ -127,6 +129,16 @@ const Timetable = () => {
       const response = await api.get(`/api/timetable/class/${selectedClassId}/status`);
       const data = await response.json();
       setPublishStatus(data);
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchClassSubjects = async () => {
+    if (!selectedClassId) return;
+    try {
+      const response = await api.get(`/api/class-subjects/class/${selectedClassId}`);
+      if (response.ok) {
+        setClassSubjects(await response.json());
+      }
     } catch (e) { console.error(e); }
   };
 
@@ -630,6 +642,48 @@ const Timetable = () => {
         </div>
       )}
 
+      {/* Subject Quota Usage Section */}
+      {isAdmin && selectedClassId && classSubjects.length > 0 && (
+        <div className="bg-white p-6 rounded-lg shadow border-t-4 border-indigo-500">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold text-gray-800">Weekly Subject Quota Usage</h2>
+            <button
+              onClick={() => navigate('/dashboard/class-subjects')}
+              className="text-primary text-xs font-bold uppercase hover:underline"
+            >
+              Configure Quotas
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {classSubjects.map(cs => {
+              const used = schedule.filter(s => s.subjectId === cs.subjectId && s.type === 'lesson').length;
+              const quota = cs.periodsPerWeek || 0;
+              const isOver = used > quota;
+              const isUnder = used < quota;
+
+              return (
+                <div key={cs.id} className={`p-3 rounded-lg border flex flex-col justify-between ${isOver ? 'bg-red-50 border-red-200' : isUnder ? 'bg-orange-50 border-orange-100' : 'bg-green-50 border-green-200'}`}>
+                  <div className="flex justify-between items-start">
+                    <span className="font-bold text-gray-900 truncate pr-2">{cs.subject.name}</span>
+                    <span className={`text-xs font-black uppercase px-2 py-0.5 rounded ${isOver ? 'bg-red-200 text-red-700' : isUnder ? 'bg-orange-200 text-orange-700' : 'bg-green-200 text-green-700'}`}>
+                      {used} / {quota}
+                    </span>
+                  </div>
+                  <div className="mt-2 w-full bg-black/10 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ${isOver ? 'bg-red-500' : isUnder ? 'bg-orange-500' : 'bg-green-500'}`}
+                      style={{ width: `${Math.min((used / (quota || 1)) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                  {isOver && <p className="text-[10px] text-red-600 font-bold mt-1">⚠️ {used - quota} extra session(s)</p>}
+                  {isUnder && quota > 0 && <p className="text-[10px] text-orange-600 font-bold mt-1">⏳ {quota - used} more needed</p>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Add Modal (Admin Only) */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -690,7 +744,16 @@ const Timetable = () => {
                     required
                   >
                     <option value="">Select Subject</option>
-                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {classSubjects.map(cs => {
+                      const used = schedule.filter(s => s.subjectId === cs.subjectId && s.type === 'lesson').length;
+                      const quota = cs.periodsPerWeek || 0;
+                      const isFull = used >= quota && quota > 0;
+                      return (
+                        <option key={cs.id} value={cs.subjectId}>
+                          {cs.subject.name} ({used}/{quota} {isFull ? '✅' : '⏳'})
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               )}
