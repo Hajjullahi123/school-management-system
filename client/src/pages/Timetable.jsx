@@ -313,6 +313,43 @@ const Timetable = () => {
     }
   };
 
+  const handleResetClass = async () => {
+    if (!selectedClassId) return;
+    const className = classes.find(c => c.id === parseInt(selectedClassId))?.name || 'this class';
+    if (!confirm(`⚠️ CRITICAL: This will PERMANENTLY DELETE all timetable slots for ${className}. This cannot be undone. Are you sure?`)) return;
+
+    try {
+      const response = await api.delete(`/api/timetable/reset/class/${selectedClassId}`);
+      if (response.ok) {
+        toast.success(`Timetable for ${className} has been reset.`);
+        fetchTimetable();
+        fetchPublishStatus();
+      } else {
+        toast.error('Failed to reset class timetable');
+      }
+    } catch (e) {
+      toast.error('Network error occurred');
+    }
+  };
+
+  const handleResetAll = async () => {
+    if (!confirm('🛑 WARNING: This will PERMANENTLY DELETE ALL timetable slots for EVERY class in the school. This is a massive action. Are you absolutely sure?')) return;
+    if (!confirm('Please confirm one more time: Do you want to wipe the ENTIRE school timetable?')) return;
+
+    try {
+      const response = await api.delete('/api/timetable/reset/all');
+      if (response.ok) {
+        toast.success('All school timetables have been wiped.');
+        fetchTimetable();
+        fetchPublishStatus();
+      } else {
+        toast.error('Failed to reset all timetables');
+      }
+    } catch (e) {
+      toast.error('Network error occurred');
+    }
+  };
+
   const handleDownload = () => {
     const selectedClass = classes.find(c => c.id === parseInt(selectedClassId));
     const className = selectedClass ? `${selectedClass.name} ${selectedClass.arm || ''}` : 'Class';
@@ -455,6 +492,32 @@ const Timetable = () => {
               </svg>
               Add Slot
             </button>
+          )}
+          {isAdmin && (
+            <div className="flex gap-2 ml-4 border-l pl-4">
+              {selectedClassId && (
+                <button
+                  onClick={handleResetClass}
+                  className="bg-red-100 text-red-600 px-4 py-2 rounded-md hover:bg-red-200 font-bold flex items-center gap-2"
+                  title="Wipe current class timetable"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Reset Class
+                </button>
+              )}
+              <button
+                onClick={handleResetAll}
+                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 font-black uppercase text-[10px] tracking-widest flex items-center gap-2"
+                title="Wipe EVERYTHING"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Reset All
+              </button>
+            </div>
           )}
         </div>
       </div>

@@ -534,4 +534,50 @@ router.post('/sync-days', authenticate, authorize(['admin']), async (req, res) =
   }
 });
 
+// Reset Timetable for a Class (Admin Only)
+router.delete('/reset/class/:classId', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const classId = parseInt(req.params.classId);
+    await prisma.timetable.deleteMany({
+      where: { classId, schoolId: req.schoolId }
+    });
+
+    res.json({ message: 'Class timetable reset successfully' });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'RESET_CLASS_TIMETABLE',
+      resource: 'TIMETABLE',
+      details: { classId },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Reset class timetable error:', error);
+    res.status(500).json({ error: 'Failed to reset class timetable' });
+  }
+});
+
+// Reset All Timetables for the School (Admin Only)
+router.delete('/reset/all', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    await prisma.timetable.deleteMany({
+      where: { schoolId: req.schoolId }
+    });
+
+    res.json({ message: 'All timetables reset successfully' });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'RESET_ALL_TIMETABLES',
+      resource: 'TIMETABLE',
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Reset all timetables error:', error);
+    res.status(500).json({ error: 'Failed to reset all timetables' });
+  }
+});
+
 module.exports = router;
