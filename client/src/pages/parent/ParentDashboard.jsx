@@ -11,6 +11,7 @@ const ParentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedChild, setSelectedChild] = useState(null);
   const [showFeeModal, setShowFeeModal] = useState(false);
+  const [alerts, setAlerts] = useState([]);
   const { settings: schoolSettings } = useSchoolSettings();
 
   // Receipt Modal State
@@ -22,8 +23,16 @@ const ParentDashboard = () => {
   const [currentTerm, setCurrentTerm] = useState(null);
 
   useEffect(() => {
-    fetchWards();
-    fetchAcademicData();
+    const init = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchWards(),
+        fetchAcademicData(),
+        fetchAlerts()
+      ]);
+      setLoading(false);
+    };
+    init();
   }, []);
 
   const fetchAcademicData = async () => {
@@ -54,9 +63,25 @@ const ParentDashboard = () => {
       }
     } catch (e) {
       console.error('Error fetching wards:', e);
-    } finally {
-      setLoading(false);
     }
+  };
+
+  const fetchAlerts = async () => {
+    try {
+      const response = await api.get('/api/parents/recent-alerts');
+      if (response.ok) {
+        setAlerts(await response.json());
+      }
+    } catch (e) {
+      console.error('Error fetching alerts:', e);
+    }
+  };
+
+  const markAlertRead = async (id) => {
+    try {
+      await api.put(`/api/messages/${id}/read`, { isRead: true });
+      setAlerts(prev => prev.filter(a => a.id !== id));
+    } catch (e) { console.error(e); }
   };
 
   const handleViewFees = (student) => {
@@ -234,6 +259,31 @@ const ParentDashboard = () => {
         }
       `}</style>
 
+      {/* Priority Alerts section */}
+      {alerts.length > 0 && (
+        <div className="space-y-3 mb-6">
+          {alerts.map(alert => (
+            <div key={alert.id} className="bg-gradient-to-r from-red-600 to-red-500 text-white p-4 rounded-xl shadow-xl border-l-8 border-white/30 animate-pulse-slow">
+              <div className="flex items-center gap-4">
+                <div className="bg-white/20 p-2 rounded-lg">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-black uppercase text-xs tracking-tighter opacity-80 mb-1">Priority Alert</h4>
+                  <p className="text-sm font-bold leading-tight">{alert.message}</p>
+                </div>
+                <button
+                  onClick={() => markAlertRead(alert.id)}
+                  className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-all"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Welcoming Notification Banner */}
       {wards.length > 0 && (
         <div className="bg-gradient-to-r from-green-500 to-primary text-white p-4 rounded-lg shadow-lg animate-fade-in">
@@ -282,17 +332,14 @@ const ParentDashboard = () => {
         <h2 className="text-2xl font-bold text-gray-900 mb-4">My Children</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {wards.map(student => {
-            // Find the current term's fee record
             const currentTermFeeRecord = student.feeRecords?.find(
               fee => fee.term?.isCurrent && fee.academicSession?.isCurrent
             );
-            // Fallback to latest if no current term fee exists
             const latestFeeRecord = currentTermFeeRecord || student.feeRecords?.[0];
             const hasFeeInfo = latestFeeRecord != null;
 
             return (
               <div key={student.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
-                {/* Header */}
                 <div className="bg-gradient-to-r from-primary/5 to-blue-50 p-6">
                   <div className="flex items-center gap-4">
                     <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
@@ -312,7 +359,6 @@ const ParentDashboard = () => {
                   </div>
                 </div>
 
-                {/* Fee Summary */}
                 <div className="p-6 border-b border-gray-100">
                   <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,7 +382,6 @@ const ParentDashboard = () => {
                         <span className="font-bold text-red-700">{formatCurrency(latestFeeRecord.balance)}</span>
                       </div>
 
-                      {/* Payment Status Badge */}
                       <div className="pt-2">
                         {latestFeeRecord.balance === 0 ? (
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
@@ -348,7 +393,7 @@ const ParentDashboard = () => {
                         ) : latestFeeRecord.paidAmount > 0 ? (
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
                             <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                             </svg>
                             Partially Paid
                           </span>
@@ -372,7 +417,6 @@ const ParentDashboard = () => {
                   )}
                 </div>
 
-                {/* Quick Stats */}
                 <div className="p-6 bg-gray-50/50 grid grid-cols-2 gap-4">
                   <div className="text-center">
                     <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Academic Session</p>
@@ -388,7 +432,6 @@ const ParentDashboard = () => {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="p-4 bg-white border-t border-gray-100 flex flex-col gap-2">
                   <div className="flex gap-2">
                     {hasFeeInfo && (
@@ -438,11 +481,9 @@ const ParentDashboard = () => {
         </div>
       </div>
 
-      {/* Fee Details Modal */}
       {showFeeModal && selectedChild && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full my-8 max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
             <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
               <div className="flex justify-between items-center">
                 <div>
@@ -462,13 +503,11 @@ const ParentDashboard = () => {
               </div>
             </div>
 
-            {/* Modal Content */}
             <div className="p-6">
               {selectedChild.feeRecords && selectedChild.feeRecords.length > 0 ? (
                 <div className="space-y-6">
-                  {selectedChild.feeRecords.map((feeRecord, index) => (
+                  {selectedChild.feeRecords.map((feeRecord) => (
                     <div key={feeRecord.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                      {/* Fee Record  Header */}
                       <div className="bg-gray-50 p-4 border-b border-gray-200">
                         <div className="flex justify-between items-center">
                           <div>
@@ -494,7 +533,6 @@ const ParentDashboard = () => {
                         </div>
                       </div>
 
-                      {/* Fee Summary */}
                       <div className="p-4">
                         <div className="grid grid-cols-3 gap-4 mb-4">
                           <div className="text-center p-3 bg-blue-50 rounded-lg">
@@ -511,7 +549,6 @@ const ParentDashboard = () => {
                           </div>
                         </div>
 
-                        {/* Payment History */}
                         {feeRecord.payments && feeRecord.payments.length > 0 && (
                           <div className="mt-4">
                             <h5 className="font-semibold text-gray-700 mb-2">Payment History:</h5>
@@ -537,9 +574,6 @@ const ParentDashboard = () => {
                                       }}
                                       className="text-xs bg-white border border-primary text-primary px-3 py-1 rounded hover:bg-primary hover:text-white transition-colors flex items-center gap-1 font-semibold"
                                     >
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                      </svg>
                                       Receipt
                                     </button>
                                   </div>
@@ -554,15 +588,11 @@ const ParentDashboard = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
                   <p className="text-gray-500">No fee records available</p>
                 </div>
               )}
             </div>
 
-            {/* Modal Footer */}
             <div className="p-6 border-t border-gray-200 sticky bottom-0 bg-white flex justify-end gap-3">
               <button
                 onClick={() => setShowFeeModal(false)}
@@ -575,7 +605,6 @@ const ParentDashboard = () => {
         </div>
       )}
 
-      {/* Info Section */}
       <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
         <div className="flex">
           <svg className="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -585,12 +614,11 @@ const ParentDashboard = () => {
             <h3 className="font-bold text-blue-900">Parent Portal Information</h3>
             <p className="text-sm text-blue-700 mt-1">
               You can view your children's fee status, payment history, and academic progress.
-              For any fee-related queries, please contact the school accountant or admin office.
             </p>
           </div>
         </div>
       </div>
-      {/* Receipt Modal */}
+
       {receiptPayment && selectedChild && (
         <PrintReceiptModal
           isOpen={receiptModalOpen}

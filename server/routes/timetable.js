@@ -75,6 +75,21 @@ router.post('/', authenticate, authorize(['admin']), async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // DUPLICATE CHECK: Is there already a slot at this time for this class?
+    const existing = await prisma.timetable.findFirst({
+      where: {
+        schoolId: req.schoolId,
+        classId: parseInt(classId),
+        dayOfWeek,
+        startTime,
+        endTime
+      }
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: 'A slot already exists for this class at this specific time.' });
+    }
+
     const slot = await prisma.timetable.create({
       data: {
         schoolId: req.schoolId,
@@ -302,6 +317,8 @@ router.post('/generate/:classId', authenticate, authorize(['admin']), async (req
 
     // 4. Allocation with Spreading Logic
     const daySubjectMap = {}; // "day_subjectId" -> count
+    const updates = [];
+    const conflicts = [];
 
     for (const slot of slots) {
       let allocated = false;
@@ -386,6 +403,134 @@ router.post('/generate/:classId', authenticate, authorize(['admin']), async (req
   } catch (error) {
     console.error('Generation error:', error);
     res.status(500).json({ error: 'Generation failed: ' + error.message });
+  }
+});
+
+// Bulk Sync Timetable Structure (Admin Only)
+router.post('/sync', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const { sourceClassId, targetClassIds } = req.body;
+
+    if (!sourceClassId || !targetClassIds || !Array.isArray(targetClassIds)) {
+      return res.status(400).json({ error: 'Missing sourceClassId or targetClassIds array' });
+    }
+
+    // 1. Fetch source slots
+    const sourceSlots = await prisma.timetable.findMany({
+      where: { classId: parseInt(sourceClassId), schoolId: req.schoolId }
+    });
+
+    if (sourceSlots.length === 0) {
+      return res.status(400).json({ error: 'Source class has no timetable slots to copy.' });
+    }
+
+    // 2. Perform sync for each target class
+    for (const classId of targetClassIds) {
+      const targetId = parseInt(classId);
+      if (targetId === parseInt(sourceClassId)) continue;
+
+      // Clear existing timetable for target class
+      await prisma.timetable.deleteMany({
+        where: { classId: targetId, schoolId: req.schoolId }
+      });
+
+      // Create new slots (Structure only - subjectId set to null)
+      await prisma.timetable.createMany({
+        data: sourceSlots.map(slot => ({
+          schoolId: req.schoolId,
+          classId: targetId,
+          dayOfWeek: slot.dayOfWeek,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          type: slot.type,
+          subjectId: null,
+          isPublished: false
+        }))
+      });
+    }
+
+    res.json({ message: `Timetable structure synced to ${targetClassIds.length} classes successfully.` });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'SYNC_TIMETABLE',
+      resource: 'TIMETABLE',
+      details: {
+        sourceClassId: parseInt(sourceClassId),
+        targetCount: targetClassIds.length
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Sync error:', error);
+    res.status(500).json({ error: 'Synchronization failed: ' + error.message });
+  }
+});
+
+// Sync slots from one day to selected other days within a class (Admin Only)
+router.post('/sync-days', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const { classId, sourceDay, targetDays } = req.body;
+
+    if (!classId || !sourceDay || !targetDays || !Array.isArray(targetDays)) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // 1. Fetch source slots
+    const sourceSlots = await prisma.timetable.findMany({
+      where: {
+        classId: parseInt(classId),
+        dayOfWeek: sourceDay,
+        schoolId: req.schoolId
+      }
+    });
+
+    if (sourceSlots.length === 0) {
+      return res.status(400).json({ error: `Source day (${sourceDay}) has no slots to copy.` });
+    }
+
+    // 2. Perform sync for each target day
+    for (const targetDay of targetDays) {
+      if (targetDay === sourceDay) continue;
+
+      // Clear existing slots for that day in that class
+      await prisma.timetable.deleteMany({
+        where: { classId: parseInt(classId), dayOfWeek: targetDay, schoolId: req.schoolId }
+      });
+
+      // Create new slots
+      await prisma.timetable.createMany({
+        data: sourceSlots.map(slot => ({
+          schoolId: req.schoolId,
+          classId: parseInt(classId),
+          dayOfWeek: targetDay,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          type: slot.type,
+          subjectId: null, // Keep subjects empty for manual/gen later
+          isPublished: slot.isPublished
+        }))
+      });
+    }
+
+    res.json({ message: `Slots from ${sourceDay} copied to ${targetDays.length} days successfully.` });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'SYNC_TIMETABLE_DAYS',
+      resource: 'TIMETABLE',
+      details: {
+        classId: parseInt(classId),
+        sourceDay,
+        targetDays
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Day sync error:', error);
+    res.status(500).json({ error: 'Day synchronization failed' });
   }
 });
 

@@ -22,6 +22,13 @@ const Timetable = () => {
   const [generationLoading, setGenerationLoading] = useState(false);
   const [editingSlotId, setEditingSlotId] = useState(null);
   const [generationReport, setGenerationReport] = useState(null);
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [targetClassIds, setTargetClassIds] = useState([]);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [showDaySyncModal, setShowDaySyncModal] = useState(false);
+  const [sourceDay, setSourceDay] = useState('');
+  const [targetDays, setTargetDays] = useState([]);
+  const [daySyncLoading, setDaySyncLoading] = useState(false);
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -178,11 +185,22 @@ const Timetable = () => {
     e.preventDefault();
     try {
       if (editingSlotId) {
-        // Logic for Edit - though backend doesn't have PUT yet, we'll use a PATCH route or simulate
-        // Actually, let's just delete and re-add or add a PATCH in backend
-        // For now, I'll update the backend to support PATCH /:id
+        // Logic for Edit
         await api.patch(`/api/timetable/${editingSlotId}`, { ...formData });
       } else {
+        // DUPLICATION CHECK: Check if slot already exists in local state
+        const isDuplicate = schedule.some(s =>
+          s.dayOfWeek === formData.dayOfWeek &&
+          s.startTime === formData.startTime &&
+          s.endTime === formData.endTime
+        );
+
+        if (isDuplicate) {
+          if (!confirm('⚠️ A slot already exists at this time. Adding another will create a duplication. Continue?')) {
+            return;
+          }
+        }
+
         await api.post('/api/timetable', { ...formData, classId: selectedClassId });
       }
 
@@ -199,7 +217,65 @@ const Timetable = () => {
         subjectId: ''
       });
     } catch (e) {
-      toast.error('Failed to save. Check your inputs.');
+      toast.error(e.message || 'Failed to save. Check your inputs.');
+    }
+  };
+
+  const handleSync = async () => {
+    if (targetClassIds.length === 0) {
+      toast.error('Please select at least one target class');
+      return;
+    }
+
+    setSyncLoading(true);
+    try {
+      const response = await api.post('/api/timetable/sync', {
+        sourceClassId: selectedClassId,
+        targetClassIds
+      });
+
+      if (response.ok) {
+        toast.success(`Schedule synced to ${targetClassIds.length} classes!`);
+        setShowSyncModal(false);
+        setTargetClassIds([]);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Sync failed');
+      }
+    } catch (e) {
+      toast.error('Sync failed: Network error');
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  const handleDaySync = async () => {
+    if (targetDays.length === 0) {
+      toast.error('Select at least one day to copy to');
+      return;
+    }
+
+    setDaySyncLoading(true);
+    try {
+      const response = await api.post('/api/timetable/sync-days', {
+        classId: selectedClassId,
+        sourceDay,
+        targetDays
+      });
+
+      if (response.ok) {
+        toast.success(`Structure from ${sourceDay} copied!`);
+        setShowDaySyncModal(false);
+        setTargetDays([]);
+        fetchTimetable();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Sync failed');
+      }
+    } catch (e) {
+      toast.error('Sync failed: Network error');
+    } finally {
+      setDaySyncLoading(false);
     }
   };
 
@@ -306,6 +382,20 @@ const Timetable = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.675.337a4 4 0 01-2.58.344l-2.316-.463a2 2 0 01-1.295-.864l-1.058-1.588a2 2 0 01-.13-1.838l.417-1.043a4 4 0 012.312-2.312l1.043-.417a2 2 0 011.838.13l1.588 1.058a2 2 0 01.864 1.295l.463 2.316a4 4 0 00.344 2.58l.337.675a6 6 0 00.517 3.86l.477 2.387a2 2 0 00.547 1.022l1.588 1.058a2 2 0 002.828-2.828l-1.058-1.588z" />
               </svg>
               {generationLoading ? 'Generating...' : 'Intelligent Generate'}
+            </button>
+          )}
+          {isAdmin && selectedClassId && schedule.length > 0 && (
+            <button
+              onClick={() => {
+                setTargetClassIds([]);
+                setShowSyncModal(true);
+              }}
+              className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 font-semibold flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              Adopt for Others
             </button>
           )}
           {isAdmin && selectedClassId && publishStatus.hasSlots && (
@@ -445,8 +535,23 @@ const Timetable = () => {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {DAYS.map(day => (
               <div key={day} className="bg-white rounded-lg shadow flex flex-col h-full">
-                <div className="p-3 bg-gradient-to-r from-primary to-primary/90 border-b font-bold text-center text-white rounded-t-lg">
-                  {day}
+                <div className="p-3 bg-gradient-to-r from-primary to-primary/90 border-b font-bold text-center text-white rounded-t-lg flex justify-between items-center group/header">
+                  <span className="flex-1">{day}</span>
+                  {isAdmin && schedule.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setSourceDay(day);
+                        setTargetDays(DAYS.filter(d => d !== day));
+                        setShowDaySyncModal(true);
+                      }}
+                      title={`Copy ${day}'s structure to other days`}
+                      className="p-1 hover:bg-white/20 rounded transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
                 <div className="p-2 space-y-2 flex-1 min-h-[200px]">
                   {scheduleByDay[day]?.length === 0 && (
@@ -595,6 +700,113 @@ const Timetable = () => {
                 <button type="submit" className="px-4 py-2 bg-primary text-white rounded hover:brightness-90">Save Slot</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Sync Modal (Admin Only) */}
+      {showSyncModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Sync Schedule Structure</h3>
+            <p className="text-gray-500 mb-6 text-sm">
+              Select classes to adopt the time slots and breaks from <strong>{classes.find(c => c.id === parseInt(selectedClassId))?.name}</strong>. Existing timetables in target classes will be replaced.
+            </p>
+
+            <div className="max-h-60 overflow-y-auto border rounded-xl p-3 space-y-2 mb-6">
+              {classes.map(c => {
+                if (c.id === parseInt(selectedClassId)) return null;
+                return (
+                  <label key={c.id} className="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 text-purple-600 rounded"
+                      checked={targetClassIds.includes(c.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) setTargetClassIds([...targetClassIds, c.id]);
+                        else setTargetClassIds(targetClassIds.filter(id => id !== c.id));
+                      }}
+                    />
+                    <span className="ml-3 font-semibold text-gray-700">{c.name} {c.arm}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-between gap-3">
+              <button
+                onClick={() => {
+                  const allOtherIds = classes.filter(c => c.id !== parseInt(selectedClassId)).map(c => c.id);
+                  setTargetClassIds(targetClassIds.length === allOtherIds.length ? [] : allOtherIds);
+                }}
+                className="text-xs font-black uppercase text-purple-600 tracking-widest hover:underline"
+              >
+                {targetClassIds.length === classes.length - 1 ? 'Deselect All' : 'Select All Classes'}
+              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowSyncModal(false)}
+                  className="px-4 py-2 border rounded-xl font-bold bg-gray-50 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSync}
+                  disabled={syncLoading || targetClassIds.length === 0}
+                  className="px-6 py-2 bg-purple-600 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-lg shadow-purple-200 hover:brightness-110 disabled:opacity-50 transition-all"
+                >
+                  {syncLoading ? 'Syncing...' : 'Sync Structure'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Day Sync Modal (Admin Only) */}
+      {showDaySyncModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+            <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Copy {sourceDay} Structure</h3>
+            <p className="text-gray-500 mb-6 text-sm font-medium">
+              Copy all time periods and breaks from <strong>{sourceDay}</strong> to these days:
+            </p>
+
+            <div className="space-y-2 mb-6">
+              {DAYS.map(day => {
+                if (day === sourceDay) return null;
+                return (
+                  <label key={day} className="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors border">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 text-primary rounded"
+                      checked={targetDays.includes(day)}
+                      onChange={(e) => {
+                        if (e.target.checked) setTargetDays([...targetDays, day]);
+                        else setTargetDays(targetDays.filter(d => d !== day));
+                      }}
+                    />
+                    <span className="ml-3 font-bold text-gray-700">{day}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowDaySyncModal(false)}
+                className="px-4 py-2 border rounded-xl font-bold bg-gray-50 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDaySync}
+                disabled={daySyncLoading || targetDays.length === 0}
+                className="px-6 py-2 bg-primary text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/20 hover:brightness-110 disabled:opacity-50 transition-all"
+              >
+                {daySyncLoading ? 'Copying...' : 'Confirm Copy'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -16,10 +16,28 @@ async function getCurrentSessionAndTerm(schoolId) {
 }
 
 // 1. Get Attendance Sheet for a Class (on a specific date)
-router.get('/class/:classId', authenticate, async (req, res) => {
+router.get('/class/:classId', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
   try {
     const { classId } = req.params;
     const { date } = req.query; // YYYY-MM-DD
+
+    // TEACHER SCOPE CHECK: Ensure teacher is assigned to this class
+    if (req.user.role === 'teacher') {
+      const classInfo = await prisma.class.findFirst({
+        where: { id: parseInt(classId), schoolId: req.schoolId }
+      });
+
+      if (!classInfo || classInfo.formMasterId !== req.user.id) {
+        // Also check teacher assignments just in case they aren't form master but teach there
+        const isAssigned = await prisma.teacherAssignment.findFirst({
+          where: { classId: parseInt(classId), teacherId: req.user.id, schoolId: req.schoolId }
+        });
+
+        if (!isAssigned) {
+          return res.status(403).json({ error: 'You are not authorized to access this class list.' });
+        }
+      }
+    }
 
     // Default to today if no date provided, but strip time to midnight for consistency
     const queryDate = date ? new Date(date) : new Date();
@@ -32,6 +50,12 @@ router.get('/class/:classId', authenticate, async (req, res) => {
         schoolId: req.schoolId
       },
       include: {
+        user: { select: { firstName: true, lastName: true } }
+      },
+      select: {
+        id: true,
+        admissionNumber: true,
+        photoUrl: true,
         user: { select: { firstName: true, lastName: true } }
       },
       orderBy: { user: { lastName: 'asc' } }
@@ -58,6 +82,7 @@ router.get('/class/:classId', authenticate, async (req, res) => {
         studentId: student.id,
         name: `${student.user.firstName} ${student.user.lastName}`,
         admissionNumber: student.admissionNumber,
+        photoUrl: student.photoUrl,
         status: record ? record.status : 'pending', // 'pending' means not marked yet
         notes: record ? record.notes : '',
         id: record ? record.id : null // Existing record ID if any
@@ -76,10 +101,33 @@ router.get('/class/:classId', authenticate, async (req, res) => {
 });
 
 // 2. Mark Attendance (Bulk Upsert)
-router.post('/mark', authenticate, async (req, res) => {
+router.post('/mark', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
   try {
-    const { classId, date, records } = req.body;
+    const { classId, date, records, adminOverride } = req.body;
     // records: [{ studentId: 1, status: 'present', notes: '' }, ...]
+
+    // SERVER-SIDE LOCK CHECK
+    const targetDate = new Date(date);
+    const dateDiff = (new Date() - targetDate) / (1000 * 60 * 60);
+
+    if (req.user.role === 'teacher' && dateDiff > 48) {
+      return res.status(403).json({ error: 'Marking window closed. Attendance for this date is locked (48h limit).' });
+    }
+
+    // TEACHER SCOPE CHECK
+    if (req.user.role === 'teacher') {
+      const classInfo = await prisma.class.findFirst({
+        where: { id: parseInt(classId), schoolId: req.schoolId }
+      });
+      if (!classInfo || classInfo.formMasterId !== req.user.id) {
+        const isAssigned = await prisma.teacherAssignment.findFirst({
+          where: { classId: parseInt(classId), teacherId: req.user.id, schoolId: req.schoolId }
+        });
+        if (!isAssigned) {
+          return res.status(403).json({ error: 'Unauthorized: You can only mark attendance for your assigned classes.' });
+        }
+      }
+    }
 
     if (!records || !Array.isArray(records)) {
       return res.status(400).json({ error: 'Invalid records format' });
@@ -90,7 +138,6 @@ router.post('/mark', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'No active academic session or term found' });
     }
 
-    const targetDate = new Date(date);
     targetDate.setHours(0, 0, 0, 0);
 
     // We use a transaction because we might be updating many rows
@@ -147,6 +194,7 @@ router.post('/mark', authenticate, async (req, res) => {
             }
           });
 
+          // 1. Email Alert
           if (student?.parent?.user?.email) {
             const absenceData = {
               parentEmail: student.parent.user.email,
@@ -160,15 +208,32 @@ router.post('/mark', authenticate, async (req, res) => {
             sendAbsenceAlert(absenceData).catch(e => console.error('Absence email error:', e));
           }
 
-          // NEW: Send SMS Alert
-          if (student?.parent?.phoneNumber) {
+          // 2. SMS Alert
+          if (student?.parent?.phone) {
             const { sendAbsenceSMS } = require('../services/smsService');
             sendAbsenceSMS({
-              phone: student.parent.phoneNumber,
+              phone: student.parent.phone,
               studentName: `${student.user.firstName} ${student.user.lastName}`,
               date: targetDate,
               schoolName
             }).catch(e => console.error('Absence SMS error:', e));
+          }
+
+          // 3. NEW: In-App Parent Alert (via Message System)
+          if (student?.parent?.userId) {
+            await prisma.parentTeacherMessage.create({
+              data: {
+                schoolId: req.schoolId,
+                senderId: req.user.id,
+                receiverId: student.parent.userId,
+                senderRole: req.user.role,
+                studentId: student.id,
+                subject: 'Absence Notification',
+                message: `Automatic Alert: ${student.user.firstName} ${student.user.lastName} was marked ABSENT today (${targetDate.toLocaleDateString()}). If this is an error, please contact the class teacher.`,
+                messageType: 'attendance',
+                isRead: false
+              }
+            }).catch(e => console.error('In-app notification error:', e));
           }
         } catch (err) {
           console.error('Error in absence alert processing:', err);

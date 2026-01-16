@@ -591,4 +591,23 @@ router.get('/student-attendance', authenticate, authorize('parent'), async (req,
   }
 });
 
+// 9. Get Recent In-App Alerts for Parent Dashboard
+router.get('/recent-alerts', authenticate, authorize('parent'), async (req, res) => {
+  try {
+    const alerts = await prisma.parentTeacherMessage.findMany({
+      where: {
+        schoolId: req.schoolId,
+        receiverId: req.user.id,
+        messageType: 'attendance',
+        isRead: false
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5
+    });
+    res.json(alerts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

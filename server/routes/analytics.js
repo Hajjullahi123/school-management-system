@@ -196,4 +196,72 @@ router.get('/students-at-risk', authenticate, async (req, res) => {
   }
 });
 
+// Get attendance trends (7-day history)
+router.get('/attendance-trends', authenticate, async (req, res) => {
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const records = await prisma.attendanceRecord.findMany({
+      where: {
+        schoolId: req.schoolId,
+        date: { gte: sevenDaysAgo }
+      },
+      select: {
+        date: true,
+        status: true
+      }
+    });
+
+    // Group by date
+    const trends = {};
+    records.forEach(record => {
+      const dateStr = record.date.toISOString().split('T')[0];
+      if (!trends[dateStr]) {
+        trends[dateStr] = { date: dateStr, present: 0, absent: 0, late: 0, excused: 0, total: 0 };
+      }
+      if (trends[dateStr][record.status] !== undefined) {
+        trends[dateStr][record.status]++;
+        trends[dateStr].total++;
+      }
+    });
+
+    res.json(Object.values(trends).sort((a, b) => a.date.localeCompare(b.date)));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get attendance by class summary
+router.get('/attendance-by-class', authenticate, async (req, res) => {
+  try {
+    const { termId, sessionId } = req.query;
+
+    const where = { schoolId: req.schoolId };
+    if (termId) where.termId = parseInt(termId);
+    if (sessionId) where.academicSessionId = parseInt(sessionId);
+
+    const records = await prisma.attendanceRecord.findMany({
+      where,
+      include: { class: { select: { name: true, arm: true } } }
+    });
+
+    const classSummary = {};
+    records.forEach(r => {
+      const className = r.class ? `${r.class.name} ${r.class.arm || ''}`.trim() : 'Unknown';
+      if (!classSummary[className]) {
+        classSummary[className] = { className, present: 0, absent: 0, total: 0 };
+      }
+      if (r.status === 'present') classSummary[className].present++;
+      if (r.status === 'absent') classSummary[className].absent++;
+      classSummary[className].total++;
+    });
+
+    res.json(Object.values(classSummary));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

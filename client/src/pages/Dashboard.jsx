@@ -204,6 +204,18 @@ const Dashboard = () => {
       } else {
         console.warn('Current term or session not found, skipping fee fetch');
       }
+      // Fetch attendance summary
+      let attendanceRate = 0;
+      try {
+        const attendanceRes = await api.get(`/api/attendance/student/${user.student.id}/summary`);
+        if (attendanceRes.ok) {
+          const summary = await attendanceRes.json();
+          attendanceRate = summary.total > 0
+            ? ((summary.present + summary.late) / summary.total * 100).toFixed(1)
+            : 0;
+        }
+      } catch (e) { console.error('Attendance fetch error:', e); }
+
       // Fetch current term results
       const resultsResponse = await api.get(
         `/api/results?studentId=${user.student.id}`
@@ -220,9 +232,12 @@ const Dashboard = () => {
         setStats({
           currentTermAverage: average,
           totalSubjects: results.length,
-          attendanceRate: 95, // Placeholder
+          attendanceRate: attendanceRate,
           overallPosition: results[0]?.positionInClass || 0
         });
+      } else {
+        // Even if no results, update attendance
+        setStats(prev => ({ ...prev, attendanceRate }));
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);

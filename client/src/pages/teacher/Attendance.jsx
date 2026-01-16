@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import { toast } from '../../utils/toast';
+import { API_BASE_URL } from '../../config';
 
 const Attendance = () => {
   const { user } = useAuth();
@@ -39,6 +41,11 @@ const Attendance = () => {
   // Fetch Attendance when Class or Date changes
   useEffect(() => {
     if (selectedClassId && selectedDate) {
+      if (new Date(selectedDate) > new Date()) {
+        toast.error('You cannot mark attendance for future dates.');
+        setSelectedDate(new Date().toISOString().split('T')[0]);
+        return;
+      }
       fetchAttendanceSheet();
     }
   }, [selectedClassId, selectedDate]);
@@ -82,8 +89,15 @@ const Attendance = () => {
 
       setStudents(initializedStudents);
       calculateStats(initializedStudents);
+
+      // Lock check: If the date is more than 48 hours ago, teachers cannot edit
+      const dateDiff = (new Date() - new Date(selectedDate)) / (1000 * 60 * 60);
+      if (user?.role === 'teacher' && dateDiff > 48) {
+        toast('Attendance is locked for this date (48h window)', { icon: '🔒', duration: 4000 });
+      }
     } catch (error) {
       console.error('Error fetching attendance:', error);
+      toast.error('Failed to load attendance list');
     } finally {
       setLoading(false);
     }
@@ -124,14 +138,14 @@ const Attendance = () => {
 
       const response = await api.post('/api/attendance/mark', payload);
       if (response.ok) {
-        alert('Attendance saved successfully!');
+        toast.success(`✅ Attendance saved for ${students.length} students`);
         fetchAttendanceSheet(); // Refresh to ensure sync
       } else {
-        alert('Failed to save attendance');
+        toast.error('Cloud synchronization failed');
       }
     } catch (error) {
       console.error('Error saving:', error);
-      alert('Error saving attendance');
+      toast.error('Critical Error: Failed to save attendance');
     } finally {
       setSaving(false);
     }
@@ -200,11 +214,11 @@ const Attendance = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      alert('Attendance records downloaded successfully!');
+      toast.success('Report downloaded successfully');
       setShowDownloadDialog(false);
     } catch (error) {
       console.error('Download error:', error);
-      alert('Failed to download attendance records');
+      toast.error('CSV Generation failed');
     } finally {
       setDownloading(false);
     }
@@ -244,7 +258,8 @@ const Attendance = () => {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
+              max={new Date().toISOString().split('T')[0]}
+              className="w-full border rounded-md px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-primary/20 transition-all font-bold"
             />
           </div>
           <div>
@@ -306,8 +321,21 @@ const Attendance = () => {
                     {students.map((student) => (
                       <tr key={student.studentId} className={student.status === 'absent' ? 'bg-red-50' : ''}>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                          <div className="text-xs text-gray-500">{student.admissionNumber}</div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border-2 border-white shadow-sm shrink-0">
+                              {student.photoUrl ? (
+                                <img src={`${API_BASE_URL}${student.photoUrl}`} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <div className="text-sm font-black text-gray-900">{student.name}</div>
+                              <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{student.admissionNumber}</div>
+                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex justify-center gap-2">
@@ -344,8 +372,9 @@ const Attendance = () => {
                             type="text"
                             value={student.notes || ''}
                             onChange={(e) => handleNoteChange(student.studentId, e.target.value)}
-                            placeholder="Optional note..."
-                            className="w-full text-sm border-gray-300 rounded-md focus:ring-primary focus:border-primary"
+                            placeholder={student.status === 'excused' || student.status === 'late' ? "Reason required..." : "Optional note..."}
+                            className={`w-full text-sm border-gray-200 rounded-lg focus:ring-primary focus:border-primary transition-all ${(student.status === 'excused' || student.status === 'late') && !student.notes ? 'border-orange-300 bg-orange-50' : ''
+                              }`}
                           />
                         </td>
                       </tr>
@@ -354,11 +383,18 @@ const Attendance = () => {
                 </table>
               </div>
 
-              <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-end">
+              <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
+                <div className="text-xs text-gray-500 italic">
+                  {(students.some(s => (s.status === 'excused' || s.status === 'late') && !s.notes)) && (
+                    <span className="text-orange-600 font-bold flex items-center gap-1 animate-pulse">
+                      ⚠️ Please provide reasons for lates/excuses before saving.
+                    </span>
+                  )}
+                </div>
                 <button
                   onClick={handleSave}
-                  disabled={saving}
-                  className="bg-indigo-600 text-white px-8 py-3 rounded-lg shadow hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2 font-medium"
+                  disabled={saving || (user?.role === 'teacher' && (new Date() - new Date(selectedDate)) / (1000 * 60 * 60) > 48)}
+                  className="bg-indigo-600 text-white px-8 py-3 rounded-lg shadow-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:shadow-none flex items-center gap-2 font-black uppercase text-xs tracking-widest transition-all"
                 >
                   {saving ? (
                     <>
