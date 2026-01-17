@@ -600,13 +600,30 @@ router.post('/generate-all', authenticate, authorize(['admin']), async (req, res
 
     // 2. Build helper maps
     const teacherMapByCS = {}; // "classId_subjectId" -> teacherId
+    const teacherNameMap = {}; // teacherId -> "Name"
     allClassSubjects.forEach(cs => {
       if (cs.teacherAssignments.length > 0) {
-        teacherMapByCS[`${cs.classId}_${cs.subjectId}`] = cs.teacherAssignments[0].teacherId;
+        const t = cs.teacherAssignments[0].teacher;
+        teacherMapByCS[`${cs.classId}_${cs.subjectId}`] = t.id;
+        teacherNameMap[t.id] = `${t.firstName} ${t.lastName}`;
       }
     });
 
-    const teacherBusyMap = {}; // "day_time_teacherId" -> true
+    const teacherBusyMap = {}; // "day_time_teacherId" -> "ClassName"
+
+    // Preliminary: Pre-load busy map with already fixed subjects (manual/previously generated)
+    // For simplicity, we assume we are filling empty slots or overwriting.
+    // If we want to strictly respect manual slots, we'd fetch them here.
+    // Fixed: The user usually wants a fresh start. If not, we still need to know where teachers are.
+    allSlots.forEach(s => {
+      if (s.subjectId) {
+        const tid = teacherMapByCS[`${s.classId}_${s.subjectId}`];
+        if (tid) {
+          const cls = allClasses.find(c => c.id === s.classId);
+          teacherBusyMap[`${s.dayOfWeek}_${s.startTime}_${tid}`] = `${cls.name} ${cls.arm || ''}`;
+        }
+      }
+    });
     const updates = [];
     const allConflicts = [];
 
@@ -657,7 +674,7 @@ router.post('/generate-all', authenticate, authorize(['admin']), async (req, res
 
           if ((!busyKey || !teacherBusyMap[busyKey]) && !daySubjectMap[daySubKey]) {
             updates.push({ slotId: slot.id, subjectId: candidate.subjectId });
-            if (busyKey) teacherBusyMap[busyKey] = true;
+            if (busyKey) teacherBusyMap[busyKey] = `${cls.name} ${cls.arm || ''}`;
             daySubjectMap[daySubKey] = (daySubjectMap[daySubKey] || 0) + 1;
             pool.splice(i, 1);
             allocated = true;
@@ -674,7 +691,7 @@ router.post('/generate-all', authenticate, authorize(['admin']), async (req, res
 
             if (!busyKey || !teacherBusyMap[busyKey]) {
               updates.push({ slotId: slot.id, subjectId: candidate.subjectId });
-              if (busyKey) teacherBusyMap[busyKey] = true;
+              if (busyKey) teacherBusyMap[busyKey] = `${cls.name} ${cls.arm || ''}`;
               const daySubKey = `${dayOfWeek}_${candidate.subjectId}`;
               daySubjectMap[daySubKey] = (daySubjectMap[daySubKey] || 0) + 1;
               pool.splice(i, 1);
@@ -684,12 +701,20 @@ router.post('/generate-all', authenticate, authorize(['admin']), async (req, res
           }
         }
 
-        if (!allocated) {
+        if (!allocated && pool.length > 0) {
+          const involvedDetails = [...new Set(pool.map(p => {
+            const tid = teacherMapByCS[`${classId}_${p.subjectId}`];
+            const busyLocation = tid ? teacherBusyMap[`${dayOfWeek}_${startTime}_${tid}`] : null;
+            const tName = tid ? teacherNameMap[tid] : 'Unknown Teacher';
+            return tid ? `${p.subject.name} (${tName} is busy in ${busyLocation || 'another slot'})` : `${p.subject.name} (No teacher assigned)`;
+          }))];
+
           allConflicts.push({
             class: `${cls.name} ${cls.arm || ''}`,
             day: dayOfWeek,
             time: `${slot.startTime} - ${slot.endTime}`,
-            reason: 'Teacher conflict: No available teacher for this slot school-wide.'
+            reason: `Blocked Requirements: ${involvedDetails.join(', ')}`,
+            solution: `Consider adjusting ${cls.name}'s structure or moving the conflicting classes listed above.`
           });
         }
       }

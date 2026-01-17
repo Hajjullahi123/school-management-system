@@ -659,11 +659,19 @@ const Timetable = () => {
 
             {generationReport.conflicts?.length > 0 && (
               <div className="mt-4">
-                <h4 className="font-semibold text-red-600 mb-2">Conflicts Detected ({generationReport.conflicts.length}):</h4>
+                <h4 className="semibold text-red-600 mb-2">Conflicts Detected ({generationReport.conflicts.length}):</h4>
                 <div className="max-h-60 overflow-y-auto border rounded bg-red-50 p-2 space-y-2">
                   {generationReport.conflicts.map((c, i) => (
-                    <div key={i} className="text-sm border-b border-red-100 last:border-0 pb-1">
-                      <span className="font-bold">{c.class ? `[${c.class}] ` : ''}{c.day} {c.time}:</span> {c.reason}
+                    <div key={i} className="text-sm border-b border-red-100 last:border-0 pb-3">
+                      <div className="font-bold text-red-700">
+                        {c.class ? `[${c.class}] ` : ''}{c.day} {c.time}
+                      </div>
+                      <div className="text-gray-700 mt-1">{c.reason}</div>
+                      {c.solution && (
+                        <div className="text-[11px] text-blue-600 font-bold mt-1 bg-blue-50 p-1 rounded italic">
+                          💡 Solution: {c.solution}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
