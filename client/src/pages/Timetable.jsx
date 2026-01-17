@@ -385,6 +385,26 @@ const Timetable = () => {
     }
   };
 
+  const handleUpdatePeriods = async (classSubjectId, periods) => {
+    try {
+      const response = await api.patch(`/api/class-subjects/${classSubjectId}/periods`, {
+        periodsPerWeek: periods
+      });
+
+      if (response.ok) {
+        setClassSubjects(prev => prev.map(cs =>
+          cs.id === classSubjectId ? { ...cs, periodsPerWeek: periods } : cs
+        ));
+        toast.success('Quota updated');
+      } else {
+        toast.error('Failed to update quota');
+      }
+    } catch (error) {
+      console.error('Error updating periods:', error);
+      toast.error('Network error');
+    }
+  };
+
   const handleDownload = () => {
     const selectedClass = classes.find(c => c.id === parseInt(selectedClassId));
     const className = selectedClass ? `${selectedClass.name} ${selectedClass.arm || ''}` : 'Class';
@@ -842,12 +862,15 @@ const Timetable = () => {
                 )}
               </div>
             </div>
-            <button
-              onClick={() => navigate('/dashboard/class-subjects')}
-              className="text-primary text-xs font-bold uppercase hover:underline"
-            >
-              Configure Quotas
-            </button>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <button
+                onClick={() => navigate('/dashboard/class-subjects')}
+                className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors"
+              >
+                Manage Subjects
+              </button>
+              <span className="text-[10px] font-bold text-gray-400 italic">Tip: Edit numbers below to change quota</span>
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {classSubjects.map(cs => {
@@ -858,11 +881,26 @@ const Timetable = () => {
 
               return (
                 <div key={cs.id} className={`p-3 rounded-lg border flex flex-col justify-between ${isOver ? 'bg-red-50 border-red-200' : isUnder ? 'bg-orange-50 border-orange-100' : 'bg-green-50 border-green-200'}`}>
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start mb-2">
                     <span className="font-bold text-gray-900 truncate pr-2">{cs.subject.name}</span>
-                    <span className={`text-xs font-black uppercase px-2 py-0.5 rounded ${isOver ? 'bg-red-200 text-red-700' : isUnder ? 'bg-orange-200 text-orange-700' : 'bg-green-200 text-green-700'}`}>
-                      {used} / {quota}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] font-black text-gray-400 uppercase">Usage:</span>
+                      <span className={`text-xs font-black uppercase px-2 py-0.5 rounded ${isOver ? 'bg-red-200 text-red-700' : isUnder ? 'bg-orange-200 text-orange-700' : 'bg-green-200 text-green-700'}`}>
+                        {used} / {quota}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 bg-white/50 p-1.5 rounded-lg border border-black/5 mb-3">
+                    <label className="text-[10px] font-black text-gray-500 uppercase flex-1">Weekly Quota</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="40"
+                      value={cs.periodsPerWeek || 0}
+                      onChange={(e) => handleUpdatePeriods(cs.id, parseInt(e.target.value) || 0)}
+                      className="w-12 text-center bg-white border rounded text-xs font-black py-0.5 focus:ring-1 focus:ring-primary outline-none"
+                    />
                   </div>
                   <div className="mt-2 w-full bg-black/10 h-1.5 rounded-full overflow-hidden">
                     <div
