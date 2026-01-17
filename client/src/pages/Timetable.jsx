@@ -193,6 +193,31 @@ const Timetable = () => {
     }
   };
 
+  const handleGenerateAll = async () => {
+    if (!confirm('🚀 GLOBAL GENERATION: This will intelligently fill ALL lesson slots for EVERY class in the school simultaneously, ensuring NO teacher clashes across different classes. This is the recommended way to build a conflict-free school timetable. Proceed?')) return;
+
+    setGenerationLoading(true);
+    try {
+      const response = await api.post('/api/timetable/generate-all');
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(data.message || 'Whole-school timetable generated!');
+        setGenerationReport(data);
+        if (selectedClassId) {
+          fetchTimetable();
+          fetchPublishStatus();
+        }
+      } else {
+        toast.error(data.error || 'Global generation failed');
+      }
+    } catch (e) {
+      toast.error('An error occurred during global generation');
+    } finally {
+      setGenerationLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -596,6 +621,17 @@ const Timetable = () => {
                 </>
               )}
               <button
+                onClick={handleGenerateAll}
+                disabled={generationLoading}
+                className="bg-primary text-white px-4 py-2 rounded-md hover:brightness-90 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-lg shadow-primary/20"
+                title="Intelligently generate for the WHOLE school at once"
+              >
+                <div className="flex flex-col items-start leading-tight">
+                  <span className="text-[8px] opacity-75">Conflict-Free</span>
+                  <span>Auto-Gen All</span>
+                </div>
+              </button>
+              <button
                 onClick={handleResetAll}
                 className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 font-black uppercase text-[10px] tracking-widest flex items-center gap-2"
                 title="Wipe EVERYTHING"
@@ -627,7 +663,7 @@ const Timetable = () => {
                 <div className="max-h-60 overflow-y-auto border rounded bg-red-50 p-2 space-y-2">
                   {generationReport.conflicts.map((c, i) => (
                     <div key={i} className="text-sm border-b border-red-100 last:border-0 pb-1">
-                      <span className="font-bold">{c.day} {c.time}:</span> {c.reason}
+                      <span className="font-bold">{c.class ? `[${c.class}] ` : ''}{c.day} {c.time}:</span> {c.reason}
                     </div>
                   ))}
                 </div>

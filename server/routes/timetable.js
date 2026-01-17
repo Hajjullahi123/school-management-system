@@ -580,7 +580,145 @@ router.delete('/reset/all', authenticate, authorize(['admin']), async (req, res)
   }
 });
 
-// Clear all subject assignments for a class (Admin Only)
+// Generate All Timetables for the entire school (Admin Only)
+router.post('/generate-all', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const schoolId = req.schoolId;
+
+    // 1. Fetch EVERYTHING needed
+    const [allClasses, allSlots, allClassSubjects] = await Promise.all([
+      prisma.class.findMany({ where: { schoolId } }),
+      prisma.timetable.findMany({
+        where: { schoolId, type: 'lesson' },
+        orderBy: [{ classId: 'asc' }, { dayOfWeek: 'asc' }, { startTime: 'asc' }]
+      }),
+      prisma.classSubject.findMany({
+        where: { schoolId },
+        include: { subject: true, teacherAssignments: { include: { teacher: true } } }
+      })
+    ]);
+
+    // 2. Build helper maps
+    const teacherMapByCS = {}; // "classId_subjectId" -> teacherId
+    allClassSubjects.forEach(cs => {
+      if (cs.teacherAssignments.length > 0) {
+        teacherMapByCS[`${cs.classId}_${cs.subjectId}`] = cs.teacherAssignments[0].teacherId;
+      }
+    });
+
+    const teacherBusyMap = {}; // "day_time_teacherId" -> true
+    const updates = [];
+    const allConflicts = [];
+
+    // Group items by class
+    const subjectsByClass = {};
+    const slotsByClass = {};
+
+    allClassSubjects.forEach(cs => {
+      if (!subjectsByClass[cs.classId]) subjectsByClass[cs.classId] = [];
+      subjectsByClass[cs.classId].push(cs);
+    });
+
+    allSlots.forEach(slot => {
+      if (!slotsByClass[slot.classId]) slotsByClass[slot.classId] = [];
+      slotsByClass[slot.classId].push(slot);
+    });
+
+    // 3. Process each class (Sequential generation with global busy map)
+    for (const cls of allClasses) {
+      const classId = cls.id;
+      const classSlots = slotsByClass[classId] || [];
+      const classSubjects = subjectsByClass[classId] || [];
+
+      if (classSlots.length === 0) continue;
+
+      // Build pool for this class
+      let pool = [];
+      classSubjects.forEach(cs => {
+        const periods = cs.periodsPerWeek || 0;
+        for (let i = 0; i < periods; i++) {
+          pool.push(cs);
+        }
+      });
+
+      const daySubjectMap = {}; // "day_subjectId" -> count for this class
+
+      for (const slot of classSlots) {
+        let allocated = false;
+        const dayOfWeek = slot.dayOfWeek;
+        const startTime = slot.startTime;
+
+        // Priority 1: Subject NOT already on this day, Teacher FREE
+        for (let i = 0; i < pool.length; i++) {
+          const candidate = pool[i];
+          const teacherId = teacherMapByCS[`${classId}_${candidate.subjectId}`];
+          const busyKey = teacherId ? `${dayOfWeek}_${startTime}_${teacherId}` : null;
+          const daySubKey = `${dayOfWeek}_${candidate.subjectId}`;
+
+          if ((!busyKey || !teacherBusyMap[busyKey]) && !daySubjectMap[daySubKey]) {
+            updates.push({ slotId: slot.id, subjectId: candidate.subjectId });
+            if (busyKey) teacherBusyMap[busyKey] = true;
+            daySubjectMap[daySubKey] = (daySubjectMap[daySubKey] || 0) + 1;
+            pool.splice(i, 1);
+            allocated = true;
+            break;
+          }
+        }
+
+        // Priority 2: Teacher FREE (even if subject exists on this day)
+        if (!allocated) {
+          for (let i = 0; i < pool.length; i++) {
+            const candidate = pool[i];
+            const teacherId = teacherMapByCS[`${classId}_${candidate.subjectId}`];
+            const busyKey = teacherId ? `${dayOfWeek}_${startTime}_${teacherId}` : null;
+
+            if (!busyKey || !teacherBusyMap[busyKey]) {
+              updates.push({ slotId: slot.id, subjectId: candidate.subjectId });
+              if (busyKey) teacherBusyMap[busyKey] = true;
+              const daySubKey = `${dayOfWeek}_${candidate.subjectId}`;
+              daySubjectMap[daySubKey] = (daySubjectMap[daySubKey] || 0) + 1;
+              pool.splice(i, 1);
+              allocated = true;
+              break;
+            }
+          }
+        }
+
+        if (!allocated) {
+          allConflicts.push({
+            class: `${cls.name} ${cls.arm || ''}`,
+            day: dayOfWeek,
+            time: `${slot.startTime} - ${slot.endTime}`,
+            reason: 'Teacher conflict: No available teacher for this slot school-wide.'
+          });
+        }
+      }
+    }
+
+    // 4. Apply all updates
+    await prisma.$transaction(
+      updates.map(u => prisma.timetable.update({
+        where: { id: u.slotId },
+        data: { subjectId: u.subjectId }
+      }))
+    );
+
+    res.json({
+      message: allConflicts.length > 0
+        ? `Generated with ${allConflicts.length} school-wide conflicts.`
+        : 'Whole-school timetable generated successfully!',
+      totalClasses: allClasses.length,
+      successCount: updates.length,
+      conflicts: allConflicts
+    });
+
+  } catch (error) {
+    console.error('All-generation error:', error);
+    res.status(500).json({ error: 'Generation failed: ' + error.message });
+  }
+});
+
+// Clear Subjects for a Class (Admin Only)
 router.patch('/reset/class/:classId/clear-subjects', authenticate, authorize(['admin']), async (req, res) => {
   try {
     const classId = parseInt(req.params.classId);
