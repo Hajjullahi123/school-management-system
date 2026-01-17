@@ -166,9 +166,9 @@ const LearningResources = () => {
             <div key={res.id} className="bg-white p-6 rounded-[35px] shadow-xl hover:shadow-2xl transition-all border border-gray-50 group flex flex-col">
               <div className="flex justify-between items-start mb-4">
                 <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full ${res.type === 'note' ? 'bg-blue-50 text-blue-600' :
-                    res.type === 'past_question' ? 'bg-amber-50 text-amber-600' :
-                      res.type === 'syllabus' ? 'bg-emerald-50 text-emerald-600' :
-                        'bg-gray-100 text-gray-500'
+                  res.type === 'past_question' ? 'bg-amber-50 text-amber-600' :
+                    res.type === 'syllabus' ? 'bg-emerald-50 text-emerald-600' :
+                      'bg-gray-100 text-gray-500'
                   }`}>
                   {res.type.replace('_', ' ')}
                 </span>
@@ -213,10 +213,9 @@ const LearningResources = () => {
         </div>
       )}
 
-      {/* Upload Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[40px] shadow-2xl p-8 w-full max-w-lg border border-white/20 animate-in zoom-in-95 duration-300">
+          <div className="bg-white rounded-[40px] shadow-2xl p-8 w-full max-w-lg border border-white/20 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-black text-gray-900 italic underline decoration-primary/30 underline-offset-8">Share Knowledge</h3>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
