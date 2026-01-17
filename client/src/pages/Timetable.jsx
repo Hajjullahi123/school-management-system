@@ -810,7 +810,28 @@ const Timetable = () => {
       {isAdmin && selectedClassId && classSubjects.length > 0 && (
         <div className="bg-white p-6 rounded-lg shadow border-t-4 border-indigo-500">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-gray-800">Weekly Subject Quota Usage</h2>
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">Weekly Subject Quota Usage</h2>
+              <div className="flex items-center gap-4 mt-1">
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Structure: <span className="text-gray-900">{schedule.filter(s => s.type === 'lesson').length} Lesson Slots</span>
+                </span>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Required: <span className="text-gray-900">{classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0)} Total Periods</span>
+                </span>
+                {schedule.filter(s => s.type === 'lesson').length !== classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0) && (
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${schedule.filter(s => s.type === 'lesson').length > classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0)
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-red-100 text-red-700'
+                    }`}>
+                    {schedule.filter(s => s.type === 'lesson').length > classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0)
+                      ? `${schedule.filter(s => s.type === 'lesson').length - classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0)} Extra Slot(s)`
+                      : `${classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0) - schedule.filter(s => s.type === 'lesson').length} Missing Slot(s)`
+                    }
+                  </span>
+                )}
+              </div>
+            </div>
             <button
               onClick={() => navigate('/dashboard/class-subjects')}
               className="text-primary text-xs font-bold uppercase hover:underline"
