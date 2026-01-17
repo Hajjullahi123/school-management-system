@@ -400,7 +400,7 @@ const Timetable = () => {
     printWindow.document.write('.header { text-align: center; margin-bottom: 20px; }');
     printWindow.document.write('.short_break { background-color: #ffedd5; }');
     printWindow.document.write('.long_break { background-color: #fed7aa; }');
-    printWindow.document.write('.prayer { background-color: #e0e7ff; }');
+    printWindow.document.write('.prayer { background-color: #15803d; color: white !important; }');
     printWindow.document.write('.prep { background-color: #e0f2fe; }');
     printWindow.document.write('.assembly { background-color: #e9d5ff; }');
     printWindow.document.write('.lesson { background-color: #dbeafe; }');
@@ -708,15 +708,15 @@ const Timetable = () => {
                   )}
                   {scheduleByDay[day]?.map(slot => (
                     <div key={slot.id} className={`p-2 rounded border text-sm relative group ${slot.type === 'short_break' || slot.type === 'long_break' ? 'bg-orange-50 border-orange-200' :
-                      slot.type === 'prayer' ? 'bg-indigo-100 border-indigo-300' :
+                      slot.type === 'prayer' ? 'bg-green-700 border-green-800 text-white' :
                         slot.type === 'prep' ? 'bg-sky-50 border-sky-200' :
                           slot.type === 'assembly' ? 'bg-purple-50 border-purple-200' :
                             'bg-blue-50 border-blue-200'
                       }`}>
-                      <div className="font-semibold text-gray-900 text-xs">
+                      <div className={`font-semibold text-xs ${slot.type === 'prayer' ? 'text-white' : 'text-gray-900'}`}>
                         {slot.startTime} - {slot.endTime}
                       </div>
-                      <div className="text-gray-700 font-medium">
+                      <div className={`font-medium ${slot.type === 'prayer' ? 'text-green-50' : 'text-gray-700'}`}>
                         {slot.type === 'short_break' ? '☕ Short Break' :
                           slot.type === 'long_break' ? '🍴 Long Break' :
                             slot.type === 'prayer' ? '🕌 Prayer' :
@@ -905,7 +905,7 @@ const Timetable = () => {
                   </label>
                   <label className="flex items-center">
                     <input type="radio" name="type" value="prayer" checked={formData.type === 'prayer'} onChange={() => setFormData({ ...formData, type: 'prayer' })} />
-                    <span className="ml-2 font-bold text-indigo-700">Prayer</span>
+                    <span className="ml-2 font-bold text-green-800">Prayer</span>
                   </label>
                   <label className="flex items-center">
                     <input type="radio" name="type" value="prep" checked={formData.type === 'prep'} onChange={() => setFormData({ ...formData, type: 'prep' })} />
