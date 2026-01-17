@@ -399,6 +399,7 @@ const Timetable = () => {
     printWindow.document.write(`th { background-color: ${settings?.primaryColor || '#0f766e'}; color: white; }`);
     printWindow.document.write('.header { text-align: center; margin-bottom: 20px; }');
     printWindow.document.write('.break { background-color: #fed7aa; }');
+    printWindow.document.write('.assembly { background-color: #e9d5ff; }');
     printWindow.document.write('.lesson { background-color: #dbeafe; }');
     printWindow.document.write('</style></head><body>');
 
@@ -425,8 +426,14 @@ const Timetable = () => {
       DAYS.forEach(day => {
         const slot = schedule.find(s => s.dayOfWeek === day && `${s.startTime}-${s.endTime}` === timeSlot);
         if (slot) {
-          const cssClass = slot.type === 'break' ? 'break' : 'lesson';
-          const content = slot.type === 'break' ? 'Break' : (slot.subject?.name || '-');
+          let cssClass = 'lesson';
+          if (slot.type === 'break') cssClass = 'break';
+          if (slot.type === 'assembly') cssClass = 'assembly';
+
+          let content = slot.subject?.name || '-';
+          if (slot.type === 'break') content = 'Break';
+          if (slot.type === 'assembly') content = 'Assembly';
+
           printWindow.document.write('<td class="' + cssClass + '">' + content + '</td>');
         } else {
           printWindow.document.write('<td>-</td>');
@@ -691,13 +698,17 @@ const Timetable = () => {
                     <p className="text-xs text-gray-400 text-center py-4">No classes</p>
                   )}
                   {scheduleByDay[day]?.map(slot => (
-                    <div key={slot.id} className={`p-2 rounded border text-sm relative group ${slot.type === 'break' ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'
+                    <div key={slot.id} className={`p-2 rounded border text-sm relative group ${slot.type === 'break' ? 'bg-orange-50 border-orange-200' :
+                      slot.type === 'assembly' ? 'bg-purple-50 border-purple-200' :
+                        'bg-blue-50 border-blue-200'
                       }`}>
                       <div className="font-semibold text-gray-900 text-xs">
                         {slot.startTime} - {slot.endTime}
                       </div>
                       <div className="text-gray-700 font-medium">
-                        {slot.type === 'break' ? 'Break / Assembly' : slot.subject?.name}
+                        {slot.type === 'break' ? '☕ Break' :
+                          slot.type === 'assembly' ? '📢 Assembly' :
+                            (slot.subject?.name || 'Empty Slot')}
                       </div>
                       {slot.teacher && (
                         <div className="text-[10px] text-primary font-semibold mt-1 flex items-center gap-1">
@@ -867,8 +878,12 @@ const Timetable = () => {
                     <span className="ml-2">Lesson</span>
                   </label>
                   <label className="flex items-center">
+                    <input type="radio" name="type" value="assembly" checked={formData.type === 'assembly'} onChange={() => setFormData({ ...formData, type: 'assembly' })} />
+                    <span className="ml-2 font-bold text-purple-700">Assembly</span>
+                  </label>
+                  <label className="flex items-center">
                     <input type="radio" name="type" value="break" checked={formData.type === 'break'} onChange={() => setFormData({ ...formData, type: 'break' })} />
-                    <span className="ml-2">Break</span>
+                    <span className="ml-2 text-orange-700">Break</span>
                   </label>
                 </div>
               </div>
