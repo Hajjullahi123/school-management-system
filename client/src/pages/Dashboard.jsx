@@ -634,9 +634,29 @@ const Dashboard = () => {
                 <p className="text-sm text-gray-600">Generate, view, and manage class schedules</p>
               </div>
             </Link>
+
+            {schoolSettings?.examMode && (
+              <div className="bg-indigo-900 text-white p-6 rounded-[32px] shadow-2xl relative overflow-hidden flex items-center justify-between group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">Live Operation Tracker</p>
+                  </div>
+                  <h3 className="text-2xl font-black italic tracking-tighter mb-1 uppercase">Exam Mode Active</h3>
+                  <p className="text-xs font-bold text-indigo-200">Monitoring: <span className="text-white uppercase">{schoolSettings.examModeType}</span></p>
+                </div>
+                <Link
+                  to="/dashboard/exam-tracker"
+                  className="relative z-10 bg-white text-indigo-900 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all"
+                >
+                  Enter Tracking Center
+                </Link>
+              </div>
+            )}
           </div>
         )}
-      </div >
+      </div>
     );
   }
 

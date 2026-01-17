@@ -264,4 +264,126 @@ router.get('/attendance-by-class', authenticate, async (req, res) => {
   }
 });
 
+// GET /api/analytics/submission-tracking
+router.get('/submission-tracking', authenticate, async (req, res) => {
+  try {
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { examMode: true, examModeType: true }
+    });
+
+    const currentSession = await prisma.academicSession.findFirst({ where: { schoolId: req.schoolId, isCurrent: true } });
+    const currentTerm = await prisma.term.findFirst({ where: { schoolId: req.schoolId, isCurrent: true, academicSessionId: currentSession?.id } });
+
+    if (!currentSession || !currentTerm) {
+      return res.status(400).json({ error: 'Current session or term not set' });
+    }
+
+    // 1. Get all teacher assignments
+    const assignments = await prisma.teacherAssignment.findMany({
+      where: { schoolId: req.schoolId },
+      include: {
+        teacher: { select: { firstName: true, lastName: true } },
+        classSubject: {
+          include: {
+            class: { select: { id: true, name: true, arm: true } },
+            subject: { select: { id: true, name: true } }
+          }
+        }
+      }
+    });
+
+    // 2. Get results for current term
+    const results = await prisma.result.findMany({
+      where: {
+        schoolId: req.schoolId,
+        academicSessionId: currentSession.id,
+        termId: currentTerm.id
+      },
+      select: {
+        id: true,
+        studentId: true,
+        classId: true,
+        subjectId: true,
+        assignment1Score: true,
+        assignment2Score: true,
+        test1Score: true,
+        test2Score: true,
+        examScore: true,
+        isSubmitted: true
+      }
+    });
+
+    // 3. Get student counts per class
+    const studentCounts = await prisma.student.groupBy({
+      by: ['classId'],
+      where: { schoolId: req.schoolId },
+      _count: { id: true }
+    });
+
+    const studentCountsMap = {};
+    studentCounts.forEach(c => studentCountsMap[c.classId] = c._count.id);
+
+    // 4. Track progress
+    const trackingData = assignments.map(a => {
+      const classId = a.classSubject.class.id;
+      const subjectId = a.classSubject.subject.id;
+      const totalStudents = studentCountsMap[classId] || 0;
+
+      const classResults = results.filter(r => r.classId === classId && r.subjectId === subjectId);
+      const gradedCount = classResults.length;
+
+      // Detailed Tracking based on examModeType
+      let isTargetFilled = false;
+      const target = school.examModeType;
+
+      if (target === 'assignment1') isTargetFilled = gradedCount > 0 && classResults.every(r => r.assignment1Score !== null);
+      else if (target === 'assignment2') isTargetFilled = gradedCount > 0 && classResults.every(r => r.assignment2Score !== null);
+      else if (target === 'test1') isTargetFilled = gradedCount > 0 && classResults.every(r => r.test1Score !== null);
+      else if (target === 'test2') isTargetFilled = gradedCount > 0 && classResults.every(r => r.test2Score !== null);
+      else if (target === 'examination') isTargetFilled = gradedCount > 0 && classResults.every(r => r.examScore !== null);
+      else isTargetFilled = gradedCount > 0 && classResults.every(r => r.isSubmitted);
+
+      // Partial check: if at least one student has the score
+      const hasAnyScore = classResults.some(r => {
+        if (target === 'assignment1') return r.assignment1Score !== null;
+        if (target === 'assignment2') return r.assignment2Score !== null;
+        if (target === 'test1') return r.test1Score !== null;
+        if (target === 'test2') return r.test2Score !== null;
+        if (target === 'examination') return r.examScore !== null;
+        return r.isSubmitted;
+      });
+
+      let status = 'Not Started';
+      if (isTargetFilled && gradedCount >= totalStudents && totalStudents > 0) status = 'Completed';
+      else if (hasAnyScore) status = 'Partial';
+
+      return {
+        id: a.id,
+        className: `${a.classSubject.class.name} ${a.classSubject.class.arm || ''}`.trim(),
+        subjectName: a.classSubject.subject.name,
+        teacherName: `${a.teacher.firstName} ${a.teacher.lastName}`,
+        totalStudents,
+        gradedCount,
+        status,
+        submissionDate: classResults.length > 0 ? classResults[0].submittedAt : null,
+        isSubmitted: classResults.every(r => r.isSubmitted) && gradedCount >= totalStudents && totalStudents > 0
+      };
+    });
+
+    res.json({
+      tracking: trackingData,
+      config: {
+        examMode: school.examMode,
+        examModeType: school.examModeType,
+        term: currentTerm.name,
+        session: currentSession.name
+      }
+    });
+  } catch (error) {
+    console.error('Submission tracking error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

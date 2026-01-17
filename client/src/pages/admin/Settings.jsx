@@ -36,7 +36,14 @@ const Settings = () => {
     smsUsername: '',
     smsApiKey: '',
     smsSenderId: '',
-    enableSMS: false
+    enableSMS: false,
+    examMode: false,
+    examModeType: 'none',
+    assignment1Weight: 5,
+    assignment2Weight: 5,
+    test1Weight: 10,
+    test2Weight: 10,
+    examWeight: 70
   });
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
@@ -314,6 +321,15 @@ const Settings = () => {
                 }`}
             >
               SMS Config
+            </button>
+            <button
+              onClick={() => setActiveTab('exam')}
+              className={`px-6 py-3 border-b-2 font-medium text-sm ${activeTab === 'exam'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              Examination
             </button>
           </nav>
         </div>
@@ -1032,6 +1048,148 @@ const Settings = () => {
           {/* System Settings Tab */}
           {activeTab === 'system' && (
             <SystemSettings />
+          )}
+
+          {/* Examination Tab */}
+          {activeTab === 'exam' && (
+            <form onSubmit={handleSaveSettings} className="space-y-8">
+              <div className={`p-8 rounded-[40px] border-2 transition-all ${settings.examMode ? 'bg-indigo-50 border-indigo-200 shadow-xl shadow-indigo-100' : 'bg-gray-50 border-gray-200'}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Examination Mode</h3>
+                    <p className="text-sm text-slate-500 font-bold mt-1">Activate this to monitor real-time result submission across all classes.</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer scale-125">
+                    <input
+                      type="checkbox"
+                      name="examMode"
+                      checked={settings.examMode}
+                      onChange={handleInputChange}
+                      className="sr-only peer"
+                    />
+                    <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+                </div>
+
+                {settings.examMode && (
+                  <div className="mt-8 pt-8 border-t border-indigo-100 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-4">Select Monitoring Target</label>
+                    <div className="flex flex-wrap gap-3">
+                      {[
+                        { id: 'assignment1', label: '1st Assignment' },
+                        { id: 'assignment2', label: '2nd Assignment' },
+                        { id: 'test1', label: '1st Test' },
+                        { id: 'test2', label: '2nd Test' },
+                        { id: 'examination', label: 'Final Exam' },
+                        { id: 'none', label: 'General Monitoring' }
+                      ].map(type => (
+                        <button
+                          key={type.id}
+                          type="button"
+                          onClick={() => setSettings(prev => ({ ...prev, examModeType: type.id }))}
+                          className={`px-6 py-4 rounded-[20px] text-[11px] font-black uppercase tracking-widest transition-all ${settings.examModeType === type.id
+                            ? 'bg-primary text-white shadow-2xl shadow-primary/40'
+                            : 'bg-white text-slate-400 border border-slate-100 hover:border-primary/30 hover:text-primary'
+                            }`}
+                        >
+                          {type.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-sm">
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-8">Score Distribution weights</h3>
+                  <div className="space-y-8">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">1st Assgn (%)</label>
+                        <input type="number" name="assignment1Weight" value={settings.assignment1Weight} onChange={handleInputChange} className="w-full bg-slate-50 border-0 rounded-[20px] px-6 py-4 focus:ring-2 ring-primary outline-none font-bold" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">2nd Assgn (%)</label>
+                        <input type="number" name="assignment2Weight" value={settings.assignment2Weight} onChange={handleInputChange} className="w-full bg-slate-50 border-0 rounded-[20px] px-6 py-4 focus:ring-2 ring-primary outline-none font-bold" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">1st Test (%)</label>
+                        <input type="number" name="test1Weight" value={settings.test1Weight} onChange={handleInputChange} className="w-full bg-slate-50 border-0 rounded-[20px] px-6 py-4 focus:ring-2 ring-primary outline-none font-bold" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">2nd Test (%)</label>
+                        <input type="number" name="test2Weight" value={settings.test2Weight} onChange={handleInputChange} className="w-full bg-slate-50 border-0 rounded-[20px] px-6 py-4 focus:ring-2 ring-primary outline-none font-bold" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Final Examination (%)</label>
+                      <input type="number" name="examWeight" value={settings.examWeight} onChange={handleInputChange} className="w-full bg-slate-50 border-0 rounded-[20px] px-6 py-4 focus:ring-2 ring-primary outline-none font-bold" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 rounded-[40px] p-10 text-white flex flex-col justify-center relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-80 h-80 bg-primary/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
+                  <h4 className="text-3xl font-black mb-6 italic tracking-tighter">Monitoring Logic</h4>
+                  <p className="text-slate-400 text-sm font-bold leading-relaxed mb-8">
+                    The tracker monitors if teachers have entered digits for the selected <span className="text-white">Monitoring Target</span>.
+                    For example, if <span className="text-primary font-black uppercase">1st Test</span> is active, the submission report will mark a teacher as "Pending" if any student in their class is missing a 1st Test score.
+                  </p>
+                  <div className="bg-white/5 rounded-3xl p-6 border border-white/10">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total Weight Integrity</span>
+                      <span className={`text-xl font-black ${Number(settings.assignment1Weight || 0) +
+                          Number(settings.assignment2Weight || 0) +
+                          Number(settings.test1Weight || 0) +
+                          Number(settings.test2Weight || 0) +
+                          Number(settings.examWeight || 0) === 100
+                          ? 'text-emerald-400' : 'text-red-500 animate-pulse'
+                        }`}>
+                        {Number(settings.assignment1Weight || 0) +
+                          Number(settings.assignment2Weight || 0) +
+                          Number(settings.test1Weight || 0) +
+                          Number(settings.test2Weight || 0) +
+                          Number(settings.examWeight || 0)
+                        }%
+                      </span>
+                    </div>
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-500 ${Number(settings.assignment1Weight || 0) +
+                            Number(settings.assignment2Weight || 0) +
+                            Number(settings.test1Weight || 0) +
+                            Number(settings.test2Weight || 0) +
+                            Number(settings.examWeight || 0) === 100
+                            ? 'bg-emerald-400' : 'bg-red-500'
+                          }`}
+                        style={{
+                          width: `${Math.min(100, (
+                            Number(settings.assignment1Weight || 0) +
+                            Number(settings.assignment2Weight || 0) +
+                            Number(settings.test1Weight || 0) +
+                            Number(settings.test2Weight || 0) +
+                            Number(settings.examWeight || 0)
+                          ))}%`
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-10">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-12 py-5 bg-primary text-white rounded-[24px] font-black uppercase text-[11px] tracking-[0.2em] shadow-2xl shadow-primary/40 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {saving ? 'Synchronizing Intelligence...' : 'Save Academic Framework'}
+                </button>
+              </div>
+            </form>
           )}
         </div>
       </div>

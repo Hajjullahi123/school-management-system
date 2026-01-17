@@ -11,6 +11,7 @@ import NewsEvents from './pages/NewsEvents';
 import Gallery from './pages/Gallery';
 import Analytics from './pages/Analytics';
 import AdvancedAnalytics from './pages/admin/AdvancedAnalytics';
+import ExamSubmissionTracker from './pages/admin/ExamSubmissionTracker';
 import ThemeController from './components/ThemeController';
 
 import { AuthProvider } from './context/AuthContext';
@@ -369,6 +370,11 @@ function App() {
             <Route path="password-reset" element={
               <ProtectedRoute roles={['admin']}>
                 <PasswordReset />
+              </ProtectedRoute>
+            } />
+            <Route path="exam-tracker" element={
+              <ProtectedRoute roles={['admin']}>
+                <ExamSubmissionTracker />
               </ProtectedRoute>
             } />
 

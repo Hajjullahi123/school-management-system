@@ -75,6 +75,8 @@ model School {
   test1Weight           Int                 @default(10)
   test2Weight           Int                 @default(10)
   examWeight            Int                 @default(70)
+  examMode              Boolean             @default(false)
+  examModeType          String              @default("none") // none, assignment1, assignment2, test1, test2, examination
 
   isSetupComplete       Boolean             @default(false)
   createdAt             DateTime            @default(now())

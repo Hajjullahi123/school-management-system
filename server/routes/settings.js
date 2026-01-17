@@ -83,7 +83,8 @@ router.put('/', authenticate, async (req, res) => {
     emailUser, emailPassword, emailHost, emailPort, emailSecure,
     smsUsername, smsApiKey, smsSenderId, enableSMS,
     assignment1Weight, assignment2Weight, test1Weight, test2Weight, examWeight,
-    openingHours, welcomeTitle, welcomeMessage
+    openingHours, welcomeTitle, welcomeMessage,
+    examMode, examModeType
   } = req.body;
 
   // Validate weightings if provided
@@ -151,6 +152,9 @@ router.put('/', authenticate, async (req, res) => {
     if (test1Weight !== undefined) updateData.test1Weight = Number(test1Weight);
     if (test2Weight !== undefined) updateData.test2Weight = Number(test2Weight);
     if (examWeight !== undefined) updateData.examWeight = Number(examWeight);
+
+    if (examMode !== undefined) updateData.examMode = !!examMode;
+    if (examModeType !== undefined) updateData.examModeType = examModeType;
 
     // Automatically complete setup if basic info is provided
     if (schoolName && schoolAddress && schoolPhone) {
