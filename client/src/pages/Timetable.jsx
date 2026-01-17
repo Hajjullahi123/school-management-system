@@ -398,7 +398,9 @@ const Timetable = () => {
     printWindow.document.write('th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }');
     printWindow.document.write(`th { background-color: ${settings?.primaryColor || '#0f766e'}; color: white; }`);
     printWindow.document.write('.header { text-align: center; margin-bottom: 20px; }');
-    printWindow.document.write('.break { background-color: #fed7aa; }');
+    printWindow.document.write('.short_break { background-color: #ffedd5; }');
+    printWindow.document.write('.long_break { background-color: #fed7aa; }');
+    printWindow.document.write('.prayer { background-color: #dcfce7; }');
     printWindow.document.write('.assembly { background-color: #e9d5ff; }');
     printWindow.document.write('.lesson { background-color: #dbeafe; }');
     printWindow.document.write('</style></head><body>');
@@ -427,11 +429,15 @@ const Timetable = () => {
         const slot = schedule.find(s => s.dayOfWeek === day && `${s.startTime}-${s.endTime}` === timeSlot);
         if (slot) {
           let cssClass = 'lesson';
-          if (slot.type === 'break') cssClass = 'break';
+          if (slot.type === 'short_break') cssClass = 'short_break';
+          if (slot.type === 'long_break') cssClass = 'long_break';
+          if (slot.type === 'prayer') cssClass = 'prayer';
           if (slot.type === 'assembly') cssClass = 'assembly';
 
           let content = slot.subject?.name || '-';
-          if (slot.type === 'break') content = 'Break';
+          if (slot.type === 'short_break') content = 'Short Break';
+          if (slot.type === 'long_break') content = 'Long Break';
+          if (slot.type === 'prayer') content = 'Prayer';
           if (slot.type === 'assembly') content = 'Assembly';
 
           printWindow.document.write('<td class="' + cssClass + '">' + content + '</td>');
@@ -698,17 +704,20 @@ const Timetable = () => {
                     <p className="text-xs text-gray-400 text-center py-4">No classes</p>
                   )}
                   {scheduleByDay[day]?.map(slot => (
-                    <div key={slot.id} className={`p-2 rounded border text-sm relative group ${slot.type === 'break' ? 'bg-orange-50 border-orange-200' :
-                      slot.type === 'assembly' ? 'bg-purple-50 border-purple-200' :
-                        'bg-blue-50 border-blue-200'
+                    <div key={slot.id} className={`p-2 rounded border text-sm relative group ${slot.type === 'short_break' || slot.type === 'long_break' ? 'bg-orange-50 border-orange-200' :
+                      slot.type === 'prayer' ? 'bg-green-50 border-green-200' :
+                        slot.type === 'assembly' ? 'bg-purple-50 border-purple-200' :
+                          'bg-blue-50 border-blue-200'
                       }`}>
                       <div className="font-semibold text-gray-900 text-xs">
                         {slot.startTime} - {slot.endTime}
                       </div>
                       <div className="text-gray-700 font-medium">
-                        {slot.type === 'break' ? '☕ Break' :
-                          slot.type === 'assembly' ? '📢 Assembly' :
-                            (slot.subject?.name || 'Empty Slot')}
+                        {slot.type === 'short_break' ? '☕ Short Break' :
+                          slot.type === 'long_break' ? '🍴 Long Break' :
+                            slot.type === 'prayer' ? '🕌 Prayer' :
+                              slot.type === 'assembly' ? '📢 Assembly' :
+                                (slot.subject?.name || 'Empty Slot')}
                       </div>
                       {slot.teacher && (
                         <div className="text-[10px] text-primary font-semibold mt-1 flex items-center gap-1">
@@ -872,7 +881,7 @@ const Timetable = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Type</label>
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-4">
                   <label className="flex items-center">
                     <input type="radio" name="type" value="lesson" checked={formData.type === 'lesson'} onChange={() => setFormData({ ...formData, type: 'lesson' })} />
                     <span className="ml-2">Lesson</span>
@@ -882,8 +891,16 @@ const Timetable = () => {
                     <span className="ml-2 font-bold text-purple-700">Assembly</span>
                   </label>
                   <label className="flex items-center">
-                    <input type="radio" name="type" value="break" checked={formData.type === 'break'} onChange={() => setFormData({ ...formData, type: 'break' })} />
-                    <span className="ml-2 text-orange-700">Break</span>
+                    <input type="radio" name="type" value="short_break" checked={formData.type === 'short_break'} onChange={() => setFormData({ ...formData, type: 'short_break' })} />
+                    <span className="ml-2 text-orange-600">Short Break</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input type="radio" name="type" value="long_break" checked={formData.type === 'long_break'} onChange={() => setFormData({ ...formData, type: 'long_break' })} />
+                    <span className="ml-2 text-orange-800">Long Break</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input type="radio" name="type" value="prayer" checked={formData.type === 'prayer'} onChange={() => setFormData({ ...formData, type: 'prayer' })} />
+                    <span className="ml-2 font-bold text-green-700">Prayer</span>
                   </label>
                 </div>
               </div>
