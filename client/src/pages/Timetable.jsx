@@ -402,6 +402,8 @@ const Timetable = () => {
     printWindow.document.write('.long_break { background-color: #fed7aa; }');
     printWindow.document.write('.prayer { background-color: #15803d; color: white !important; }');
     printWindow.document.write('.prep { background-color: #e0f2fe; }');
+    printWindow.document.write('.games { background-color: #fef9c3; }');
+    printWindow.document.write('.extra { background-color: #ccfbf1; }');
     printWindow.document.write('.assembly { background-color: #e9d5ff; }');
     printWindow.document.write('.lesson { background-color: #dbeafe; }');
     printWindow.document.write('</style></head><body>');
@@ -434,6 +436,8 @@ const Timetable = () => {
           if (slot.type === 'long_break') cssClass = 'long_break';
           if (slot.type === 'prayer') cssClass = 'prayer';
           if (slot.type === 'prep') cssClass = 'prep';
+          if (slot.type === 'games') cssClass = 'games';
+          if (slot.type === 'extra-curricular') cssClass = 'extra';
           if (slot.type === 'assembly') cssClass = 'assembly';
 
           let content = slot.subject?.name || '-';
@@ -441,6 +445,8 @@ const Timetable = () => {
           if (slot.type === 'long_break') content = 'Long Break';
           if (slot.type === 'prayer') content = 'Prayer';
           if (slot.type === 'prep') content = 'Prep';
+          if (slot.type === 'games') content = 'Games';
+          if (slot.type === 'extra-curricular') content = 'Extra-curricular';
           if (slot.type === 'assembly') content = 'Assembly';
 
           printWindow.document.write('<td class="' + cssClass + '">' + content + '</td>');
@@ -710,8 +716,10 @@ const Timetable = () => {
                     <div key={slot.id} className={`p-2 rounded border text-sm relative group ${slot.type === 'short_break' || slot.type === 'long_break' ? 'bg-orange-50 border-orange-200' :
                       slot.type === 'prayer' ? 'bg-green-700 border-green-800 text-white' :
                         slot.type === 'prep' ? 'bg-sky-50 border-sky-200' :
-                          slot.type === 'assembly' ? 'bg-purple-50 border-purple-200' :
-                            'bg-blue-50 border-blue-200'
+                          slot.type === 'games' ? 'bg-yellow-50 border-yellow-200' :
+                            slot.type === 'extra-curricular' ? 'bg-teal-50 border-teal-200' :
+                              slot.type === 'assembly' ? 'bg-purple-50 border-purple-200' :
+                                'bg-blue-50 border-blue-200'
                       }`}>
                       <div className={`font-semibold text-xs ${slot.type === 'prayer' ? 'text-white' : 'text-gray-900'}`}>
                         {slot.startTime} - {slot.endTime}
@@ -721,8 +729,10 @@ const Timetable = () => {
                           slot.type === 'long_break' ? '🍴 Long Break' :
                             slot.type === 'prayer' ? '🕌 Prayer' :
                               slot.type === 'prep' ? '📚 Prep' :
-                                slot.type === 'assembly' ? '📢 Assembly' :
-                                  (slot.subject?.name || 'Empty Slot')}
+                                slot.type === 'games' ? '⚽ Games' :
+                                  slot.type === 'extra-curricular' ? '🌟 Extra-curricular' :
+                                    slot.type === 'assembly' ? '📢 Assembly' :
+                                      (slot.subject?.name || 'Empty Slot')}
                       </div>
                       {slot.teacher && (
                         <div className="text-[10px] text-primary font-semibold mt-1 flex items-center gap-1">
@@ -821,8 +831,8 @@ const Timetable = () => {
                 </span>
                 {schedule.filter(s => s.type === 'lesson').length !== classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0) && (
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${schedule.filter(s => s.type === 'lesson').length > classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0)
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-red-100 text-red-700'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-red-100 text-red-700'
                     }`}>
                     {schedule.filter(s => s.type === 'lesson').length > classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0)
                       ? `${schedule.filter(s => s.type === 'lesson').length - classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0)} Extra Slot(s)`
@@ -931,6 +941,14 @@ const Timetable = () => {
                   <label className="flex items-center">
                     <input type="radio" name="type" value="prep" checked={formData.type === 'prep'} onChange={() => setFormData({ ...formData, type: 'prep' })} />
                     <span className="ml-2 font-bold text-sky-700">Prep</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input type="radio" name="type" value="games" checked={formData.type === 'games'} onChange={() => setFormData({ ...formData, type: 'games' })} />
+                    <span className="ml-2 font-bold text-yellow-600">Games</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input type="radio" name="type" value="extra-curricular" checked={formData.type === 'extra-curricular'} onChange={() => setFormData({ ...formData, type: 'extra-curricular' })} />
+                    <span className="ml-2 font-bold text-teal-700">Extra-curricular</span>
                   </label>
                 </div>
               </div>
