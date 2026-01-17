@@ -702,6 +702,77 @@ router.post('/generate-all', authenticate, authorize(['admin']), async (req, res
         }
 
         if (!allocated && pool.length > 0) {
+          // AUTO-DETECTION & CORRECTION LOGIC
+          // Try to "Swap & Resolve" - Find a conflicting assignment and move it
+          let resolvedBySwap = false;
+
+          for (let i = 0; i < pool.length; i++) {
+            const candidate = pool[i];
+            const teacherId = teacherMapByCS[`${classId}_${candidate.subjectId}`];
+            if (!teacherId) continue;
+
+            const busyKey = `${dayOfWeek}_${startTime}_${teacherId}`;
+            const busyClassStr = teacherBusyMap[busyKey]; // The class that is currently blocking us
+
+            if (busyClassStr) {
+              const busyClass = allClasses.find(c => `${c.name} ${c.arm || ''}` === busyClassStr);
+              if (busyClass) {
+                const busyClassSlots = slotsByClass[busyClass.id];
+                // Look for an EXISTING assigned slot for this teacher in that class that we can SWAP
+                // OR an EMPTY slot in that class where this teacher would be free
+                const swapTarget = busyClassSlots.find(s => {
+                  const currentSubjectIdInOtherSlot = updates.find(u => u.slotId === s.id)?.subjectId || s.subjectId;
+                  // Is the teacher FREE in this other slot's time?
+                  const sBusyKey = `${s.dayOfWeek}_${s.startTime}_${teacherId}`;
+                  const isTeacherFreeInOtherTime = !teacherBusyMap[sBusyKey] || teacherBusyMap[sBusyKey] === busyClassStr;
+
+                  // CAN THE TEACHER OF THE OTHER SLOT MOVE TO OUR TIME?
+                  const otherTeacherId = currentSubjectIdInOtherSlot ? teacherMapByCS[`${busyClass.id}_${currentSubjectIdInOtherSlot}`] : null;
+                  const otherTeacherFreeInMyTime = !otherTeacherId || !teacherBusyMap[`${dayOfWeek}_${startTime}_${otherTeacherId}`];
+
+                  return isTeacherFreeInOtherTime && otherTeacherFreeInMyTime && s.type === 'lesson';
+                });
+
+                if (swapTarget) {
+                  // EXECUTE SWAP
+                  const oldUpdate = updates.find(u => u.slotId === swapTarget.id);
+                  const currentOtherSubjectId = oldUpdate ? oldUpdate.subjectId : swapTarget.subjectId;
+
+                  const otherTeacherId = currentOtherSubjectId ? teacherMapByCS[`${busyClass.id}_${currentOtherSubjectId}`] : null;
+
+                  // 1. Move the busy teacher to the other slot
+                  if (oldUpdate) {
+                    oldUpdate.subjectId = candidate.subjectId;
+                  } else {
+                    updates.push({ slotId: swapTarget.id, subjectId: candidate.subjectId });
+                  }
+
+                  // 2. Update busy maps
+                  delete teacherBusyMap[busyKey];
+                  teacherBusyMap[`${swapTarget.dayOfWeek}_${swapTarget.startTime}_${teacherId}`] = busyClassStr;
+                  if (otherTeacherId) {
+                    delete teacherBusyMap[`${swapTarget.dayOfWeek}_${swapTarget.startTime}_${otherTeacherId}`];
+                    teacherBusyMap[`${dayOfWeek}_${startTime}_${otherTeacherId}`] = busyClassStr;
+                  }
+
+                  // 3. Fill the current slot in OUR class
+                  updates.push({ slotId: slot.id, subjectId: currentOtherSubjectId || candidate.subjectId }); // This is a bit complex, let's just use the current slot for our candidate
+                  // Re-fill our slot with candidate
+                  updates.push({ slotId: slot.id, subjectId: candidate.subjectId });
+                  teacherBusyMap[busyKey] = `${cls.name} ${cls.arm || ''}`;
+
+                  daySubjectMap[`${dayOfWeek}_${candidate.subjectId}`] = (daySubjectMap[`${dayOfWeek}_${candidate.subjectId}`] || 0) + 1;
+                  pool.splice(i, 1);
+                  allocated = true;
+                  resolvedBySwap = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+
+        if (!allocated && pool.length > 0) {
           const involvedDetails = [...new Set(pool.map(p => {
             const tid = teacherMapByCS[`${classId}_${p.subjectId}`];
             const busyLocation = tid ? teacherBusyMap[`${dayOfWeek}_${startTime}_${tid}`] : null;
@@ -714,7 +785,7 @@ router.post('/generate-all', authenticate, authorize(['admin']), async (req, res
             day: dayOfWeek,
             time: `${slot.startTime} - ${slot.endTime}`,
             reason: `Blocked Requirements: ${involvedDetails.join(', ')}`,
-            solution: `Consider adjusting ${cls.name}'s structure or moving the conflicting classes listed above.`
+            solution: `AUTO-CORRECTION FAILED: No valid swap path found. Consider adding more teachers or increasing the number of available periods.`
           });
         }
       }
