@@ -32,6 +32,7 @@ const Timetable = () => {
   const [sourceDay, setSourceDay] = useState('');
   const [targetDays, setTargetDays] = useState([]);
   const [daySyncLoading, setDaySyncLoading] = useState(false);
+  const [teachers, setTeachers] = useState([]);
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -50,6 +51,7 @@ const Timetable = () => {
     fetchSubjects();
     if (isAdmin) {
       fetchAllTimetables();
+      fetchTeachers();
     }
     if (user?.role === 'student' && user?.student?.classId) {
       setSelectedClassId(user.student.classId);
@@ -127,6 +129,15 @@ const Timetable = () => {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const fetchTeachers = async () => {
+    try {
+      const response = await api.get('/api/teachers');
+      if (response.ok) {
+        setTeachers(await response.json());
+      }
+    } catch (e) { console.error(e); }
   };
 
   const fetchTimetable = async () => {
@@ -702,394 +713,277 @@ const Timetable = () => {
   // Group by Day
   const scheduleByDay = getScheduleByDay(schedule);
 
+  // Statistics Calculations
+  const allLessonSlots = Object.values(allSchedules).flat().filter(s => s.type === 'lesson');
+  const totalLessonSlots = allLessonSlots.length;
+  const nonBreakTeachers = teachers.filter(t => t.user?.isActive);
+  const averageSlotsPerTeacher = nonBreakTeachers.length > 0 ? (totalLessonSlots / nonBreakTeachers.length).toFixed(1) : 0;
+
+  const teacherStats = nonBreakTeachers.map(t => {
+    const count = allLessonSlots.filter(s => s.teacher?.id === t.userId).length;
+    let status = 'optimum';
+    const avg = parseFloat(averageSlotsPerTeacher);
+
+    if (count > avg * 1.3) status = 'overloaded'; // 30% above average
+    else if (count < avg * 0.7) status = 'underloaded'; // 30% below average
+
+    return {
+      id: t.userId,
+      name: `${t.user.firstName} ${t.user.lastName}`,
+      count,
+      status
+    };
+  }).sort((a, b) => b.count - a.count);
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center flex-wrap gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {user?.role === 'student' ? 'My Class Timetable' : 'Class Timetable'}
-        </h1>
-        <div className="flex gap-2">
-          {isAdmin && selectedClassId && (
-            <button
-              onClick={handleGenerate}
-              disabled={generationLoading}
-              className={`bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-semibold flex items-center gap-2 ${generationLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <svg className={`w-5 h-5 ${generationLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.675.337a4 4 0 01-2.58.344l-2.316-.463a2 2 0 01-1.295-.864l-1.058-1.588a2 2 0 01-.13-1.838l.417-1.043a4 4 0 012.312-2.312l1.043-.417a2 2 0 011.838.13l1.588 1.058a2 2 0 01.864 1.295l.463 2.316a4 4 0 00.344 2.58l.337.675a6 6 0 00.517 3.86l.477 2.387a2 2 0 00.547 1.022l1.588 1.058a2 2 0 002.828-2.828l-1.058-1.588z" />
-              </svg>
-              {generationLoading ? 'Generating...' : 'Intelligent Generate'}
-            </button>
-          )}
-          {isAdmin && selectedClassId && schedule.length > 0 && (
-            <button
-              onClick={() => {
-                setTargetClassIds([]);
-                setShowSyncModal(true);
-              }}
-              className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 font-semibold flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-              Adopt for Others
-            </button>
-          )}
-          {isAdmin && selectedClassId && publishStatus.hasSlots && (
-            <button
-              onClick={handlePublishToggle}
-              className={`px-4 py-2 rounded-md font-semibold transition-colors flex items-center gap-2 ${publishStatus.isPublished
-                ? 'bg-yellow-600 text-white hover:bg-yellow-700'
-                : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={publishStatus.isPublished ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268-2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" : "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"} />
-              </svg>
-              {publishStatus.isPublished ? 'Unpublish' : 'Publish'}
-            </button>
-          )}
-          {selectedClassId && schedule.length > 0 && (publishStatus.isPublished || isAdmin) && (
-            <button
-              onClick={handleDownload}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-semibold flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Download/Print
-            </button>
-          )}
-          {isAdmin && selectedClassId && (
-            <button
-              onClick={() => {
-                setEditingSlotId(null);
-                setFormData({
-                  dayOfWeek: 'Monday',
-                  startTime: '08:00',
-                  endTime: '08:40',
-                  type: 'lesson',
-                  subjectId: ''
-                });
-                setShowModal(true);
-              }}
-              className="bg-primary text-white px-4 py-2 rounded-md hover:brightness-90 font-semibold flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Slot
-            </button>
-          )}
-          {isAdmin && (
-            <div className="flex gap-2 ml-4 border-l pl-4">
-              {selectedClassId && (
-                <>
-                  <button
-                    onClick={handleResetClass}
-                    className="bg-red-100 text-red-600 px-4 py-2 rounded-md hover:bg-red-200 font-bold flex items-center gap-2"
-                    title="Wipe current class timetable"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Reset Class
-                  </button>
-                  <button
-                    onClick={handleClearSubjects}
-                    className="bg-indigo-100 text-indigo-600 px-4 py-2 rounded-md hover:bg-indigo-200 font-bold flex items-center gap-2"
-                    title="Wipe subjects but keep time periods"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                    </svg>
-                    Clear Subjects
-                  </button>
-                </>
-              )}
-              <button
-                onClick={handleGenerateAll}
-                disabled={generationLoading}
-                className="bg-primary text-white px-4 py-2 rounded-md hover:brightness-90 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-lg shadow-primary/20"
-                title="Intelligently generate for the WHOLE school at once"
-              >
-                <div className="flex flex-col items-start leading-tight">
-                  <span className="text-[8px] opacity-75">Conflict-Free</span>
-                  <span>Auto-Gen All</span>
-                </div>
-              </button>
-              <Link
-                to="/dashboard/teacher-availability"
-                className="bg-orange-100 text-orange-700 px-4 py-2 rounded-md hover:bg-orange-200 font-bold text-[10px] uppercase tracking-wider flex items-center gap-2"
-                title="Manage teacher off-duty periods"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Off-Duty
-              </Link>
-              <button
-                onClick={handleResetAll}
-                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 font-black uppercase text-[10px] tracking-widest flex items-center gap-2"
-                title="Wipe EVERYTHING"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                Reset All
-              </button>
-            </div>
-          )}
+      <div className="flex justify-between items-start flex-wrap gap-4 mb-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight italic">
+            {user?.role === 'student' ? 'Academic Schedule' : 'Operation: Timetable'}
+          </h1>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1 italic">Tactical School Management Unit</p>
         </div>
+        {isAdmin && (
+          <div className="flex gap-3">
+            <button
+              onClick={handleGenerateAll}
+              disabled={generationLoading}
+              className={`bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-indigo-200 flex items-center gap-2 ${generationLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <svg className={`w-4 h-4 ${generationLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.675.337a4 4 0 01-2.58.344l-2.316-.463a2 2 0 01-1.295-.864l-1.058-1.588a2 2 0 01-.13-1.838l.417-1.043a4 4 0 012.312-2.312l1.043-.417a2 2 0 011.838.13l1.588 1.058a2 2 0 01.864 1.295l.463 2.316a4 4 0 00.344 2.58l.337.675a6 6 0 00.517 3.86l.477 2.387a2 2 0 00.547 1.022l1.588 1.058a2 2 0 002.828-2.828l-1.058-1.588z" />
+              </svg>
+              {generationLoading ? 'Running Optimizer...' : 'Auto-Gen All Classes'}
+            </button>
+            <button
+              onClick={handleResetAll}
+              className="bg-white text-red-600 border-2 border-red-50 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-50 active:scale-95 transition-all shadow-xl shadow-red-50 flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Wipe Core Structure
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Conflict Report Modal */}
-      {generationReport && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-bold text-gray-900">Generation Report</h3>
-              <button onClick={() => setGenerationReport(null)} className="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+      {isAdmin && (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-in slide-in-from-bottom-4 duration-500">
+          {/* Unit Statistics */}
+          <div className="lg:col-span-1 space-y-4">
+            <div className="bg-indigo-600 p-8 rounded-[40px] shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all"></div>
+              <p className="text-[9px] font-black text-indigo-200 uppercase tracking-[0.3em] mb-4">Total Capacity</p>
+              <h4 className="text-5xl font-black text-white tracking-tighter mb-1">{totalLessonSlots}</h4>
+              <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-widest">Active Lesson Slots</p>
             </div>
 
-            <p className="mb-4 text-gray-600">{generationReport.message}</p>
+            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Load Balance</p>
+              <h4 className="text-4xl font-black text-slate-800 tracking-tighter mb-1">{averageSlotsPerTeacher}</h4>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Target Periods / Staff</p>
+            </div>
+          </div>
 
-            {generationReport.conflicts?.length > 0 && (
-              <div className="mt-4">
-                <h4 className="semibold text-red-600 mb-2">Conflicts Detected ({generationReport.conflicts.length}):</h4>
-                <div className="max-h-60 overflow-y-auto border rounded bg-red-50 p-2 space-y-2">
-                  {generationReport.conflicts.map((c, i) => (
-                    <div key={i} className="text-sm border-b border-red-100 last:border-0 pb-3">
-                      <div className="font-bold text-red-700">
-                        {c.class ? `[${c.class}] ` : ''}{c.day} {c.time}
-                      </div>
-                      <div className="text-gray-700 mt-1">{c.reason}</div>
-                      {c.solution && (
-                        <div className="text-[11px] text-blue-600 font-bold mt-1 bg-blue-50 p-1 rounded italic">
-                          💡 Solution: {c.solution}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+          {/* Teacher Deployment Matrix */}
+          <div className="lg:col-span-3 bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+            <div className="px-10 py-8 border-b border-slate-50 flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Staff Utilization Matrix</h3>
+                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Cross-departmental work-load analysis</p>
+              </div>
+              <div className="flex gap-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-red-500 shadow-lg shadow-red-200"></div>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Over</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-lg shadow-emerald-200"></div>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Ideal</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-pink-400 shadow-lg shadow-pink-200"></div>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Under</span>
                 </div>
               </div>
-            )}
-
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => setGenerationReport(null)}
-                className="bg-primary text-white px-6 py-2 rounded-md font-semibold"
-              >
-                Done
-              </button>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Status Badge */}
-      {selectedClassId && publishStatus.hasSlots && (
-        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${publishStatus.isPublished
-          ? 'bg-green-100 text-green-800'
-          : 'bg-yellow-100 text-yellow-800'
-          }`}>
-          <span className={`w-2 h-2 rounded-full ${publishStatus.isPublished ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
-          {publishStatus.isPublished ? 'Published - Visible to all' : 'Draft - Only visible to admins'}
-        </div>
-      )}
-
-      {/* Selection for Admin and Teachers - Hidden for Students */}
-      {user?.role !== 'student' && (
-        <div className="bg-white p-4 rounded-lg shadow mb-6 text-sm">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {user?.role === 'parent' ? 'Select Ward' : 'Select Class'}
-          </label>
-          <select
-            value={selectedClassId}
-            onChange={(e) => setSelectedClassId(e.target.value)}
-            className="w-full md:w-1/3 border rounded-md px-3 py-2"
-          >
-            <option value="">-- Choose {user?.role === 'parent' ? 'Ward' : 'Class'} --</option>
-            {classes.map(c => (
-              <option key={c.id} value={c.id}>
-                {user?.role === 'parent' ? `${c.studentName} (${c.name} ${c.arm || ''})` : `${c.name} ${c.arm || ''}`}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Not Published Warning for Non-Admins */}
-      {!isAdmin && selectedClassId && !publishStatus.isPublished && publishStatus.hasSlots && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
-          <div className="flex">
-            <svg className="w-5 h-5 text-yellow-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            <p className="text-sm text-yellow-700">
-              <strong>Timetable Not Published:</strong> The administrator has not yet published the timetable for this class.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Grid View */}
-      {/* Main View Area */}
-      {isAdmin && !selectedClassId ? (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-              Class Timetable Overview
-            </h2>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 rounded-lg">
-              <span className="flex h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></span>
-              <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">{classes.length} Classes Active</span>
-            </div>
-          </div>
-
-          {classes.length === 0 ? (
-            <div className="text-center py-24 bg-white rounded-3xl shadow-sm border-2 border-dashed border-slate-100">
-              <p className="text-slate-400 font-medium">No classes found. Create classes to begin scheduling.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {classes.map(cls => (
-                <div key={cls.id} className={`bg-white rounded-2xl transition-all duration-300 ${expandedClasses.has(cls.id) ? 'shadow-xl ring-1 ring-primary/20 scale-[1.01]' : 'shadow-sm border border-slate-100 hover:border-primary/40 group'}`}>
-                  <button
-                    onClick={() => toggleClassExpansion(cls.id)}
-                    className={`w-full px-6 py-5 flex items-center justify-between outline-none ${expandedClasses.has(cls.id) ? 'border-b border-slate-50' : ''}`}
-                  >
-                    <div className="flex items-center gap-6">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner transition-colors ${allSchedules[cls.id]?.length > 0
-                        ? 'bg-primary text-white'
-                        : 'bg-slate-50 text-slate-300'
-                        }`}>
-                        {cls.name.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div className="text-left">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-black text-slate-800 text-lg leading-none">
-                            {cls.name} {cls.arm || ''}
-                          </h3>
-                          {allSchedules[cls.id]?.some(s => s.isPublished) ? (
-                            <span className="bg-emerald-100 text-emerald-700 text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm border border-emerald-200">Live</span>
-                          ) : allSchedules[cls.id]?.length > 0 ? (
-                            <span className="bg-amber-100 text-amber-700 text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm border border-amber-200">In Draft</span>
-                          ) : null}
-                        </div>
-                        <p className="text-[10px] font-bold text-slate-400 flex items-center gap-3 uppercase tracking-widest">
-                          <span className="flex items-center gap-1">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {allSchedules[cls.id]?.length || 0} Slots Scheduled
-                          </span>
-                          {allSchedules[cls.id]?.length > 0 && (
-                            <span className="flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                              </svg>
-                              {new Set(allSchedules[cls.id]?.filter(s => s.subjectId).map(s => s.subjectId)).size} Subjects
-                            </span>
-                          )}
-                        </p>
-                      </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto max-h-[320px] custom-scrollbar">
+              {teacherStats.map(stat => (
+                <div
+                  key={stat.id}
+                  className={`p-5 rounded-[24px] border-2 transition-all hover:scale-[1.02] active:scale-95 cursor-default group ${stat.status === 'overloaded' ? 'bg-red-50/20 border-red-50' :
+                    stat.status === 'underloaded' ? 'bg-pink-50/20 border-pink-100' :
+                      'bg-slate-50/30 border-slate-50'
+                    }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className={`w-10 h-10 rounded-[14px] flex items-center justify-center font-black text-[12px] shadow-sm ${stat.status === 'overloaded' ? 'bg-red-500 text-white' :
+                      stat.status === 'underloaded' ? 'bg-pink-400 text-white' :
+                        'bg-slate-900 text-white'
+                      }`}>
+                      {stat.name.split(' ').map(n => n[0]).join('')}
                     </div>
-                    <div className="flex items-center gap-6">
-                      {expandedClasses.has(cls.id) && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownload(allSchedules[cls.id] || [], cls.id);
-                            }}
-                            className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all shadow-sm"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                            </svg>
-                            Print
-                          </button>
-                        </div>
-                      )}
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${expandedClasses.has(cls.id) ? 'bg-primary text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-primary group-hover:scale-110'}`}>
-                        <svg className={`w-5 h-5 transition-transform duration-300 ${expandedClasses.has(cls.id) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
+                    <div className="text-right">
+                      <span className="text-2xl font-black text-slate-800 tracking-tighter block">{stat.count}</span>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest -mt-1 underline decoration-primary/20">Periods</p>
                     </div>
-                  </button>
-
-                  {expandedClasses.has(cls.id) && (
-                    <div className="p-6 bg-slate-50/40 border-t border-slate-50 animate-in fade-in slide-in-from-top-2 duration-300">
-                      {renderTimetableGrid(allSchedules[cls.id] || [], cls.id)}
-                    </div>
-                  )}
+                  </div>
+                  <div>
+                    <h5 className="text-[11px] font-black text-slate-800 truncate mb-0.5">{stat.name}</h5>
+                    <p className={`text-[8px] font-black uppercase tracking-[0.2em] ${stat.status === 'overloaded' ? 'text-red-500' :
+                      stat.status === 'underloaded' ? 'text-pink-500' :
+                        'text-emerald-600'
+                      }`}>
+                      {stat.status}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
-          )}
-        </div>
-      ) : (
-        <div>
-          {selectedClassId ? (
-            <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-100">
-              {renderTimetableGrid(schedule, selectedClassId)}
-            </div>
-          ) : (
-            <div className="text-center py-32 bg-white rounded-[3rem] shadow-sm border-4 border-dashed border-slate-50">
-              <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-                <svg className="w-12 h-12 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight">No Class Selected</h3>
-              <p className="text-slate-400 font-bold text-sm max-w-xs mx-auto uppercase tracking-wider">Choose a class from the menu above to see their live learning schedule.</p>
-            </div>
-          )}
+          </div>
         </div>
       )}
-
-      {/* Subject Quota Usage Section */}
-      {isAdmin && selectedClassId && classSubjects.length > 0 && (
-        <div className="bg-white p-6 rounded-lg shadow border-t-4 border-indigo-500">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h2 className="text-lg font-bold text-gray-800">Weekly Subject Quota Usage</h2>
-              <div className="flex items-center gap-4 mt-1">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Structure: <span className="text-gray-900">{schedule.filter(s => s.type === 'lesson').length} Lesson Slots</span>
-                </span>
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Required: <span className="text-gray-900">{classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0)} Total Periods</span>
-                </span>
-                {schedule.filter(s => s.type === 'lesson').length !== classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0) && (
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${schedule.filter(s => s.type === 'lesson').length > classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0)
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-red-100 text-red-700'
-                    }`}>
-                    {schedule.filter(s => s.type === 'lesson').length > classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0)
-                      ? `${schedule.filter(s => s.type === 'lesson').length - classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0)} Extra Slot(s)`
-                      : `${classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0) - schedule.filter(s => s.type === 'lesson').length} Missing Slot(s)`
-                    }
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <button
-                onClick={() => navigate('/dashboard/class-subjects')}
-                className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-colors"
+      <div className="bg-white rounded-[48px] shadow-sm border border-slate-100 p-8">
+        <div className="flex flex-col md:flex-row gap-6 items-center justify-between mb-10 border-b border-slate-50 pb-8">
+          {user?.role !== 'student' && (
+            <div className="w-full md:w-1/3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3 block">Deployment Perspective</label>
+              <select
+                value={selectedClassId}
+                onChange={(e) => setSelectedClassId(e.target.value)}
+                className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-black text-slate-700 uppercase text-[11px] tracking-widest focus:border-primary outline-none transition-all"
               >
-                Manage Subjects
-              </button>
-              <span className="text-[10px] font-bold text-gray-400 italic">Tip: Edit numbers below to change quota</span>
+                <option value="">-- All Units Overview --</option>
+                {classes.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {user?.role === 'parent' ? `${c.studentName} (${c.name} ${c.arm || ''})` : `${c.name} ${c.arm || ''}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="flex items-center gap-4">
+            {selectedClassId && (
+              <div className={`px-6 py-4 rounded-2xl flex items-center gap-3 border-2 ${publishStatus.isPublished ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-amber-50 border-amber-100 text-amber-700'}`}>
+                <div className={`w-2 h-2 rounded-full ${publishStatus.isPublished ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></div>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+                  {publishStatus.isPublished ? 'Public Broadcast' : 'Draft Protocol'}
+                </span>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              {isAdmin && selectedClassId && (
+                <>
+                  <button
+                    onClick={handleGenerate}
+                    disabled={generationLoading}
+                    className="bg-indigo-50 text-indigo-700 px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest border-2 border-indigo-100"
+                  >
+                    Flash Gen Class
+                  </button>
+                  <button
+                    onClick={handlePublishToggle}
+                    className={`px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all border-2 ${publishStatus.isPublished ? 'bg-amber-100 border-amber-200 text-amber-700' : 'bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-200'}`}
+                  >
+                    {publishStatus.isPublished ? 'Revert to Draft' : 'Authorize Live'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingSlotId(null);
+                      setFormData({ dayOfWeek: 'Monday', startTime: '08:00', endTime: '08:40', type: 'lesson', subjectId: '' });
+                      setShowModal(true);
+                    }}
+                    className="bg-primary text-white px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
+                  >
+                    + Manual Add
+                  </button>
+                </>
+              )}
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        </div>
+
+        {/* View Logic */}
+        {isAdmin && !selectedClassId ? (
+          <div className="grid grid-cols-1 gap-6">
+            {classes.map(cls => (
+              <div key={cls.id} className={`bg-white rounded-[32px] transition-all duration-500 ${expandedClasses.has(cls.id) ? 'shadow-2xl ring-2 ring-primary/5' : 'shadow-sm border border-slate-100 hover:border-primary/20 group'}`}>
+                <button onClick={() => toggleClassExpansion(cls.id)} className={`w-full px-10 py-8 flex items-center justify-between outline-none ${expandedClasses.has(cls.id) ? 'border-b border-slate-50' : ''}`}>
+                  <div className="flex items-center gap-8">
+                    <div className={`w-16 h-16 rounded-[24px] flex items-center justify-center font-black text-2xl shadow-inner transition-all transform ${allSchedules[cls.id]?.length > 0 ? 'bg-slate-900 text-white scale-110 -rotate-2' : 'bg-slate-50 text-slate-200'}`}>
+                      {cls.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="text-left">
+                      <div className="flex items-center gap-4 mb-2">
+                        <h3 className="font-black text-slate-800 text-xl leading-none uppercase tracking-tight">{cls.name} {cls.arm || ''}</h3>
+                        {allSchedules[cls.id]?.some(s => s.isPublished) && <span className="bg-emerald-500 text-white text-[8px] px-2.5 py-1 rounded-lg font-black uppercase tracking-widest">Live</span>}
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{allSchedules[cls.id]?.length || 0} Slots Scheduled</span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">|</span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{new Set(allSchedules[cls.id]?.filter(s => s.subjectId).map(s => s.subjectId)).size} Subjects Active</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${expandedClasses.has(cls.id) ? 'bg-primary text-white rotate-180 shadow-lg shadow-primary/20' : 'bg-slate-50 text-slate-300 group-hover:bg-slate-100 group-hover:text-primary group-hover:scale-110'}`}>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+                </button>
+                {expandedClasses.has(cls.id) && (
+                  <div className="p-10 bg-slate-50/10 border-t border-slate-50 animate-in fade-in duration-500">
+                    {renderTimetableGrid(allSchedules[cls.id] || [], cls.id)}
+                    <div className="mt-8 flex gap-4 pt-6 border-t border-slate-100">
+                      <button onClick={(e) => { e.stopPropagation(); handleDownload(allSchedules[cls.id] || [], cls.id); }} className="bg-white border text-slate-600 px-6 py-3 rounded-2xl font-black uppercase text-[9px] tracking-widest hover:bg-slate-50 transition-all shadow-sm">Export Registry</button>
+                      <button onClick={() => { setSourceDay('Monday'); setSelectedClassId(cls.id); setShowDaySyncModal(true); }} className="text-[9px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-700 pl-4 border-l border-slate-200">Replicate Structure</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="animate-in fade-in duration-500">
+            {selectedClassId ? (
+              <div className="relative">
+                {renderTimetableGrid(schedule, selectedClassId)}
+                <div className="mt-10 flex justify-between items-center border-t border-slate-100 pt-8">
+                  <div className="flex gap-4">
+                    <button onClick={handleResetClass} className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:underline">Reset Unit Registry</button>
+                    <button onClick={() => setShowSyncModal(true)} className="text-[10px] font-black uppercase tracking-widest text-purple-600 hover:underline pl-4 border-l border-slate-200">Replicate to multiple targets</button>
+                  </div>
+                  <button onClick={handleDownload} className="bg-slate-50 text-slate-600 px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-900 hover:text-white transition-all border border-slate-100">Standard Export</button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-40 bg-slate-50 rounded-[60px] border-2 border-dashed border-slate-100">
+                <h3 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight italic">Terminal Ready</h3>
+                <p className="text-slate-400 font-black text-[11px] max-w-xs mx-auto uppercase tracking-[0.3em]">Select a deployment unit to initiate visualization.</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Analytics: Quota Utilization */}
+      {isAdmin && selectedClassId && classSubjects.length > 0 && (
+        <div className="mt-12 bg-white rounded-[40px] shadow-sm border border-slate-100 p-10">
+          <div className="flex justify-between items-center mb-10">
+            <div>
+              <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight mb-2">Subject Quota Analytics</h2>
+              <div className="flex items-center gap-6">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Structure: <span className="text-slate-900">{schedule.filter(s => s.type === 'lesson').length} Slots</span></span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Allocation: <span className="text-slate-900">{classSubjects.reduce((acc, cs) => acc + (cs.periodsPerWeek || 0), 0)} Periods</span></span>
+              </div>
+            </div>
+            <button onClick={() => navigate('/dashboard/class-subjects')} className="bg-slate-50 text-slate-400 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-900 hover:text-white transition-all">Configure Syllabus</button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {classSubjects.map(cs => {
               const used = schedule.filter(s => s.subjectId === cs.subjectId && s.type === 'lesson').length;
               const quota = cs.periodsPerWeek || 0;
@@ -1097,36 +991,33 @@ const Timetable = () => {
               const isUnder = used < quota;
 
               return (
-                <div key={cs.id} className={`p-3 rounded-lg border flex flex-col justify-between ${isOver ? 'bg-red-50 border-red-200' : isUnder ? 'bg-orange-50 border-orange-100' : 'bg-green-50 border-green-200'}`}>
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="font-bold text-gray-900 truncate pr-2">{cs.subject.name}</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] font-black text-gray-400 uppercase">Usage:</span>
-                      <span className={`text-xs font-black uppercase px-2 py-0.5 rounded ${isOver ? 'bg-red-200 text-red-700' : isUnder ? 'bg-orange-200 text-orange-700' : 'bg-green-200 text-green-700'}`}>
-                        {used} / {quota}
-                      </span>
-                    </div>
+                <div key={cs.id} className={`p-6 rounded-[32px] border-2 transition-all ${isOver ? 'bg-red-50/30 border-red-100' : isUnder ? 'bg-amber-50/30 border-amber-100' : 'bg-emerald-50/30 border-emerald-100'}`}>
+                  <div className="flex justify-between items-start mb-6">
+                    <span className="font-black text-slate-800 uppercase text-[11px] tracking-tight truncate pr-4">{cs.subject.name}</span>
+                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${isOver ? 'bg-red-500 text-white' : isUnder ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                      {used}/{quota}
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-2 bg-white/50 p-1.5 rounded-lg border border-black/5 mb-3">
-                    <label className="text-[10px] font-black text-gray-500 uppercase flex-1">Weekly Quota</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="40"
-                      value={cs.periodsPerWeek || 0}
-                      onChange={(e) => handleUpdatePeriods(cs.id, parseInt(e.target.value) || 0)}
-                      className="w-12 text-center bg-white border rounded text-xs font-black py-0.5 focus:ring-1 focus:ring-primary outline-none"
-                    />
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex-1">Weekly Target</label>
+                      <input
+                        type="number"
+                        value={cs.periodsPerWeek || 0}
+                        onChange={(e) => handleUpdatePeriods(cs.id, parseInt(e.target.value) || 0)}
+                        className="w-10 text-center bg-transparent font-black text-slate-900 outline-none"
+                      />
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-700 ${isOver ? 'bg-red-500' : isUnder ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                        style={{ width: `${Math.min((used / (quota || 1)) * 100, 100)}%` }}
+                      ></div>
+                    </div>
+                    {isOver && <p className="text-[9px] text-red-500 font-black uppercase tracking-widest animate-bounce">⚠️ OVER-CAPACITY: {used - quota} Slots</p>}
+                    {isUnder && quota > 0 && <p className="text-[9px] text-amber-500 font-black uppercase tracking-widest">⏳ UNDER-CAPACITY: {quota - used} Slots</p>}
                   </div>
-                  <div className="mt-2 w-full bg-black/10 h-1.5 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-500 ${isOver ? 'bg-red-500' : isUnder ? 'bg-orange-500' : 'bg-green-500'}`}
-                      style={{ width: `${Math.min((used / (quota || 1)) * 100, 100)}%` }}
-                    ></div>
-                  </div>
-                  {isOver && <p className="text-[10px] text-red-600 font-bold mt-1">⚠️ {used - quota} extra session(s)</p>}
-                  {isUnder && quota > 0 && <p className="text-[10px] text-orange-600 font-bold mt-1">⏳ {quota - used} more needed</p>}
                 </div>
               );
             })}
@@ -1134,96 +1025,85 @@ const Timetable = () => {
         </div>
       )}
 
-      {/* Add Modal (Admin Only) */}
+      {/* Deployment Modals (Add Slot) */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-bold mb-4">Add Timetable Slot</h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+          <div className="bg-white rounded-[40px] shadow-2xl p-10 w-full max-w-xl border border-slate-100 animate-in zoom-in-95 duration-500">
+            <div className="flex justify-between items-start mb-10">
               <div>
-                <label className="block text-sm font-medium mb-1">Day</label>
-                <select
-                  value={formData.dayOfWeek}
-                  onChange={e => setFormData({ ...formData, dayOfWeek: e.target.value })}
-                  className="w-full border rounded px-3 py-2"
-                >
-                  {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
+                <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-2">Configure Slot</h3>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Initialize Temporal Parameters</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Start Time</label>
+              <button onClick={() => setShowModal(false)} className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 hover:text-red-500 transition-all text-2xl font-black">&times;</button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Temporal Unit (Day)</label>
+                  <select
+                    value={formData.dayOfWeek}
+                    onChange={e => setFormData({ ...formData, dayOfWeek: e.target.value })}
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-slate-700 outline-none focus:border-primary transition-all"
+                  >
+                    {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Interaction Type</label>
+                  <select
+                    value={formData.type}
+                    onChange={e => setFormData({ ...formData, type: e.target.value })}
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-slate-700 outline-none focus:border-primary transition-all"
+                  >
+                    <option value="lesson">Lesson</option>
+                    <option value="assembly">Assembly</option>
+                    <option value="short_break">Short Break</option>
+                    <option value="long_break">Long Break</option>
+                    <option value="prayer">Prayer</option>
+                    <option value="prep">Prep</option>
+                    <option value="games">Games</option>
+                    <option value="extra-curricular">Extra-curricular</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Start Phase</label>
                   <input
                     type="time"
                     value={formData.startTime}
                     onChange={e => setFormData({ ...formData, startTime: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-slate-700 outline-none focus:border-primary transition-all"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">End Time</label>
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">End Phase</label>
                   <input
                     type="time"
                     value={formData.endTime}
                     onChange={e => setFormData({ ...formData, endTime: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-slate-700 outline-none focus:border-primary transition-all"
                   />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Type</label>
-                <div className="flex flex-wrap gap-4">
-                  <label className="flex items-center">
-                    <input type="radio" name="type" value="lesson" checked={formData.type === 'lesson'} onChange={() => setFormData({ ...formData, type: 'lesson' })} />
-                    <span className="ml-2">Lesson</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input type="radio" name="type" value="assembly" checked={formData.type === 'assembly'} onChange={() => setFormData({ ...formData, type: 'assembly' })} />
-                    <span className="ml-2 font-bold text-purple-700">Assembly</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input type="radio" name="type" value="short_break" checked={formData.type === 'short_break'} onChange={() => setFormData({ ...formData, type: 'short_break' })} />
-                    <span className="ml-2 text-orange-600">Short Break</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input type="radio" name="type" value="long_break" checked={formData.type === 'long_break'} onChange={() => setFormData({ ...formData, type: 'long_break' })} />
-                    <span className="ml-2 text-orange-800">Long Break</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input type="radio" name="type" value="prayer" checked={formData.type === 'prayer'} onChange={() => setFormData({ ...formData, type: 'prayer' })} />
-                    <span className="ml-2 font-bold text-green-800">Prayer</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input type="radio" name="type" value="prep" checked={formData.type === 'prep'} onChange={() => setFormData({ ...formData, type: 'prep' })} />
-                    <span className="ml-2 font-bold text-sky-700">Prep</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input type="radio" name="type" value="games" checked={formData.type === 'games'} onChange={() => setFormData({ ...formData, type: 'games' })} />
-                    <span className="ml-2 font-bold text-yellow-600">Games</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input type="radio" name="type" value="extra-curricular" checked={formData.type === 'extra-curricular'} onChange={() => setFormData({ ...formData, type: 'extra-curricular' })} />
-                    <span className="ml-2 font-bold text-teal-700">Extra-curricular</span>
-                  </label>
                 </div>
               </div>
 
               {formData.type === 'lesson' && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Subject</label>
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Subject Assignment</label>
                   <select
                     value={formData.subjectId}
                     onChange={e => setFormData({ ...formData, subjectId: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-bold text-slate-700 outline-none focus:border-primary transition-all"
                   >
-                    <option value="">-- [Leave Empty for Generation] --</option>
+                    <option value="">-- Auto-Generation Buffer --</option>
                     {classSubjects.map(cs => {
                       const used = schedule.filter(s => s.subjectId === cs.subjectId && s.type === 'lesson').length;
                       const quota = cs.periodsPerWeek || 0;
-                      const isFull = used >= quota && quota > 0;
                       return (
                         <option key={cs.id} value={cs.subjectId}>
-                          {cs.subject.name} ({used}/{quota} {isFull ? '✅' : '⏳'})
+                          {cs.subject.name} ({used}/{quota} Units)
                         </option>
                       );
                     })}
@@ -1231,116 +1111,141 @@ const Timetable = () => {
                 </div>
               )}
 
-              <div className="flex justify-end gap-2 mt-6">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border rounded hover:bg-gray-50">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-primary text-white rounded hover:brightness-90">Save Slot</button>
+              <div className="flex gap-4 pt-4">
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-slate-50 text-slate-400 px-8 py-5 rounded-[24px] font-black uppercase text-[11px] tracking-widest hover:bg-slate-100 transition-all">Abort</button>
+                <button type="submit" className="flex-[2] bg-primary text-white px-8 py-5 rounded-[24px] font-black uppercase text-[11px] tracking-widest shadow-2xl shadow-primary/30 hover:brightness-110 transition-all">Commit Configuration</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Sync Modal (Admin Only) */}
+      {/* Synchronize Blueprint Modal */}
       {showSyncModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Sync Schedule Structure</h3>
-            <p className="text-gray-500 mb-6 text-sm">
-              Select classes to adopt the time slots and breaks from <strong>{classes.find(c => c.id === parseInt(selectedClassId))?.name}</strong>. Existing timetables in target classes will be replaced.
-            </p>
-
-            <div className="max-h-60 overflow-y-auto border rounded-xl p-3 space-y-2 mb-6">
-              {classes.map(c => {
-                if (c.id === parseInt(selectedClassId)) return null;
-                return (
-                  <label key={c.id} className="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 text-purple-600 rounded"
-                      checked={targetClassIds.includes(c.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) setTargetClassIds([...targetClassIds, c.id]);
-                        else setTargetClassIds(targetClassIds.filter(id => id !== c.id));
-                      }}
-                    />
-                    <span className="ml-3 font-semibold text-gray-700">{c.name} {c.arm}</span>
-                  </label>
-                );
-              })}
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+          <div className="bg-white rounded-[40px] shadow-2xl p-10 w-full max-w-xl border border-slate-100 animate-in zoom-in-95 duration-500">
+            <div className="flex justify-between items-start mb-8">
+              <div>
+                <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-2">Global Sync</h3>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Propagating structure across units</p>
+              </div>
+              <button onClick={() => setShowSyncModal(false)} className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 hover:text-red-500 transition-all text-2xl font-black">&times;</button>
             </div>
 
-            <div className="flex justify-between gap-3">
+            <p className="text-slate-500 font-bold text-sm mb-8 leading-relaxed">Select target units to adopt the temporal framework from <span className="text-primary">{classes.find(c => c.id === parseInt(selectedClassId))?.name}</span>.</p>
+
+            <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto mb-10 pr-2 custom-scrollbar">
+              {classes.filter(c => c.id !== parseInt(selectedClassId)).map(c => (
+                <label key={c.id} className={`flex items-center p-4 rounded-2xl border-2 transition-all cursor-pointer ${targetClassIds.includes(c.id) ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-slate-50 hover:border-slate-100'}`}>
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={targetClassIds.includes(c.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) setTargetClassIds([...targetClassIds, c.id]);
+                      else setTargetClassIds(targetClassIds.filter(id => id !== c.id));
+                    }}
+                  />
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${targetClassIds.includes(c.id) ? 'text-indigo-600' : 'text-slate-400'}`}>{c.name} {c.arm}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex gap-4">
               <button
                 onClick={() => {
                   const allOtherIds = classes.filter(c => c.id !== parseInt(selectedClassId)).map(c => c.id);
                   setTargetClassIds(targetClassIds.length === allOtherIds.length ? [] : allOtherIds);
                 }}
-                className="text-xs font-black uppercase text-purple-600 tracking-widest hover:underline"
+                className="flex-1 bg-slate-50 text-slate-400 px-8 py-5 rounded-[24px] font-black uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-all"
               >
-                {targetClassIds.length === classes.length - 1 ? 'Deselect All' : 'Select All Classes'}
+                Toggle Universe
               </button>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowSyncModal(false)}
-                  className="px-4 py-2 border rounded-xl font-bold bg-gray-50 hover:bg-gray-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSync}
-                  disabled={syncLoading || targetClassIds.length === 0}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-lg shadow-purple-200 hover:brightness-110 disabled:opacity-50 transition-all"
-                >
-                  {syncLoading ? 'Syncing...' : 'Sync Structure'}
-                </button>
-              </div>
+              <button
+                onClick={handleSync}
+                disabled={syncLoading || targetClassIds.length === 0}
+                className="flex-[2] bg-indigo-600 text-white px-8 py-5 rounded-[24px] font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-indigo-200 hover:brightness-110 disabled:opacity-50 transition-all"
+              >
+                {syncLoading ? 'Syncing...' : 'Initiate Propagation'}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Day Sync Modal (Admin Only) */}
+      {/* Temporal Port Modal (Day Sync) */}
       {showDaySyncModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
-            <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Copy {sourceDay} Structure</h3>
-            <p className="text-gray-500 mb-6 text-sm font-medium">
-              Copy all time periods and breaks from <strong>{sourceDay}</strong> to these days:
-            </p>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+          <div className="bg-white rounded-[40px] shadow-2xl p-10 w-full max-w-lg border border-slate-100 animate-in zoom-in-95 duration-500">
+            <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-2">Phase Mirror</h3>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-10">Replicating {sourceDay} Parameters</p>
 
-            <div className="space-y-2 mb-6">
-              {DAYS.map(day => {
-                if (day === sourceDay) return null;
-                return (
-                  <label key={day} className="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors border">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 text-primary rounded"
-                      checked={targetDays.includes(day)}
-                      onChange={(e) => {
-                        if (e.target.checked) setTargetDays([...targetDays, day]);
-                        else setTargetDays(targetDays.filter(d => d !== day));
-                      }}
-                    />
-                    <span className="ml-3 font-bold text-gray-700">{day}</span>
-                  </label>
-                );
-              })}
+            <div className="grid grid-cols-2 gap-4 mb-10">
+              {DAYS.filter(day => day !== sourceDay).map(day => (
+                <label key={day} className={`flex items-center p-4 rounded-2xl border-2 transition-all cursor-pointer ${targetDays.includes(day) ? 'bg-primary/10 border-primary' : 'bg-slate-50 border-slate-50 hover:border-slate-100'}`}>
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={targetDays.includes(day)}
+                    onChange={(e) => {
+                      if (e.target.checked) setTargetDays([...targetDays, day]);
+                      else setTargetDays(targetDays.filter(d => d !== day));
+                    }}
+                  />
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${targetDays.includes(day) ? 'text-primary' : 'text-slate-400'}`}>{day}</span>
+                </label>
+              ))}
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex gap-4">
+              <button onClick={() => setShowDaySyncModal(false)} className="flex-1 bg-slate-50 text-slate-400 px-8 py-5 rounded-[24px] font-black uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-all">Cancel</button>
+              <button onClick={handleDaySync} disabled={daySyncLoading || targetDays.length === 0} className="flex-[2] bg-primary text-white px-8 py-5 rounded-[24px] font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-primary/30 hover:brightness-110 disabled:opacity-50 transition-all">Confirm Mirror</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Optimization Intelligence Reports (Conflict Report Modal) */}
+      {generationReport && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-[110] animate-in fade-in duration-500">
+          <div className="bg-white rounded-[50px] shadow-2xl p-12 w-full max-w-2xl border border-slate-100 animate-in slide-in-from-bottom-10 duration-700">
+            <div className="flex justify-between items-start mb-10">
+              <div>
+                <h3 className="text-4xl font-black text-slate-900 uppercase tracking-tighter mb-2">System Diagnostics</h3>
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] font-medium">Generation Integrity Report</p>
+              </div>
+              <button onClick={() => setGenerationReport(null)} className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 hover:text-red-500 transition-all text-3xl font-black">&times;</button>
+            </div>
+
+            <div className={`p-6 rounded-[32px] mb-8 font-bold text-sm leading-relaxed ${generationReport.conflicts?.length > 0 ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
+              {generationReport.message}
+            </div>
+
+            {generationReport.conflicts?.length > 0 && (
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
+                {generationReport.conflicts.map((c, i) => (
+                  <div key={i} className="bg-slate-50 rounded-[32px] p-8 border border-slate-100">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="bg-white px-4 py-2 rounded-xl text-[10px] font-black text-slate-900 uppercase tracking-widest shadow-sm">{c.day} | {c.time}</span>
+                      {c.class && <span className="text-primary font-black uppercase text-[10px] tracking-widest">Unit: {c.class}</span>}
+                    </div>
+                    <p className="text-slate-600 font-bold mb-4 leading-relaxed">{c.reason}</p>
+                    {c.solution && (
+                      <div className="bg-indigo-600 text-white rounded-2xl p-4 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100">
+                        Recommendation: {c.solution}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-10 pt-8 border-t border-slate-50">
               <button
-                onClick={() => setShowDaySyncModal(false)}
-                className="px-4 py-2 border rounded-xl font-bold bg-gray-50 hover:bg-gray-100"
+                onClick={() => setGenerationReport(null)}
+                className="w-full bg-slate-900 text-white px-8 py-5 rounded-[24px] font-black uppercase text-[11px] tracking-widest shadow-2xl shadow-slate-200 hover:scale-[1.02] transition-all"
               >
-                Cancel
-              </button>
-              <button
-                onClick={handleDaySync}
-                disabled={daySyncLoading || targetDays.length === 0}
-                className="px-6 py-2 bg-primary text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/20 hover:brightness-110 disabled:opacity-50 transition-all"
-              >
-                {daySyncLoading ? 'Copying...' : 'Confirm Copy'}
+                Acknowledge & Close Diagnostics
               </button>
             </div>
           </div>
