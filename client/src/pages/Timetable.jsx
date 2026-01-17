@@ -401,6 +401,7 @@ const Timetable = () => {
     printWindow.document.write('.short_break { background-color: #ffedd5; }');
     printWindow.document.write('.long_break { background-color: #fed7aa; }');
     printWindow.document.write('.prayer { background-color: #dcfce7; }');
+    printWindow.document.write('.prep { background-color: #e0f2fe; }');
     printWindow.document.write('.assembly { background-color: #e9d5ff; }');
     printWindow.document.write('.lesson { background-color: #dbeafe; }');
     printWindow.document.write('</style></head><body>');
@@ -432,12 +433,14 @@ const Timetable = () => {
           if (slot.type === 'short_break') cssClass = 'short_break';
           if (slot.type === 'long_break') cssClass = 'long_break';
           if (slot.type === 'prayer') cssClass = 'prayer';
+          if (slot.type === 'prep') cssClass = 'prep';
           if (slot.type === 'assembly') cssClass = 'assembly';
 
           let content = slot.subject?.name || '-';
           if (slot.type === 'short_break') content = 'Short Break';
           if (slot.type === 'long_break') content = 'Long Break';
           if (slot.type === 'prayer') content = 'Prayer';
+          if (slot.type === 'prep') content = 'Prep';
           if (slot.type === 'assembly') content = 'Assembly';
 
           printWindow.document.write('<td class="' + cssClass + '">' + content + '</td>');
@@ -706,8 +709,9 @@ const Timetable = () => {
                   {scheduleByDay[day]?.map(slot => (
                     <div key={slot.id} className={`p-2 rounded border text-sm relative group ${slot.type === 'short_break' || slot.type === 'long_break' ? 'bg-orange-50 border-orange-200' :
                       slot.type === 'prayer' ? 'bg-green-50 border-green-200' :
-                        slot.type === 'assembly' ? 'bg-purple-50 border-purple-200' :
-                          'bg-blue-50 border-blue-200'
+                        slot.type === 'prep' ? 'bg-sky-50 border-sky-200' :
+                          slot.type === 'assembly' ? 'bg-purple-50 border-purple-200' :
+                            'bg-blue-50 border-blue-200'
                       }`}>
                       <div className="font-semibold text-gray-900 text-xs">
                         {slot.startTime} - {slot.endTime}
@@ -716,8 +720,9 @@ const Timetable = () => {
                         {slot.type === 'short_break' ? '☕ Short Break' :
                           slot.type === 'long_break' ? '🍴 Long Break' :
                             slot.type === 'prayer' ? '🕌 Prayer' :
-                              slot.type === 'assembly' ? '📢 Assembly' :
-                                (slot.subject?.name || 'Empty Slot')}
+                              slot.type === 'prep' ? '📚 Prep' :
+                                slot.type === 'assembly' ? '📢 Assembly' :
+                                  (slot.subject?.name || 'Empty Slot')}
                       </div>
                       {slot.teacher && (
                         <div className="text-[10px] text-primary font-semibold mt-1 flex items-center gap-1">
@@ -901,6 +906,10 @@ const Timetable = () => {
                   <label className="flex items-center">
                     <input type="radio" name="type" value="prayer" checked={formData.type === 'prayer'} onChange={() => setFormData({ ...formData, type: 'prayer' })} />
                     <span className="ml-2 font-bold text-green-700">Prayer</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input type="radio" name="type" value="prep" checked={formData.type === 'prep'} onChange={() => setFormData({ ...formData, type: 'prep' })} />
+                    <span className="ml-2 font-bold text-sky-700">Prep</span>
                   </label>
                 </div>
               </div>
