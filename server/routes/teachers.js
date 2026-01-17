@@ -33,6 +33,19 @@ const upload = multer({
   }
 });
 
+// Get all teachers (Admin Only)
+router.get('/', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const teachers = await prisma.teacher.findMany({
+      where: { schoolId: req.schoolId },
+      include: { user: true }
+    });
+    res.json(teachers);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch teachers' });
+  }
+});
+
 // Update teacher profile
 router.put('/profile', authenticate, authorize(['teacher']), upload.single('photo'), async (req, res) => {
   try {

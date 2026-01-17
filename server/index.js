@@ -141,6 +141,7 @@ app.use('/api/news-events', require('./routes/news-events')); // News & Events
 app.use('/api/promotion', require('./routes/promotion')); // Student Promotions & Graduation
 app.use('/api/alumni', require('./routes/alumni'));
 app.use('/api/audit', require('./routes/audit'));
+app.use('/api/teacher-availability', require('./routes/teacher-availability'));
 app.use('/api/superadmin', require('./routes/superadmin'));
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {

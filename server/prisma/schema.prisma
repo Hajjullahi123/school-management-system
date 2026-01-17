@@ -98,6 +98,7 @@ model School {
   homeworks             Homework[]
   learningResources     LearningResource[]
   feeRecords            FeeRecord[]
+  teacherAvailabilities TeacherAvailability[]
   feePayments           FeePayment[]
   examCards             ExamCard[]
   classFeeStructures    ClassFeeStructure[]
@@ -246,8 +247,24 @@ model Teacher {
   
   school         School   @relation(fields: [schoolId], references: [id])
   user           User     @relation(fields: [userId], references: [id])
+  availabilities TeacherAvailability[]
 
   @@unique([schoolId, staffId])
+}
+
+model TeacherAvailability {
+  id          Int      @id @default(autoincrement())
+  schoolId    Int
+  teacherId   Int
+  dayOfWeek   String
+  startTime   String?  // e.g. "08:00"
+  endTime     String?  // e.g. "12:00"
+  isAvailable Boolean  @default(false) // If false, they are UN-available during this time
+  
+  school      School   @relation(fields: [schoolId], references: [id])
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
+
+  @@index([schoolId, teacherId])
 }
 
 model AcademicSession {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSchoolSettings } from '../hooks/useSchoolSettings';
@@ -18,6 +18,8 @@ const Timetable = () => {
   const [schedule, setSchedule] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [classSubjects, setClassSubjects] = useState([]);
+  const [allSchedules, setAllSchedules] = useState({}); // { classId: schedule[] }
+  const [expandedClasses, setExpandedClasses] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [publishStatus, setPublishStatus] = useState({ isPublished: false, hasSlots: false });
   const [generationLoading, setGenerationLoading] = useState(false);
@@ -46,6 +48,9 @@ const Timetable = () => {
   useEffect(() => {
     fetchClasses();
     fetchSubjects();
+    if (isAdmin) {
+      fetchAllTimetables();
+    }
     if (user?.role === 'student' && user?.student?.classId) {
       setSelectedClassId(user.student.classId);
     } else if (user?.role === 'parent' && user?.parent?.students?.length > 0) {
@@ -86,12 +91,31 @@ const Timetable = () => {
     try {
       const response = await api.get('/api/classes');
       if (response.ok) {
-        setClasses(await response.json());
+        const data = await response.json();
+        setClasses(data);
+        if (isAdmin) {
+          setExpandedClasses(new Set(data.map(c => c.id)));
+        }
       }
     } catch (e) {
       console.error(e);
       toast.error('Failed to load classes');
     }
+  };
+
+  const fetchAllTimetables = async () => {
+    try {
+      const response = await api.get('/api/timetable/all');
+      if (response.ok) {
+        const data = await response.json();
+        const grouped = data.reduce((acc, slot) => {
+          if (!acc[slot.classId]) acc[slot.classId] = [];
+          acc[slot.classId].push(slot);
+          return acc;
+        }, {});
+        setAllSchedules(grouped);
+      }
+    } catch (e) { console.error(e); }
   };
 
   const fetchSubjects = async () => {
@@ -140,6 +164,25 @@ const Timetable = () => {
         setClassSubjects(await response.json());
       }
     } catch (e) { console.error(e); }
+  };
+
+  const toggleClassExpansion = (classId) => {
+    setExpandedClasses(prev => {
+      const next = new Set(prev);
+      if (next.has(classId)) {
+        next.delete(classId);
+      } else {
+        next.add(classId);
+      }
+      return next;
+    });
+  };
+
+  const getScheduleByDay = (targetSchedule) => {
+    return DAYS.reduce((acc, day) => {
+      acc[day] = targetSchedule.filter(s => s.dayOfWeek === day).sort((a, b) => a.startTime.localeCompare(b.startTime));
+      return acc;
+    }, {});
   };
 
   const handleDelete = async (id) => {
@@ -245,6 +288,8 @@ const Timetable = () => {
       setEditingSlotId(null);
       fetchTimetable();
       fetchPublishStatus();
+      if (isAdmin) fetchAllTimetables(); // Sync the overview cards
+
       toast.success(editingSlotId ? 'Slot updated' : 'New slot added');
       setFormData({
         dayOfWeek: 'Monday',
@@ -275,6 +320,7 @@ const Timetable = () => {
         toast.success(`Schedule synced to ${targetClassIds.length} classes!`);
         setShowSyncModal(false);
         setTargetClassIds([]);
+        if (isAdmin) fetchAllTimetables(); // Refresh overview cards
       } else {
         const error = await response.json();
         toast.error(error.error || 'Sync failed');
@@ -429,8 +475,10 @@ const Timetable = () => {
     }
   };
 
-  const handleDownload = () => {
-    const selectedClass = classes.find(c => c.id === parseInt(selectedClassId));
+  const handleDownload = (providedSchedule = null, providedClassId = null) => {
+    const scheduleToUse = providedSchedule || schedule;
+    const classIdToUse = providedClassId || selectedClassId;
+    const selectedClass = classes.find(c => c.id === parseInt(classIdToUse));
     const className = selectedClass ? `${selectedClass.name} ${selectedClass.arm || ''}` : 'Class';
 
     // Create printable content
@@ -466,14 +514,14 @@ const Timetable = () => {
     printWindow.document.write('</tr></thead><tbody>');
 
     // Get all unique time slots
-    const timeSlots = [...new Set(schedule.map(s => `${s.startTime}-${s.endTime}`))].sort();
+    const timeSlots = [...new Set(scheduleToUse.map(s => `${s.startTime}-${s.endTime}`))].sort();
 
     timeSlots.forEach(timeSlot => {
       printWindow.document.write('<tr>');
       printWindow.document.write('<td><strong>' + timeSlot + '</strong></td>');
 
       DAYS.forEach(day => {
-        const slot = schedule.find(s => s.dayOfWeek === day && `${s.startTime}-${s.endTime}` === timeSlot);
+        const slot = scheduleToUse.find(s => s.dayOfWeek === day && `${s.startTime}-${s.endTime}` === timeSlot);
         if (slot) {
           let cssClass = 'lesson';
           if (slot.type === 'short_break') cssClass = 'short_break';
@@ -509,11 +557,150 @@ const Timetable = () => {
     printWindow.print();
   };
 
+  const renderTimetableGrid = (targetSchedule, targetClassId, isOverview = false) => {
+    const slotsByDay = getScheduleByDay(targetSchedule);
+
+    if (targetSchedule.length === 0) {
+      return (
+        <div className="text-center py-10 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+          <div className="text-gray-400 mb-2 font-medium">No slots defined for this class yet</div>
+          {isAdmin && (
+            <button
+              onClick={() => {
+                setSelectedClassId(targetClassId);
+                setEditingSlotId(null);
+                setFormData({
+                  dayOfWeek: 'Monday',
+                  startTime: '08:00',
+                  endTime: '08:40',
+                  type: 'lesson',
+                  subjectId: ''
+                });
+                setShowModal(true);
+              }}
+              className="text-primary hover:underline font-bold text-sm bg-primary/5 px-3 py-1 rounded"
+            >
+              + Create Timeline
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        {DAYS.map(day => (
+          <div key={day} className="bg-white rounded-lg shadow-sm border border-gray-100 flex flex-col h-full overflow-hidden">
+            <div className="p-2 bg-slate-50 border-b font-bold text-center text-slate-700 text-xs uppercase tracking-wider flex justify-between items-center group/header">
+              <span className="flex-1 text-center">{day}</span>
+              {isAdmin && (
+                <div className="flex gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSourceDay(day);
+                      setSelectedClassId(targetClassId);
+                      setTargetDays(DAYS.filter(d => d !== day));
+                      setShowDaySyncModal(true);
+                    }}
+                    title={`Copy ${day}'s structure to other days`}
+                    className="p-1 hover:bg-slate-200 rounded transition-colors text-slate-500"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedClassId(targetClassId);
+                      handleResetDay(day);
+                    }}
+                    title={`Reset ${day}`}
+                    className="p-1 hover:bg-red-50 rounded transition-colors text-red-400"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="p-2 space-y-1.5 flex-1 min-h-[80px]">
+              {slotsByDay[day]?.length === 0 && (
+                <p className="text-[9px] text-gray-300 text-center py-4 italic">Free Period</p>
+              )}
+              {slotsByDay[day]?.map(slot => (
+                <div key={slot.id} className={`p-2 rounded border text-[11px] relative group transition-all hover:shadow-sm ${slot.type === 'short_break' || slot.type === 'long_break' ? 'bg-orange-50 border-orange-100' :
+                  slot.type === 'prayer' ? 'bg-emerald-600 border-emerald-700 text-white' :
+                    slot.type === 'prep' ? 'bg-sky-50 border-sky-100' :
+                      slot.type === 'games' ? 'bg-yellow-50 border-yellow-100' :
+                        slot.type === 'extra-curricular' ? 'bg-teal-50 border-teal-100' :
+                          slot.type === 'assembly' ? 'bg-purple-50 border-purple-100' :
+                            'bg-blue-50 border-blue-100'
+                  }`}>
+                  <div className={`font-bold ${slot.type === 'prayer' ? 'text-white' : 'text-slate-900'} mb-0.5`}>
+                    {slot.startTime} - {slot.endTime}
+                  </div>
+                  <div className={`font-semibold ${slot.type === 'prayer' ? 'text-emerald-50' : 'text-slate-600'} line-clamp-1`}>
+                    {slot.type === 'short_break' ? '☕ Short Break' :
+                      slot.type === 'long_break' ? '🍴 Long Break' :
+                        slot.type === 'prayer' ? '🕌 Prayer' :
+                          slot.type === 'prep' ? '📚 Prep' :
+                            slot.type === 'games' ? '⚽ Games' :
+                              slot.type === 'extra-curricular' ? '🌟 Extra-curricular' :
+                                slot.type === 'assembly' ? '📢 Assembly' :
+                                  (slot.subject?.name || 'Empty Slot')}
+                  </div>
+                  {slot.teacher && (
+                    <div className={`text-[9px] ${slot.type === 'prayer' ? 'text-emerald-100' : 'text-primary'} font-bold mt-1.5 flex items-center gap-1 opacity-90`}>
+                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      {slot.teacher.firstName} {slot.teacher.lastName}
+                    </div>
+                  )}
+
+                  {isAdmin && (
+                    <div className="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedClassId(targetClassId);
+                          handleEdit(slot);
+                        }}
+                        className="bg-white text-blue-500 hover:text-blue-700 rounded shadow-sm border p-1"
+                        title="Edit"
+                      >
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(slot.id);
+                        }}
+                        className="bg-white text-red-500 hover:text-red-700 rounded shadow-sm border p-1"
+                        title="Delete"
+                      >
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   // Group by Day
-  const scheduleByDay = DAYS.reduce((acc, day) => {
-    acc[day] = schedule.filter(s => s.dayOfWeek === day).sort((a, b) => a.startTime.localeCompare(b.startTime));
-    return acc;
-  }, {});
+  const scheduleByDay = getScheduleByDay(schedule);
 
   return (
     <div className="space-y-6">
@@ -631,6 +818,16 @@ const Timetable = () => {
                   <span>Auto-Gen All</span>
                 </div>
               </button>
+              <Link
+                to="/dashboard/teacher-availability"
+                className="bg-orange-100 text-orange-700 px-4 py-2 rounded-md hover:bg-orange-200 font-bold text-[10px] uppercase tracking-wider flex items-center gap-2"
+                title="Manage teacher off-duty periods"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Off-Duty
+              </Link>
               <button
                 onClick={handleResetAll}
                 className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 font-black uppercase text-[10px] tracking-widest flex items-center gap-2"
@@ -737,145 +934,122 @@ const Timetable = () => {
       )}
 
       {/* Grid View */}
-      {selectedClassId ? (
-        schedule.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {DAYS.map(day => (
-              <div key={day} className="bg-white rounded-lg shadow flex flex-col h-full">
-                <div className="p-3 bg-gradient-to-r from-primary to-primary/90 border-b font-bold text-center text-white rounded-t-lg flex justify-between items-center group/header">
-                  <span className="flex-1">{day}</span>
-                  {isAdmin && schedule.length > 0 && (
-                    <div className="flex gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => {
-                          setSourceDay(day);
-                          setTargetDays(DAYS.filter(d => d !== day));
-                          setShowDaySyncModal(true);
-                        }}
-                        title={`Copy ${day}'s structure to other days`}
-                        className="p-1 hover:bg-white/20 rounded transition-colors text-white"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleResetDay(day)}
-                        title={`Reset ${day}`}
-                        className="p-1 hover:bg-red-500/20 rounded transition-colors text-red-100"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <div className="p-2 space-y-2 flex-1 min-h-[200px]">
-                  {scheduleByDay[day]?.length === 0 && (
-                    <p className="text-xs text-gray-400 text-center py-4">No classes</p>
-                  )}
-                  {scheduleByDay[day]?.map(slot => (
-                    <div key={slot.id} className={`p-2 rounded border text-sm relative group ${slot.type === 'short_break' || slot.type === 'long_break' ? 'bg-orange-50 border-orange-200' :
-                      slot.type === 'prayer' ? 'bg-green-700 border-green-800 text-white' :
-                        slot.type === 'prep' ? 'bg-sky-50 border-sky-200' :
-                          slot.type === 'games' ? 'bg-yellow-50 border-yellow-200' :
-                            slot.type === 'extra-curricular' ? 'bg-teal-50 border-teal-200' :
-                              slot.type === 'assembly' ? 'bg-purple-50 border-purple-200' :
-                                'bg-blue-50 border-blue-200'
-                      }`}>
-                      <div className={`font-semibold text-xs ${slot.type === 'prayer' ? 'text-white' : 'text-gray-900'}`}>
-                        {slot.startTime} - {slot.endTime}
-                      </div>
-                      <div className={`font-medium ${slot.type === 'prayer' ? 'text-green-50' : 'text-gray-700'}`}>
-                        {slot.type === 'short_break' ? '☕ Short Break' :
-                          slot.type === 'long_break' ? '🍴 Long Break' :
-                            slot.type === 'prayer' ? '🕌 Prayer' :
-                              slot.type === 'prep' ? '📚 Prep' :
-                                slot.type === 'games' ? '⚽ Games' :
-                                  slot.type === 'extra-curricular' ? '🌟 Extra-curricular' :
-                                    slot.type === 'assembly' ? '📢 Assembly' :
-                                      (slot.subject?.name || 'Empty Slot')}
-                      </div>
-                      {slot.teacher && (
-                        <div className="text-[10px] text-primary font-semibold mt-1 flex items-center gap-1">
-                          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                          {slot.teacher.firstName} {slot.teacher.lastName}
-                        </div>
-                      )}
-
-                      {isAdmin && (
-                        <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleEdit(slot)}
-                            className="bg-white text-blue-500 hover:text-blue-700 rounded-full w-5 h-5 flex items-center justify-center shadow-sm border"
-                            title="Edit slot"
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(slot.id)}
-                            className="bg-white text-red-500 hover:text-red-700 rounded-full w-5 h-5 flex items-center justify-center shadow-sm border"
-                            title="Delete slot"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-20 bg-white rounded-2xl shadow-sm border-2 border-dashed border-gray-100 max-w-2xl mx-auto mt-10">
-            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      {/* Main View Area */}
+      {isAdmin && !selectedClassId ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
+              Class Timetable Overview
+            </h2>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 rounded-lg">
+              <span className="flex h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></span>
+              <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">{classes.length} Classes Active</span>
             </div>
-            <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Schedule Empty</h3>
-            <p className="text-gray-500 mb-8 px-8 max-w-md mx-auto font-medium">
-              You can adopt a structure from another class, use the global structure setup, or start adding slots manually.
-            </p>
-            {isAdmin && (
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <button
-                  onClick={() => navigate('/dashboard/period-setup')}
-                  className="bg-white text-primary border-2 border-primary px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-primary/5 transition-all"
-                >
-                  Daily Structure Setup
-                </button>
-                <button
-                  onClick={() => {
-                    setEditingSlotId(null);
-                    setFormData({
-                      dayOfWeek: 'Monday',
-                      startTime: '08:00',
-                      endTime: '08:40',
-                      type: 'lesson',
-                      subjectId: ''
-                    });
-                    setShowModal(true);
-                  }}
-                  className="bg-primary text-white px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-all"
-                >
-                  Add First Slot
-                </button>
-              </div>
-            )}
           </div>
-        )
+
+          {classes.length === 0 ? (
+            <div className="text-center py-24 bg-white rounded-3xl shadow-sm border-2 border-dashed border-slate-100">
+              <p className="text-slate-400 font-medium">No classes found. Create classes to begin scheduling.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {classes.map(cls => (
+                <div key={cls.id} className={`bg-white rounded-2xl transition-all duration-300 ${expandedClasses.has(cls.id) ? 'shadow-xl ring-1 ring-primary/20 scale-[1.01]' : 'shadow-sm border border-slate-100 hover:border-primary/40 group'}`}>
+                  <button
+                    onClick={() => toggleClassExpansion(cls.id)}
+                    className={`w-full px-6 py-5 flex items-center justify-between outline-none ${expandedClasses.has(cls.id) ? 'border-b border-slate-50' : ''}`}
+                  >
+                    <div className="flex items-center gap-6">
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner transition-colors ${allSchedules[cls.id]?.length > 0
+                        ? 'bg-primary text-white'
+                        : 'bg-slate-50 text-slate-300'
+                        }`}>
+                        {cls.name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div className="text-left">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-black text-slate-800 text-lg leading-none">
+                            {cls.name} {cls.arm || ''}
+                          </h3>
+                          {allSchedules[cls.id]?.some(s => s.isPublished) ? (
+                            <span className="bg-emerald-100 text-emerald-700 text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm border border-emerald-200">Live</span>
+                          ) : allSchedules[cls.id]?.length > 0 ? (
+                            <span className="bg-amber-100 text-amber-700 text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm border border-amber-200">In Draft</span>
+                          ) : null}
+                        </div>
+                        <p className="text-[10px] font-bold text-slate-400 flex items-center gap-3 uppercase tracking-widest">
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {allSchedules[cls.id]?.length || 0} Slots Scheduled
+                          </span>
+                          {allSchedules[cls.id]?.length > 0 && (
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                              </svg>
+                              {new Set(allSchedules[cls.id]?.filter(s => s.subjectId).map(s => s.subjectId)).size} Subjects
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      {expandedClasses.has(cls.id) && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(allSchedules[cls.id] || [], cls.id);
+                            }}
+                            className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all shadow-sm"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                            Print
+                          </button>
+                        </div>
+                      )}
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${expandedClasses.has(cls.id) ? 'bg-primary text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-primary group-hover:scale-110'}`}>
+                        <svg className={`w-5 h-5 transition-transform duration-300 ${expandedClasses.has(cls.id) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </button>
+
+                  {expandedClasses.has(cls.id) && (
+                    <div className="p-6 bg-slate-50/40 border-t border-slate-50 animate-in fade-in slide-in-from-top-2 duration-300">
+                      {renderTimetableGrid(allSchedules[cls.id] || [], cls.id)}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       ) : (
-        <div className="text-center py-12 text-gray-500 bg-white rounded-lg shadow">
-          {user?.role === 'student'
-            ? "You haven't been assigned to a class yet. Please contact the administrator."
-            : "Please select a class to view the timetable."}
+        <div>
+          {selectedClassId ? (
+            <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-100">
+              {renderTimetableGrid(schedule, selectedClassId)}
+            </div>
+          ) : (
+            <div className="text-center py-32 bg-white rounded-[3rem] shadow-sm border-4 border-dashed border-slate-50">
+              <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <svg className="w-12 h-12 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-black text-slate-800 mb-2 uppercase tracking-tight">No Class Selected</h3>
+              <p className="text-slate-400 font-bold text-sm max-w-xs mx-auto uppercase tracking-wider">Choose a class from the menu above to see their live learning schedule.</p>
+            </div>
+          )}
         </div>
       )}
 

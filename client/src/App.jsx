@@ -35,6 +35,7 @@ import AlumniPortal from './pages/AlumniPortal';
 import AlumniDirectory from './pages/AlumniDirectory';
 import AlumniDashboard from './pages/alumni/AlumniDashboard';
 import AlumniLogin from './pages/AlumniLogin';
+import TeacherAvailability from './pages/admin/TeacherAvailability';
 
 import BulkResultUpload from './pages/teacher/BulkResultUpload';
 import BulkReportDownload from './pages/teacher/BulkReportDownload';
@@ -312,6 +313,11 @@ function App() {
             <Route path="teacher-assignments" element={
               <ProtectedRoute roles={['admin']}>
                 <TeacherAssignments />
+              </ProtectedRoute>
+            } />
+            <Route path="teacher-availability" element={
+              <ProtectedRoute roles={['admin']}>
+                <TeacherAvailability />
               </ProtectedRoute>
             } />
             <Route path="class-subjects" element={

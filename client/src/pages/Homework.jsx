@@ -328,8 +328,8 @@ const Homework = () => {
 
       {/* HW Create Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[50px] shadow-2xl p-10 w-full max-w-2xl border border-white/20 animate-in zoom-in-95 duration-300 relative overflow-hidden">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300 overflow-y-auto">
+          <div className="bg-white rounded-[50px] shadow-2xl p-10 w-full max-w-2xl border border-white/20 animate-in zoom-in-95 duration-300 relative overflow-y-auto max-h-[95vh]">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
 
             <div className="flex justify-between items-center mb-10 relative z-10">
@@ -420,8 +420,8 @@ const Homework = () => {
 
       {/* Student Submit Modal */}
       {showSubmitModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="bg-white rounded-[40px] shadow-2xl p-8 w-full max-w-md border border-white/20">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in overflow-y-auto">
+          <div className="bg-white rounded-[40px] shadow-2xl p-8 w-full max-w-md border border-white/20 overflow-y-auto max-h-[95vh]">
             <h3 className="text-2xl font-black text-gray-900 mb-2">Hand In Work</h3>
             <p className="text-gray-500 font-bold mb-8">Upload your completed assignment for grading.</p>
 
@@ -532,8 +532,8 @@ const Homework = () => {
 
       {/* Grade Modal */}
       {showGradeModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-lg flex items-center justify-center p-4 z-[60] animate-in fade-in">
-          <div className="bg-white rounded-[40px] shadow-2xl p-10 w-full max-w-md border border-white/20 relative">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-lg flex items-center justify-center p-4 z-[60] animate-in fade-in overflow-y-auto">
+          <div className="bg-white rounded-[40px] shadow-2xl p-10 w-full max-w-md border border-white/20 relative overflow-y-auto max-h-[95vh]">
             <h3 className="text-2xl font-black text-gray-900 mb-2 italic">Release Grade</h3>
             <p className="text-gray-500 font-bold mb-8">Publishing grade for {selectedSubmission?.student?.user?.firstName}.</p>
 

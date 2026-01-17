@@ -65,6 +65,47 @@ router.get('/class/:classId', authenticate, async (req, res) => {
   }
 });
 
+// Get All School Timetables (Admin Only)
+router.get('/all', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const allSlots = await prisma.timetable.findMany({
+      where: { schoolId: req.schoolId },
+      include: {
+        subject: true,
+        class: true
+      },
+      orderBy: [{ classId: 'asc' }, { dayOfWeek: 'asc' }, { startTime: 'asc' }]
+    });
+
+    // Fetch teacher assignments for all subjects and classes once
+    const allAssignments = await prisma.teacherAssignment.findMany({
+      where: { schoolId: req.schoolId },
+      include: {
+        teacher: { select: { id: true, firstName: true, lastName: true } },
+        classSubject: true
+      }
+    });
+
+    // Create a map for quick lookup
+    const assignmentMap = {};
+    allAssignments.forEach(a => {
+      if (a.classSubject) {
+        assignmentMap[`${a.classSubject.classId}_${a.classSubject.subjectId}`] = a.teacher;
+      }
+    });
+
+    const enrichedSlots = allSlots.map(slot => ({
+      ...slot,
+      teacher: slot.subjectId ? (assignmentMap[`${slot.classId}_${slot.subjectId}`] || null) : null
+    }));
+
+    res.json(enrichedSlots);
+  } catch (error) {
+    console.error('Get all timetables error:', error);
+    res.status(500).json({ error: 'Failed to fetch all timetables' });
+  }
+});
+
 // Add Slot (Admin Only)
 router.post('/', authenticate, authorize(['admin']), async (req, res) => {
   try {
@@ -75,19 +116,36 @@ router.post('/', authenticate, authorize(['admin']), async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // DUPLICATE CHECK: Is there already a slot at this time for this class?
+    // OVERLAP CHECK: Is there any slot that overlaps with this time range?
     const existing = await prisma.timetable.findFirst({
       where: {
         schoolId: req.schoolId,
         classId: parseInt(classId),
         dayOfWeek,
-        startTime,
-        endTime
+        OR: [
+          {
+            // New slot starts inside an existing slot
+            startTime: { lte: startTime },
+            endTime: { gt: startTime }
+          },
+          {
+            // New slot ends inside an existing slot
+            startTime: { lt: endTime },
+            endTime: { gte: endTime }
+          },
+          {
+            // New slot completely encloses an existing slot
+            startTime: { gte: startTime },
+            endTime: { lte: endTime }
+          }
+        ]
       }
     });
 
     if (existing) {
-      return res.status(400).json({ error: 'A slot already exists for this class at this specific time.' });
+      return res.status(400).json({
+        error: `Time Conflict: This overlaps with an existing ${existing.type} (${existing.startTime} - ${existing.endTime})`
+      });
     }
 
     const slot = await prisma.timetable.create({
@@ -320,11 +378,31 @@ router.post('/generate/:classId', authenticate, authorize(['admin']), async (req
     const updates = [];
     const conflicts = [];
 
-    for (const slot of slots) {
+    // Filter for ONLY empty slots to avoid overwriting manual work
+    const emptySlots = slots.filter(s => !s.subjectId);
+
+    // Account for ALREADY filled slots in the pool and day map
+    const filledSlots = slots.filter(s => s.subjectId);
+    filledSlots.forEach(s => {
+      // 1. Mark as busy for teacher spreading
+      const cs = classSubjects.find(cs => cs.subjectId === s.subjectId);
+      const teacherId = cs?.teacherAssignments[0]?.teacherId;
+      if (teacherId) {
+        teacherBusyMap[`${s.dayOfWeek}_${s.startTime}_${teacherId}`] = true;
+      }
+
+      // 2. Mark as used in day map
+      daySubjectMap[`${s.dayOfWeek}_${s.subjectId}`] = (daySubjectMap[`${s.dayOfWeek}_${s.subjectId}`] || 0) + 1;
+
+      // 3. Remove from pool
+      const poolIdx = pool.findIndex(p => p.subjectId === s.subjectId);
+      if (poolIdx !== -1) pool.splice(poolIdx, 1);
+    });
+
+    for (const slot of emptySlots) {
       let allocated = false;
 
       // Try candidates from pool with Day-Spreading Priority
-      // Priority 1: Subject NOT already on this day for this class
       for (let i = 0; i < pool.length; i++) {
         const candidate = pool[i];
         const teacherId = candidate.teacherAssignments[0]?.teacherId;
@@ -341,7 +419,7 @@ router.post('/generate/:classId', authenticate, authorize(['admin']), async (req
         }
       }
 
-      // Priority 2: If Priority 1 fails, try candidates that ARE on this day but teacher is free
+      // Priority 2: Teacher free even if subject on this day
       if (!allocated) {
         for (let i = 0; i < pool.length; i++) {
           const candidate = pool[i];
@@ -351,24 +429,8 @@ router.post('/generate/:classId', authenticate, authorize(['admin']), async (req
           if (!busyKey || !teacherBusyMap[busyKey]) {
             updates.push({ slotId: slot.id, subjectId: candidate.subjectId });
             if (busyKey) teacherBusyMap[busyKey] = true;
-            const daySubKey = `${slot.dayOfWeek}_${candidate.subjectId}`;
-            daySubjectMap[daySubKey] = (daySubjectMap[daySubKey] || 0) + 1;
+            daySubjectMap[`${slot.dayOfWeek}_${candidate.subjectId}`] = (daySubjectMap[`${slot.dayOfWeek}_${candidate.subjectId}`] || 0) + 1;
             pool.splice(i, 1);
-            allocated = true;
-            break;
-          }
-        }
-      }
-
-      // Priority 3: Fallback to any class subject if pool exhausted but slots remain
-      if (!allocated) {
-        for (const candidate of classSubjects) {
-          const teacherId = candidate.teacherAssignments[0]?.teacherId;
-          const busyKey = teacherId ? `${slot.dayOfWeek}_${slot.startTime}_${teacherId}` : null;
-
-          if (!busyKey || !teacherBusyMap[busyKey]) {
-            updates.push({ slotId: slot.id, subjectId: candidate.subjectId });
-            if (busyKey) teacherBusyMap[busyKey] = true;
             allocated = true;
             break;
           }
@@ -534,6 +596,103 @@ router.post('/sync-days', authenticate, authorize(['admin']), async (req, res) =
   }
 });
 
+// Timetable Health Audit (Admin Only)
+router.get('/audit', authenticate, authorize(['admin']), async (req, res) => {
+  try {
+    const schoolId = req.schoolId;
+
+    const [allClasses, allSlots, allClassSubjects, allAvailabilities] = await Promise.all([
+      prisma.class.findMany({ where: { schoolId } }),
+      prisma.timetable.findMany({ where: { schoolId, type: 'lesson' } }),
+      prisma.classSubject.findMany({
+        where: { schoolId },
+        include: { subject: true, teacherAssignments: { include: { teacher: true } } }
+      }),
+      prisma.teacherAvailability.findMany({ where: { schoolId, isAvailable: false } })
+    ]);
+
+    const teacherMapByCS = {};
+    const teacherNameMap = {};
+    allClassSubjects.forEach(cs => {
+      if (cs.teacherAssignments.length > 0) {
+        const t = cs.teacherAssignments[0].teacher;
+        teacherMapByCS[`${cs.classId}_${cs.subjectId}`] = t.id;
+        teacherNameMap[t.id] = `${t.firstName} ${t.lastName}`;
+      }
+    });
+
+    const issues = [];
+
+    // 1. Check for OVER-ALLOCATED TEACHERS (Demand > Available Hours)
+    const totalWeeklySlots = [...new Set(allSlots.map(s => `${s.dayOfWeek}_${s.startTime}`))].length;
+    const teacherTotalRequired = {};
+
+    allClassSubjects.forEach(cs => {
+      const tid = teacherMapByCS[`${cs.classId}_${cs.subjectId}`];
+      if (tid) {
+        teacherTotalRequired[tid] = (teacherTotalRequired[tid] || 0) + (cs.periodsPerWeek || 0);
+      }
+    });
+
+    Object.keys(teacherTotalRequired).forEach(tid => {
+      const teacherAvails = allAvailabilities.filter(a => a.teacherId === parseInt(tid));
+      // Basic count for now, could be more complex (subtracting off-duty slots from available)
+      if (teacherTotalRequired[tid] > totalWeeklySlots) {
+        issues.push({
+          type: 'OVERLOAD',
+          severity: 'CRITICAL',
+          message: `${teacherNameMap[tid]} is required for ${teacherTotalRequired[tid]} periods, but the school week only has ${totalWeeklySlots} periods. This is physically impossible.`
+        });
+      }
+    });
+
+    // 2. Check for AVAILABILITY VIOLATIONS in manual slots
+    allSlots.forEach(s => {
+      if (s.subjectId) {
+        const tid = teacherMapByCS[`${s.classId}_${s.subjectId}`];
+        const isOffDuty = allAvailabilities.some(av =>
+          av.teacherId === tid &&
+          av.dayOfWeek === s.dayOfWeek &&
+          (!av.startTime || (s.startTime >= av.startTime && s.startTime < av.endTime))
+        );
+
+        if (isOffDuty) {
+          const cls = allClasses.find(c => c.id === s.classId);
+          issues.push({
+            type: 'OFF_DUTY_VIOLATION',
+            severity: 'WARNING',
+            message: `${teacherNameMap[tid]} is scheduled for ${s.dayOfWeek} (${s.startTime}) in ${cls.name} ${cls.arm || ''}, but they are marked as OFF-DUTY.`
+          });
+        }
+      }
+    });
+
+    // 2. Check for "Bottlenecks" (Multiple classes needing the same teacher/subject at the same time)
+    // Group slots by time
+    const slotsByTime = {};
+    allSlots.forEach(s => {
+      const key = `${s.dayOfWeek}_${s.startTime}`;
+      if (!slotsByTime[key]) slotsByTime[key] = [];
+      slotsByTime[key].push(s);
+    });
+
+    // 3. Check for specific subject shortages
+    // (If you have 5 JSS classes and only 1 JSS Maths teacher, you can't have Maths at 8am for all of them)
+
+    res.json({
+      summary: {
+        totalClasses: allClasses.length,
+        totalTeachers: Object.keys(teacherNameMap).length,
+        totalLessonSlots: allSlots.length
+      },
+      issues
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Reset Timetable for a Class (Admin Only)
 router.delete('/reset/class/:classId', authenticate, authorize(['admin']), async (req, res) => {
   try {
@@ -586,7 +745,7 @@ router.post('/generate-all', authenticate, authorize(['admin']), async (req, res
     const schoolId = req.schoolId;
 
     // 1. Fetch EVERYTHING needed
-    const [allClasses, allSlots, allClassSubjects] = await Promise.all([
+    const [allClasses, allSlots, allClassSubjects, allAvailabilities] = await Promise.all([
       prisma.class.findMany({ where: { schoolId } }),
       prisma.timetable.findMany({
         where: { schoolId, type: 'lesson' },
@@ -595,6 +754,9 @@ router.post('/generate-all', authenticate, authorize(['admin']), async (req, res
       prisma.classSubject.findMany({
         where: { schoolId },
         include: { subject: true, teacherAssignments: { include: { teacher: true } } }
+      }),
+      prisma.teacherAvailability.findMany({
+        where: { schoolId, isAvailable: false }
       })
     ]);
 
@@ -609,7 +771,18 @@ router.post('/generate-all', authenticate, authorize(['admin']), async (req, res
       }
     });
 
-    const teacherBusyMap = {}; // "day_time_teacherId" -> "ClassName"
+    const teacherBusyMap = {}; // "day_time_teacherId" -> "ClassName" or "OFF DUTY"
+
+    // Pre-load busy map with teacher unavailabilities
+    allAvailabilities.forEach(av => {
+      const relevantSlots = allSlots.filter(s => s.dayOfWeek === av.dayOfWeek);
+      relevantSlots.forEach(s => {
+        const isUnavailable = !av.startTime || (s.startTime >= av.startTime && s.startTime < av.endTime);
+        if (isUnavailable) {
+          teacherBusyMap[`${s.dayOfWeek}_${s.startTime}_${av.teacherId}`] = 'OFF DUTY';
+        }
+      });
+    });
 
     // Preliminary: Pre-load busy map with already fixed subjects (manual/previously generated)
     // For simplicity, we assume we are filling empty slots or overwriting.
@@ -660,7 +833,18 @@ router.post('/generate-all', authenticate, authorize(['admin']), async (req, res
 
       const daySubjectMap = {}; // "day_subjectId" -> count for this class
 
-      for (const slot of classSlots) {
+      // Filter for empties and account for existing assignments
+      const emptySlots = classSlots.filter(s => !s.subjectId);
+      const filledSlots = classSlots.filter(s => s.subjectId);
+
+      filledSlots.forEach(s => {
+        daySubjectMap[`${s.dayOfWeek}_${s.subjectId}`] = (daySubjectMap[`${s.dayOfWeek}_${s.subjectId}`] || 0) + 1;
+        const poolIdx = pool.findIndex(p => p.subjectId === s.subjectId);
+        if (poolIdx !== -1) pool.splice(poolIdx, 1);
+        // Note: Teacher busy map was already pre-loaded with filled slots above
+      });
+
+      for (const slot of emptySlots) {
         let allocated = false;
         const dayOfWeek = slot.dayOfWeek;
         const startTime = slot.startTime;
@@ -703,7 +887,6 @@ router.post('/generate-all', authenticate, authorize(['admin']), async (req, res
 
         if (!allocated && pool.length > 0) {
           // AUTO-DETECTION & CORRECTION LOGIC
-          // Try to "Swap & Resolve" - Find a conflicting assignment and move it
           let resolvedBySwap = false;
 
           for (let i = 0; i < pool.length; i++) {
@@ -712,21 +895,17 @@ router.post('/generate-all', authenticate, authorize(['admin']), async (req, res
             if (!teacherId) continue;
 
             const busyKey = `${dayOfWeek}_${startTime}_${teacherId}`;
-            const busyClassStr = teacherBusyMap[busyKey]; // The class that is currently blocking us
+            const busyClassStr = teacherBusyMap[busyKey];
 
-            if (busyClassStr) {
+            if (busyClassStr && busyClassStr !== 'OFF DUTY') {
               const busyClass = allClasses.find(c => `${c.name} ${c.arm || ''}` === busyClassStr);
               if (busyClass) {
                 const busyClassSlots = slotsByClass[busyClass.id];
-                // Look for an EXISTING assigned slot for this teacher in that class that we can SWAP
-                // OR an EMPTY slot in that class where this teacher would be free
                 const swapTarget = busyClassSlots.find(s => {
                   const currentSubjectIdInOtherSlot = updates.find(u => u.slotId === s.id)?.subjectId || s.subjectId;
-                  // Is the teacher FREE in this other slot's time?
                   const sBusyKey = `${s.dayOfWeek}_${s.startTime}_${teacherId}`;
                   const isTeacherFreeInOtherTime = !teacherBusyMap[sBusyKey] || teacherBusyMap[sBusyKey] === busyClassStr;
 
-                  // CAN THE TEACHER OF THE OTHER SLOT MOVE TO OUR TIME?
                   const otherTeacherId = currentSubjectIdInOtherSlot ? teacherMapByCS[`${busyClass.id}_${currentSubjectIdInOtherSlot}`] : null;
                   const otherTeacherFreeInMyTime = !otherTeacherId || !teacherBusyMap[`${dayOfWeek}_${startTime}_${otherTeacherId}`];
 
@@ -734,20 +913,16 @@ router.post('/generate-all', authenticate, authorize(['admin']), async (req, res
                 });
 
                 if (swapTarget) {
-                  // EXECUTE SWAP
                   const oldUpdate = updates.find(u => u.slotId === swapTarget.id);
                   const currentOtherSubjectId = oldUpdate ? oldUpdate.subjectId : swapTarget.subjectId;
-
                   const otherTeacherId = currentOtherSubjectId ? teacherMapByCS[`${busyClass.id}_${currentOtherSubjectId}`] : null;
 
-                  // 1. Move the busy teacher to the other slot
                   if (oldUpdate) {
                     oldUpdate.subjectId = candidate.subjectId;
                   } else {
                     updates.push({ slotId: swapTarget.id, subjectId: candidate.subjectId });
                   }
 
-                  // 2. Update busy maps
                   delete teacherBusyMap[busyKey];
                   teacherBusyMap[`${swapTarget.dayOfWeek}_${swapTarget.startTime}_${teacherId}`] = busyClassStr;
                   if (otherTeacherId) {
@@ -755,12 +930,8 @@ router.post('/generate-all', authenticate, authorize(['admin']), async (req, res
                     teacherBusyMap[`${dayOfWeek}_${startTime}_${otherTeacherId}`] = busyClassStr;
                   }
 
-                  // 3. Fill the current slot in OUR class
-                  updates.push({ slotId: slot.id, subjectId: currentOtherSubjectId || candidate.subjectId }); // This is a bit complex, let's just use the current slot for our candidate
-                  // Re-fill our slot with candidate
-                  updates.push({ slotId: slot.id, subjectId: candidate.subjectId });
+                  updates.push({ slotId: slot.id, subjectId: currentOtherSubjectId || candidate.subjectId });
                   teacherBusyMap[busyKey] = `${cls.name} ${cls.arm || ''}`;
-
                   daySubjectMap[`${dayOfWeek}_${candidate.subjectId}`] = (daySubjectMap[`${dayOfWeek}_${candidate.subjectId}`] || 0) + 1;
                   pool.splice(i, 1);
                   allocated = true;
@@ -785,7 +956,7 @@ router.post('/generate-all', authenticate, authorize(['admin']), async (req, res
             day: dayOfWeek,
             time: `${slot.startTime} - ${slot.endTime}`,
             reason: `Blocked Requirements: ${involvedDetails.join(', ')}`,
-            solution: `AUTO-CORRECTION FAILED: No valid swap path found. Consider adding more teachers or increasing the number of available periods.`
+            solution: `AUTO-CORRECTION FAILED: No valid swap path found.`
           });
         }
       }
