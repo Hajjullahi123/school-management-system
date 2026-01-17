@@ -395,7 +395,6 @@ const Timetable = () => {
         setClassSubjects(prev => prev.map(cs =>
           cs.id === classSubjectId ? { ...cs, periodsPerWeek: periods } : cs
         ));
-        toast.success('Quota updated');
       } else {
         toast.error('Failed to update quota');
       }

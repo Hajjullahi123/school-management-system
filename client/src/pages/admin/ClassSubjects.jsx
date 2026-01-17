@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
+import { toast } from 'react-hot-toast';
 
 const ClassSubjects = () => {
   const [classes, setClasses] = useState([]);
@@ -69,21 +70,21 @@ const ClassSubjects = () => {
       });
 
       if (response.ok) {
-        alert('Subject added successfully!');
+        toast.success('Subject added successfully!');
         fetchClassSubjects();
       } else {
         const result = await response.json();
-        alert(`Error: ${result.error}`);
+        toast.error(`Error: ${result.error}`);
       }
     } catch (error) {
       console.error('Error adding subject:', error);
-      alert('Failed to add subject');
+      toast.error('Failed to add subject');
     }
   };
 
   const handleBatchAdd = async () => {
     if (selectedSubjects.length === 0) {
-      alert('Please select at least one subject');
+      toast.error('Please select at least one subject');
       return;
     }
 
@@ -96,15 +97,15 @@ const ClassSubjects = () => {
 
       const result = await response.json();
       if (response.ok) {
-        alert(`${result.created.length} subjects added successfully!`);
+        toast.success(`${result.created.length} subjects added successfully!`);
         setSelectedSubjects([]);
         fetchClassSubjects();
       } else {
-        alert(`Error: ${result.error}`);
+        toast.error(`Error: ${result.error}`);
       }
     } catch (error) {
       console.error('Error adding subjects:', error);
-      alert('Failed to add subjects');
+      toast.error('Failed to add subjects');
     } finally {
       setLoading(false);
     }
@@ -123,11 +124,11 @@ const ClassSubjects = () => {
         ));
       } else {
         const result = await response.json();
-        alert(`Error: ${result.error}`);
+        toast.error(`Error: ${result.error}`);
       }
     } catch (error) {
       console.error('Error updating periods:', error);
-      alert('Failed to update periods');
+      toast.error('Failed to update periods');
     }
   };
 
@@ -138,15 +139,15 @@ const ClassSubjects = () => {
       const response = await api.delete(`/api/class-subjects/${classSubjectId}`);
 
       if (response.ok) {
-        alert('Subject removed successfully!');
+        toast.success('Subject removed successfully!');
         fetchClassSubjects();
       } else {
         const result = await response.json();
-        alert(`Error: ${result.error}`);
+        toast.error(`Error: ${result.error}`);
       }
     } catch (error) {
       console.error('Error removing subject:', error);
-      alert('Failed to remove subject');
+      toast.error('Failed to remove subject');
     }
   };
 
