@@ -11,6 +11,7 @@ const ExamSubmissionTracker = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [activeTab, setActiveTab] = useState('academic'); // 'academic' or 'cbt'
+  const [groupBy, setGroupBy] = useState('none'); // 'none', 'teacher', 'class', 'subject'
 
   useEffect(() => {
     fetchTrackingData();
@@ -86,6 +87,21 @@ const ExamSubmissionTracker = () => {
 
     return matchesSearch && matchesFilter;
   });
+
+  const groupedData = (() => {
+    if (groupBy === 'none') return { 'All Units': filteredData };
+
+    return filteredData.reduce((acc, item) => {
+      let key = 'Other';
+      if (groupBy === 'teacher') key = item.teacherName;
+      else if (groupBy === 'class') key = item.className;
+      else if (groupBy === 'subject') key = item.subjectName;
+
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(item);
+      return acc;
+    }, {});
+  })();
 
   const getStats = () => {
     if (activeTab === 'academic') {
@@ -251,6 +267,19 @@ const ExamSubmissionTracker = () => {
             </button>
           ))}
         </div>
+
+        <div className="flex bg-slate-100/50 p-2 rounded-2xl overflow-x-auto min-w-max border border-slate-200/50">
+          <span className="self-center px-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 mr-2">Group By</span>
+          {['none', 'teacher', 'class', 'subject'].map(mode => (
+            <button
+              key={mode}
+              onClick={() => setGroupBy(mode)}
+              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${groupBy === mode ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Tracking Ledger */}
@@ -268,101 +297,118 @@ const ExamSubmissionTracker = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {filteredData.map((item, idx) => (
-              <tr key={item.id} className="hover:bg-slate-50/80 transition-all group">
-                <td className="px-8 py-8">
-                  <p className="text-xl font-black text-slate-900 tracking-tighter italic">
-                    {activeTab === 'academic' ? item.className : item.title}
-                  </p>
-                  <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">
-                    {activeTab === 'academic' ? item.subjectName : `${item.className} • ${item.subjectName}`}
-                  </p>
-                </td>
-                <td className="px-8 py-8">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-400 text-xs">
-                      {item.teacherName.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    <p className="font-bold text-slate-700 text-sm whitespace-nowrap">{item.teacherName}</p>
-                  </div>
-                </td>
-                <td className="px-8 py-8">
-                  {activeTab === 'academic' ? (
-                    <div className="w-48">
-                      <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                        <span>Progress</span>
-                        <span>{Math.round((item.protocolCount / item.totalStudents) * 100 || 0)}%</span>
+            {Object.entries(groupedData).map(([groupName, items]) => (
+              <React.Fragment key={groupName}>
+                {groupBy !== 'none' && (
+                  <tr className="bg-slate-50/30">
+                    <td colSpan="5" className="px-8 py-4 border-l-4 border-primary">
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-black text-primary uppercase tracking-widest opacity-50">{groupBy}:</span>
+                        <span className="text-sm font-black text-slate-900 uppercase tracking-wider">{groupName}</span>
+                        <span className="px-2 py-0.5 bg-slate-100 text-[10px] font-bold text-slate-500 rounded-md">
+                          {items.length} {items.length === 1 ? 'Record' : 'Records'}
+                        </span>
                       </div>
-                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full transition-all duration-700 ${item.status === 'Completed' ? 'bg-emerald-500' : item.status === 'Partial' ? 'bg-amber-500' : 'bg-rose-500'}`}
-                          style={{ width: `${(item.protocolCount / item.totalStudents) * 100 || 0}%` }}
-                        ></div>
-                      </div>
-                      <p className="text-[10px] font-bold text-slate-400 mt-2 italic">
-                        {item.gradedCount} / {item.totalStudents} Students Synchronized
+                    </td>
+                  </tr>
+                )}
+                {items.map((item, idx) => (
+                  <tr key={item.id + item.subjectName} className="hover:bg-slate-50/80 transition-all group">
+                    <td className="px-8 py-8">
+                      <p className="text-xl font-black text-slate-900 tracking-tighter italic">
+                        {activeTab === 'academic' ? item.className : item.title}
                       </p>
-                    </div>
-                  ) : (
-                    <div className="w-48">
-                      <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                        <span>Response Rate</span>
-                        <span>{item.participationRate}%</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full transition-all duration-700 ${parseFloat(item.participationRate) === 100 ? 'bg-emerald-500' : parseFloat(item.participationRate) > 0 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                          style={{ width: `${item.participationRate}%` }}
-                        ></div>
-                      </div>
-                      <p className="text-[10px] font-bold text-slate-400 mt-2 italic">
-                        {item.completedCount} / {item.totalStudents} Active Submissions
+                      <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">
+                        {activeTab === 'academic' ? item.subjectName : `${item.className} • ${item.subjectName}`}
                       </p>
-                    </div>
-                  )}
-                </td>
-                <td className="px-8 py-8">
-                  <div className="flex justify-center">
-                    <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${activeTab === 'academic' ? getStatusColor(item.status) : getStatusColor(null, item.participationRate)}`}>
-                      {activeTab === 'academic'
-                        ? item.status
-                        : (parseFloat(item.participationRate) === 100 ? 'Completed' : parseFloat(item.participationRate) > 0 ? 'Partial' : 'Not Started')}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-8 py-8 text-right">
-                  <div className="flex justify-end gap-2">
-                    {item.status !== 'Completed' && (
-                      <button
-                        onClick={() => handleNudge(item)}
-                        disabled={nudging === (item.id + item.subjectName)}
-                        className={`flex items-center gap-1 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${nudging === (item.id + item.subjectName)
-                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                          : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
-                          }`}
-                        title="Remind Teacher"
-                      >
-                        {nudging === (item.id + item.subjectName) ? (
-                          <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-500 rounded-full animate-spin"></div>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                          </svg>
+                    </td>
+                    <td className="px-8 py-8">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-400 text-xs">
+                          {item.teacherName.split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <p className="font-bold text-slate-700 text-sm whitespace-nowrap">{item.teacherName}</p>
+                      </div>
+                    </td>
+                    <td className="px-8 py-8">
+                      {activeTab === 'academic' ? (
+                        <div className="w-48">
+                          <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                            <span>Progress</span>
+                            <span>{Math.round((item.protocolCount / item.totalStudents) * 100 || 0)}%</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-700 ${item.status === 'Completed' ? 'bg-emerald-500' : item.status === 'Partial' ? 'bg-amber-500' : 'bg-rose-500'}`}
+                              style={{ width: `${(item.protocolCount / item.totalStudents) * 100 || 0}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-[10px] font-bold text-slate-400 mt-2 italic">
+                            {item.gradedCount} / {item.totalStudents} Students Synchronized
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="w-48">
+                          <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                            <span>Response Rate</span>
+                            <span>{item.participationRate}%</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-700 ${parseFloat(item.participationRate) === 100 ? 'bg-emerald-500' : parseFloat(item.participationRate) > 0 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                              style={{ width: `${item.participationRate}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-[10px] font-bold text-slate-400 mt-2 italic">
+                            {item.completedCount} / {item.totalStudents} Active Submissions
+                          </p>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-8 py-8">
+                      <div className="flex justify-center">
+                        <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${activeTab === 'academic' ? getStatusColor(item.status) : getStatusColor(null, item.participationRate)}`}>
+                          {activeTab === 'academic'
+                            ? item.status
+                            : (parseFloat(item.participationRate) === 100 ? 'Completed' : parseFloat(item.participationRate) > 0 ? 'Partial' : 'Not Started')}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-8 text-right">
+                      <div className="flex justify-end gap-2">
+                        {item.status !== 'Completed' && (
+                          <button
+                            onClick={() => handleNudge(item)}
+                            disabled={nudging === (item.id + item.subjectName)}
+                            className={`flex items-center gap-1 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${nudging === (item.id + item.subjectName)
+                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                              : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+                              }`}
+                            title="Remind Teacher"
+                          >
+                            {nudging === (item.id + item.subjectName) ? (
+                              <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-500 rounded-full animate-spin"></div>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                              </svg>
+                            )}
+                            {nudging === (item.id + item.subjectName) ? 'Nudging...' : 'NUDGE'}
+                          </button>
                         )}
-                        {nudging === (item.id + item.subjectName) ? 'Nudging...' : 'NUDGE'}
-                      </button>
-                    )}
-                    <button
-                      className="p-3 hover:bg-slate-50 rounded-xl text-slate-300 hover:text-primary transition-all active:scale-90"
-                      title="View Details"
-                    >
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
+                        <button
+                          className="p-3 hover:bg-slate-50 rounded-xl text-slate-300 hover:text-primary transition-all active:scale-90"
+                          title="View Details"
+                        >
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </React.Fragment>
             ))}
 
             {filteredData.length === 0 && (
