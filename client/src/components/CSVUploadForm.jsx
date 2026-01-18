@@ -25,64 +25,79 @@ export default function CSVUploadForm({ onUpload, expectedHeaders, validateRow }
       header: true,
       skipEmptyLines: 'greedy',
       dynamicTyping: true,
-      skipEmptyLines: true,
       transformHeader: (header) => {
         return header.trim().replace(/^[\uFEFF\u200B\u00A0]+/, "");
       },
       complete: (results) => {
         const fileHeaders = results.meta.fields || [];
 
-        // If results.data is empty or headers look like binary gibberish, it's likely an XLSX file
-        if (fileHeaders.length === 0 || (fileHeaders[0] && fileHeaders[0].includes('CONTENT'))) {
-          alert("Error: This file format is not recognized. If you are using Excel, please ensure you 'Save As' CSV (Comma delimited) before uploading.");
-          setFile(null);
+        // --- FALLBACK: If headers look grouped in one column, re-parse with force-detection ---
+        if (fileHeaders.length === 1 && (fileHeaders[0].includes(';') || fileHeaders[0].includes('\t'))) {
+          Papa.parse(csvFile, {
+            header: true,
+            skipEmptyLines: 'greedy',
+            complete: (retryResults) => processResults(retryResults)
+          });
           return;
         }
 
-        // Validate presence of core columns using fuzzy matching
-        if (expectedHeaders) {
-          const missingHeaders = expectedHeaders.filter(expected => {
-            const lowExp = expected.toLowerCase();
-            // Core requirement: match the start of the string (e.g. "Admission" matches "Admission Number")
-            // or match common keywords
-            return !fileHeaders.some(fh => {
-              const lowFh = fh.toLowerCase();
-              return lowFh.includes(lowExp.split(' ')[0].toLowerCase()) || lowFh === lowExp;
-            });
-          });
-
-          // Only block if critical columns (Admission/Student) are totally missing
-          const criticalMissing = missingHeaders.filter(h =>
-            h.toLowerCase().includes('admission') || h.toLowerCase().includes('name')
-          );
-
-          if (criticalMissing.length > 0) {
-            alert(`Missing critical columns: ${criticalMissing.join(', ')}. Please check your CSV column headers.`);
-            setFile(null);
-            return;
-          }
-        }
-
-        // Validate rows if validator provided
-        if (validateRow) {
-          const validatedData = results.data.map((row, index) => ({
-            ...row,
-            _rowNumber: index + 2, // +2 because row 1 is header
-            _errors: validateRow(row)
-          }));
-
-          const rowErrors = validatedData.filter(row => row._errors && row._errors.length > 0);
-          setErrors(rowErrors);
-          setParsedData(validatedData);
-        } else {
-          setParsedData(results.data);
-        }
+        processResults(results);
       },
       error: (error) => {
         alert(`Error parsing CSV: ${error.message}`);
         setFile(null);
       }
     });
+
+    function processResults(results) {
+      const fileHeaders = results.meta.fields || [];
+
+      // If results.data is empty or headers look like binary gibberish, it's likely an XLSX file
+      if (fileHeaders.length === 0 || (fileHeaders[0] && fileHeaders[0].includes('CONTENT'))) {
+        alert("Error: This file format is not recognized. If you are using Excel, please ensure you 'Save As' CSV (Comma delimited) before uploading.");
+        setFile(null);
+        return;
+      }
+
+      // Validate presence of core columns using fuzzy matching
+      if (expectedHeaders) {
+        const missingHeaders = expectedHeaders.filter(expected => {
+          const lowExp = expected.toLowerCase();
+          const keyword = lowExp.split(' ')[0]; // e.g. "admission"
+
+          return !fileHeaders.some(fh => {
+            const lowFh = fh.toLowerCase();
+            return lowFh.includes(keyword) || lowFh === lowExp;
+          });
+        });
+
+        // Only block if critical columns (Admission/Student) are totally missing
+        const criticalMissing = missingHeaders.filter(h =>
+          h.toLowerCase().includes('admission') || h.toLowerCase().includes('name')
+        );
+
+        if (criticalMissing.length > 0) {
+          alert(`Missing critical columns: ${criticalMissing.join(', ')}. \n\nComputer saw these headers: [${fileHeaders.join(' | ')}]`);
+          setFile(null);
+          return;
+        }
+      }
+
+      // Validate rows if validator provided
+      if (validateRow) {
+        const validatedData = results.data.map((row, index) => ({
+          ...row,
+          _rowNumber: index + 2, // +2 because row 1 is header
+          _errors: validateRow(row)
+        }));
+
+        const rowErrors = validatedData.filter(row => row._errors && row._errors.length > 0);
+        setErrors(rowErrors);
+        setParsedData(validatedData);
+      } else {
+        setParsedData(results.data);
+      }
+    }
   };
 
   const handleDragOver = (e) => {
