@@ -526,8 +526,10 @@ router.post('/:id/results/import', authenticate, authorize(['admin', 'teacher'])
 
     const examType = exam.examType || 'examination';
     let targetField = 'examScore';
-    if (examType === 'first_test') targetField = 'test1Score';
-    else if (examType === 'second_test') targetField = 'test2Score';
+    if (examType === 'test1' || examType === 'first_test') targetField = 'test1Score';
+    else if (examType === 'test2' || examType === 'second_test') targetField = 'test2Score';
+    else if (examType === 'assignment1') targetField = 'assignment1Score';
+    else if (examType === 'assignment2') targetField = 'assignment2Score';
 
     // 2. Import each result
     const importResults = await Promise.all(exam.results.map(async (cbtRes) => {

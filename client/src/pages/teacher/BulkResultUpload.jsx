@@ -5,7 +5,7 @@ import { saveAs } from 'file-saver';
 import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useMemo } from 'react';
-
+CVB
 export default function BulkResultUpload() {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState([]);
@@ -72,6 +72,9 @@ export default function BulkResultUpload() {
   };
 
   const downloadScoresheet = async (assignment) => {
+    // Also select the assignment when downloading
+    setSelectedAssignment(assignment);
+
     try {
       const token = localStorage.getItem('token');
       // Ensure specific selection IDs are defined
@@ -222,15 +225,32 @@ export default function BulkResultUpload() {
                       <p className="text-sm text-gray-500 mt-2">
                         {assignment.studentCount} students
                       </p>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          downloadScoresheet(assignment);
-                        }}
-                        className="mt-3 text-sm text-primary hover:text-primary-dark"
-                      >
-                        📥 Download Scoresheet
-                      </button>
+                      <div className="mt-3 flex gap-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadScoresheet(assignment);
+                          }}
+                          className="text-sm font-medium text-primary hover:text-primary-dark flex items-center gap-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 8m4-4v12" />
+                          </svg>
+                          Download Template
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedAssignment(assignment);
+                          }}
+                          className={`text-sm font-medium flex items-center gap-1 ${selectedAssignment === assignment ? 'text-secondary' : 'text-gray-500 hover:text-primary'}`}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                          Upload Results
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -238,34 +258,66 @@ export default function BulkResultUpload() {
             </div>
           </div>
 
-          {/* Upload Form */}
-          {selectedAssignment && (
-            <div className="bg-white rounded-lg shadow">
-              <div className="px-6 py-4 border-b">
+          {/* Upload Form Section */}
+          <div className={`bg-white rounded-lg shadow mt-8 overflow-hidden transition-all duration-300 ${!selectedAssignment ? 'ring-1 ring-gray-200' : 'ring-2 ring-primary ring-offset-4'}`}>
+            <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
+              <div>
                 <h2 className="text-lg font-semibold">
-                  Upload Results: {selectedAssignment.subjectName} - {selectedAssignment.className}
+                  {selectedAssignment
+                    ? `Upload Results: ${selectedAssignment.subjectName} - ${selectedAssignment.className}`
+                    : 'Upload Results'
+                  }
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Tip: The downloaded template is a <strong>Protected Excel file</strong>. After filling it, please <strong>Save As CSV (Comma delimited)</strong> before uploading here.
-                </p>
+                {!selectedAssignment && (
+                  <p className="text-sm text-gray-500">Please select a subject from the list above to start uploading</p>
+                )}
               </div>
-              <div className="p-6">
-                <CSVUploadForm
-                  onUpload={handleUpload}
-                  expectedHeaders={[
-                    'Admission Number',
-                    'Student Name',
-                    headers.assignment1,
-                    headers.assignment2,
-                    headers.test1,
-                    headers.test2,
-                    headers.exam
-                  ]}
-                  validateRow={validateRow}
-                />
-              </div>
+              {selectedAssignment && (
+                <button
+                  onClick={() => setSelectedAssignment(null)}
+                  className="text-xs text-gray-400 hover:text-red-500"
+                >
+                  Clear Selection
+                </button>
+              )}
             </div>
-          )}
+
+            <div className="p-6">
+              {selectedAssignment ? (
+                <div className="space-y-6">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>Instructions:</strong><br />
+                      1. Fill the downloaded Excel template for <strong>{selectedAssignment.subjectName}</strong>.<br />
+                      2. Save it as <strong>CSV (Comma delimited)</strong>.<br />
+                      3. Upload the CSV file below.
+                    </p>
+                  </div>
+
+                  <CSVUploadForm
+                    onUpload={handleUpload}
+                    expectedHeaders={[
+                      'Admission Number',
+                      'Student Name',
+                      headers.assignment1,
+                      headers.assignment2,
+                      headers.test1,
+                      headers.test2,
+                      headers.exam
+                    ]}
+                    validateRow={validateRow}
+                  />
+                </div>
+              ) : (
+                <div className="py-12 text-center text-gray-400">
+                  <svg className="mx-auto h-12 w-12 mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <p>Choose a subject from "Your Subjects" above to enable upload</p>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Upload Results */}
           {uploadResult && (

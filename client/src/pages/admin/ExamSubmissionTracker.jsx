@@ -3,11 +3,13 @@ import { api } from '../../api';
 import { toast } from 'react-hot-toast';
 
 const ExamSubmissionTracker = () => {
-  const [data, setData] = useState([]);
+  const [academicData, setAcademicData] = useState([]);
+  const [cbtData, setCbtData] = useState([]);
   const [config, setConfig] = useState({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [activeTab, setActiveTab] = useState('academic'); // 'academic' or 'cbt'
 
   useEffect(() => {
     fetchTrackingData();
@@ -16,13 +18,20 @@ const ExamSubmissionTracker = () => {
   const fetchTrackingData = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/analytics/submission-tracking');
-      const result = await response.json();
-      if (response.ok) {
-        setData(result.tracking);
-        setConfig(result.config);
-      } else {
-        toast.error(result.error || 'Failed to fetch tracking data');
+      const [academicRes, cbtRes] = await Promise.all([
+        api.get('/api/analytics/submission-tracking'),
+        api.get('/api/analytics/cbt-tracking')
+      ]);
+
+      const academicResult = await academicRes.json();
+      const cbtResult = await cbtRes.json();
+
+      if (academicRes.ok) {
+        setAcademicData(academicResult.tracking);
+        setConfig(academicResult.config);
+      }
+      if (cbtRes.ok) {
+        setCbtData(cbtResult);
       }
     } catch (error) {
       console.error('Fetch error:', error);
@@ -32,29 +41,61 @@ const ExamSubmissionTracker = () => {
     }
   };
 
-  const filteredData = data.filter(item => {
-    const matchesSearch =
-      item.className.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.subjectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.teacherName.toLowerCase().includes(searchTerm.toLowerCase());
+  const currentData = activeTab === 'academic' ? academicData : cbtData;
 
-    const matchesFilter = filterStatus === 'All' || item.status === filterStatus;
+  const filteredData = currentData.filter(item => {
+    const targetSearch = activeTab === 'academic'
+      ? `${item.className} ${item.subjectName} ${item.teacherName}`
+      : `${item.title} ${item.className} ${item.subjectName} ${item.teacherName}`;
+
+    const matchesSearch = targetSearch.toLowerCase().includes(searchTerm.toLowerCase());
+
+    let matchesFilter = true;
+    if (filterStatus !== 'All') {
+      if (activeTab === 'academic') {
+        matchesFilter = item.status === filterStatus;
+      } else {
+        if (filterStatus === 'Completed') matchesFilter = parseFloat(item.participationRate) === 100;
+        else if (filterStatus === 'Partial') matchesFilter = parseFloat(item.participationRate) > 0 && parseFloat(item.participationRate) < 100;
+        else if (filterStatus === 'Not Started') matchesFilter = parseFloat(item.participationRate) === 0;
+      }
+    }
 
     return matchesSearch && matchesFilter;
   });
 
-  const stats = {
-    total: data.length,
-    completed: data.filter(i => i.status === 'Completed').length,
-    partial: data.filter(i => i.status === 'Partial').length,
-    pending: data.filter(i => i.status === 'Not Started').length
+  const getStats = () => {
+    if (activeTab === 'academic') {
+      return {
+        total: academicData.length,
+        completed: academicData.filter(i => i.status === 'Completed').length,
+        partial: academicData.filter(i => i.status === 'Partial').length,
+        pending: academicData.filter(i => i.status === 'Not Started').length
+      };
+    } else {
+      return {
+        total: cbtData.length,
+        completed: cbtData.filter(i => parseFloat(i.participationRate) === 100).length,
+        partial: cbtData.filter(i => parseFloat(i.participationRate) > 0 && parseFloat(i.participationRate) < 100).length,
+        pending: cbtData.filter(i => parseFloat(i.participationRate) === 0).length
+      };
+    }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Completed': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
-      case 'Partial': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
-      default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+  const stats = getStats();
+
+  const getStatusColor = (status, rate) => {
+    if (activeTab === 'academic') {
+      switch (status) {
+        case 'Completed': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+        case 'Partial': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+        default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+      }
+    } else {
+      const r = parseFloat(rate);
+      if (r === 100) return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+      if (r > 0) return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+      return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
     }
   };
 
@@ -114,7 +155,23 @@ const ExamSubmissionTracker = () => {
         </div>
       </div>
 
-      {!config.examMode && (
+      {/* Tab Switcher */}
+      <div className="flex gap-2 p-1.5 bg-slate-100 w-fit rounded-[24px]">
+        <button
+          onClick={() => setActiveTab('academic')}
+          className={`px-8 py-3 rounded-[20px] text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'academic' ? 'bg-white text-primary shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          Academic Records
+        </button>
+        <button
+          onClick={() => setActiveTab('cbt')}
+          className={`px-8 py-3 rounded-[20px] text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'cbt' ? 'bg-white text-primary shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          CBT Operations
+        </button>
+      </div>
+
+      {!config.examMode && activeTab === 'academic' && (
         <div className="bg-amber-50 border-2 border-amber-200 p-6 rounded-[32px] flex items-center gap-6">
           <div className="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center flex-shrink-0 animate-pulse">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,10 +188,10 @@ const ExamSubmissionTracker = () => {
       {/* Stats Matrix */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Total Assignments', value: stats.total, color: 'text-slate-900', bg: 'bg-white' },
+          { label: activeTab === 'academic' ? 'Total Units' : 'Total Exams', value: stats.total, color: 'text-slate-900', bg: 'bg-white' },
           { label: 'Completed', value: stats.completed, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Active Entry', value: stats.partial, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { label: 'Stationary', value: stats.pending, color: 'text-slate-400', bg: 'bg-slate-50' }
+          { label: 'In Progress', value: stats.partial, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'No Activity', value: stats.pending, color: 'text-slate-400', bg: 'bg-slate-50' }
         ].map((stat, idx) => (
           <div key={idx} className={`${stat.bg} p-8 rounded-[40px] border border-slate-100 shadow-sm relative overflow-hidden group hover:scale-[1.02] transition-all`}>
             <div className="absolute top-0 right-0 w-24 h-24 bg-current opacity-[0.03] -translate-y-1/2 translate-x-1/2 rounded-full"></div>
@@ -149,7 +206,7 @@ const ExamSubmissionTracker = () => {
         <div className="flex-1 relative">
           <input
             type="text"
-            placeholder="SEARCH CLASS, SUBJECT OR TEACHER..."
+            placeholder={activeTab === 'academic' ? "SEARCH CLASS, SUBJECT OR TEACHER..." : "SEARCH EXAM TITLE, CLASS, SUBJECT..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-slate-50 border-0 rounded-2xl px-6 py-4 focus:ring-2 ring-primary outline-none font-bold text-xs uppercase tracking-widest placeholder:text-slate-300"
@@ -178,7 +235,9 @@ const ExamSubmissionTracker = () => {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50/50">
-              <th className="px-8 py-8 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Operational Unit</th>
+              <th className="px-8 py-8 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
+                {activeTab === 'academic' ? 'Operational Unit' : 'CBT Examination Detail'}
+              </th>
               <th className="px-8 py-8 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Lead Instructor</th>
               <th className="px-8 py-8 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Coverage</th>
               <th className="px-8 py-8 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] text-center">Protocol Status</th>
@@ -189,8 +248,12 @@ const ExamSubmissionTracker = () => {
             {filteredData.map((item, idx) => (
               <tr key={item.id} className="hover:bg-slate-50/80 transition-all group">
                 <td className="px-8 py-8">
-                  <p className="text-xl font-black text-slate-900 tracking-tighter italic">{item.className}</p>
-                  <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{item.subjectName}</p>
+                  <p className="text-xl font-black text-slate-900 tracking-tighter italic">
+                    {activeTab === 'academic' ? item.className : item.title}
+                  </p>
+                  <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">
+                    {activeTab === 'academic' ? item.subjectName : `${item.className} • ${item.subjectName}`}
+                  </p>
                 </td>
                 <td className="px-8 py-8">
                   <div className="flex items-center gap-3">
@@ -201,26 +264,46 @@ const ExamSubmissionTracker = () => {
                   </div>
                 </td>
                 <td className="px-8 py-8">
-                  <div className="w-48">
-                    <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                      <span>Progress</span>
-                      <span>{Math.round((item.gradedCount / item.totalStudents) * 100 || 0)}%</span>
+                  {activeTab === 'academic' ? (
+                    <div className="w-48">
+                      <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                        <span>Progress</span>
+                        <span>{Math.round((item.gradedCount / item.totalStudents) * 100 || 0)}%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-700 ${item.status === 'Completed' ? 'bg-emerald-500' : item.status === 'Partial' ? 'bg-amber-500' : 'bg-slate-300'}`}
+                          style={{ width: `${(item.gradedCount / item.totalStudents) * 100 || 0}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-400 mt-2 italic">
+                        {item.gradedCount} / {item.totalStudents} Students Synchronized
+                      </p>
                     </div>
-                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-700 ${item.status === 'Completed' ? 'bg-emerald-500' : item.status === 'Partial' ? 'bg-amber-500' : 'bg-slate-300'}`}
-                        style={{ width: `${(item.gradedCount / item.totalStudents) * 100 || 0}%` }}
-                      ></div>
+                  ) : (
+                    <div className="w-48">
+                      <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                        <span>Response Rate</span>
+                        <span>{item.participationRate}%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-700 ${parseFloat(item.participationRate) === 100 ? 'bg-emerald-500' : parseFloat(item.participationRate) > 0 ? 'bg-amber-500' : 'bg-slate-300'}`}
+                          style={{ width: `${item.participationRate}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-400 mt-2 italic">
+                        {item.completedCount} / {item.totalStudents} Active Submissions
+                      </p>
                     </div>
-                    <p className="text-[10px] font-bold text-slate-400 mt-2 italic">
-                      {item.gradedCount} / {item.totalStudents} Students Synchronized
-                    </p>
-                  </div>
+                  )}
                 </td>
                 <td className="px-8 py-8">
                   <div className="flex justify-center">
-                    <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${getStatusColor(item.status)}`}>
-                      {item.status}
+                    <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${activeTab === 'academic' ? getStatusColor(item.status) : getStatusColor(null, item.participationRate)}`}>
+                      {activeTab === 'academic'
+                        ? item.status
+                        : (parseFloat(item.participationRate) === 100 ? 'Completed' : parseFloat(item.participationRate) > 0 ? 'Partial' : 'Not Started')}
                     </span>
                   </div>
                 </td>

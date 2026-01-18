@@ -24,7 +24,7 @@ const CBTManagement = () => {
     totalMarks: 100,
     startDate: '',
     endDate: '',
-    examType: 'examination'
+    examType: 'examination' // assignment1, assignment2, test1, test2, examination
   });
 
   // Question Management State
@@ -606,9 +606,11 @@ const CBTManagement = () => {
                   value={formData.examType}
                   onChange={(e) => setFormData({ ...formData, examType: e.target.value })}
                 >
-                  <option value="examination">Examination</option>
-                  <option value="first_test">First Test</option>
-                  <option value="second_test">Second Test</option>
+                  <option value="examination">Final Examination</option>
+                  <option value="test1">1st Continuous Assessment (Test 1)</option>
+                  <option value="test2">2nd Continuous Assessment (Test 2)</option>
+                  <option value="assignment1">1st Assignment</option>
+                  <option value="assignment2">2nd Assignment</option>
                 </select>
               </div>
               <div className="grid grid-cols-1 gap-4">

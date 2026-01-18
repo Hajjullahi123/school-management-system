@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
@@ -7,6 +7,7 @@ import useSchoolSettings from '../../hooks/useSchoolSettings';
 const ResultEntry = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const { settings: schoolSettings } = useSchoolSettings();
 
   // Assessment Weights
@@ -479,32 +480,43 @@ const ResultEntry = () => {
                 <span className="text-xs text-orange-600">Note: Only score cells are editable. Inputs are validated.</span>
               </p>
             </div>
-            <button
-              onClick={async () => {
-                try {
-                  const response = await api.get(`/api/scoresheet/class/${selectedClass}/subject/${selectedSubject}?termId=${selectedTerm}&academicSessionId=${selectedSession}`);
-                  if (!response.ok) throw new Error('Download failed');
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await api.get(`/api/scoresheet/class/${selectedClass}/subject/${selectedSubject}?termId=${selectedTerm}&academicSessionId=${selectedSession}`);
+                    if (!response.ok) throw new Error('Download failed');
 
-                  const blob = await response.blob();
-                  const url = window.URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `Scoresheet_Class${selectedClass}.xlsx`;
-                  document.body.appendChild(a);
-                  a.click();
-                  window.URL.revokeObjectURL(url);
-                  document.body.removeChild(a);
-                  setNotification({ type: 'success', message: 'Excel Scoresheet downloaded.' });
-                  setTimeout(() => setNotification(null), 3000);
-                } catch (error) {
-                  console.error('Download error:', error);
-                  setNotification({ type: 'error', message: 'Failed to download.' });
-                }
-              }}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow flex items-center gap-2 text-sm font-medium"
-            >
-              Download Excel Template
-            </button>
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Scoresheet_Class${selectedClass}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    setNotification({ type: 'success', message: 'Excel Scoresheet downloaded.' });
+                    setTimeout(() => setNotification(null), 3000);
+                  } catch (error) {
+                    console.error('Download error:', error);
+                    setNotification({ type: 'error', message: 'Failed to download.' });
+                  }
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow flex items-center gap-2 text-sm font-medium"
+              >
+                Download Excel Template
+              </button>
+              <button
+                onClick={() => navigate('/dashboard/bulk-result-upload')}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow flex items-center gap-2 text-sm font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Go to Bulk Upload
+              </button>
+            </div>
           </div>
         </div>
       )}

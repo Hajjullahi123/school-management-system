@@ -386,4 +386,68 @@ router.get('/submission-tracking', authenticate, async (req, res) => {
   }
 });
 
+// GET /api/analytics/cbt-tracking
+router.get('/cbt-tracking', authenticate, async (req, res) => {
+  try {
+    const currentSession = await prisma.academicSession.findFirst({ where: { schoolId: req.schoolId, isCurrent: true } });
+    const currentTerm = await prisma.term.findFirst({ where: { schoolId: req.schoolId, isCurrent: true, academicSessionId: currentSession?.id } });
+
+    if (!currentSession || !currentTerm) {
+      return res.status(400).json({ error: 'Current session or term not set' });
+    }
+
+    const exams = await prisma.cBTExam.findMany({
+      where: {
+        schoolId: req.schoolId,
+        academicSessionId: currentSession.id,
+        termId: currentTerm.id
+      },
+      include: {
+        class: { select: { id: true, name: true, arm: true } },
+        subject: { select: { name: true } },
+        teacher: { select: { firstName: true, lastName: true } },
+        _count: {
+          select: { results: { where: { schoolId: req.schoolId } } }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const studentCounts = await prisma.student.groupBy({
+      by: ['classId'],
+      where: { schoolId: req.schoolId },
+      _count: { id: true }
+    });
+
+    const studentCountsMap = {};
+    studentCounts.forEach(c => studentCountsMap[c.classId] = c._count.id);
+
+    const trackingData = exams.map(exam => {
+      const totalStudents = studentCountsMap[exam.classId] || 0;
+      const completedCount = exam._count.results;
+      const participationRate = totalStudents > 0 ? (completedCount / totalStudents) * 100 : 0;
+
+      return {
+        id: exam.id,
+        title: exam.title,
+        className: `${exam.class.name} ${exam.class.arm || ''}`.trim(),
+        subjectName: exam.subject.name,
+        teacherName: `${exam.teacher.firstName} ${exam.teacher.lastName}`,
+        totalStudents,
+        completedCount,
+        participationRate: participationRate.toFixed(1),
+        isPublished: exam.isPublished,
+        examType: exam.examType,
+        startDate: exam.startDate,
+        endDate: exam.endDate,
+        createdAt: exam.createdAt
+      };
+    });
+
+    res.json(trackingData);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
