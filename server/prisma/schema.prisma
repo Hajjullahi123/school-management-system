@@ -486,6 +486,7 @@ model Notice {
   audience  String   @default("all")
   isActive  Boolean  @default(true)
   authorId  Int
+  expiresAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   

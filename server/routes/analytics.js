@@ -488,14 +488,15 @@ router.post('/nudge', authenticate, async (req, res) => {
       ipAddress: req.ip
     });
 
-    // 3. Send real-time notification (Internal Notice)
+    // 3. Send real-time notification (Internal Notice) with 24h expiration
     await prisma.notice.create({
       data: {
         schoolId: req.schoolId,
         title: 'Submission Reminder',
         content: `Admin has requested a submission update for ${className} - ${subjectName}. Please complete all scores as soon as possible.`,
         audience: `user:${teacherId}`,
-        authorId: req.user.id
+        authorId: req.user.id,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
       }
     });
     // For now, we return a success response that the nudge was recorded.

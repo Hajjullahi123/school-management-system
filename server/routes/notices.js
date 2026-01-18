@@ -18,6 +18,14 @@ router.get('/', authenticate, async (req, res) => {
           { audience: 'all' },
           { audience: role },
           { audience: `user:${req.user.id}` }
+        ],
+        AND: [
+          {
+            OR: [
+              { expiresAt: null },
+              { expiresAt: { gt: new Date() } }
+            ]
+          }
         ]
       },
       orderBy: { createdAt: 'desc' },
