@@ -89,13 +89,13 @@ const ExamSubmissionTracker = () => {
       switch (status) {
         case 'Completed': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
         case 'Partial': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
-        default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+        default: return 'bg-rose-500/10 text-rose-600 border-rose-500/20';
       }
     } else {
       const r = parseFloat(rate);
       if (r === 100) return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
       if (r > 0) return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
-      return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+      return 'bg-rose-500/10 text-rose-600 border-rose-500/20';
     }
   };
 
@@ -191,7 +191,7 @@ const ExamSubmissionTracker = () => {
           { label: activeTab === 'academic' ? 'Total Units' : 'Total Exams', value: stats.total, color: 'text-slate-900', bg: 'bg-white' },
           { label: 'Completed', value: stats.completed, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'In Progress', value: stats.partial, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { label: 'No Activity', value: stats.pending, color: 'text-slate-400', bg: 'bg-slate-50' }
+          { label: 'No Activity', value: stats.pending, color: 'text-rose-600', bg: 'bg-rose-50' }
         ].map((stat, idx) => (
           <div key={idx} className={`${stat.bg} p-8 rounded-[40px] border border-slate-100 shadow-sm relative overflow-hidden group hover:scale-[1.02] transition-all`}>
             <div className="absolute top-0 right-0 w-24 h-24 bg-current opacity-[0.03] -translate-y-1/2 translate-x-1/2 rounded-full"></div>
@@ -272,7 +272,7 @@ const ExamSubmissionTracker = () => {
                       </div>
                       <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                         <div
-                          className={`h-full transition-all duration-700 ${item.status === 'Completed' ? 'bg-emerald-500' : item.status === 'Partial' ? 'bg-amber-500' : 'bg-slate-300'}`}
+                          className={`h-full transition-all duration-700 ${item.status === 'Completed' ? 'bg-emerald-500' : item.status === 'Partial' ? 'bg-amber-500' : 'bg-rose-500'}`}
                           style={{ width: `${(item.gradedCount / item.totalStudents) * 100 || 0}%` }}
                         ></div>
                       </div>
@@ -288,7 +288,7 @@ const ExamSubmissionTracker = () => {
                       </div>
                       <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                         <div
-                          className={`h-full transition-all duration-700 ${parseFloat(item.participationRate) === 100 ? 'bg-emerald-500' : parseFloat(item.participationRate) > 0 ? 'bg-amber-500' : 'bg-slate-300'}`}
+                          className={`h-full transition-all duration-700 ${parseFloat(item.participationRate) === 100 ? 'bg-emerald-500' : parseFloat(item.participationRate) > 0 ? 'bg-amber-500' : 'bg-rose-500'}`}
                           style={{ width: `${item.participationRate}%` }}
                         ></div>
                       </div>
