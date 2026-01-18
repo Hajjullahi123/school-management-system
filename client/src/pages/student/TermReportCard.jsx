@@ -56,6 +56,10 @@ const TermReportCard = () => {
       const response = await api.get('/api/terms');
       const data = await response.json();
       setTerms(data);
+      const currentTerm = data.find(t => t.isCurrent);
+      if (currentTerm) {
+        setSelectedTerm(currentTerm.id.toString());
+      }
     } catch (error) {
       console.error('Error fetching terms:', error);
     }
@@ -65,7 +69,16 @@ const TermReportCard = () => {
     try {
       const response = await api.get('/api/classes');
       const data = await response.json();
-      setClasses(data);
+
+      if (user?.role === 'teacher') {
+        const teacherClasses = data.filter(c => c.classTeacherId === user.id);
+        setClasses(teacherClasses);
+        if (teacherClasses.length === 1) {
+          setSelectedClassId(teacherClasses[0].id.toString());
+        }
+      } else {
+        setClasses(data);
+      }
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
@@ -268,165 +281,178 @@ const TermReportCard = () => {
       </div>
 
       {/* Filter Section (Hidden on Print) */}
-      <div className="bg-white p-6 rounded-lg shadow print:hidden border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Select Term</label>
-            <select
-              value={selectedTerm}
-              onChange={(e) => setSelectedTerm(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
-            >
-              <option value="">Choose a term</option>
-              {terms.map(term => (
-                <option key={term.id} value={term.id}>
-                  {term.name} - {term.academicSession?.name}
-                </option>
-              ))}
-            </select>
+      {user?.role === 'teacher' && classes.length === 0 ? (
+        <div className="bg-white p-12 rounded-lg shadow text-center border border-gray-200">
+          <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
           </div>
-
-          {user?.role === 'student' ? (
-            <div className="flex md:col-span-3 items-end">
-              <button
-                onClick={fetchReport}
-                disabled={!selectedTerm || loading}
-                className="bg-primary text-white px-8 py-3 rounded-md hover:brightness-90 disabled:bg-gray-400 w-full md:w-auto font-bold shadow transition-all transform hover:scale-[1.02]"
+          <h3 className="text-xl font-bold text-gray-900">Access Restricted</h3>
+          <p className="text-gray-600 mt-2">You are not assigned as a Form Master for any class. The report card section is reserved for Form Masters and Administrators.</p>
+        </div>
+      ) : (
+        <div className="bg-white p-6 rounded-lg shadow print:hidden border border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Select Term</label>
+              <select
+                value={selectedTerm}
+                onChange={(e) => setSelectedTerm(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
               >
-                {loading ? 'Generating Report...' : 'View My Report'}
-              </button>
+                <option value="">Choose a term</option>
+                {terms.map(term => (
+                  <option key={term.id} value={term.id}>
+                    {term.name} - {term.academicSession?.name}
+                  </option>
+                ))}
+              </select>
             </div>
-          ) : user?.role === 'parent' ? (
-            <div className="col-span-2 grid grid-cols-1 gap-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Select Child
-                </label>
-                <select
-                  value={selectedStudentId}
-                  onChange={(e) => setSelectedStudentId(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary"
-                >
-                  <option value="">Choose your child</option>
-                  {classStudents.map((ward) => (
-                    <option key={ward.id} value={ward.id}>
-                      {ward.user.firstName} {ward.user.lastName} ({ward.admissionNumber})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
+
+            {user?.role === 'student' ? (
+              <div className="flex md:col-span-3 items-end">
                 <button
                   onClick={fetchReport}
-                  disabled={loading || !selectedStudentId || !selectedTerm}
-                  className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400 w-full"
+                  disabled={!selectedTerm || loading}
+                  className="bg-primary text-white px-8 py-3 rounded-md hover:brightness-90 disabled:bg-gray-400 w-full md:w-auto font-bold shadow transition-all transform hover:scale-[1.02]"
                 >
-                  {loading ? 'Generating...' : 'View Report'}
+                  {loading ? 'Generating Report...' : 'View My Report'}
                 </button>
               </div>
-            </div>
-          ) : (
-            <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2 flex gap-4 mb-2">
-                <label className="inline-flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    className="form-radio text-primary focus:ring-primary"
-                    name="searchMode"
-                    value="admission"
-                    checked={searchMode === 'admission'}
-                    onChange={(e) => setSearchMode(e.target.value)}
-                  />
-                  <span className="ml-2">By Admission No</span>
-                </label>
-                <label className="inline-flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    className="form-radio text-primary focus:ring-primary"
-                    name="searchMode"
-                    value="class"
-                    checked={searchMode === 'class'}
-                    onChange={(e) => setSearchMode(e.target.value)}
-                  />
-                  <span className="ml-2">By Class</span>
-                </label>
-              </div>
-
-              {searchMode === 'admission' ? (
-                <div className="md:col-span-2">
+            ) : user?.role === 'parent' ? (
+              <div className="col-span-2 grid grid-cols-1 gap-4">
+                <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Admission Number <span className="text-red-500">*</span>
+                    Select Child
                   </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={admissionNumber}
-                      onChange={(e) => setAdmissionNumber(e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                      placeholder="e.g. 2024-SS1A-JD"
-                    />
-                    <button
-                      onClick={fetchReport}
-                      disabled={loading}
-                      className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400 whitespace-nowrap"
-                    >
-                      {loading ? 'Generating...' : 'Generate'}
-                    </button>
-                  </div>
+                  <select
+                    value={selectedStudentId}
+                    onChange={(e) => setSelectedStudentId(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">Choose your child</option>
+                    {classStudents.map((ward) => (
+                      <option key={ward.id} value={ward.id}>
+                        {ward.user.firstName} {ward.user.lastName} ({ward.admissionNumber})
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ) : (
-                <>
-                  <div>
+                <div>
+                  <button
+                    onClick={fetchReport}
+                    disabled={loading || !selectedStudentId || !selectedTerm}
+                    className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400 w-full"
+                  >
+                    {loading ? 'Generating...' : 'View Report'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2 flex gap-4 mb-2">
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      className="form-radio text-primary focus:ring-primary"
+                      name="searchMode"
+                      value="admission"
+                      checked={searchMode === 'admission'}
+                      onChange={(e) => setSearchMode(e.target.value)}
+                    />
+                    <span className="ml-2">By Admission No</span>
+                  </label>
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      className="form-radio text-primary focus:ring-primary"
+                      name="searchMode"
+                      value="class"
+                      checked={searchMode === 'class'}
+                      onChange={(e) => setSearchMode(e.target.value)}
+                    />
+                    <span className="ml-2">By Class</span>
+                  </label>
+                </div>
+
+                {searchMode === 'admission' ? (
+                  <div className="md:col-span-2">
                     <label className="block text-sm font-bold text-gray-700 mb-2">
-                      Class
-                    </label>
-                    <select
-                      value={selectedClassId}
-                      onChange={(e) => setSelectedClassId(e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    >
-                      <option value="">Select Class</option>
-                      {classes.map((cls) => (
-                        <option key={cls.id} value={cls.id}>
-                          {cls.name} {cls.arm}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                      Student
+                      Admission Number <span className="text-red-500">*</span>
                     </label>
                     <div className="flex gap-2">
-                      <select
-                        value={selectedStudentId}
-                        onChange={(e) => setSelectedStudentId(e.target.value)}
+                      <input
+                        type="text"
+                        value={admissionNumber}
+                        onChange={(e) => setAdmissionNumber(e.target.value)}
                         className="w-full border border-gray-300 rounded-md px-3 py-2"
-                        disabled={!selectedClassId}
-                      >
-                        <option value="">Select Student</option>
-                        <option value="all" className="font-bold text-primary">-- ALL STUDENTS (Bulk Generate) --</option>
-                        {classStudents.map((student) => (
-                          <option key={student.id} value={student.id}>
-                            {student.user.firstName} {student.user.lastName} ({student.admissionNumber})
-                          </option>
-                        ))}
-                      </select>
+                        placeholder="e.g. 2024-SS1A-JD"
+                      />
                       <button
                         onClick={fetchReport}
-                        disabled={loading || !selectedStudentId}
+                        disabled={loading}
                         className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400 whitespace-nowrap"
                       >
                         {loading ? 'Generating...' : 'Generate'}
                       </button>
                     </div>
                   </div>
-                </>
-              )}
-            </div>
-          )}
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                        {user.role === 'teacher' && classes.length === 1 ? 'Assigned Class' : 'Class'}
+                      </label>
+                      <select
+                        value={selectedClassId}
+                        onChange={(e) => setSelectedClassId(e.target.value)}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 disabled:bg-gray-50 disabled:text-gray-500"
+                        disabled={user.role === 'teacher' && classes.length === 1}
+                      >
+                        <option value="">Select Class</option>
+                        {classes.map((cls) => (
+                          <option key={cls.id} value={cls.id}>
+                            {cls.name} {cls.arm}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                        Student
+                      </label>
+                      <div className="flex gap-2">
+                        <select
+                          value={selectedStudentId}
+                          onChange={(e) => setSelectedStudentId(e.target.value)}
+                          className="w-full border border-gray-300 rounded-md px-3 py-2"
+                          disabled={!selectedClassId}
+                        >
+                          <option value="">Select Student</option>
+                          <option value="all" className="font-bold text-primary">-- ALL STUDENTS (Bulk Generate) --</option>
+                          {classStudents.map((student) => (
+                            <option key={student.id} value={student.id}>
+                              {student.user.firstName} {student.user.lastName} ({student.admissionNumber})
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={fetchReport}
+                          disabled={loading || !selectedStudentId}
+                          className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400 whitespace-nowrap"
+                        >
+                          {loading ? 'Generating...' : 'Generate'}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Report Card Display */}
       {(reportData || bulkReports.length > 0) && (

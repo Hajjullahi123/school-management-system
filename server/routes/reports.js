@@ -51,12 +51,19 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Student not found' });
     }
 
-    // Check if results are published (for students and parents)
+    // Check permissions
     if (req.user.role === 'student' || req.user.role === 'parent') {
       if (!student.classModel || !student.classModel.isResultPublished) {
         return res.status(403).json({
           error: 'Result Not Published',
           message: 'The result for this class has not been published by the Form Master yet.'
+        });
+      }
+    } else if (req.user.role === 'teacher') {
+      if (!student.classModel || student.classModel.classTeacherId !== req.user.id) {
+        return res.status(403).json({
+          error: 'Access Denied',
+          message: 'You can only view reports for students in your assigned class.'
         });
       }
     }
@@ -263,12 +270,19 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       return res.status(404).json({ error: 'Student not found' });
     }
 
-    // Check if results are published (for students and parents)
+    // Check permissions
     if (req.user.role === 'student' || req.user.role === 'parent') {
       if (!student.classModel || !student.classModel.isResultPublished) {
         return res.status(403).json({
           error: 'Result Not Published',
           message: 'The result for this class has not been published by the Form Master yet.'
+        });
+      }
+    } else if (req.user.role === 'teacher') {
+      if (!student.classModel || student.classModel.classTeacherId !== req.user.id) {
+        return res.status(403).json({
+          error: 'Access Denied',
+          message: 'You can only view reports for students in your assigned class.'
         });
       }
     }
@@ -422,6 +436,16 @@ router.get('/progressive/:studentId/:termId/:assessmentType', authenticate, asyn
 
     if (!student) {
       return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Teacher permission check
+    if (req.user.role === 'teacher') {
+      if (!student.classModel || student.classModel.classTeacherId !== req.user.id) {
+        return res.status(403).json({
+          error: 'Access Denied',
+          message: 'You can only view reports for students in your assigned class.'
+        });
+      }
     }
 
     // Fetch term
