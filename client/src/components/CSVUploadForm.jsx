@@ -22,26 +22,52 @@ export default function CSVUploadForm({ onUpload, expectedHeaders, validateRow }
 
   const parseCSV = (csvFile) => {
     Papa.parse(csvFile, {
-      header: true,
+      header: false, // Parse as raw arrays first to find the header row
       skipEmptyLines: 'greedy',
-      dynamicTyping: true,
-      transformHeader: (header) => {
-        return header.trim().replace(/^[\uFEFF\u200B\u00A0]+/, "");
-      },
       complete: (results) => {
-        const fileHeaders = results.meta.fields || [];
-
-        // --- FALLBACK: If headers look grouped in one column, re-parse with force-detection ---
-        if (fileHeaders.length === 1 && (fileHeaders[0].includes(';') || fileHeaders[0].includes('\t'))) {
-          Papa.parse(csvFile, {
-            header: true,
-            skipEmptyLines: 'greedy',
-            complete: (retryResults) => processResults(retryResults)
-          });
+        const rows = results.data;
+        if (rows.length === 0) {
+          alert("The file appears to be empty.");
           return;
         }
 
-        processResults(results);
+        // Find the index of the row that contains our headers
+        let headerRowIndex = -1;
+        for (let i = 0; i < Math.min(rows.length, 15); i++) {
+          const row = rows[i].map(cell => String(cell || '').toLowerCase().trim());
+          // Look for row containing "Admission Number" or "Admission No"
+          if (row.some(cell => cell.includes('admission') || cell.includes('adm') || cell.includes('reg'))) {
+            headerRowIndex = i;
+            break;
+          }
+        }
+
+        if (headerRowIndex === -1) {
+          const firstRow = rows[0]?.join(' | ') || 'Empty Row';
+          alert(`Could not find the header row (e.g., Admission Number). \n\nComputer saw this on the first line: [${firstRow}] \n\nPlease ensure your headers are within the first 15 rows of the CSV.`);
+          setFile(null);
+          return;
+        }
+
+        // Extract headers and sanitize them
+        const rawHeaders = rows[headerRowIndex];
+        const sanitizedHeaders = rawHeaders.map(h =>
+          String(h || '').trim().replace(/^[\uFEFF\u200B\u00A0]+/, "")
+        );
+
+        // Convert the remaining rows into objects using the discovered headers
+        const formattedData = rows.slice(headerRowIndex + 1).map(row => {
+          const obj = {};
+          sanitizedHeaders.forEach((header, index) => {
+            if (header) obj[header] = row[index];
+          });
+          return obj;
+        });
+
+        processResults({
+          data: formattedData,
+          meta: { fields: sanitizedHeaders }
+        });
       },
       error: (error) => {
         alert(`Error parsing CSV: ${error.message}`);
@@ -52,18 +78,11 @@ export default function CSVUploadForm({ onUpload, expectedHeaders, validateRow }
     function processResults(results) {
       const fileHeaders = results.meta.fields || [];
 
-      // If results.data is empty or headers look like binary gibberish, it's likely an XLSX file
-      if (fileHeaders.length === 0 || (fileHeaders[0] && fileHeaders[0].includes('CONTENT'))) {
-        alert("Error: This file format is not recognized. If you are using Excel, please ensure you 'Save As' CSV (Comma delimited) before uploading.");
-        setFile(null);
-        return;
-      }
-
-      // Validate presence of core columns using fuzzy matching
+      // Validate presence of core columns using fuzzy keywords
       if (expectedHeaders) {
         const missingHeaders = expectedHeaders.filter(expected => {
           const lowExp = expected.toLowerCase();
-          const keyword = lowExp.split(' ')[0]; // e.g. "admission"
+          const keyword = lowExp.split(' ')[0];
 
           return !fileHeaders.some(fh => {
             const lowFh = fh.toLowerCase();
@@ -71,13 +90,12 @@ export default function CSVUploadForm({ onUpload, expectedHeaders, validateRow }
           });
         });
 
-        // Only block if critical columns (Admission/Student) are totally missing
         const criticalMissing = missingHeaders.filter(h =>
-          h.toLowerCase().includes('admission') || h.toLowerCase().includes('name')
+          h.toLowerCase().includes('admission') || h.toLowerCase().includes('name') || h.toLowerCase().includes('reg')
         );
 
         if (criticalMissing.length > 0) {
-          alert(`Missing critical columns: ${criticalMissing.join(', ')}. \n\nComputer saw these headers: [${fileHeaders.join(' | ')}]`);
+          alert(`Missing critical columns: ${criticalMissing.join(', ')}. \n\nComputer found these headers on the detected header row: [${fileHeaders.join(' | ')}]`);
           setFile(null);
           return;
         }
