@@ -17,6 +17,7 @@ const LearningResources = () => {
 
   // Modal
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     subjectId: '',
     title: '',
@@ -91,8 +92,14 @@ const LearningResources = () => {
     if (formData.file) data.append('file', formData.file);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/lms/resources`, {
-        method: 'POST',
+      const url = editingId
+        ? `${API_BASE_URL}/api/lms/resources/${editingId}`
+        : `${API_BASE_URL}/api/lms/resources`;
+
+      const method = editingId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
@@ -100,8 +107,9 @@ const LearningResources = () => {
       });
 
       if (response.ok) {
-        toast.success('Resource shared successfully!');
+        toast.success(editingId ? 'Resource updated!' : 'Resource shared successfully!');
         setShowModal(false);
+        setEditingId(null);
         setFormData({ subjectId: '', title: '', description: '', type: 'note', file: null, externalUrl: '' });
         fetchResources();
       } else {
@@ -113,6 +121,19 @@ const LearningResources = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEdit = (res) => {
+    setEditingId(res.id);
+    setFormData({
+      subjectId: res.subjectId.toString(),
+      title: res.title,
+      description: res.description || '',
+      type: res.type,
+      file: null,
+      externalUrl: res.fileUrl && !res.fileUrl.startsWith('/uploads/') ? res.fileUrl : ''
+    });
+    setShowModal(true);
   };
 
   const handleDelete = async (id) => {
@@ -187,12 +208,20 @@ const LearningResources = () => {
                   {res.type.replace('_', ' ')}
                 </span>
                 {isTeacher && (
-                  <button
-                    onClick={() => handleDelete(res.id)}
-                    className="text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEdit(res)}
+                      className="text-gray-300 hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(res.id)}
+                      className="text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -231,8 +260,13 @@ const LearningResources = () => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
           <div className="bg-white rounded-[40px] shadow-2xl p-8 w-full max-w-lg border border-white/20 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-black text-gray-900 italic underline decoration-primary/30 underline-offset-8">Share Knowledge</h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <h3 className="text-2xl font-black text-gray-900 italic underline decoration-primary/30 underline-offset-8">
+                {editingId ? 'Modify Resource' : 'Share Knowledge'}
+              </h3>
+              <button
+                onClick={() => { setShowModal(false); setEditingId(null); setFormData({ subjectId: '', title: '', description: '', type: 'note', file: null, externalUrl: '' }); }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -336,17 +370,17 @@ const LearningResources = () => {
               <div className="flex gap-4 mt-8">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => { setShowModal(false); setEditingId(null); setFormData({ subjectId: '', title: '', description: '', type: 'note', file: null, externalUrl: '' }); }}
                   className="flex-1 px-4 py-4 border-2 border-gray-200 rounded-2xl font-black text-gray-400 hover:bg-gray-50 active:scale-95 transition-all uppercase tracking-widest text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={saving || (!formData.file && !formData.externalUrl)}
+                  disabled={saving || (!formData.file && !formData.externalUrl && !editingId)}
                   className="flex-1 px-4 py-4 bg-primary text-white rounded-2xl font-black shadow-xl shadow-primary/30 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 uppercase tracking-widest text-sm"
                 >
-                  {saving ? 'Uploading...' : 'Publish'}
+                  {saving ? 'Processing...' : editingId ? 'Update Note' : 'Publish'}
                 </button>
               </div>
             </form>

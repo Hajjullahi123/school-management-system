@@ -276,6 +276,60 @@ router.post('/resources', authenticate, authorize(['teacher', 'admin']), upload.
   }
 });
 
+// Update Resource
+router.put('/resources/:id', authenticate, authorize(['teacher', 'admin']), upload.single('file'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { classId, subjectId, title, description, type, externalUrl } = req.body;
+
+    const existing = await prisma.learningResource.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).json({ error: 'Resource not found' });
+
+    // Authorization check
+    if (req.user.role === 'teacher' && existing.teacherId !== req.user.id) {
+      return res.status(403).json({ error: 'Unauthorized to edit this resource' });
+    }
+
+    let fileUrl = externalUrl || existing.fileUrl;
+    let fileName = existing.fileName;
+
+    if (req.file) {
+      // Delete old file if it exists and a new one is uploaded
+      if (existing.fileUrl && existing.fileUrl.startsWith('/uploads/')) {
+        const oldFilePath = path.join(__dirname, '..', existing.fileUrl);
+        if (fs.existsSync(oldFilePath)) fs.unlinkSync(oldFilePath);
+      }
+      fileUrl = `/uploads/lms/${req.file.filename}`;
+      fileName = req.file.originalname;
+    } else if (externalUrl) {
+      // If external URL is provided, and there was a file before, delete it
+      if (existing.fileUrl && existing.fileUrl.startsWith('/uploads/')) {
+        const oldFilePath = path.join(__dirname, '..', existing.fileUrl);
+        if (fs.existsSync(oldFilePath)) fs.unlinkSync(oldFilePath);
+      }
+      fileName = null;
+    }
+
+    const updated = await prisma.learningResource.update({
+      where: { id: parseInt(id) },
+      data: {
+        classId: classId ? parseInt(classId) : existing.classId,
+        subjectId: subjectId ? parseInt(subjectId) : existing.subjectId,
+        title: title || existing.title,
+        description: description || existing.description,
+        type: type || existing.type,
+        fileUrl,
+        fileName
+      }
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Update resource error:', error);
+    res.status(500).json({ error: 'Failed to update resource' });
+  }
+});
+
 // Delete Resource
 router.delete('/resources/:id', authenticate, authorize(['teacher', 'admin']), async (req, res) => {
   try {
