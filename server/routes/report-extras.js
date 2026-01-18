@@ -131,4 +131,12 @@ router.post('/save', authenticate, authorize(['admin', 'teacher']), async (req, 
   }
 });
 
+// Get remark suggestions based on grade
+router.get('/suggestions/:grade', authenticate, (req, res) => {
+  const { grade } = req.params;
+  const { getSuggestedRemarks } = require('../utils/grading');
+  const suggestions = getSuggestedRemarks(grade.toUpperCase());
+  res.json(suggestions);
+});
+
 module.exports = router;

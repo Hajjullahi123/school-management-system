@@ -6,6 +6,7 @@ import { saveAs } from 'file-saver';
 import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useMemo } from 'react';
+import { toast } from 'react-hot-toast';
 export default function BulkResultUpload() {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState([]);
@@ -14,6 +15,8 @@ export default function BulkResultUpload() {
   const [currentSession, setCurrentSession] = useState(null);
   const [uploadResult, setUploadResult] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [previewData, setPreviewData] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
   const { settings: schoolSettings } = useSchoolSettings();
 
   const weights = useMemo(() => ({
@@ -112,25 +115,51 @@ export default function BulkResultUpload() {
     return targetKey ? row[targetKey] : '';
   };
 
-  const handleUpload = async (data) => {
-    if (!selectedAssignment) {
-      alert('Please select an assignment first');
-      return;
-    }
+  const handleUpload = (data) => {
+    if (!selectedAssignment) return;
+
+    // Transform and prepare Preview
+    const preparedResults = data.map(row => {
+      const scores = {
+        assignment1: parseFloat(getValue(row, ['1st Assignment', 'Assignment 1', 'Ass 1'])) || 0,
+        assignment2: parseFloat(getValue(row, ['2nd Assignment', 'Assignment 2', 'Ass 2'])) || 0,
+        test1: parseFloat(getValue(row, ['1st Test', 'Test 1', 'CA 1'])) || 0,
+        test2: parseFloat(getValue(row, ['2nd Test', 'Test 2', 'CA 2'])) || 0,
+        exam: parseFloat(getValue(row, ['Exam', 'Examination'])) || 0
+      };
+
+      const total = Object.values(scores).reduce((a, b) => a + b, 0);
+
+      let grade = '';
+      if (schoolSettings?.gradingSystem) {
+        try {
+          const system = JSON.parse(schoolSettings.gradingSystem);
+          const match = system.find(g => total >= g.min && total <= g.max);
+          grade = match ? match.grade : 'F';
+        } catch (e) {
+          grade = total >= 70 ? 'A' : total >= 60 ? 'B' : total >= 50 ? 'C' : total >= 40 ? 'D' : 'F';
+        }
+      }
+
+      return {
+        admissionNumber: getValue(row, ['Admission', 'Reg No', 'Reg Number']),
+        studentName: getValue(row, ['Name', 'Student Name', 'Full Name']),
+        ...scores,
+        total,
+        grade
+      };
+    }).filter(r => r.admissionNumber);
+
+    setPreviewData(preparedResults);
+  };
+
+  const finalizeUpload = async () => {
+    if (!previewData || isSaving) return;
 
     try {
-      // Transform CSV data to API format using fuzzy header matching
-      const results = data.map(row => ({
-        admissionNumber: getValue(row, ['Admission', 'Reg No', 'Reg Number']),
-        assignment1: getValue(row, ['1st Assignment', 'Assignment 1', 'Ass 1']),
-        assignment2: getValue(row, ['2nd Assignment', 'Assignment 2', 'Ass 2']),
-        test1: getValue(row, ['1st Test', 'Test 1', 'CA 1']),
-        test2: getValue(row, ['2nd Test', 'Test 2', 'CA 2']),
-        exam: getValue(row, ['Exam', 'Examination'])
-      }));
-
+      setIsSaving(true);
       const response = await api.post('/api/bulk-upload/results', {
-        results,
+        results: previewData,
         termId: currentTerm.id,
         academicSessionId: currentSession.id,
         classId: selectedAssignment.classId,
@@ -141,13 +170,17 @@ export default function BulkResultUpload() {
 
       if (response.ok) {
         setUploadResult(result);
-        alert(`Upload complete! ${result.successful.length} created, ${result.updated.length} updated, ${result.failed.length} failed.`);
+        setPreviewData(null);
+        toast.success(`Successfully processed ${result.successful.length + result.updated.length} records!`);
+        fetchData(); // Refresh counts
       } else {
-        alert(`Upload failed: ${result.error}`);
+        toast.error(`Upload failed: ${result.error}`);
       }
     } catch (error) {
-      console.error('Upload error:', error);
-      alert('Upload failed');
+      console.error('Finalize error:', error);
+      toast.error('Upload failed');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -328,18 +361,104 @@ export default function BulkResultUpload() {
                 </div>
 
                 <div className="p-8">
-                  {selectedAssignment ? (
+                  {previewData ? (
+                    <div className="space-y-6 animate-fadeIn">
+                      <div className="flex justify-between items-end border-b pb-4">
+                        <div>
+                          <h3 className="text-xl font-black text-slate-900 tracking-tighter uppercase italic">Data Preview</h3>
+                          <p className="text-xs font-bold text-slate-400">Verify scores before saving to database</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setPreviewData(null)}
+                            className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-rose-500 uppercase tracking-widest"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={finalizeUpload}
+                            disabled={isSaving}
+                            className={`px-6 py-2 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 flex items-center gap-2 ${isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 transition-all'}`}
+                          >
+                            {isSaving ? (
+                              <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                            {isSaving ? 'SAVING...' : 'FINALIZE & SAVE'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Grade Distribution Summary */}
+                      <div className="grid grid-cols-5 gap-3">
+                        {['A', 'B', 'C', 'D', 'F'].map(g => {
+                          const count = previewData.filter(r => r.grade === g).length;
+                          const pct = Math.round((count / previewData.length) * 100);
+                          return (
+                            <div key={g} className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col items-center">
+                              <span className={`text-lg font-black ${g === 'F' ? 'text-rose-500' : 'text-primary'}`}>{g}</span>
+                              <span className="text-[10px] font-black text-slate-400">{count} Students</span>
+                              <div className="w-full bg-slate-200 h-1 mt-2 rounded-full overflow-hidden">
+                                <div className={`h-full ${g === 'F' ? 'bg-rose-400' : 'bg-primary/50'}`} style={{ width: `${pct}%` }}></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Scrollable Preview Table */}
+                      <div className="border border-slate-100 rounded-2xl overflow-hidden max-h-[400px] overflow-y-auto shadow-inner bg-slate-50/50">
+                        <table className="w-full text-left text-xs">
+                          <thead className="sticky top-0 bg-white border-b border-slate-100">
+                            <tr>
+                              <th className="p-3 font-black text-slate-500 uppercase">Student</th>
+                              <th className="p-3 font-black text-slate-500 uppercase text-center">CA 1</th>
+                              <th className="p-3 font-black text-slate-500 uppercase text-center">CA 2</th>
+                              <th className="p-3 font-black text-slate-500 uppercase text-center">Exam</th>
+                              <th className="p-3 font-black text-slate-500 uppercase text-center">Total</th>
+                              <th className="p-3 font-black text-slate-500 uppercase text-center">Grade</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {previewData.slice(0, 50).map((row, i) => (
+                              <tr key={i} className="hover:bg-white transition-colors">
+                                <td className="p-3">
+                                  <p className="font-bold text-slate-900">{row.studentName || 'Unknown Student'}</p>
+                                  <p className="text-[10px] text-slate-400 font-black">{row.admissionNumber}</p>
+                                </td>
+                                <td className="p-3 text-center text-slate-600 font-bold">{row.test1}</td>
+                                <td className="p-3 text-center text-slate-600 font-bold">{row.test2}</td>
+                                <td className="p-3 text-center text-slate-600 font-bold">{row.exam}</td>
+                                <td className="p-3 text-center text-primary font-black">{row.total}</td>
+                                <td className="p-3 text-center">
+                                  <span className={`px-2 py-1 rounded-md font-black text-[10px] ${row.grade === 'F' ? 'bg-rose-50 text-rose-500' : 'bg-primary/5 text-primary'}`}>
+                                    {row.grade}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {previewData.length > 50 && (
+                        <p className="text-center text-[10px] font-bold text-slate-400 italic">... and {previewData.length - 50} more students</p>
+                      )}
+                    </div>
+                  ) : selectedAssignment ? (
                     <div className="space-y-8 animate-fadeIn">
                       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-5 flex gap-4">
-                        <div className="bg-white p-2 rounded-lg shadow-sm h-fit">
-                          💡
+                        <div className="bg-white p-2 rounded-lg shadow-sm h-fit text-xl">
+                          📂
                         </div>
                         <div className="text-sm">
-                          <p className="text-blue-900 font-bold mb-1 underline">Action Required:</p>
+                          <p className="text-blue-900 font-bold mb-1 underline">Instructions:</p>
                           <ul className="text-blue-800 space-y-1 list-disc list-inside font-medium opacity-90">
-                            <li>Fill the Excel template for <strong>{selectedAssignment.subjectName}</strong>.</li>
-                            <li>Save the file and upload it below directly.</li>
-                            <li>The system accepts both <strong>Excel (.xlsx)</strong> and <strong>CSV</strong> formats.</li>
+                            <li>Ensure you are using the template for <strong>{selectedAssignment.subjectName}</strong>.</li>
+                            <li>Existing scores will be updated; new scores will be created.</li>
+                            <li>After uploading, you will see a <strong>Preview Dashboard</strong> to verify data.</li>
                           </ul>
                         </div>
                       </div>
@@ -360,14 +479,14 @@ export default function BulkResultUpload() {
                     </div>
                   ) : (
                     <div className="py-20 text-center space-y-4">
-                      <div className="inline-block p-6 bg-gray-50 rounded-full grayscale opacity-50">
-                        <svg className="h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="inline-block p-6 bg-slate-50 rounded-full grayscale opacity-50">
+                        <svg className="h-16 w-16 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                       </div>
                       <div className="max-w-xs mx-auto">
-                        <p className="text-gray-500 font-bold text-lg">No Subject Selected</p>
-                        <p className="text-gray-400 text-sm mt-2">Cliquez sur un sujet dans la liste de gauche pour activer l'aire de téléchargement</p>
+                        <p className="text-slate-500 font-black text-lg uppercase tracking-tighter italic">No Subject Selected</p>
+                        <p className="text-slate-400 text-xs mt-2 uppercase font-bold tracking-widest leading-loose">Select a subject from the left panel to begin the upload process</p>
                       </div>
                     </div>
                   )}

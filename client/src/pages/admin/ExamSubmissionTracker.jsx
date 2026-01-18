@@ -41,6 +41,25 @@ const ExamSubmissionTracker = () => {
     }
   };
 
+  const handleNudge = async (item) => {
+    try {
+      const response = await api.post('/api/analytics/nudge', {
+        teacherId: item.teacherId,
+        className: item.className,
+        subjectName: item.subjectName,
+        targetType: config.examModeType
+      });
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(result.message || `Nudge sent to ${item.teacherName}`);
+      } else {
+        toast.error('Failed to send nudge');
+      }
+    } catch (error) {
+      toast.error('Error sending nudge');
+    }
+  };
+
   const currentData = activeTab === 'academic' ? academicData : cbtData;
 
   const filteredData = currentData.filter(item => {
@@ -268,12 +287,12 @@ const ExamSubmissionTracker = () => {
                     <div className="w-48">
                       <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
                         <span>Progress</span>
-                        <span>{Math.round((item.gradedCount / item.totalStudents) * 100 || 0)}%</span>
+                        <span>{Math.round((item.protocolCount / item.totalStudents) * 100 || 0)}%</span>
                       </div>
                       <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                         <div
                           className={`h-full transition-all duration-700 ${item.status === 'Completed' ? 'bg-emerald-500' : item.status === 'Partial' ? 'bg-amber-500' : 'bg-rose-500'}`}
-                          style={{ width: `${(item.gradedCount / item.totalStudents) * 100 || 0}%` }}
+                          style={{ width: `${(item.protocolCount / item.totalStudents) * 100 || 0}%` }}
                         ></div>
                       </div>
                       <p className="text-[10px] font-bold text-slate-400 mt-2 italic">
@@ -308,14 +327,28 @@ const ExamSubmissionTracker = () => {
                   </div>
                 </td>
                 <td className="px-8 py-8 text-right">
-                  <button
-                    className="p-3 hover:bg-white rounded-xl text-slate-300 hover:text-primary hover:shadow-sm transition-all active:scale-90"
-                    title="View Details"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </button>
+                  <div className="flex justify-end gap-2">
+                    {item.status !== 'Completed' && (
+                      <button
+                        onClick={() => handleNudge(item)}
+                        className="flex items-center gap-1 px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all active:scale-95"
+                        title="Remind Teacher"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        NUDGE
+                      </button>
+                    )}
+                    <button
+                      className="p-3 hover:bg-slate-50 rounded-xl text-slate-300 hover:text-primary transition-all active:scale-90"
+                      title="View Details"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

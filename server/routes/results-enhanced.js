@@ -142,6 +142,19 @@ router.post('/entry', authenticate, authorize(['admin', 'teacher']), async (req,
 
     const grade = getGrade(totalScore, school.gradingSystem);
 
+    // Fetch existing result for audit purposes
+    const existingResult = await prisma.result.findUnique({
+      where: {
+        schoolId_studentId_subjectId_termId_academicSessionId: {
+          schoolId: req.schoolId,
+          studentId: parseInt(studentId),
+          subjectId: parseInt(subjectId),
+          termId: parseInt(termId),
+          academicSessionId: parseInt(academicSessionId)
+        }
+      }
+    });
+
     // Upsert result
     const result = await prisma.result.upsert({
       where: {
@@ -204,18 +217,32 @@ router.post('/entry', authenticate, authorize(['admin', 'teacher']), async (req,
       console.error('Recalculation error:', calcError);
     }
 
-    // Log the entry/update
+    // Log the entry/update with detailed audit trail
     logAction({
       schoolId: req.schoolId,
       userId: req.user.id,
-      action: 'UPSERT',
-      resource: 'RESULT_ENHANCED',
+      action: existingResult ? 'UPDATE_SCORE' : 'CREATE_SCORE',
+      resource: 'RESULT',
       details: {
         studentId: parseInt(studentId),
         subjectId: parseInt(subjectId),
         termId: parseInt(termId),
-        totalScore,
-        grade
+        previousScores: existingResult ? {
+          assignment1: existingResult.assignment1Score,
+          assignment2: existingResult.assignment2Score,
+          test1: existingResult.test1Score,
+          test2: existingResult.test2Score,
+          exam: existingResult.examScore,
+          total: existingResult.totalScore
+        } : null,
+        newScores: {
+          assignment1: validatedScores.assignment1Score,
+          assignment2: validatedScores.assignment2Score,
+          test1: validatedScores.test1Score,
+          test2: validatedScores.test2Score,
+          exam: validatedScores.examScore,
+          total: totalScore
+        }
       },
       ipAddress: req.ip
     });

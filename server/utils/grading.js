@@ -220,6 +220,51 @@ async function calculateStudentSessionAverage(prisma, studentId, academicSession
 }
 
 /**
+ * Get suggested remarks based on grade
+ */
+function getSuggestedRemarks(grade) {
+  const suggestions = {
+    'A': [
+      "Distinguished performance. Maintain this standard.",
+      "An exceptional result. You are a star student!",
+      "Outstanding academic prowess demonstrated.",
+      "Excellent work. Your dedication is evident."
+    ],
+    'B': [
+      "A very good result. Keep striving for the peak.",
+      "Impressive performance. Aim for an A next time.",
+      "Solid understanding of the subject matter.",
+      "Well done! You are capable of even more."
+    ],
+    'C': [
+      "A good effort. Consistency is key to improvement.",
+      "Satisfactory performance. Focus more on weak areas.",
+      "You have potential. Push harder for better grades.",
+      "Fair result. More practice will lead to mastery."
+    ],
+    'D': [
+      "Passed, but there is significant room for improvement.",
+      "You need to take your studies more seriously.",
+      "Average performance. Dedicate more time to revision.",
+      "Work harder to avoid falling into the lower grades."
+    ],
+    'E': [
+      "Weak pass. You are on the edge of failure.",
+      "Extremely poor performance. Urgent improvement needed.",
+      "Seek help in areas you find difficult.",
+      "This is barely acceptable. Focus more!"
+    ],
+    'F': [
+      "Failed. You must re-examine your study habits.",
+      "Unsatisfactory. Complete overhaul of approach required.",
+      "Seek extra coaching immediately.",
+      "Very poor. Don't let this discourage you, try harder!"
+    ]
+  };
+  return suggestions[grade] || ["Keep working hard."];
+}
+
+/**
  * Determine if student should be promoted
  */
 function shouldPromote(sessionAverage, threshold = 40) {
@@ -230,6 +275,7 @@ module.exports = {
   calculateTotalScore,
   getGrade,
   getRemark,
+  getSuggestedRemarks,
   validateScoreComponent,
   validateScores,
   calculateClassAverage,

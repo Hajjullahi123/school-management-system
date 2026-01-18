@@ -333,38 +333,34 @@ router.get('/submission-tracking', authenticate, async (req, res) => {
       const classResults = results.filter(r => r.classId === classId && r.subjectId === subjectId);
       const gradedCount = classResults.length;
 
-      // Detailed Tracking based on examModeType
-      let isTargetFilled = false;
+      // Calculate how many students actually have the target score filled
       const target = school.examModeType;
-
-      if (target === 'assignment1') isTargetFilled = gradedCount > 0 && classResults.every(r => r.assignment1Score !== null);
-      else if (target === 'assignment2') isTargetFilled = gradedCount > 0 && classResults.every(r => r.assignment2Score !== null);
-      else if (target === 'test1') isTargetFilled = gradedCount > 0 && classResults.every(r => r.test1Score !== null);
-      else if (target === 'test2') isTargetFilled = gradedCount > 0 && classResults.every(r => r.test2Score !== null);
-      else if (target === 'examination') isTargetFilled = gradedCount > 0 && classResults.every(r => r.examScore !== null);
-      else isTargetFilled = gradedCount > 0 && classResults.every(r => r.isSubmitted);
-
-      // Partial check: if at least one student has the score
-      const hasAnyScore = classResults.some(r => {
+      const protocolCount = classResults.filter(r => {
         if (target === 'assignment1') return r.assignment1Score !== null;
         if (target === 'assignment2') return r.assignment2Score !== null;
         if (target === 'test1') return r.test1Score !== null;
         if (target === 'test2') return r.test2Score !== null;
         if (target === 'examination') return r.examScore !== null;
         return r.isSubmitted;
-      });
+      }).length;
+
+      // Detailed Tracking based on examModeType
+      let isTargetFilled = protocolCount >= totalStudents && totalStudents > 0;
+      const hasAnyScore = protocolCount > 0;
 
       let status = 'Not Started';
-      if (isTargetFilled && gradedCount >= totalStudents && totalStudents > 0) status = 'Completed';
+      if (isTargetFilled) status = 'Completed';
       else if (hasAnyScore) status = 'Partial';
 
       return {
         id: a.id,
+        teacherId: a.teacherId,
         className: `${a.classSubject.class.name} ${a.classSubject.class.arm || ''}`.trim(),
         subjectName: a.classSubject.subject.name,
         teacherName: `${a.teacher.firstName} ${a.teacher.lastName}`,
         totalStudents,
         gradedCount,
+        protocolCount,
         status,
         submissionDate: classResults.length > 0 ? classResults[0].submittedAt : null,
         isSubmitted: classResults.every(r => r.isSubmitted) && gradedCount >= totalStudents && totalStudents > 0
@@ -446,6 +442,48 @@ router.get('/cbt-tracking', authenticate, async (req, res) => {
 
     res.json(trackingData);
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/analytics/nudge
+router.post('/nudge', authenticate, async (req, res) => {
+  try {
+    const { teacherId, className, subjectName, targetType } = req.body;
+    const { logAction } = require('../utils/audit');
+
+    if (!teacherId) return res.status(400).json({ error: 'Teacher ID required' });
+
+    // 1. Fetch Teacher info
+    const teacher = await prisma.user.findFirst({
+      where: { id: parseInt(teacherId), schoolId: req.schoolId },
+      select: { firstName: true, lastName: true, email: true, role: true }
+    });
+
+    if (!teacher) return res.status(404).json({ error: 'Teacher not found' });
+
+    // 2. Log the Nudge (Audit Trail)
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'NUDGE_TEACHER',
+      resource: 'SUBMISSION_TRACKING',
+      details: {
+        teacherName: `${teacher.firstName} ${teacher.lastName}`,
+        className,
+        subjectName,
+        targetType
+      },
+      ipAddress: req.ip
+    });
+
+    // 3. TODO: Send real-time notification (Internal Message, SMS, or Email)
+    // For now, we return a success response that the nudge was recorded.
+
+    res.json({ message: `Teacher ${teacher.firstName} ${teacher.lastName} nudged successfully.` });
+
+  } catch (error) {
+    console.error('Nudge error:', error);
     res.status(500).json({ error: error.message });
   }
 });

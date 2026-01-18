@@ -663,6 +663,8 @@ router.post('/results', authenticate, authorize(['admin', 'teacher']), async (re
           submittedAt: new Date()
         };
 
+        const { logAction } = require('../utils/audit');
+
         if (existingResult) {
           // Update existing result
           await prisma.result.update({
@@ -679,6 +681,36 @@ router.post('/results', authenticate, authorize(['admin', 'teacher']), async (re
             totalScore,
             grade
           });
+
+          // Log Score Audit
+          logAction({
+            schoolId: req.schoolId,
+            userId: req.user.id,
+            action: 'BULK_UPDATE_SCORE',
+            resource: 'RESULT',
+            details: {
+              studentId: student.id,
+              subjectId: parseInt(subjectId),
+              termId: parseInt(termId),
+              previousScores: {
+                assignment1: existingResult.assignment1Score,
+                assignment2: existingResult.assignment2Score,
+                test1: existingResult.test1Score,
+                test2: existingResult.test2Score,
+                exam: existingResult.examScore,
+                total: existingResult.totalScore
+              },
+              newScores: {
+                assignment1: validatedScores.assignment1Score,
+                assignment2: validatedScores.assignment2Score,
+                test1: validatedScores.test1Score,
+                test2: validatedScores.test2Score,
+                exam: validatedScores.examScore,
+                total: totalScore
+              }
+            },
+            ipAddress: req.ip
+          });
         } else {
           // Create new result
           await prisma.result.create({
@@ -690,6 +722,28 @@ router.post('/results', authenticate, authorize(['admin', 'teacher']), async (re
             studentName: `${student.user.firstName} ${student.user.lastName}`,
             totalScore,
             grade
+          });
+
+          // Log Score Audit
+          logAction({
+            schoolId: req.schoolId,
+            userId: req.user.id,
+            action: 'BULK_CREATE_SCORE',
+            resource: 'RESULT',
+            details: {
+              studentId: student.id,
+              subjectId: parseInt(subjectId),
+              termId: parseInt(termId),
+              newScores: {
+                assignment1: validatedScores.assignment1Score,
+                assignment2: validatedScores.assignment2Score,
+                test1: validatedScores.test1Score,
+                test2: validatedScores.test2Score,
+                exam: validatedScores.examScore,
+                total: totalScore
+              }
+            },
+            ipAddress: req.ip
           });
         }
       } catch (error) {
