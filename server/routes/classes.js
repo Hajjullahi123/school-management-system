@@ -41,7 +41,8 @@ router.get('/', authenticate, async (req, res) => {
         },
         _count: {
           select: {
-            students: true
+            students: true,
+            classSubjects: true
           }
         }
       },
@@ -199,7 +200,8 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
         },
         _count: {
           select: {
-            students: true
+            students: true,
+            classSubjects: true
           }
         }
       }
@@ -271,7 +273,8 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
         },
         _count: {
           select: {
-            students: true
+            students: true,
+            classSubjects: true
           }
         }
       }

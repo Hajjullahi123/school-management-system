@@ -206,7 +206,7 @@ const ClassManagement = () => {
                       {cls.name}{cls.arm ? ` ${cls.arm}` : ''}
                     </h3>
                     <p className="text-white/90 text-sm mt-1">
-                      {cls._count?.students || 0} Students | {Math.max(0, (cls.expectedSubjects || 0) - (cls._count?.teacherAssignments || 0))} More Subjects Needed
+                      {cls._count?.students || 0} Students | {Math.max(0, (cls.expectedSubjects || 0) - (cls._count?.classSubjects || 0))} More Subjects Needed
                     </p>
                   </div>
 
