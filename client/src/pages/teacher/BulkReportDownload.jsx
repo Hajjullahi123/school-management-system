@@ -34,6 +34,9 @@ const BulkReportDownload = () => {
       if (user.role === 'teacher') {
         const teacherClasses = data.filter(c => c.classTeacherId === user.id);
         setClasses(teacherClasses);
+        if (teacherClasses.length === 1) {
+          setSelectedClass(teacherClasses[0].id.toString());
+        }
       } else {
         setClasses(data);
       }
@@ -47,6 +50,10 @@ const BulkReportDownload = () => {
       const response = await api.get('/api/terms');
       const data = await response.json();
       setTerms(data);
+      const currentTerm = data.find(t => t.isCurrent);
+      if (currentTerm) {
+        setSelectedTerm(currentTerm.id.toString());
+      }
     } catch (error) {
       console.error('Error fetching terms:', error);
     }
@@ -244,189 +251,208 @@ const BulkReportDownload = () => {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Bulk Report Card Download</h1>
 
-      {/* Filters */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-4">Select Class and Term</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Class</label>
-            <select
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="">Select a class</option>
-              {classes.map(cls => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name} {cls.arm || ''}
-                </option>
-              ))}
-            </select>
+      {user.role === 'teacher' && classes.length === 0 ? (
+        <div className="bg-white p-12 rounded-lg shadow text-center">
+          <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Term</label>
-            <select
-              value={selectedTerm}
-              onChange={(e) => setSelectedTerm(e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="">Select a term</option>
-              {terms.map(term => (
-                <option key={term.id} value={term.id}>
-                  {term.name} - {term.academicSession?.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <h3 className="text-lg font-bold text-gray-900">Access Restricted</h3>
+          <p className="text-gray-600 mt-2">You are not assigned as a Form Master for any class. Report generation is restricted to Form Masters only.</p>
         </div>
-
-        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-semibold text-blue-900 mb-2">Optional: Filter by Admission Number Range</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Start Admission Number</label>
-              <input
-                type="text"
-                value={startAdmission}
-                onChange={(e) => setStartAdmission(e.target.value)}
-                placeholder="e.g., 2025-JSS1A-AA"
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">End Admission Number</label>
-              <input
-                type="text"
-                value={endAdmission}
-                onChange={(e) => setEndAdmission(e.target.value)}
-                placeholder="e.g., 2025-JSS1A-ZZ"
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-          </div>
-          <p className="text-sm text-gray-600 mt-2">
-            Leave blank to download all students in the class
-          </p>
-        </div>
-
-        <button
-          onClick={fetchReports}
-          disabled={!selectedClass || !selectedTerm || loading}
-          className="mt-4 bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400"
-        >
-          {loading ? 'Loading...' : 'Load Reports'}
-        </button>
-      </div>
-
-      {/* Preview */}
-      {reports.length > 0 && (
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h3 className="text-lg font-semibold">Report Preview</h3>
-              <p className="text-sm text-gray-600">{reports.length} student(s) found</p>
-            </div>
-            <button
-              onClick={generatePDF}
-              disabled={downloading}
-              className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 flex items-center gap-2"
-            >
-              {downloading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  Generating PDF...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Download as PDF
-                </>
+      ) : (
+        <>
+          {/* Filters */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold mb-4">
+              {user.role === 'teacher' && classes.length === 1
+                ? `Academic Report Generation: ${classes[0].name} ${classes[0].arm || ''}`
+                : "Select Class and Term"}
+            </h3>
+            <div className={`grid grid-cols-1 ${user.role === 'teacher' && classes.length === 1 ? 'md:grid-cols-1' : 'md:grid-cols-2'} gap-4`}>
+              {!(user.role === 'teacher' && classes.length === 1) && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Class</label>
+                  <select
+                    value={selectedClass}
+                    onChange={(e) => setSelectedClass(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2"
+                  >
+                    <option value="">Select a class</option>
+                    {classes.map(cls => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.name} {cls.arm || ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Academic Term</label>
+                <select
+                  value={selectedTerm}
+                  onChange={(e) => setSelectedTerm(e.target.value)}
+                  className="w-full border rounded-md px-3 py-2"
+                >
+                  <option value="">Select a term</option>
+                  {terms.map(term => (
+                    <option key={term.id} value={term.id}>
+                      {term.name} - {term.academicSession?.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-semibold text-blue-900 mb-2">Optional: Filter by Admission Number Range</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Admission Number</label>
+                  <input
+                    type="text"
+                    value={startAdmission}
+                    onChange={(e) => setStartAdmission(e.target.value)}
+                    placeholder="e.g., 2025-JSS1A-AA"
+                    className="w-full border rounded-md px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">End Admission Number</label>
+                  <input
+                    type="text"
+                    value={endAdmission}
+                    onChange={(e) => setEndAdmission(e.target.value)}
+                    placeholder="e.g., 2025-JSS1A-ZZ"
+                    className="w-full border rounded-md px-3 py-2"
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Leave blank to download all students in the class
+              </p>
+            </div>
+
+            <button
+              onClick={fetchReports}
+              disabled={!selectedClass || !selectedTerm || loading}
+              className="mt-4 bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400"
+            >
+              {loading ? 'Loading...' : 'Load Reports'}
             </button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left">#</th>
-                  <th className="px-4 py-2 text-left">Admission No.</th>
-                  <th className="px-4 py-2 text-left">Name</th>
-                  <th className="px-4 py-2 text-left">Average</th>
-                  <th className="px-4 py-2 text-left">Grade</th>
-                  <th className="px-4 py-2 text-left">Position</th>
-                  <th className="px-4 py-2 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {reports.map((report, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-4 py-2">{idx + 1}</td>
-                    <td className="px-4 py-2 font-mono text-xs">{report.student.admissionNumber}</td>
-                    <td className="px-4 py-2">{report.student.name}</td>
-                    <td className="px-4 py-2 font-semibold text-primary">{report.termAverage.toFixed(2)}%</td>
-                    <td className="px-4 py-2 font-semibold">{report.overallGrade}</td>
-                    <td className="px-4 py-2">{report.termPosition}/{report.totalStudents}</td>
-                    <td className="px-4 py-2 text-center">
-                      <button
-                        onClick={() => setViewingReport(report)}
-                        className="text-primary hover:text-primary font-medium text-xs border border-primary px-2 py-1 rounded hover:bg-primary/5"
-                      >
-                        View Report
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+          {/* Preview */}
+          {reports.length > 0 && (
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Report Preview</h3>
+                  <p className="text-sm text-gray-600">{reports.length} student(s) found</p>
+                </div>
+                <button
+                  onClick={generatePDF}
+                  disabled={downloading}
+                  className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 flex items-center gap-2"
+                >
+                  {downloading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Generating PDF...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Download as PDF
+                    </>
+                  )}
+                </button>
+              </div>
 
-      {!loading && reports.length === 0 && selectedClass && selectedTerm && (
-        <div className="bg-white p-12 rounded-lg shadow text-center">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <p className="mt-4 text-gray-600">No reports found for the selected criteria</p>
-        </div>
-      )}
-      {/* View Modal */}
-      {viewingReport && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
-              <h3 className="text-xl font-bold text-gray-800">Report Preview</h3>
-              <button
-                onClick={() => setViewingReport(null)}
-                className="text-gray-500 hover:text-gray-700 p-2"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left">#</th>
+                      <th className="px-4 py-2 text-left">Admission No.</th>
+                      <th className="px-4 py-2 text-left">Name</th>
+                      <th className="px-4 py-2 text-left">Average</th>
+                      <th className="px-4 py-2 text-left">Grade</th>
+                      <th className="px-4 py-2 text-left">Position</th>
+                      <th className="px-4 py-2 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {reports.map((report, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="px-4 py-2">{idx + 1}</td>
+                        <td className="px-4 py-2 font-mono text-xs">{report.student.admissionNumber}</td>
+                        <td className="px-4 py-2">{report.student.name}</td>
+                        <td className="px-4 py-2 font-semibold text-primary">{report.termAverage.toFixed(2)}%</td>
+                        <td className="px-4 py-2 font-semibold">{report.overallGrade}</td>
+                        <td className="px-4 py-2">{report.termPosition}/{report.totalStudents}</td>
+                        <td className="px-4 py-2 text-center">
+                          <button
+                            onClick={() => setViewingReport(report)}
+                            className="text-primary hover:text-primary font-medium text-xs border border-primary px-2 py-1 rounded hover:bg-primary/5"
+                          >
+                            View Report
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div className="p-6 bg-gray-100">
-              <ReportCardPreview report={viewingReport} />
+          )}
+
+          {!loading && reports.length === 0 && selectedClass && selectedTerm && (
+            <div className="bg-white p-12 rounded-lg shadow text-center">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="mt-4 text-gray-600">No reports found for the selected criteria</p>
             </div>
-            <div className="px-6 py-4 border-t bg-gray-50 flex justify-end">
-              <button
-                onClick={() => setViewingReport(null)}
-                className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-              >
-                Close
-              </button>
+          )}
+          {/* View Modal */}
+          {viewingReport && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4 overflow-y-auto">
+              <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
+                <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
+                  <h3 className="text-xl font-bold text-gray-800">Report Preview</h3>
+                  <button
+                    onClick={() => setViewingReport(null)}
+                    className="text-gray-500 hover:text-gray-700 p-2"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="p-6 bg-gray-100">
+                  <ReportCardPreview report={viewingReport} />
+                </div>
+                <div className="px-6 py-4 border-t bg-gray-50 flex justify-end">
+                  <button
+                    onClick={() => setViewingReport(null)}
+                    className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
     </div>
   );
 };
-
 const ReportCardPreview = ({ report }) => {
   const { settings: schoolSettings } = useSchoolSettings();
   return (
@@ -550,7 +576,6 @@ const ReportCardPreview = ({ report }) => {
           <p className="text-xs text-gray-500 uppercase tracking-widest">Principal's Signature</p>
         </div>
       </div>
-
     </div>
   );
 };
