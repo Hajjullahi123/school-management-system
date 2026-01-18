@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 
 export default function CSVUploadForm({ onUpload, expectedHeaders, validateRow }) {
   const [file, setFile] = useState(null);
@@ -11,110 +12,130 @@ export default function CSVUploadForm({ onUpload, expectedHeaders, validateRow }
   const handleFileSelect = (selectedFile) => {
     if (!selectedFile) return;
 
-    if (!selectedFile.name.endsWith('.csv')) {
-      alert('Please select a CSV file');
-      return;
+    const name = selectedFile.name.toLowerCase();
+    if (name.endsWith('.csv')) {
+      setFile(selectedFile);
+      parseCSV(selectedFile);
+    } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+      setFile(selectedFile);
+      parseExcel(selectedFile);
+    } else {
+      alert('Please select a CSV or Excel file');
     }
+  };
 
-    setFile(selectedFile);
-    parseCSV(selectedFile);
+  const parseExcel = (excelFile) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      // Convert to 2D array to match how we handle CSV discovery
+      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      handleHeaderDiscovery(rows);
+    };
+    reader.readAsArrayBuffer(excelFile);
   };
 
   const parseCSV = (csvFile) => {
     Papa.parse(csvFile, {
-      header: false, // Parse as raw arrays first to find the header row
+      header: false,
       skipEmptyLines: 'greedy',
       complete: (results) => {
-        const rows = results.data;
-        if (rows.length === 0) {
-          alert("The file appears to be empty.");
-          return;
-        }
-
-        // Find the index of the row that contains our headers
-        let headerRowIndex = -1;
-        for (let i = 0; i < Math.min(rows.length, 15); i++) {
-          const row = rows[i].map(cell => String(cell || '').toLowerCase().trim());
-          // Look for row containing "Admission Number" or "Admission No"
-          if (row.some(cell => cell.includes('admission') || cell.includes('adm') || cell.includes('reg'))) {
-            headerRowIndex = i;
-            break;
-          }
-        }
-
-        if (headerRowIndex === -1) {
-          const firstRow = rows[0]?.join(' | ') || 'Empty Row';
-          alert(`Could not find the header row (e.g., Admission Number). \n\nComputer saw this on the first line: [${firstRow}] \n\nPlease ensure your headers are within the first 15 rows of the CSV.`);
-          setFile(null);
-          return;
-        }
-
-        // Extract headers and sanitize them
-        const rawHeaders = rows[headerRowIndex];
-        const sanitizedHeaders = rawHeaders.map(h =>
-          String(h || '').trim().replace(/^[\uFEFF\u200B\u00A0]+/, "")
-        );
-
-        // Convert the remaining rows into objects using the discovered headers
-        const formattedData = rows.slice(headerRowIndex + 1).map(row => {
-          const obj = {};
-          sanitizedHeaders.forEach((header, index) => {
-            if (header) obj[header] = row[index];
-          });
-          return obj;
-        });
-
-        processResults({
-          data: formattedData,
-          meta: { fields: sanitizedHeaders }
-        });
+        handleHeaderDiscovery(results.data);
       },
       error: (error) => {
         alert(`Error parsing CSV: ${error.message}`);
         setFile(null);
       }
     });
+  };
 
-    function processResults(results) {
-      const fileHeaders = results.meta.fields || [];
+  const handleHeaderDiscovery = (rows) => {
+    if (!rows || rows.length === 0) {
+      alert("The file appears to be empty.");
+      return;
+    }
 
-      // Validate presence of core columns using fuzzy keywords
-      if (expectedHeaders) {
-        const missingHeaders = expectedHeaders.filter(expected => {
-          const lowExp = expected.toLowerCase();
-          const keyword = lowExp.split(' ')[0];
+    // Find the index of the row that contains our headers
+    let headerRowIndex = -1;
+    for (let i = 0; i < Math.min(rows.length, 15); i++) {
+      const row = rows[i].map(cell => String(cell || '').toLowerCase().trim());
+      // Look for row containing "Admission Number" or "Admission No"
+      if (row.some(cell => cell.includes('admission') || cell.includes('adm') || cell.includes('reg'))) {
+        headerRowIndex = i;
+        break;
+      }
+    }
 
-          return !fileHeaders.some(fh => {
-            const lowFh = fh.toLowerCase();
-            return lowFh.includes(keyword) || lowFh === lowExp;
-          });
+    if (headerRowIndex === -1) {
+      const firstRow = rows[0]?.join(' | ') || 'Empty Row';
+      alert(`Could not find the header row (e.g., Admission Number). \n\nComputer saw this on the first line: [${firstRow}] \n\nPlease ensure your headers are within the first 15 rows.`);
+      setFile(null);
+      return;
+    }
+
+    // Extract headers and sanitize them
+    const rawHeaders = rows[headerRowIndex];
+    const sanitizedHeaders = rawHeaders.map(h =>
+      String(h || '').trim().replace(/^[\uFEFF\u200B\u00A0]+/, "")
+    );
+
+    // Convert the remaining rows into objects using the discovered headers
+    const formattedData = rows.slice(headerRowIndex + 1).map(row => {
+      const obj = {};
+      sanitizedHeaders.forEach((header, index) => {
+        if (header) obj[header] = row[index];
+      });
+      return obj;
+    });
+
+    processResults({
+      data: formattedData,
+      meta: { fields: sanitizedHeaders }
+    });
+  };
+
+  const processResults = (results) => {
+    const fileHeaders = results.meta.fields || [];
+
+    // Validate presence of core columns using fuzzy keywords
+    if (expectedHeaders) {
+      const missingHeaders = expectedHeaders.filter(expected => {
+        const lowExp = expected.toLowerCase();
+        const keyword = lowExp.split(' ')[0];
+
+        return !fileHeaders.some(fh => {
+          const lowFh = fh.toLowerCase();
+          return lowFh.includes(keyword) || lowFh === lowExp;
         });
+      });
 
-        const criticalMissing = missingHeaders.filter(h =>
-          h.toLowerCase().includes('admission') || h.toLowerCase().includes('name') || h.toLowerCase().includes('reg')
-        );
+      const criticalMissing = missingHeaders.filter(h =>
+        h.toLowerCase().includes('admission') || h.toLowerCase().includes('name') || h.toLowerCase().includes('reg')
+      );
 
-        if (criticalMissing.length > 0) {
-          alert(`Missing critical columns: ${criticalMissing.join(', ')}. \n\nComputer found these headers on the detected header row: [${fileHeaders.join(' | ')}]`);
-          setFile(null);
-          return;
-        }
+      if (criticalMissing.length > 0) {
+        alert(`Missing critical columns: ${criticalMissing.join(', ')}. \n\nComputer found these headers on the detected header row: [${fileHeaders.join(' | ')}]`);
+        setFile(null);
+        return;
       }
+    }
 
-      // Validate rows if validator provided
-      if (validateRow) {
-        const validatedData = results.data.map((row, index) => ({
-          ...row,
-          _rowNumber: index + 2, // +2 because row 1 is header
-          _errors: validateRow(row)
-        }));
+    // Validate rows if validator provided
+    if (validateRow) {
+      const validatedData = results.data.map((row, index) => ({
+        ...row,
+        _rowNumber: index + 2, // +2 because row 1 is header
+        _errors: validateRow(row)
+      }));
 
-        const rowErrors = validatedData.filter(row => row._errors && row._errors.length > 0);
-        setErrors(rowErrors);
-        setParsedData(validatedData);
-      } else {
-        setParsedData(results.data);
-      }
+      const rowErrors = validatedData.filter(row => row._errors && row._errors.length > 0);
+      setErrors(rowErrors);
+      setParsedData(validatedData);
+    } else {
+      setParsedData(results.data);
     }
   };
 
@@ -206,7 +227,7 @@ export default function CSVUploadForm({ onUpload, expectedHeaders, validateRow }
             />
           </svg>
           <p className="mt-2 text-sm text-gray-600">
-            Drag and drop your CSV file here, or
+            Drag and drop your CSV or Excel file here, or
           </p>
           <label className="mt-2 inline-block">
             <span className="px-4 py-2 bg-primary text-white rounded-md cursor-pointer hover:brightness-90">
@@ -214,7 +235,7 @@ export default function CSVUploadForm({ onUpload, expectedHeaders, validateRow }
             </span>
             <input
               type="file"
-              accept=".csv"
+              accept=".csv, .xlsx, .xls"
               className="hidden"
               onChange={(e) => handleFileSelect(e.target.files[0])}
             />

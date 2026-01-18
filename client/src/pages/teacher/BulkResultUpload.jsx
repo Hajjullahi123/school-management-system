@@ -316,8 +316,8 @@ export default function BulkResultUpload() {
                           <p className="text-blue-900 font-bold mb-1 underline">Action Required:</p>
                           <ul className="text-blue-800 space-y-1 list-disc list-inside font-medium opacity-90">
                             <li>Fill the Excel template for <strong>{selectedAssignment.subjectName}</strong>.</li>
-                            <li>Critical: Save as <strong>CSV (Comma delimited)</strong> format.</li>
-                            <li>Upload the correctly saved CSV file below.</li>
+                            <li>Save the file and upload it below directly.</li>
+                            <li>The system accepts both <strong>Excel (.xlsx)</strong> and <strong>CSV</strong> formats.</li>
                           </ul>
                         </div>
                       </div>
