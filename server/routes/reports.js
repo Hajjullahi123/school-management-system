@@ -15,6 +15,12 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
   try {
     const { studentId, termId } = req.params;
 
+    // Fetch school settings
+    const schoolSettings = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { gradingSystem: true, passThreshold: true }
+    });
+
     // Fetch student with all details
     const student = await prisma.student.findFirst({
       where: {
@@ -184,13 +190,13 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         grade: result.grade,
         position: result.positionInClass,
         classAverage: result.classAverage,
-        remark: getRemark(result.grade)
+        remark: getRemark(result.grade, schoolSettings.gradingSystem)
       })),
       termAverage: termAverage,
       termPosition: termPosition,
       totalStudents: totalStudents,
-      overallGrade: getGrade(termAverage),
-      overallRemark: getRemark(getGrade(termAverage)),
+      overallGrade: getGrade(termAverage, schoolSettings.gradingSystem),
+      overallRemark: getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
       // Extras
       formMasterRemark: reportExtras?.formMasterRemark || null,
       principalRemark: reportExtras?.principalRemark || null,
@@ -220,6 +226,12 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
 router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) => {
   try {
     const { studentId, sessionId } = req.params;
+
+    // Fetch school settings
+    const schoolSettings = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { gradingSystem: true, passThreshold: true }
+    });
 
     // Fetch student
     const student = await prisma.student.findFirst({
@@ -319,7 +331,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
           position: result.positionInClass
         })),
         average: termAverage,
-        grade: getGrade(termAverage)
+        grade: getGrade(termAverage, schoolSettings.gradingSystem)
       });
     }
 
@@ -332,7 +344,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
     );
 
     // Determine promotion status
-    const isPromoted = sessionAverage >= 40;
+    const isPromoted = sessionAverage >= (schoolSettings.passThreshold || 40);
     const nextClass = isPromoted ? 'Promoted' : 'Repeat Class';
 
     res.json({
@@ -353,8 +365,8 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       },
       terms: termsData,
       overallAverage: sessionAverage,
-      overallGrade: getGrade(sessionAverage),
-      overallRemark: getRemark(getGrade(sessionAverage)),
+      overallGrade: getGrade(sessionAverage, schoolSettings.gradingSystem),
+      overallRemark: getRemark(getGrade(sessionAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
       isPromoted: isPromoted,
       nextClass: nextClass
     });
@@ -505,6 +517,12 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
   try {
     const { classId, termId } = req.params;
     const { startAdmission, endAdmission } = req.query;
+
+    // Fetch school settings
+    const schoolSettings = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { gradingSystem: true, passThreshold: true }
+    });
 
     // Verify teacher has permission for this class
     if (req.user.role === 'teacher') {
@@ -700,13 +718,13 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           grade: result.grade,
           position: result.positionInClass,
           classAverage: result.classAverage,
-          remark: getRemark(result.grade)
+          remark: getRemark(result.grade, schoolSettings.gradingSystem)
         })),
         termAverage: termAverage,
         termPosition: termPosition,
         totalStudents: totalStudents,
-        overallGrade: getGrade(termAverage),
-        overallRemark: getRemark(getGrade(termAverage)),
+        overallGrade: getGrade(termAverage, schoolSettings.gradingSystem),
+        overallRemark: getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
         // Extras
         formMasterRemark: reportExtras?.formMasterRemark || null,
         principalRemark: reportExtras?.principalRemark || null,

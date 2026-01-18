@@ -285,10 +285,21 @@ const ResultEntry = () => {
   };
 
   const getGrade = (score) => {
+    if (schoolSettings?.gradingSystem) {
+      try {
+        const scale = JSON.parse(schoolSettings.gradingSystem);
+        const found = scale.find(s => score >= s.min && score <= (s.max || 100));
+        return found ? found.grade : 'F';
+      } catch (e) {
+        console.error('Error parsing grading system in ResultEntry');
+      }
+    }
+
+    // Fallback
     if (score >= 70) return 'A';
     if (score >= 60) return 'B';
     if (score >= 50) return 'C';
-    if (score >= 45) return 'D'; // Adjusted to typical standard (or keep 40)
+    if (score >= 45) return 'D';
     if (score >= 40) return 'E';
     return 'F';
   };

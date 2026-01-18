@@ -79,6 +79,11 @@ model School {
   examModeType          String              @default("none") // none, assignment1, assignment2, test1, test2, examination
 
   isSetupComplete       Boolean             @default(false)
+  
+  // Grading & Promotion
+  gradingSystem         String?             @default("[{\"grade\":\"A\",\"min\":70,\"max\":100,\"remark\":\"Excellent\"},{\"grade\":\"B\",\"min\":60,\"max\":69.9,\"remark\":\"Very Good\"},{\"grade\":\"C\",\"min\":50,\"max\":59.9,\"remark\":\"Good\"},{\"grade\":\"D\",\"min\":40,\"max\":49.9,\"remark\":\"Pass\"},{\"grade\":\"E\",\"min\":30,\"max\":39.9,\"remark\":\"Weak Pass\"},{\"grade\":\"F\",\"min\":0,\"max\":29.9,\"remark\":\"Fail\"}]")
+  passThreshold         Int                 @default(40)
+
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 

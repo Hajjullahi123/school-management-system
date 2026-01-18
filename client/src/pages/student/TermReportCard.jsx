@@ -747,9 +747,21 @@ const TermReportCard = () => {
                     <div className="border-2 border-black text-[9px] p-1">
                       <div className="bg-gray-300 font-bold -mx-1 -mt-1 px-1 mb-1 border-b border-black text-center">GRADE SCALE</div>
                       <p className="text-center leading-relaxed">
-                        70-100%=A (EXCELLENT) &nbsp; 60-69%=B (VERY GOOD) <br />
-                        50-59%=C (GOOD) &nbsp; 40-49%=D (PASS) <br />
-                        30-49%=E (FAIR) &nbsp; 0-29%=F (FAIL)
+                        {schoolSettings?.gradingSystem ? (
+                          JSON.parse(schoolSettings.gradingSystem).map((g, i) => (
+                            <span key={i}>
+                              {g.min}-{g.max}%={g.grade} ({g.remark})
+                              {i < JSON.parse(schoolSettings.gradingSystem).length - 1 ? ' \u00A0 ' : ''}
+                              {i % 2 === 1 ? <br /> : ''}
+                            </span>
+                          ))
+                        ) : (
+                          <>
+                            70-100%=A (EXCELLENT) &nbsp; 60-69%=B (VERY GOOD) <br />
+                            50-59%=C (GOOD) &nbsp; 40-49%=D (PASS) <br />
+                            30-39%=E (FAIR) &nbsp; 0-29%=F (FAIL)
+                          </>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -785,7 +797,7 @@ const TermReportCard = () => {
                 {/* BOTTOM STATUS BAR */}
                 <div className="mt-2 text-xs font-bold border-2 border-black p-1 flex justify-between items-center bg-gray-100">
                   <div className="border border-black px-2 py-0.5 bg-white">
-                    Status: {data.overallGrade === 'F' ? 'TO REPEAT' : 'PROMOTED'}
+                    Status: {data.termAverage >= (schoolSettings?.passThreshold || 40) ? 'PROMOTED' : 'TO REPEAT'}
                   </div>
                   <div>
                     Next Session Begins: <span className="underline ml-2">{data.term?.nextTermStartDate ? new Date(data.term.nextTermStartDate).toLocaleDateString() : '.........................'}</span>

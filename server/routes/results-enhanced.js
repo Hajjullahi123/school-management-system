@@ -116,7 +116,8 @@ router.post('/entry', authenticate, authorize(['admin', 'teacher']), async (req,
         assignment2Weight: true,
         test1Weight: true,
         test2Weight: true,
-        examWeight: true
+        examWeight: true,
+        gradingSystem: true
       }
     });
 
@@ -139,7 +140,7 @@ router.post('/entry', authenticate, authorize(['admin', 'teacher']), async (req,
       validatedScores.examScore
     );
 
-    const grade = getGrade(totalScore);
+    const grade = getGrade(totalScore, school.gradingSystem);
 
     // Upsert result
     const result = await prisma.result.upsert({
@@ -229,7 +230,8 @@ router.post('/batch-entry', authenticate, authorize(['admin', 'teacher']), async
         assignment2Weight: true,
         test1Weight: true,
         test2Weight: true,
-        examWeight: true
+        examWeight: true,
+        gradingSystem: true
       }
     });
 
@@ -254,7 +256,7 @@ router.post('/batch-entry', authenticate, authorize(['admin', 'teacher']), async
           validatedScores.examScore
         );
 
-        const grade = getGrade(totalScore);
+        const grade = getGrade(totalScore, school.gradingSystem);
 
         // Upsert result
         const result = await prisma.result.upsert({

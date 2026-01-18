@@ -31,32 +31,47 @@ function calculateTotalScore(assignment1, assignment2, test1, test2, exam) {
   return a1 + a2 + t1 + t2 + ex;
 }
 
+const DEFAULT_GRADING_SYSTEM = [
+  { grade: 'A', min: 70, max: 100, remark: 'Excellent' },
+  { grade: 'B', min: 60, max: 69.9, remark: 'Very Good' },
+  { grade: 'C', min: 50, max: 59.9, remark: 'Good' },
+  { grade: 'D', min: 40, max: 49.9, remark: 'Pass' },
+  { grade: 'E', min: 30, max: 39.9, remark: 'Weak Pass' },
+  { grade: 'F', min: 0, max: 29.9, remark: 'Fail' }
+];
+
 /**
  * Determine grade based on total score
- * A: 70-100, B: 60-69, C: 50-59, D: 40-49, E: 30-39, F: 0-29
  */
-function getGrade(totalScore) {
-  if (totalScore >= 70) return 'A';
-  if (totalScore >= 60) return 'B';
-  if (totalScore >= 50) return 'C';
-  if (totalScore >= 40) return 'D';
-  if (totalScore >= 30) return 'E';
-  return 'F';
+function getGrade(totalScore, gradingSystem = null) {
+  let scale = DEFAULT_GRADING_SYSTEM;
+  if (gradingSystem) {
+    try {
+      scale = typeof gradingSystem === 'string' ? JSON.parse(gradingSystem) : gradingSystem;
+    } catch (e) {
+      console.error('Error parsing grading system, using default');
+    }
+  }
+
+  const found = scale.find(s => totalScore >= s.min && totalScore <= (s.max || 100));
+  return found ? found.grade : 'F';
 }
 
 /**
  * Get remark based on grade
  */
-function getRemark(grade) {
-  const remarks = {
-    'A': 'Excellent',
-    'B': 'Very Good',
-    'C': 'Good',
-    'D': 'Pass',
-    'E': 'Weak Pass',
-    'F': 'Fail'
-  };
-  return remarks[grade] || 'N/A';
+function getRemark(grade, gradingSystem = null) {
+  let scale = DEFAULT_GRADING_SYSTEM;
+  if (gradingSystem) {
+    try {
+      scale = typeof gradingSystem === 'string' ? JSON.parse(gradingSystem) : gradingSystem;
+    } catch (e) {
+      console.error('Error parsing grading system, using default');
+    }
+  }
+
+  const found = scale.find(s => s.grade === grade);
+  return found ? found.remark : (grade === 'F' ? 'Fail' : 'N/A');
 }
 
 /**
@@ -205,10 +220,10 @@ async function calculateStudentSessionAverage(prisma, studentId, academicSession
 }
 
 /**
- * Determine if student should be promoted (average >= 40%)
+ * Determine if student should be promoted
  */
-function shouldPromote(sessionAverage) {
-  return sessionAverage >= 40;
+function shouldPromote(sessionAverage, threshold = 40) {
+  return sessionAverage >= threshold;
 }
 
 module.exports = {

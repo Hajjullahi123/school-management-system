@@ -507,13 +507,19 @@ router.post('/:id/results/import', authenticate, authorize(['admin', 'teacher'])
   try {
     const examId = parseInt(req.params.id);
 
-    // 1. Get Exam and Results
-    const exam = await prisma.cBTExam.findFirst({
-      where: { id: examId, schoolId: req.schoolId },
-      include: {
-        results: { where: { schoolId: req.schoolId } }
-      }
-    });
+    // 1. Get Exam, Results and School Settings
+    const [exam, schoolSettings] = await Promise.all([
+      prisma.cBTExam.findFirst({
+        where: { id: examId, schoolId: req.schoolId },
+        include: {
+          results: { where: { schoolId: req.schoolId } }
+        }
+      }),
+      prisma.school.findUnique({
+        where: { id: req.schoolId },
+        select: { gradingSystem: true }
+      })
+    ]);
 
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
     if (req.user.role === 'teacher' && exam.teacherId !== req.user.id) {
@@ -573,7 +579,7 @@ router.post('/:id/results/import', authenticate, authorize(['admin', 'teacher'])
           data: {
             ...data,
             totalScore,
-            grade: getGrade(totalScore)
+            grade: getGrade(totalScore, schoolSettings.gradingSystem)
           }
         });
       } else {
@@ -589,7 +595,7 @@ router.post('/:id/results/import', authenticate, authorize(['admin', 'teacher'])
             academicSessionId: exam.academicSessionId,
             ...data,
             totalScore,
-            grade: getGrade(totalScore),
+            grade: getGrade(totalScore, schoolSettings.gradingSystem),
             teacherId: req.user.id
           }
         });

@@ -84,7 +84,8 @@ router.put('/', authenticate, async (req, res) => {
     smsUsername, smsApiKey, smsSenderId, enableSMS,
     assignment1Weight, assignment2Weight, test1Weight, test2Weight, examWeight,
     openingHours, welcomeTitle, welcomeMessage,
-    examMode, examModeType
+    examMode, examModeType,
+    gradingSystem, passThreshold
   } = req.body;
 
   // Validate weightings if provided
@@ -155,6 +156,9 @@ router.put('/', authenticate, async (req, res) => {
 
     if (examMode !== undefined) updateData.examMode = !!examMode;
     if (examModeType !== undefined) updateData.examModeType = examModeType;
+
+    if (gradingSystem !== undefined) updateData.gradingSystem = gradingSystem;
+    if (passThreshold !== undefined) updateData.passThreshold = Number(passThreshold);
 
     // Automatically complete setup if basic info is provided
     if (schoolName && schoolAddress && schoolPhone) {

@@ -11,7 +11,11 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
     const sId = parseInt(studentId);
     const tId = parseInt(termId);
 
-    // 1. Fetch student details with user info
+    // 0. Fetch school settings
+    const schoolSettings = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { gradingSystem: true, passThreshold: true }
+    });
     const student = await prisma.student.findFirst({
       where: { id: sId, schoolId: req.schoolId },
       include: {
@@ -150,18 +154,18 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
         test2: r.test2Score,
         exam: r.examScore,
         total: r.totalScore,
-        grade: r.grade || getGrade(r.totalScore),
-        remark: getRemark(r.grade || getGrade(r.totalScore)),
+        grade: r.grade || getGrade(r.totalScore, schoolSettings.gradingSystem),
+        remark: getRemark(r.grade || getGrade(r.totalScore, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
         position: r.positionInClass,
         classAverage: r.classAverage
       })),
       summary: {
         totalScore: totalScore.toFixed(2),
         average: averageScore.toFixed(2),
-        overallGrade: getGrade(averageScore),
+        overallGrade: getGrade(averageScore, schoolSettings.gradingSystem),
         position: position > 0 ? position : '-',
         totalInClass: totalInClass,
-        status: averageScore >= 40 ? 'PASS' : 'FAIL'
+        status: averageScore >= (schoolSettings.passThreshold || 40) ? 'PASS' : 'FAIL'
       },
       extras: {
         formMasterRemark: extraDetails?.formMasterRemark || '',

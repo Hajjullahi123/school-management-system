@@ -43,7 +43,9 @@ const Settings = () => {
     assignment2Weight: 5,
     test1Weight: 10,
     test2Weight: 10,
-    examWeight: 70
+    examWeight: 70,
+    gradingSystem: '[{"grade":"A","min":70,"max":100,"remark":"Excellent"},{"grade":"B","min":60,"max":69.9,"remark":"Very Good"},{"grade":"C","min":50,"max":59.9,"remark":"Good"},{"grade":"D","min":40,"max":49.9,"remark":"Pass"},{"grade":"E","min":30,"max":39.9,"remark":"Weak Pass"},{"grade":"F","min":0,"max":29.9,"remark":"Fail"}]',
+    passThreshold: 40
   });
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
@@ -1180,6 +1182,127 @@ const Settings = () => {
                 </div>
               </div>
 
+              </div>
+              
+              <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-sm col-span-1 lg:col-span-2">
+                <div className="flex justify-between items-center mb-8">
+                   <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Grading System Configuration</h3>
+                   <button 
+                    type="button" 
+                    onClick={() => {
+                        const current = JSON.parse(settings.gradingSystem || '[]');
+                        const updated = [...current, { grade: '', min: 0, max: 0, remark: '' }];
+                        setSettings({...settings, gradingSystem: JSON.stringify(updated)});
+                    }}
+                    className="text-xs font-bold text-primary bg-primary/10 px-4 py-2 rounded-full hover:bg-primary/20"
+                   >
+                     + Add Grade
+                   </button>
+                </div>
+                
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="text-left text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+                                <th className="pb-4 pr-4">Grade</th>
+                                <th className="pb-4 px-4">Min Score</th>
+                                <th className="pb-4 px-4">Max Score</th>
+                                <th className="pb-4 px-4">Remark</th>
+                                <th className="pb-4 px-4 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {JSON.parse(settings.gradingSystem || '[]').map((item, idx) => (
+                                <tr key={idx} className="group">
+                                    <td className="py-3 pr-4">
+                                        <input 
+                                            type="text" 
+                                            value={item.grade} 
+                                            onChange={(e) => {
+                                                const current = JSON.parse(settings.gradingSystem);
+                                                current[idx].grade = e.target.value.toUpperCase();
+                                                setSettings({...settings, gradingSystem: JSON.stringify(current)});
+                                            }}
+                                            placeholder="A"
+                                            className="w-16 bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold focus:ring-1 ring-primary" 
+                                        />
+                                    </td>
+                                    <td className="py-3 px-4">
+                                        <input 
+                                            type="number" 
+                                            value={item.min} 
+                                            onChange={(e) => {
+                                                const current = JSON.parse(settings.gradingSystem);
+                                                current[idx].min = parseFloat(e.target.value);
+                                                setSettings({...settings, gradingSystem: JSON.stringify(current)});
+                                            }}
+                                            className="w-20 bg-slate-50 border-0 rounded-lg px-3 py-2 focus:ring-1 ring-primary" 
+                                        />
+                                    </td>
+                                    <td className="py-3 px-4">
+                                        <input 
+                                            type="number" 
+                                            value={item.max} 
+                                            onChange={(e) => {
+                                                const current = JSON.parse(settings.gradingSystem);
+                                                current[idx].max = parseFloat(e.target.value);
+                                                setSettings({...settings, gradingSystem: JSON.stringify(current)});
+                                            }}
+                                            className="w-20 bg-slate-50 border-0 rounded-lg px-3 py-2 focus:ring-1 ring-primary" 
+                                        />
+                                    </td>
+                                    <td className="py-3 px-4">
+                                        <input 
+                                            type="text" 
+                                            value={item.remark} 
+                                            onChange={(e) => {
+                                                const current = JSON.parse(settings.gradingSystem);
+                                                current[idx].remark = e.target.value;
+                                                setSettings({...settings, gradingSystem: JSON.stringify(current)});
+                                            }}
+                                            placeholder="Excellent"
+                                            className="w-full bg-slate-50 border-0 rounded-lg px-3 py-2 focus:ring-1 ring-primary" 
+                                        />
+                                    </td>
+                                    <td className="py-3 px-4 text-center">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => {
+                                                const current = JSON.parse(settings.gradingSystem);
+                                                const updated = current.filter((_, i) => i !== idx);
+                                                setSettings({...settings, gradingSystem: JSON.stringify(updated)});
+                                            }}
+                                            className="text-red-400 hover:text-red-600 p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            ✕
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="mt-10 pt-10 border-t border-slate-50 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-2">Promotion Threshold</h4>
+                        <p className="text-xs text-slate-500 font-medium">Minimum average percentage required for a student to pass and be promoted to the next class.</p>
+                    </div>
+                    <div className="flex items-center gap-4 bg-slate-50 p-6 rounded-[30px]">
+                        <input 
+                            type="range" 
+                            min="0" 
+                            max="100" 
+                            name="passThreshold"
+                            value={settings.passThreshold} 
+                            onChange={handleInputChange}
+                            className="flex-1 accent-primary" 
+                        />
+                        <span className="text-2xl font-black text-primary min-w-[60px]">{settings.passThreshold}%</span>
+                    </div>
+                </div>
+              </div>
+
               <div className="flex justify-end pt-10">
                 <button
                   type="submit"
@@ -1191,9 +1314,9 @@ const Settings = () => {
               </div>
             </form>
           )}
-        </div>
       </div>
     </div>
+    </div >
   );
 };
 
