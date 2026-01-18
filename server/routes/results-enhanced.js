@@ -187,6 +187,23 @@ router.post('/entry', authenticate, authorize(['admin', 'teacher']), async (req,
 
     res.json(result);
 
+    // After saving, recalculate class statistics for this subject
+    try {
+      const avg = await calculateClassAverage(prisma, parseInt(classId), parseInt(subjectId), parseInt(termId), req.schoolId);
+      await prisma.result.updateMany({
+        where: {
+          schoolId: req.schoolId,
+          classId: parseInt(classId),
+          subjectId: parseInt(subjectId),
+          termId: parseInt(termId)
+        },
+        data: { classAverage: avg }
+      });
+      await calculatePositions(prisma, parseInt(classId), parseInt(subjectId), parseInt(termId), req.schoolId);
+    } catch (calcError) {
+      console.error('Recalculation error:', calcError);
+    }
+
     // Log the entry/update
     logAction({
       schoolId: req.schoolId,

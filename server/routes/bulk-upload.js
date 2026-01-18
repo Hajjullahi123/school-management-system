@@ -529,6 +529,27 @@ router.post('/results', authenticate, authorize(['admin', 'teacher']), async (re
       return res.status(400).json({ error: 'Term ID, Academic Session ID, Class ID, and Subject ID are required' });
     }
 
+    // Fetch school settings for weights and grading
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: {
+        assignment1Weight: true,
+        assignment2Weight: true,
+        test1Weight: true,
+        test2Weight: true,
+        examWeight: true,
+        gradingSystem: true
+      }
+    });
+
+    const {
+      calculateTotalScore,
+      getGrade,
+      calculateClassAverage,
+      calculatePositions,
+      validateScores
+    } = require('../utils/grading');
+
     // Verify teacher has permission for this subject-class combination
     if (req.user.role === 'teacher') {
       const assignment = await prisma.teacherAssignment.findFirst({
@@ -593,59 +614,26 @@ router.post('/results', authenticate, authorize(['admin', 'teacher']), async (re
           continue;
         }
 
-        // Parse and validate scores
-        const assignment1Score = resultData.assignment1 ? parseFloat(resultData.assignment1) : null;
-        const assignment2Score = resultData.assignment2 ? parseFloat(resultData.assignment2) : null;
-        const test1Score = resultData.test1 ? parseFloat(resultData.test1) : null;
-        const test2Score = resultData.test2 ? parseFloat(resultData.test2) : null;
-        const examScore = resultData.exam ? parseFloat(resultData.exam) : null;
-
-        // Validate score ranges
-        if (assignment1Score !== null && (assignment1Score < 0 || assignment1Score > 5)) {
-          uploadResults.failed.push({
-            data: resultData,
-            error: '1st Assignment score must be between 0 and 5'
-          });
-          continue;
-        }
-
-        if (assignment2Score !== null && (assignment2Score < 0 || assignment2Score > 5)) {
-          uploadResults.failed.push({
-            data: resultData,
-            error: '2nd Assignment score must be between 0 and 5'
-          });
-          continue;
-        }
-
-        if (test1Score !== null && (test1Score < 0 || test1Score > 10)) {
-          uploadResults.failed.push({
-            data: resultData,
-            error: '1st Test score must be between 0 and 10'
-          });
-          continue;
-        }
-
-        if (test2Score !== null && (test2Score < 0 || test2Score > 10)) {
-          uploadResults.failed.push({
-            data: resultData,
-            error: '2nd Test score must be between 0 and 10'
-          });
-          continue;
-        }
-
-        if (examScore !== null && (examScore < 0 || examScore > 70)) {
-          uploadResults.failed.push({
-            data: resultData,
-            error: 'Examination score must be between 0 and 70'
-          });
-          continue;
-        }
+        // Parse and validate scores using school weights
+        const validatedScores = validateScores(
+          resultData.assignment1,
+          resultData.assignment2,
+          resultData.test1,
+          resultData.test2,
+          resultData.exam,
+          school
+        );
 
         // Calculate total score
-        const totalScore = (assignment1Score || 0) + (assignment2Score || 0) +
-          (test1Score || 0) + (test2Score || 0) + (examScore || 0);
+        const totalScore = calculateTotalScore(
+          validatedScores.assignment1Score,
+          validatedScores.assignment2Score,
+          validatedScores.test1Score,
+          validatedScores.test2Score,
+          validatedScores.examScore
+        );
 
-        const grade = calculateGrade(totalScore);
+        const grade = getGrade(totalScore, school.gradingSystem);
 
         // Check if result already exists
         const existingResult = await prisma.result.findUnique({
@@ -667,11 +655,7 @@ router.post('/results', authenticate, authorize(['admin', 'teacher']), async (re
           termId: parseInt(termId),
           classId: parseInt(classId),
           subjectId: parseInt(subjectId),
-          assignment1Score,
-          assignment2Score,
-          test1Score,
-          test2Score,
-          examScore,
+          ...validatedScores,
           totalScore,
           grade,
           teacherId: req.user.id,
@@ -708,13 +692,36 @@ router.post('/results', authenticate, authorize(['admin', 'teacher']), async (re
             grade
           });
         }
-
       } catch (error) {
         uploadResults.failed.push({
           data: resultData,
           error: error.message
         });
       }
+    }
+
+    // After all results are processed, recalculate class averages and positions for this subject
+    try {
+      const avg = await calculateClassAverage(prisma, parseInt(classId), parseInt(subjectId), parseInt(termId), req.schoolId);
+
+      // Update all results for this subject-class-term with the new class average
+      await prisma.result.updateMany({
+        where: {
+          schoolId: req.schoolId,
+          classId: parseInt(classId),
+          subjectId: parseInt(subjectId),
+          termId: parseInt(termId)
+        },
+        data: {
+          classAverage: avg
+        }
+      });
+
+      // Recalculate positions
+      await calculatePositions(prisma, parseInt(classId), parseInt(subjectId), parseInt(termId), req.schoolId);
+    } catch (calcError) {
+      console.error('Error recalculating class stats after bulk upload:', calcError);
+      // Don't fail the whole response, the scores are already saved
     }
 
     res.json({

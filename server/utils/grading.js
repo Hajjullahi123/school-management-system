@@ -78,7 +78,7 @@ function getRemark(grade, gradingSystem = null) {
  * Validate score component (ensure within max limits)
  */
 function validateScoreComponent(score, maxScore, componentName) {
-  if (score === null || score === undefined) return null;
+  if (score === null || score === undefined || score === '') return null;
 
   const numScore = parseFloat(score);
 
