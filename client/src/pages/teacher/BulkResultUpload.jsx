@@ -201,168 +201,209 @@ export default function BulkResultUpload() {
             </p>
           </div>
 
-          {/* Assignment Selection */}
-          <div className="bg-white rounded-lg shadow mb-6">
-            <div className="px-6 py-4 border-b">
-              <h2 className="text-lg font-semibold">Your Subjects</h2>
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Left Column: Subject Selection (1/3 width) */}
+            <div className="lg:w-1/3">
+              <div className="bg-white rounded-lg shadow sticky top-6">
+                <div className="px-6 py-4 border-b bg-gray-50/50">
+                  <h2 className="text-lg font-semibold">Your Subjects</h2>
+                </div>
+                <div className="p-4 max-h-[calc(100vh-250px)] overflow-y-auto">
+                  {assignments.length === 0 ? (
+                    <p className="text-gray-500 italic p-4">No subjects assigned.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {assignments.map((assignment, idx) => (
+                        <div
+                          key={idx}
+                          className={`border-2 rounded-xl p-4 cursor-pointer transition-all duration-200 ${selectedAssignment === assignment
+                            ? 'border-primary bg-primary/5 shadow-md transform scale-[1.02]'
+                            : 'border-gray-100 hover:border-primary/30 hover:bg-gray-50'
+                            }`}
+                          onClick={() => setSelectedAssignment(assignment)}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-bold text-gray-900 leading-tight">{assignment.subjectName}</h3>
+                              <p className="text-xs font-medium text-primary mt-1 uppercase tracking-wider">{assignment.className}</p>
+                            </div>
+                            <span className="bg-gray-100 text-gray-600 text-[10px] px-2 py-1 rounded-full font-bold">
+                              {assignment.studentCount} Students
+                            </span>
+                          </div>
+
+                          <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                downloadScoresheet(assignment);
+                              }}
+                              className="text-[11px] font-bold text-green-600 hover:text-green-700 flex items-center gap-1 bg-green-50 px-2 py-1 rounded"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 8m4-4v12" />
+                              </svg>
+                              GET TEMPLATE
+                            </button>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedAssignment(assignment);
+                              }}
+                              className={`text-[11px] font-bold flex items-center gap-1 px-2 py-1 rounded transition-colors ${selectedAssignment === assignment ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500 hover:bg-primary/10'}`}
+                            >
+                              SELECT
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="p-6">
-              {assignments.length === 0 ? (
-                <p className="text-gray-500">No subjects assigned to you.</p>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {assignments.map((assignment, idx) => (
-                    <div
-                      key={idx}
-                      className={`border rounded-lg p-4 cursor-pointer transition-colors ${selectedAssignment === assignment
-                        ? 'border-primary bg-primary/5'
-                        : 'border-gray-200 hover:border-primary/50'
-                        }`}
-                      onClick={() => setSelectedAssignment(assignment)}
-                    >
-                      <h3 className="font-semibold">{assignment.subjectName}</h3>
-                      <p className="text-sm text-gray-600">{assignment.className}</p>
-                      <p className="text-sm text-gray-500 mt-2">
-                        {assignment.studentCount} students
+
+            {/* Right Column: Upload Form & Results (2/3 width) */}
+            <div className="lg:w-2/3 space-y-6">
+              {/* Upload Form Section */}
+              <div className={`bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 border-2 ${!selectedAssignment ? 'border-dashed border-gray-200' : 'border-primary/20'}`}>
+                <div className={`px-6 py-5 border-b flex justify-between items-center ${selectedAssignment ? 'bg-primary/5' : 'bg-gray-50 text-gray-400'}`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${selectedAssignment ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400'}`}>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900 leading-none">
+                        {selectedAssignment
+                          ? `Upload Results: ${selectedAssignment.subjectName}`
+                          : 'Select Subject to Upload'
+                        }
+                      </h2>
+                      <p className="text-xs mt-1 font-medium text-gray-500">
+                        {selectedAssignment ? `${selectedAssignment.className} Scoresheet` : 'Choose from left column'}
                       </p>
-                      <div className="mt-3 flex gap-3">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            downloadScoresheet(assignment);
-                          }}
-                          className="text-sm font-medium text-primary hover:text-primary-dark flex items-center gap-1"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 8m4-4v12" />
-                          </svg>
-                          Download Template
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedAssignment(assignment);
-                          }}
-                          className={`text-sm font-medium flex items-center gap-1 ${selectedAssignment === assignment ? 'text-secondary' : 'text-gray-500 hover:text-primary'}`}
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                          </svg>
-                          Upload Results
-                        </button>
+                    </div>
+                  </div>
+                  {selectedAssignment && (
+                    <button
+                      onClick={() => setSelectedAssignment(null)}
+                      className="text-xs font-bold text-gray-400 hover:text-red-500 flex items-center gap-1 uppercase tracking-tighter"
+                    >
+                      Clear ✕
+                    </button>
+                  )}
+                </div>
+
+                <div className="p-8">
+                  {selectedAssignment ? (
+                    <div className="space-y-8 animate-fadeIn">
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-5 flex gap-4">
+                        <div className="bg-white p-2 rounded-lg shadow-sm h-fit">
+                          💡
+                        </div>
+                        <div className="text-sm">
+                          <p className="text-blue-900 font-bold mb-1 underline">Action Required:</p>
+                          <ul className="text-blue-800 space-y-1 list-disc list-inside font-medium opacity-90">
+                            <li>Fill the Excel template for <strong>{selectedAssignment.subjectName}</strong>.</li>
+                            <li>Critical: Save as <strong>CSV (Comma delimited)</strong> format.</li>
+                            <li>Upload the correctly saved CSV file below.</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <CSVUploadForm
+                        onUpload={handleUpload}
+                        expectedHeaders={[
+                          'Admission Number',
+                          'Student Name',
+                          headers.assignment1,
+                          headers.assignment2,
+                          headers.test1,
+                          headers.test2,
+                          headers.exam
+                        ]}
+                        validateRow={validateRow}
+                      />
+                    </div>
+                  ) : (
+                    <div className="py-20 text-center space-y-4">
+                      <div className="inline-block p-6 bg-gray-50 rounded-full grayscale opacity-50">
+                        <svg className="h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                      </div>
+                      <div className="max-w-xs mx-auto">
+                        <p className="text-gray-500 font-bold text-lg">No Subject Selected</p>
+                        <p className="text-gray-400 text-sm mt-2">Cliquez sur un sujet dans la liste de gauche pour activer l'aire de téléchargement</p>
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Upload Form Section */}
-          <div className={`bg-white rounded-lg shadow mt-8 overflow-hidden transition-all duration-300 ${!selectedAssignment ? 'ring-1 ring-gray-200' : 'ring-2 ring-primary ring-offset-4'}`}>
-            <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
-              <div>
-                <h2 className="text-lg font-semibold">
-                  {selectedAssignment
-                    ? `Upload Results: ${selectedAssignment.subjectName} - ${selectedAssignment.className}`
-                    : 'Upload Results'
-                  }
-                </h2>
-                {!selectedAssignment && (
-                  <p className="text-sm text-gray-500">Please select a subject from the list above to start uploading</p>
-                )}
               </div>
-              {selectedAssignment && (
-                <button
-                  onClick={() => setSelectedAssignment(null)}
-                  className="text-xs text-gray-400 hover:text-red-500"
-                >
-                  Clear Selection
-                </button>
-              )}
-            </div>
 
-            <div className="p-6">
-              {selectedAssignment ? (
-                <div className="space-y-6">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-800">
-                      <strong>Instructions:</strong><br />
-                      1. Fill the downloaded Excel template for <strong>{selectedAssignment.subjectName}</strong>.<br />
-                      2. Save it as <strong>CSV (Comma delimited)</strong>.<br />
-                      3. Upload the CSV file below.
-                    </p>
+              {/* Upload Results Summary (Only shows on right side when data exists) */}
+              {uploadResult && (
+                <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-primary/10 animate-slideUp">
+                  <div className="flex items-center gap-2 mb-6 border-b pb-4">
+                    <div className="bg-green-100 text-green-600 p-2 rounded-lg">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900">Upload Processed</h3>
                   </div>
 
-                  <CSVUploadForm
-                    onUpload={handleUpload}
-                    expectedHeaders={[
-                      'Admission Number',
-                      'Student Name',
-                      headers.assignment1,
-                      headers.assignment2,
-                      headers.test1,
-                      headers.test2,
-                      headers.exam
-                    ]}
-                    validateRow={validateRow}
-                  />
-                </div>
-              ) : (
-                <div className="py-12 text-center text-gray-400">
-                  <svg className="mx-auto h-12 w-12 mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  <p>Choose a subject from "Your Subjects" above to enable upload</p>
+                  <div className="grid md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                      <p className="text-xs font-bold text-green-600 uppercase">Created</p>
+                      <p className="text-3xl font-black text-green-700">{uploadResult.successful.length}</p>
+                    </div>
+                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                      <p className="text-xs font-bold text-blue-600 uppercase">Updated</p>
+                      <p className="text-3xl font-black text-blue-700">{uploadResult.updated.length}</p>
+                    </div>
+                    <div className="bg-red-50 p-4 rounded-xl border border-red-100">
+                      <p className="text-xs font-bold text-red-600 uppercase">Failed</p>
+                      <p className="text-3xl font-black text-red-700">{uploadResult.failed.length}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {uploadResult.successful.length > 0 && (
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <h4 className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-widest">Recent Successes</h4>
+                        <div className="max-h-40 overflow-y-auto text-sm space-y-2">
+                          {uploadResult.successful.slice(0, 10).map((item, idx) => (
+                            <div key={idx} className="flex justify-between items-center bg-white p-2 rounded shadow-sm border border-gray-100">
+                              <span className="font-bold text-gray-700">{item.studentName}</span>
+                              <span className="bg-green-100 text-green-700 font-black px-2 py-0.5 rounded text-xs">{item.totalScore} ({item.grade})</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {uploadResult.failed.length > 0 && (
+                      <div className="p-4 bg-red-50/50 rounded-lg border border-red-100">
+                        <h4 className="text-xs font-bold text-red-500 mb-3 uppercase tracking-widest">Error Log</h4>
+                        <div className="max-h-40 overflow-y-auto text-sm space-y-2">
+                          {uploadResult.failed.map((item, idx) => (
+                            <div key={idx} className="bg-white p-2 rounded shadow-sm border border-red-200 flex flex-col">
+                              <span className="font-black text-gray-800 text-xs">{item.data.admissionNumber}</span>
+                              <span className="text-red-600 font-bold text-[11px] mt-0.5">{item.error}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
           </div>
-
-          {/* Upload Results */}
-          {uploadResult && (
-            <div className="mt-6 bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold mb-4">Upload Results</h3>
-
-              {uploadResult.successful.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="font-medium text-green-700 mb-2">
-                    ✓ {uploadResult.successful.length} Created
-                  </h4>
-                  <div className="max-h-40 overflow-y-auto text-sm text-gray-600">
-                    {uploadResult.successful.slice(0, 5).map((item, idx) => (
-                      <div key={idx}>
-                        {item.studentName} - {item.totalScore} ({item.grade})
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {uploadResult.updated.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="font-medium text-blue-700 mb-2">
-                    ↻ {uploadResult.updated.length} Updated
-                  </h4>
-                </div>
-              )}
-
-              {uploadResult.failed.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-red-700 mb-2">
-                    ✗ {uploadResult.failed.length} Failed
-                  </h4>
-                  <div className="max-h-40 overflow-y-auto text-sm text-red-600">
-                    {uploadResult.failed.map((item, idx) => (
-                      <div key={idx}>
-                        {item.data.admissionNumber}: {item.error}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </>
       )}
     </div>
