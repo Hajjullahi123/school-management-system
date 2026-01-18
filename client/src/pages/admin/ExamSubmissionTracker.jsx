@@ -160,7 +160,7 @@ const ExamSubmissionTracker = () => {
   }
 
   return (
-    <div className="max-w-[1400px] mx-auto space-y-10 pb-20 px-4">
+    <div className="space-y-8 pb-20">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
@@ -274,7 +274,7 @@ const ExamSubmissionTracker = () => {
             <button
               key={mode}
               onClick={() => setGroupBy(mode)}
-              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${groupBy === mode ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${groupBy === mode ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600'}`}
             >
               {mode}
             </button>
@@ -283,17 +283,17 @@ const ExamSubmissionTracker = () => {
       </div>
 
       {/* Tracking Ledger */}
-      <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl overflow-x-auto min-h-[400px]">
-        <table className="w-full text-left border-collapse min-w-[1000px]">
+      <div className="bg-white rounded-[24px] border border-slate-100 shadow-xl overflow-x-auto min-h-[400px]">
+        <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
             <tr className="bg-slate-50/50">
-              <th className="px-8 py-8 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
+              <th className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
                 {activeTab === 'academic' ? 'Operational Unit' : 'CBT Examination Detail'}
               </th>
-              <th className="px-8 py-8 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Lead Instructor</th>
-              <th className="px-8 py-8 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Coverage</th>
-              <th className="px-8 py-8 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] text-center">Protocol Status</th>
-              <th className="px-8 py-8 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] text-right">Actions</th>
+              <th className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Lead Instructor</th>
+              <th className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Coverage</th>
+              <th className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] text-center">Protocol Status</th>
+              <th className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -314,8 +314,8 @@ const ExamSubmissionTracker = () => {
                     </tr>
                   )}
                   {items.map((item) => (
-                    <tr key={`${activeTab}-${item.id}-${item.subjectName}`} className="hover:bg-slate-50/80 transition-all group">
-                      <td className="px-8 py-8">
+                    <tr key={`${activeTab}-${item.id}-${item.subjectName}`} className="hover:bg-slate-50/80 transition-all group border-b border-slate-50 last:border-0">
+                      <td className="px-6 py-6">
                         <p className="text-xl font-black text-slate-900 tracking-tighter italic">
                           {activeTab === 'academic' ? item.className : item.title}
                         </p>
@@ -323,7 +323,7 @@ const ExamSubmissionTracker = () => {
                           {activeTab === 'academic' ? item.subjectName : `${item.className} • ${item.subjectName}`}
                         </p>
                       </td>
-                      <td className="px-8 py-8">
+                      <td className="px-6 py-6">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-400 text-xs">
                             {item.teacherName ? item.teacherName.split(' ').map(n => n[0]).join('') : '??'}
@@ -331,7 +331,7 @@ const ExamSubmissionTracker = () => {
                           <p className="font-bold text-slate-700 text-sm whitespace-nowrap">{item.teacherName || 'Unknown Teacher'}</p>
                         </div>
                       </td>
-                      <td className="px-8 py-8">
+                      <td className="px-6 py-6">
                         {activeTab === 'academic' ? (
                           <div className="w-48">
                             <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
@@ -366,7 +366,7 @@ const ExamSubmissionTracker = () => {
                           </div>
                         )}
                       </td>
-                      <td className="px-8 py-8">
+                      <td className="px-6 py-6">
                         <div className="flex justify-center">
                           <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${activeTab === 'academic' ? getStatusColor(item.status) : getStatusColor(null, item.participationRate)}`}>
                             {activeTab === 'academic'
@@ -375,7 +375,7 @@ const ExamSubmissionTracker = () => {
                           </span>
                         </div>
                       </td>
-                      <td className="px-8 py-8 text-right">
+                      <td className="px-6 py-6 text-right">
                         <div className="flex justify-end gap-2">
                           {(activeTab === 'academic' ? item.status !== 'Completed' : parseFloat(item.participationRate) < 100) && (
                             <button
