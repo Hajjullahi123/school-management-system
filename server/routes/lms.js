@@ -72,6 +72,23 @@ router.post('/homework', authenticate, authorize(['teacher', 'admin']), upload.s
     const fileUrl = req.file ? `/uploads/lms/${req.file.filename}` : null;
     const fileName = req.file ? req.file.originalname : null;
 
+    // TEACHER CHECK: Ensure teacher is assigned to this class and subject
+    if (req.user.role === 'teacher') {
+      const assignment = await prisma.teacherAssignment.findFirst({
+        where: {
+          teacherId: req.user.id,
+          classSubject: {
+            classId: parseInt(classId),
+            subjectId: parseInt(subjectId)
+          }
+        }
+      });
+
+      if (!assignment) {
+        return res.status(403).json({ error: 'Unauthorized: You are not assigned to teach this subject in this class.' });
+      }
+    }
+
     const homework = await prisma.homework.create({
       data: {
         schoolId: req.schoolId,
@@ -219,6 +236,23 @@ router.post('/resources', authenticate, authorize(['teacher', 'admin']), upload.
     if (req.file) {
       fileUrl = `/uploads/lms/${req.file.filename}`;
       fileName = req.file.originalname;
+    }
+
+    // TEACHER CHECK: Ensure teacher is assigned to this class and subject
+    if (req.user.role === 'teacher') {
+      const assignment = await prisma.teacherAssignment.findFirst({
+        where: {
+          teacherId: req.user.id,
+          classSubject: {
+            classId: parseInt(classId),
+            subjectId: parseInt(subjectId)
+          }
+        }
+      });
+
+      if (!assignment) {
+        return res.status(403).json({ error: 'Unauthorized: You are not assigned to teach this subject in this class.' });
+      }
     }
 
     const resource = await prisma.learningResource.create({

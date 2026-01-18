@@ -12,9 +12,20 @@ router.get('/', authenticate, async (req, res) => {
       isActive: true
     };
 
-    // If teacher, only return classes they are form master for
+    // If teacher, return classes they are form master for OR classes they teach subjects in
     if (req.user.role === 'teacher') {
-      where.classTeacherId = req.user.id;
+      where.OR = [
+        { classTeacherId: req.user.id },
+        {
+          classSubjects: {
+            some: {
+              teacherAssignments: {
+                some: { teacherId: req.user.id }
+              }
+            }
+          }
+        }
+      ];
     }
 
     const classes = await prisma.class.findMany({

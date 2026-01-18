@@ -10,6 +10,7 @@ const LearningResources = () => {
   const [resources, setResources] = useState([]);
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [teacherAssignments, setTeacherAssignments] = useState([]); // All classes/subjects teacher is assigned to
   const [selectedClassId, setSelectedClassId] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -30,7 +31,11 @@ const LearningResources = () => {
   useEffect(() => {
     if (isTeacher) {
       fetchClasses();
-      fetchSubjects();
+      if (user?.role === 'teacher') {
+        fetchTeacherAssignments();
+      } else {
+        fetchSubjects(); // Admins see all subjects
+      }
     } else if (user?.role === 'student' && user?.student?.classId) {
       setSelectedClassId(user.student.classId);
     }
@@ -54,6 +59,15 @@ const LearningResources = () => {
     } catch (e) { console.error(e); }
   };
 
+  const fetchTeacherAssignments = async () => {
+    try {
+      const response = await api.get(`/api/teacher-assignments/teacher/${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTeacherAssignments(data);
+      }
+    } catch (e) { console.error(e); }
+  };
   const fetchResources = async () => {
     setLoading(true);
     try {
@@ -234,7 +248,13 @@ const LearningResources = () => {
                     required
                   >
                     <option value="">Select...</option>
-                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {user?.role === 'teacher' ? (
+                      teacherAssignments
+                        .filter(a => a.classId === parseInt(selectedClassId))
+                        .map(a => <option key={a.subjectId} value={a.subjectId}>{a.subject?.name}</option>)
+                    ) : (
+                      subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)
+                    )}
                   </select>
                 </div>
                 <div>
