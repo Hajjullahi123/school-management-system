@@ -235,10 +235,24 @@ export default function BulkResultUpload() {
                               <h3 className="font-bold text-gray-900 leading-tight">{assignment.subjectName}</h3>
                               <p className="text-xs font-medium text-primary mt-1 uppercase tracking-wider">{assignment.className}</p>
                             </div>
-                            <span className="bg-gray-100 text-gray-600 text-[10px] px-2 py-1 rounded-full font-bold">
-                              {assignment.studentCount} Students
-                            </span>
+                            <div className="text-right">
+                              <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${assignment.recordedCount > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+                                {assignment.recordedCount}/{assignment.studentCount} Recorded
+                              </span>
+                              {assignment.recordedCount > 0 && (
+                                <p className="text-[9px] font-black text-emerald-600 uppercase mt-1">Data Found</p>
+                              )}
+                            </div>
                           </div>
+
+                          {assignment.recordedCount > 0 && assignment.recordedCount < assignment.studentCount && (
+                            <div className="mt-3 w-full bg-gray-100 h-1 rounded-full overflow-hidden">
+                              <div
+                                className="bg-emerald-500 h-full transition-all"
+                                style={{ width: `${(assignment.recordedCount / assignment.studentCount) * 100}%` }}
+                              />
+                            </div>
+                          )}
 
                           <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
                             <button
@@ -246,12 +260,15 @@ export default function BulkResultUpload() {
                                 e.stopPropagation();
                                 downloadScoresheet(assignment);
                               }}
-                              className="text-[11px] font-bold text-green-600 hover:text-green-700 flex items-center gap-1 bg-green-50 px-2 py-1 rounded"
+                              className={`text-[11px] font-bold flex items-center gap-1 px-2 py-1 rounded ${assignment.recordedCount > 0
+                                ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                                : 'text-green-600 bg-green-50 hover:bg-green-100'}`}
+                              title={assignment.recordedCount > 0 ? "Download scoresheet with existing records" : "Download empty template"}
                             >
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 8m4-4v12" />
                               </svg>
-                              GET TEMPLATE
+                              {assignment.recordedCount > 0 ? 'DOWNLOAD SCORES' : 'GET TEMPLATE'}
                             </button>
 
                             <button
@@ -262,6 +279,11 @@ export default function BulkResultUpload() {
                               className={`text-[11px] font-bold flex items-center gap-1 px-2 py-1 rounded transition-colors ${selectedAssignment === assignment ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500 hover:bg-primary/10'}`}
                             >
                               SELECT
+                              {assignment.isCompleted && (
+                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                              )}
                             </button>
                           </div>
                         </div>

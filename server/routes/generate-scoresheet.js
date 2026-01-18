@@ -94,7 +94,11 @@ async function generateExcel(res, titleData, studentData, filename, weights) {
       index + 1,
       student.admissionNumber,
       student.name,
-      null, null, null, null, null,
+      student.ass1 || null,
+      student.ass2 || null,
+      student.test1 || null,
+      student.test2 || null,
+      student.exam || null,
       totalFormula
     ];
 
@@ -192,13 +196,38 @@ router.get('/teacher/:teacherId', authenticate, authorize(['admin', 'teacher']),
       }
     });
 
-    const scoresheets = assignments.map(a => ({
-      classId: a.classSubject.class.id,
-      subjectId: a.classSubject.subject.id,
-      className: `${a.classSubject.class.name} ${a.classSubject.class.arm || ''}`.trim(),
-      subjectName: a.classSubject.subject.name,
-      studentCount: a.classSubject.class._count.students,
-      filename: `${a.classSubject.class.name}_${a.classSubject.subject.name}_Scoresheet.xlsx`.replace(/\s+/g, '_')
+    const termId = parseInt(req.query.termId);
+    const academicSessionId = parseInt(req.query.academicSessionId);
+
+    const scoresheets = await Promise.all(assignments.map(async a => {
+      // Get count of students who have at least one score component entered
+      const resultCount = await prisma.result.count({
+        where: {
+          schoolId: req.schoolId,
+          classId: a.classSubject.class.id,
+          subjectId: a.classSubject.subject.id,
+          termId: termId || undefined,
+          academicSessionId: academicSessionId || undefined,
+          OR: [
+            { assignment1Score: { not: null } },
+            { assignment2Score: { not: null } },
+            { test1Score: { not: null } },
+            { test2Score: { not: null } },
+            { examScore: { not: null } }
+          ]
+        }
+      });
+
+      return {
+        classId: a.classSubject.class.id,
+        subjectId: a.classSubject.subject.id,
+        className: `${a.classSubject.class.name} ${a.classSubject.class.arm || ''}`.trim(),
+        subjectName: a.classSubject.subject.name,
+        studentCount: a.classSubject.class._count.students,
+        recordedCount: resultCount,
+        isCompleted: resultCount > 0 && resultCount >= a.classSubject.class._count.students,
+        filename: `${a.classSubject.class.name}_${a.classSubject.subject.name}_Scoresheet.xlsx`.replace(/\s+/g, '_')
+      };
     }));
 
     res.json(scoresheets);
@@ -296,10 +325,34 @@ router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin
       teacherName
     };
 
-    const studentData = classInfo.students.map(s => ({
-      admissionNumber: s.admissionNumber,
-      name: `${s.user.firstName} ${s.user.lastName}`
-    }));
+    // 3.5 Fetch Existing Results to include in sheet
+    const results = await prisma.result.findMany({
+      where: {
+        schoolId: req.schoolId,
+        classId,
+        subjectId,
+        termId: parseInt(termId),
+        academicSessionId: parseInt(academicSessionId)
+      }
+    });
+
+    const resultsMap = {};
+    results.forEach(r => {
+      resultsMap[r.studentId] = r;
+    });
+
+    const studentData = classInfo.students.map(s => {
+      const r = resultsMap[s.id];
+      return {
+        admissionNumber: s.admissionNumber,
+        name: `${s.user.firstName} ${s.user.lastName}`,
+        ass1: r?.assignment1Score,
+        ass2: r?.assignment2Score,
+        test1: r?.test1Score,
+        test2: r?.test2Score,
+        exam: r?.examScore
+      };
+    });
 
     // 4. Generate
     await generateExcel(res, titleData, studentData, filename, school);
