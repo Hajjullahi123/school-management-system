@@ -66,6 +66,7 @@ const Layout = () => {
   };
 
   const menuItems = [];
+  const isFormMaster = user?.role === 'teacher' && user?.classesAsTeacher && user.classesAsTeacher.length > 0;
 
 
   // Logic-based Dashboard Link
@@ -129,8 +130,6 @@ const Layout = () => {
 
   // Add Teacher items (only for teachers, not admins)
   if (user?.role === 'teacher') {
-    const isFormMaster = user?.classesAsTeacher && user.classesAsTeacher.length > 0;
-
     if (isFormMaster) {
       menuItems.push({
         path: '/dashboard/attendance',
