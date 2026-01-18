@@ -7,6 +7,7 @@ const ExamSubmissionTracker = () => {
   const [cbtData, setCbtData] = useState([]);
   const [config, setConfig] = useState({});
   const [loading, setLoading] = useState(true);
+  const [nudging, setNudging] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [activeTab, setActiveTab] = useState('academic'); // 'academic' or 'cbt'
@@ -43,6 +44,7 @@ const ExamSubmissionTracker = () => {
 
   const handleNudge = async (item) => {
     try {
+      setNudging(item.id + item.subjectName);
       const response = await api.post('/api/analytics/nudge', {
         teacherId: item.teacherId,
         className: item.className,
@@ -57,6 +59,8 @@ const ExamSubmissionTracker = () => {
       }
     } catch (error) {
       toast.error('Error sending nudge');
+    } finally {
+      setNudging(null);
     }
   };
 
@@ -331,13 +335,21 @@ const ExamSubmissionTracker = () => {
                     {item.status !== 'Completed' && (
                       <button
                         onClick={() => handleNudge(item)}
-                        className="flex items-center gap-1 px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all active:scale-95"
+                        disabled={nudging === (item.id + item.subjectName)}
+                        className={`flex items-center gap-1 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${nudging === (item.id + item.subjectName)
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                          : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+                          }`}
                         title="Remind Teacher"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                        </svg>
-                        NUDGE
+                        {nudging === (item.id + item.subjectName) ? (
+                          <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-500 rounded-full animate-spin"></div>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                          </svg>
+                        )}
+                        {nudging === (item.id + item.subjectName) ? 'Nudging...' : 'NUDGE'}
                       </button>
                     )}
                     <button

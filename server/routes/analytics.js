@@ -425,6 +425,7 @@ router.get('/cbt-tracking', authenticate, async (req, res) => {
 
       return {
         id: exam.id,
+        teacherId: exam.teacherId,
         title: exam.title,
         className: `${exam.class.name} ${exam.class.arm || ''}`.trim(),
         subjectName: exam.subject.name,
@@ -477,7 +478,16 @@ router.post('/nudge', authenticate, async (req, res) => {
       ipAddress: req.ip
     });
 
-    // 3. TODO: Send real-time notification (Internal Message, SMS, or Email)
+    // 3. Send real-time notification (Internal Notice)
+    await prisma.notice.create({
+      data: {
+        schoolId: req.schoolId,
+        title: 'Submission Reminder',
+        content: `Admin has requested a submission update for ${className} - ${subjectName}. Please complete all scores as soon as possible.`,
+        audience: `user:${teacherId}`,
+        authorId: req.user.id
+      }
+    });
     // For now, we return a success response that the nudge was recorded.
 
     res.json({ message: `Teacher ${teacher.firstName} ${teacher.lastName} nudged successfully.` });

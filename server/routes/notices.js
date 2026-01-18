@@ -16,7 +16,8 @@ router.get('/', authenticate, async (req, res) => {
         isActive: true,
         OR: [
           { audience: 'all' },
-          { audience: role } // 'student' or 'teacher' or 'admin'
+          { audience: role },
+          { audience: `user:${req.user.id}` }
         ]
       },
       orderBy: { createdAt: 'desc' },

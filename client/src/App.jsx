@@ -13,6 +13,7 @@ import Analytics from './pages/Analytics';
 import AdvancedAnalytics from './pages/admin/AdvancedAnalytics';
 import ExamSubmissionTracker from './pages/admin/ExamSubmissionTracker';
 import ThemeController from './components/ThemeController';
+import { Toaster } from 'react-hot-toast';
 
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -77,6 +78,7 @@ import DashboardLogin from './pages/DashboardLogin';
 function App() {
   return (
     <AuthProvider>
+      <Toaster position="top-right" reverseOrder={false} />
       <ThemeController />
       <BrowserRouter>
         <Routes>
