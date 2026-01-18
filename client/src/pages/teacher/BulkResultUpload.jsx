@@ -103,6 +103,15 @@ export default function BulkResultUpload() {
     }
   };
 
+  const getValue = (row, keywords) => {
+    const rowKeys = Object.keys(row);
+    const targetKey = rowKeys.find(key => {
+      const normalizedKey = key.toLowerCase().trim();
+      return keywords.some(kw => normalizedKey.includes(kw.toLowerCase()));
+    });
+    return targetKey ? row[targetKey] : '';
+  };
+
   const handleUpload = async (data) => {
     if (!selectedAssignment) {
       alert('Please select an assignment first');
@@ -110,14 +119,14 @@ export default function BulkResultUpload() {
     }
 
     try {
-      // Transform CSV data to API format
+      // Transform CSV data to API format using fuzzy header matching
       const results = data.map(row => ({
-        admissionNumber: row['Admission Number'],
-        assignment1: row[headers.assignment1] || '',
-        assignment2: row[headers.assignment2] || '',
-        test1: row[headers.test1] || '',
-        test2: row[headers.test2] || '',
-        exam: row[headers.exam] || ''
+        admissionNumber: getValue(row, ['Admission', 'Reg No', 'Reg Number']),
+        assignment1: getValue(row, ['1st Assignment', 'Assignment 1', 'Ass 1']),
+        assignment2: getValue(row, ['2nd Assignment', 'Assignment 2', 'Ass 2']),
+        test1: getValue(row, ['1st Test', 'Test 1', 'CA 1']),
+        test2: getValue(row, ['2nd Test', 'Test 2', 'CA 2']),
+        exam: getValue(row, ['Exam', 'Examination'])
       }));
 
       const response = await api.post('/api/bulk-upload/results', {
@@ -145,16 +154,15 @@ export default function BulkResultUpload() {
   const validateRow = (row) => {
     const errors = [];
 
-    if (!row['Admission Number']) {
+    if (!getValue(row, ['Admission', 'Reg No'])) {
       errors.push('Missing admission number');
     }
 
-    // Support both old hardcoded headers and new dynamic ones for backwards compatibility during transition
-    const assignment1 = parseFloat(row[headers.assignment1] || row['1st Assignment (5)']);
-    const assignment2 = parseFloat(row[headers.assignment2] || row['2nd Assignment (5)']);
-    const test1 = parseFloat(row[headers.test1] || row['1st Test (10)']);
-    const test2 = parseFloat(row[headers.test2] || row['2nd Test (10)']);
-    const exam = parseFloat(row[headers.exam] || row['Examination (70)']);
+    const assignment1 = parseFloat(getValue(row, ['1st Assignment', 'Assignment 1', 'Ass 1']));
+    const assignment2 = parseFloat(getValue(row, ['2nd Assignment', 'Assignment 2', 'Ass 2']));
+    const test1 = parseFloat(getValue(row, ['1st Test', 'Test 1', 'CA 1']));
+    const test2 = parseFloat(getValue(row, ['2nd Test', 'Test 2', 'CA 2']));
+    const exam = parseFloat(getValue(row, ['Exam', 'Examination']));
 
     if (assignment1 && (assignment1 < 0 || assignment1 > weights.assignment1)) {
       errors.push(`1st Assignment must be 0-${weights.assignment1}`);

@@ -24,11 +24,18 @@ export default function CSVUploadForm({ onUpload, expectedHeaders, validateRow }
     Papa.parse(csvFile, {
       header: true,
       skipEmptyLines: true,
+      transformHeader: (header) => {
+        // Trim and remove hidden characters like BOM
+        return header.trim().replace(/^[\uFEFF\u200B\u00A0]+/, "");
+      },
       complete: (results) => {
         // Validate headers
         if (expectedHeaders) {
           const fileHeaders = results.meta.fields;
-          const missingHeaders = expectedHeaders.filter(h => !fileHeaders.includes(h));
+          const missingHeaders = expectedHeaders.filter(h => {
+            // Case-insensitive, trimmed match
+            return !fileHeaders.some(fh => fh.toLowerCase() === h.toLowerCase());
+          });
 
           if (missingHeaders.length > 0) {
             alert(`Missing required columns: ${missingHeaders.join(', ')}`);
