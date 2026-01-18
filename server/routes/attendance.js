@@ -27,15 +27,8 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher']), asy
         where: { id: parseInt(classId), schoolId: req.schoolId }
       });
 
-      if (!classInfo || classInfo.formMasterId !== req.user.id) {
-        // Also check teacher assignments just in case they aren't form master but teach there
-        const isAssigned = await prisma.teacherAssignment.findFirst({
-          where: { classId: parseInt(classId), teacherId: req.user.id, schoolId: req.schoolId }
-        });
-
-        if (!isAssigned) {
-          return res.status(403).json({ error: 'You are not authorized to access this class list.' });
-        }
+      if (!classInfo || classInfo.classTeacherId !== req.user.id) {
+        return res.status(403).json({ error: 'Access Denied: You are not the assigned Class Teacher for this class.' });
       }
     }
 
@@ -119,13 +112,8 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher']), async (req, 
       const classInfo = await prisma.class.findFirst({
         where: { id: parseInt(classId), schoolId: req.schoolId }
       });
-      if (!classInfo || classInfo.formMasterId !== req.user.id) {
-        const isAssigned = await prisma.teacherAssignment.findFirst({
-          where: { classId: parseInt(classId), teacherId: req.user.id, schoolId: req.schoolId }
-        });
-        if (!isAssigned) {
-          return res.status(403).json({ error: 'Unauthorized: You can only mark attendance for your assigned classes.' });
-        }
+      if (!classInfo || classInfo.classTeacherId !== req.user.id) {
+        return res.status(403).json({ error: 'Unauthorized: You can only mark attendance for your assigned classes.' });
       }
     }
 
@@ -308,7 +296,6 @@ router.get('/student/:studentId/summary', authenticate, async (req, res) => {
   }
 });
 
-// 4. Download Attendance Records (CSV Export)
 router.get('/download', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
   try {
     const { classId, startDate, endDate, termId, sessionId } = req.query;
@@ -316,7 +303,27 @@ router.get('/download', authenticate, authorize(['admin', 'teacher']), async (re
     // Build the where clause dynamically
     const where = { schoolId: req.schoolId };
 
-    if (classId) {
+    // TEACHER SCOPE CHECK
+    if (req.user.role === 'teacher') {
+      if (classId) {
+        const classInfo = await prisma.class.findFirst({
+          where: { id: parseInt(classId), schoolId: req.schoolId }
+        });
+        if (!classInfo || classInfo.classTeacherId !== req.user.id) {
+          return res.status(403).json({ error: 'Unauthorized: You can only download records for your own class.' });
+        }
+        where.classId = parseInt(classId);
+      } else {
+        // Force filter to their assigned class if no classId provided
+        const myClass = await prisma.class.findFirst({
+          where: { classTeacherId: req.user.id, schoolId: req.schoolId }
+        });
+        if (!myClass) {
+          return res.status(403).json({ error: 'You are not assigned to any class.' });
+        }
+        where.classId = myClass.id;
+      }
+    } else if (classId) {
       where.classId = parseInt(classId);
     }
 

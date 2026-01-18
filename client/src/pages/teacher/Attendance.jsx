@@ -13,6 +13,7 @@ const Attendance = () => {
   const [selectedClassId, setSelectedClassId] = useState('');
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   // Stats
@@ -33,10 +34,19 @@ const Attendance = () => {
 
   // Initial Data Fetch
   useEffect(() => {
-    fetchClasses();
-    fetchSessions();
-    fetchTerms();
-  }, [user]);
+    if (user?.id) {
+      const init = async () => {
+        setInitialLoading(true);
+        await Promise.all([
+          fetchClasses(),
+          fetchSessions(),
+          fetchTerms()
+        ]);
+        setInitialLoading(false);
+      };
+      init();
+    }
+  }, [user?.id]);
 
   // Fetch Attendance when Class or Date changes
   useEffect(() => {
@@ -52,24 +62,24 @@ const Attendance = () => {
 
   const fetchClasses = async () => {
     try {
-      // If teacher, try to find their assigned class first
-      let data = [];
+      const response = await api.get('/api/classes');
+      const data = await response.json();
+
       if (user?.role === 'teacher') {
-        const myClassRes = await api.get('/api/classes/my-class');
-        if (myClassRes.ok) {
-          const myClass = await myClassRes.json();
-          data = [myClass];
-          setSelectedClassId(myClass.id); // Auto-select logic
+        const teacherClasses = data.filter(c => Number(c.classTeacherId) === Number(user.id));
+        setClasses(teacherClasses);
+
+        if (teacherClasses.length === 1) {
+          const classIdStr = teacherClasses[0].id.toString();
+          setSelectedClassId(classIdStr);
+          setDownloadFilters(prev => ({ ...prev, classId: classIdStr }));
         } else {
-          // Fallback for form masters or if endpoint differs
-          const allRes = await api.get('/api/classes');
-          data = await allRes.json();
+          // Reset if multiple or zero classes
+          setSelectedClassId('');
         }
       } else {
-        const response = await api.get('/api/classes');
-        data = await response.json();
+        setClasses(data);
       }
-      setClasses(data);
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
@@ -249,43 +259,73 @@ const Attendance = () => {
         )}
       </div>
 
-      {/* Filters */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              max={new Date().toISOString().split('T')[0]}
-              className="w-full border rounded-md px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-primary/20 transition-all font-bold"
-            />
+      {initialLoading ? (
+        <div className="flex flex-col items-center justify-center p-20 bg-white rounded-lg shadow-sm border border-gray-100">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-500 font-medium">Verifying authorization...</p>
+        </div>
+      ) : user?.role === 'teacher' && classes.length === 0 ? (
+        <div className="bg-white p-12 rounded-lg shadow text-center border border-gray-200">
+          <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Class</label>
-            <select
-              value={selectedClassId}
-              onChange={(e) => setSelectedClassId(e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="">Select Class</option>
-              {classes.map(c => (
-                <option key={c.id} value={c.id}>{c.name} {c.arm}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-end">
+          <h3 className="text-xl font-bold text-gray-900">Access Restricted</h3>
+          <p className="text-gray-600 mt-2">You are not assigned as a Form Master for any class. Attendance management is reserved for Form Masters and Administrators.</p>
+          <div className="mt-6">
             <button
-              onClick={fetchAttendanceSheet}
-              disabled={!selectedClassId}
-              className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400 w-full"
+              onClick={() => window.location.href = '/dashboard'}
+              className="text-primary font-bold hover:underline"
             >
-              Load Sheet
+              Back to Dashboard
             </button>
           </div>
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Filters */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  max={new Date().toISOString().split('T')[0]}
+                  className="w-full border rounded-md px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-primary/20 transition-all font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {user?.role === 'teacher' && classes.length === 1 ? 'Assigned Class' : 'Class'}
+                </label>
+                <select
+                  value={selectedClassId}
+                  onChange={(e) => setSelectedClassId(e.target.value)}
+                  className="w-full border rounded-md px-3 py-2 disabled:bg-gray-50 disabled:text-gray-500"
+                  disabled={user?.role === 'teacher' && classes.length === 1}
+                >
+                  <option value="">Select Class</option>
+                  {classes.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} {c.arm}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={fetchAttendanceSheet}
+                  disabled={!selectedClassId}
+                  className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400 w-full"
+                >
+                  Load Sheet
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Attendance Sheet */}
       {selectedClassId && (
@@ -442,11 +482,15 @@ const Attendance = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Class Filter */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Class (Optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {user?.role === 'teacher' && classes.length === 1 ? 'Assigned Class' : 'Class (Optional)'}
+                  </label>
                   <select
                     value={downloadFilters.classId}
                     onChange={(e) => setDownloadFilters({ ...downloadFilters, classId: e.target.value })}
-                    className="w-full border rounded-md px-3 py-2">
+                    className="w-full border rounded-md px-3 py-2 disabled:bg-gray-50 disabled:text-gray-500"
+                    disabled={user?.role === 'teacher' && classes.length === 1}
+                  >
                     <option value="">All Classes</option>
                     {classes.map(c => (
                       <option key={c.id} value={c.id}>{c.name} {c.arm}</option>
