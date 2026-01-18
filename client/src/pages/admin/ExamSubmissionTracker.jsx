@@ -282,167 +282,229 @@ const ExamSubmissionTracker = () => {
         </div>
       </div>
 
-      {/* Tracking Ledger */}
-      <div className="bg-white rounded-[24px] border border-slate-100 shadow-xl overflow-x-auto min-h-[400px]">
-        <table className="w-full text-left border-collapse min-w-[900px]">
-          <thead>
-            <tr className="bg-slate-50/50">
-              <th className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
-                {activeTab === 'academic' ? 'Operational Unit' : 'CBT Examination Detail'}
-              </th>
-              <th className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Lead Instructor</th>
-              <th className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Coverage</th>
-              <th className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] text-center">Protocol Status</th>
-              <th className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {Object.entries(groupedData).length > 0 ? (
-              Object.entries(groupedData).map(([groupName, items]) => (
-                <React.Fragment key={`group-${groupName}`}>
-                  {groupBy !== 'none' && (
-                    <tr className="bg-slate-50/30">
-                      <td colSpan="5" className="px-8 py-4 border-l-4 border-primary">
-                        <div className="flex items-center gap-3">
-                          <span className="text-[10px] font-black text-primary uppercase tracking-widest opacity-50">{groupBy}:</span>
-                          <span className="text-sm font-black text-slate-900 uppercase tracking-wider">{groupName}</span>
-                          <span className="px-2 py-0.5 bg-slate-100 text-[10px] font-bold text-slate-500 rounded-md">
-                            {items.length} {items.length === 1 ? 'Record' : 'Records'}
-                          </span>
+      {/* Results Explorer */}
+      {groupBy === 'none' ? (
+        <div className="bg-white rounded-[24px] border border-slate-100 shadow-xl overflow-x-auto min-h-[400px]">
+          <table className="w-full text-left border-collapse min-w-[900px]">
+            <thead>
+              <tr className="bg-slate-50/50">
+                <th className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
+                  {activeTab === 'academic' ? 'Operational Unit' : 'CBT Examination Detail'}
+                </th>
+                <th className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Lead Instructor</th>
+                <th className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Coverage</th>
+                <th className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] text-center">Protocol Status</th>
+                <th className="px-6 py-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredData.length > 0 ? (
+                filteredData.map((item) => (
+                  <tr key={`${activeTab}-${item.id}-${item.subjectName}`} className="hover:bg-slate-50/80 transition-all group border-b border-slate-50 last:border-0">
+                    <td className="px-6 py-6">
+                      <p className="text-xl font-black text-slate-900 tracking-tighter italic">
+                        {activeTab === 'academic' ? item.className : item.title}
+                      </p>
+                      <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">
+                        {activeTab === 'academic' ? item.subjectName : `${item.className} • ${item.subjectName}`}
+                      </p>
+                    </td>
+                    <td className="px-6 py-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-400 text-xs">
+                          {item.teacherName ? item.teacherName.split(' ').map(n => n[0]).join('') : '??'}
                         </div>
-                      </td>
-                    </tr>
-                  )}
-                  {items.map((item) => (
-                    <tr key={`${activeTab}-${item.id}-${item.subjectName}`} className="hover:bg-slate-50/80 transition-all group border-b border-slate-50 last:border-0">
-                      <td className="px-6 py-6">
-                        <p className="text-xl font-black text-slate-900 tracking-tighter italic">
-                          {activeTab === 'academic' ? item.className : item.title}
-                        </p>
-                        <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">
-                          {activeTab === 'academic' ? item.subjectName : `${item.className} • ${item.subjectName}`}
-                        </p>
-                      </td>
-                      <td className="px-6 py-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-400 text-xs">
-                            {item.teacherName ? item.teacherName.split(' ').map(n => n[0]).join('') : '??'}
+                        <p className="font-bold text-slate-700 text-sm whitespace-nowrap">{item.teacherName || 'Unknown Teacher'}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6">
+                      {activeTab === 'academic' ? (
+                        <div className="w-48">
+                          <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                            <span>Progress</span>
+                            <span>{Math.round((item.protocolCount / item.totalStudents) * 100 || 0)}%</span>
                           </div>
-                          <p className="font-bold text-slate-700 text-sm whitespace-nowrap">{item.teacherName || 'Unknown Teacher'}</p>
+                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-700 ${item.status === 'Completed' ? 'bg-emerald-500' : item.status === 'Partial' ? 'bg-amber-500' : 'bg-rose-500'}`}
+                              style={{ width: `${(item.protocolCount / item.totalStudents) * 100 || 0}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-[10px] font-bold text-slate-400 mt-2 italic">
+                            {item.gradedCount} / {item.totalStudents} Synchronized
+                          </p>
                         </div>
-                      </td>
-                      <td className="px-6 py-6">
-                        {activeTab === 'academic' ? (
-                          <div className="w-48">
-                            <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                              <span>Progress</span>
-                              <span>{Math.round((item.protocolCount / item.totalStudents) * 100 || 0)}%</span>
-                            </div>
-                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full transition-all duration-700 ${item.status === 'Completed' ? 'bg-emerald-500' : item.status === 'Partial' ? 'bg-amber-500' : 'bg-rose-500'}`}
-                                style={{ width: `${(item.protocolCount / item.totalStudents) * 100 || 0}%` }}
-                              ></div>
-                            </div>
-                            <p className="text-[10px] font-bold text-slate-400 mt-2 italic">
-                              {item.gradedCount} / {item.totalStudents} Students Synchronized
-                            </p>
+                      ) : (
+                        <div className="w-48">
+                          <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                            <span>Response Rate</span>
+                            <span>{item.participationRate}%</span>
                           </div>
-                        ) : (
-                          <div className="w-48">
-                            <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                              <span>Response Rate</span>
-                              <span>{item.participationRate}%</span>
+                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-700 ${parseFloat(item.participationRate) === 100 ? 'bg-emerald-500' : parseFloat(item.participationRate) > 0 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                              style={{ width: `${item.participationRate}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-[10px] font-bold text-slate-400 mt-2 italic">
+                            {item.completedCount} / {item.totalStudents} Active
+                          </p>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-6">
+                      <div className="flex justify-center">
+                        <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${activeTab === 'academic' ? getStatusColor(item.status) : getStatusColor(null, item.participationRate)}`}>
+                          {activeTab === 'academic'
+                            ? item.status
+                            : (parseFloat(item.participationRate) === 100 ? 'Completed' : parseFloat(item.participationRate) > 0 ? 'Partial' : 'Not Started')}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6 text-right">
+                      <div className="flex justify-end gap-2">
+                        {(activeTab === 'academic' ? item.status !== 'Completed' : parseFloat(item.participationRate) < 100) && (
+                          <button
+                            onClick={() => handleNudge(item)}
+                            disabled={nudging === (item.id + item.subjectName)}
+                            className={`flex items-center gap-1 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${nudging === (item.id + item.subjectName)
+                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                              : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+                              }`}
+                          >
+                            {nudging === (item.id + item.subjectName) ? '...' : 'NUDGE'}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="px-8 py-20 text-center">
+                    <p className="text-xl font-black text-slate-300 uppercase italic tracking-tighter">No units found matching search criteria</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+          {Object.entries(groupedData).map(([groupName, items]) => (
+            <div key={`card-${groupName}`} className="bg-white rounded-[40px] border border-slate-100 shadow-xl overflow-hidden flex flex-col hover:shadow-2xl hover:scale-[1.01] transition-all duration-300">
+              {/* Modern Card Header */}
+              <div className="p-8 bg-slate-900 text-white relative flex justify-between items-start">
+                <div className="absolute top-0 left-0 w-2 h-full bg-primary"></div>
+                <div>
+                  <div className="bg-primary/20 text-primary-light text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full w-fit mb-3">
+                    Organized by {groupBy}
+                  </div>
+                  <h3 className="text-2xl font-black italic tracking-tighter uppercase leading-none">{groupName}</h3>
+                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2">
+                    Monitoring {items.length} Units
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl font-black italic text-primary">{items.length}</span>
+                </div>
+              </div>
+
+              {/* Card Body - Content Grid */}
+              <div className="p-5 flex-1 space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar bg-slate-50/50">
+                {items.map((item) => (
+                  <div key={`${activeTab}-card-${item.id}-${item.subjectName}`} className="p-6 bg-white rounded-[32px] border border-slate-100 shadow-sm space-y-5 relative group/item">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 min-w-0 pr-4">
+                        <h4 className="text-lg font-black text-slate-900 tracking-tight italic truncate">
+                          {groupBy === 'class' ? item.subjectName : (activeTab === 'academic' ? item.className : item.title)}
+                        </h4>
+
+                        {(groupBy !== 'teacher') && (
+                          <div className="flex items-center gap-3 mt-3">
+                            <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-[10px] font-black text-slate-400 border border-slate-200">
+                              {item.teacherName ? item.teacherName.split(' ').map(n => n[0]).join('') : '??'}
                             </div>
-                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full transition-all duration-700 ${parseFloat(item.participationRate) === 100 ? 'bg-emerald-500' : parseFloat(item.participationRate) > 0 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                                style={{ width: `${item.participationRate}%` }}
-                              ></div>
-                            </div>
-                            <p className="text-[10px] font-bold text-slate-400 mt-2 italic">
-                              {item.completedCount} / {item.totalStudents} Active Submissions
-                            </p>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">{item.teacherName}</span>
                           </div>
                         )}
-                      </td>
-                      <td className="px-6 py-6">
-                        <div className="flex justify-center">
-                          <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${activeTab === 'academic' ? getStatusColor(item.status) : getStatusColor(null, item.participationRate)}`}>
-                            {activeTab === 'academic'
-                              ? item.status
-                              : (parseFloat(item.participationRate) === 100 ? 'Completed' : parseFloat(item.participationRate) > 0 ? 'Partial' : 'Not Started')}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-6 text-right">
-                        <div className="flex justify-end gap-2">
-                          {(activeTab === 'academic' ? item.status !== 'Completed' : parseFloat(item.participationRate) < 100) && (
-                            <button
-                              onClick={() => handleNudge(item)}
-                              disabled={nudging === (item.id + item.subjectName)}
-                              className={`flex items-center gap-1 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${nudging === (item.id + item.subjectName)
-                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
-                                }`}
-                              title="Remind Teacher"
-                            >
-                              {nudging === (item.id + item.subjectName) ? (
-                                <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-500 rounded-full animate-spin"></div>
-                              ) : (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                </svg>
-                              )}
-                              {nudging === (item.id + item.subjectName) ? 'Nudging...' : 'NUDGE'}
-                            </button>
-                          )}
-                          <button
-                            className="p-3 hover:bg-slate-50 rounded-xl text-slate-300 hover:text-primary transition-all active:scale-90"
-                            title="View Details"
-                          >
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </React.Fragment>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="5" className="px-8 py-20 text-center">
-                  <div className="flex flex-col items-center">
-                    <div className="w-20 h-20 bg-slate-50 rounded-[32px] flex items-center justify-center mb-6">
-                      <svg className="w-10 h-10 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    </div>
-                    <p className="text-xl font-black text-slate-300 uppercase italic tracking-tighter">No Units found matching search criteria</p>
-                  </div>
-                </td>
-              </tr>
-            )}
+                        {groupBy === 'teacher' && (
+                          <div className="flex items-center gap-2 mt-3 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 w-fit">
+                            <span className="text-[10px] font-black text-primary uppercase tracking-widest">
+                              {activeTab === 'academic' ? item.subjectName : `${item.className} • ${item.subjectName}`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
 
-            {filteredData.length === 0 && (
-              <tr>
-                <td colSpan="5" className="px-8 py-20 text-center">
-                  <div className="flex flex-col items-center">
-                    <div className="w-20 h-20 bg-slate-50 rounded-[32px] flex items-center justify-center mb-6">
-                      <svg className="w-10 h-10 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
+                      <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border flex-shrink-0 shadow-sm ${activeTab === 'academic' ? getStatusColor(item.status) : getStatusColor(null, item.participationRate)}`}>
+                        {activeTab === 'academic' ? item.status : `${item.participationRate}%`}
+                      </div>
                     </div>
-                    <p className="text-xl font-black text-slate-300 uppercase italic tracking-tighter">No Units found matching search criteria</p>
+
+                    {/* Integrated Progress & Stats */}
+                    <div className="space-y-3 bg-slate-50/80 p-4 rounded-2xl">
+                      <div className="flex h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-1000 ease-out shadow-lg ${activeTab === 'academic'
+                            ? (item.status === 'Completed' ? 'bg-emerald-500' : item.status === 'Partial' ? 'bg-amber-500' : 'bg-rose-500')
+                            : (parseFloat(item.participationRate) === 100 ? 'bg-emerald-500' : parseFloat(item.participationRate) > 0 ? 'bg-amber-500' : 'bg-rose-500')
+                            }`}
+                          style={{ width: `${activeTab === 'academic' ? (item.protocolCount / item.totalStudents * 100) : item.participationRate}%` }}
+                        ></div>
+                      </div>
+                      <div className="flex justify-between items-center text-[10px] font-black text-slate-500 pb-0.5">
+                        <span className="uppercase tracking-widest flex items-center gap-2 opacity-60">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                          </svg>
+                          {activeTab === 'academic' ? `${item.gradedCount} / ${item.totalStudents}` : `${item.completedCount} / ${item.totalStudents}`}
+                        </span>
+                        <span className="text-primary-dark">
+                          {activeTab === 'academic' ? Math.round(item.protocolCount / item.totalStudents * 100) : item.participationRate}% Compliance
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Contextual Nudge Action */}
+                    {(activeTab === 'academic' ? item.status !== 'Completed' : parseFloat(item.participationRate) < 100) && (
+                      <button
+                        onClick={() => handleNudge(item)}
+                        disabled={nudging === (item.id + item.subjectName)}
+                        className={`w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.25em] transition-all transform active:scale-95 flex items-center justify-center gap-3 overflow-hidden group/btn ${nudging === (item.id + item.subjectName)
+                          ? 'bg-slate-100 text-slate-300'
+                          : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white shadow-rose-100 hover:shadow-xl'
+                          }`}
+                      >
+                        {nudging === (item.id + item.subjectName) ? (
+                          <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-500 rounded-full animate-spin"></div>
+                        ) : (
+                          <svg className="w-4 h-4 group-hover/btn:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                          </svg>
+                        )}
+                        {nudging === (item.id + item.subjectName) ? 'Nudging...' : 'Transmit Reminder'}
+                      </button>
+                    )}
                   </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {Object.entries(groupedData).length === 0 && (
+            <div className="col-span-full py-32 text-center bg-white rounded-[48px] border-2 border-dashed border-slate-100">
+              <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-10 h-10 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <p className="text-2xl font-black text-slate-300 uppercase italic tracking-tighter">No operational groups discovered</p>
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Try adjusting your filters or search terms</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
