@@ -23,22 +23,41 @@ export default function CSVUploadForm({ onUpload, expectedHeaders, validateRow }
   const parseCSV = (csvFile) => {
     Papa.parse(csvFile, {
       header: true,
+      skipEmptyLines: 'greedy',
+      dynamicTyping: true,
       skipEmptyLines: true,
       transformHeader: (header) => {
-        // Trim and remove hidden characters like BOM
         return header.trim().replace(/^[\uFEFF\u200B\u00A0]+/, "");
       },
       complete: (results) => {
-        // Validate headers
+        const fileHeaders = results.meta.fields || [];
+
+        // If results.data is empty or headers look like binary gibberish, it's likely an XLSX file
+        if (fileHeaders.length === 0 || (fileHeaders[0] && fileHeaders[0].includes('CONTENT'))) {
+          alert("Error: This file format is not recognized. If you are using Excel, please ensure you 'Save As' CSV (Comma delimited) before uploading.");
+          setFile(null);
+          return;
+        }
+
+        // Validate presence of core columns using fuzzy matching
         if (expectedHeaders) {
-          const fileHeaders = results.meta.fields;
-          const missingHeaders = expectedHeaders.filter(h => {
-            // Case-insensitive, trimmed match
-            return !fileHeaders.some(fh => fh.toLowerCase() === h.toLowerCase());
+          const missingHeaders = expectedHeaders.filter(expected => {
+            const lowExp = expected.toLowerCase();
+            // Core requirement: match the start of the string (e.g. "Admission" matches "Admission Number")
+            // or match common keywords
+            return !fileHeaders.some(fh => {
+              const lowFh = fh.toLowerCase();
+              return lowFh.includes(lowExp.split(' ')[0].toLowerCase()) || lowFh === lowExp;
+            });
           });
 
-          if (missingHeaders.length > 0) {
-            alert(`Missing required columns: ${missingHeaders.join(', ')}`);
+          // Only block if critical columns (Admission/Student) are totally missing
+          const criticalMissing = missingHeaders.filter(h =>
+            h.toLowerCase().includes('admission') || h.toLowerCase().includes('name')
+          );
+
+          if (criticalMissing.length > 0) {
+            alert(`Missing critical columns: ${criticalMissing.join(', ')}. Please check your CSV column headers.`);
             setFile(null);
             return;
           }
