@@ -160,7 +160,7 @@ const ExamSubmissionTracker = () => {
   }
 
   return (
-    <div className="space-y-10 pb-20">
+    <div className="max-w-[1400px] mx-auto space-y-10 pb-20 px-4">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
@@ -241,7 +241,7 @@ const ExamSubmissionTracker = () => {
       </div>
 
       {/* Filter Hub */}
-      <div className="bg-white p-4 rounded-[32px] border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4">
+      <div className="bg-white p-4 rounded-[32px] border border-slate-100 shadow-sm flex flex-col xl:flex-row gap-4">
         <div className="flex-1 relative">
           <input
             type="text"
@@ -256,7 +256,7 @@ const ExamSubmissionTracker = () => {
             </svg>
           </div>
         </div>
-        <div className="flex bg-slate-50 p-2 rounded-2xl overflow-x-auto min-w-max">
+        <div className="flex bg-slate-50 p-2 rounded-2xl overflow-x-auto">
           {['All', 'Completed', 'Partial', 'Not Started'].map(status => (
             <button
               key={status}
@@ -268,7 +268,7 @@ const ExamSubmissionTracker = () => {
           ))}
         </div>
 
-        <div className="flex bg-slate-100/50 p-2 rounded-2xl overflow-x-auto min-w-max border border-slate-200/50">
+        <div className="flex bg-slate-100/50 p-2 rounded-2xl overflow-x-auto border border-slate-200/50">
           <span className="self-center px-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 mr-2">Group By</span>
           {['none', 'teacher', 'class', 'subject'].map(mode => (
             <button
@@ -283,8 +283,8 @@ const ExamSubmissionTracker = () => {
       </div>
 
       {/* Tracking Ledger */}
-      <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl overflow-hidden min-h-[400px]">
-        <table className="w-full text-left border-collapse">
+      <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl overflow-x-auto min-h-[400px]">
+        <table className="w-full text-left border-collapse min-w-[1000px]">
           <thead>
             <tr className="bg-slate-50/50">
               <th className="px-8 py-8 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
