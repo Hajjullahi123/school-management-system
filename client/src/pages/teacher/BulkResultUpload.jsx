@@ -5,7 +5,6 @@ import { saveAs } from 'file-saver';
 import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useMemo } from 'react';
-CVB
 export default function BulkResultUpload() {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState([]);
