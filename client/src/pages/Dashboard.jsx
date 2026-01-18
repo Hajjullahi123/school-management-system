@@ -34,6 +34,7 @@ const Dashboard = () => {
   const [teacherAssignments, setTeacherAssignments] = useState([]);
   const [assignedClassCount, setAssignedClassCount] = useState(0);
   const [notices, setNotices] = useState([]);
+  const [teacherCBTExams, setTeacherCBTExams] = useState([]);
   const [currentSession, setCurrentSession] = useState(null);
   const [currentTerm, setCurrentTerm] = useState(null);
 
@@ -97,14 +98,27 @@ const Dashboard = () => {
         setCurrentTerm(terms.find(t => t.isCurrent));
       }
 
-      // Fetch Teacher Assignments if user is a teacher
+      // Fetch Teacher Assignments with tracking data if user is a teacher
       if (user?.role === 'teacher') {
-        const assignmentsRes = await api.get(`/api/teacher-assignments/teacher/${user.id}`);
-        if (assignmentsRes.ok) {
-          const assignments = await assignmentsRes.json();
-          setTeacherAssignments(assignments);
-          const uniqueClasses = new Set(assignments.map(a => a.classId));
+        const trackingRes = await api.get(`/api/analytics/submission-tracking?teacherId=${user.id}`);
+        if (trackingRes.ok) {
+          const data = await trackingRes.json();
+          // Transform tracking data to match the component's expectations
+          const assignmentsWithStatus = data.tracking.map(item => ({
+            ...item,
+            class: { name: item.className, arm: '' },
+            subject: { name: item.subjectName }
+          }));
+          setTeacherAssignments(assignmentsWithStatus);
+          const uniqueClasses = new Set(data.tracking.map(a => a.classId));
           setAssignedClassCount(uniqueClasses.size);
+        }
+
+        // Fetch Teacher CBT Exams
+        const cbtRes = await api.get(`/api/analytics/cbt-tracking?teacherId=${user.id}`);
+        if (cbtRes.ok) {
+          const cbtData = await cbtRes.json();
+          setTeacherCBTExams(cbtData);
         }
       }
 
@@ -546,26 +560,54 @@ const Dashboard = () => {
                   <Link
                     key={assignment.id}
                     to={`/dashboard/result-entry?classId=${assignment.classId}&subjectId=${assignment.subjectId}`}
-                    className="block p-4 border border-gray-200 rounded-lg hover:shadow-md hover:border-primary/50 transition-all group"
+                    className="block p-4 border border-gray-200 rounded-lg hover:shadow-md hover:border-primary/50 transition-all group relative"
                   >
                     <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-bold text-gray-900 group-hover:text-primary">
-                          {assignment.class.name} {assignment.class.arm}
+                      <div className="flex-1">
+                        <h3 className="font-bold text-gray-900 group-hover:text-primary pr-12">
+                          {assignment.class.name}
                         </h3>
                         <p className="text-sm text-gray-600 mt-1">
                           {assignment.subject.name}
                         </p>
                       </div>
-                      <div className="bg-primary/5 p-2 rounded-full group-hover:bg-primary/10">
-                        <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
+                      <div className="flex flex-col items-end gap-2">
+                        <div className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider border shadow-sm ${assignment.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                          assignment.status === 'Partial' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                            'bg-slate-50 text-slate-400 border-slate-100'
+                          }`}>
+                          {assignment.status}
+                        </div>
+                        <div className="bg-primary/5 p-2 rounded-full group-hover:bg-primary/10 transition-colors">
+                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          </svg>
+                        </div>
                       </div>
                     </div>
-                    <div className="mt-3 text-xs text-gray-500 flex items-center">
-                      <span>Click to view scoresheet</span>
-                      <svg className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                    {/* Progress Bar Mini */}
+                    <div className="mt-4">
+                      <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">
+                        <span>Progress</span>
+                        <span>{Math.round((assignment.protocolCount / assignment.totalStudents) * 100 || 0)}%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-700 ${assignment.status === 'Completed' ? 'bg-emerald-500' :
+                            assignment.status === 'Partial' ? 'bg-amber-500' : 'bg-slate-300'
+                            }`}
+                          style={{ width: `${(assignment.protocolCount / assignment.totalStudents) * 100 || 0}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-gray-50 text-[10px] font-bold text-gray-400 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
+                        {assignment.gradedCount} / {assignment.totalStudents} Scored
+                      </span>
+                      <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform text-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                       </svg>
                     </div>
@@ -579,6 +621,54 @@ const Dashboard = () => {
               </div>
             )}
           </div >
+        )}
+
+        {/* Teacher CBT Monitoring */}
+        {user?.role === 'teacher' && teacherCBTExams.length > 0 && (
+          <div className="bg-slate-900 p-4 sm:p-6 rounded-[32px] shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 relative z-10">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary-light">Live CBT Operations</p>
+                </div>
+                <h2 className="text-xl font-black italic tracking-tighter text-white uppercase">Active Examinations</h2>
+              </div>
+              <Link to="/dashboard/cbt-management" className="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                Manage Center
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
+              {teacherCBTExams.map(exam => (
+                <div key={exam.id} className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/[0.08] transition-all">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-white font-black italic tracking-tight truncate">{exam.title}</h4>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{exam.className} • {exam.subjectName}</p>
+                    </div>
+                    <div className="bg-primary/20 text-primary-light px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest">
+                      {exam.participationRate}%
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                      <span>Participation</span>
+                      <span>{exam.completedCount}/{exam.totalStudents}</span>
+                    </div>
+                    <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all duration-1000"
+                        style={{ width: `${exam.participationRate}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">

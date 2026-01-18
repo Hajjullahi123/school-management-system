@@ -279,9 +279,14 @@ router.get('/submission-tracking', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Current session or term not set' });
     }
 
-    // 1. Get all teacher assignments
+    const { teacherId } = req.query;
+
+    // 1. Get teacher assignments
     const assignments = await prisma.teacherAssignment.findMany({
-      where: { schoolId: req.schoolId },
+      where: {
+        schoolId: req.schoolId,
+        ...(teacherId ? { teacherId: parseInt(teacherId) } : {})
+      },
       include: {
         teacher: { select: { firstName: true, lastName: true } },
         classSubject: {
@@ -355,6 +360,8 @@ router.get('/submission-tracking', authenticate, async (req, res) => {
       return {
         id: a.id,
         teacherId: a.teacherId,
+        classId: a.classSubject.class.id,
+        subjectId: a.classSubject.subject.id,
         className: `${a.classSubject.class.name} ${a.classSubject.class.arm || ''}`.trim(),
         subjectName: a.classSubject.subject.name,
         teacherName: `${a.teacher.firstName} ${a.teacher.lastName}`,
@@ -392,11 +399,14 @@ router.get('/cbt-tracking', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Current session or term not set' });
     }
 
+    const { teacherId } = req.query;
+
     const exams = await prisma.cBTExam.findMany({
       where: {
         schoolId: req.schoolId,
         academicSessionId: currentSession.id,
-        termId: currentTerm.id
+        termId: currentTerm.id,
+        ...(teacherId ? { teacherId: parseInt(teacherId) } : {})
       },
       include: {
         class: { select: { id: true, name: true, arm: true } },
