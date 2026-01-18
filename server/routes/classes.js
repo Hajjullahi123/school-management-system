@@ -7,11 +7,18 @@ const { logAction } = require('../utils/audit');
 // Get all classes
 router.get('/', authenticate, async (req, res) => {
   try {
+    const where = {
+      schoolId: req.schoolId,
+      isActive: true
+    };
+
+    // If teacher, only return classes they are form master for
+    if (req.user.role === 'teacher') {
+      where.classTeacherId = req.user.id;
+    }
+
     const classes = await prisma.class.findMany({
-      where: {
-        schoolId: req.schoolId,
-        isActive: true
-      },
+      where,
       include: {
         classTeacher: {
           select: {

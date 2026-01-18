@@ -184,7 +184,15 @@ router.get('/me', authenticate, async (req, res) => {
             classModel: true
           }
         },
-        teacher: true,
+        teacher: {
+          include: {
+            school: true
+          }
+        },
+        classesAsTeacher: {
+          where: { isActive: true },
+          select: { id: true, name: true, arm: true }
+        },
         parent: {
           include: {
             students: {

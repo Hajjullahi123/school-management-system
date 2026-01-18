@@ -64,21 +64,16 @@ const Attendance = () => {
     try {
       const response = await api.get('/api/classes');
       const data = await response.json();
+      setClasses(data);
 
       if (user?.role === 'teacher') {
-        const teacherClasses = data.filter(c => Number(c.classTeacherId) === Number(user.id));
-        setClasses(teacherClasses);
-
-        if (teacherClasses.length === 1) {
-          const classIdStr = teacherClasses[0].id.toString();
+        if (data.length === 1) {
+          const classIdStr = data[0].id.toString();
           setSelectedClassId(classIdStr);
           setDownloadFilters(prev => ({ ...prev, classId: classIdStr }));
-        } else {
-          // Reset if multiple or zero classes
+        } else if (data.length === 0) {
           setSelectedClassId('');
         }
-      } else {
-        setClasses(data);
       }
     } catch (error) {
       console.error('Error fetching classes:', error);
