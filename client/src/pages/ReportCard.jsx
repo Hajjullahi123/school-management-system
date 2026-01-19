@@ -143,6 +143,29 @@ const ReportCard = () => {
     }
   };
 
+  const processRatings = (ratings) => {
+    const defaultAffective = [
+      'Punctuality', 'Neatness', 'Politeness', 'Honesty', 'Relationship with others',
+      'Cooperation', 'Leadership', 'Self Control', 'Attentiveness', 'Reliability', 'Perseverance'
+    ];
+    const defaultPsychomotor = [
+      'Handwriting', 'Games/Sports', 'Crafts', 'Musical Skills', 'Drawing/Painting',
+      'Verbal Communication', 'Fluency in Speech', 'Physical Agility'
+    ];
+
+    let combined = [...(ratings || [])];
+
+    if (combined.length < 18) {
+      [...defaultAffective, ...defaultPsychomotor].forEach(name => {
+        if (combined.length < 22 && !combined.find(r => r.name.toLowerCase() === name.toLowerCase())) {
+          combined.push({ name, score: '-' });
+        }
+      });
+    }
+
+    return combined;
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -427,7 +450,7 @@ const ReportCard = () => {
                   <div className="border-2 border-black p-3 rounded-xl bg-gray-50/50">
                     <h5 className="text-[10px] font-black uppercase mb-2 border-b border-black pb-1">Non-Cognitive Evaluation</h5>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                      {reportData.extras.psychomotorRatings.map((rat, i) => (
+                      {processRatings(reportData.extras.psychomotorRatings).map((rat, i) => (
                         <div key={i} className="flex justify-between items-center text-[9px]">
                           <span className="font-bold uppercase truncate pr-2">{rat.name}</span>
                           <span className="font-black text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>{rat.score || '-'} / 5</span>
@@ -473,13 +496,15 @@ const ReportCard = () => {
               </div>
 
               <div className="mt-6 pt-4 border-t-2 border-black grid grid-cols-[30%_70%] gap-8 items-end">
-                <div className="flex flex-col items-center">
-                  <div className="w-full h-12 bg-white border border-gray-200 p-1 flex items-end gap-[1.5px]">
-                    {[...Array(28)].map((_, i) => (
-                      <div key={i} className="bg-black flex-1" style={{ height: `${30 + Math.random() * 70}%`, minWidth: i % 5 === 0 ? '2px' : '1px' }}></div>
+                <div className="flex flex-col items-start">
+                  <div className="w-28 h-6 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-30 grayscale">
+                    {[...Array(50)].map((_, i) => (
+                      <div key={i} className="bg-black" style={{ height: '100%', width: (i % 7 === 0 ? '2px' : '1px') }}></div>
                     ))}
                   </div>
-                  <p className="text-[8px] font-mono mt-1 font-bold">SECURE: {reportData.student.admissionNumber.replace('/', '-')}</p>
+                  <p className="text-[6px] font-mono mt-0.5 font-bold uppercase tracking-widest opacity-40">
+                    {reportData.student.admissionNumber}-{selectedTerm?.toString().slice(-4)}
+                  </p>
                   <div className="text-center pt-8 w-full">
                     <div className="border-b border-black w-full mb-1"></div>
                     <p className="text-[9px] font-bold">TEACHER'S SIGNATURE</p>

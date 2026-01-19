@@ -229,12 +229,40 @@ const TermReportCard = () => {
   };
 
   const splitDomains = (ratings) => {
-    if (!ratings) return { affective: [], psychomotor: [] };
+    const defaultAffective = [
+      'Punctuality', 'Neatness', 'Politeness', 'Honesty', 'Relationship with others',
+      'Cooperation', 'Leadership', 'Self Control', 'Attentiveness', 'Reliability', 'Perseverance'
+    ];
+    const defaultPsychomotor = [
+      'Handwriting', 'Games/Sports', 'Crafts', 'Musical Skills', 'Drawing/Painting',
+      'Verbal Communication', 'Fluency in Speech', 'Physical Agility'
+    ];
+
+    if (!ratings || ratings.length === 0) {
+      return {
+        affective: defaultAffective.map(name => ({ name, score: null })),
+        psychomotor: defaultPsychomotor.map(name => ({ name, score: null }))
+      };
+    }
+
     const mid = Math.ceil(ratings.length / 2);
-    return {
-      affective: ratings.slice(0, mid),
-      psychomotor: ratings.slice(mid)
-    };
+    let affective = [...ratings.slice(0, mid)];
+    let psychomotor = [...ratings.slice(mid)];
+
+    // Ensure we have a decent number of domains to fill space
+    defaultAffective.forEach(name => {
+      if (affective.length < 12 && !affective.find(a => a.name.toLowerCase() === name.toLowerCase())) {
+        affective.push({ name, score: null });
+      }
+    });
+
+    defaultPsychomotor.forEach(name => {
+      if (psychomotor.length < 10 && !psychomotor.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+        psychomotor.push({ name, score: null });
+      }
+    });
+
+    return { affective, psychomotor };
   };
 
   const printReport = () => {
@@ -553,15 +581,16 @@ const TermReportCard = () => {
 
                   {/* REMARKS & SIGNATURES */}
                   <div className="grid grid-cols-[30%_70%] gap-4 items-end">
-                    {/* BARCODE & VALIDATION (LOWER LEFT) */}
-                    <div className="flex flex-col items-center justify-end h-full">
-                      <div className="w-full h-16 bg-white border border-gray-200 p-1 flex items-end gap-[1px]">
-                        {[...Array(32)].map((_, i) => (
-                          <div key={i} className="bg-black flex-1" style={{ height: `${20 + Math.random() * 80}%`, minWidth: i % 4 === 0 ? '2px' : '1px' }}></div>
+                    {/* BARCODE (SUBTLE LOWER LEFT) */}
+                    <div className="flex flex-col items-start justify-end h-full">
+                      <div className="w-28 h-6 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-30 grayscale">
+                        {[...Array(50)].map((_, i) => (
+                          <div key={i} className="bg-black" style={{ height: '100%', width: (i % 7 === 0 ? '2px' : '1px') }}></div>
                         ))}
                       </div>
-                      <p className="text-[9px] font-mono mt-1 font-bold">VERIF-ID: {data.student?.admissionNumber}-{Date.now().toString().slice(-4)}</p>
-                      <p className="text-[8px] italic text-gray-500 text-center mt-2 leading-none uppercase font-bold">Generated at {new Date().toLocaleDateString()}</p>
+                      <p className="text-[6px] font-mono mt-0.5 font-bold uppercase tracking-widest opacity-40">
+                        {data.student?.admissionNumber}-{data.term?.id?.toString().slice(-4)}
+                      </p>
                     </div>
 
                     <div className="space-y-2 border-2 border-black p-2 bg-white relative">
