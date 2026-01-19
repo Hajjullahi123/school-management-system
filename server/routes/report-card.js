@@ -109,7 +109,7 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
 
     // Get class average for the student
     const classmates = await prisma.student.findMany({
-      where: { classId: student.classId, schoolId: req.schoolId, isActive: true },
+      where: { classId: student.classId, schoolId: req.schoolId, status: 'active' },
       select: { id: true }
     });
 

@@ -121,7 +121,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
 
     // Calculate term position (rank among classmates) using total class subjects
     const classmates = await prisma.student.findMany({
-      where: { classId: student.classId, schoolId: req.schoolId, isActive: true }
+      where: { classId: student.classId, schoolId: req.schoolId, status: 'active' }
     });
 
     const studentTotals = {};
@@ -609,7 +609,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
 
     // NEW: Pre-calculate positions and averages for ALL students in class to avoid N+1 queries
     const allStudentsInClass = await prisma.student.findMany({
-      where: { classId: parseInt(classId), schoolId: req.schoolId, isActive: true },
+      where: { classId: parseInt(classId), schoolId: req.schoolId, status: 'active' },
       select: { id: true }
     });
 
