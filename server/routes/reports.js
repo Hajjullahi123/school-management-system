@@ -173,21 +173,59 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       }
     });
 
-    res.json({
+    // --- NEW LOGIC FOR AGE, CLUB, AND TERM SEQUENCE ---
+    const calculateAge = (dob) => {
+      if (!dob) return '-';
+      const birthDate = new Date(dob);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
+    };
+
+    // Determine term sequence (1, 2, or 3)
+    const allTerms = await prisma.term.findMany({
+      where: { academicSessionId: term.academicSessionId, schoolId: req.schoolId },
+      orderBy: { startDate: 'asc' }
+    });
+    const termIndex = allTerms.findIndex(t => t.id === parseInt(termId));
+    const termNumber = termIndex + 1;
+
+    // Fetch previous terms' results if it's the 3rd term
+    let previousTermsResults = [];
+    if (termNumber === 3) {
+      previousTermsResults = await prisma.result.findMany({
+        where: {
+          studentId: parseInt(studentId),
+          academicSessionId: term.academicSessionId,
+          termId: { in: allTerms.slice(0, 2).map(t => t.id) },
+          schoolId: req.schoolId
+        }
+      });
+    }
+
+    const reportData = {
       student: {
         id: student.id,
         name: `${student.user.firstName} ${student.user.lastName}`,
         admissionNumber: student.admissionNumber,
         class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
         dateOfBirth: student.dateOfBirth,
+        age: calculateAge(student.dateOfBirth),
         gender: student.gender,
         photoUrl: student.photoUrl,
+        clubs: student.clubs || 'JETS CLUB',
         formMaster: student.classModel?.classTeacher
           ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}`
           : 'Not Assigned'
       },
       term: {
+        id: term.id,
         name: term.name,
+        number: termNumber,
         session: term.academicSession.name,
         startDate: term.startDate,
         endDate: term.endDate,
@@ -195,7 +233,22 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       },
       subjects: classSubjects.map(cs => {
         const result = results.find(r => r.subjectId === cs.subjectId);
+
+        // Cumulative data for term 3
+        let t1Score = null;
+        let t2Score = null;
+        let cumulativeAvg = null;
+
+        if (termNumber === 3) {
+          const t1 = previousTermsResults.find(r => r.subjectId === cs.subjectId && r.termId === allTerms[0].id);
+          const t2 = previousTermsResults.find(r => r.subjectId === cs.subjectId && r.termId === allTerms[1].id);
+          t1Score = t1 ? t1.totalScore : 0;
+          t2Score = t2 ? t2.totalScore : 0;
+          cumulativeAvg = (t1Score + t2Score + (result ? result.totalScore : 0)) / 3;
+        }
+
         return {
+          id: cs.subjectId,
           name: cs.subject?.name || 'Unknown Subject',
           assignment1: result ? result.assignment1Score : 0,
           assignment2: result ? result.assignment2Score : 0,
@@ -206,7 +259,11 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
           grade: result ? result.grade : getGrade(0, schoolSettings.gradingSystem),
           position: result ? result.positionInClass : '-',
           classAverage: result ? result.classAverage : 0,
-          remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : getRemark(getGrade(0, schoolSettings.gradingSystem), schoolSettings.gradingSystem)
+          remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : getRemark(getGrade(0, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+          // Cumulative fields
+          term1Score: t1Score,
+          term2Score: t2Score,
+          cumulativeAverage: cumulativeAvg
         };
       }),
       termAverage: termAverage,
@@ -215,10 +272,12 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       overallGrade: getGrade(termAverage, schoolSettings.gradingSystem),
       overallRemark: getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
       // Extras
-      formMasterRemark: reportExtras?.formMasterRemark || null,
-      principalRemark: reportExtras?.principalRemark || null,
+      formMasterRemark: reportExtras?.formMasterRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+      principalRemark: reportExtras?.principalRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
       psychomotorRatings: reportExtras?.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : []
-    });
+    };
+
+    res.json(reportData);
 
     // Log the action
     logAction({
@@ -696,6 +755,26 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       }
     });
 
+    const calculateAge = (dob) => {
+      if (!dob) return '-';
+      const birthDate = new Date(dob);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
+    };
+
+    // Determine term sequence
+    const allTerms = await prisma.term.findMany({
+      where: { academicSessionId: term.academicSessionId, schoolId: req.schoolId },
+      orderBy: { startDate: 'asc' }
+    });
+    const termIndex = allTerms.findIndex(t => t.id === parseInt(termId));
+    const termNumber = termIndex + 1;
+
     for (const student of students) {
       // Fetch results for this student
       const results = await prisma.result.findMany({
@@ -713,6 +792,19 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           }
         }
       });
+
+      // Fetch previous terms' results if it's the 3rd term
+      let previousTermsResults = [];
+      if (termNumber === 3) {
+        previousTermsResults = await prisma.result.findMany({
+          where: {
+            studentId: student.id,
+            academicSessionId: term.academicSessionId,
+            termId: { in: allTerms.slice(0, 2).map(t => t.id) },
+            schoolId: req.schoolId
+          }
+        });
+      }
 
       // Calculate term average using pre-fetched data
       const studentTotal = classwideStudentTotals[student.id] || 0;
@@ -737,14 +829,18 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           admissionNumber: student.admissionNumber,
           class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
           dateOfBirth: student.dateOfBirth,
+          age: calculateAge(student.dateOfBirth),
           gender: student.gender,
           photoUrl: student.photoUrl,
+          clubs: student.clubs || 'JETS CLUB',
           formMaster: student.classModel?.classTeacher
             ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}`
             : 'Not Assigned'
         },
         term: {
+          id: term.id,
           name: term.name,
+          number: termNumber,
           session: term.academicSession.name,
           startDate: term.startDate,
           endDate: term.endDate,
@@ -752,7 +848,22 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         },
         subjects: classSubjects.map(cs => {
           const result = results.find(r => r.subjectId === cs.subjectId);
+
+          // Cumulative data for term 3
+          let t1Score = null;
+          let t2Score = null;
+          let cumulativeAvg = null;
+
+          if (termNumber === 3) {
+            const t1 = previousTermsResults.find(r => r.subjectId === cs.subjectId && r.termId === allTerms[0].id);
+            const t2 = previousTermsResults.find(r => r.subjectId === cs.subjectId && r.termId === allTerms[1].id);
+            t1Score = t1 ? t1.totalScore : 0;
+            t2Score = t2 ? t2.totalScore : 0;
+            cumulativeAvg = (t1Score + t2Score + (result ? result.totalScore : 0)) / 3;
+          }
+
           return {
+            id: cs.subjectId,
             name: cs.subject?.name || 'Unknown Subject',
             assignment1: result ? result.assignment1Score : 0,
             assignment2: result ? result.assignment2Score : 0,
@@ -763,7 +874,11 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
             grade: result ? result.grade : getGrade(0, schoolSettings.gradingSystem),
             position: result ? result.positionInClass : '-',
             classAverage: result ? result.classAverage : 0,
-            remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : getRemark(getGrade(0, schoolSettings.gradingSystem), schoolSettings.gradingSystem)
+            remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : getRemark(getGrade(0, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+            // Cumulative fields
+            term1Score: t1Score,
+            term2Score: t2Score,
+            cumulativeAverage: cumulativeAvg
           };
         }),
         termAverage: termAverage,
@@ -772,8 +887,8 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         overallGrade: getGrade(termAverage, schoolSettings.gradingSystem),
         overallRemark: getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
         // Extras
-        formMasterRemark: reportExtras?.formMasterRemark || null,
-        principalRemark: reportExtras?.principalRemark || null,
+        formMasterRemark: reportExtras?.formMasterRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+        principalRemark: reportExtras?.principalRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
         psychomotorRatings: reportExtras?.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : []
       });
     }

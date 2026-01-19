@@ -136,6 +136,40 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
     const position = sortedStudents.findIndex(([id]) => parseInt(id) === sId) + 1;
     const totalInClass = classmates.length;
 
+    // --- NEW LOGIC FOR AGE, CLUB, AND TERM SEQUENCE ---
+    const calculateAge = (dob) => {
+      if (!dob) return '-';
+      const birthDate = new Date(dob);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
+    };
+
+    // Determine term sequence (1, 2, or 3)
+    const allTerms = await prisma.term.findMany({
+      where: { academicSessionId: term.academicSessionId, schoolId: req.schoolId },
+      orderBy: { startDate: 'asc' }
+    });
+    const termIndex = allTerms.findIndex(t => t.id === tId);
+    const termNumber = termIndex + 1;
+
+    // Fetch previous terms' results if it's the 3rd term
+    let previousTermsResults = [];
+    if (termNumber === 3) {
+      previousTermsResults = await prisma.result.findMany({
+        where: {
+          studentId: sId,
+          academicSessionId: term.academicSessionId,
+          termId: { in: allTerms.slice(0, 2).map(t => t.id) },
+          schoolId: req.schoolId
+        }
+      });
+    }
+
     // Format response
     const reportCard = {
       student: {
@@ -146,14 +180,15 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
         gender: student.gender,
         photoUrl: student.photoUrl,
         dob: student.dateOfBirth,
-        clubs: student.clubs
+        age: calculateAge(student.dateOfBirth),
+        clubs: student.clubs || 'JETS CLUB'
       },
       academic: {
         session: term.academicSession.name,
         term: term.name,
+        termNumber: termNumber,
         termStart: term.startDate,
         termEnd: term.endDate,
-        // For standard Nigerian schools, we often have resumption for next term here
         nextTermBegins: term.endDate ? new Date(new Date(term.endDate).getTime() + 14 * 24 * 60 * 60 * 1000) : null
       },
       attendance: {
@@ -163,6 +198,22 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
       },
       results: classSubjects.map(cs => {
         const r = results.find(res => res.subjectId === cs.subjectId);
+
+        let t1Score = null;
+        let t2Score = null;
+        let cumulativeAvg = null;
+
+        if (termNumber === 3) {
+          const t1 = previousTermsResults.find(res => res.subjectId === cs.subjectId && res.termId === allTerms[0].id);
+          const t2 = previousTermsResults.find(res => res.subjectId === cs.subjectId && res.termId === allTerms[1].id);
+          t1Score = t1 ? t1.totalScore : 0;
+          t2Score = t2 ? t2.totalScore : 0;
+          cumulativeAvg = (t1Score + t2Score + (r ? r.totalScore : 0)) / 3;
+        }
+
+        const grade = r ? (r.grade || getGrade(r.totalScore, schoolSettings.gradingSystem)) : getGrade(0, schoolSettings.gradingSystem);
+        const remark = r ? getRemark(grade, schoolSettings.gradingSystem) : getRemark(getGrade(0, schoolSettings.gradingSystem), schoolSettings.gradingSystem);
+
         return {
           subject: cs.subject.name,
           subjectCode: cs.subject.code,
@@ -172,10 +223,13 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
           test2: r ? r.test2Score : 0,
           exam: r ? r.examScore : 0,
           total: r ? r.totalScore : 0,
-          grade: r ? (r.grade || getGrade(r.totalScore, schoolSettings.gradingSystem)) : getGrade(0, schoolSettings.gradingSystem),
-          remark: r ? getRemark(r.grade || getGrade(r.totalScore, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : getRemark(getGrade(0, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+          grade: grade,
+          remark: remark,
           position: r ? r.positionInClass : '-',
-          classAverage: r ? r.classAverage : 0
+          classAverage: r ? r.classAverage : 0,
+          term1Score: t1Score,
+          term2Score: t2Score,
+          cumulativeAverage: cumulativeAvg
         };
       }),
       summary: {
@@ -187,8 +241,8 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
         status: averageScore >= (schoolSettings.passThreshold || 40) ? 'PASS' : 'FAIL'
       },
       extras: {
-        formMasterRemark: extraDetails?.formMasterRemark || '',
-        principalRemark: extraDetails?.principalRemark || '',
+        formMasterRemark: extraDetails?.formMasterRemark || getRemark(getGrade(averageScore, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+        principalRemark: extraDetails?.principalRemark || getRemark(getGrade(averageScore, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
         psychomotorRatings: psychomotorDomains.map(d => {
           const rating = ratings.find(r => r.domainId === d.id);
           return {
