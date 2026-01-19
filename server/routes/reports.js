@@ -103,46 +103,53 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
     console.log(`[TermReport Debug] Request Params: studentId=${studentId}, termId=${termId}, schoolId=${req.schoolId}`);
     console.log(`[TermReport Debug] Results Found: ${results.length}`);
 
-    // Calculate term average
+    // NEW: Fetch all subjects for the class to ensure all appear on report
+    const classSubjects = await prisma.classSubject.findMany({
+      where: { classId: student.classId, schoolId: req.schoolId },
+      include: { subject: true }
+    });
+    const totalSubjectsCount = classSubjects.length || results.length || 1;
+
+    // Calculate term average based on all MUST-TAKE subjects in class
     const termAverage = await calculateStudentTermAverage(
       prisma,
       parseInt(studentId),
       parseInt(termId),
-      req.schoolId
+      req.schoolId,
+      totalSubjectsCount
     );
 
-    // Calculate term position (rank among classmates)
+    // Calculate term position (rank among classmates) using total class subjects
+    const classmates = await prisma.student.findMany({
+      where: { classId: student.classId, schoolId: req.schoolId, isActive: true }
+    });
+
+    const studentTotals = {};
+    classmates.forEach(c => {
+      studentTotals[c.id] = 0;
+    });
+
     const classResults = await prisma.result.findMany({
       where: {
         classId: student.classId,
         termId: parseInt(termId),
         schoolId: req.schoolId
-      },
-      include: {
-        student: true
       }
     });
 
-    // Group by student and calculate averages
-    const studentAverages = {};
     classResults.forEach(result => {
-      if (!studentAverages[result.studentId]) {
-        studentAverages[result.studentId] = {
-          total: 0,
-          count: 0
-        };
+      if (studentTotals[result.studentId] !== undefined) {
+        studentTotals[result.studentId] += result.totalScore || 0;
       }
-      studentAverages[result.studentId].total += result.totalScore;
-      studentAverages[result.studentId].count += 1;
     });
 
-    const averages = Object.entries(studentAverages).map(([id, data]) => ({
+    const averages = Object.entries(studentTotals).map(([id, total]) => ({
       studentId: parseInt(id),
-      average: data.total / data.count
+      average: total / totalSubjectsCount
     })).sort((a, b) => b.average - a.average);
 
     const termPosition = averages.findIndex(a => a.studentId === parseInt(studentId)) + 1;
-    const totalStudents = averages.length;
+    const totalStudents = classmates.length;
 
     // Find next term
     const nextTerm = await prisma.term.findFirst({
@@ -186,19 +193,22 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         endDate: term.endDate,
         nextTermStartDate: nextTerm?.startDate || null
       },
-      subjects: results.map(result => ({
-        name: result.subject?.name || 'Unknown Subject',
-        assignment1: result.assignment1Score,
-        assignment2: result.assignment2Score,
-        test1: result.test1Score,
-        test2: result.test2Score,
-        exam: result.examScore,
-        total: result.totalScore,
-        grade: result.grade,
-        position: result.positionInClass,
-        classAverage: result.classAverage,
-        remark: getRemark(result.grade, schoolSettings.gradingSystem)
-      })),
+      subjects: classSubjects.map(cs => {
+        const result = results.find(r => r.subjectId === cs.subjectId);
+        return {
+          name: cs.subject?.name || 'Unknown Subject',
+          assignment1: result ? result.assignment1Score : 0,
+          assignment2: result ? result.assignment2Score : 0,
+          test1: result ? result.test1Score : 0,
+          test2: result ? result.test2Score : 0,
+          exam: result ? result.examScore : 0,
+          total: result ? result.totalScore : 0,
+          grade: result ? result.grade : getGrade(0, schoolSettings.gradingSystem),
+          position: result ? result.positionInClass : '-',
+          classAverage: result ? result.classAverage : 0,
+          remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : getRemark(getGrade(0, schoolSettings.gradingSystem), schoolSettings.gradingSystem)
+        };
+      }),
       termAverage: termAverage,
       termPosition: termPosition,
       totalStudents: totalStudents,
@@ -305,6 +315,13 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       return res.status(404).json({ error: 'Session not found' });
     }
 
+    // Fetch all subjects for the class
+    const classSubjects = await prisma.classSubject.findMany({
+      where: { classId: student.classId, schoolId: req.schoolId },
+      include: { subject: true }
+    });
+    const totalSubjectsCount = classSubjects.length || 1;
+
     // Fetch results for all terms in this session
     const termsData = [];
     for (const term of session.terms) {
@@ -328,22 +345,26 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
         prisma,
         parseInt(studentId),
         term.id,
-        req.schoolId
+        req.schoolId,
+        totalSubjectsCount
       );
 
       termsData.push({
         termName: term.name,
-        subjects: results.map(result => ({
-          name: result.subject.name,
-          assignment1: result.assignment1Score,
-          assignment2: result.assignment2Score,
-          test1: result.test1Score,
-          test2: result.test2Score,
-          exam: result.examScore,
-          total: result.totalScore,
-          grade: result.grade,
-          position: result.positionInClass
-        })),
+        subjects: classSubjects.map(cs => {
+          const result = results.find(r => r.subjectId === cs.subjectId);
+          return {
+            name: cs.subject?.name || 'Unknown Subject',
+            assignment1: result ? result.assignment1Score : 0,
+            assignment2: result ? result.assignment2Score : 0,
+            test1: result ? result.test1Score : 0,
+            test2: result ? result.test2Score : 0,
+            exam: result ? result.examScore : 0,
+            total: result ? result.totalScore : 0,
+            grade: result ? result.grade : getGrade(0, schoolSettings.gradingSystem),
+            position: result ? result.positionInClass : '-'
+          };
+        }),
         average: termAverage,
         grade: getGrade(termAverage, schoolSettings.gradingSystem)
       });
@@ -354,7 +375,8 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       prisma,
       parseInt(studentId),
       parseInt(sessionId),
-      req.schoolId
+      req.schoolId,
+      totalSubjectsCount * session.terms.length // Cumulative average should be over all expected results across terms
     );
 
     // Determine promotion status
@@ -578,6 +600,38 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       return res.status(404).json({ error: 'Term not found' });
     }
 
+    // NEW: Fetch all subjects for the class once
+    const classSubjects = await prisma.classSubject.findMany({
+      where: { classId: parseInt(classId), schoolId: req.schoolId },
+      include: { subject: true }
+    });
+    const totalSubjectsCount = classSubjects.length || 1;
+
+    // NEW: Pre-calculate positions and averages for ALL students in class to avoid N+1 queries
+    const allStudentsInClass = await prisma.student.findMany({
+      where: { classId: parseInt(classId), schoolId: req.schoolId, isActive: true },
+      select: { id: true }
+    });
+
+    const allResultsInClass = await prisma.result.findMany({
+      where: { classId: parseInt(classId), termId: parseInt(termId), schoolId: req.schoolId }
+    });
+
+    const classwideStudentTotals = {};
+    allStudentsInClass.forEach(s => {
+      classwideStudentTotals[s.id] = 0;
+    });
+    allResultsInClass.forEach(r => {
+      if (classwideStudentTotals[r.studentId] !== undefined) {
+        classwideStudentTotals[r.studentId] += r.totalScore || 0;
+      }
+    });
+
+    const classwideAverages = Object.entries(classwideStudentTotals).map(([id, total]) => ({
+      studentId: parseInt(id),
+      average: total / totalSubjectsCount
+    })).sort((a, b) => b.average - a.average);
+
     // Build student query
     const studentQuery = {
       classId: parseInt(classId),
@@ -660,47 +714,12 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         }
       });
 
-      // Calculate term average
-      const termAverage = await calculateStudentTermAverage(
-        prisma,
-        student.id,
-        parseInt(termId),
-        req.schoolId
-      );
+      // Calculate term average using pre-fetched data
+      const studentTotal = classwideStudentTotals[student.id] || 0;
+      const termAverage = studentTotal / totalSubjectsCount;
 
-      // Calculate term position
-      const classResults = await prisma.result.findMany({
-        where: {
-          classId: parseInt(classId),
-          termId: parseInt(termId),
-          schoolId: req.schoolId
-        },
-        include: {
-          student: {
-            where: { schoolId: req.schoolId }
-          }
-        }
-      });
-
-      const studentAverages = {};
-      classResults.forEach(result => {
-        if (!studentAverages[result.studentId]) {
-          studentAverages[result.studentId] = {
-            total: 0,
-            count: 0
-          };
-        }
-        studentAverages[result.studentId].total += result.totalScore;
-        studentAverages[result.studentId].count += 1;
-      });
-
-      const averages = Object.entries(studentAverages).map(([id, data]) => ({
-        studentId: parseInt(id),
-        average: data.total / data.count
-      })).sort((a, b) => b.average - a.average);
-
-      const termPosition = averages.findIndex(a => a.studentId === student.id) + 1;
-      const totalStudents = averages.length;
+      const termPosition = classwideAverages.findIndex(a => a.studentId === student.id) + 1;
+      const totalStudentsCount = allStudentsInClass.length;
 
       // Fetch report card extras (remarks & psychomotor)
       const reportExtras = await prisma.studentReportCard.findFirst({
@@ -731,22 +750,25 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           endDate: term.endDate,
           nextTermStartDate: nextTerm?.startDate || null
         },
-        subjects: results.map(result => ({
-          name: result.subject.name,
-          assignment1: result.assignment1Score,
-          assignment2: result.assignment2Score,
-          test1: result.test1Score,
-          test2: result.test2Score,
-          exam: result.examScore,
-          total: result.totalScore,
-          grade: result.grade,
-          position: result.positionInClass,
-          classAverage: result.classAverage,
-          remark: getRemark(result.grade, schoolSettings.gradingSystem)
-        })),
+        subjects: classSubjects.map(cs => {
+          const result = results.find(r => r.subjectId === cs.subjectId);
+          return {
+            name: cs.subject?.name || 'Unknown Subject',
+            assignment1: result ? result.assignment1Score : 0,
+            assignment2: result ? result.assignment2Score : 0,
+            test1: result ? result.test1Score : 0,
+            test2: result ? result.test2Score : 0,
+            exam: result ? result.examScore : 0,
+            total: result ? result.totalScore : 0,
+            grade: result ? result.grade : getGrade(0, schoolSettings.gradingSystem),
+            position: result ? result.positionInClass : '-',
+            classAverage: result ? result.classAverage : 0,
+            remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : getRemark(getGrade(0, schoolSettings.gradingSystem), schoolSettings.gradingSystem)
+          };
+        }),
         termAverage: termAverage,
         termPosition: termPosition,
-        totalStudents: totalStudents,
+        totalStudents: totalStudentsCount,
         overallGrade: getGrade(termAverage, schoolSettings.gradingSystem),
         overallRemark: getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
         // Extras

@@ -61,6 +61,12 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
       }
     });
 
+    const classSubjects = await prisma.classSubject.findMany({
+      where: { classId: student.classId, schoolId: req.schoolId },
+      include: { subject: true }
+    });
+    const totalSubjectsCount = classSubjects.length || results.length || 1;
+
     // 4. Fetch Attendance Stats
     const totalDays = await prisma.attendanceRecord.count({
       where: {
@@ -99,26 +105,36 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
 
     // Calculate Summary
     const totalScore = results.reduce((sum, r) => sum + (r.totalScore || 0), 0);
-    const averageScore = results.length > 0 ? (totalScore / results.length) : 0;
+    const averageScore = totalScore / totalSubjectsCount;
 
     // Get class average for the student
+    const classmates = await prisma.student.findMany({
+      where: { classId: student.classId, schoolId: req.schoolId, isActive: true },
+      select: { id: true }
+    });
+
     const classResults = await prisma.result.findMany({
       where: { termId: tId, classId: student.classId, schoolId: req.schoolId },
       select: { totalScore: true, studentId: true }
     });
 
     // Calculate student's overall position in class
-    // Sum total scores per student
-    const studentTotals = {};
-    classResults.forEach(r => {
-      studentTotals[r.studentId] = (studentTotals[r.studentId] || 0) + r.totalScore;
+    const studentTotalsForRank = {};
+    classmates.forEach(c => {
+      studentTotalsForRank[c.id] = 0;
     });
 
-    const sortedStudents = Object.entries(studentTotals)
+    classResults.forEach(r => {
+      if (studentTotalsForRank[r.studentId] !== undefined) {
+        studentTotalsForRank[r.studentId] += r.totalScore || 0;
+      }
+    });
+
+    const sortedStudents = Object.entries(studentTotalsForRank)
       .sort(([, a], [, b]) => b - a);
 
     const position = sortedStudents.findIndex(([id]) => parseInt(id) === sId) + 1;
-    const totalInClass = Object.keys(studentTotals).length;
+    const totalInClass = classmates.length;
 
     // Format response
     const reportCard = {
@@ -145,20 +161,23 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
         total: totalDays,
         percentage: totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(1) : 0
       },
-      results: results.map(r => ({
-        subject: r.subject.name,
-        subjectCode: r.subject.code,
-        assignment1: r.assignment1Score,
-        assignment2: r.assignment2Score,
-        test1: r.test1Score,
-        test2: r.test2Score,
-        exam: r.examScore,
-        total: r.totalScore,
-        grade: r.grade || getGrade(r.totalScore, schoolSettings.gradingSystem),
-        remark: getRemark(r.grade || getGrade(r.totalScore, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
-        position: r.positionInClass,
-        classAverage: r.classAverage
-      })),
+      results: classSubjects.map(cs => {
+        const r = results.find(res => res.subjectId === cs.subjectId);
+        return {
+          subject: cs.subject.name,
+          subjectCode: cs.subject.code,
+          assignment1: r ? r.assignment1Score : 0,
+          assignment2: r ? r.assignment2Score : 0,
+          test1: r ? r.test1Score : 0,
+          test2: r ? r.test2Score : 0,
+          exam: r ? r.examScore : 0,
+          total: r ? r.totalScore : 0,
+          grade: r ? (r.grade || getGrade(r.totalScore, schoolSettings.gradingSystem)) : getGrade(0, schoolSettings.gradingSystem),
+          remark: r ? getRemark(r.grade || getGrade(r.totalScore, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : getRemark(getGrade(0, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+          position: r ? r.positionInClass : '-',
+          classAverage: r ? r.classAverage : 0
+        };
+      }),
       summary: {
         totalScore: totalScore.toFixed(2),
         average: averageScore.toFixed(2),
