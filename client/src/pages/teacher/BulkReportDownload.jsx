@@ -147,12 +147,12 @@ const BulkReportDownload = () => {
                 <thead style="background-color: #f0fdfa;">
                   <tr>
                     <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Subject</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">Assign1<br/>(5)</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">Assign2<br/>(5)</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">Test1<br/>(10)</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">Test2<br/>(10)</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">Exam<br/>(70)</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center; background-color: #ccfbf1;">Total<br/>(100)</th>
+                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">1ST CA<br/>(${report.term.weights?.assignment1 || 5})</th>
+                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">2ND CA<br/>(${report.term.weights?.assignment2 || 5})</th>
+                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">1ST TST<br/>(${report.term.weights?.test1 || 10})</th>
+                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">2ND TST<br/>(${report.term.weights?.test2 || 10})</th>
+                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">EXAM<br/>(${report.term.weights?.exam || 70})</th>
+                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center; background-color: #ccfbf1;">TOTAL<br/>(100)</th>
                     <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center; background-color: #ccfbf1;">Grade</th>
                     <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">Remark</th>
                   </tr>
@@ -514,13 +514,13 @@ const ReportCardPreview = ({ report }) => {
           <table className="min-w-full divide-y divide-gray-200 text-xs">
             <thead className="bg-primary/5">
               <tr>
-                <th className="px-3 py-2 text-left font-bold text-primary border-r border-gray-200">Subject</th>
-                <th className="px-2 py-2 text-center text-gray-600 border-r border-gray-200">Ass 1<br />(5)</th>
-                <th className="px-2 py-2 text-center text-gray-600 border-r border-gray-200">Ass 2<br />(5)</th>
-                <th className="px-2 py-2 text-center text-gray-600 border-r border-gray-200">Test 1<br />(10)</th>
-                <th className="px-2 py-2 text-center text-gray-600 border-r border-gray-200">Test 2<br />(10)</th>
-                <th className="px-2 py-2 text-center text-gray-600 border-r border-gray-200">Exam<br />(70)</th>
-                <th className="px-3 py-2 text-center font-bold text-primary bg-primary/10 border-r border-gray-200">Total<br />(100)</th>
+                <th className="px-3 py-2 text-left font-bold text-primary border-r border-gray-200 text-[10px]">Subject</th>
+                <th className="px-1 py-2 text-center text-gray-600 border-r border-gray-200 text-[8px] leading-tight">1ST CA<br />({report.term.weights?.assignment1 || 5})</th>
+                <th className="px-1 py-2 text-center text-gray-600 border-r border-gray-200 text-[8px] leading-tight">2ND CA<br />({report.term.weights?.assignment2 || 5})</th>
+                <th className="px-1 py-2 text-center text-gray-600 border-r border-gray-200 text-[8px] leading-tight">1ST TST<br />({report.term.weights?.test1 || 10})</th>
+                <th className="px-1 py-2 text-center text-gray-600 border-r border-gray-200 text-[8px] leading-tight">2ND TST<br />({report.term.weights?.test2 || 10})</th>
+                <th className="px-2 py-2 text-center text-gray-600 border-r border-gray-200 text-[8px] leading-tight">EXAM<br />({report.term.weights?.exam || 70})</th>
+                <th className="px-2 py-2 text-center font-bold text-primary bg-primary/10 border-r border-gray-200 text-[8px] leading-tight">TOTAL<br />(100)</th>
                 <th className="px-2 py-2 text-center font-bold text-primary bg-primary/10 border-r border-gray-200">Grd</th>
                 <th className="px-3 py-2 text-left text-gray-600">Remark</th>
               </tr>

@@ -409,28 +409,34 @@ const ReportCard = () => {
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-[10px] md:text-sm">
                       <thead>
-                        <tr className="bg-gray-100 uppercase text-[9px] font-bold">
-                          <th className="border border-black px-4 py-1 text-left">Subject</th>
-                          <th className="border border-black px-1 py-1 text-center w-8">CA</th>
-                          <th className="border border-black px-1 py-1 text-center w-8">EXM</th>
-                          <th className="border border-black px-1 py-1 text-center w-10">TOT</th>
+                        <tr className="bg-gray-100 uppercase text-[8px] font-bold">
+                          <th className="border border-black px-2 py-1 text-left">Subject</th>
+                          <th className="border border-black px-1 py-1 text-center w-6">1CA<br />{reportData.academic?.weights?.assignment1 || 5}</th>
+                          <th className="border border-black px-1 py-1 text-center w-6">2CA<br />{reportData.academic?.weights?.assignment2 || 5}</th>
+                          <th className="border border-black px-1 py-1 text-center w-6">1TS<br />{reportData.academic?.weights?.test1 || 10}</th>
+                          <th className="border border-black px-1 py-1 text-center w-6">2TS<br />{reportData.academic?.weights?.test2 || 10}</th>
+                          <th className="border border-black px-1 py-1 text-center w-8">EXM<br />{reportData.academic?.weights?.exam || 70}</th>
+                          <th className="border border-black px-1 py-1 text-center w-8 font-black">TOT<br />100</th>
                           {reportData.academic.termNumber === 3 && (
                             <>
-                              <th className="border border-black px-1 py-1 text-center w-8">T1</th>
-                              <th className="border border-black px-1 py-1 text-center w-8">T2</th>
-                              <th className="border border-black px-1 py-1 text-center w-10">CUM</th>
+                              <th className="border border-black px-1 py-1 text-center w-6 text-[7px]">T1</th>
+                              <th className="border border-black px-1 py-1 text-center w-6 text-[7px]">T2</th>
+                              <th className="border border-black px-1 py-1 text-center w-8 text-[7px]">CUM</th>
                             </>
                           )}
-                          <th className="border border-black px-1 py-1 text-center w-8">GRD</th>
-                          <th className="border border-black px-1 py-1 text-center w-8">POS</th>
-                          <th className="border border-black px-2 py-1 text-left italic text-[9px]">Remark</th>
+                          <th className="border border-black px-1 py-1 text-center w-6">GRD</th>
+                          <th className="border border-black px-1 py-1 text-center w-6">POS</th>
+                          <th className="border border-black px-2 py-1 text-left italic text-[8px]">Remark</th>
                         </tr>
                       </thead>
-                      <tbody className="text-xs uppercase font-bold">
+                      <tbody className="text-[10px] uppercase font-bold">
                         {reportData.results.map((res, i) => (
-                          <tr key={i} className="h-8">
-                            <td className="border border-black px-4 font-bold">{res.subject}</td>
-                            <td className="border border-black text-center">{(res.assignment1 || 0) + (res.assignment2 || 0) + (res.test1 || 0) + (res.test2 || 0)}</td>
+                          <tr key={i} className="h-6">
+                            <td className="border border-black px-2 font-bold leading-tight">{res.subject}</td>
+                            <td className="border border-black text-center">{res.assignment1 || '0'}</td>
+                            <td className="border border-black text-center">{res.assignment2 || '0'}</td>
+                            <td className="border border-black text-center">{res.test1 || '0'}</td>
+                            <td className="border border-black text-center">{res.test2 || '0'}</td>
                             <td className="border border-black text-center">{res.exam || '0'}</td>
                             <td className="border border-black text-center bg-gray-50">{Math.round(res.total)}</td>
                             {reportData.academic.termNumber === 3 && (
@@ -440,9 +446,9 @@ const ReportCard = () => {
                                 <td className="border border-black text-center bg-gray-50">{res.cumulativeAverage?.toFixed(1) ?? '-'}</td>
                               </>
                             )}
-                            <td className="border border-black text-center">{res.grade}</td>
+                            <td className="border border-black text-center font-black">{res.grade}</td>
                             <td className="border border-black text-center">{res.position}</td>
-                            <td className="border border-black px-2 italic text-[9px] leading-tight font-medium ml-1">{res.remark}</td>
+                            <td className="border border-black px-2 italic text-[8px] leading-tight font-medium">{res.remark}</td>
                           </tr>
                         ))}
                       </tbody>

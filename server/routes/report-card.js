@@ -14,7 +14,15 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
     // 0. Fetch school settings
     const schoolSettings = await prisma.school.findUnique({
       where: { id: req.schoolId },
-      select: { gradingSystem: true, passThreshold: true }
+      select: {
+        gradingSystem: true,
+        passThreshold: true,
+        assignment1Weight: true,
+        assignment2Weight: true,
+        test1Weight: true,
+        test2Weight: true,
+        examWeight: true
+      }
     });
     const student = await prisma.student.findFirst({
       where: { id: sId, schoolId: req.schoolId },
@@ -189,7 +197,14 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
         termNumber: termNumber,
         termStart: term.startDate,
         termEnd: term.endDate,
-        nextTermBegins: term.endDate ? new Date(new Date(term.endDate).getTime() + 14 * 24 * 60 * 60 * 1000) : null
+        nextTermBegins: term.endDate ? new Date(new Date(term.endDate).getTime() + 14 * 24 * 60 * 60 * 1000) : null,
+        weights: {
+          assignment1: schoolSettings.assignment1Weight,
+          assignment2: schoolSettings.assignment2Weight,
+          test1: schoolSettings.test1Weight,
+          test2: schoolSettings.test2Weight,
+          exam: schoolSettings.examWeight
+        }
       },
       attendance: {
         present: presentDays,

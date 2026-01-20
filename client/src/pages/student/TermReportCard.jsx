@@ -474,38 +474,44 @@ const TermReportCard = () => {
                         <thead>
                           <tr className="bg-gray-200">
                             <th className="border border-black p-1 text-left">SUBJECTS</th>
-                            <th className="border border-black p-1 text-center w-8">CA<br />40</th>
-                            <th className="border border-black p-1 text-center w-8">EXM<br />60</th>
-                            <th className="border border-black p-1 text-center w-10">TOT<br />100</th>
+                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">1ST CA<br />{data.academic?.weights?.assignment1 || 5}</th>
+                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">2ND CA<br />{data.academic?.weights?.assignment2 || 5}</th>
+                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">1ST TST<br />{data.academic?.weights?.test1 || 10}</th>
+                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">2ND TST<br />{data.academic?.weights?.test2 || 10}</th>
+                            <th className="border border-black p-1 text-center w-8">EXM<br />{data.academic?.weights?.exam || 70}</th>
+                            <th className="border border-black p-1 text-center w-8">TOT<br />100</th>
                             {termNumber === 3 && (
                               <>
-                                <th className="border border-black p-1 text-center w-8 text-[8px]">TRM 1</th>
-                                <th className="border border-black p-1 text-center w-8 text-[8px]">TRM 2</th>
-                                <th className="border border-black p-1 text-center w-10 text-[8px]">CUM AVG</th>
+                                <th className="border border-black p-1 text-center w-6 text-[7px]">T1</th>
+                                <th className="border border-black p-1 text-center w-6 text-[7px]">T2</th>
+                                <th className="border border-black p-1 text-center w-8 text-[7px]">CUM</th>
                               </>
                             )}
                             <th className="border border-black p-1 text-center w-6">GRD</th>
-                            <th className="border border-black p-1 text-center w-6">POS</th>
-                            <th className="border border-black p-1 text-left px-1">REMARKS</th>
+                            <th className="border border-black p-1 text-center w-6 text-[7px]">POS</th>
+                            <th className="border border-black p-1 text-left px-1 text-[8px]">REMARKS</th>
                           </tr>
                         </thead>
                         <tbody>
                           {(data.subjects || []).map((sub, i) => (
-                            <tr key={i} className="font-bold uppercase h-8">
-                              <td className="border border-black px-1 leading-tight">{sub.name}</td>
-                              <td className="border border-black text-center">{calculateCA(sub)}</td>
-                              <td className="border border-black text-center">{sub.exam || '0'}</td>
-                              <td className="border border-black text-center bg-gray-50">{sub.total?.toFixed(0)}</td>
+                            <tr key={i} className="font-bold uppercase h-6">
+                              <td className="border border-black px-1 leading-tight text-[11px] font-black">{sub.name}</td>
+                              <td className="border border-black text-center text-[10px]">{sub.assignment1 || '0'}</td>
+                              <td className="border border-black text-center text-[10px]">{sub.assignment2 || '0'}</td>
+                              <td className="border border-black text-center text-[10px]">{sub.test1 || '0'}</td>
+                              <td className="border border-black text-center text-[10px]">{sub.test2 || '0'}</td>
+                              <td className="border border-black text-center text-[10px]">{sub.exam || '0'}</td>
+                              <td className="border border-black text-center bg-gray-50 text-[10px]">{sub.total?.toFixed(0)}</td>
                               {termNumber === 3 && (
                                 <>
-                                  <td className="border border-black text-center">{sub.term1Score ?? '-'}</td>
-                                  <td className="border border-black text-center">{sub.term2Score ?? '-'}</td>
-                                  <td className="border border-black text-center bg-gray-50">{sub.cumulativeAverage?.toFixed(1) ?? '-'}</td>
+                                  <td className="border border-black text-center text-[9px]">{sub.term1Score ?? '-'}</td>
+                                  <td className="border border-black text-center text-[9px]">{sub.term2Score ?? '-'}</td>
+                                  <td className="border border-black text-center bg-gray-50 text-[9px]">{sub.cumulativeAverage?.toFixed(1) ?? '-'}</td>
                                 </>
                               )}
-                              <td className="border border-black text-center">{sub.grade}</td>
-                              <td className="border border-black text-center">{sub.position}</td>
-                              <td className="border border-black px-1 text-[9px] leading-tight italic">{sub.remark}</td>
+                              <td className="border border-black text-center text-[10px] font-black">{sub.grade}</td>
+                              <td className="border border-black text-center text-[10px]">{sub.position}</td>
+                              <td className="border border-black px-1 text-[8px] leading-tight italic font-medium">{sub.remark}</td>
                             </tr>
                           ))}
                         </tbody>

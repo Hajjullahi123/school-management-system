@@ -18,7 +18,15 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
     // Fetch school settings
     const schoolSettings = await prisma.school.findUnique({
       where: { id: req.schoolId },
-      select: { gradingSystem: true, passThreshold: true }
+      select: {
+        gradingSystem: true,
+        passThreshold: true,
+        assignment1Weight: true,
+        assignment2Weight: true,
+        test1Weight: true,
+        test2Weight: true,
+        examWeight: true
+      }
     });
 
     // Fetch student with all details
@@ -229,7 +237,14 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         session: term.academicSession.name,
         startDate: term.startDate,
         endDate: term.endDate,
-        nextTermStartDate: nextTerm?.startDate || null
+        nextTermStartDate: nextTerm?.startDate || null,
+        weights: {
+          assignment1: schoolSettings.assignment1Weight,
+          assignment2: schoolSettings.assignment2Weight,
+          test1: schoolSettings.test1Weight,
+          test2: schoolSettings.test2Weight,
+          exam: schoolSettings.examWeight
+        }
       },
       subjects: classSubjects.map(cs => {
         const result = results.find(r => r.subjectId === cs.subjectId);
@@ -626,7 +641,15 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     // Fetch school settings
     const schoolSettings = await prisma.school.findUnique({
       where: { id: req.schoolId },
-      select: { gradingSystem: true, passThreshold: true }
+      select: {
+        gradingSystem: true,
+        passThreshold: true,
+        assignment1Weight: true,
+        assignment2Weight: true,
+        test1Weight: true,
+        test2Weight: true,
+        examWeight: true
+      }
     });
 
     // Verify teacher has permission for this class
@@ -844,7 +867,14 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           session: term.academicSession.name,
           startDate: term.startDate,
           endDate: term.endDate,
-          nextTermStartDate: nextTerm?.startDate || null
+          nextTermStartDate: nextTerm?.startDate || null,
+          weights: {
+            assignment1: schoolSettings.assignment1Weight,
+            assignment2: schoolSettings.assignment2Weight,
+            test1: schoolSettings.test1Weight,
+            test2: schoolSettings.test2Weight,
+            exam: schoolSettings.examWeight
+          }
         },
         subjects: classSubjects.map(cs => {
           const result = results.find(r => r.subjectId === cs.subjectId);
