@@ -512,70 +512,92 @@ const TermReportCard = () => {
                       </table>
                     </div>
 
-                    {/* RIGHT: DOMAINS & SUMMARY */}
-                    <div className="flex flex-col justify-between h-full space-y-1">
+                    {/* RIGHT: DOMAINS */}
+                    <div className="flex flex-col h-full gap-2">
                       {/* AFFECTIVE */}
-                      <table className="w-full border-2 border-black border-collapse text-[10px]">
-                        <thead className="bg-gray-200 uppercase font-bold">
-                          <tr>
-                            <th className="border-b border-r border-black text-left px-1">AFFECTIVE</th>
-                            <th className="border-b border-black w-5">5</th>
-                            <th className="border-b border-black w-5">4</th>
-                            <th className="border-b border-black w-5">3</th>
-                            <th className="border-b border-black w-5">2</th>
-                            <th className="border-b border-black w-5">1</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {domainSplit.affective.map((item, i) => (
-                            <tr key={i} className="h-5"><td className="border border-black px-1 truncate font-bold uppercase">{item.name}</td>{renderRatingTicks(item.score)}</tr>
-                          ))}
-                        </tbody>
-                      </table>
+                      <div className="flex-1 flex flex-col min-h-0">
+                        <table className="w-full border-2 border-black border-collapse text-[10px] flex-1">
+                          <thead className="bg-gray-200 uppercase font-bold sticky top-0">
+                            <tr>
+                              <th className="border-b border-r border-black text-left px-1 py-0.5">AFFECTIVE</th>
+                              <th className="border-b border-black w-5">5</th>
+                              <th className="border-b border-black w-5">4</th>
+                              <th className="border-b border-black w-5">3</th>
+                              <th className="border-b border-black w-5">2</th>
+                              <th className="border-b border-black w-5">1</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {domainSplit.affective.map((item, i) => (
+                              <tr key={i} className="h-5"><td className="border border-black px-1 truncate font-bold uppercase">{item.name}</td>{renderRatingTicks(item.score)}</tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
 
                       {/* PSYCHOMOTOR */}
-                      <table className="w-full border-2 border-black border-collapse text-[10px]">
-                        <thead className="bg-gray-200 uppercase font-bold">
-                          <tr>
-                            <th className="border-b border-r border-black text-left px-1">PSYCHOMOTOR</th>
-                            <th className="border-b border-black w-5">5</th>
-                            <th className="border-b border-black w-5">4</th>
-                            <th className="border-b border-black w-5">3</th>
-                            <th className="border-b border-black w-5">2</th>
-                            <th className="border-b border-black w-5">1</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {domainSplit.psychomotor.map((item, i) => (
-                            <tr key={i} className="h-5"><td className="border border-black px-1 truncate font-bold uppercase">{item.name}</td>{renderRatingTicks(item.score)}</tr>
-                          ))}
-                        </tbody>
-                      </table>
+                      <div className="flex-1 flex flex-col min-h-0">
+                        <table className="w-full border-2 border-black border-collapse text-[10px] flex-1">
+                          <thead className="bg-gray-200 uppercase font-bold sticky top-0">
+                            <tr>
+                              <th className="border-b border-r border-black text-left px-1 py-0.5">PSYCHOMOTOR</th>
+                              <th className="border-b border-black w-5">5</th>
+                              <th className="border-b border-black w-5">4</th>
+                              <th className="border-b border-black w-5">3</th>
+                              <th className="border-b border-black w-5">2</th>
+                              <th className="border-b border-black w-5">1</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {domainSplit.psychomotor.map((item, i) => (
+                              <tr key={i} className="h-5"><td className="border border-black px-1 truncate font-bold uppercase">{item.name}</td>{renderRatingTicks(item.score)}</tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
 
+                  {/* SUMMARY & GRADING KEY (DIRECTLY BELOW COGNITIVE) */}
+                  <div className="grid grid-cols-[68%_31%] gap-2 mt-2">
+                    <div className="grid grid-cols-2 gap-0 border-2 border-black rounded-lg overflow-hidden divide-x-2 divide-black">
                       {/* GRADE INFO */}
-                      <div className="border-2 border-black p-1 text-[8px] bg-gray-50 leading-tight">
-                        <p className="font-bold border-b border-black mb-1 text-center uppercase bg-gray-200 -mx-1 -mt-1">Grading Key</p>
-                        <p>5-Excellent, 4-V.Good, 3-Good, 2-Fair, 1-Poor</p>
-                        <p className="mt-1">Pass Mark: 40%</p>
+                      <div className="p-2 text-[9px] bg-gray-50/50 leading-tight flex flex-col justify-center">
+                        <p className="font-black border-b border-black mb-1 uppercase text-gray-500 text-[8px]">Grading Legend</p>
+                        <div className="grid grid-cols-2 gap-x-2 font-bold">
+                          <span>A: 75-100</span>
+                          <span>B: 65-74</span>
+                          <span>C: 55-64</span>
+                          <span>D: 45-54</span>
+                          <span>E: 40-44</span>
+                          <span className="text-red-600">F: 0-39</span>
+                        </div>
+                        <p className="mt-1 border-t border-black/10 pt-1 text-[8px] italic">5: Excellent, 4: V. Good, 3: Good, 2: Fair, 1: Poor</p>
                       </div>
 
                       {/* POSITION & AVG */}
-                      <table className="w-full border-2 border-black border-collapse text-xs font-bold bg-emerald-50" style={{ backgroundColor: `${schoolSettings?.primaryColor}10` }}>
-                        <tbody>
-                          <tr className="border-b border-black">
-                            <td className="px-1 border-r border-black uppercase w-1/2">Position:</td>
-                            <td className="text-center">{data.termPosition || '-'} OF {data.totalStudents || '-'}</td>
-                          </tr>
-                          <tr className="border-b border-black">
-                            <td className="px-1 border-r border-black uppercase">Average:</td>
-                            <td className="text-center text-lg">{data.termAverage?.toFixed(1)}%</td>
-                          </tr>
-                          <tr>
-                            <td className="px-1 border-r border-black uppercase text-emerald-900">Grade:</td>
-                            <td className="text-center text-xl" style={{ color: schoolSettings?.primaryColor }}>{data.overallGrade}</td>
-                          </tr>
-                        </tbody>
-                      </table>
+                      <div className="p-0 flex flex-col">
+                        <div className="bg-emerald-800 text-white text-[9px] font-bold text-center py-0.5 uppercase tracking-tighter" style={{ backgroundColor: schoolSettings?.primaryColor }}>Status Summary</div>
+                        <div className="bg-white flex-1 grid grid-cols-2 divide-x divide-black/10">
+                          <div className="flex flex-col items-center justify-center p-1">
+                            <span className="text-[7px] text-gray-400 uppercase font-black">Position</span>
+                            <span className="text-sm font-black">{data.termPosition || '-'} / {data.totalStudents || '-'}</span>
+                          </div>
+                          <div className="flex flex-col items-center justify-center p-1">
+                            <span className="text-[7px] text-gray-400 uppercase font-black">Average</span>
+                            <span className="text-sm font-black">{data.termAverage?.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                        <div className="border-t border-black p-1 flex items-center justify-between bg-emerald-50" style={{ backgroundColor: `${schoolSettings?.primaryColor}10` }}>
+                          <span className="text-[9px] font-black uppercase text-gray-500">Overall Grade:</span>
+                          <span className="text-lg font-black text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>{data.overallGrade}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-center border-2 border-black rounded-lg bg-gray-50 font-mono text-[7px] uppercase tracking-[0.3em] text-gray-300 relative overflow-hidden">
+                      <span className="z-10 bg-white px-2">Official Result Certification</span>
+                      <div className="absolute inset-x-0 h-[1px] bg-gray-200"></div>
                     </div>
                   </div>
 
