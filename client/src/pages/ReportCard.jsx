@@ -512,7 +512,7 @@ const ReportCard = () => {
                     ))}
                   </div>
                   <p className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400">
-                    Verification ID: {reportData.student.admissionNumber.replace('/', '-')}-{selectedTerm?.toString().slice(-4)}
+                    Verification ID: {reportData.student?.admissionNumber?.replace('/', '-')}-{selectedTerm?.toString().slice(-4)}
                   </p>
                 </div>
 
@@ -526,7 +526,7 @@ const ReportCard = () => {
                   <div className="flex flex-col items-center justify-end h-full">
                     <div className="text-[10px] font-bold uppercase mb-4 flex gap-2">
                       <span className="text-gray-400">Begins:</span>
-                      <span className="underline">{reportData.academic.nextTermBegins ? new Date(reportData.academic.nextTermBegins).toLocaleDateString() : '............'}</span>
+                      <span className="underline">{reportData.academic?.nextTermBegins ? new Date(reportData.academic.nextTermBegins).toLocaleDateString() : '............'}</span>
                     </div>
                     <div className="border-b-2 border-emerald-800 w-full mb-1" style={{ borderColor: schoolSettings?.primaryColor }}></div>
                     <p className="text-[10px] font-black uppercase text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>Principal's Signature</p>

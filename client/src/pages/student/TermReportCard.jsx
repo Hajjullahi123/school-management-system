@@ -599,7 +599,7 @@ const TermReportCard = () => {
                         </p>
                         <div className="pt-1 border-t border-black/10 flex justify-between items-center text-[9px] font-bold">
                           <span>Next Term Begins:</span>
-                          <span className="underline">{data.academic.nextTermBegins ? new Date(data.academic.nextTermBegins).toLocaleDateString() : '....................'}</span>
+                          <span className="underline">{data.academic?.nextTermBegins ? new Date(data.academic.nextTermBegins).toLocaleDateString() : '....................'}</span>
                         </div>
                       </div>
                     </div>
@@ -614,7 +614,7 @@ const TermReportCard = () => {
                         ))}
                       </div>
                       <p className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400">
-                        Verification ID: {data.student?.admissionNumber.replace('/', '-')}-{data.term?.id?.toString().slice(-4)}
+                        Verification ID: {data.student?.admissionNumber?.replace('/', '-')}-{data.term?.id?.toString().slice(-4)}
                       </p>
                     </div>
 
