@@ -445,11 +445,11 @@ const ReportCard = () => {
                 </table>
               </div>
 
-              <div className="grid grid-cols-[60%_40%] gap-4">
-                <div className="space-y-4">
-                  <div className="border-2 border-black p-3 rounded-xl bg-gray-50/50">
+              <div className="grid grid-cols-[60%_40%] gap-4 items-stretch">
+                <div className="space-y-4 flex flex-col justify-between h-full">
+                  <div className="border-2 border-black p-3 rounded-xl bg-gray-50/50 flex-1 flex flex-col">
                     <h5 className="text-[10px] font-black uppercase mb-2 border-b border-black pb-1">Non-Cognitive Evaluation</h5>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 flex-1">
                       {processRatings(reportData.extras.psychomotorRatings).map((rat, i) => (
                         <div key={i} className="flex justify-between items-center text-[9px]">
                           <span className="font-bold uppercase truncate pr-2">{rat.name}</span>
@@ -458,35 +458,35 @@ const ReportCard = () => {
                       ))}
                     </div>
                   </div>
-                  <div className="space-y-3">
-                    <div className="border-2 border-black p-3 bg-white relative">
+                  <div className="space-y-2">
+                    <div className="border-2 border-black p-2 bg-white relative">
                       <p className="text-[10px] font-black underline italic uppercase mb-1 leading-none">Form Master's Remark:</p>
-                      <p className="text-sm font-serif italic min-h-[40px] flex items-center leading-tight">"{reportData.extras.formMasterRemark || 'Performance is encouraging.'}"</p>
+                      <p className="text-sm font-serif italic min-h-[30px] flex items-center leading-tight">"{reportData.extras.formMasterRemark || 'Performance is encouraging.'}"</p>
                     </div>
-                    <div className="border-2 border-black p-3 bg-white relative">
+                    <div className="border-2 border-black p-2 bg-white relative">
                       <p className="text-[10px] font-black underline italic uppercase mb-1 leading-none">Principal's Remark:</p>
-                      <p className="text-sm font-serif italic min-h-[40px] flex items-center leading-tight">"{reportData.extras.principalRemark || 'Satisfactory academic performance.'}"</p>
+                      <p className="text-sm font-serif italic min-h-[30px] flex items-center leading-tight">"{reportData.extras.principalRemark || 'Satisfactory academic performance.'}"</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="border-2 border-black rounded-xl overflow-hidden shadow-md">
+                <div className="h-full flex flex-col justify-between">
+                  <div className="border-2 border-black rounded-xl overflow-hidden shadow-md h-full flex flex-col">
                     <div className="bg-emerald-800 text-white text-center p-1 text-[10px] font-bold uppercase tracking-widest" style={{ backgroundColor: schoolSettings?.primaryColor }}>Final Assessment</div>
-                    <div className="p-4 bg-gray-50 space-y-3">
+                    <div className="p-4 bg-gray-50 space-y-4 flex-1 flex flex-col justify-center">
                       <div className="flex justify-between items-end">
                         <span className="text-[10px] font-bold text-gray-500">TOTAL SCORE:</span>
                         <span className="text-lg font-black">{Math.round(reportData.summary.totalScore)}</span>
                       </div>
-                      <div className="flex justify-between items-end border-t border-gray-200 pt-2">
+                      <div className="flex justify-between items-end border-t border-gray-200 pt-3">
                         <span className="text-[10px] font-bold text-gray-500">AVERAGE:</span>
                         <span className="text-2xl font-black">{reportData.summary.average}%</span>
                       </div>
-                      <div className="flex justify-between items-end border-t border-gray-200 pt-2">
+                      <div className="flex justify-between items-end border-t border-gray-200 pt-3">
                         <span className="text-[10px] font-bold text-gray-500">CLASS POSITION:</span>
                         <span className="font-black text-lg">{reportData.summary.position} <span className="text-[10px] font-normal text-gray-400">OF {reportData.summary.totalInClass}</span></span>
                       </div>
-                      <div className="flex justify-between items-center border-t-2 border-emerald-800 pt-2" style={{ borderTopColor: schoolSettings?.primaryColor }}>
+                      <div className="flex justify-between items-center border-t-2 border-emerald-800 pt-3" style={{ borderTopColor: schoolSettings?.primaryColor }}>
                         <span className="text-[10px] font-bold text-emerald-800 uppercase">Decision:</span>
                         <span className={`text-xl font-black ${reportData.summary.status === 'PASS' ? 'text-green-600' : 'text-red-600'}`}>{reportData.summary.status}</span>
                       </div>

@@ -464,9 +464,9 @@ const TermReportCard = () => {
                   </table>
 
                   {/* ACADEMIC SECTION */}
-                  <div className="grid grid-cols-[68%_31%] gap-2 items-start">
+                  <div className="grid grid-cols-[68%_31%] gap-2 items-stretch">
                     {/* LEFT: COGNITIVE */}
-                    <div className="space-y-0 text-[10px] md:text-sm">
+                    <div className="space-y-0 text-[10px] md:text-sm h-full flex flex-col">
                       <div className="bg-emerald-800 text-white text-center font-bold py-1 text-sm border-2 border-b-0 border-black" style={{ backgroundColor: schoolSettings?.primaryColor }}>
                         COGNITIVE DOMAIN PERFORMANCE
                       </div>
@@ -513,7 +513,7 @@ const TermReportCard = () => {
                     </div>
 
                     {/* RIGHT: DOMAINS & SUMMARY */}
-                    <div className="space-y-2">
+                    <div className="flex flex-col justify-between h-full space-y-1">
                       {/* AFFECTIVE */}
                       <table className="w-full border-2 border-black border-collapse text-[10px]">
                         <thead className="bg-gray-200 uppercase font-bold">
