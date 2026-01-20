@@ -579,32 +579,57 @@ const TermReportCard = () => {
                     </div>
                   </div>
 
-                  {/* REMARKS & SIGNATURES */}
-                  <div className="grid grid-cols-[30%_70%] gap-4 items-end">
-                    {/* BARCODE (SUBTLE LOWER LEFT) */}
-                    <div className="flex flex-col items-start justify-end h-full">
-                      <div className="w-28 h-6 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-30 grayscale">
-                        {[...Array(50)].map((_, i) => (
-                          <div key={i} className="bg-black" style={{ height: '100%', width: (i % 7 === 0 ? '2px' : '1px') }}></div>
+                  {/* REMARKS SECTION */}
+                  <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-4">
+                    <div className="grid grid-cols-2 divide-x-2 divide-black">
+                      <div className="p-2 space-y-1">
+                        <p className="text-[10px] font-black uppercase text-gray-500">Form Master's Remark</p>
+                        <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
+                          "{data.formMasterRemark || 'No specific remark recorded.'}"
+                        </p>
+                        <div className="pt-1 border-t border-black/10 flex justify-between items-center">
+                          <span className="text-[9px] font-bold">Name: {data.student?.formMaster || '......................'}</span>
+                          <span className="text-[8px] text-gray-400 font-mono">ID: RC-{data.term?.id?.toString().slice(-4)}</span>
+                        </div>
+                      </div>
+                      <div className="p-2 space-y-1">
+                        <p className="text-[10px] font-black uppercase text-gray-500">Principal's Remark</p>
+                        <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
+                          "{data.principalRemark || 'Satisfactory result. Keep striving for excellence.'}"
+                        </p>
+                        <div className="pt-1 border-t border-black/10 flex justify-between items-center text-[9px] font-bold">
+                          <span>Next Term Begins:</span>
+                          <span className="underline">{data.academic.nextTermBegins ? new Date(data.academic.nextTermBegins).toLocaleDateString() : '....................'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SIGNATURES & VERIFICATION */}
+                  <div className="mt-8 grid grid-cols-3 gap-8 items-end">
+                    <div className="space-y-2">
+                      <div className="w-full h-8 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-20 grayscale">
+                        {[...Array(60)].map((_, i) => (
+                          <div key={i} className="bg-black" style={{ height: (i % 8 === 0 ? '100%' : '80%'), width: (i % 5 === 0 ? '2px' : '1px') }}></div>
                         ))}
                       </div>
-                      <p className="text-[6px] font-mono mt-0.5 font-bold uppercase tracking-widest opacity-40">
-                        {data.student?.admissionNumber}-{data.term?.id?.toString().slice(-4)}
+                      <p className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400">
+                        Verification ID: {data.student?.admissionNumber.replace('/', '-')}-{data.term?.id?.toString().slice(-4)}
                       </p>
                     </div>
 
-                    <div className="space-y-2 border-2 border-black p-2 bg-white relative">
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-bold underline italic uppercase">Form Master's Remark:</p>
-                        <p className="text-sm font-serif italic h-12 flex items-center leading-tight">"{data.formMasterRemark || 'No specific remark recorded.'}"</p>
-                        <p className="text-[10px] border-t border-dotted border-gray-400 pt-1 text-right">Name: {data.student?.formMaster || '......................'}</p>
-                      </div>
+                    <div className="text-center group">
+                      <div className="border-b-2 border-black w-full mb-1 opacity-80"></div>
+                      <p className="text-[10px] font-black uppercase">Teacher's Signature</p>
+                      <p className="text-[8px] text-gray-400 uppercase mt-0.5">Automated Seal</p>
+                    </div>
 
-                      <div className="space-y-1 mt-2">
-                        <p className="text-[10px] font-bold underline italic uppercase">Principal's Remark:</p>
-                        <p className="text-sm font-serif italic h-12 flex items-center leading-tight">"{data.principalRemark || 'Satisfactory result. Keep striving for excellence.'}"</p>
-                        <p className="text-[10px] border-t border-dotted border-gray-400 pt-1 text-right">Signature & Stamp</p>
+                    <div className="text-center">
+                      <div className="h-10 flex items-center justify-center">
+                        <p className="text-[8px] italic text-gray-300 uppercase">Place Stamp Here</p>
                       </div>
+                      <div className="border-b-2 border-emerald-800 w-full mb-1" style={{ borderColor: schoolSettings?.primaryColor }}></div>
+                      <p className="text-[10px] font-black uppercase text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>Principal's Signature</p>
                     </div>
                   </div>
                 </div>

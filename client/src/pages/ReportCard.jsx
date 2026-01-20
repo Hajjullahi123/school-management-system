@@ -458,16 +458,6 @@ const ReportCard = () => {
                       ))}
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <div className="border-2 border-black p-2 bg-white relative">
-                      <p className="text-[10px] font-black underline italic uppercase mb-1 leading-none">Form Master's Remark:</p>
-                      <p className="text-sm font-serif italic min-h-[30px] flex items-center leading-tight">"{reportData.extras.formMasterRemark || 'Performance is encouraging.'}"</p>
-                    </div>
-                    <div className="border-2 border-black p-2 bg-white relative">
-                      <p className="text-[10px] font-black underline italic uppercase mb-1 leading-none">Principal's Remark:</p>
-                      <p className="text-sm font-serif italic min-h-[30px] flex items-center leading-tight">"{reportData.extras.principalRemark || 'Satisfactory academic performance.'}"</p>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="h-full flex flex-col justify-between">
@@ -495,29 +485,51 @@ const ReportCard = () => {
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t-2 border-black grid grid-cols-[30%_70%] gap-8 items-end">
-                <div className="flex flex-col items-start">
-                  <div className="w-28 h-6 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-30 grayscale">
-                    {[...Array(50)].map((_, i) => (
-                      <div key={i} className="bg-black" style={{ height: '100%', width: (i % 7 === 0 ? '2px' : '1px') }}></div>
-                    ))}
+              {/* REMARKS SECTION */}
+              <div className="border-2 border-black bg-white rounded-xl overflow-hidden mt-4">
+                <div className="grid grid-cols-2 divide-x-2 divide-black">
+                  <div className="p-3 space-y-1">
+                    <p className="text-[10px] font-black uppercase text-gray-400">Form Master's Remark</p>
+                    <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
+                      "{reportData.extras.formMasterRemark || 'Performance is encouraging.'}"
+                    </p>
                   </div>
-                  <p className="text-[6px] font-mono mt-0.5 font-bold uppercase tracking-widest opacity-40">
-                    {reportData.student.admissionNumber}-{selectedTerm?.toString().slice(-4)}
-                  </p>
-                  <div className="text-center pt-8 w-full">
-                    <div className="border-b border-black w-full mb-1"></div>
-                    <p className="text-[9px] font-bold">TEACHER'S SIGNATURE</p>
+                  <div className="p-3 space-y-1">
+                    <p className="text-[10px] font-black uppercase text-gray-400">Principal's Remark</p>
+                    <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
+                      "{reportData.extras.principalRemark || 'Satisfactory academic performance.'}"
+                    </p>
                   </div>
                 </div>
-                <div className="space-y-4">
-                  <div className="flex gap-4 text-[10px] font-bold uppercase justify-end">
-                    <p>Next Term Begins: <span className="underline">{reportData.academic.nextTermBegins ? new Date(reportData.academic.nextTermBegins).toLocaleDateString() : '....................'}</span></p>
+              </div>
+
+              {/* SIGNATURES & VERIFICATION */}
+              <div className="mt-8 grid grid-cols-3 gap-8 items-end p-2 border-t border-gray-100">
+                <div className="space-y-2">
+                  <div className="w-full h-8 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-20 grayscale">
+                    {[...Array(60)].map((_, i) => (
+                      <div key={i} className="bg-black" style={{ height: (i % 8 === 0 ? '100%' : '80%'), width: (i % 5 === 0 ? '2px' : '1px') }}></div>
+                    ))}
                   </div>
-                  <div className="text-center pt-8">
-                    <p className="text-[8px] italic text-gray-400 mb-8 uppercase">STAMP & SIGNATURE HERE</p>
-                    <div className="border-b-2 border-emerald-800 w-3/4 mx-auto mb-1" style={{ borderColor: schoolSettings?.primaryColor }}></div>
-                    <p className="text-[9px] font-black uppercase text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>Principal's Signature</p>
+                  <p className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400">
+                    Verification ID: {reportData.student.admissionNumber.replace('/', '-')}-{selectedTerm?.toString().slice(-4)}
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <div className="border-b-2 border-black w-full mb-1 opacity-80"></div>
+                  <p className="text-[10px] font-black uppercase">Teacher's Signature</p>
+                  <p className="text-[8px] text-gray-400 uppercase mt-0.5">Automated Seal</p>
+                </div>
+
+                <div className="text-center">
+                  <div className="flex flex-col items-center justify-end h-full">
+                    <div className="text-[10px] font-bold uppercase mb-4 flex gap-2">
+                      <span className="text-gray-400">Begins:</span>
+                      <span className="underline">{reportData.academic.nextTermBegins ? new Date(reportData.academic.nextTermBegins).toLocaleDateString() : '............'}</span>
+                    </div>
+                    <div className="border-b-2 border-emerald-800 w-full mb-1" style={{ borderColor: schoolSettings?.primaryColor }}></div>
+                    <p className="text-[10px] font-black uppercase text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>Principal's Signature</p>
                   </div>
                 </div>
               </div>
