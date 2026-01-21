@@ -17,6 +17,8 @@ const StudentManagement = () => {
   const [newParentCredentials, setNewParentCredentials] = useState(null);
   const [expandedClasses, setExpandedClasses] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [bulkUploadResults, setBulkUploadResults] = useState(null);
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -578,12 +580,9 @@ Note: Password must be changed on first login.
       });
 
       const data = await response.json();
+      setBulkUploadResults(data);
+      setShowBulkUploadModal(true);
       if (response.ok) {
-        alert(data.message || 'Import completed successfully');
-        if (data.failed && data.failed.length > 0) {
-          console.error('Failed students:', data.failed);
-          alert(`Warning: ${data.failed.length} students failed to import. Check console for details.`);
-        }
         fetchStudents();
       } else {
         alert(`Import failed: ${data.error}`);
@@ -1279,6 +1278,85 @@ Note: Password must be changed on first login.
           </div>
         )
       }
+
+      {/* Bulk Upload Results Modal */}
+      {showBulkUploadModal && bulkUploadResults && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="p-6 border-b flex justify-between items-center bg-gray-50">
+              <h3 className="text-xl font-bold text-gray-900">Import Results</h3>
+              <button onClick={() => setShowBulkUploadModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-sm text-green-600 font-medium">Successful</p>
+                  <p className="text-3xl font-bold text-green-700">{bulkUploadResults.successful?.length || 0}</p>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-sm text-red-600 font-medium">Failed</p>
+                  <p className="text-3xl font-bold text-red-700">{bulkUploadResults.failed?.length || 0}</p>
+                </div>
+              </div>
+
+              {bulkUploadResults.failed && bulkUploadResults.failed.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-gray-700 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Failed Records Details
+                  </h4>
+                  <div className="bg-gray-50 rounded-lg border divide-y overflow-hidden">
+                    {bulkUploadResults.failed.map((failure, idx) => (
+                      <div key={idx} className="p-4 bg-white hover:bg-red-50/30 transition-colors">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-bold text-gray-900">
+                              {failure.data?.firstName} {failure.data?.lastName}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              Class Ref: {failure.data?.classId || 'N/A'} | Parent: {failure.data?.parentGuardianPhone || 'N/A'}
+                            </p>
+                          </div>
+                          <span className="bg-red-100 text-red-700 text-[10px] px-2 py-1 rounded uppercase font-bold tracking-wider">
+                            Error
+                          </span>
+                        </div>
+                        <p className="text-sm text-red-600 mt-2 font-medium bg-red-50 p-2 rounded-md border border-red-100 italic">
+                          " {failure.error} "
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {bulkUploadResults.successful && bulkUploadResults.successful.length > 0 && (
+                <div className="pt-4 mt-4 border-t">
+                  <p className="text-sm text-gray-500 italic">
+                    All {bulkUploadResults.successful.length} successfully imported students have been assigned the default password: <span className="font-bold">student123</span>
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t bg-gray-50 flex justify-end">
+              <button
+                onClick={() => setShowBulkUploadModal(false)}
+                className="bg-primary text-white px-8 py-2 rounded-lg font-bold shadow-lg hover:brightness-90 transition-all active:scale-95"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Unified Print Styles */}
       <style>{`

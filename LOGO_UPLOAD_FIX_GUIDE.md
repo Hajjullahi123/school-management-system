@@ -36,7 +36,7 @@ node index.js
 **Option A - Nuclear Option (Recommended):**
 1. Close ALL browser windows
 2. Reopen browser
-3. Press `Ctrl + Shift + Delete`
+3. Press `Ctrl + Shift + Delete`  
 4. Select "All time"
 5. Check:
    - ✅ Cached images and files

@@ -133,10 +133,10 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
     for (const studentData of studentsRaw) {
       try {
         // Validate required fields
-        if (!studentData.firstName || !studentData.lastName || !studentData.classId || !studentData.parentGuardianPhone) {
+        if (!studentData.firstName || !studentData.lastName || !studentData.classId) {
           results.failed.push({
             data: studentData,
-            error: 'Missing required fields (firstName, lastName, classId, or parentPhone)'
+            error: `Missing required fields: ${!studentData.firstName ? 'firstName ' : ''}${!studentData.lastName ? 'lastName ' : ''}${!studentData.classId ? 'classId' : ''}`.trim()
           });
           continue;
         }
@@ -280,6 +280,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
         });
 
       } catch (err) {
+        console.error(`Error importing student ${studentData.firstName} ${studentData.lastName}:`, err);
         results.failed.push({ data: studentData, error: err.message });
       }
     }
