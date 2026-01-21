@@ -237,7 +237,9 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
             admissionNumber,
             classId: classIdInt,
             middleName: studentData.middleName,
-            dateOfBirth: studentData.dateOfBirth ? new Date(studentData.dateOfBirth) : null,
+            dateOfBirth: (studentData.dateOfBirth && !isNaN(new Date(studentData.dateOfBirth).getTime()))
+              ? new Date(studentData.dateOfBirth)
+              : null,
             gender: studentData.gender,
             address: studentData.address,
             parentGuardianName: studentData.parentGuardianName,
@@ -433,7 +435,9 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher']), async
             userId: user.id,
             admissionNumber,
             classId: parseInt(studentData.classId),
-            dateOfBirth: studentData.dateOfBirth ? new Date(studentData.dateOfBirth) : null,
+            dateOfBirth: (studentData.dateOfBirth && !isNaN(new Date(studentData.dateOfBirth).getTime()))
+              ? new Date(studentData.dateOfBirth)
+              : null,
             gender: studentData.gender || null,
             stateOfOrigin: studentData.stateOfOrigin || null,
             nationality: studentData.nationality || 'Nigerian',
