@@ -113,11 +113,18 @@ const LearningResources = () => {
         setFormData({ subjectId: '', title: '', description: '', type: 'note', file: null, externalUrl: '' });
         fetchResources();
       } else {
-        const err = await response.json();
-        toast.error(err.error || 'Failed to save');
+        const contentType = response.headers.get('content-type');
+        let errMsg = `Error ${response.status}`;
+        if (contentType && contentType.includes('application/json')) {
+          const err = await response.json();
+          errMsg = err.error || err.message || errMsg;
+        } else {
+          errMsg = await response.text();
+        }
+        toast.error(errMsg.slice(0, 100));
       }
     } catch (e) {
-      toast.error('Network error during upload');
+      toast.error(`Sync error: ${e.message}`);
     } finally {
       setSaving(false);
     }

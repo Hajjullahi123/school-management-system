@@ -119,11 +119,18 @@ const Homework = () => {
         setFormData({ subjectId: '', title: '', description: '', dueDate: '', file: null });
         fetchHomework();
       } else {
-        const err = await response.json();
-        toast.error(err.error || 'Failed to save');
+        const contentType = response.headers.get('content-type');
+        let errMsg = `Error ${response.status}`;
+        if (contentType && contentType.includes('application/json')) {
+          const err = await response.json();
+          errMsg = err.error || err.message || errMsg;
+        } else {
+          errMsg = await response.text();
+        }
+        toast.error(errMsg.slice(0, 100));
       }
     } catch (e) {
-      toast.error('Network error');
+      toast.error(`Sync error: ${e.message}`);
     } finally {
       setSaving(false);
     }
@@ -407,7 +414,7 @@ const Homework = () => {
                 <textarea
                   value={formData.description}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full border-gray-200 rounded-3xli px-6 py-5 font-bold text-gray-700 h-32 bg-gray-50/50"
+                  className="w-full border-gray-200 rounded-[30px] px-6 py-5 font-bold text-gray-700 h-32 bg-gray-50/50"
                   placeholder="Enter detailed instructions or questions here..."
                   required
                 />

@@ -166,7 +166,13 @@ if (process.env.NODE_ENV === 'production') {
 } else {
   // 404 handler for development/API only
   app.use((req, res) => {
-    res.status(404).json({ error: `Route ${req.method} ${req.url} not found` });
+    const errorMsg = `Route ${req.method} ${req.url} not found (from ${req.ip})`;
+    console.error(`[404] ${errorMsg}`);
+    try {
+      const fs = require('fs');
+      fs.appendFileSync('server-debug.log', `[${new Date().toISOString()}] 404 ERROR: ${errorMsg}\n`);
+    } catch (e) { }
+    res.status(404).json({ error: errorMsg });
   });
 }
 
