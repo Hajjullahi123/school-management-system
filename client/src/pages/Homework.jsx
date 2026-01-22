@@ -280,7 +280,12 @@ const Homework = () => {
                     {hw.fileUrl && (
                       <div>
                         <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-1">Reference</p>
-                        <a href={`${API_BASE_URL}${hw.fileUrl}`} target="_blank" rel="noreferrer" className="text-primary font-bold hover:underline truncate block">
+                        <a
+                          href={hw.fileUrl.startsWith('http') ? hw.fileUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${hw.fileUrl.startsWith('/') ? hw.fileUrl : '/' + hw.fileUrl}`}
+                          target="_blank" rel="noreferrer"
+                          download={hw.fileName || hw.title}
+                          className="text-primary font-bold hover:underline truncate block"
+                        >
                           {hw.fileName || 'View Manual'}
                         </a>
                       </div>

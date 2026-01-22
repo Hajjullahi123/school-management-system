@@ -242,8 +242,9 @@ const LearningResources = () => {
                 </div>
                 {res.fileUrl && (
                   <a
-                    href={res.fileUrl.startsWith('http') ? res.fileUrl : `${API_BASE_URL}${res.fileUrl}`}
+                    href={res.fileUrl.startsWith('http') ? res.fileUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${res.fileUrl.startsWith('/') ? res.fileUrl : '/' + res.fileUrl}`}
                     target="_blank" rel="noopener noreferrer"
+                    download={res.fileName || res.title}
                     className="p-3 bg-gray-50 text-primary rounded-2xl hover:bg-primary hover:text-white transition-all shadow-sm"
                     title={res.fileName || 'Download resource'}
                   >

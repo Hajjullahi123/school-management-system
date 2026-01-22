@@ -9,7 +9,7 @@ const isProduction = import.meta.env.PROD === true || process.env.NODE_ENV === '
 // or they are on the same domain.
 export const API_BASE_URL = isProduction
   ? window.location.origin
-  : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^(\d{1,3}\.){3}\d{1,3}$/.test(window.location.hostname)
     ? `http://${window.location.hostname}:5000`
     : window.location.origin);
 

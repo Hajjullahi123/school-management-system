@@ -157,6 +157,10 @@ if (process.env.NODE_ENV === 'production') {
 
   // Handle client-side routing - return index.html for any remaining requests
   app.get('*', (req, res) => {
+    // If it's a request for an upload or API that wasn't caught, return 404 instead of SPA
+    if (req.url.startsWith('/uploads/') || req.url.startsWith('/api/')) {
+      return res.status(404).send('File or route not found');
+    }
     res.sendFile(path.join(clientDistPath, 'index.html'));
   });
 } else {
