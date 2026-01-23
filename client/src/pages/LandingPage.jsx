@@ -183,7 +183,11 @@ const LandingPage = () => {
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-3 shadow-lg transform transition-transform hover:rotate-12 ${isScrolled ? 'bg-primary' : 'bg-white/20 backdrop-blur-md'
                   }`}>
                   {schoolSettings?.logoUrl ? (
-                    <img src={schoolSettings.logoUrl} alt="Logo" className="w-full h-full object-contain p-2" />
+                    <img
+                      src={schoolSettings.logoUrl.startsWith('data:') || schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${schoolSettings.logoUrl.startsWith('/') ? schoolSettings.logoUrl : '/' + schoolSettings.logoUrl}`}
+                      alt="Logo"
+                      className="w-full h-full object-contain p-2"
+                    />
                   ) : (
                     <span className={`text-2xl font-bold ${isScrolled ? 'text-white' : 'text-white'}`}>
                       {schoolSettings?.schoolName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'S'}
@@ -781,7 +785,7 @@ const LandingPage = () => {
                 </li>
                 <li>
                   <a
-                    href={schoolSettings?.brochureFileUrl || '#'}
+                    href={schoolSettings?.brochureFileUrl ? (schoolSettings.brochureFileUrl.startsWith('http') ? schoolSettings.brochureFileUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${schoolSettings.brochureFileUrl.startsWith('/') ? schoolSettings.brochureFileUrl : '/' + schoolSettings.brochureFileUrl}`) : '#'}
                     target={schoolSettings?.brochureFileUrl ? "_blank" : "_self"}
                     rel="noopener noreferrer"
                     onClick={(e) => !schoolSettings?.brochureFileUrl && e.preventDefault()}
@@ -794,7 +798,7 @@ const LandingPage = () => {
                 </li>
                 <li>
                   <a
-                    href={schoolSettings?.admissionGuideFileUrl || '#'}
+                    href={schoolSettings?.admissionGuideFileUrl ? (schoolSettings.admissionGuideFileUrl.startsWith('http') ? schoolSettings.admissionGuideFileUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${schoolSettings.admissionGuideFileUrl.startsWith('/') ? schoolSettings.admissionGuideFileUrl : '/' + schoolSettings.admissionGuideFileUrl}`) : '#'}
                     target={schoolSettings?.admissionGuideFileUrl ? "_blank" : "_self"}
                     rel="noopener noreferrer"
                     onClick={(e) => !schoolSettings?.admissionGuideFileUrl && e.preventDefault()}

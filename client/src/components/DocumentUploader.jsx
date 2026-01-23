@@ -80,7 +80,7 @@ const DocumentUploader = ({ label, currentUrl, onUploadSuccess, uploadEndpoint, 
             </button>
           </div>
           <a
-            href={`${API_BASE_URL}${currentUrl}`}
+            href={currentUrl.startsWith('http') ? currentUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${currentUrl.startsWith('/') ? currentUrl : '/' + currentUrl}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors"

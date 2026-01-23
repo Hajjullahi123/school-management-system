@@ -49,6 +49,8 @@ const Settings = () => {
   });
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
+  const [brochureFile, setBrochureFile] = useState(null);
+  const [admissionGuideFile, setAdmissionGuideFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [licenseKey, setLicenseKey] = useState('');
@@ -65,7 +67,7 @@ const Settings = () => {
       const data = await response.json();
       setSettings(data);
       if (data.logoUrl) {
-        setLogoPreview(`${API_BASE_URL}${data.logoUrl}`);
+        setLogoPreview(data.logoUrl.startsWith('data:') || data.logoUrl.startsWith('http') ? data.logoUrl : `${API_BASE_URL}${data.logoUrl}`);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -110,11 +112,11 @@ const Settings = () => {
     setSaving(true);
 
     try {
+      let updatedSettings = { ...settings };
+
       // 1. Upload logo if changed (NEW: Use base64!)
       if (logoFile) {
-        console.log('Converting logo to base64...');
-
-        // Convert file to base64
+        // ... (existing base64 logo logic)
         const reader = new FileReader();
         const base64Data = await new Promise((resolve, reject) => {
           reader.onload = () => resolve(reader.result);
@@ -122,26 +124,50 @@ const Settings = () => {
           reader.readAsDataURL(logoFile);
         });
 
-        console.log('Uploading logo as base64...');
-
-        // Send as JSON (no multipart issues!)
-        const response = await api.post('/api/settings/logo-base64', {
+        const logoResponse = await api.post('/api/settings/logo-base64', {
           imageData: base64Data,
           fileName: logoFile.name
         });
 
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to upload logo');
+        const logoData = await logoResponse.json();
+        if (logoResponse.ok) {
+          updatedSettings.logoUrl = logoData.logoUrl;
         }
-
-        console.log('Logo uploaded successfully!', data);
-        toast.success('Logo uploaded successfully');
       }
 
-      // 2. Update settings
+      // 2. Upload Brochure if changed
+      if (brochureFile) {
+        const formData = new FormData();
+        formData.append('brochure', brochureFile);
+        const response = await fetch(`${API_BASE_URL}/api/upload/brochure`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          body: formData
+        });
+        const data = await response.json();
+        if (response.ok) {
+          updatedSettings.brochureFileUrl = data.fileUrl;
+        }
+      }
+
+      // 3. Upload Admission Guide if changed
+      if (admissionGuideFile) {
+        const formData = new FormData();
+        formData.append('admissionGuide', admissionGuideFile);
+        const response = await fetch(`${API_BASE_URL}/api/upload/admission-guide`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          body: formData
+        });
+        const data = await response.json();
+        if (response.ok) {
+          updatedSettings.admissionGuideFileUrl = data.fileUrl;
+        }
+      }
+
+      // 4. Update settings
       console.log('Saving settings...');
-      const response = await api.put('/api/settings', settings);
+      const response = await api.put('/api/settings', updatedSettings);
       const data = await response.json();
 
       if (!response.ok) {
@@ -598,25 +624,40 @@ const Settings = () => {
 
                   <div className="space-y-4">
                     {/* Brochure - URL Input */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        School Brochure (PDF Link)
-                      </label>
-                      <input
-                        type="url"
-                        name="brochureFileUrl"
-                        value={settings.brochureFileUrl || ''}
-                        onChange={handleInputChange}
-                        placeholder="https://example.com/brochure.pdf or Google Drive link"
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Paste a link to your PDF (Google Drive, Dropbox, or direct URL)
-                      </p>
+                    <div className="flex gap-4 items-center">
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          School Brochure (PDF Link)
+                        </label>
+                        <input
+                          type="url"
+                          name="brochureFileUrl"
+                          value={settings.brochureFileUrl || ''}
+                          onChange={handleInputChange}
+                          placeholder="https://example.com/brochure.pdf or Google Drive link"
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Upload Official Brochure (PDF)
+                        </label>
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          onChange={(e) => setBrochureFile(e.target.files[0])}
+                          className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                        />
+                      </div>
                     </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Use either an external link OR upload a PDF directly to our server.
+                    </p>
+                  </div>
 
-                    {/* Admission Guide - URL Input */}
-                    <div>
+                  {/* Admission Guide - URL Input */}
+                  <div className="flex gap-4 items-center">
+                    <div className="flex-1">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Admission Guide (PDF Link)
                       </label>
@@ -628,26 +669,37 @@ const Settings = () => {
                         placeholder="https://example.com/admission-guide.pdf or Google Drive link"
                         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                       />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Paste a link to your PDF (Google Drive, Dropbox, or direct URL)
-                      </p>
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Upload Official Guide (PDF)
+                      </label>
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(e) => setAdmissionGuideFile(e.target.files[0])}
+                        className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      />
                     </div>
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use either an external link OR upload a PDF directly to our server.
+                  </p>
+                </div>
+              </div>
 
 
-                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mt-4">
-                    <div className="flex">
-                      <div className="flex-shrink-0">
-                        <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                      <div className="ml-3">
-                        <p className="text-sm text-blue-700">
-                          <strong>Note:</strong> You can link to external URLs or uploaded PDFs. For now, paste any publicly accessible URLs. File upload feature coming soon!
-                        </p>
-                      </div>
-                    </div>
+              <div className="bg-emerald-50 border-l-4 border-emerald-400 p-4 mt-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-emerald-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-emerald-700">
+                      <strong>Enhanced Support:</strong> We now support both direct PDF uploads and external links. Use direct upload if you are on a persistent server, or external links for flexibility.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1314,7 +1366,7 @@ const Settings = () => {
           )}
         </div>
       </div>
-    </div >
+    </div>
   );
 };
 

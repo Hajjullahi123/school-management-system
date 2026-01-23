@@ -30,7 +30,8 @@ const Homework = () => {
     title: '',
     description: '',
     dueDate: '',
-    file: null
+    file: null,
+    externalUrl: ''
   });
 
   const [submissionData, setSubmissionData] = useState({
@@ -104,6 +105,7 @@ const Homework = () => {
     data.append('title', formData.title);
     data.append('description', formData.description);
     data.append('dueDate', formData.dueDate);
+    if (formData.externalUrl) data.append('externalUrl', formData.externalUrl);
     if (formData.file) data.append('file', formData.file);
 
     try {
@@ -116,7 +118,7 @@ const Homework = () => {
       if (response.ok) {
         toast.success('Assignment posted!');
         setShowModal(false);
-        setFormData({ subjectId: '', title: '', description: '', dueDate: '', file: null });
+        setFormData({ subjectId: '', title: '', description: '', dueDate: '', file: null, externalUrl: '' });
         fetchHomework();
       } else {
         const contentType = response.headers.get('content-type');
@@ -420,13 +422,26 @@ const Homework = () => {
                 />
               </div>
 
-              <div className="p-6 bg-primary/5 rounded-[30px] border-2 border-dashed border-primary/20">
-                <label className="block text-[10px] font-black text-primary uppercase tracking-widest mb-4">Attach Resources (Optional)</label>
-                <input
-                  type="file"
-                  onChange={e => setFormData({ ...formData, file: e.target.files[0] })}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-primary file:text-white file:uppercase file:tracking-widest cursor-pointer"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-primary/5 rounded-[30px] border-2 border-dashed border-primary/20">
+                <div className="col-span-1">
+                  <label className="block text-[10px] font-black text-primary uppercase tracking-widest mb-4">Attach Reference File</label>
+                  <input
+                    type="file"
+                    onChange={e => setFormData({ ...formData, file: e.target.files[0] })}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-primary file:text-white file:uppercase file:tracking-widest cursor-pointer"
+                  />
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-[10px] font-black text-primary uppercase tracking-widest mb-4">OR Paste External Link (Drive/Web)</label>
+                  <input
+                    type="url"
+                    value={formData.externalUrl}
+                    onChange={e => setFormData({ ...formData, externalUrl: e.target.value })}
+                    placeholder="https://drive.google.com/..."
+                    className="w-full border-gray-200 rounded-2xl px-5 py-2.5 font-bold text-gray-700 bg-white shadow-sm focus:ring-2 focus:ring-primary outline-none"
+                  />
+                </div>
+                <p className="col-span-full text-[9px] font-bold text-gray-400 italic text-center">Tip: Use external links if you are on a temporary hosting server like Render Free.</p>
               </div>
 
               <div className="flex gap-4 pt-6">

@@ -406,7 +406,11 @@ const TermReportCard = () => {
                   <div className="flex justify-between items-start gap-4">
                     <div className="w-24 h-24 flex-shrink-0">
                       {schoolSettings?.logoUrl && (
-                        <img src={schoolSettings.logoUrl} alt="Logo" className="w-full h-full object-contain object-left" />
+                        <img
+                          src={schoolSettings.logoUrl.startsWith('data:') || schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${schoolSettings.logoUrl.startsWith('/') ? schoolSettings.logoUrl : '/' + schoolSettings.logoUrl}`}
+                          alt="Logo"
+                          className="w-full h-full object-contain object-left"
+                        />
                       )}
                     </div>
 

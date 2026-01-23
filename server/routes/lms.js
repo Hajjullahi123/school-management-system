@@ -68,9 +68,15 @@ router.get('/homework/class/:classId', authenticate, async (req, res) => {
 // Create Homework (Teacher)
 router.post('/homework', authenticate, authorize(['teacher', 'admin']), upload.single('file'), async (req, res) => {
   try {
-    const { classId, subjectId, title, description, dueDate } = req.body;
-    const fileUrl = req.file ? `/uploads/lms/${req.file.filename}` : null;
-    const fileName = req.file ? req.file.originalname : null;
+    const { classId, subjectId, title, description, dueDate, externalUrl } = req.body;
+
+    let fileUrl = externalUrl || null;
+    let fileName = null;
+
+    if (req.file) {
+      fileUrl = `/uploads/lms/${req.file.filename}`;
+      fileName = req.file.originalname;
+    }
 
     // TEACHER CHECK: Ensure teacher is assigned to this class and subject
     if (req.user.role === 'teacher') {

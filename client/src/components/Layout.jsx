@@ -536,9 +536,9 @@ const Layout = () => {
 
   const { settings: schoolSettings } = useSchoolSettings();
   const logoUrl = schoolSettings?.logoUrl
-    ? (schoolSettings.logoUrl.startsWith('http') || schoolSettings.logoUrl.startsWith('https')
+    ? (schoolSettings.logoUrl.startsWith('http') || schoolSettings.logoUrl.startsWith('https') || schoolSettings.logoUrl.startsWith('data:')
       ? schoolSettings.logoUrl
-      : `${API_BASE_URL}${schoolSettings.logoUrl}`)
+      : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${schoolSettings.logoUrl.startsWith('/') ? schoolSettings.logoUrl : '/' + schoolSettings.logoUrl}`)
     : undefined;
   const schoolName = schoolSettings?.schoolName || user?.school?.name || "School Management";
   const schoolMotto = schoolSettings?.schoolMotto || user?.school?.motto || "Management System";
