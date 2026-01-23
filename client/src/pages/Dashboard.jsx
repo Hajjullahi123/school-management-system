@@ -21,6 +21,8 @@ const Dashboard = () => {
     }
   }, [user, navigate, schoolSettings]);
   const [recentResults, setRecentResults] = useState([]);
+  const [previousPerformance, setPreviousPerformance] = useState(null);
+  const [previousTermName, setPreviousTermName] = useState('');
   const [stats, setStats] = useState({
     currentTermAverage: 0,
     totalSubjects: 0,
@@ -187,6 +189,29 @@ const Dashboard = () => {
         const terms = await termsRes.json();
         currentTermData = terms.find(t => t.isCurrent);
         setCurrentTerm(currentTermData);
+
+        // Find previous term
+        if (currentTermData) {
+          const allTermsResponse = await api.get('/api/terms');
+          if (allTermsResponse.ok) {
+            const allTerms = await allTermsResponse.json();
+            const sortedTerms = allTerms.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            const currentIndex = sortedTerms.findIndex(t => t.id === currentTermData.id);
+            if (currentIndex > 0) {
+              const prevTerm = sortedTerms[currentIndex - 1];
+              try {
+                const reportCardRes = await api.get(`/api/report-card/${user.student.id}/${prevTerm.id}`);
+                if (reportCardRes.ok) {
+                  const reportData = await reportCardRes.json();
+                  setPreviousPerformance(reportData.summary);
+                  setPreviousTermName(prevTerm.name);
+                }
+              } catch (err) {
+                console.error('Error fetching previous performance:', err);
+              }
+            }
+          }
+        }
       }
 
       // Fetch student details
@@ -873,55 +898,49 @@ const Dashboard = () => {
       </div>
 
 
-      {/* Recent Results */}
+      {/* Recent Performance Summary */}
       <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Recent Performance</h2>
-        {recentResults.length > 0 ? (
-          <div className="overflow-x-auto -mx-4 sm:mx-0">
-            <div className="inline-block min-w-full px-4 sm:px-0">
-              <table className="min-w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Score</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Position</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {recentResults.map((result, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                        {result.subject?.name || 'Unknown'}
-                      </td>
-                      <td className="px-6 py-4 text-center text-sm font-bold text-primary">
-                        {result.totalScore?.toFixed(1)}%
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`inline - block px - 3 py - 1 rounded - full text - sm font - semibold ${getGradeColor(result.grade)} `}>
-                          {result.grade}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center text-sm text-gray-600">
-                        {result.positionInClass ? `#${result.positionInClass} ` : '--'}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        {result.totalScore >= 40 ? (
-                          <span className="text-green-600 font-semibold">✓ Pass</span>
-                        ) : (
-                          <span className="text-red-600 font-semibold">✗ Fail</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Recent Performance</h2>
+          {previousTermName && (
+            <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full uppercase tracking-wider">
+              {previousTermName} Summary
+            </span>
+          )}
+        </div>
+
+        {previousPerformance ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Marks</span>
+              <span className="text-xl font-black text-slate-900">{previousPerformance.totalScore}</span>
+            </div>
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Average</span>
+              <span className="text-xl font-black text-primary">{previousPerformance.average}%</span>
+            </div>
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Position</span>
+              <span className="text-xl font-black text-slate-900">
+                {previousPerformance.position !== '-' ? `#${previousPerformance.position}` : 'N/A'}
+              </span>
+            </div>
+            <div className={`p-4 rounded-2xl border flex flex-col items-center ${previousPerformance.status === 'PASS' ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'
+              }`}>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</span>
+              <span className={`text-xl font-black ${previousPerformance.status === 'PASS' ? 'text-emerald-600' : 'text-red-600'
+                }`}>
+                {previousPerformance.status}
+              </span>
             </div>
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <p>No results available yet.</p>
+          <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+            <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m2 0a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2m2 4h10a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2z" />
+            </svg>
+            <p className="text-gray-500 font-medium">No previous term results available for summary.</p>
+            <p className="text-xs text-gray-400 mt-1">Summary updates once your first term results are finalized.</p>
           </div>
         )}
       </div>

@@ -2,7 +2,7 @@
 // Automatically detects the IP address used to access the site
 // This prevents connection errors when IP addresses change
 
-const isProduction = import.meta.env.PROD === true || process.env.NODE_ENV === 'production';
+const isProduction = import.meta.env.PROD;
 
 // If in production (built) or using a domain name/HTTPS, use origin
 // This allows the app to work on Render, Vercel, or any hosting where frontend is served by backend
