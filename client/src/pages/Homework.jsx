@@ -293,8 +293,11 @@ const Homework = () => {
                           href={hw.fileUrl.startsWith('http') ? hw.fileUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${hw.fileUrl.startsWith('/') ? hw.fileUrl : '/' + hw.fileUrl}`}
                           target="_blank" rel="noreferrer"
                           download={hw.fileName || hw.title}
-                          className="text-primary font-bold hover:underline truncate block"
+                          className="text-primary font-bold hover:underline truncate flex items-center gap-1"
                         >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
                           {hw.fileName || 'View Manual'}
                         </a>
                       </div>
@@ -551,7 +554,9 @@ const Homework = () => {
                         target="_blank" rel="noreferrer"
                         className="flex items-center gap-2 text-primary font-black text-xs uppercase hover:underline"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
                         View File
                       </a>
 
