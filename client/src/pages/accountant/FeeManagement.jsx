@@ -869,14 +869,14 @@ export default function FeeManagement() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* All Classes Card */}
           <button
             onClick={() => setSelectedClassView(null)}
-            className={`p - 5 rounded - xl border - 2 transition - all transform hover: scale - 105 hover: shadow - lg text - left ${selectedClassView === null
+            className={`p-5 rounded-xl border-2 transition-all transform hover:scale-105 hover:shadow-lg text-left ${selectedClassView === null
               ? 'border-primary bg-primary/5 shadow-md'
               : 'border-gray-200 bg-white hover:border-primary/50'
-              } `}
+              }`}
           >
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-bold text-gray-900">All Classes</h3>
@@ -887,17 +887,34 @@ export default function FeeManagement() {
               )}
             </div>
             <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Students:</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Students:</span>
                 <span className="font-semibold text-gray-900">{students.length}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Expected:</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Expected:</span>
                 <span className="font-semibold text-blue-600">₦{summary?.totalExpected.toLocaleString() || 0}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Collected:</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Collected:</span>
                 <span className="font-semibold text-green-600">₦{summary?.totalPaid.toLocaleString() || 0}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Balance:</span>
+                <span className="font-semibold text-red-600">₦{summary?.totalBalance.toLocaleString() || 0}</span>
+              </div>
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="w-full bg-gray-100 rounded-full h-1.5">
+                  <div
+                    className="bg-gradient-to-r from-green-500 to-primary h-1.5 rounded-full transition-all"
+                    style={{
+                      width: `${summary?.totalExpected > 0 ? (summary.totalPaid / summary.totalExpected) * 100 : 0}%`
+                    }}
+                  ></div>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1.5 text-center font-medium">
+                  {summary?.totalExpected > 0 ? ((summary.totalPaid / summary.totalExpected) * 100).toFixed(1) : 0}% overall collection
+                </p>
               </div>
             </div>
           </button>
@@ -907,10 +924,10 @@ export default function FeeManagement() {
             <button
               key={classSummary.classId}
               onClick={() => setSelectedClassView(classSummary.classId)}
-              className={`p - 5 rounded - xl border - 2 transition - all transform hover: scale - 105 hover: shadow - lg text - left ${selectedClassView === classSummary.classId
+              className={`p-5 rounded-xl border-2 transition-all transform hover:scale-105 hover:shadow-lg text-left ${selectedClassView === classSummary.classId
                 ? 'border-primary bg-primary/5 shadow-md'
                 : 'border-gray-200 bg-white hover:border-primary/50'
-                } `}
+                }`}
             >
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-bold text-gray-900">{classSummary.className}</h3>
@@ -921,43 +938,43 @@ export default function FeeManagement() {
                 )}
               </div>
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Students:</span>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Students:</span>
                   <span className="font-semibold text-gray-900">{classSummary.totalStudents}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Expected:</span>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Expected:</span>
                   <span className="font-semibold text-blue-600">₦{classSummary.totalExpected.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Collected:</span>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Collected:</span>
                   <span className="font-semibold text-green-600">₦{classSummary.totalPaid.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Balance:</span>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Balance:</span>
                   <span className="font-semibold text-red-600">₦{classSummary.totalBalance.toLocaleString()}</span>
                 </div>
-                <div className="mt-3 pt-3 border-t border-gray-200">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600">Allowed:</span>
-                    <span className="font-medium text-indigo-600">{classSummary.clearedStudents}</span>
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex justify-between text-[10px] font-medium">
+                    <span className="text-gray-400 uppercase tracking-tighter">Allowed:</span>
+                    <span className="text-indigo-600">{classSummary.clearedStudents}</span>
                   </div>
-                  <div className="flex justify-between text-xs mt-1">
-                    <span className="text-gray-600">Restricted:</span>
-                    <span className="font-medium text-amber-600">{classSummary.unclearedStudents}</span>
+                  <div className="flex justify-between text-[10px] font-medium mt-1">
+                    <span className="text-gray-400 uppercase tracking-tighter">Restricted:</span>
+                    <span className="text-amber-600">{classSummary.unclearedStudents}</span>
                   </div>
                 </div>
                 {/* Progress Bar */}
                 <div className="mt-3">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-gray-100 rounded-full h-1.5">
                     <div
-                      className="bg-gradient-to-r from-green-500 to-primary h-2 rounded-full transition-all"
+                      className="bg-gradient-to-r from-green-500 to-primary h-1.5 rounded-full transition-all"
                       style={{
-                        width: `${classSummary.totalExpected > 0 ? (classSummary.totalPaid / classSummary.totalExpected) * 100 : 0}% `
+                        width: `${classSummary.totalExpected > 0 ? (classSummary.totalPaid / classSummary.totalExpected) * 100 : 0}%`
                       }}
                     ></div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1 text-center">
+                  <p className="text-[10px] text-gray-400 mt-1.5 text-center font-medium">
                     {classSummary.totalExpected > 0 ? ((classSummary.totalPaid / classSummary.totalExpected) * 100).toFixed(1) : 0}% collected
                   </p>
                 </div>
@@ -1023,13 +1040,13 @@ export default function FeeManagement() {
             <div className="flex gap-2">
               <button
                 onClick={() => setViewMode('table')}
-                className={`flex - 1 px - 3 py - 2 rounded - md ${viewMode === 'table' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'} `}
+                className={`flex-1 px-3 py-2 rounded-md ${viewMode === 'table' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'}`}
               >
                 Table
               </button>
               <button
                 onClick={() => setViewMode('cards')}
-                className={`flex - 1 px - 3 py - 2 rounded - md ${viewMode === 'cards' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'} `}
+                className={`flex-1 px-3 py-2 rounded-md ${viewMode === 'cards' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'}`}
               >
                 Cards
               </button>
@@ -1205,14 +1222,14 @@ export default function FeeManagement() {
                           </button>
                           <button
                             onClick={() => toggleClearance(student.id, !feeRecord?.isClearedForExam)}
-                            className={`${feeRecord?.isClearedForExam ? 'text-amber-600 hover:text-amber-900' : 'text-indigo-600 hover:text-indigo-900'} font - medium`}
+                            className={`${feeRecord?.isClearedForExam ? 'text-amber-600 hover:text-amber-900' : 'text-indigo-600 hover:text-indigo-900'} font-medium`}
                             title={feeRecord?.isClearedForExam ? 'Restrict Exam Card' : 'Allow Exam Card'}
                           >
                             {feeRecord?.isClearedForExam ? '🚫 Restrict (Fee)' : '✅ Allow (Fee)'}
                           </button>
                           <button
                             onClick={() => handleRestrictClick(student)}
-                            className={`${student.isExamRestricted ? 'text-red-600 hover:text-red-800 font-bold' : 'text-gray-500 hover:text-gray-700'} font - medium flex items - center gap - 1`}
+                            className={`${student.isExamRestricted ? 'text-red-600 hover:text-red-800 font-bold' : 'text-gray-500 hover:text-gray-700'} font-medium flex items-center gap-1`}
                             title="Manage Global Card Restriction"
                           >
                             {student.isExamRestricted ? (
@@ -1605,7 +1622,7 @@ export default function FeeManagement() {
                   <span className="text-gray-600 font-bold">Total Due:</span>
                   <span className="font-bold text-gray-900 underline">₦{((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0)).toLocaleString()}</span>
                 </div>
-                <div className={`flex justify - between border - t pt - 1 mt - 1 ${((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0) - (parseFloat(adjustedPaid) || 0)) < 0 ? 'text-red-600' : 'text-orange-800'} `}>
+                <div className={`flex justify-between border-t pt-1 mt-1 ${((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0) - (parseFloat(adjustedPaid) || 0)) < 0 ? 'text-red-600' : 'text-orange-800'}`}>
                   <span className="font-bold">Remaining Balance:</span>
                   <span className="font-bold">₦{((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0) - (parseFloat(adjustedPaid) || 0)).toLocaleString()}</span>
                 </div>
