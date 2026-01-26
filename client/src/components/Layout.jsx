@@ -708,6 +708,24 @@ const Layout = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden pb-[safe-area-inset-bottom]">
+        {/* Demo Mode Banner */}
+        {user?.username === 'demo_admin' && (
+          <div className="bg-gradient-to-r from-amber-600 to-amber-500 text-white px-4 py-2 flex items-center justify-between text-xs font-black uppercase tracking-widest shadow-lg z-50">
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                DEMO MODE ACTIVE
+              </span>
+              <span className="hidden md:inline opacity-75 font-medium">| YOU ARE EXPLORING A PRE-CONFIGURED PREMIUM ENVIRONMENT</span>
+            </div>
+            <button
+              onClick={() => navigate('/dashboard/billing')}
+              className="bg-white text-amber-600 px-4 py-1 rounded-full text-[10px] hover:bg-gray-100 transition-colors shadow-sm"
+            >
+              UPGRADE NOW
+            </button>
+          </div>
+        )}
         {/* Header */}
         <header className="bg-white shadow-md border-b-4 border-secondary print:hidden">
           <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4">

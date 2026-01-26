@@ -70,6 +70,12 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
+  const demoLogin = async () => {
+    // In a real app, this would call a special endpoint or use a guest account
+    // For this demonstration, we'll simulate a login for 'demo_admin'
+    return login('demo_admin', 'Pass1234!', 'demo');
+  };
+
   const login = async (username, password, schoolSlug) => {
     try {
       const response = await api.post('/api/auth/login', { username, password, schoolSlug });
@@ -159,7 +165,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, lockDashboard, unlockDashboard, dashboardUnlocked, loading }}>
+    <AuthContext.Provider value={{ user, login, demoLogin, logout, lockDashboard, unlockDashboard, dashboardUnlocked, loading }}>
       {loading ? (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white">
           <div className="w-16 h-16 border-4 border-indigo-500 border-t-white rounded-full animate-spin mb-6"></div>

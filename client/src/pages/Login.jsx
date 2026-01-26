@@ -27,20 +27,25 @@ const Login = () => {
     }
   };
 
-  const { login, user } = useAuth();
+  const { login, demoLogin, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Removed auto-redirect - let handleSubmit handle navigation
-  // This was causing redirect loops
-
-  useEffect(() => {
-    if (schoolSettings?.slug && !schoolSlug) {
-      setSchoolSlug(schoolSettings.slug);
+  const handleDemoLogin = async () => {
+    setLoading(true);
+    try {
+      const result = await demoLogin();
+      if (result.success) {
+        navigate('/dashboard', { replace: true });
+      } else {
+        setError('Demo access temporarily unavailable. Please use credentials.');
+      }
+    } catch (err) {
+      setError('Connection refused. Is the server running?');
+    } finally {
+      setLoading(false);
     }
-  }, [schoolSettings, schoolSlug]);
-
-  const from = location.state?.from?.pathname || '/school-home';
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -256,6 +261,21 @@ const Login = () => {
               )}
             </button>
           </form>
+
+          <div className="mt-4 flex items-center justify-between gap-4">
+            <div className="h-[1px] bg-gray-200 flex-1"></div>
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">or explore</span>
+            <div className="h-[1px] bg-gray-200 flex-1"></div>
+          </div>
+
+          <button
+            onClick={handleDemoLogin}
+            disabled={loading}
+            className="w-full mt-4 py-4 bg-white text-gray-900 border-2 border-gray-100 rounded-2xl font-black shadow-sm transform transition-all hover:border-primary hover:text-primary active:scale-[0.98] flex items-center justify-center gap-3 group"
+          >
+            <FiGlobe className="group-hover:animate-spin-slow" />
+            Try Live Demo (No Login Required)
+          </button>
 
           <div className="mt-12 text-center">
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4">Secured Infrastructure</p>
