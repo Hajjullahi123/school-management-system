@@ -3,7 +3,7 @@ services:
     name: school-management-system
     env: node
     plan: free
-    buildCommand: node build-script.js
+    buildCommand: bash render-build.sh
     startCommand: cd server && npx prisma db push && node prisma/seed-production.js && npm start
     envVars:
       - key: NODE_ENV

@@ -7,7 +7,8 @@ echo "Build started..."
 # 1. Install Client Dependencies & Build
 echo "Installing client dependencies..."
 cd client
-npm install
+rm -rf node_modules
+npm install --include=dev
 echo "Building client..."
 npm run build
 cd ..
@@ -15,6 +16,7 @@ cd ..
 # 2. Install Server Dependencies
 echo "Installing server dependencies..."
 cd server
+rm -rf node_modules
 npm install
 
 # 3. Update Prisma Schema for PostgreSQL (Render uses Postgres)

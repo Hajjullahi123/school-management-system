@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   FiCheck, FiGlobe, FiSmartphone, FiShield, FiTrendingUp,
   FiMessageSquare, FiArrowRight, FiActivity, FiZap, FiPlusCircle,
-  FiPlayCircle, FiDownloadCloud
+  FiPlayCircle, FiDownloadCloud, FiBell
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
@@ -130,7 +130,7 @@ const MarketingHome = () => {
               </div>
             </div>
             <div className="absolute -top-10 -right-10 bg-indigo-900 p-6 rounded-3xl shadow-2xl animate-pulse">
-              <Fi स्मार्टफोन className="text-white text-4xl" />
+              <FiSmartphone className="text-white text-4xl" />
             </div>
           </motion.div>
         </div>
@@ -205,7 +205,7 @@ const MarketingHome = () => {
       {/* Mobile App Section */}
       <section id="mobile" className="py-32 bg-indigo-600 text-white overflow-hidden relative">
         <div className="absolute top-0 right-0 p-40 opacity-10 pointer-events-none">
-          <Fi स्मार्टफोन className="text-[400px]" />
+          <FiSmartphone className="text-[400px]" />
         </div>
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 items-center gap-16">
           <div className="space-y-8">
@@ -239,7 +239,7 @@ const MarketingHome = () => {
               <div className="p-6 pt-12 text-black bg-white h-full space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="w-10 h-10 rounded-full bg-indigo-100"></div>
-                  <Fi बेल className="text-gray-400" />
+                  <FiBell className="text-gray-400" />
                 </div>
                 <div className="h-10 bg-gray-100 rounded-xl"></div>
                 <div className="grid grid-cols-2 gap-4">
