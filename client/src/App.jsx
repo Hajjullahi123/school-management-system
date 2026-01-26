@@ -73,6 +73,7 @@ import QuranTracker from './pages/teacher/QuranTracker';
 import QuranProgress from './pages/student/QuranProgress';
 import ParentQuranView from './pages/parent/ParentQuranView';
 import DashboardLogin from './pages/DashboardLogin';
+import Billing from './pages/admin/Billing';
 
 
 function App() {
@@ -352,6 +353,11 @@ function App() {
             <Route path="settings" element={
               <ProtectedRoute roles={['admin']}>
                 <Settings />
+              </ProtectedRoute>
+            } />
+            <Route path="billing" element={
+              <ProtectedRoute roles={['admin']}>
+                <Billing />
               </ProtectedRoute>
             } />
             <Route path="system-settings" element={

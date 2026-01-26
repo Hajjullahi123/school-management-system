@@ -97,51 +97,161 @@ app.get('/api/debug/files', (req, res) => {
   }
 });
 
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/students', require('./routes/students'));
-app.use('/api/subjects', require('./routes/subjects'));
-app.use('/api/exams', require('./routes/exams'));
-app.use('/api/results', require('./routes/results-enhanced')); // Enhanced results with 5 components
-app.use('/api/reports', require('./routes/reports')); // Unified report generation
-app.use('/api/analytics', require('./routes/analytics'));
-app.use('/api/advanced-analytics', require('./routes/advanced-analytics')); // Advanced AI-powered analytics
-app.use('/api/academic-sessions', require('./routes/academic-sessions'));
-app.use('/api/terms', require('./routes/terms'));
-app.use('/api/classes', require('./routes/classes'));
-app.use('/api/class-subjects', require('./routes/class-subjects')); // Class subject management
-app.use('/api/assignments', require('./routes/assignments'));
-app.use('/api/bulk-results', require('./routes/bulk-results'));
-app.use('/api/email', require('./routes/email'));
-app.use('/api/upload', require('./routes/upload')); // File upload for student photos
-app.use('/api/teacher-assignments', require('./routes/teacher-assignments')); // Teacher-Subject-Class assignments
-app.use('/api/bulk-upload', require('./routes/bulk-upload')); // Bulk student upload
-app.use('/api/scoresheet', require('./routes/generate-scoresheet')); // CSV scoresheet generation
-app.use('/api/fees', require('./routes/fee-management')); // Fee management
-app.use('/api/fee-structure', require('./routes/fee-structure')); // Fee structure setup
-app.use('/api/exam-cards', require('./routes/exam-cards')); // Examination cards
-app.use('/api/teachers', require('./routes/teachers')); // Teacher profile management
-app.use('/api/top-students', require('./routes/top-students')); // Top students showcase
-app.use('/api/license', require('./routes/license')); // License management
-app.use('/api/settings', require('./routes/settings')); // School settings & branding
-app.use('/api/payments', require('./routes/payments')); // Online payments
-app.use('/api/attendance', require('./routes/attendance')); // Attendance Management
-app.use('/api/messages', require('./routes/messages')); // Parent-Teacher Messaging
-app.use('/api/timetable', require('./routes/timetable')); // Class Timetable
-app.use('/api/notices', require('./routes/notices')); // Notices & Announcements
-app.use('/api/lms', require('./routes/lms')); // Homework & Resources
-app.use('/api/parents', require('./routes/parents')); // Parent Portal
-app.use('/api/system', require('./routes/system-settings')); // System settings (current term/session)
-app.use('/api/cbt', require('./routes/cbt')); // Computer Based Test (CBT)
-app.use('/api/report-extras', require('./routes/report-extras')); // Remarks & Psychomotor
-app.use('/api/quran-tracker', require('./routes/quran-tracker')); // Qur'an Memorization Tracker
-app.use('/api/gallery', require('./routes/gallery')); // Gallery Management
-app.use('/api/news-events', require('./routes/news-events')); // News & Events
-app.use('/api/promotion', require('./routes/promotion')); // Student Promotions & Graduation
-app.use('/api/alumni', require('./routes/alumni'));
-app.use('/api/audit', require('./routes/audit'));
-app.use('/api/teacher-availability', require('./routes/teacher-availability'));
-app.use('/api/superadmin', require('./routes/superadmin'));
+const { resolveDomain } = require('./middleware/domainResolver');
+const { checkSubscription, requirePackage } = require('./middleware/subscription');
+const { authenticate, authorize } = require('./middleware/auth');
+
+// Import Route Modules
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const studentRoutes = require('./routes/students');
+const subjectRoutes = require('./routes/subjects');
+const examRoutes = require('./routes/exams');
+const resultsRoutes = require('./routes/results-enhanced');
+const reportRoutes = require('./routes/reports');
+const analyticsRoutes = require('./routes/analytics');
+const advancedAnalyticsRoutes = require('./routes/advanced-analytics');
+const academicSessionRoutes = require('./routes/academic-sessions');
+const termRoutes = require('./routes/terms');
+const classRoutes = require('./routes/classes');
+const classSubjectRoutes = require('./routes/class-subjects');
+const assignmentRoutes = require('./routes/assignments');
+const bulkResultRoutes = require('./routes/bulk-results');
+const emailRoutes = require('./routes/email');
+const uploadRoutes = require('./routes/upload');
+const teacherAssignmentRoutes = require('./routes/teacher-assignments');
+const bulkUploadRoutes = require('./routes/bulk-upload');
+const scoresheetRoutes = require('./routes/generate-scoresheet');
+const feeRoutes = require('./routes/fee-management');
+const feeStructureRoutes = require('./routes/fee-structure');
+const examCardRoutes = require('./routes/exam-cards');
+const teacherProfileRoutes = require('./routes/teachers');
+const topStudentsRoutes = require('./routes/top-students');
+const licenseRoutes = require('./routes/license');
+const settingsRoutes = require('./routes/settings');
+const paymentRoutes = require('./routes/payments');
+const attendanceRoutes = require('./routes/attendance');
+const messageRoutes = require('./routes/messages');
+const timetableRoutes = require('./routes/timetable');
+const noticeRoutes = require('./routes/notices');
+const lmsRoutes = require('./routes/lms');
+const parentRoutes = require('./routes/parents');
+const statusRoutes = require('./routes/system-settings');
+const cbtRoutes = require('./routes/cbt');
+const reportExtraRoutes = require('./routes/report-extras');
+const quranTrackerRoutes = require('./routes/quran-tracker');
+const galleryRoutes = require('./routes/gallery');
+const newsEventsRoutes = require('./routes/news-events');
+const promotionRoutes = require('./routes/promotion');
+const alumniRoutes = require('./routes/alumni');
+const auditRoutes = require('./routes/audit');
+const teacherAvailabilityRoutes = require('./routes/teacher-availability');
+const superadminRoutes = require('./routes/superadmin');
+const platformBillingRoutes = require('./routes/platform-billing');
+const backupRoutes = require('./routes/backup');
+
+// Resolve Custom Domains (White-Label)
+app.use(resolveDomain);
+
+// Use Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', authenticate, checkSubscription, userRoutes);
+app.use('/api/students', authenticate, checkSubscription, studentRoutes);
+app.use('/api/subjects', authenticate, checkSubscription, subjectRoutes);
+app.use('/api/exams', authenticate, checkSubscription, requirePackage('standard'), examRoutes);
+app.use('/api/results', authenticate, checkSubscription, resultsRoutes);
+app.use('/api/reports', authenticate, checkSubscription, reportRoutes);
+app.use('/api/analytics', authenticate, checkSubscription, analyticsRoutes);
+app.use('/api/advanced-analytics', authenticate, checkSubscription, requirePackage('premium'), advancedAnalyticsRoutes);
+app.use('/api/academic-sessions', authenticate, checkSubscription, academicSessionRoutes);
+app.use('/api/terms', authenticate, checkSubscription, termRoutes);
+app.use('/api/classes', authenticate, checkSubscription, classRoutes);
+app.use('/api/class-subjects', authenticate, checkSubscription, classSubjectRoutes);
+app.use('/api/assignments', authenticate, checkSubscription, assignmentRoutes);
+app.use('/api/bulk-results', authenticate, checkSubscription, bulkResultRoutes);
+app.use('/api/email', authenticate, checkSubscription, emailRoutes);
+app.use('/api/upload', authenticate, checkSubscription, uploadRoutes);
+app.use('/api/teacher-assignments', authenticate, checkSubscription, teacherAssignmentRoutes);
+app.use('/api/bulk-upload', authenticate, checkSubscription, bulkUploadRoutes);
+app.use('/api/scoresheet', authenticate, checkSubscription, scoresheetRoutes);
+app.use('/api/fees', authenticate, checkSubscription, requirePackage('standard'), feeRoutes);
+app.use('/api/fee-structure', authenticate, checkSubscription, requirePackage('standard'), feeStructureRoutes);
+app.use('/api/exam-cards', authenticate, checkSubscription, examCardRoutes);
+app.use('/api/teachers', authenticate, checkSubscription, teacherProfileRoutes);
+app.use('/api/top-students', authenticate, checkSubscription, topStudentsRoutes);
+app.use('/api/license', authenticate, licenseRoutes); // License activation itself needs to be accessible
+app.use('/api/settings', authenticate, checkSubscription, settingsRoutes);
+app.use('/api/payments', authenticate, checkSubscription, paymentRoutes);
+app.use('/api/attendance', authenticate, checkSubscription, attendanceRoutes);
+app.use('/api/messages', authenticate, checkSubscription, messageRoutes);
+app.use('/api/timetable', authenticate, checkSubscription, timetableRoutes);
+app.use('/api/notices', authenticate, checkSubscription, noticeRoutes);
+app.use('/api/lms', authenticate, checkSubscription, lmsRoutes);
+app.use('/api/parents', authenticate, checkSubscription, parentRoutes);
+app.use('/api/system', authenticate, checkSubscription, statusRoutes);
+app.use('/api/cbt', authenticate, checkSubscription, requirePackage('standard'), cbtRoutes);
+app.use('/api/report-extras', authenticate, checkSubscription, reportExtraRoutes);
+app.use('/api/quran-tracker', authenticate, checkSubscription, requirePackage('premium'), quranTrackerRoutes);
+app.use('/api/gallery', authenticate, checkSubscription, galleryRoutes);
+app.use('/api/news-events', authenticate, checkSubscription, newsEventsRoutes);
+app.use('/api/promotion', authenticate, checkSubscription, promotionRoutes);
+app.use('/api/alumni', authenticate, checkSubscription, requirePackage('standard'), alumniRoutes);
+app.use('/api/audit', authenticate, checkSubscription, auditRoutes);
+app.use('/api/teacher-availability', authenticate, checkSubscription, teacherAvailabilityRoutes);
+app.use('/api/superadmin', authenticate, authorize('superadmin'), superadminRoutes);
+app.use('/api/platform-billing', authenticate, platformBillingRoutes);
+app.use('/api/backup', backupRoutes);
+
+// Resolve Custom Domains (White-Label)
+app.use(resolveDomain);
+
+// Use Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', authenticate, checkSubscription, userRoutes);
+app.use('/api/students', authenticate, checkSubscription, studentRoutes);
+app.use('/api/subjects', authenticate, checkSubscription, subjectRoutes);
+app.use('/api/exams', authenticate, checkSubscription, requirePackage('standard'), examRoutes);
+app.use('/api/results', authenticate, checkSubscription, resultsRoutes);
+app.use('/api/reports', authenticate, checkSubscription, reportRoutes);
+app.use('/api/analytics', authenticate, checkSubscription, analyticsRoutes);
+app.use('/api/advanced-analytics', authenticate, checkSubscription, requirePackage('premium'), advancedAnalyticsRoutes);
+app.use('/api/academic-sessions', authenticate, checkSubscription, academicSessionRoutes);
+app.use('/api/terms', authenticate, checkSubscription, termRoutes);
+app.use('/api/classes', authenticate, checkSubscription, classRoutes);
+app.use('/api/class-subjects', authenticate, checkSubscription, classSubjectRoutes);
+app.use('/api/assignments', authenticate, checkSubscription, assignmentRoutes);
+app.use('/api/bulk-results', authenticate, checkSubscription, bulkResultRoutes);
+app.use('/api/email', authenticate, checkSubscription, emailRoutes);
+app.use('/api/upload', authenticate, checkSubscription, uploadRoutes);
+app.use('/api/teacher-assignments', authenticate, checkSubscription, teacherAssignmentRoutes);
+app.use('/api/bulk-upload', authenticate, checkSubscription, bulkUploadRoutes);
+app.use('/api/scoresheet', authenticate, checkSubscription, scoresheetRoutes);
+app.use('/api/fees', authenticate, checkSubscription, requirePackage('standard'), feeRoutes);
+app.use('/api/fee-structure', authenticate, checkSubscription, requirePackage('standard'), feeStructureRoutes);
+app.use('/api/exam-cards', authenticate, checkSubscription, examCardRoutes);
+app.use('/api/teachers', authenticate, checkSubscription, teacherProfileRoutes);
+app.use('/api/top-students', authenticate, checkSubscription, topStudentsRoutes);
+app.use('/api/license', authenticate, licenseRoutes); // License activation itself needs to be accessible
+app.use('/api/settings', authenticate, checkSubscription, settingsRoutes);
+app.use('/api/payments', authenticate, checkSubscription, paymentRoutes);
+app.use('/api/attendance', authenticate, checkSubscription, attendanceRoutes);
+app.use('/api/messages', authenticate, checkSubscription, messageRoutes);
+app.use('/api/timetable', authenticate, checkSubscription, timetableRoutes);
+app.use('/api/notices', authenticate, checkSubscription, noticeRoutes);
+app.use('/api/lms', authenticate, checkSubscription, lmsRoutes);
+app.use('/api/parents', authenticate, checkSubscription, parentRoutes);
+app.use('/api/system', authenticate, checkSubscription, statusRoutes);
+app.use('/api/cbt', authenticate, checkSubscription, requirePackage('standard'), cbtRoutes);
+app.use('/api/report-extras', authenticate, checkSubscription, reportExtraRoutes);
+app.use('/api/quran-tracker', authenticate, checkSubscription, requirePackage('premium'), quranTrackerRoutes);
+app.use('/api/gallery', authenticate, checkSubscription, galleryRoutes);
+app.use('/api/news-events', authenticate, checkSubscription, newsEventsRoutes);
+app.use('/api/promotion', authenticate, checkSubscription, promotionRoutes);
+app.use('/api/alumni', authenticate, checkSubscription, requirePackage('standard'), alumniRoutes);
+app.use('/api/audit', authenticate, checkSubscription, auditRoutes);
+app.use('/api/teacher-availability', authenticate, checkSubscription, teacherAvailabilityRoutes);
+app.use('/api/superadmin', authenticate, authorize('superadmin'), superadminRoutes);
+app.use('/api/platform-billing', authenticate, platformBillingRoutes);
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
   // Serve static files from the React app
@@ -176,6 +286,11 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const PORT = process.env.PORT || 3000;
+const { performFullBackup } = require('./services/backupService');
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Initialize Automated Offsite Backups
+  performFullBackup().catch(err => console.error('Backup Error:', err));
 });

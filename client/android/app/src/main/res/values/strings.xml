@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EduTechAI School Manager</string>
+    <string name="title_activity_main">EduTechAI School Manager</string>
+    <string name="package_name">com.darulquran.schoolmanager</string>
+    <string name="custom_url_scheme">com.darulquran.schoolmanager</string>
+</resources>

@@ -567,6 +567,51 @@ const Settings = () => {
                 </div>
               </div>
 
+              {/* Data Backup & Export Section */}
+              <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm space-y-6">
+                <div className="flex items-center gap-4 border-b border-gray-50 pb-4">
+                  <div className="p-3 bg-indigo-100 text-indigo-600 rounded-lg">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-7-4h.01M11 16h.01" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">Data Backup & Export</h3>
+                    <p className="text-sm text-gray-500">Securely download your school's data and digital assets</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
+                    <h4 className="font-bold text-gray-800">Database Export</h4>
+                    <p className="text-xs text-gray-500">
+                      Download a complete snapshot of records in JSON format.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => window.open(`${API_BASE_URL}/api/backup/export?token=${localStorage.getItem('token')}`, '_blank')}
+                      className="w-full py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                    >
+                      Download Data Backup
+                    </button>
+                  </div>
+
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
+                    <h4 className="font-bold text-gray-800">Assets Export</h4>
+                    <p className="text-xs text-gray-500">
+                      Download all uploaded files in a compressed ZIP archive.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => window.open(`${API_BASE_URL}/api/backup/export-assets?token=${localStorage.getItem('token')}`, '_blank')}
+                      className="w-full py-2 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+                    >
+                      Download Assets (ZIP)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Footer Links & Documents */}
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Footer Links & Documents</h3>

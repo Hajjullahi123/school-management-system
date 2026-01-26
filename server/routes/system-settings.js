@@ -84,4 +84,22 @@ router.get('/emergency-db-fix', async (req, res) => {
   }
 });
 
+const { authenticate, authorize } = require('../middleware/auth');
+const { performFullBackup } = require('../services/backupService');
+
+/**
+ * @route   POST /api/system/backup
+ * @desc    Triggers a manual database backup to S3
+ * @access  SuperAdmin Only
+ */
+router.post('/backup', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    await performFullBackup();
+    res.json({ message: 'Backup process initiated successfully' });
+  } catch (error) {
+    console.error('Manual backup error:', error);
+    res.status(500).json({ error: 'Manual backup failed' });
+  }
+});
+
 module.exports = router;

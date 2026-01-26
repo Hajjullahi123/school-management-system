@@ -8,19 +8,38 @@ datasource db {
 }
 
 model GlobalSettings {
-  id            Int      @id @default(1)
-  facebookUrl   String?
-  instagramUrl  String?
-  whatsappUrl   String?
-  websiteUrl    String?
-  contactPhone  String?
-  contactEmail  String?
-  updatedAt     DateTime @updatedAt
+  id                    Int      @id @default(1)
+  facebookUrl           String?
+  instagramUrl          String?
+  whatsappUrl           String?
+  websiteUrl            String?
+  contactPhone          String?
+  contactEmail          String?
+  
+  // Platform Platform Compensation Keys (For SaaS Income)
+  platformPaystackKey   String?
+  platformFlutterwaveKey String?
+  platformSecretKey     String? // For internal verification
+  
+  // Automated Backups (SuperAdmin Level)
+  s3AccessKey          String?
+  s3SecretKey          String?
+  s3BucketName         String?
+  s3Region             String?             @default("us-east-1")
+  enableAutoBackup     Boolean             @default(false)
+  backupRetentionDays  Int                 @default(30)
+  
+  basicPrice            Float    @default(50000)
+  standardPrice         Float    @default(120000)
+  premiumPrice          Float    @default(250000)
+  
+  updatedAt             DateTime @updatedAt
 }
 
 model School {
   id                    Int                 @id @default(autoincrement())
   slug                  String              @unique // e.g. "darul-quran"
+  customDomain          String?             @unique // e.g. "portal.darulquran.com"
   name                  String
   address               String?
   phone                 String?
@@ -34,7 +53,7 @@ model School {
   secondaryColor        String              @default("#3b82f6")
   accentColor           String              @default("#60a5fa")
   
-  // Settings & Integrations
+  // Settings & Integrations (School's own keys for fee collection)
   paystackPublicKey     String?
   paystackSecretKey     String?
   flutterwavePublicKey  String?
@@ -61,13 +80,16 @@ model School {
   alumniNetworkUrl      String?
   brochureFileUrl       String?
   admissionGuideFileUrl String?
-
-  // License info
+ 
+  // License & Subscription info
   licenseKey            String?             @unique
   isActivated           Boolean             @default(false)
-  packageType           String?             @default("basic")
+  packageType           String?             @default("basic") // basic, standard, premium
   maxStudents           Int?                @default(500)
   expiresAt             DateTime?
+  subscriptionActive    Boolean             @default(true)
+  lastBillingDate       DateTime?
+  nextBillingDate       DateTime?
 
   // Academic Configuration
   assignment1Weight     Int                 @default(5)

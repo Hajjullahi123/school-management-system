@@ -3,7 +3,7 @@ import {
   FiBriefcase, FiUsers, FiUserCheck, FiShield, FiPlus,
   FiTrash2, FiActivity, FiSearch, FiKey, FiGlobe, FiAlertCircle,
   FiPrinter, FiUnlock, FiFacebook, FiInstagram, FiMessageCircle, FiLink,
-  FiPower, FiEdit2
+  FiPower, FiEdit2, FiArrowUpCircle
 } from 'react-icons/fi';
 import { toast } from '../../utils/toast';
 import { apiCall } from '../../api';
@@ -318,12 +318,28 @@ const SuperAdminDashboard = () => {
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Super Admin Dashboard</h1>
           <p className="mt-1 text-gray-500">Global system oversight and multi-tenant management</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 transform hover:scale-[1.02]"
-        >
-          <FiPlus className="mr-2" /> Add New School
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={async () => {
+              if (!window.confirm('Trigger manual offsite backup to S3?')) return;
+              try {
+                const res = await apiCall('/api/system/backup', { method: 'POST' });
+                toast.success('Backup initiated successfully');
+              } catch (e) {
+                toast.error('Backup failed: Verify S3 configuration');
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 font-semibold rounded-lg shadow-sm hover:bg-amber-100 transition-all"
+          >
+            <FiArrowUpCircle className="mr-2" /> Manual S3 Backup
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 transform hover:scale-[1.02]"
+          >
+            <FiPlus className="mr-2" /> Add New School
+          </button>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -633,17 +649,126 @@ const SuperAdminDashboard = () => {
 
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                        <FiLink className="text-indigo-600" /> Personal Website
+                        <FiGlobe className="text-indigo-600" /> Platform Website
                       </label>
                       <input
                         type="url"
                         value={globalSettings.websiteUrl || ''}
                         onChange={e => setGlobalSettings({ ...globalSettings, websiteUrl: e.target.value })}
-                        placeholder="https://your-portfolio.com"
+                        placeholder="https://your-platform.com"
                         className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 transition-all text-sm"
                       />
                     </div>
                   </div>
+
+                  <div className="pt-6 border-t border-gray-100">
+                    <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <FiShield className="text-indigo-600" /> Platform Revenue Config (Income Keys)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Paystack Secret Key</label>
+                        <input
+                          type="password"
+                          value={globalSettings.platformPaystackKey || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, platformPaystackKey: e.target.value })}
+                          placeholder="sk_live_..."
+                          className="w-full px-4 py-3 rounded-xl bg-gray-900 text-indigo-400 font-mono border-none focus:ring-2 focus:ring-indigo-600 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Flutterwave Secret Key</label>
+                        <input
+                          type="password"
+                          value={globalSettings.platformFlutterwaveKey || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, platformFlutterwaveKey: e.target.value })}
+                          placeholder="FLWSECK_..."
+                          className="w-full px-4 py-3 rounded-xl bg-gray-900 text-indigo-400 font-mono border-none focus:ring-2 focus:ring-indigo-600 text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-gray-100">
+                    <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <FiBriefcase className="text-indigo-600" /> SaaS Subscription Pricing (Annual)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-2 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
+                        <label className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Basic Plan</label>
+                        <input
+                          type="number"
+                          value={globalSettings.basicPrice || 50000}
+                          onChange={e => setGlobalSettings({ ...globalSettings, basicPrice: e.target.value })}
+                          className="w-full px-2 py-1 bg-transparent border-b-2 border-indigo-200 focus:border-indigo-600 outline-none font-black text-xl text-gray-900"
+                        />
+                      </div>
+                      <div className="space-y-2 p-4 bg-purple-50/50 rounded-2xl border border-purple-100">
+                        <label className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Standard Plan</label>
+                        <input
+                          type="number"
+                          value={globalSettings.standardPrice || 120000}
+                          onChange={e => setGlobalSettings({ ...globalSettings, standardPrice: e.target.value })}
+                          className="w-full px-2 py-1 bg-transparent border-b-2 border-purple-200 focus:border-purple-600 outline-none font-black text-xl text-gray-900"
+                        />
+                      </div>
+                      <div className="space-y-2 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                        <label className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Premium Plan</label>
+                        <input
+                          type="number"
+                          value={globalSettings.premiumPrice || 250000}
+                          onChange={e => setGlobalSettings({ ...globalSettings, premiumPrice: e.target.value })}
+                          className="w-full px-2 py-1 bg-transparent border-b-2 border-blue-200 focus:border-blue-600 outline-none font-black text-xl text-gray-900"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="pt-6 border-t border-gray-100">
+                    <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <FiArrowUpCircle className="text-indigo-600" /> Automated Offsite Backups (AWS S3)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">AWS Access Key</label>
+                        <input
+                          type="text"
+                          value={globalSettings.s3AccessKey || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, s3AccessKey: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">AWS Secret Key</label>
+                        <input
+                          type="password"
+                          value={globalSettings.s3SecretKey || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, s3SecretKey: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">S3 Bucket Name</label>
+                        <input
+                          type="text"
+                          value={globalSettings.s3BucketName || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, s3BucketName: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                        />
+                      </div>
+                      <div className="flex items-center gap-4 pt-6">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={globalSettings.enableAutoBackup || false}
+                            onChange={e => setGlobalSettings({ ...globalSettings, enableAutoBackup: e.target.checked })}
+                            className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span className="text-sm font-bold text-gray-700 uppercase tracking-tight">Enable Daily Auto-Backups</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="pt-6 border-t border-gray-100 flex justify-center">
                     <button
                       type="submit"

@@ -579,6 +579,13 @@ const Layout = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
           </svg>
         ), label: 'Student ID Cards'
+      },
+      {
+        path: '/dashboard/billing', icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+          </svg>
+        ), label: 'Billing & Subscription'
       }
     );
   }
@@ -700,7 +707,7 @@ const Layout = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden pb-[safe-area-inset-bottom]">
         {/* Header */}
         <header className="bg-white shadow-md border-b-4 border-secondary print:hidden">
           <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4">

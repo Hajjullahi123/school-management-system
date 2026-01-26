@@ -540,7 +540,13 @@ router.get('/global-settings', async (req, res) => {
  */
 router.post('/global-settings', authenticate, authorize(['superadmin']), async (req, res) => {
   try {
-    const { facebookUrl, instagramUrl, whatsappUrl, websiteUrl, contactPhone, contactEmail } = req.body;
+    const {
+      facebookUrl, instagramUrl, whatsappUrl, websiteUrl,
+      contactPhone, contactEmail,
+      platformPaystackKey, platformFlutterwaveKey, platformSecretKey,
+      basicPrice, standardPrice, premiumPrice,
+      s3AccessKey, s3SecretKey, s3BucketName, s3Region, enableAutoBackup, backupRetentionDays
+    } = req.body;
 
     const settings = await prisma.globalSettings.upsert({
       where: { id: 1 },
@@ -550,7 +556,19 @@ router.post('/global-settings', authenticate, authorize(['superadmin']), async (
         whatsappUrl,
         websiteUrl,
         contactPhone,
-        contactEmail
+        contactEmail,
+        platformPaystackKey,
+        platformFlutterwaveKey,
+        platformSecretKey,
+        basicPrice: parseFloat(basicPrice) || undefined,
+        standardPrice: parseFloat(standardPrice) || undefined,
+        premiumPrice: parseFloat(premiumPrice) || undefined,
+        s3AccessKey,
+        s3SecretKey,
+        s3BucketName,
+        s3Region,
+        enableAutoBackup: enableAutoBackup === true || enableAutoBackup === 'true',
+        backupRetentionDays: parseInt(backupRetentionDays) || undefined
       },
       create: {
         id: 1,
@@ -559,7 +577,19 @@ router.post('/global-settings', authenticate, authorize(['superadmin']), async (
         whatsappUrl,
         websiteUrl,
         contactPhone,
-        contactEmail
+        contactEmail,
+        platformPaystackKey,
+        platformFlutterwaveKey,
+        platformSecretKey,
+        basicPrice: parseFloat(basicPrice) || 50000,
+        standardPrice: parseFloat(standardPrice) || 120000,
+        premiumPrice: parseFloat(premiumPrice) || 250000,
+        s3AccessKey,
+        s3SecretKey,
+        s3BucketName,
+        s3Region,
+        enableAutoBackup: enableAutoBackup === true || enableAutoBackup === 'true',
+        backupRetentionDays: parseInt(backupRetentionDays) || 30
       }
     });
 
