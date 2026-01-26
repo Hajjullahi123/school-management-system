@@ -11,6 +11,7 @@ const Layout = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [hasQuranAccess, setHasQuranAccess] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Check if user has access to Quran features
   useEffect(() => {
@@ -51,12 +52,34 @@ const Layout = () => {
       }
     };
 
+    // Fetch unread messages count
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await api.get('/api/messages/unread-count');
+        if (response.ok && isMounted) {
+          const data = await response.json();
+          setUnreadCount(data.count);
+        }
+      } catch (error) {
+        console.error('Error fetching unread count:', error);
+      }
+    };
+
+    let interval;
     if (user?.id) {
       checkQuranAccess();
+
+      // Only fetch unread count for roles that use messaging
+      if (user?.role === 'parent' || user?.role === 'teacher') {
+        fetchUnreadCount();
+        // Polling for new messages every 2 minutes
+        interval = setInterval(fetchUnreadCount, 120000);
+      }
     }
 
     return () => {
       isMounted = false;
+      if (interval) clearInterval(interval);
     };
   }, [user?.id, user?.role, user?.student?.classId]);
 
@@ -115,8 +138,8 @@ const Layout = () => {
     );
   }
 
-  // Add Report items (for teachers and students only - NOT admins or accountants)
-  if (user?.role === 'teacher' || user?.role === 'student') {
+  // Add Report items (for teachers, students and parents only - NOT admins or accountants)
+  if (user?.role === 'teacher' || user?.role === 'student' || user?.role === 'parent') {
     menuItems.push(
       {
         path: '/dashboard/term-report', icon: (
@@ -124,6 +147,20 @@ const Layout = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         ), label: 'Term Report'
+      },
+      {
+        path: '/dashboard/cumulative-report', icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2a4 4 0 014-4h2a4 4 0 014 4v2m-3-9a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        ), label: 'Cumulative Report'
+      },
+      {
+        path: '/dashboard/progressive-report', icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+          </svg>
+        ), label: 'Progressive Report'
       }
     );
   }
@@ -217,7 +254,8 @@ const Layout = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
       ),
-      label: 'Parent Messages'
+      label: 'Parent Messages',
+      badge: unreadCount > 0 ? unreadCount : null
     });
 
     // Only show Quran Tracker for teachers who teach Quran
@@ -325,6 +363,16 @@ const Layout = () => {
         label: 'Qur\'an Progress'
       });
     }
+
+    menuItems.push({
+      path: '/dashboard/id-card',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+        </svg>
+      ),
+      label: 'My ID Card'
+    });
   }
 
   // Add Parent items
@@ -345,7 +393,8 @@ const Layout = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
       ),
-      label: 'Messages'
+      label: 'Messages',
+      badge: unreadCount > 0 ? unreadCount : null
     });
     menuItems.push({
       path: '/dashboard/parent/quran',
@@ -584,7 +633,7 @@ const Layout = () => {
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.style.display = 'none';
-                    e.target.parentElement.innerHTML = `<span class="text-2xl font-bold text-primary">\${schoolName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SM'}</span>`;
+                    e.target.parentElement.innerHTML = `<span class="text-2xl font-bold text-primary">${schoolName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SM'}</span>`;
                   }}
                 />
               ) : (
@@ -606,12 +655,19 @@ const Layout = () => {
               key={item.path}
               to={item.path}
               onClick={() => setSidebarOpen(false)}
-              className={`block px-6 py-3 text-white hover:bg-white/10 hover:border-l-4 hover:border-white transition-all duration-200 \${location.pathname === item.path ? 'bg-black/20 border-l-4 border-white' : ''
+              className={`block px-6 py-3 text-white hover:bg-white/10 hover:border-l-4 hover:border-white transition-all duration-200 ${location.pathname === item.path ? 'bg-black/20 border-l-4 border-white' : ''
                 }`}
             >
-              <div className="flex items-center space-x-3">
-                {item.icon}
-                <span>{item.label}</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  {item.icon}
+                  <span>{item.label}</span>
+                </div>
+                {item.badge && (
+                  <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md animate-pulse">
+                    {item.badge}
+                  </span>
+                )}
               </div>
             </Link>
           ))}

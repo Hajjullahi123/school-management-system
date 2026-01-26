@@ -127,7 +127,7 @@ const ReportCard = () => {
     setError('');
 
     try {
-      const response = await api.get(`/api/report-card/${targetStudentId}/${selectedTerm}`);
+      const response = await api.get(`/api/reports/term/${targetStudentId}/${selectedTerm}`);
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || 'Failed to fetch report card');
@@ -143,27 +143,17 @@ const ReportCard = () => {
     }
   };
 
-  const processRatings = (ratings) => {
-    const defaultAffective = [
-      'Punctuality', 'Neatness', 'Politeness', 'Honesty', 'Relationship with others',
-      'Cooperation', 'Leadership', 'Self Control', 'Attentiveness', 'Reliability', 'Perseverance'
-    ];
-    const defaultPsychomotor = [
-      'Handwriting', 'Games/Sports', 'Crafts', 'Musical Skills', 'Drawing/Painting',
-      'Verbal Communication', 'Fluency in Speech', 'Physical Agility'
-    ];
-
-    let combined = [...(ratings || [])];
-
-    if (combined.length < 18) {
-      [...defaultAffective, ...defaultPsychomotor].forEach(name => {
-        if (combined.length < 22 && !combined.find(r => r.name.toLowerCase() === name.toLowerCase())) {
-          combined.push({ name, score: '-' });
-        }
-      });
-    }
-
-    return combined;
+  const renderRatingTicks = (score) => {
+    const rounded = Math.round(score);
+    return (
+      <>
+        {[5, 4, 3, 2, 1].map(val => (
+          <td key={val} className="border border-black text-center w-6 h-6">
+            {rounded === val ? '✔' : ''}
+          </td>
+        ))}
+      </>
+    );
   };
 
   const handlePrint = () => {
@@ -232,7 +222,7 @@ const ReportCard = () => {
                 setSelectedSession(e.target.value);
                 fetchTerms(e.target.value);
               }}
-              className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border"
+              className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border outline-none"
             >
               {sessions.map(s => <option key={s.id} value={s.id}>{s.name} {s.isCurrent ? '(Current)' : ''}</option>)}
             </select>
@@ -243,7 +233,7 @@ const ReportCard = () => {
             <select
               value={selectedTerm}
               onChange={(e) => setSelectedTerm(e.target.value)}
-              className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border"
+              className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border outline-none"
             >
               <option value="">-- Select Term --</option>
               {terms.map(t => <option key={t.id} value={t.id}>{t.name} {t.isCurrent ? '(Active)' : ''}</option>)}
@@ -257,7 +247,7 @@ const ReportCard = () => {
                 <select
                   value={selectedClassId}
                   onChange={(e) => setSelectedClassId(e.target.value)}
-                  className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border"
+                  className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border outline-none"
                 >
                   <option value="">-- All Classes --</option>
                   {classes.map(c => <option key={c.id} value={c.id}>{c.name} {c.arm}</option>)}
@@ -271,7 +261,7 @@ const ReportCard = () => {
                     value={selectedStudentId}
                     onChange={(e) => setSelectedStudentId(e.target.value)}
                     disabled={!selectedClassId}
-                    className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border disabled:opacity-50"
+                    className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border disabled:opacity-50 outline-none"
                   >
                     <option value="">-- Choose Student --</option>
                     {classStudents.map(s => <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName} ({s.admissionNumber})</option>)}
@@ -296,7 +286,7 @@ const ReportCard = () => {
                   value={admissionNumber}
                   onChange={(e) => setAdmissionNumber(e.target.value)}
                   placeholder="Enter admission number (e.g. 2024/001)"
-                  className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border"
+                  className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border outline-none"
                 />
               </div>
               <button
@@ -312,7 +302,7 @@ const ReportCard = () => {
       </div>
 
       {reportData && (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[210mm] mx-auto">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[210mm] mx-auto pb-10">
           <div className="flex justify-end gap-3 print:hidden">
             <button
               onClick={() => setShowEmailModal(true)}
@@ -335,7 +325,8 @@ const ReportCard = () => {
           </div>
 
           <div id="result-sheet" className="relative bg-white p-8 print:p-4 shadow-2xl print:shadow-none print:break-after-page text-black font-serif border-[12px] border-emerald-800 print:emerald-border">
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] select-none rotate-12 overflow-hidden">
+            {/* PROTECTION WATERMARK */}
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
               <div className="text-[100px] font-black uppercase text-gray-900 leading-[0.8] text-center">
                 {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
                 {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
@@ -344,9 +335,10 @@ const ReportCard = () => {
               </div>
             </div>
 
-            <div className="relative z-10 space-y-6">
-              <div className="flex justify-between items-start gap-4 border-b-4 border-double border-emerald-800 pb-6" style={{ borderColor: schoolSettings?.primaryColor }}>
-                <div className="w-28 h-28 flex-shrink-0">
+            <div className="relative z-10 space-y-5">
+              {/* HEAD SECTION */}
+              <div className="flex justify-between items-start gap-4">
+                <div className="w-24 h-24 flex-shrink-0">
                   {schoolSettings?.logoUrl && (
                     <img
                       src={schoolSettings.logoUrl.startsWith('data:') || schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${schoolSettings.logoUrl.startsWith('/') ? schoolSettings.logoUrl : '/' + schoolSettings.logoUrl}`}
@@ -357,171 +349,199 @@ const ReportCard = () => {
                 </div>
 
                 <div className="flex-1 text-center">
-                  <h1 className="text-3xl font-black uppercase tracking-tight text-emerald-900" style={{ color: schoolSettings?.primaryColor }}>
+                  <h1 className="text-3xl font-extrabold uppercase tracking-wider leading-tight text-emerald-900" style={{ color: schoolSettings?.primaryColor }}>
                     {schoolSettings?.schoolName || 'SCHOOL NAME'}
                   </h1>
-                  <p className="text-primary font-bold italic text-sm mb-1" style={{ color: schoolSettings?.primaryColor }}>
-                    {schoolSettings?.schoolMotto || 'Excellence and Dedication'}
-                  </p>
-                  <p className="text-xs font-bold text-gray-600 leading-tight">
-                    {schoolSettings?.address || 'School Address Location'}
-                  </p>
-                  <p className="text-[10px] font-bold text-gray-500 mt-1 uppercase">
-                    TEL: {schoolSettings?.phone} | EMAIL: {schoolSettings?.email}
-                  </p>
-                  <div className="mt-4 bg-emerald-800 text-white inline-block px-10 py-1.5 rounded-full font-black uppercase tracking-widest text-sm shadow-md" style={{ backgroundColor: schoolSettings?.primaryColor }}>
-                    Terminal Report Card
+                  <p className="text-sm font-bold italic text-gray-700">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
+                  <p className="text-xs font-bold">{schoolSettings?.address || 'School Address Location'}, TEL: {schoolSettings?.phone || '000000'}, Email: {schoolSettings?.email || 'email@school.com'}</p>
+
+                  <div className="mt-4 border-b-2 border-emerald-800 inline-block px-4 pb-1">
+                    <h2 className="text-xl font-bold uppercase tracking-wide">
+                      {reportData.term?.name?.toUpperCase()} PERFORMANCE REPORT
+                    </h2>
                   </div>
                 </div>
 
-                <div className="w-24 h-32 border-2 border-black bg-gray-50 rounded overflow-hidden shadow-inner flex flex-col items-center justify-center relative">
-                  {reportData.student.photoUrl ? (
+                <div className="w-24 h-28 border-2 border-black bg-gray-50 flex-shrink-0 relative overflow-hidden">
+                  {reportData.student?.photoUrl ? (
                     <img src={reportData.student.photoUrl.startsWith('http') ? reportData.student.photoUrl : `${API_BASE_URL}${reportData.student.photoUrl}`} alt="Student" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="text-[10px] text-gray-300 font-bold uppercase p-2 text-center">PHOTO</div>
+                    <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 font-bold text-gray-300">PHOTO</div>
                   )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border-2 border-black">
-                <div className="grid grid-cols-2 gap-y-2 text-xs">
-                  <p className="font-bold text-gray-500">STUDENT NAME:</p>
-                  <p className="font-black text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>{reportData.student.name}</p>
-                  <p className="font-bold text-gray-500">ADMISSION NO:</p>
-                  <p className="font-black">{reportData.student.admissionNumber}</p>
-                  <p className="font-bold text-gray-500">CLASS:</p>
-                  <p className="font-black">{reportData.student.class}</p>
-                  <p className="font-bold text-gray-500">CLUB:</p>
-                  <p className="font-black">{reportData.student.clubs || 'JETS CLUB'}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-y-2 text-xs border-l-2 border-black pl-4">
-                  <p className="font-bold text-gray-500">SESSION:</p>
-                  <p className="font-black">{reportData.academic.session}</p>
-                  <p className="font-bold text-gray-500">TERM:</p>
-                  <p className="font-black uppercase">{reportData.academic.term}</p>
-                  <p className="font-bold text-gray-500">DATE OF BIRTH:</p>
-                  <p className="font-black">{reportData.student.dob ? new Date(reportData.student.dob).toLocaleDateString() : 'N/A'}</p>
-                  <p className="font-bold text-gray-500">AGE:</p>
-                  <p className="font-black">{reportData.student.age || '-'}</p>
-                </div>
-              </div>
+              {/* STUDENT INFO TABLE */}
+              <table className="w-full border-2 border-black border-collapse text-xs font-bold uppercase">
+                <tbody>
+                  <tr className="border-b border-black">
+                    <td className="border-r border-black p-1 w-1/6">NAME:</td>
+                    <td className="border-r border-black p-1 w-2/3 text-emerald-800 font-black" style={{ color: schoolSettings?.primaryColor }}>{reportData.student?.name}</td>
+                    <td className="border-r border-black p-1 w-1/6">GENDER:</td>
+                    <td className="p-1">{reportData.student?.gender}</td>
+                  </tr>
+                  <tr className="border-b border-black">
+                    <td className="border-r border-black p-1">CLASS:</td>
+                    <td className="border-r border-black p-1">{reportData.student?.class}</td>
+                    <td className="border-r border-black p-1">SESSION:</td>
+                    <td className="p-1">{reportData.term?.session}</td>
+                  </tr>
+                  <tr className="border-b border-black">
+                    <td className="border-r border-black p-1">ADM NO:</td>
+                    <td className="border-r border-black p-1">{reportData.student?.admissionNumber}</td>
+                    <td className="border-r border-black p-1">D.O.B:</td>
+                    <td className="p-1">{reportData.student?.dateOfBirth ? new Date(reportData.student.dateOfBirth).toLocaleDateString() : 'N/A'}</td>
+                  </tr>
+                  <tr className="border-b border-black">
+                    <td className="border-r border-black p-1">AGE:</td>
+                    <td className="border-r border-black p-1">{reportData.student?.age || '-'}</td>
+                    <td className="border-r border-black p-1">CLUB:</td>
+                    <td className="p-1">{reportData.student?.clubs !== 'None Assigned' ? reportData.student?.clubs : 'N/A'}</td>
+                  </tr>
+                  <tr>
+                    <td className="border-r border-black p-1">ATTENDANCE:</td>
+                    <td className="border-r border-black p-1 text-emerald-700 font-bold" style={{ color: schoolSettings?.primaryColor }}>{reportData.attendance?.present} / {reportData.attendance?.total} DAYS ({reportData.attendance?.percentage}%)</td>
+                    <td className="border-r border-black p-1">TERM:</td>
+                    <td className="p-1">{reportData.term?.name}</td>
+                  </tr>
+                </tbody>
+              </table>
 
+              {/* ACADEMIC SECTION */}
               <div className="grid grid-cols-[68%_31%] gap-2 items-stretch">
                 {/* LEFT: COGNITIVE */}
-                <div className="border-2 border-black rounded-lg overflow-hidden shadow-sm flex flex-col h-full bg-white">
-                  <div className="bg-emerald-800 text-white text-center p-1 text-[10px] font-bold uppercase tracking-widest" style={{ backgroundColor: schoolSettings?.primaryColor }}>Cognitive Domain Performance</div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-[10px] md:text-sm">
-                      <thead>
-                        <tr className="bg-gray-100 uppercase text-[8px] font-bold">
-                          <th className="border border-black px-2 py-1 text-left">Subject</th>
-                          <th className="border border-black px-1 py-1 text-center w-6">1CA<br />{reportData.academic?.weights?.assignment1 || 5}</th>
-                          <th className="border border-black px-1 py-1 text-center w-6">2CA<br />{reportData.academic?.weights?.assignment2 || 5}</th>
-                          <th className="border border-black px-1 py-1 text-center w-6">1TS<br />{reportData.academic?.weights?.test1 || 10}</th>
-                          <th className="border border-black px-1 py-1 text-center w-6">2TS<br />{reportData.academic?.weights?.test2 || 10}</th>
-                          <th className="border border-black px-1 py-1 text-center w-8">EXM<br />{reportData.academic?.weights?.exam || 70}</th>
-                          <th className="border border-black px-1 py-1 text-center w-8 font-black">TOT<br />100</th>
-                          {reportData.academic.termNumber === 3 && (
+                <div className="space-y-0 text-[10px] md:text-sm h-full flex flex-col">
+                  <div className="bg-emerald-800 text-white text-center font-bold py-1 text-sm border-2 border-b-0 border-black" style={{ backgroundColor: schoolSettings?.primaryColor }}>
+                    COGNITIVE DOMAIN PERFORMANCE
+                  </div>
+                  <table className="w-full border-2 border-black border-collapse">
+                    <thead>
+                      <tr className="bg-gray-100 uppercase text-[8px] font-bold">
+                        <th className="border border-black px-2 py-1 text-left">Subject</th>
+                        <th className="border border-black px-1 py-1 text-center w-6">1CA<br />{reportData.term?.weights?.assignment1 || 5}</th>
+                        <th className="border border-black px-1 py-1 text-center w-6">2CA<br />{reportData.term?.weights?.assignment2 || 5}</th>
+                        <th className="border border-black px-1 py-1 text-center w-6">1TS<br />{reportData.term?.weights?.test1 || 10}</th>
+                        <th className="border border-black px-1 py-1 text-center w-6">2TS<br />{reportData.term?.weights?.test2 || 10}</th>
+                        <th className="border border-black px-1 py-1 text-center w-8">EXM<br />{reportData.term?.weights?.exam || 70}</th>
+                        <th className="border border-black px-1 py-1 text-center w-8 font-black">TOT<br />100</th>
+                        {reportData.term?.number === 3 && (
+                          <>
+                            <th className="border border-black px-1 py-1 text-center w-6 text-[7px]">T1</th>
+                            <th className="border border-black px-1 py-1 text-center w-6 text-[7px]">T2</th>
+                            <th className="border border-black px-1 py-1 text-center w-8 text-[7px] font-bold">CUM</th>
+                          </>
+                        )}
+                        <th className="border border-black px-1 py-1 text-center w-6">GRD</th>
+                        <th className="border border-black px-1 py-1 text-center w-6">POS</th>
+                        <th className="border border-black px-2 py-1 text-left italic text-[8px]">Remark</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-[10px] uppercase font-bold">
+                      {(reportData.subjects || []).map((sub, i) => (
+                        <tr key={i} className="h-6">
+                          <td className="border border-black px-2 font-black leading-tight">{sub.name}</td>
+                          <td className="border border-black text-center">{sub.assignment1 || '0'}</td>
+                          <td className="border border-black text-center">{sub.assignment2 || '0'}</td>
+                          <td className="border border-black text-center">{sub.test1 || '0'}</td>
+                          <td className="border border-black text-center">{sub.test2 || '0'}</td>
+                          <td className="border border-black text-center">{sub.exam || '0'}</td>
+                          <td className="border border-black text-center bg-gray-50 font-black">{sub.total?.toFixed(0)}</td>
+                          {reportData.term?.number === 3 && (
                             <>
-                              <th className="border border-black px-1 py-1 text-center w-6 text-[7px]">T1</th>
-                              <th className="border border-black px-1 py-1 text-center w-6 text-[7px]">T2</th>
-                              <th className="border border-black px-1 py-1 text-center w-8 text-[7px]">CUM</th>
+                              <td className="border border-black text-center">{sub.term1Score ?? '0'}</td>
+                              <td className="border border-black text-center">{sub.term2Score ?? '0'}</td>
+                              <td className="border border-black text-center bg-gray-50 font-bold">{sub.cumulativeAverage?.toFixed(1) ?? '0'}</td>
                             </>
                           )}
-                          <th className="border border-black px-1 py-1 text-center w-6">GRD</th>
-                          <th className="border border-black px-1 py-1 text-center w-6">POS</th>
-                          <th className="border border-black px-2 py-1 text-left italic text-[8px]">Remark</th>
+                          <td className="border border-black text-center font-black">{sub.grade}</td>
+                          <td className="border border-black text-center">{sub.position}</td>
+                          <td className="border border-black px-2 italic text-[8px] leading-tight font-medium">{sub.remark}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* RIGHT: DOMAINS */}
+                <div className="flex flex-col h-full gap-2">
+                  <div className="flex-1 flex flex-col min-h-0">
+                    <table className="w-full border-2 border-black border-collapse text-[10px] flex-1">
+                      <thead className="bg-gray-200 uppercase font-bold sticky top-0">
+                        <tr>
+                          <th className="border-b border-r border-black text-left px-1 py-0.5">BEHAVIORAL DOMAINS</th>
+                          <th className="border-b border-black w-5">5</th>
+                          <th className="border-b border-black w-5">4</th>
+                          <th className="border-b border-black w-5">3</th>
+                          <th className="border-b border-black w-5">2</th>
+                          <th className="border-b border-black w-5">1</th>
                         </tr>
                       </thead>
-                      <tbody className="text-[10px] uppercase font-bold">
-                        {reportData.results.map((res, i) => (
-                          <tr key={i} className="h-6">
-                            <td className="border border-black px-2 font-bold leading-tight">{res.subject}</td>
-                            <td className="border border-black text-center">{res.assignment1 || '0'}</td>
-                            <td className="border border-black text-center">{res.assignment2 || '0'}</td>
-                            <td className="border border-black text-center">{res.test1 || '0'}</td>
-                            <td className="border border-black text-center">{res.test2 || '0'}</td>
-                            <td className="border border-black text-center">{res.exam || '0'}</td>
-                            <td className="border border-black text-center bg-gray-50">{Math.round(res.total)}</td>
-                            {reportData.academic.termNumber === 3 && (
-                              <>
-                                <td className="border border-black text-center">{res.term1Score ?? '-'}</td>
-                                <td className="border border-black text-center">{res.term2Score ?? '-'}</td>
-                                <td className="border border-black text-center bg-gray-50">{res.cumulativeAverage?.toFixed(1) ?? '-'}</td>
-                              </>
-                            )}
-                            <td className="border border-black text-center font-black">{res.grade}</td>
-                            <td className="border border-black text-center">{res.position}</td>
-                            <td className="border border-black px-2 italic text-[8px] leading-tight font-medium">{res.remark}</td>
+                      <tbody>
+                        {(reportData.psychomotorRatings || []).map((item, i) => (
+                          <tr key={i} className="h-5">
+                            <td className="border border-black px-1 truncate font-bold uppercase">{item.name}</td>
+                            {renderRatingTicks(item.score)}
+                          </tr>
+                        ))}
+                        {Array.from({ length: Math.max(0, 18 - (reportData.psychomotorRatings?.length || 0)) }).map((_, i) => (
+                          <tr key={`empty-${i}`} className="h-5">
+                            <td className="border border-black px-1 font-bold text-gray-200 italic">-</td>
+                            <td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 </div>
-
-                {/* RIGHT: DOMAINS */}
-                <div className="flex flex-col h-full gap-2">
-                  <div className="border-2 border-black rounded-lg overflow-hidden flex-1 bg-white">
-                    <div className="bg-gray-200 text-[9px] font-black p-1 uppercase border-b border-black">Affective Behavior</div>
-                    <div className="p-2 space-y-1">
-                      {processRatings(reportData.extras.psychomotorRatings).slice(0, 11).map((rat, i) => (
-                        <div key={i} className="flex justify-between items-center text-[9px] border-b border-black/5 pb-0.5">
-                          <span className="font-bold uppercase truncate pr-2">{rat.name}</span>
-                          <span className="font-black text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>{rat.score || '-'} / 5</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="border-2 border-black rounded-lg overflow-hidden flex-1 bg-white">
-                    <div className="bg-gray-200 text-[9px] font-black p-1 uppercase border-b border-black">Psychomotor Skills</div>
-                    <div className="p-2 space-y-1">
-                      {processRatings(reportData.extras.psychomotorRatings).slice(11, 22).map((rat, i) => (
-                        <div key={i} className="flex justify-between items-center text-[9px] border-b border-black/5 pb-0.5">
-                          <span className="font-bold uppercase truncate pr-2">{rat.name}</span>
-                          <span className="font-black text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>{rat.score || '-'} / 5</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
               </div>
 
-              {/* SUMMARY & GRADING (BELOW COGNITIVE) */}
+              {/* SUMMARY & GRADING KEY */}
               <div className="grid grid-cols-[68%_31%] gap-2 mt-2">
-                <div className="grid grid-cols-2 gap-0 border-2 border-black rounded-lg overflow-hidden divide-x-2 divide-black bg-white">
-                  <div className="p-3 text-[9px] leading-relaxed flex flex-col justify-center">
-                    <p className="font-black border-b border-black mb-1 uppercase text-gray-400 text-[8px] text-center">Grading Key Scale</p>
-                    <div className="grid grid-cols-2 gap-x-2 font-bold mt-1">
-                      <p>A: 75-100</p>
-                      <p>B: 65-74</p>
-                      <p>C: 55-64</p>
-                      <p>D: 45-54</p>
-                      <p>E: 40-44</p>
-                      <p className="text-red-500">F: 0-39</p>
+                <div className="grid grid-cols-2 gap-0 border-2 border-black rounded-lg overflow-hidden divide-x-2 divide-black">
+                  {/* DYNAMIC GRADE INFO */}
+                  <div className="p-2 text-[9px] bg-gray-50/50 leading-tight flex flex-col justify-center">
+                    <p className="font-black border-b border-black mb-1 uppercase text-gray-500 text-[8px]">Grading Legend</p>
+                    <div className="grid grid-cols-2 gap-x-2 font-bold">
+                      {(() => {
+                        try {
+                          const scales = JSON.parse(schoolSettings?.gradingSystem || '[]');
+                          return scales.sort((a, b) => b.min - a.min).map(s => (
+                            <span key={s.grade} className={s.grade === 'F' ? 'text-red-600' : ''}>{s.grade}: {s.min}-{s.max || 100}</span>
+                          ));
+                        } catch (e) {
+                          return <span>Legend could not be loaded</span>;
+                        }
+                      })()}
                     </div>
+                    <p className="mt-1 border-t border-black/10 pt-1 text-[8px] italic">5: Exceptional, 4: Commendable, 3: Satisfactory, 2: Fair, 1: Poor</p>
                   </div>
 
                   <div className="flex flex-col">
-                    <div className="bg-emerald-800 text-white text-center p-1 text-[9px] font-bold uppercase tracking-widest" style={{ backgroundColor: schoolSettings?.primaryColor }}>Performance Summary</div>
+                    <div className="bg-emerald-800 text-white text-center py-0.5 text-[9px] font-bold uppercase tracking-widest" style={{ backgroundColor: schoolSettings?.primaryColor }}>Performance Summary</div>
                     <div className="bg-gray-50 flex-1 grid grid-cols-2 divide-x divide-black/10 items-center">
                       <div className="text-center p-1">
                         <p className="text-[7px] text-gray-400 uppercase font-black">Average</p>
-                        <p className="text-sm font-black italic">{reportData.summary.average}%</p>
+                        <p className="text-sm font-black italic">{reportData.termAverage?.toFixed(1)}%</p>
                       </div>
                       <div className="text-center p-1">
                         <p className="text-[7px] text-gray-400 uppercase font-black">Position</p>
-                        <p className="text-sm font-black italic">{reportData.summary.position} / {reportData.summary.totalInClass}</p>
+                        <p className="text-sm font-black italic">{reportData.termPosition} / {reportData.totalStudents}</p>
                       </div>
                     </div>
                     <div className="border-t border-black p-1 flex justify-between items-center bg-gray-100 px-3">
                       <span className="text-[8px] font-black text-gray-500 uppercase">Grade:</span>
-                      <span className="text-lg font-black" style={{ color: schoolSettings?.primaryColor }}>{reportData.summary.grade || 'F'}</span>
+                      <span className="text-lg font-black" style={{ color: schoolSettings?.primaryColor }}>{reportData.overallGrade || 'F'}</span>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-center border-2 border-black rounded-lg bg-gray-50/50">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-300">Official Result Sheet</p>
+                <div className="flex flex-col items-center justify-center border-2 border-black rounded-lg bg-gray-50/50 font-mono text-[7px] uppercase tracking-[0.3em] text-gray-300 relative overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                    </svg>
+                  </div>
+                  <span className="z-10 bg-white px-2">Official Result Certification</span>
+                  <div className="absolute inset-x-0 h-[1px] bg-gray-200"></div>
                 </div>
               </div>
 
@@ -529,22 +549,35 @@ const ReportCard = () => {
               <div className="border-2 border-black bg-white rounded-xl overflow-hidden mt-4">
                 <div className="grid grid-cols-2 divide-x-2 divide-black">
                   <div className="p-3 space-y-1">
-                    <p className="text-[10px] font-black uppercase text-gray-400">Form Master's Remark</p>
+                    <p className="text-[10px] font-black uppercase text-gray-500">Form Master's Remark</p>
                     <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
-                      "{reportData.extras.formMasterRemark || 'Performance is encouraging.'}"
+                      "{reportData.formMasterRemark || 'Performance is encouraging.'}"
                     </p>
+                    <div className="pt-1 border-t border-black/10 flex justify-between items-center">
+                      <span className="text-[9px] font-bold">Name: {reportData.student?.formMaster || '......................'}</span>
+                      <div className="flex items-center gap-1">
+                        <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-[7px] font-mono text-gray-400">VERIFIED</span>
+                      </div>
+                    </div>
                   </div>
                   <div className="p-3 space-y-1">
-                    <p className="text-[10px] font-black uppercase text-gray-400">Principal's Remark</p>
+                    <p className="text-[10px] font-black uppercase text-gray-500">Principal's Remark</p>
                     <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
-                      "{reportData.extras.principalRemark || 'Satisfactory academic performance.'}"
+                      "{reportData.principalRemark || 'Satisfactory academic performance.'}"
                     </p>
+                    <div className="pt-1 border-t border-black/10 flex justify-between items-center text-[9px] font-bold">
+                      <span>Next Term Begins:</span>
+                      <span className="underline font-black">{reportData.term?.nextTermBegins ? new Date(reportData.term.nextTermBegins).toLocaleDateString() : '....................'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* SIGNATURES & VERIFICATION */}
-              <div className="mt-8 grid grid-cols-3 gap-8 items-end p-2 border-t border-gray-100">
+              <div className="mt-8 grid grid-cols-3 gap-8 items-end p-2">
                 <div className="space-y-2">
                   <div className="w-full h-8 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-20 grayscale">
                     {[...Array(60)].map((_, i) => (
@@ -556,27 +589,36 @@ const ReportCard = () => {
                   </p>
                 </div>
 
-                <div className="text-center">
+                <div className="text-center relative">
+                  <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-20 pointer-events-none">
+                    <svg width="60" height="60" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
+                      <text x="50" y="45" textAnchor="middle" fontSize="8" fontWeight="bold">OFFICIAL</text>
+                      <text x="50" y="55" textAnchor="middle" fontSize="10" fontWeight="black">SEAL</text>
+                    </svg>
+                  </div>
                   <div className="border-b-2 border-black w-full mb-1 opacity-80"></div>
                   <p className="text-[10px] font-black uppercase">Teacher's Signature</p>
                   <p className="text-[8px] text-gray-400 uppercase mt-0.5">Automated Seal</p>
                 </div>
 
-                <div className="text-center">
-                  <div className="flex flex-col items-center justify-end h-full">
-                    <div className="text-[10px] font-bold uppercase mb-4 flex gap-2">
-                      <span className="text-gray-400">Begins:</span>
-                      <span className="underline">{reportData.academic?.nextTermBegins ? new Date(reportData.academic.nextTermBegins).toLocaleDateString() : '............'}</span>
-                    </div>
-                    <div className="border-b-2 border-emerald-800 w-full mb-1" style={{ borderColor: schoolSettings?.primaryColor }}></div>
-                    <p className="text-[10px] font-black uppercase text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>Principal's Signature</p>
+                <div className="text-center relative">
+                  <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-30 pointer-events-none">
+                    <svg width="80" height="80" viewBox="0 0 100 100" style={{ color: schoolSettings?.primaryColor }}>
+                      <path d="M20 50 Q 50 10, 80 50 T 20 80" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.5" />
+                      <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
+                      <text x="50" y="52" textAnchor="middle" fontSize="6" fontWeight="bold" transform="rotate(-15 50 50)">CERTIFIED OFFICIAL</text>
+                    </svg>
                   </div>
+                  <div className="border-b-2 border-emerald-800 w-full mb-1" style={{ borderColor: schoolSettings?.primaryColor }}></div>
+                  <p className="text-[10px] font-black uppercase text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>Principal's Signature</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
       )}
+
 
       {showEmailModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 print:hidden">

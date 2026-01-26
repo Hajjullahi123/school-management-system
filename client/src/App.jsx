@@ -188,7 +188,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="progressive-report" element={
-              <ProtectedRoute roles={['admin', 'student', 'teacher']}>
+              <ProtectedRoute roles={['admin', 'student', 'teacher', 'parent']}>
                 <ProgressiveReport />
               </ProtectedRoute>
             } />
@@ -203,7 +203,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="id-card" element={
-              <ProtectedRoute roles={['admin', 'teacher']}>
+              <ProtectedRoute roles={['admin', 'teacher', 'student']}>
                 <IDCardGenerator />
               </ProtectedRoute>
             } />

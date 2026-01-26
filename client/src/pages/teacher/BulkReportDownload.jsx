@@ -116,95 +116,179 @@ const BulkReportDownload = () => {
         reportCard.style.fontFamily = 'Arial, sans-serif';
 
         reportCard.innerHTML = `
-          <div style="border: 2px solid ${schoolSettings.primaryColor || '#0d9488'}; padding: 20px; border-radius: 8px;">
+          <div style="border: 4px solid ${schoolSettings.primaryColor || '#0d9488'}; padding: 30px; border-radius: 15px; position: relative; background: white; overflow: hidden; min-height: 280mm;">
+            <!-- Watermark -->
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(30deg); opacity: 0.03; font-size: 100px; font-weight: 900; z-index: 0; white-space: nowrap; pointer-events: none;">
+              ${schoolSettings.schoolName || 'OFFICIAL'}
+            </div>
+
             <!-- Header -->
-            <div style="background: linear-gradient(to right, ${schoolSettings.primaryColor || '#0d9488'}, ${schoolSettings.primaryColor ? schoolSettings.primaryColor : '#0f766e'}); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px;">
-              ${schoolSettings.logoUrl ? `<img src="${schoolSettings.logoUrl}" alt="Logo" style="height: 50px; width: 50px; object-fit: contain; background: white; padding: 5px; border-radius: 5px;" />` : ''}
+            <div style="background: linear-gradient(135deg, ${schoolSettings.primaryColor || '#0d9488'}, #0f766e); color: white; padding: 30px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; gap: 25px; position: relative; z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              ${schoolSettings.logoUrl ? `<img src="${schoolSettings.logoUrl}" style="height: 70px; width: 70px; object-fit: contain; background: white; padding: 8px; border-radius: 10px;" />` : ''}
               <div>
-                <h1 style="margin: 0; font-size: 24px;">${schoolSettings.schoolName || 'School Name'}</h1>
-                <p style="margin: 5px 0 0 0; font-size: 14px;">${schoolSettings.schoolMotto || 'Excellence in Education'}</p>
+                <h1 style="margin: 0; font-size: 32px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.02em;">${schoolSettings.schoolName || 'School Name'}</h1>
+                <p style="margin: 5px 0 0 0; font-size: 16px; font-style: italic; opacity: 0.9;">${schoolSettings.schoolMotto || 'Excellence in Education'}</p>
+                <p style="margin: 8px 0 0 0; font-size: 11px; text-transform: uppercase; opacity: 0.8; letter-spacing: 0.1em;">${schoolSettings.schoolAddress || ''}</p>
               </div>
             </div>
 
-            <!-- Student Info -->
-            <div style="margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; padding-bottom: 15px;">
-              <h2 style="font-size: 18px; margin-bottom: 15px; color: #1f2937;">STUDENT INFORMATION</h2>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
-                <div><strong>Name:</strong> ${report.student.name}</div>
-                <div><strong>Admission No:</strong> ${report.student.admissionNumber}</div>
-                <div><strong>Class:</strong> ${report.student.class}</div>
-                <div><strong>Gender:</strong> ${report.student.gender || 'N/A'}</div>
-                <div><strong>Term:</strong> ${report.term.name}</div>
-                <div><strong>Session:</strong> ${report.term.session}</div>
-                <div><strong>Form Master:</strong> ${report.student.formMaster}</div>
+            <!-- Student Info Section -->
+            <div style="margin-bottom: 30px; border-bottom: 3px solid #f3f4f6; padding-bottom: 20px; position: relative; z-index: 10;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 15px;">
+                <h2 style="font-size: 20px; font-weight: 800; color: #111827; text-transform: uppercase; margin: 0;">Terminal Report Card</h2>
+                <span style="background: ${schoolSettings.primaryColor || '#0d9488'}20; color: ${schoolSettings.primaryColor || '#0d9488'}; font-weight: 800; padding: 6px 15px; border-radius: 20px; font-size: 12px;">
+                  ${report.term.name} - ${report.term.session}
+                </span>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding: 5px 0;">
+                  <strong style="color: #4b5563;">Student Name:</strong> <span style="font-weight: 800;">${report.student.name}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding: 5px 0;">
+                  <strong style="color: #4b5563;">Admission No:</strong> <span style="font-weight: 800; color: ${schoolSettings.primaryColor || '#0d9488'}; font-family: monospace;">${report.student.admissionNumber}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding: 5px 0;">
+                  <strong style="color: #4b5563;">Class:</strong> <span>${report.student.class}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding: 5px 0;">
+                  <strong style="color: #4b5563;">Gender:</strong> <span>${report.student.gender || 'N/A'}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding: 5px 0;">
+                  <strong style="color: #4b5563; font-style: italic;">Clubs:</strong> <span style="opacity: 0.8;">${report.student.clubs || 'None Assigned'}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding: 5px 0;">
+                  <strong style="color: #4b5563; font-style: italic;">Position:</strong> <span style="font-weight: 900; color: ${schoolSettings.primaryColor || '#0d9488'}; text-decoration: underline;">${report.termPosition} / ${report.totalStudents}</span>
+                </div>
               </div>
             </div>
 
-            <!-- Results Table -->
-            <div style="margin-bottom: 20px;">
-              <h2 style="font-size: 18px; margin-bottom: 15px; color: #1f2937;">ACADEMIC PERFORMANCE</h2>
-              <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-                <thead style="background-color: #f0fdfa;">
-                  <tr>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Subject</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">1ST CA<br/>(${report.term.weights?.assignment1 || 5})</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">2ND CA<br/>(${report.term.weights?.assignment2 || 5})</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">1ST TST<br/>(${report.term.weights?.test1 || 10})</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">2ND TST<br/>(${report.term.weights?.test2 || 10})</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">EXAM<br/>(${report.term.weights?.exam || 70})</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center; background-color: #ccfbf1;">TOTAL<br/>(100)</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center; background-color: #ccfbf1;">Grade</th>
-                    <th style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">Remark</th>
+            <!-- Performance Table -->
+            <div style="margin-bottom: 30px; position: relative; z-index: 10;">
+              <table style="width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; border: 2px solid ${schoolSettings.primaryColor || '#0d9488'}20; border-radius: 12px; overflow: hidden;">
+                <thead>
+                  <tr style="background-color: ${schoolSettings.primaryColor || '#0d9488'}10;">
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; font-weight: 800; text-transform: uppercase;">Subject</th>
+                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; font-size: 9px; min-width: 40px;">CA 1<br/>(${report.term.weights?.assignment1})</th>
+                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; font-size: 9px; min-width: 40px;">CA 2<br/>(${report.term.weights?.assignment2})</th>
+                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; font-size: 9px; min-width: 40px;">TST 1<br/>(${report.term.weights?.test1})</th>
+                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; font-size: 9px; min-width: 40px;">TST 2<br/>(${report.term.weights?.test2})</th>
+                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; font-size: 9px; min-width: 45px;">EXAM<br/>(${report.term.weights?.exam})</th>
+                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; background: ${schoolSettings.primaryColor || '#0d9488'}20; font-weight: 900; color: ${schoolSettings.primaryColor || '#0d9488'};">TOTAL</th>
+                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; background: ${schoolSettings.primaryColor || '#0d9488'}; color: white;">GRD</th>
+                    <th style="padding: 8px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600; font-style: italic; color: #6b7280; font-size: 10px;">REMARK</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${report.subjects.map((subject, idx) => `
+                  ${report.subjects.map((sub, idx) => `
                     <tr style="background-color: ${idx % 2 === 0 ? 'white' : '#f9fafb'};">
-                      <td style="border: 1px solid #d1d5db; padding: 8px;">${subject.name}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">${subject.assignment1?.toFixed(1) || '-'}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">${subject.assignment2?.toFixed(1) || '-'}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">${subject.test1?.toFixed(1) || '-'}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">${subject.test2?.toFixed(1) || '-'}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 8px; text-align: center;">${subject.exam?.toFixed(1) || '-'}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 8px; text-align: center; font-weight: bold; background-color: #f0fdfa;">${subject.total.toFixed(1)}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 8px; text-align: center; font-weight: bold; background-color: #f0fdfa;">${subject.grade}</td>
-                      <td style="border: 1px solid #d1d5db; padding: 8px;">${subject.remark}</td>
+                      <td style="padding: 10px; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; font-weight: 700;">${sub.name}</td>
+                      <td style="padding: 8px; text-align: center; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6;">${sub.assignment1?.toFixed(1) || '-'}</td>
+                      <td style="padding: 8px; text-align: center; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6;">${sub.assignment2?.toFixed(1) || '-'}</td>
+                      <td style="padding: 8px; text-align: center; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6;">${sub.test1?.toFixed(1) || '-'}</td>
+                      <td style="padding: 8px; text-align: center; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6;">${sub.test2?.toFixed(1) || '-'}</td>
+                      <td style="padding: 8px; text-align: center; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6;">${sub.exam?.toFixed(1) || '-'}</td>
+                      <td style="padding: 8px; text-align: center; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; font-weight: 900; background: ${schoolSettings.primaryColor || '#0d9488'}05; color: ${schoolSettings.primaryColor || '#0d9488'};">${sub.total.toFixed(1)}</td>
+                      <td style="padding: 8px; text-align: center; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; font-weight: 900; color: ${sub.grade === 'F' ? '#e11d48' : (schoolSettings.primaryColor || '#0d9488')};">${sub.grade}</td>
+                      <td style="padding: 8px; border-bottom: 1px solid #f3f4f6; font-style: italic; color: #6b7280; font-size: 9px; font-weight: 500;">${sub.remark}</td>
                     </tr>
                   `).join('')}
                 </tbody>
               </table>
             </div>
 
-            <!-- Summary -->
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
-              <div style="background-color: #f0fdfa; padding: 15px; border-radius: 8px; text-align: center;">
-                <p style="margin: 0; font-size: 12px; color: #6b7280;">Term Average</p>
-                <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: ${schoolSettings.primaryColor || '#0d9488'};">${report.termAverage.toFixed(2)}%</p>
+            <!-- Stats & Psychomotor -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; position: relative; z-index: 10;">
+              <div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                   <div style="background: ${schoolSettings.primaryColor || '#0d9488'}08; padding: 12px; border-radius: 12px; border: 1px solid ${schoolSettings.primaryColor || '#0d9488'}15; text-align: center;">
+                     <p style="margin: 0; font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase;">Average</p>
+                     <p style="margin: 5px 0 0 0; font-size: 22px; font-weight: 900; color: ${schoolSettings.primaryColor || '#0d9488'};">${report.termAverage.toFixed(2)}%</p>
+                   </div>
+                   <div style="background: ${schoolSettings.primaryColor || '#0d9488'}08; padding: 12px; border-radius: 12px; border: 1px solid ${schoolSettings.primaryColor || '#0d9488'}15; text-align: center;">
+                     <p style="margin: 0; font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase;">Grade</p>
+                     <p style="margin: 5px 0 0 0; font-size: 22px; font-weight: 900; color: ${schoolSettings.primaryColor || '#0d9488'};">${report.overallGrade}</p>
+                   </div>
+                   <div style="grid-column: span 2; background: ${schoolSettings.primaryColor || '#0d9488'}08; padding: 12px; border-radius: 12px; border: 1px solid ${schoolSettings.primaryColor || '#0d9488'}15; display: flex; justify-content: space-between; align-items: center; padding-left: 20px; padding-right: 20px;">
+                     <span style="font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase;">Attendance</span>
+                     <span style="font-size: 18px; font-weight: 900; color: ${schoolSettings.primaryColor || '#0d9488'};">${report.attendance?.percentage || 0}%</span>
+                     <span style="font-size: 10px; color: #9ca3af; font-weight: 600;">(${report.attendance?.present}/${report.attendance?.total} Days)</span>
+                   </div>
+                </div>
+                <div style="margin-top: 15px; background: #f9fafb; padding: 12px; border-radius: 10px; border: 1px solid #e5e7eb;">
+                   <p style="margin: 0 0 5px 0; font-size: 9px; font-weight: 800; color: #9ca3af; text-transform: uppercase;">Next Term Begins</p>
+                   <p style="margin: 0; font-size: 12px; font-weight: 700; color: #374151;">${report.term.nextTermStartDate ? new Date(report.term.nextTermStartDate).toDateString() : (report.term.nextTermBegins ? new Date(report.term.nextTermBegins).toDateString() : 'To be announced')}</p>
+                </div>
               </div>
-              <div style="background-color: #f0fdfa; padding: 15px; border-radius: 8px; text-align: center;">
-                <p style="margin: 0; font-size: 12px; color: #6b7280;">Overall Grade</p>
-                <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: ${schoolSettings.primaryColor || '#0d9488'};">${report.overallGrade}</p>
-              </div>
-              <div style="background-color: #f0fdfa; padding: 15px; border-radius: 8px; text-align: center;">
-                <p style="margin: 0; font-size: 12px; color: #6b7280;">Position</p>
-                <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: ${schoolSettings.primaryColor || '#0d9488'};">${report.termPosition}/${report.totalStudents}</p>
+              
+              <div style="background: #f9fafb; padding: 15px; border-radius: 12px; border: 1px solid #e5e7eb;">
+                <h3 style="margin: 0 0 10px 0; font-size: 10px; font-weight: 900; text-transform: uppercase; color: #9ca3af; text-align: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px;">Psychomotor Evaluation</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                  ${report.psychomotorRatings?.map(r => `
+                    <div style="display: flex; justify-content: space-between; font-size: 9px; border-bottom: 1px solid #eeeff1; padding: 3px 0;">
+                      <span style="font-weight: 700; color: #4b5563;">${r.name}</span>
+                      <span style="color: ${schoolSettings.primaryColor || '#0d9488'}; font-weight: 900;">${r.score || 0}/${r.maxScore || 5}</span>
+                    </div>
+                  `).join('')}
+                </div>
               </div>
             </div>
 
-            <!-- Signatures -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px;">
-              <div>
-                <p style="margin: 0 0 5px 0; font-size: 12px; color: #6b7280;">Form Master's Signature</p>
-                <div style="border-top: 2px solid #9ca3af; padding-top: 5px;">
-                  <p style="margin: 0; font-size: 12px;">${report.student.formMaster}</p>
-                </div>
+            <!-- Remarks -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px; position: relative; z-index: 10;">
+              <div style="padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px; background: white;">
+                <p style="margin: 0 0 5px 0; font-size: 9px; font-weight: 800; color: #9ca3af; text-transform: uppercase;">Form Master's Remark</p>
+                <p style="margin: 0; font-size: 11px; font-style: italic; color: #4b5563; font-weight: 500; min-height: 25px;">"${report.formMasterRemark}"</p>
               </div>
-              <div>
-                <p style="margin: 0 0 5px 0; font-size: 12px; color: #6b7280;">Principal's Signature</p>
-                <div style="border-top: 2px solid #9ca3af; padding-top: 5px;">
-                  <p style="margin: 0; font-size: 12px;">_____________________</p>
-                </div>
+              <div style="padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px; background: white;">
+                <p style="margin: 0 0 5px 0; font-size: 9px; font-weight: 800; color: #9ca3af; text-transform: uppercase;">Principal's Remark</p>
+                <p style="margin: 0; font-size: 11px; font-style: italic; color: #4b5563; font-weight: 500; min-height: 25px;">"${report.principalRemark}"</p>
               </div>
+            </div>
+
+            <!-- Signatures Section -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: auto; padding-top: 30px; border-top: 2px solid ${schoolSettings.primaryColor || '#0d9488'}20; position: relative; z-index: 10;">
+              <!-- Form Master Seal -->
+              <div style="text-align: center; position: relative;">
+                <div style="position: absolute; top: -45px; left: 50%; transform: translateX(-50%); opacity: 0.15;">
+                  <svg width="60" height="60" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2"/><text x="50" y="45" text-anchor="middle" font-size="8" font-weight="bold">OFFICIAL</text><text x="50" y="55" text-anchor="middle" font-size="10" font-weight="black">SEAL</text></svg>
+                </div>
+                <div style="border-bottom: 2px solid #374151; width: 100%; margin-bottom: 5px;"></div>
+                <p style="margin: 0; font-size: 10px; font-weight: 900; text-transform: uppercase;">${report.student.formMaster}</p>
+                <p style="margin: 0; font-size: 8px; color: #9ca3af; text-transform: uppercase; font-weight: 700;">Form Master</p>
+              </div>
+
+              <!-- Verification Badge -->
+              <div style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <div style="border: 2px solid ${schoolSettings.primaryColor || '#0d9488'}20; border-radius: 40px; padding: 4px 12px; background: ${schoolSettings.primaryColor || '#0d9488'}05; margin-bottom: 5px;">
+                   <span style="font-size: 9px; font-weight: 900; color: ${schoolSettings.primaryColor || '#0d9488'}; letter-spacing: 0.1em;">DIGITALLY VERIFIED</span>
+                </div>
+                <p style="margin: 0; font-size: 8px; color: #d1d5db; font-weight: 700; text-transform: uppercase;">${new Date().toLocaleDateString()}</p>
+              </div>
+
+              <!-- Principal Stamp -->
+              <div style="text-align: center; position: relative;">
+                <div style="position: absolute; top: -45px; left: 50%; transform: translateX(-50%); opacity: 0.15; color: ${schoolSettings.primaryColor || '#0d9488'};">
+                  <svg width="60" height="60" viewBox="0 0 100 100"><polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="none" stroke="currentColor" stroke-width="2"/><text x="50" y="45" text-anchor="middle" font-size="8" font-weight="bold">SCHOOL</text><text x="50" y="55" text-anchor="middle" font-size="10" font-weight="black">STAMP</text></svg>
+                </div>
+                <div style="border-bottom: 2px solid #374151; width: 100%; margin-bottom: 5px;"></div>
+                <p style="margin: 0; font-size: 10px; font-weight: 900; text-transform: uppercase;">School Principal</p>
+                <p style="margin: 0; font-size: 8px; color: #9ca3af; text-transform: uppercase; font-weight: 700;">Authorized Signature</p>
+              </div>
+            </div>
+
+            <!-- Footer Legend -->
+            <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center; font-size: 8px; font-weight: 800; color: #d1d5db; position: relative; z-index: 10;">
+               <div style="text-transform: uppercase; letter-spacing: 0.1em;">
+                 Grade Key: ${(() => {
+            try {
+              const scales = JSON.parse(schoolSettings?.gradingSystem || '[]');
+              return scales.sort((a, b) => b.min - a.min).map(s => `${s.grade}: ${s.min}-${s.max || 100}`).join(' | ');
+            } catch (e) { return 'Legend Error'; }
+          })()}
+               </div>
+               <div style="text-transform: uppercase; letter-spacing: 0.1em;">
+                 Generated by ${schoolSettings.schoolName || 'Portal'} Management System
+               </div>
             </div>
           </div>
         `;
@@ -455,10 +539,16 @@ const BulkReportDownload = () => {
 };
 const ReportCardPreview = ({ report }) => {
   const { settings: schoolSettings } = useSchoolSettings();
+
   return (
-    <div className="bg-white p-8 shadow-lg mx-auto max-w-3xl border-2 border-primary rounded-lg text-sm text-gray-800 font-sans">
+    <div className="bg-white p-8 shadow-lg mx-auto max-w-3xl border-2 border-primary rounded-lg text-sm text-gray-800 font-sans relative overflow-hidden">
+      {/* Watermark */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none rotate-[30deg]">
+        <h1 className="text-9xl font-black">{schoolSettings?.schoolName || 'OFFICIAL'}</h1>
+      </div>
+
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-6 rounded-lg mb-6 flex items-center gap-6">
+      <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-6 rounded-lg mb-6 flex items-center gap-6 relative z-10">
         {schoolSettings.logoUrl && (
           <img
             src={schoolSettings.logoUrl}
@@ -467,22 +557,29 @@ const ReportCardPreview = ({ report }) => {
           />
         )}
         <div>
-          <h1 className="text-2xl font-bold m-0">{schoolSettings.schoolName || 'School Name'}</h1>
-          <p className="mt-1 opacity-90">{schoolSettings.schoolMotto || 'Excellence in Education'}</p>
+          <h1 className="text-2xl font-bold m-0 uppercase tracking-tight">{schoolSettings.schoolName || 'School Name'}</h1>
+          <p className="mt-1 opacity-90 italic">{schoolSettings.schoolMotto || 'Excellence in Education'}</p>
+          <p className="text-[10px] mt-2 opacity-80 uppercase tracking-widest">{schoolSettings.schoolAddress}</p>
         </div>
       </div>
 
       {/* Student Info */}
-      <div className="mb-6 border-b-2 border-gray-200 pb-4">
-        <h2 className="text-lg font-bold mb-4 text-gray-800 uppercase tracking-wide">Student Information</h2>
+      <div className="mb-6 border-b-2 border-gray-200 pb-4 relative z-10">
+        <div className="flex justify-between items-baseline mb-4">
+          <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wide">Terminal Report Card</h2>
+          <span className="text-primary font-bold px-3 py-1 bg-primary/10 rounded-full text-xs uppercase tracking-widest">
+            {report.term.name} - {report.term.session}
+          </span>
+        </div>
+
         <div className="grid grid-cols-2 gap-y-2 gap-x-8">
           <div className="flex justify-between border-b border-gray-100 py-1">
             <span className="font-semibold text-gray-600">Name:</span>
-            <span>{report.student.name}</span>
+            <span className="font-bold">{report.student.name}</span>
           </div>
           <div className="flex justify-between border-b border-gray-100 py-1">
             <span className="font-semibold text-gray-600">Admission No:</span>
-            <span className="font-mono">{report.student.admissionNumber}</span>
+            <span className="font-mono font-bold text-primary">{report.student.admissionNumber}</span>
           </div>
           <div className="flex justify-between border-b border-gray-100 py-1">
             <span className="font-semibold text-gray-600">Class:</span>
@@ -492,52 +589,47 @@ const ReportCardPreview = ({ report }) => {
             <span className="font-semibold text-gray-600">Gender:</span>
             <span>{report.student.gender || 'N/A'}</span>
           </div>
-          <div className="flex justify-between border-b border-gray-100 py-1">
-            <span className="font-semibold text-gray-600">Term:</span>
-            <span>{report.term.name}</span>
+          <div className="flex justify-between border-b border-gray-100 py-1 text-xs">
+            <span className="font-semibold text-gray-600 italic">Clubs:</span>
+            <span className="opacity-70">{report.student.clubs || 'None Assigned'}</span>
           </div>
           <div className="flex justify-between border-b border-gray-100 py-1">
-            <span className="font-semibold text-gray-600">Session:</span>
-            <span>{report.term.session}</span>
-          </div>
-          <div className="col-span-2 flex justify-between border-b border-gray-100 py-1">
-            <span className="font-semibold text-gray-600">Form Master:</span>
-            <span>{report.student.formMaster}</span>
+            <span className="font-semibold text-gray-600 italic font-mono text-[10px]">Position:</span>
+            <span className="font-black text-primary">{report.termPosition} / {report.totalStudents}</span>
           </div>
         </div>
       </div>
 
       {/* Results Table */}
-      <div className="mb-6">
-        <h2 className="text-lg font-bold mb-4 text-gray-800 uppercase tracking-wide">Academic Performance</h2>
-        <div className="overflow-hidden border border-gray-200 rounded-lg">
+      <div className="mb-6 relative z-10">
+        <h2 className="text-[10px] font-black mb-2 text-primary uppercase tracking-[0.2em]">Academic Performance Breakdown</h2>
+        <div className="overflow-hidden border-2 border-primary/20 rounded-xl">
           <table className="min-w-full divide-y divide-gray-200 text-xs">
-            <thead className="bg-primary/5">
+            <thead className="bg-primary/10">
               <tr>
-                <th className="px-3 py-2 text-left font-bold text-primary border-r border-gray-200 text-[10px]">Subject</th>
-                <th className="px-1 py-2 text-center text-gray-600 border-r border-gray-200 text-[8px] leading-tight">1ST CA<br />({report.term.weights?.assignment1 || 5})</th>
-                <th className="px-1 py-2 text-center text-gray-600 border-r border-gray-200 text-[8px] leading-tight">2ND CA<br />({report.term.weights?.assignment2 || 5})</th>
-                <th className="px-1 py-2 text-center text-gray-600 border-r border-gray-200 text-[8px] leading-tight">1ST TST<br />({report.term.weights?.test1 || 10})</th>
-                <th className="px-1 py-2 text-center text-gray-600 border-r border-gray-200 text-[8px] leading-tight">2ND TST<br />({report.term.weights?.test2 || 10})</th>
-                <th className="px-2 py-2 text-center text-gray-600 border-r border-gray-200 text-[8px] leading-tight">EXAM<br />({report.term.weights?.exam || 70})</th>
-                <th className="px-2 py-2 text-center font-bold text-primary bg-primary/10 border-r border-gray-200 text-[8px] leading-tight">TOTAL<br />(100)</th>
-                <th className="px-2 py-2 text-center font-bold text-primary bg-primary/10 border-r border-gray-200">Grd</th>
-                <th className="px-3 py-2 text-left text-gray-600">Remark</th>
+                <th className="px-3 py-3 text-left font-black text-primary border-r border-primary/20 uppercase tracking-tighter">Subject</th>
+                <th className="px-1 py-3 text-center text-gray-600 border-r border-gray-100 text-[9px] leading-tight font-bold uppercase">1ST CA<br />(${report.term.weights?.assignment1})</th>
+                <th className="px-1 py-3 text-center text-gray-600 border-r border-gray-100 text-[9px] leading-tight font-bold uppercase">2ND CA<br />(${report.term.weights?.assignment2})</th>
+                <th className="px-1 py-3 text-center text-gray-600 border-r border-gray-100 text-[9px] leading-tight font-bold uppercase">1ST TST<br />(${report.term.weights?.test1})</th>
+                <th className="px-1 py-3 text-center text-gray-600 border-r border-gray-100 text-[9px] leading-tight font-bold uppercase">2ND TST<br />(${report.term.weights?.test2})</th>
+                <th className="px-2 py-3 text-center text-gray-600 border-r border-gray-100 text-[9px] leading-tight font-bold uppercase">EXAM<br />(${report.term.weights?.exam})</th>
+                <th className="px-3 py-3 text-center font-black text-primary bg-primary/20 border-r border-primary/20 uppercase tracking-tighter">Total</th>
+                <th className="px-3 py-3 text-center font-black text-white bg-primary border-r border-primary">GRD</th>
+                <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase italic">Remark</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
+            <tbody className="divide-y divide-gray-100 bg-white">
               {report.subjects.map((subject, idx) => (
-                <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50'}>
-                  <td className="px-3 py-2 font-medium text-gray-900 border-r border-gray-200">{subject.name}</td>
-                  <td className="px-2 py-2 text-center border-r border-gray-200">{subject.assignment1?.toFixed(1) || '-'}</td>
-                  <td className="px-2 py-2 text-center border-r border-gray-200">{subject.assignment2?.toFixed(1) || '-'}</td>
-                  <td className="px-2 py-2 text-center border-r border-gray-200">{subject.test1?.toFixed(1) || '-'}</td>
-                  <td className="px-2 py-2 text-center border-r border-gray-200">{subject.test2?.toFixed(1) || '-'}</td>
-                  <td className="px-2 py-2 text-center border-r border-gray-200">{subject.exam?.toFixed(1) || '-'}</td>
-                  <td className="px-3 py-2 text-center font-bold bg-primary/5 border-r border-primary/20">{subject.total.toFixed(1)}</td>
-                  <td className={`px-2 py-2 text-center font-bold bg-primary/5 border-r border-primary/20 ${subject.grade === 'F' ? 'text-red-600' : 'text-primary'
-                    }`}>{subject.grade}</td>
-                  <td className="px-3 py-2 text-gray-500 italic">{subject.remark}</td>
+                <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-primary/[0.02]'}>
+                  <td className="px-3 py-2.5 font-bold text-gray-900 border-r border-gray-100 text-[11px]">{subject.name}</td>
+                  <td className="px-2 py-2.5 text-center border-r border-gray-50">{subject.assignment1?.toFixed(1) || '-'}</td>
+                  <td className="px-2 py-2.5 text-center border-r border-gray-50">{subject.assignment2?.toFixed(1) || '-'}</td>
+                  <td className="px-2 py-2.5 text-center border-r border-gray-50">{subject.test1?.toFixed(1) || '-'}</td>
+                  <td className="px-2 py-2.5 text-center border-r border-gray-50">{subject.test2?.toFixed(1) || '-'}</td>
+                  <td className="px-2 py-2.5 text-center border-r border-gray-50">{subject.exam?.toFixed(1) || '-'}</td>
+                  <td className="px-3 py-2.5 text-center font-black bg-primary/10 text-primary border-r border-primary/10">{subject.total.toFixed(1)}</td>
+                  <td className={`px-3 py-2.5 text-center font-black border-r border-primary/10 ${subject.grade === 'F' ? 'text-red-600 bg-red-50' : 'text-primary bg-primary/5'}`}>{subject.grade}</td>
+                  <td className="px-3 py-2.5 text-[10px] text-gray-500 italic font-medium">{subject.remark}</td>
                 </tr>
               ))}
             </tbody>
@@ -545,35 +637,106 @@ const ReportCardPreview = ({ report }) => {
         </div>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="bg-primary/5 p-4 rounded-lg text-center border border-primary/20">
-          <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Term Average</p>
-          <p className="text-3xl font-bold text-primary">{report.termAverage.toFixed(2)}%</p>
+      <div className="grid grid-cols-2 gap-6 mb-6 relative z-10">
+        {/* Summary Stats */}
+        <div className="grid grid-cols-2 gap-3 h-fit">
+          <div className="bg-primary/5 p-3 rounded-xl text-center border border-primary/10 shadow-sm">
+            <p className="text-gray-500 text-[9px] font-black uppercase tracking-widest mb-1">Average</p>
+            <p className="text-xl font-black text-primary">{report.termAverage.toFixed(2)}%</p>
+          </div>
+          <div className="bg-primary/5 p-3 rounded-xl text-center border border-primary/10 shadow-sm">
+            <p className="text-gray-500 text-[9px] font-black uppercase tracking-widest mb-1">Final Grade</p>
+            <p className="text-xl font-black text-primary">{report.overallGrade}</p>
+          </div>
+          <div className="bg-primary/5 p-3 rounded-xl text-center border border-primary/10 shadow-sm col-span-2 flex justify-between items-center px-4">
+            <span className="text-gray-500 text-[9px] font-black uppercase tracking-widest">Attendance</span>
+            <span className="text-lg font-black text-primary">{report.attendance?.percentage || 0}%</span>
+            <span className="text-[10px] text-gray-400 font-bold">(${report.attendance?.present}/${report.attendance?.total} Days)</span>
+          </div>
         </div>
-        <div className="bg-primary/5 p-4 rounded-lg text-center border border-primary/20">
-          <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Overall Grade</p>
-          <p className="text-3xl font-bold text-primary">{report.overallGrade}</p>
+
+        {/* Psychomotor Ratings */}
+        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-inner h-fit">
+          <h3 className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-3 text-center">Psychomotor & Behavioral Evaluation</h3>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+            {report.psychomotorRatings?.map((rating, idx) => (
+              <div key={idx} className="flex justify-between items-center text-[10px] border-b border-gray-200/50 pb-1">
+                <span className="text-gray-600 font-bold">{rating.name}</span>
+                <span className="flex gap-0.5">
+                  {[...Array(rating.maxScore)].map((_, i) => (
+                    <span key={i} className={`w-2 h-2 rounded-full ${i < rating.score ? 'bg-primary' : 'bg-gray-300'}`}></span>
+                  ))}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="bg-primary/5 p-4 rounded-lg text-center border border-primary/20">
-          <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Position</p>
-          <p className="text-3xl font-bold text-primary">{report.termPosition} <span className="text-sm text-gray-500 font-normal">/ {report.totalStudents}</span></p>
+      </div>
+
+      {/* Remarks */}
+      <div className="grid grid-cols-2 gap-6 mb-8 relative z-10">
+        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <p className="text-[9px] font-black text-gray-400 uppercase mb-1">Form Master's Remarks</p>
+          <p className="text-[11px] italic text-gray-600 font-medium leading-relaxed">"${report.formMasterRemark}"</p>
+        </div>
+        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <p className="text-[9px] font-black text-gray-400 uppercase mb-1">Principal's Remarks</p>
+          <p className="text-[11px] italic text-gray-600 font-medium leading-relaxed">"${report.principalRemark}"</p>
         </div>
       </div>
 
       {/* Signatures */}
-      <div className="grid grid-cols-2 gap-12 mt-12 pt-6 border-t border-gray-200">
-        <div className="text-center">
-          <div className="inline-block border-b-2 border-gray-400 w-48 pb-2 mb-2 font-script text-lg">
-            {report.student.formMaster}
+      <div className="grid grid-cols-3 gap-8 mt-12 pt-6 border-t-2 border-primary/20 relative z-10">
+        <div className="text-center relative">
+          <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-20 pointer-events-none">
+            <svg width="60" height="60" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
+              <text x="50" y="45" textAnchor="middle" fontSize="8" fontWeight="bold">OFFICIAL</text>
+              <text x="50" y="55" textAnchor="middle" fontSize="10" fontWeight="black">SEAL</text>
+            </svg>
           </div>
-          <p className="text-xs text-gray-500 uppercase tracking-widest">Form Master's Signature</p>
+          <div className="border-b-2 border-black w-full mb-1 opacity-80"></div>
+          <p className="text-[10px] font-black uppercase">{report.student.formMaster}</p>
+          <p className="text-[8px] text-gray-400 uppercase mt-0.5 italic">Form Master</p>
         </div>
-        <div className="text-center">
-          <div className="inline-block border-b-2 border-gray-400 w-48 pb-2 mb-2">
-            &nbsp;
+
+        <div className="text-center flex flex-col justify-center items-center">
+          <div className="p-2 border-2 border-primary/20 rounded-full mb-1">
+            <div className="bg-primary/5 text-primary p-2 rounded-full font-black text-[10px]">VERIFIED</div>
           </div>
-          <p className="text-xs text-gray-500 uppercase tracking-widest">Principal's Signature</p>
+          <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">${new Date().toLocaleDateString()}</p>
+        </div>
+
+        <div className="text-center relative">
+          <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-20 pointer-events-none">
+            <svg width="60" height="60" viewBox="0 0 100 100" className="text-primary">
+              <polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="none" stroke="currentColor" strokeWidth="2" />
+              <text x="50" y="45" textAnchor="middle" fontSize="8" fontWeight="bold">SCHOOL</text>
+              <text x="50" y="55" textAnchor="middle" fontSize="10" fontWeight="black">STAMP</text>
+            </svg>
+          </div>
+          <div className="border-b-2 border-black w-full mb-1 opacity-80"></div>
+          <p className="text-[10px] font-black uppercase">Principal's Signature</p>
+          <p className="text-[8px] text-gray-400 uppercase mt-0.5 italic">School Authority</p>
+        </div>
+      </div>
+
+      {/* Legend Footer */}
+      <div className="mt-8 pt-4 border-t border-gray-100 flex justify-between items-center text-[9px] text-gray-400 font-bold relative z-10">
+        <div className="flex gap-4 uppercase tracking-widest">
+          <span>GP: Grade Point</span>
+          <span>CA: Continuous Assessment</span>
+          <span>% Attend: Attendance Percentage</span>
+        </div>
+        <div className="flex gap-2 text-primary/60">
+          {(() => {
+            try {
+              const scales = JSON.parse(schoolSettings?.gradingSystem || '[]');
+              return scales.sort((a, b) => b.min - a.min).map(s => (
+                <span key={s.grade}>{s.grade}: {s.min}-{s.max || 100}</span>
+              ));
+            } catch (e) { return null; }
+          })()}
         </div>
       </div>
     </div>

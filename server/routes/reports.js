@@ -68,7 +68,8 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         });
       }
     } else if (req.user.role === 'teacher') {
-      if (!student.classModel || student.classModel.classTeacherId !== req.user.id) {
+      const isClassTeacher = student.classModel?.classTeacherId === req.user.id;
+      if (!isClassTeacher && req.user.role !== 'admin' && req.user.role !== 'superadmin') {
         return res.status(403).json({
           error: 'Access Denied',
           message: 'You can only view reports for students in your assigned class.'
@@ -108,10 +109,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       }
     });
 
-    console.log(`[TermReport Debug] Request Params: studentId=${studentId}, termId=${termId}, schoolId=${req.schoolId}`);
-    console.log(`[TermReport Debug] Results Found: ${results.length}`);
-
-    // NEW: Fetch all subjects for the class to ensure all appear on report
+    // Fetch all subjects for the class to ensure all appear on report
     const classSubjects = await prisma.classSubject.findMany({
       where: { classId: student.classId, schoolId: req.schoolId },
       include: { subject: true }
@@ -127,9 +125,10 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       totalSubjectsCount
     );
 
-    // Calculate term position (rank among classmates) using total class subjects
+    // Calculate term position (rank among classmates) using Competition Ranking (1,1,3)
     const classmates = await prisma.student.findMany({
-      where: { classId: student.classId, schoolId: req.schoolId, status: 'active' }
+      where: { classId: student.classId, schoolId: req.schoolId, status: 'active' },
+      select: { id: true }
     });
 
     const studentTotals = {};
@@ -137,7 +136,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       studentTotals[c.id] = 0;
     });
 
-    const classResults = await prisma.result.findMany({
+    const allClassResults = await prisma.result.findMany({
       where: {
         classId: student.classId,
         termId: parseInt(termId),
@@ -145,19 +144,53 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       }
     });
 
-    classResults.forEach(result => {
+    allClassResults.forEach(result => {
       if (studentTotals[result.studentId] !== undefined) {
         studentTotals[result.studentId] += result.totalScore || 0;
       }
     });
 
-    const averages = Object.entries(studentTotals).map(([id, total]) => ({
-      studentId: parseInt(id),
-      average: total / totalSubjectsCount
-    })).sort((a, b) => b.average - a.average);
+    const sortedAverages = Object.entries(studentTotals)
+      .map(([id, total]) => ({
+        studentId: parseInt(id),
+        average: total / totalSubjectsCount
+      }))
+      .sort((a, b) => b.average - a.average);
 
-    const termPosition = averages.findIndex(a => a.studentId === parseInt(studentId)) + 1;
+    // Competition Ranking Logic (1, 1, 3)
+    let termPosition = 1;
+    let prevAverage = -1;
+    let rank = 0;
+    for (let i = 0; i < sortedAverages.length; i++) {
+      rank++;
+      if (sortedAverages[i].average !== prevAverage) {
+        termPosition = rank;
+      }
+      if (sortedAverages[i].studentId === parseInt(studentId)) {
+        break;
+      }
+      prevAverage = sortedAverages[i].average;
+    }
+
     const totalStudents = classmates.length;
+
+    // Fetch Attendance Stats
+    const totalAttendanceDays = await prisma.attendanceRecord.count({
+      where: {
+        schoolId: req.schoolId,
+        studentId: parseInt(studentId),
+        termId: parseInt(termId)
+      }
+    });
+
+    const presentAttendanceDays = await prisma.attendanceRecord.count({
+      where: {
+        schoolId: req.schoolId,
+        studentId: parseInt(studentId),
+        termId: parseInt(termId),
+        status: { in: ['present', 'late'] }
+      }
+    });
 
     // Find next term
     const nextTerm = await prisma.term.findFirst({
@@ -180,6 +213,14 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         schoolId: req.schoolId
       }
     });
+
+    // Fetch psychomotor domains for better mapping
+    const psychomotorDomains = await prisma.psychomotorDomain.findMany({
+      where: { schoolId: req.schoolId, isActive: true },
+      orderBy: { name: 'asc' }
+    });
+
+    const ratings = reportExtras?.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : [];
 
     // --- NEW LOGIC FOR AGE, CLUB, AND TERM SEQUENCE ---
     const calculateAge = (dob) => {
@@ -225,7 +266,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         age: calculateAge(student.dateOfBirth),
         gender: student.gender,
         photoUrl: student.photoUrl,
-        clubs: student.clubs || 'JETS CLUB',
+        clubs: student.clubs || 'None Assigned',
         formMaster: student.classModel?.classTeacher
           ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}`
           : 'Not Assigned'
@@ -238,6 +279,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         startDate: term.startDate,
         endDate: term.endDate,
         nextTermStartDate: nextTerm?.startDate || null,
+        nextTermBegins: term.endDate ? new Date(new Date(term.endDate).getTime() + 14 * 24 * 60 * 60 * 1000) : null,
         weights: {
           assignment1: schoolSettings.assignment1Weight,
           assignment2: schoolSettings.assignment2Weight,
@@ -245,6 +287,11 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
           test2: schoolSettings.test2Weight,
           exam: schoolSettings.examWeight
         }
+      },
+      attendance: {
+        present: presentAttendanceDays,
+        total: totalAttendanceDays,
+        percentage: totalAttendanceDays > 0 ? ((presentAttendanceDays / totalAttendanceDays) * 100).toFixed(1) : 0
       },
       subjects: classSubjects.map(cs => {
         const result = results.find(r => r.subjectId === cs.subjectId);
@@ -289,7 +336,14 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       // Extras
       formMasterRemark: reportExtras?.formMasterRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
       principalRemark: reportExtras?.principalRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
-      psychomotorRatings: reportExtras?.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : []
+      psychomotorRatings: psychomotorDomains.map(d => {
+        const rating = ratings.find(r => r.domainId === d.id);
+        return {
+          name: d.name,
+          score: rating ? rating.score : null,
+          maxScore: d.maxScore || 5
+        };
+      })
     };
 
     res.json(reportData);
@@ -762,41 +816,41 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       }
     });
 
-    // Fetch results for all students
-    const reports = [];
-
-    // Find next term
-    const nextTerm = await prisma.term.findFirst({
+    // Fetch all attendance for the class in this term for efficient lookup
+    const allAttendanceRecords = await prisma.attendanceRecord.findMany({
       where: {
         schoolId: req.schoolId,
-        startDate: {
-          gt: term.startDate
-        }
-      },
-      orderBy: {
-        startDate: 'asc'
+        studentId: { in: allStudentsInClass.map(s => s.id) },
+        termId: parseInt(termId)
       }
     });
 
-    const calculateAge = (dob) => {
-      if (!dob) return '-';
-      const birthDate = new Date(dob);
-      const today = new Date();
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const m = today.getMonth() - birthDate.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
+    const attendanceByStudent = {};
+    allAttendanceRecords.forEach(rec => {
+      if (!attendanceByStudent[rec.studentId]) {
+        attendanceByStudent[rec.studentId] = { total: 0, present: 0 };
       }
-      return age;
-    };
-
-    // Determine term sequence
-    const allTerms = await prisma.term.findMany({
-      where: { academicSessionId: term.academicSessionId, schoolId: req.schoolId },
-      orderBy: { startDate: 'asc' }
+      attendanceByStudent[rec.studentId].total++;
+      if (['present', 'late'].includes(rec.status)) {
+        attendanceByStudent[rec.studentId].present++;
+      }
     });
-    const termIndex = allTerms.findIndex(t => t.id === parseInt(termId));
-    const termNumber = termIndex + 1;
+
+    // Fetch psychomotor domains once
+    const psychomotorDomains = await prisma.psychomotorDomain.findMany({
+      where: { schoolId: req.schoolId, isActive: true },
+      orderBy: { name: 'asc' }
+    });
+
+    // Competition Ranking logic
+    const rankings = [];
+    classwideAverages.forEach((curr, idx) => {
+      if (idx > 0 && curr.average === classwideAverages[idx - 1].average) {
+        rankings.push({ studentId: curr.studentId, position: rankings[idx - 1].position });
+      } else {
+        rankings.push({ studentId: curr.studentId, position: idx + 1 });
+      }
+    });
 
     for (const student of students) {
       // Fetch results for this student
@@ -833,7 +887,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       const studentTotal = classwideStudentTotals[student.id] || 0;
       const termAverage = studentTotal / totalSubjectsCount;
 
-      const termPosition = classwideAverages.findIndex(a => a.studentId === student.id) + 1;
+      const termPosition = rankings.find(r => r.studentId === student.id)?.position || '-';
       const totalStudentsCount = allStudentsInClass.length;
 
       // Fetch report card extras (remarks & psychomotor)
@@ -845,6 +899,9 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         }
       });
 
+      const studentRatings = reportExtras?.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : [];
+      const att = attendanceByStudent[student.id] || { total: 0, present: 0 };
+
       reports.push({
         student: {
           id: student.id,
@@ -855,7 +912,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           age: calculateAge(student.dateOfBirth),
           gender: student.gender,
           photoUrl: student.photoUrl,
-          clubs: student.clubs || 'JETS CLUB',
+          clubs: student.clubs || 'None Assigned',
           formMaster: student.classModel?.classTeacher
             ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}`
             : 'Not Assigned'
@@ -868,6 +925,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           startDate: term.startDate,
           endDate: term.endDate,
           nextTermStartDate: nextTerm?.startDate || null,
+          nextTermBegins: term.endDate ? new Date(new Date(term.endDate).getTime() + 14 * 24 * 60 * 60 * 1000) : null,
           weights: {
             assignment1: schoolSettings.assignment1Weight,
             assignment2: schoolSettings.assignment2Weight,
@@ -875,6 +933,11 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
             test2: schoolSettings.test2Weight,
             exam: schoolSettings.examWeight
           }
+        },
+        attendance: {
+          present: att.present,
+          total: att.total,
+          percentage: att.total > 0 ? ((att.present / att.total) * 100).toFixed(1) : 0
         },
         subjects: classSubjects.map(cs => {
           const result = results.find(r => r.subjectId === cs.subjectId);
@@ -918,8 +981,15 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         overallRemark: getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
         // Extras
         formMasterRemark: reportExtras?.formMasterRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
-        principalRemark: reportExtras?.principalRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
-        psychomotorRatings: reportExtras?.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : []
+        principalRemark: reportExtras?.principalRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSession), schoolSettings.gradingSystem),
+        psychomotorRatings: psychomotorDomains.map(d => {
+          const rating = studentRatings.find(r => r.domainId === d.id);
+          return {
+            name: d.name,
+            score: rating ? rating.score : null,
+            maxScore: d.maxScore || 5
+          };
+        })
       });
     }
 

@@ -457,7 +457,7 @@ const ParentDashboard = () => {
                     </Link>
                   </div>
                   <Link
-                    to="/parent/attendance"
+                    to="/dashboard/parent/attendance"
                     className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -466,7 +466,7 @@ const ParentDashboard = () => {
                     View Attendance
                   </Link>
                   <Link
-                    to="/parent/messages"
+                    to="/dashboard/parent/messages"
                     className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

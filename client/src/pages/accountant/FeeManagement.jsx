@@ -1107,11 +1107,11 @@ export default function FeeManagement() {
       {/* Table View */}
       {viewMode === 'table' && (
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto relative">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-3 text-left">
+                  <th className="px-3 py-3 text-left">
                     <input
                       type="checkbox"
                       checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
@@ -1119,25 +1119,25 @@ export default function FeeManagement() {
                       className="rounded border-gray-300 text-primary focus:ring-primary"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
                     Student
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
                     Class
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
                     Expected
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
                     Paid
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
                     Balance
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
                     Actions
                   </th>
                 </tr>
@@ -1147,7 +1147,7 @@ export default function FeeManagement() {
                   const feeRecord = student.feeRecords[0];
                   return (
                     <tr key={student.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-4">
                         <input
                           type="checkbox"
                           checked={selectedStudents.includes(student.id)}
@@ -1155,52 +1155,52 @@ export default function FeeManagement() {
                           className="rounded border-gray-300 text-primary focus:ring-primary"
                         />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="font-medium text-gray-900">
+                      <td className="px-3 py-4">
+                        <div className="min-w-[140px]">
+                          <div className="font-bold text-gray-900 leading-tight">
                             {student.user.firstName} {student.user.lastName}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-[10px] text-gray-400 font-medium">
                             {student.admissionNumber}
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-3 py-4 text-xs font-semibold text-gray-700">
                         {student.classModel ?
-                          `${student.classModel.name}${student.classModel.arm || ''} ` :
+                          `${student.classModel.name}${student.classModel.arm || ''}` :
                           'N/A'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-3 py-4 text-xs font-bold text-gray-900">
                         ₦{feeRecord?.expectedAmount.toLocaleString() || '0'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                      <td className="px-3 py-4 text-xs font-black text-green-600">
                         ₦{feeRecord?.paidAmount.toLocaleString() || '0'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">
+                      <td className="px-3 py-4 text-xs font-black text-red-600">
                         ₦{feeRecord?.balance.toLocaleString() || '0'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4">
                         {feeRecord?.isClearedForExam ? (
-                          <span className="px-3 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                          <span className="px-2 py-1 text-[9px] font-black uppercase tracking-widest rounded bg-indigo-50 text-indigo-600 border border-indigo-100">
                             ✓ Allowed
                           </span>
                         ) : (
-                          <span className="px-3 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">
+                          <span className="px-2 py-1 text-[9px] font-black uppercase tracking-widest rounded bg-amber-50 text-amber-600 border border-amber-100">
                             🚫 Restricted
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex flex-wrap gap-2">
+                      <td className="px-3 py-4">
+                        <div className="flex flex-wrap gap-1.5 min-w-[200px]">
                           <button
                             onClick={() => setSelectedStudent(student)}
-                            className="text-primary hover:text-primary-dark font-medium"
+                            className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
                           >
                             💰 Pay
                           </button>
                           <button
                             onClick={() => viewPaymentHistory(student)}
-                            className="text-blue-600 hover:text-blue-900 font-medium"
+                            className="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
                           >
                             🕒 History
                           </button>
@@ -1210,33 +1210,27 @@ export default function FeeManagement() {
                               setReceiptPayment(null);
                               setReceiptModalOpen(true);
                             }}
-                            className="text-indigo-600 hover:text-indigo-900 font-medium"
+                            className="bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
                           >
                             🖨️ Receipt
                           </button>
                           <button
                             onClick={() => handleEditFee(student)}
-                            className="text-orange-600 hover:text-orange-900 font-medium"
+                            className="bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
                           >
                             ⚙️ Adjust
                           </button>
                           <button
                             onClick={() => toggleClearance(student.id, !feeRecord?.isClearedForExam)}
-                            className={`${feeRecord?.isClearedForExam ? 'text-amber-600 hover:text-amber-900' : 'text-indigo-600 hover:text-indigo-900'} font-medium`}
-                            title={feeRecord?.isClearedForExam ? 'Restrict Exam Card' : 'Allow Exam Card'}
+                            className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all ${feeRecord?.isClearedForExam ? 'bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'}`}
                           >
-                            {feeRecord?.isClearedForExam ? '🚫 Restrict (Fee)' : '✅ Allow (Fee)'}
+                            {feeRecord?.isClearedForExam ? '🚫 Revoke' : '✅ Grant'}
                           </button>
                           <button
                             onClick={() => handleRestrictClick(student)}
-                            className={`${student.isExamRestricted ? 'text-red-600 hover:text-red-800 font-bold' : 'text-gray-500 hover:text-gray-700'} font-medium flex items-center gap-1`}
-                            title="Manage Global Card Restriction"
+                            className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all ${student.isExamRestricted ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white'}`}
                           >
-                            {student.isExamRestricted ? (
-                              <>🔒 BLOCKED</>
-                            ) : (
-                              <>🛡️ Block</>
-                            )}
+                            {student.isExamRestricted ? '🔒 BLOCKED' : '🛡️ Block'}
                           </button>
                         </div>
                       </td>

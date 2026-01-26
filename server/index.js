@@ -103,8 +103,7 @@ app.use('/api/students', require('./routes/students'));
 app.use('/api/subjects', require('./routes/subjects'));
 app.use('/api/exams', require('./routes/exams'));
 app.use('/api/results', require('./routes/results-enhanced')); // Enhanced results with 5 components
-app.use('/api/reports', require('./routes/reports')); // NEW: Report generation
-app.use('/api/report-card', require('./routes/report-card'));
+app.use('/api/reports', require('./routes/reports')); // Unified report generation
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/advanced-analytics', require('./routes/advanced-analytics')); // Advanced AI-powered analytics
 app.use('/api/academic-sessions', require('./routes/academic-sessions'));

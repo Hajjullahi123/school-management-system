@@ -115,29 +115,18 @@ const TermReportCard = () => {
     try {
       // BULK MODE: All Students in Class
       if (searchMode === 'class' && selectedClassId && selectedStudentId === 'all') {
-        if (classStudents.length === 0) {
-          alert('No students found in this class.');
-          setLoading(false);
-          return;
+        const response = await api.get(`/api/reports/bulk/${selectedClassId}/${selectedTerm}`);
+
+        if (!response.ok) {
+          throw new Error('Failed to generate bulk reports');
         }
 
-        const reports = [];
-        for (const student of classStudents) {
-          try {
-            const response = await api.get(`/api/reports/term/${student.id}/${selectedTerm}`);
-            if (response.ok) {
-              const data = await response.json();
-              reports.push(data);
-            }
-          } catch (e) {
-            console.error(`Failed to fetch report for student ${student.id}`, e);
-          }
-        }
+        const data = await response.json();
 
-        if (reports.length === 0) {
-          alert('Could not generate any reports. Please check if results exist.');
+        if (data.reports.length === 0) {
+          alert('No results found for any student in this class.');
         } else {
-          setBulkReports(reports);
+          setBulkReports(data.reports);
         }
         setLoading(false);
         return;
@@ -392,7 +381,7 @@ const TermReportCard = () => {
               <div key={idx} className="relative bg-white p-8 print:p-4 my-8 print:my-0 shadow-2xl print:shadow-none print:break-after-page text-black font-serif border-[12px] border-emerald-800 print:emerald-border">
 
                 {/* PROTECTION WATERMARK */}
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] select-none rotate-12 overflow-hidden">
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
                   <div className="text-[100px] font-black uppercase text-gray-900 leading-[0.8] text-center">
                     {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
                     {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
@@ -442,7 +431,7 @@ const TermReportCard = () => {
                     <tbody>
                       <tr className="border-b border-black">
                         <td className="border-r border-black p-1 w-1/6">NAME:</td>
-                        <td className="border-r border-black p-1 w-2/3 text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>{data.student?.name}</td>
+                        <td className="border-r border-black p-1 w-2/3 text-emerald-800 font-black" style={{ color: schoolSettings?.primaryColor }}>{data.student?.name}</td>
                         <td className="border-r border-black p-1 w-1/6">GENDER:</td>
                         <td className="p-1">{data.student?.gender}</td>
                       </tr>
@@ -450,7 +439,7 @@ const TermReportCard = () => {
                         <td className="border-r border-black p-1">CLASS:</td>
                         <td className="border-r border-black p-1">{data.student?.class}</td>
                         <td className="border-r border-black p-1">SESSION:</td>
-                        <td className="p-1">{data.term?.session || data.academic?.session}</td>
+                        <td className="p-1">{data.term?.session}</td>
                       </tr>
                       <tr className="border-b border-black">
                         <td className="border-r border-black p-1">ADM NO:</td>
@@ -458,11 +447,17 @@ const TermReportCard = () => {
                         <td className="border-r border-black p-1">D.O.B:</td>
                         <td className="p-1">{data.student?.dateOfBirth ? new Date(data.student.dateOfBirth).toLocaleDateString() : 'N/A'}</td>
                       </tr>
-                      <tr>
+                      <tr className="border-b border-black">
                         <td className="border-r border-black p-1">AGE:</td>
                         <td className="border-r border-black p-1">{data.student?.age || '-'}</td>
                         <td className="border-r border-black p-1">CLUB:</td>
-                        <td className="p-1">{data.student?.clubs || 'JETS CLUB'}</td>
+                        <td className="p-1">{data.student?.clubs !== 'None Assigned' ? data.student?.clubs : 'N/A'}</td>
+                      </tr>
+                      <tr>
+                        <td className="border-r border-black p-1">ATTENDANCE:</td>
+                        <td className="border-r border-black p-1 text-emerald-700" style={{ color: schoolSettings?.primaryColor }}>{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
+                        <td className="border-r border-black p-1">TERM:</td>
+                        <td className="p-1">{data.term?.name}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -478,17 +473,17 @@ const TermReportCard = () => {
                         <thead>
                           <tr className="bg-gray-200">
                             <th className="border border-black p-1 text-left">SUBJECTS</th>
-                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">1ST CA<br />{data.academic?.weights?.assignment1 || 5}</th>
-                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">2ND CA<br />{data.academic?.weights?.assignment2 || 5}</th>
-                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">1ST TST<br />{data.academic?.weights?.test1 || 10}</th>
-                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">2ND TST<br />{data.academic?.weights?.test2 || 10}</th>
-                            <th className="border border-black p-1 text-center w-8">EXM<br />{data.academic?.weights?.exam || 70}</th>
-                            <th className="border border-black p-1 text-center w-8">TOT<br />100</th>
+                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">1ST CA<br />{data.term?.weights?.assignment1 || 5}</th>
+                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">2ND CA<br />{data.term?.weights?.assignment2 || 5}</th>
+                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">1ST TST<br />{data.term?.weights?.test1 || 10}</th>
+                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">2ND TST<br />{data.term?.weights?.test2 || 10}</th>
+                            <th className="border border-black p-1 text-center w-8">EXM<br />{data.term?.weights?.exam || 70}</th>
+                            <th className="border border-black p-1 text-center w-8 font-black">TOT<br />100</th>
                             {termNumber === 3 && (
                               <>
                                 <th className="border border-black p-1 text-center w-6 text-[7px]">T1</th>
                                 <th className="border border-black p-1 text-center w-6 text-[7px]">T2</th>
-                                <th className="border border-black p-1 text-center w-8 text-[7px]">CUM</th>
+                                <th className="border border-black p-1 text-center w-8 text-[7px] font-bold">CUM</th>
                               </>
                             )}
                             <th className="border border-black p-1 text-center w-6">GRD</th>
@@ -505,12 +500,12 @@ const TermReportCard = () => {
                               <td className="border border-black text-center text-[10px]">{sub.test1 || '0'}</td>
                               <td className="border border-black text-center text-[10px]">{sub.test2 || '0'}</td>
                               <td className="border border-black text-center text-[10px]">{sub.exam || '0'}</td>
-                              <td className="border border-black text-center bg-gray-50 text-[10px]">{sub.total?.toFixed(0)}</td>
+                              <td className="border border-black text-center bg-gray-50 text-[10px] font-black">{sub.total?.toFixed(0)}</td>
                               {termNumber === 3 && (
                                 <>
-                                  <td className="border border-black text-center text-[9px]">{sub.term1Score ?? '-'}</td>
-                                  <td className="border border-black text-center text-[9px]">{sub.term2Score ?? '-'}</td>
-                                  <td className="border border-black text-center bg-gray-50 text-[9px]">{sub.cumulativeAverage?.toFixed(1) ?? '-'}</td>
+                                  <td className="border border-black text-center text-[9px]">{sub.term1Score ?? '0'}</td>
+                                  <td className="border border-black text-center text-[9px]">{sub.term2Score ?? '0'}</td>
+                                  <td className="border border-black text-center bg-gray-50 text-[9px] font-bold">{sub.cumulativeAverage?.toFixed(1) ?? '0'}</td>
                                 </>
                               )}
                               <td className="border border-black text-center text-[10px] font-black">{sub.grade}</td>
@@ -524,12 +519,12 @@ const TermReportCard = () => {
 
                     {/* RIGHT: DOMAINS */}
                     <div className="flex flex-col h-full gap-2">
-                      {/* AFFECTIVE */}
+                      {/* AFFECTIVE & PSYCHOMOTOR Mapped from improved API */}
                       <div className="flex-1 flex flex-col min-h-0">
                         <table className="w-full border-2 border-black border-collapse text-[10px] flex-1">
                           <thead className="bg-gray-200 uppercase font-bold sticky top-0">
                             <tr>
-                              <th className="border-b border-r border-black text-left px-1 py-0.5">AFFECTIVE</th>
+                              <th className="border-b border-r border-black text-left px-1 py-0.5">BEHAVIORAL DOMAINS</th>
                               <th className="border-b border-black w-5">5</th>
                               <th className="border-b border-black w-5">4</th>
                               <th className="border-b border-black w-5">3</th>
@@ -538,29 +533,18 @@ const TermReportCard = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {domainSplit.affective.map((item, i) => (
-                              <tr key={i} className="h-5"><td className="border border-black px-1 truncate font-bold uppercase">{item.name}</td>{renderRatingTicks(item.score)}</tr>
+                            {(data.psychomotorRatings || []).map((item, i) => (
+                              <tr key={i} className="h-5">
+                                <td className="border border-black px-1 truncate font-bold uppercase">{item.name}</td>
+                                {renderRatingTicks(item.score)}
+                              </tr>
                             ))}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* PSYCHOMOTOR */}
-                      <div className="flex-1 flex flex-col min-h-0">
-                        <table className="w-full border-2 border-black border-collapse text-[10px] flex-1">
-                          <thead className="bg-gray-200 uppercase font-bold sticky top-0">
-                            <tr>
-                              <th className="border-b border-r border-black text-left px-1 py-0.5">PSYCHOMOTOR</th>
-                              <th className="border-b border-black w-5">5</th>
-                              <th className="border-b border-black w-5">4</th>
-                              <th className="border-b border-black w-5">3</th>
-                              <th className="border-b border-black w-5">2</th>
-                              <th className="border-b border-black w-5">1</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {domainSplit.psychomotor.map((item, i) => (
-                              <tr key={i} className="h-5"><td className="border border-black px-1 truncate font-bold uppercase">{item.name}</td>{renderRatingTicks(item.score)}</tr>
+                            {/* Fill empty spaces if needed */}
+                            {Array.from({ length: Math.max(0, 18 - (data.psychomotorRatings?.length || 0)) }).map((_, i) => (
+                              <tr key={`empty-${i}`} className="h-5">
+                                <td className="border border-black px-1 font-bold text-gray-200 italic">-</td>
+                                <td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td>
+                              </tr>
                             ))}
                           </tbody>
                         </table>
@@ -568,21 +552,25 @@ const TermReportCard = () => {
                     </div>
                   </div>
 
-                  {/* SUMMARY & GRADING KEY (DIRECTLY BELOW COGNITIVE) */}
+                  {/* SUMMARY & GRADING KEY */}
                   <div className="grid grid-cols-[68%_31%] gap-2 mt-2">
                     <div className="grid grid-cols-2 gap-0 border-2 border-black rounded-lg overflow-hidden divide-x-2 divide-black">
-                      {/* GRADE INFO */}
+                      {/* DYNAMIC GRADE INFO */}
                       <div className="p-2 text-[9px] bg-gray-50/50 leading-tight flex flex-col justify-center">
                         <p className="font-black border-b border-black mb-1 uppercase text-gray-500 text-[8px]">Grading Legend</p>
                         <div className="grid grid-cols-2 gap-x-2 font-bold">
-                          <span>A: 75-100</span>
-                          <span>B: 65-74</span>
-                          <span>C: 55-64</span>
-                          <span>D: 45-54</span>
-                          <span>E: 40-44</span>
-                          <span className="text-red-600">F: 0-39</span>
+                          {(() => {
+                            try {
+                              const scales = JSON.parse(schoolSettings?.gradingSystem || '[]');
+                              return scales.sort((a, b) => b.min - a.min).map(s => (
+                                <span key={s.grade} className={s.grade === 'F' ? 'text-red-600' : ''}>{s.grade}: {s.min}-{s.max || 100}</span>
+                              ));
+                            } catch (e) {
+                              return <span>Legend could not be loaded</span>;
+                            }
+                          })()}
                         </div>
-                        <p className="mt-1 border-t border-black/10 pt-1 text-[8px] italic">5: Excellent, 4: V. Good, 3: Good, 2: Fair, 1: Poor</p>
+                        <p className="mt-1 border-t border-black/10 pt-1 text-[8px] italic">5: Exceptional, 4: Commendable, 3: Satisfactory, 2: Fair, 1: Poor</p>
                       </div>
 
                       {/* POSITION & AVG */}
@@ -591,11 +579,11 @@ const TermReportCard = () => {
                         <div className="bg-white flex-1 grid grid-cols-2 divide-x divide-black/10">
                           <div className="flex flex-col items-center justify-center p-1">
                             <span className="text-[7px] text-gray-400 uppercase font-black">Position</span>
-                            <span className="text-sm font-black">{data.termPosition || '-'} / {data.totalStudents || '-'}</span>
+                            <span className="text-sm font-black italic">{data.termPosition || '-'} / {data.totalStudents || '-'}</span>
                           </div>
                           <div className="flex flex-col items-center justify-center p-1">
                             <span className="text-[7px] text-gray-400 uppercase font-black">Average</span>
-                            <span className="text-sm font-black">{data.termAverage?.toFixed(1)}%</span>
+                            <span className="text-sm font-black italic">{data.termAverage?.toFixed(1)}%</span>
                           </div>
                         </div>
                         <div className="border-t border-black p-1 flex items-center justify-between bg-emerald-50" style={{ backgroundColor: `${schoolSettings?.primaryColor}10` }}>
@@ -605,7 +593,12 @@ const TermReportCard = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-center border-2 border-black rounded-lg bg-gray-50 font-mono text-[7px] uppercase tracking-[0.3em] text-gray-300 relative overflow-hidden">
+                    <div className="flex flex-col items-center justify-center border-2 border-black rounded-lg bg-gray-50 font-mono text-[7px] uppercase tracking-[0.3em] text-gray-300 relative overflow-hidden">
+                      <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                        </svg>
+                      </div>
                       <span className="z-10 bg-white px-2">Official Result Certification</span>
                       <div className="absolute inset-x-0 h-[1px] bg-gray-200"></div>
                     </div>
@@ -621,7 +614,12 @@ const TermReportCard = () => {
                         </p>
                         <div className="pt-1 border-t border-black/10 flex justify-between items-center">
                           <span className="text-[9px] font-bold">Name: {data.student?.formMaster || '......................'}</span>
-                          <span className="text-[8px] text-gray-400 font-mono">ID: RC-{data.term?.id?.toString().slice(-4)}</span>
+                          <div className="flex items-center gap-1">
+                            <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-[7px] font-mono text-gray-400">VERIFIED</span>
+                          </div>
                         </div>
                       </div>
                       <div className="p-2 space-y-1">
@@ -631,7 +629,7 @@ const TermReportCard = () => {
                         </p>
                         <div className="pt-1 border-t border-black/10 flex justify-between items-center text-[9px] font-bold">
                           <span>Next Term Begins:</span>
-                          <span className="underline">{data.academic?.nextTermBegins ? new Date(data.academic.nextTermBegins).toLocaleDateString() : '....................'}</span>
+                          <span className="underline font-black">{data.term?.nextTermBegins ? new Date(data.term.nextTermBegins).toLocaleDateString() : '....................'}</span>
                         </div>
                       </div>
                     </div>
@@ -650,15 +648,27 @@ const TermReportCard = () => {
                       </p>
                     </div>
 
-                    <div className="text-center group">
+                    <div className="text-center relative">
+                      {/* Automated Seal Visualization */}
+                      <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-20 pointer-events-none">
+                        <svg width="60" height="60" viewBox="0 0 100 100">
+                          <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
+                          <text x="50" y="45" textAnchor="middle" fontSize="8" fontWeight="bold">OFFICIAL</text>
+                          <text x="50" y="55" textAnchor="middle" fontSize="10" fontWeight="black">SEAL</text>
+                        </svg>
+                      </div>
                       <div className="border-b-2 border-black w-full mb-1 opacity-80"></div>
                       <p className="text-[10px] font-black uppercase">Teacher's Signature</p>
                       <p className="text-[8px] text-gray-400 uppercase mt-0.5">Automated Seal</p>
                     </div>
 
-                    <div className="text-center">
-                      <div className="h-10 flex items-center justify-center">
-                        <p className="text-[8px] italic text-gray-300 uppercase">Place Stamp Here</p>
+                    <div className="text-center relative">
+                      <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-30 pointer-events-none">
+                        <svg width="80" height="80" viewBox="0 0 100 100" style={{ color: schoolSettings?.primaryColor }}>
+                          <path d="M20 50 Q 50 10, 80 50 T 20 80" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.5" />
+                          <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
+                          <text x="50" y="52" textAnchor="middle" fontSize="6" fontWeight="bold" transform="rotate(-15 50 50)">CERTIFIED OFFICIAL</text>
+                        </svg>
                       </div>
                       <div className="border-b-2 border-emerald-800 w-full mb-1" style={{ borderColor: schoolSettings?.primaryColor }}></div>
                       <p className="text-[10px] font-black uppercase text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>Principal's Signature</p>
@@ -666,6 +676,7 @@ const TermReportCard = () => {
                   </div>
                 </div>
               </div>
+
             );
           })}
         </>
