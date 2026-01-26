@@ -25,7 +25,22 @@ const authenticate = (req, res, next) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
-    req.schoolId = decoded.schoolId; // Attach schoolId directly to req
+    req.schoolId = decoded.schoolId;
+
+    // DEMO PROTECTION: Prevent modifications by demo_admin
+    if (decoded.username === 'demo_admin') {
+      const isWriteOperation = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method.toUpperCase());
+      const isWhitelisted = ['/api/auth/logout', '/api/platform-billing/initialize-subscription'].some(path => req.path.startsWith(path));
+
+      if (isWriteOperation && !isWhitelisted) {
+        return res.status(403).json({
+          error: 'Action restricted in Demo Mode',
+          isDemoRestriction: true,
+          message: 'To protect the shared demo environment, editing and deleting are disabled. Purchase a license to unlock full features!'
+        });
+      }
+    }
+
     next();
   } catch (error) {
     log(`INVALID TOKEN for ${req.method} ${req.url}: ${error.message}`);

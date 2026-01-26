@@ -17,6 +17,7 @@ import { Toaster } from 'react-hot-toast';
 
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import MarketingHome from './pages/MarketingHome';
 import Login from './pages/Login';
 import ResultEntry from './pages/teacher/ResultEntry';
 import TermReportCard from './pages/student/TermReportCard';
@@ -84,7 +85,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<MarketingHome />} />
           <Route path="/login" element={<Login />} />
           <Route path="/news-events" element={<NewsEvents />} />
           <Route path="/contact" element={<Contact />} />

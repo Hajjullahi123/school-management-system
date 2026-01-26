@@ -4,9 +4,11 @@ import { FiMenu, FiX } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { api, API_BASE_URL } from '../api';
 import { useSchoolSettings } from '../hooks/useSchoolSettings';
+import DemoTour from './DemoTour';
 
 const Layout = () => {
   const { user, logout } = useAuth();
+  const isDemo = user?.username === 'demo_admin';
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -782,6 +784,7 @@ const Layout = () => {
           </div>
         </footer>
       </div>
+      <DemoTour isDemo={isDemo} />
     </div>
   );
 };

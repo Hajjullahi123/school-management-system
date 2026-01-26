@@ -97,9 +97,9 @@ app.get('/api/debug/files', (req, res) => {
   }
 });
 
-const { resolveDomain } = require('./middleware/domainResolver');
+const { authenticate, authorize, optionalAuth } = require('./middleware/auth');
 const { checkSubscription, requirePackage } = require('./middleware/subscription');
-const { authenticate, authorize } = require('./middleware/auth');
+const { resolveDomain } = require('./middleware/domainResolver');
 
 // Import Route Modules
 const authRoutes = require('./routes/auth');

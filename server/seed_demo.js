@@ -3,10 +3,10 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function seedDemoData() {
-  console.log('🌱 Seeding Demo Environment...');
+  console.log('🌱 Generating Rich Demo Environment...');
 
   try {
-    // 1. Create Demo School
+    // 1. Create/Update Demo School
     const demoSchool = await prisma.school.upsert({
       where: { slug: 'demo' },
       update: {
@@ -46,48 +46,161 @@ async function seedDemoData() {
       }
     });
 
-    // 3. Create Demo Class
-    const demoClass = await prisma.class.upsert({
-      where: { schoolId_name_arm: { schoolId: demoSchool.id, name: 'Demo Class 1', arm: 'Gold' } },
-      update: {},
+    // 3. Academic Structure
+    const session = await prisma.academicSession.upsert({
+      where: { schoolId_name: { schoolId: demoSchool.id, name: '2025/2026' } },
+      update: { isCurrent: true },
       create: {
-        name: 'Demo Class 1',
-        arm: 'Gold',
-        schoolId: demoSchool.id
+        name: '2025/2026',
+        isCurrent: true,
+        schoolId: demoSchool.id,
+        startDate: new Date('2025-09-01'),
+        endDate: new Date('2026-07-31')
       }
     });
 
-    // 4. Create Students (Needs User + Student record)
-    for (let i = 1; i <= 5; i++) {
-      const studentUsername = `demo_student_${i}`;
-      const studentUser = await prisma.user.upsert({
+    const term = await prisma.term.upsert({
+      where: { schoolId_academicSessionId_name: { schoolId: demoSchool.id, name: 'First Term', academicSessionId: session.id } },
+      update: { isCurrent: true },
+      create: {
+        name: 'First Term',
+        isCurrent: true,
+        academicSessionId: session.id,
+        schoolId: demoSchool.id,
+        startDate: new Date('2025-09-01'),
+        endDate: new Date('2025-12-20')
+      }
+    });
+
+    // 4. Classes & Subjects
+    const classes = [];
+    for (const className of ['JSS 1', 'JSS 2', 'JSS 3']) {
+      const cls = await prisma.class.upsert({
+        where: { schoolId_name_arm: { schoolId: demoSchool.id, name: className, arm: 'A' } },
+        update: {},
+        create: { name: className, arm: 'A', schoolId: demoSchool.id }
+      });
+      classes.push(cls);
+    }
+
+    const subjects = [];
+    for (const subName of ['Mathematics', 'English Language', 'Basic Science', 'Quran Studies']) {
+      const sub = await prisma.subject.upsert({
+        where: { schoolId_code: { schoolId: demoSchool.id, code: subName.substring(0, 3).toUpperCase() } },
+        update: {},
+        create: { name: subName, code: subName.substring(0, 3).toUpperCase(), schoolId: demoSchool.id }
+      });
+      subjects.push(sub);
+    }
+
+    // 5. Students & Results & Fees
+    console.log('👥 Creating students, results and financial records...');
+    await prisma.feePayment.deleteMany({ where: { schoolId: demoSchool.id } });
+    await prisma.feeRecord.deleteMany({ where: { schoolId: demoSchool.id } });
+    await prisma.result.deleteMany({ where: { schoolId: demoSchool.id } });
+
+    for (let i = 1; i <= 20; i++) {
+      const studentUsername = `demo_stu_${i}`;
+      const targetClass = classes[i % classes.length];
+
+      const user = await prisma.user.upsert({
         where: { schoolId_username: { schoolId: demoSchool.id, username: studentUsername } },
         update: {},
         create: {
           username: studentUsername,
-          passwordHash: hashedPassword, // Reuse same password
+          passwordHash: hashedPassword,
           role: 'student',
-          firstName: `Student_${i}`,
-          lastName: 'Demo',
+          firstName: `Student`,
+          lastName: `${i}`,
           schoolId: demoSchool.id
         }
       });
 
-      await prisma.student.upsert({
-        where: { schoolId_admissionNumber: { schoolId: demoSchool.id, admissionNumber: `DEMO-STUD-${i}` } },
-        update: {},
+      const student = await prisma.student.upsert({
+        where: { schoolId_admissionNumber: { schoolId: demoSchool.id, admissionNumber: `ADM/2026/${i.toString().padStart(3, '0')}` } },
+        update: { classId: targetClass.id },
         create: {
-          admissionNumber: `DEMO-STUD-${i}`,
+          admissionNumber: `ADM/2026/${i.toString().padStart(3, '0')}`,
           schoolId: demoSchool.id,
-          userId: studentUser.id,
-          classId: demoClass.id,
-          dateOfBirth: new Date('2015-05-15'),
-          gender: i % 2 === 0 ? 'Female' : 'Male'
+          userId: user.id,
+          classId: targetClass.id,
+          gender: i % 2 === 0 ? 'Female' : 'Male',
+          status: 'active'
         }
       });
+
+      // Create Results for Dashboard Analytics
+      for (const subject of subjects) {
+        const score = 50 + Math.random() * 45; // Random score 50-95
+        await prisma.result.create({
+          data: {
+            schoolId: demoSchool.id,
+            studentId: student.id,
+            academicSessionId: session.id,
+            termId: term.id,
+            classId: targetClass.id,
+            subjectId: subject.id,
+            totalScore: score,
+            grade: score >= 70 ? 'A' : score >= 60 ? 'B' : 'C',
+            isSubmitted: true
+          }
+        });
+      }
+
+      // Create Fee Records
+      const amount = 55000;
+      const paid = i % 3 === 0 ? 20000 : i % 5 === 0 ? 0 : amount;
+
+      const feeRecord = await prisma.feeRecord.create({
+        data: {
+          schoolId: demoSchool.id,
+          studentId: student.id,
+          termId: term.id,
+          academicSessionId: session.id,
+          expectedAmount: amount,
+          paidAmount: paid,
+          balance: amount - paid,
+          isClearedForExam: paid >= amount
+        }
+      });
+
+      if (paid > 0) {
+        await prisma.feePayment.create({
+          data: {
+            schoolId: demoSchool.id,
+            feeRecordId: feeRecord.id,
+            amount: paid,
+            paymentMethod: i % 2 === 0 ? 'Cash' : 'Bank Transfer',
+            paymentDate: new Date(),
+            recordedBy: demoAdminUser.id
+          }
+        });
+      }
     }
 
-    console.log('✅ Demo Environment Seeded Successfully!');
+    // 6. Notices
+    await prisma.notice.deleteMany({ where: { schoolId: demoSchool.id } });
+    await prisma.notice.create({
+      data: {
+        schoolId: demoSchool.id,
+        title: 'Welcome to EduTech Academy!',
+        content: 'We are excited to have you on our new digital platform.',
+        audience: 'all',
+        authorId: demoAdminUser.id
+      }
+    });
+
+    await prisma.notice.create({
+      data: {
+        schoolId: demoSchool.id,
+        title: 'Term Exam Schedule',
+        content: 'The first term examinations will begin on the 15th of next month.',
+        audience: 'students',
+        authorId: demoAdminUser.id
+      }
+    });
+
+    console.log('✅ Rich Demo Environment Seeded Successfully!');
   } catch (e) {
     console.error('❌ Seeding failed:', e);
   } finally {
