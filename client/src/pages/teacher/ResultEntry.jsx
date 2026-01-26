@@ -5,7 +5,7 @@ import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 
 const ResultEntry = () => {
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { settings: schoolSettings } = useSchoolSettings();
@@ -372,8 +372,8 @@ const ResultEntry = () => {
         <div className="flex gap-2">
           <button
             onClick={handleSave}
-            disabled={saving || students.length === 0}
-            className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-sm"
+            disabled={saving || students.length === 0 || isDemo}
+            className={`${isDemo ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:brightness-90'} text-white px-6 py-2 rounded-md disabled:opacity-50 flex items-center shadow-sm`}
           >
             {saving ? (
               <>
@@ -388,7 +388,7 @@ const ResultEntry = () => {
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                 </svg>
-                Save Results
+                {isDemo ? 'Save Restricted (Demo)' : 'Save Results'}
               </>
             )}
           </button>
@@ -599,7 +599,8 @@ const ResultEntry = () => {
                           step="0.5"
                           value={studentResult.assignment1Score ?? ''}
                           onChange={(e) => handleScoreChange(student.id, 'assignment1Score', e.target.value)}
-                          className="w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary"
+                          disabled={isDemo}
+                          className={`w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary ${isDemo ? 'bg-gray-50' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-center">
@@ -610,7 +611,8 @@ const ResultEntry = () => {
                           step="0.5"
                           value={studentResult.assignment2Score ?? ''}
                           onChange={(e) => handleScoreChange(student.id, 'assignment2Score', e.target.value)}
-                          className="w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary"
+                          disabled={isDemo}
+                          className={`w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary ${isDemo ? 'bg-gray-50' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-center">
@@ -621,7 +623,8 @@ const ResultEntry = () => {
                           step="0.5"
                           value={studentResult.test1Score ?? ''}
                           onChange={(e) => handleScoreChange(student.id, 'test1Score', e.target.value)}
-                          className="w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary"
+                          disabled={isDemo}
+                          className={`w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary ${isDemo ? 'bg-gray-50' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-center">
@@ -632,7 +635,8 @@ const ResultEntry = () => {
                           step="0.5"
                           value={studentResult.test2Score ?? ''}
                           onChange={(e) => handleScoreChange(student.id, 'test2Score', e.target.value)}
-                          className="w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary"
+                          disabled={isDemo}
+                          className={`w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary ${isDemo ? 'bg-gray-50' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-center">
@@ -643,7 +647,8 @@ const ResultEntry = () => {
                           step="0.5"
                           value={studentResult.examScore ?? ''}
                           onChange={(e) => handleScoreChange(student.id, 'examScore', e.target.value)}
-                          className="w-20 border-2 border-gray-300 rounded px-2 py-1 text-center font-medium focus:ring-primary focus:border-primary"
+                          disabled={isDemo}
+                          className={`w-20 border-2 border-gray-300 rounded px-2 py-1 text-center font-medium focus:ring-primary focus:border-primary ${isDemo ? 'bg-gray-50' : ''}`}
                         />
                       </td>
                       <td className={`px-4 py-3 whitespace-nowrap text-center font-bold text-lg bg-primary/5 border-l ${getScoreColor(studentResult.totalScore, 100)}`}>

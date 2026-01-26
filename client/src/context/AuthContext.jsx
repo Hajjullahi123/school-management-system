@@ -164,8 +164,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const isDemo = user?.username === 'demo_admin';
+
   return (
-    <AuthContext.Provider value={{ user, login, demoLogin, logout, lockDashboard, unlockDashboard, dashboardUnlocked, loading }}>
+    <AuthContext.Provider value={{ user, isDemo, login, demoLogin, logout, lockDashboard, unlockDashboard, dashboardUnlocked, loading }}>
       {loading ? (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white">
           <div className="w-16 h-16 border-4 border-indigo-500 border-t-white rounded-full animate-spin mb-6"></div>

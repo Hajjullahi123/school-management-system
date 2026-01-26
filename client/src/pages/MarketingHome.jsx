@@ -167,6 +167,41 @@ const MarketingHome = () => {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section id="pricing" className="py-32 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center max-w-2xl mx-auto mb-20 space-y-4">
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight text-gray-900 uppercase italic">Plans Scale with Your Growth</h2>
+            <p className="text-gray-500 font-medium text-lg italic uppercase tracking-widest">Transparent pricing. No hidden fees. Military-grade security.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <PricingCard
+              tier="Starter"
+              price="₦15,000"
+              period="per Month"
+              desc="Perfect for growing primary schools."
+              features={["Up to 200 Students", "Result Management", "Basic Analytics", "S3 Daily Backups"]}
+            />
+            <PricingCard
+              tier="Professional"
+              price="₦45,000"
+              period="per Month"
+              desc="The standard for secondary institutions."
+              features={["Unlimited Students", "Advanced AI Analytics", "CBT Exam Portal", "Parent Messaging Portal", "Financial Management"]}
+              highlighted={true}
+            />
+            <PricingCard
+              tier="Enterprise"
+              price="Custom"
+              period="Contact Sales"
+              desc="For school chains and large universities."
+              features={["White-Label Mobile App", "Priority 24/7 Support", "Multi-Campus Sync", "Custom Report Designs", "On-Premise Deployment Option"]}
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Mobile App Section */}
       <section id="mobile" className="py-32 bg-indigo-600 text-white overflow-hidden relative">
         <div className="absolute top-0 right-0 p-40 opacity-10 pointer-events-none">
@@ -247,6 +282,28 @@ const FeatureCard = ({ icon, title, desc, color }) => (
     </div>
     <h3 className="text-2xl font-black text-gray-900 mb-4">{title}</h3>
     <p className="text-gray-500 font-medium leading-relaxed">{desc}</p>
+  </div>
+);
+
+const PricingCard = ({ tier, price, period, desc, features, highlighted }) => (
+  <div className={`p-10 rounded-[48px] border-2 transition-all duration-500 ${highlighted ? 'border-indigo-600 bg-gray-900 text-white shadow-3xl -translate-y-4' : 'border-gray-100 bg-white text-gray-900 hover:border-indigo-200'}`}>
+    <h3 className={`text-xl font-black uppercase tracking-widest mb-2 ${highlighted ? 'text-indigo-400' : 'text-indigo-600'}`}>{tier}</h3>
+    <div className="flex items-baseline gap-2 mb-4">
+      <span className="text-5xl font-black tracking-tighter">{price}</span>
+      <span className={`text-sm font-bold opacity-60`}>{period}</span>
+    </div>
+    <p className={`text-sm font-medium mb-8 ${highlighted ? 'text-gray-400' : 'text-gray-500'}`}>{desc}</p>
+    <ul className="space-y-4 mb-10">
+      {features.map((f, i) => (
+        <li key={i} className="flex items-center gap-3 text-sm font-bold">
+          <FiCheck className={highlighted ? 'text-indigo-400' : 'text-indigo-600'} />
+          {f}
+        </li>
+      ))}
+    </ul>
+    <button className={`w-full py-4 rounded-2xl font-black transition-all ${highlighted ? 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-xl' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}>
+      Get Started
+    </button>
   </div>
 );
 

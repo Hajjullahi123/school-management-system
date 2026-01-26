@@ -4,9 +4,12 @@ import autoTable from 'jspdf-autotable';
 import PhotoUpload from '../../components/PhotoUpload';
 import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
+import { useAuth } from '../../context/AuthContext';
+import toast from 'react-hot-toast';
 
 const StudentManagement = () => {
   const { settings: schoolSettings } = useSchoolSettings();
+  const { isDemo } = useAuth();
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -638,8 +641,14 @@ Note: Password must be changed on first login.
             />
           </label>
           <button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 transition-colors flex items-center gap-2 shadow-sm font-medium"
+            onClick={() => {
+              if (isDemo) {
+                toast.error('Registration is disabled in demo mode');
+                return;
+              }
+              setShowForm(!showForm);
+            }}
+            className={`${isDemo ? 'opacity-75 cursor-not-allowed bg-gray-400' : 'bg-primary'} text-white px-6 py-2 rounded-md hover:brightness-90 transition-colors flex items-center gap-2 shadow-sm font-medium`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {showForm ? (
@@ -648,7 +657,7 @@ Note: Password must be changed on first login.
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
               )}
             </svg>
-            {showForm ? 'Cancel' : 'Add Student'}
+            {showForm ? 'Cancel' : (isDemo ? 'Add Student (Demo)' : 'Add Student')}
           </button>
         </div>
       </div>
@@ -993,9 +1002,10 @@ Note: Password must be changed on first login.
               <div className="flex gap-2 pt-4 border-t">
                 <button
                   type="submit"
-                  className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 transition-colors"
+                  disabled={isDemo}
+                  className={`${isDemo ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:brightness-90'} text-white px-6 py-2 rounded-md transition-colors`}
                 >
-                  {editingStudent ? 'Update Student' : 'Register Student'}
+                  {isDemo ? 'Action Restricted (Demo)' : (editingStudent ? 'Update Student' : 'Register Student')}
                 </button>
                 <button
                   type="button"
@@ -1116,14 +1126,26 @@ Note: Password must be changed on first login.
                                     </button>
                                   )}
                                   <button
-                                    onClick={() => handleEdit(student)}
-                                    className="text-indigo-600 hover:text-indigo-900 mr-4"
+                                    onClick={() => {
+                                      if (isDemo) {
+                                        toast.error('Modifications restricted in demo mode');
+                                        return;
+                                      }
+                                      handleEdit(student);
+                                    }}
+                                    className={`${isDemo ? 'text-gray-400 cursor-not-allowed' : 'text-indigo-600 hover:text-indigo-900'} mr-4`}
                                   >
                                     Edit
                                   </button>
                                   <button
-                                    onClick={() => handleDelete(student.id)}
-                                    className="text-red-600 hover:text-red-900"
+                                    onClick={() => {
+                                      if (isDemo) {
+                                        toast.error('Deletions restricted in demo mode');
+                                        return;
+                                      }
+                                      handleDelete(student.id);
+                                    }}
+                                    className={`${isDemo ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-red-900'}`}
                                   >
                                     Delete
                                   </button>
