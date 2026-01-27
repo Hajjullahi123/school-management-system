@@ -30,6 +30,6 @@ fi
 
 # 4. Generate Prisma Client
 echo "Generating Prisma Client..."
-npx prisma generate
+npx prisma@5.22.0 generate --schema=prisma/schema.prisma
 
 echo "Build complete!"
