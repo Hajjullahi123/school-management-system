@@ -7,6 +7,7 @@ import {
 } from 'react-icons/fi';
 import { toast } from '../../utils/toast';
 import { apiCall } from '../../api';
+import LicenseManagement from './LicenseManagement';
 
 const SuperAdminDashboard = () => {
   const [stats, setStats] = useState(null);
