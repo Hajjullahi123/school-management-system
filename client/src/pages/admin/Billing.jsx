@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiCheck, FiShield, FiBriefcase, FiZap, FiCreditCard, FiAlertCircle, FiClock, FiCalendar } from 'react-icons/fi';
+import { FiCheck, FiShield, FiBriefcase, FiZap, FiCreditCard, FiAlertCircle, FiClock, FiCalendar, FiUsers } from 'react-icons/fi';
 import { apiCall } from '../../api';
 import { toast } from '../../utils/toast';
 
