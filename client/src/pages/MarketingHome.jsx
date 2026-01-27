@@ -203,55 +203,143 @@ const MarketingHome = () => {
       </section>
 
       {/* Mobile App Section */}
-      <section id="mobile" className="py-32 bg-indigo-600 text-white overflow-hidden relative">
-        <div className="absolute top-0 right-0 p-40 opacity-10 pointer-events-none">
-          <FiSmartphone className="text-[400px]" />
+      <section id="mobile" className="py-32 bg-indigo-900 text-white overflow-hidden relative">
+        {/* Abstract Background pattern */}
+        <div className="absolute inset-0 opacity-20">
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path d="M0 100 C 20 0 50 0 100 100 Z" fill="url(#grad1)" />
+            <defs>
+              <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style={{ stopColor: '#4f46e5', stopOpacity: 1 }} />
+                <stop offset="100%" style={{ stopColor: '#06b6d4', stopOpacity: 1 }} />
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 items-center gap-16">
+
+        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 items-center gap-16 relative z-10">
           <div className="space-y-8">
-            <h2 className="text-5xl md:text-7xl font-black leading-tight">Your School in <br /> Their Pockets.</h2>
-            <p className="text-xl text-indigo-100 font-medium leading-relaxed">
-              Give parents the transparency they desire. Attendance, Results, Fees, and specialized Quranic progress tracking—accessible anywhere, anytime.
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-800/50 backdrop-blur-md border border-indigo-500/30 rounded-full text-indigo-300 text-xs font-black uppercase tracking-widest">
+              <FiSmartphone className="text-basic" /> Available on iOS & Android
+            </div>
+            <h2 className="text-5xl md:text-7xl font-black leading-tight tracking-tighter">
+              Your School in <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-cyan-200">Their Pocket.</span>
+            </h2>
+            <p className="text-xl text-indigo-200 font-medium leading-relaxed max-w-lg">
+              Empower parents with real-time transparency. Attendance, Results, Fees, and specialized Quranic progress tracking—accessible anywhere, anytime.
             </p>
-            <ul className="space-y-4">
+
+            <div className="grid grid-cols-1 gap-4 pt-4">
               {[
-                "Zero-Configuration Mobile App",
-                "Parent-Teacher Instant Messaging",
-                "Offline Attendance Logging",
-                "Digital ID Card Wallet"
+                { title: "Zero-Config Setup", desc: "Installs in seconds via link" },
+                { title: "Instant Messaging", desc: "Direct parent-teacher chat" },
+                { title: "Offline Mode", desc: "View cached data without data" },
+                { title: "Digital ID Wallet", desc: "Secure student verification" }
               ].map((f, i) => (
-                <li key={i} className="flex items-center gap-3 font-bold">
-                  <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center"><FiCheck /></div>
-                  {f}
-                </li>
+                <div key={i} className="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                  <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-900/50">
+                    <FiCheck className="text-white text-xl" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white">{f.title}</h4>
+                    <p className="text-sm text-indigo-200">{f.desc}</p>
+                  </div>
+                </div>
               ))}
-            </ul>
-            <button className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-black text-lg transition-all hover:bg-gray-100 shadow-xl">
-              White-Label My App
-            </button>
+            </div>
+
+            <div className="pt-6 flex flex-wrap gap-4">
+              <button className="flex items-center gap-3 bg-white text-indigo-900 px-8 py-4 rounded-2xl font-black text-lg transition-all hover:bg-indigo-50 hover:scale-105 active:scale-95 shadow-xl shadow-indigo-900/50">
+                <FiDownloadCloud className="text-xl" />
+                White-Label My App
+              </button>
+              <button className="flex items-center gap-3 bg-indigo-950/50 text-white border border-indigo-500/30 px-8 py-4 rounded-2xl font-bold text-lg transition-all hover:bg-indigo-900/80 backdrop-blur-sm">
+                View Mobile Features
+              </button>
+            </div>
           </div>
-          <div className="relative">
-            {/* Mockup for Mobile */}
-            <div className="w-72 h-[580px] bg-gray-900 rounded-[50px] mx-auto border-[10px] border-gray-800 shadow-3xl relative overflow-hidden">
-              <div className="absolute top-0 w-full h-8 bg-black flex justify-center pt-1">
-                <div className="w-20 h-4 bg-gray-800 rounded-full"></div>
+
+          <div className="relative flex justify-center">
+            {/* Ambient Glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/30 rounded-full blur-[100px]"></div>
+
+            {/* Phone Mockup with CSS */}
+            <div className="w-[320px] h-[650px] bg-gray-900 rounded-[60px] border-[14px] border-gray-800 shadow-2xl relative overflow-hidden z-10 transform rotate-[-6deg] hover:rotate-0 transition-transform duration-700">
+              {/* Dynamic Island */}
+              <div className="absolute top-0 w-full h-8 flex justify-center z-20">
+                <div className="w-32 h-7 bg-black rounded-b-3xl flex items-center justify-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-gray-800"></div>
+                  <div className="w-12 h-1.5 rounded-full bg-gray-900/50"></div>
+                </div>
               </div>
-              <div className="p-6 pt-12 text-black bg-white h-full space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="w-10 h-10 rounded-full bg-indigo-100"></div>
-                  <FiBell className="text-gray-400" />
+
+              {/* Screen Content */}
+              <div className="w-full h-full bg-gray-50 pt-12 pb-4 overflow-hidden flex flex-col relative">
+                {/* App Header */}
+                <div className="px-6 flex justify-between items-center mb-6">
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase">Welcome</p>
+                    <h3 className="text-xl font-black text-gray-900">Dr. Ibrahim</h3>
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center border-2 border-white shadow-sm">
+                    <span className="font-bold text-indigo-600">AI</span>
+                  </div>
                 </div>
-                <div className="h-10 bg-gray-100 rounded-xl"></div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="h-20 bg-indigo-600 rounded-2xl"></div>
-                  <div className="h-20 bg-gray-50 rounded-2xl"></div>
+
+                {/* Card */}
+                <div className="mx-6 p-5 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-[28px] text-white shadow-lg shadow-indigo-200 mb-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <FiGlobe size={80} />
+                  </div>
+                  <p className="text-indigo-100 text-xs font-bold mb-1">Total Balance</p>
+                  <h2 className="text-3xl font-black mb-4">₦1,250,500</h2>
+                  <div className="flex gap-2">
+                    <span className="px-3 py-1 bg-white/20 rounded-lg text-xs font-bold backdrop-blur-sm">+12% vs last month</span>
+                  </div>
                 </div>
-                <div className="space-y-4">
-                  <div className="h-2 w-full bg-gray-100 rounded-full"></div>
-                  <div className="h-2 w-3/4 bg-gray-100 rounded-full"></div>
+
+                {/* Quick Actions */}
+                <div className="mx-6 px-1 mb-2">
+                  <h4 className="text-sm font-black text-gray-900 mb-3">Quick Actions</h4>
+                  <div className="flex justify-between gap-4 overflow-x-auto pb-2 no-scrollbar">
+                    {['Students', 'Fees', 'Results', 'Staff'].map((item, i) => (
+                      <div key={i} className="flex flex-col items-center gap-2 min-w-[70px]">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${i === 0 ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 border border-gray-100'}`}>
+                          {i === 0 && <FiSmartphone />}
+                          {i === 1 && <FiCheck />}
+                          {i === 2 && <FiActivity />}
+                          {i === 3 && <FiShield />}
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-600">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recent Activity List */}
+                <div className="flex-1 bg-white rounded-t-[32px] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] mt-2">
+                  <div className="w-12 h-1.5 bg-gray-100 rounded-full mx-auto mb-6"></div>
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((_, i) => (
+                      <div key={i} className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${i === 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-50 text-gray-600'}`}>
+                          <FiBell />
+                        </div>
+                        <div className="flex-1">
+                          <h5 className="font-bold text-gray-900 text-sm">New Admission</h5>
+                          <p className="text-xs text-gray-500">Just now • Primary 1</p>
+                        </div>
+                        <span className="text-xs font-bold text-gray-300">2m</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* Back Phone Peer */}
+            <div className="absolute top-10 -right-12 w-[300px] h-[600px] bg-gray-900 rounded-[50px] opacity-30 transform rotate-[10deg] -z-10 blur-[2px]"></div>
           </div>
         </div>
       </section>
@@ -276,32 +364,41 @@ const MarketingHome = () => {
 };
 
 const FeatureCard = ({ icon, title, desc, color }) => (
-  <div className="bg-white p-10 rounded-[40px] border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group">
-    <div className={`w-16 h-16 bg-${color}-50 text-${color}-600 rounded-[20px] mb-8 flex items-center justify-center text-2xl group-hover:bg-${color}-600 group-hover:text-white transition-colors`}>
+  <div className="bg-white p-10 rounded-[40px] border border-gray-100 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
+    <div className={`absolute top-0 right-0 w-32 h-32 bg-${color}-500 opacity-[0.03] rounded-bl-[100px] transition-transform group-hover:scale-150`}></div>
+    <div className={`w-16 h-16 bg-${color}-50 text-${color}-600 rounded-[24px] mb-8 flex items-center justify-center text-2xl group-hover:bg-${color}-600 group-hover:text-white transition-all duration-300 shadow-sm`}>
       {icon}
     </div>
-    <h3 className="text-2xl font-black text-gray-900 mb-4">{title}</h3>
+    <h3 className="text-2xl font-black text-gray-900 mb-4 tracking-tight">{title}</h3>
     <p className="text-gray-500 font-medium leading-relaxed">{desc}</p>
   </div>
 );
 
 const PricingCard = ({ tier, price, period, desc, features, highlighted }) => (
-  <div className={`p-10 rounded-[48px] border-2 transition-all duration-500 ${highlighted ? 'border-indigo-600 bg-gray-900 text-white shadow-3xl -translate-y-4' : 'border-gray-100 bg-white text-gray-900 hover:border-indigo-200'}`}>
+  <div className={`p-10 rounded-[48px] border-2 transition-all duration-500 relative ${highlighted ? 'border-indigo-600 bg-gray-900 text-white shadow-3xl shadow-indigo-900/30 -translate-y-4' : 'border-gray-100 bg-white text-gray-900 hover:border-indigo-200 hover:shadow-xl'}`}>
+    {highlighted && (
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg">
+        Most Popular
+      </div>
+    )}
     <h3 className={`text-xl font-black uppercase tracking-widest mb-2 ${highlighted ? 'text-indigo-400' : 'text-indigo-600'}`}>{tier}</h3>
     <div className="flex items-baseline gap-2 mb-4">
       <span className="text-5xl font-black tracking-tighter">{price}</span>
-      <span className={`text-sm font-bold opacity-60`}>{period}</span>
+      <span className={`text-sm font-bold ${highlighted ? 'text-gray-400' : 'text-gray-400'}`}>{period}</span>
     </div>
-    <p className={`text-sm font-medium mb-8 ${highlighted ? 'text-gray-400' : 'text-gray-500'}`}>{desc}</p>
+    <p className={`text-sm font-medium mb-8 leading-relaxed ${highlighted ? 'text-gray-300' : 'text-gray-500'}`}>{desc}</p>
+    <div className={`h-px w-full mb-8 ${highlighted ? 'bg-gray-800' : 'bg-gray-100'}`}></div>
     <ul className="space-y-4 mb-10">
       {features.map((f, i) => (
-        <li key={i} className="flex items-center gap-3 text-sm font-bold">
-          <FiCheck className={highlighted ? 'text-indigo-400' : 'text-indigo-600'} />
-          {f}
+        <li key={i} className="flex items-start gap-3 text-sm font-bold">
+          <div className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${highlighted ? 'bg-indigo-900 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+            <FiCheck size={12} />
+          </div>
+          <span className={highlighted ? 'text-gray-200' : 'text-gray-700'}>{f}</span>
         </li>
       ))}
     </ul>
-    <button className={`w-full py-4 rounded-2xl font-black transition-all ${highlighted ? 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-xl' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}>
+    <button className={`w-full py-4 rounded-2xl font-black transition-all active:scale-95 ${highlighted ? 'bg-white text-indigo-900 hover:bg-indigo-50 shadow-xl' : 'bg-gray-100 text-gray-900 hover:bg-gray-200 hover:text-black'}`}>
       Get Started
     </button>
   </div>
