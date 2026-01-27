@@ -202,56 +202,7 @@ app.use('/api/superadmin', authenticate, authorize('superadmin'), superadminRout
 app.use('/api/platform-billing', authenticate, platformBillingRoutes);
 app.use('/api/backup', backupRoutes);
 
-// Resolve Custom Domains (White-Label)
-app.use(resolveDomain);
 
-// Use Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', authenticate, checkSubscription, userRoutes);
-app.use('/api/students', authenticate, checkSubscription, studentRoutes);
-app.use('/api/subjects', authenticate, checkSubscription, subjectRoutes);
-app.use('/api/exams', authenticate, checkSubscription, requirePackage('standard'), examRoutes);
-app.use('/api/results', authenticate, checkSubscription, resultsRoutes);
-app.use('/api/reports', authenticate, checkSubscription, reportRoutes);
-app.use('/api/analytics', authenticate, checkSubscription, analyticsRoutes);
-app.use('/api/advanced-analytics', authenticate, checkSubscription, requirePackage('premium'), advancedAnalyticsRoutes);
-app.use('/api/academic-sessions', authenticate, checkSubscription, academicSessionRoutes);
-app.use('/api/terms', authenticate, checkSubscription, termRoutes);
-app.use('/api/classes', authenticate, checkSubscription, classRoutes);
-app.use('/api/class-subjects', authenticate, checkSubscription, classSubjectRoutes);
-app.use('/api/assignments', authenticate, checkSubscription, assignmentRoutes);
-app.use('/api/bulk-results', authenticate, checkSubscription, bulkResultRoutes);
-app.use('/api/email', authenticate, checkSubscription, emailRoutes);
-app.use('/api/upload', authenticate, checkSubscription, uploadRoutes);
-app.use('/api/teacher-assignments', authenticate, checkSubscription, teacherAssignmentRoutes);
-app.use('/api/bulk-upload', authenticate, checkSubscription, bulkUploadRoutes);
-app.use('/api/scoresheet', authenticate, checkSubscription, scoresheetRoutes);
-app.use('/api/fees', authenticate, checkSubscription, requirePackage('standard'), feeRoutes);
-app.use('/api/fee-structure', authenticate, checkSubscription, requirePackage('standard'), feeStructureRoutes);
-app.use('/api/exam-cards', authenticate, checkSubscription, examCardRoutes);
-app.use('/api/teachers', authenticate, checkSubscription, teacherProfileRoutes);
-app.use('/api/top-students', authenticate, checkSubscription, topStudentsRoutes);
-app.use('/api/license', authenticate, licenseRoutes); // License activation itself needs to be accessible
-app.use('/api/settings', authenticate, checkSubscription, settingsRoutes);
-app.use('/api/payments', authenticate, checkSubscription, paymentRoutes);
-app.use('/api/attendance', authenticate, checkSubscription, attendanceRoutes);
-app.use('/api/messages', authenticate, checkSubscription, messageRoutes);
-app.use('/api/timetable', authenticate, checkSubscription, timetableRoutes);
-app.use('/api/notices', authenticate, checkSubscription, noticeRoutes);
-app.use('/api/lms', authenticate, checkSubscription, lmsRoutes);
-app.use('/api/parents', authenticate, checkSubscription, parentRoutes);
-app.use('/api/system', authenticate, checkSubscription, statusRoutes);
-app.use('/api/cbt', authenticate, checkSubscription, requirePackage('standard'), cbtRoutes);
-app.use('/api/report-extras', authenticate, checkSubscription, reportExtraRoutes);
-app.use('/api/quran-tracker', authenticate, checkSubscription, requirePackage('premium'), quranTrackerRoutes);
-app.use('/api/gallery', authenticate, checkSubscription, galleryRoutes);
-app.use('/api/news-events', authenticate, checkSubscription, newsEventsRoutes);
-app.use('/api/promotion', authenticate, checkSubscription, promotionRoutes);
-app.use('/api/alumni', authenticate, checkSubscription, requirePackage('standard'), alumniRoutes);
-app.use('/api/audit', authenticate, checkSubscription, auditRoutes);
-app.use('/api/teacher-availability', authenticate, checkSubscription, teacherAvailabilityRoutes);
-app.use('/api/superadmin', authenticate, authorize('superadmin'), superadminRoutes);
-app.use('/api/platform-billing', authenticate, platformBillingRoutes);
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
   // Serve static files from the React app
