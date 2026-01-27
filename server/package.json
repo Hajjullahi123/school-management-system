@@ -33,7 +33,7 @@
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.10.1",
     "nodemon": "^3.1.9",
-    "@aws-sdk/client-s3": "^3.714.0",
+    "@aws-sdk/client-s3": "^3.734.0",
     "prisma": "5.22.0",
     "sqlite3": "^5.1.7"
   }
