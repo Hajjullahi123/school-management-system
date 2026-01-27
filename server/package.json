@@ -17,9 +17,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.975.0",
     "@prisma/client": "5.22.0",
     "africastalking": "^0.7.8",
+    "archiver": "^7.0.1",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -33,7 +33,7 @@
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.10.1",
     "nodemon": "^3.1.9",
-    "@aws-sdk/client-s3": "^3.734.0",
+    "@aws-sdk/client-s3": "^3.714.0",
     "prisma": "5.22.0",
     "sqlite3": "^5.1.7"
   }

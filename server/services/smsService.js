@@ -7,7 +7,7 @@ const prisma = require('../db');
  * Falls back to .env if DB settings are missing
  */
 const getSMS = async () => {
-  const settings = await prisma.schoolSettings.findFirst();
+  const settings = await prisma.school.findFirst();
 
   const username = settings?.smsUsername || process.env.SMS_USERNAME;
   const apiKey = settings?.smsApiKey || process.env.SMS_API_KEY;
@@ -27,7 +27,7 @@ const getSMS = async () => {
  * Send a basic SMS
  */
 const sendSMS = async (to, message) => {
-  const settings = await prisma.schoolSettings.findFirst();
+  const settings = await prisma.school.findFirst();
 
   if (settings && !settings.enableSMS) {
     console.log('ℹ️ SMS notifications are disabled in settings.');

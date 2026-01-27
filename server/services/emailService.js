@@ -10,7 +10,7 @@ require('dotenv').config();
 // Create reusable transporter
 const getTransporter = async () => {
   // Try to get settings from database first
-  const settings = await prisma.schoolSettings.findFirst();
+  const settings = await prisma.school.findFirst();
 
   const user = settings?.emailUser || process.env.EMAIL_USER;
   const pass = settings?.emailPassword || process.env.EMAIL_PASSWORD;
@@ -53,7 +53,7 @@ const sendEmail = async (to, subject, html, text = null) => {
   }
 
   try {
-    const settings = await prisma.schoolSettings.findFirst();
+    const settings = await prisma.school.findFirst();
     const fromUser = settings?.emailUser || process.env.EMAIL_USER;
     const schoolName = settings?.schoolName || process.env.SCHOOL_NAME || 'School Management System';
 

@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  const settings = await prisma.schoolSettings.findFirst();
+  const settings = await prisma.school.findFirst();
   const licenseCount = await prisma.license.count();
   const licenses = await prisma.license.findMany();
 
