@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     buildCommand: bash render-build.sh
-    startCommand: cd server && npx prisma@5.22.0 db push && node prisma/seed-production.js && node seed_demo.js && npm start
+    startCommand: cd server && npx prisma@5.22.0 db push --accept-data-loss && node prisma/seed-production.js && node seed_demo.js && npm start
     envVars:
       - key: NODE_ENV
         value: production
