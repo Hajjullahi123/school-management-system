@@ -386,18 +386,6 @@ const UserManagement = () => {
               {(formData.role === 'teacher' || (editingUser && editingUser.role === 'teacher')) && (
                 <>
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Staff ID</label>
-                    <input
-                      type="text"
-                      name="staffId"
-                      required={!editingUser}
-                      value={formData.staffId}
-                      onChange={handleInputChange}
-                      placeholder="e.g., TCH001"
-                      className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Specialization / Subject Area</label>
                     <input
                       type="text"

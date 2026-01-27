@@ -169,7 +169,23 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
         }
       });
     } else if (role === 'teacher') {
-      // Auto-generate Staff ID with continuous sequential numbering
+      // Fetch school information to get initials
+      const school = await prisma.school.findUnique({
+        where: { id: req.schoolId },
+        select: { name: true }
+      });
+
+      // Generate school initials from school name
+      const schoolInitials = school?.name
+        ? school.name
+          .split(' ')
+          .filter(word => word.length > 0)
+          .map(word => word[0].toUpperCase())
+          .join('')
+          .substring(0, 3) // Take max 3 letters
+        : 'SCH';
+
+      // Auto-generate Staff ID: INITIALS/YEAR/###
       const currentYear = new Date().getFullYear();
 
       // Find the highest existing sequence number for the current year
@@ -177,7 +193,7 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
         where: {
           schoolId: req.schoolId,
           staffId: {
-            startsWith: `STAFF/${currentYear}/`
+            startsWith: `${schoolInitials}/${currentYear}/`
           }
         },
         select: {
@@ -187,8 +203,9 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
 
       // Extract sequence numbers and find the max
       let maxSequence = 0;
+      const pattern = new RegExp(`${schoolInitials.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\/\\d{4}\\/(\\d{3})`);
       existingTeachers.forEach(teacher => {
-        const match = teacher.staffId.match(/STAFF\/\d{4}\/(\d{3})/);
+        const match = teacher.staffId.match(pattern);
         if (match) {
           const seq = parseInt(match[1], 10);
           if (seq > maxSequence) maxSequence = seq;
@@ -196,7 +213,7 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
       });
 
       const nextSequence = String(maxSequence + 1).padStart(3, '0');
-      const generatedStaffId = `STAFF/${currentYear}/${nextSequence}`;
+      const generatedStaffId = `${schoolInitials}/${currentYear}/${nextSequence}`;
 
       // Auto-generate random password
       const generatedPassword = Math.random().toString(36).slice(-8).toUpperCase();
