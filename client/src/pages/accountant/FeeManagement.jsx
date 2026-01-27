@@ -175,16 +175,16 @@ export default function FeeManagement() {
       const sessions = await sessionsRes.json();
       const classesData = await classesRes.json();
 
-      const activeTerm = terms.find(t => t.isCurrent);
-      const activeSession = sessions.find(s => s.isCurrent);
+      const activeTerm = Array.isArray(terms) ? terms.find(t => t.isCurrent) : null;
+      const activeSession = Array.isArray(sessions) ? sessions.find(s => s.isCurrent) : null;
 
       setCurrentTerm(activeTerm);
       setCurrentSession(activeSession);
-      setClasses(classesData);
+      setClasses(Array.isArray(classesData) ? classesData : []);
 
       // Store all terms and sessions for payment selection
-      setAllTerms(terms);
-      setAllSessions(sessions);
+      setAllTerms(Array.isArray(terms) ? terms : []);
+      setAllSessions(Array.isArray(sessions) ? sessions : []);
 
       // Set default payment term/session to current
       setSelectedPaymentTerm(activeTerm);
