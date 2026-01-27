@@ -321,6 +321,12 @@ const SuperAdminDashboard = () => {
         </div>
         <div className="flex items-center gap-3">
           <button
+            onClick={() => window.location.href = '/dashboard/license-management'}
+            className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 transform hover:scale-[1.02]"
+          >
+            <FiKey className="mr-2" /> License Management
+          </button>
+          <button
             onClick={async () => {
               if (!window.confirm('Trigger manual offsite backup to S3?')) return;
               try {

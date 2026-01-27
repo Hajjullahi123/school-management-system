@@ -70,6 +70,7 @@ import TeacherMessages from './pages/teacher/TeacherMessages';
 import CBTManagement from './pages/cbt/CBTManagement';
 import CBTPortal from './pages/cbt/CBTPortal';
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
+import LicenseManagement from './pages/superadmin/LicenseManagement';
 import QuranTracker from './pages/teacher/QuranTracker';
 import QuranProgress from './pages/student/QuranProgress';
 import ParentQuranView from './pages/parent/ParentQuranView';
@@ -390,6 +391,12 @@ function App() {
             <Route path="superadmin" element={
               <ProtectedRoute roles={['superadmin']}>
                 <SuperAdminDashboard />
+              </ProtectedRoute>
+            } />
+
+            <Route path="license-management" element={
+              <ProtectedRoute roles={['superadmin']}>
+                <LicenseManagement />
               </ProtectedRoute>
             } />
 
