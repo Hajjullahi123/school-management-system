@@ -383,6 +383,33 @@ const UserManagement = () => {
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Email Connection</label>
                 <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all" />
               </div>
+              {(formData.role === 'teacher' || (editingUser && editingUser.role === 'teacher')) && (
+                <>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Staff ID</label>
+                    <input
+                      type="text"
+                      name="staffId"
+                      required={!editingUser}
+                      value={formData.staffId}
+                      onChange={handleInputChange}
+                      placeholder="e.g., TCH001"
+                      className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Specialization / Subject Area</label>
+                    <input
+                      type="text"
+                      name="specialization"
+                      value={formData.specialization}
+                      onChange={handleInputChange}
+                      placeholder="e.g., Mathematics, English, Science"
+                      className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all"
+                    />
+                  </div>
+                </>
+              )}
               {editingUser && (
                 <div className="flex items-center gap-3 py-2 bg-gray-50 p-4 rounded-2xl border-2 border-dashed border-gray-100">
                   <input type="checkbox" id="isActive" checked={formData.isActive} onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))} className="w-6 h-6 accent-primary rounded-lg" />
