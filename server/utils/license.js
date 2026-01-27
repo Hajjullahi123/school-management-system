@@ -4,7 +4,7 @@ const prisma = require('../db');
 // In a real production app, this should be in .env
 const LICENSE_SECRET = process.env.LICENSE_SECRET || 'DARUL_QURAN_SECURE_LICENSE_SIGNATURE_KEY_2025';
 
-class License Manager {
+class LicenseManager {
   /**
    * Generate a signed license key (token)
    * The key encodes the school details and limits, signed with a hash
