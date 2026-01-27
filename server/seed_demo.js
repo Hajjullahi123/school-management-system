@@ -94,4 +94,11 @@ async function seedDemoData() {
   }
 }
 
-seedDemoData();
+// Self-executing if called directly
+if (require.main === module) {
+  seedDemoData()
+    .catch(err => console.error('Demo Seeding Failed:', err));
+}
+
+module.exports = seedDemoData;
+

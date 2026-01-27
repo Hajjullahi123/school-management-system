@@ -156,6 +156,5 @@ async function seedProduction() {
 
 seedProduction()
   .catch((e) => {
-    console.error(e);
-    process.exit(1);
+    console.error('❌ Seeding Failed (but continuing):', e);
   });
