@@ -14,6 +14,22 @@ const MarketingHome = () => {
   const { demoLogin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [prices, setPrices] = useState({ basic: 15000, standard: 45000, premium: 0 });
+
+  useEffect(() => {
+    fetch('/api/platform-billing/public-pricing')
+      .then(res => res.json())
+      .then(data => {
+        if (data && !data.error) {
+          setPrices({
+            basic: data.basic,
+            standard: data.standard,
+            premium: 0 // Keep custom for enterprise
+          });
+        }
+      })
+      .catch(() => { });
+  }, []);
 
   const handleDemoLogin = async () => {
     setLoading(true);
@@ -292,7 +308,7 @@ const MarketingHome = () => {
           <div className="grid md:grid-cols-3 gap-8">
             <PricingCard
               tier="Starter"
-              price="₦15,000"
+              price={`₦${new Intl.NumberFormat().format(prices.basic)}`}
               period="per Month"
               desc="Perfect for growing primary schools."
               features={["Up to 200 Students", "Result Management", "Basic Analytics", "S3 Daily Backups"]}
@@ -300,7 +316,7 @@ const MarketingHome = () => {
             />
             <PricingCard
               tier="Professional"
-              price="₦45,000"
+              price={`₦${new Intl.NumberFormat().format(prices.standard)}`}
               period="per Month"
               desc="The standard for secondary institutions."
               features={["Unlimited Students", "Advanced AI Analytics", "CBT Exam Portal", "Parent Messaging Portal", "Financial Management"]}

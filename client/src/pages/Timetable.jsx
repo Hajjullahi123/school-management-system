@@ -740,9 +740,11 @@ const Timetable = () => {
       <div className="flex justify-between items-start flex-wrap gap-4 mb-4">
         <div>
           <h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight italic">
-            {user?.role === 'student' ? 'Academic Schedule' : 'Operation: Timetable'}
+            {user?.role === 'admin' ? 'Timetable Management' : 'Class Timetable'}
           </h1>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1 italic">Tactical School Management Unit</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1 italic">
+            {user?.role === 'admin' ? 'Administrative Control Center' : 'Weekly Academic Schedule'}
+          </p>
         </div>
         {isAdmin && (
           <div className="flex gap-3">
@@ -754,7 +756,7 @@ const Timetable = () => {
               <svg className={`w-4 h-4 ${generationLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.675.337a4 4 0 01-2.58.344l-2.316-.463a2 2 0 01-1.295-.864l-1.058-1.588a2 2 0 01-.13-1.838l.417-1.043a4 4 0 012.312-2.312l1.043-.417a2 2 0 011.838.13l1.588 1.058a2 2 0 01.864 1.295l.463 2.316a4 4 0 00.344 2.58l.337.675a6 6 0 00.517 3.86l.477 2.387a2 2 0 00.547 1.022l1.588 1.058a2 2 0 002.828-2.828l-1.058-1.588z" />
               </svg>
-              {generationLoading ? 'Running Optimizer...' : 'Auto-Gen All Classes'}
+              {generationLoading ? 'Optimizing...' : 'Intelligence Auto-Fill (Global)'}
             </button>
             <button
               onClick={handleResetAll}
@@ -763,9 +765,21 @@ const Timetable = () => {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
-              Wipe Core Structure
+              Wipe Everything
             </button>
           </div>
+        )}
+
+        {!isAdmin && (
+          <button
+            onClick={() => handleDownload()}
+            className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black uppercase text-[12px] tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-emerald-100 flex items-center gap-3"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download Physical Copy
+          </button>
         )}
       </div>
 

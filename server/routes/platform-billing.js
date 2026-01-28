@@ -6,6 +6,24 @@ const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 
 /**
+ * @route   GET /api/platform-billing/public-pricing
+ * @desc    Get platform pricing for the landing page
+ * @access  Public
+ */
+router.get('/public-pricing', async (req, res) => {
+  try {
+    const globalSettings = await prisma.globalSettings.findFirst();
+    res.json({
+      basic: globalSettings?.basicPrice || 50000,
+      standard: globalSettings?.standardPrice || 120000,
+      premium: globalSettings?.premiumPrice || 250000
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
+/**
  * @route   GET /api/platform-billing/status
  * @desc    Get subscription status of the current school
  * @access  Admin only
@@ -188,6 +206,42 @@ router.get('/verify/:reference', authenticate, authorize(['admin']), async (req,
   } catch (error) {
     console.error('Verification error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @route   PUT /api/platform-billing/pricing
+ * @desc    Update platform pricing (For Platform Owners)
+ * @access  Admin only (Ideally SuperAdmin, but keeping Admin as per request)
+ */
+router.put('/pricing', authenticate, authorize(['admin']), async (req, res) => {
+  const { basic, standard, premium } = req.body;
+
+  try {
+    const globalSettings = await prisma.globalSettings.findFirst();
+    if (!globalSettings) {
+      await prisma.globalSettings.create({
+        data: {
+          basicPrice: parseFloat(basic),
+          standardPrice: parseFloat(standard),
+          premiumPrice: parseFloat(premium)
+        }
+      });
+    } else {
+      await prisma.globalSettings.update({
+        where: { id: globalSettings.id },
+        data: {
+          basicPrice: parseFloat(basic),
+          standardPrice: parseFloat(standard),
+          premiumPrice: parseFloat(premium)
+        }
+      });
+    }
+
+    res.json({ success: true, message: 'Pricing updated successfully' });
+  } catch (error) {
+    console.error('Update pricing error:', error);
+    res.status(500).json({ error: 'Failed to update pricing' });
   }
 });
 

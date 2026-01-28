@@ -49,17 +49,79 @@ const Billing = () => {
   );
 
   const { school, pricing } = data;
+  const [editPricing, setEditPricing] = useState({ ...pricing });
+  const [updating, setUpdating] = useState(false);
+
+  const handleUpdateGlobalPricing = async (e) => {
+    e.preventDefault();
+    try {
+      setUpdating(true);
+      await apiCall('/api/platform-billing/pricing', {
+        method: 'PUT',
+        body: JSON.stringify(editPricing)
+      });
+      toast.success('Platform prices updated globally');
+      fetchBillingStatus();
+    } catch (error) {
+      toast.error('Failed to update platform prices');
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-10 animate-in fade-in duration-700">
       {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-4xl font-black text-gray-900 tracking-tight">System Subscription</h1>
-        <p className="text-gray-500 font-medium">Manage your institution's license and scale your digital infrastructure</p>
+      <div className="flex justify-between items-center flex-wrap gap-4">
+        <div className="space-y-1">
+          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Billing & Ecosystem</h1>
+          <p className="text-gray-500 font-medium text-sm italic underline decoration-primary/20">Manage your institution's license and system-wide economics</p>
+        </div>
+      </div>
+
+      {/* Global Pricing Editor (Platform Admin Section) */}
+      <div className="bg-indigo-900 text-white rounded-[40px] p-10 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-12 opacity-[0.05] pointer-events-none">
+          <FiZap size={300} />
+        </div>
+
+        <div className="relative z-10 flex flex-col lg:flex-row gap-12 items-start">
+          <div className="flex-1 space-y-4">
+            <div className="inline-flex items-center gap-2 bg-indigo-500/30 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-400/30">
+              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+              Platform Economics
+            </div>
+            <h2 className="text-3xl font-black tracking-tighter italic uppercase">Market Price Adjustment</h2>
+            <p className="text-indigo-200/80 text-sm leading-relaxed max-w-md">As a platform owner, you can adjust the standard pricing displayed on the public landing page for new schools joining the ecosystem.</p>
+          </div>
+
+          <form onSubmit={handleUpdateGlobalPricing} className="bg-white/10 backdrop-blur-xl p-8 rounded-3xl border border-white/10 flex flex-col md:flex-row items-end gap-6 w-full lg:w-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+              {['basic', 'standard', 'premium'].map(type => (
+                <div key={type} className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-indigo-300 ml-1">{type} (₦)</label>
+                  <input
+                    type="number"
+                    value={editPricing[type]}
+                    onChange={(e) => setEditPricing({ ...editPricing, [type]: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-2xl px-5 py-3 text-lg font-black focus:ring-4 focus:ring-white/10 outline-none transition-all"
+                  />
+                </div>
+              ))}
+            </div>
+            <button
+              type="submit"
+              disabled={updating}
+              className="bg-white text-indigo-900 px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/20 flex items-center gap-2 whitespace-nowrap"
+            >
+              {updating ? 'Applying...' : 'Sync Market Prices'}
+            </button>
+          </form>
+        </div>
       </div>
 
       {/* Current Status Card */}
-      <div className="bg-white rounded-3xl shadow-xl shadow-gray-100 border border-gray-100 p-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
+      <div className="bg-white rounded-[40px] shadow-xl shadow-gray-100 border border-gray-100 p-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
           <FiShield size={200} />
         </div>
@@ -74,25 +136,25 @@ const Billing = () => {
         <div className="flex-1 space-y-4">
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">
-              {school.packageType} Plan
+              {school.packageType} PLan
             </h2>
-            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${school.subscriptionActive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-              {school.subscriptionActive ? 'Active' : 'Expired'}
+            <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${school.subscriptionActive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+              {school.subscriptionActive ? 'ACTIVE' : 'EXPIRED'}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <StatusDetail icon={<FiUsers />} label="Capacity" value={`${school.maxStudents} Students`} />
-            <StatusDetail icon={<FiCalendar />} label="Expires" value={school.expiresAt ? new Date(school.expiresAt).toLocaleDateString() : 'N/A'} />
-            <StatusDetail icon={<FiClock />} label="Last Billing" value={school.lastBillingDate ? new Date(school.lastBillingDate).toLocaleDateString() : 'Never'} />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <StatusDetail icon={<FiUsers className="text-primary" />} label="Capacity" value={`${school.maxStudents} Students`} />
+            <StatusDetail icon={<FiCalendar className="text-primary" />} label="Expires" value={school.expiresAt ? new Date(school.expiresAt).toLocaleDateString() : 'N/A'} />
+            <StatusDetail icon={<FiClock className="text-primary" />} label="Last Billing" value={school.lastBillingDate ? new Date(school.lastBillingDate).toLocaleDateString() : 'Never'} />
           </div>
         </div>
 
         <div className="flex flex-col gap-2">
-          <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-            <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Status Summary</p>
-            <p className="text-sm font-bold text-gray-700">
-              {school.subscriptionActive ? 'Your account is in good standing.' : 'Subscription required to continue services.'}
+          <div className="bg-gray-50/50 p-6 rounded-3xl border border-gray-100 px-8">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status Summary</p>
+            <p className="text-sm font-bold text-gray-700 max-w-[200px]">
+              {school.subscriptionActive ? 'Your account is in good standing with all services accessible.' : 'Subscription required to continue services and unlock full analytics.'}
             </p>
           </div>
         </div>
