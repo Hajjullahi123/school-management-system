@@ -232,17 +232,26 @@ export default function FeeManagement() {
         const response = await api.get(
           `/api/fees/students?termId=${term.id}&academicSessionId=${sessionId}`
         );
+
+        if (!response.ok) {
+          console.error(`Failed to load students for term ${term.name}`);
+          continue; // Skip this term and continue with others
+        }
+
         const data = await response.json();
 
-        data.forEach(student => {
-          if (student.feeRecords && student.feeRecords.length > 0) {
-            student.feeRecords.forEach(record => {
-              record.termName = term.name;
-            });
-          }
-        });
+        // Only process if data is an array
+        if (Array.isArray(data)) {
+          data.forEach(student => {
+            if (student.feeRecords && student.feeRecords.length > 0) {
+              student.feeRecords.forEach(record => {
+                record.termName = term.name;
+              });
+            }
+          });
 
-        allStudentsData = [...allStudentsData, ...data];
+          allStudentsData = [...allStudentsData, ...data];
+        }
       }
 
       const studentMap = new Map();
@@ -275,11 +284,28 @@ export default function FeeManagement() {
       const response = await api.get(
         `/api/fees/students?termId=${termId}&academicSessionId=${sessionId}`
       );
+
+      if (!response.ok) {
+        // API returned an error
+        const errorData = await response.json();
+        console.error('Error loading students:', errorData);
+        setStudents([]);
+        return;
+      }
+
       const data = await response.json();
-      setStudents(data);
-      calculateClassSummaries(data);
+
+      // Ensure data is an array
+      if (Array.isArray(data)) {
+        setStudents(data);
+        calculateClassSummaries(data);
+      } else {
+        console.error('Expected array but got:', typeof data);
+        setStudents([]);
+      }
     } catch (error) {
       console.error('Error loading students:', error);
+      setStudents([]);
     }
   };
 
