@@ -349,10 +349,25 @@ export default function FeeManagement() {
       const response = await api.get(
         `/api/fees/summary?termId=${termId}&academicSessionId=${sessionId}`
       );
+
+      if (!response.ok) {
+        console.error('Error loading summary: API returned error');
+        setSummary(null);
+        return;
+      }
+
       const data = await response.json();
-      setSummary(data);
+
+      // Ensure data has the expected properties
+      if (data && typeof data === 'object' && 'totalStudents' in data) {
+        setSummary(data);
+      } else {
+        console.error('Invalid summary data received');
+        setSummary(null);
+      }
     } catch (error) {
       console.error('Error loading summary:', error);
+      setSummary(null);
     }
   };
 
