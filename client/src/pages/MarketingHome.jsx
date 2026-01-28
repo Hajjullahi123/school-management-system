@@ -160,13 +160,52 @@ const MarketingHome = () => {
             {/* Abstract Visual Representing Dashboard on Tablet/Mobile */}
             <div className="relative bg-gradient-to-br from-indigo-500 to-blue-600 rounded-[32px] md:rounded-[48px] aspect-[4/3] shadow-3xl overflow-hidden border-[8px] md:border-[12px] border-white/20">
               <div className="absolute top-8 left-8 right-8 bottom-0 bg-white rounded-t-[32px] p-6 space-y-4">
-                <div className="h-6 w-32 bg-gray-100 rounded-full"></div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="h-24 bg-indigo-50 rounded-2xl"></div>
-                  <div className="h-24 bg-blue-50 rounded-2xl"></div>
-                  <div className="h-24 bg-emerald-50 rounded-2xl"></div>
+                {/* Header Bar */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="h-3 w-24 bg-gray-800 rounded-full"></div>
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                    <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+                    <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                  </div>
                 </div>
-                <div className="h-40 bg-gray-50 rounded-3xl"></div>
+
+                {/* Dashboard Stat Cards */}
+                <div className="grid grid-cols-3 gap-3">
+                  {/* Students Card */}
+                  <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-4 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-4 translate-x-4"></div>
+                    <FiUsers className="text-white/60 text-xl mb-2" />
+                    <p className="text-2xl font-black text-white">1,245</p>
+                    <p className="text-[8px] font-bold text-indigo-200 uppercase tracking-wider">Students</p>
+                  </div>
+
+                  {/* Revenue Card */}
+                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-4 translate-x-4"></div>
+                    <FiTrendingUp className="text-white/60 text-xl mb-2" />
+                    <p className="text-2xl font-black text-white">₦2.4M</p>
+                    <p className="text-[8px] font-bold text-blue-200 uppercase tracking-wider">Revenue</p>
+                  </div>
+
+                  {/* Attendance Card */}
+                  <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-4 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-4 translate-x-4"></div>
+                    <FiCheck className="text-white/60 text-xl mb-2" />
+                    <p className="text-2xl font-black text-white">98%</p>
+                    <p className="text-[8px] font-bold text-emerald-200 uppercase tracking-wider">Attendance</p>
+                  </div>
+                </div>
+
+                {/* Chart Area */}
+                <div className="bg-gray-50 rounded-3xl p-4 h-32 flex items-end gap-2">
+                  <div className="flex-1 bg-indigo-200 rounded-t-lg h-[60%]"></div>
+                  <div className="flex-1 bg-indigo-300 rounded-t-lg h-[80%]"></div>
+                  <div className="flex-1 bg-indigo-400 rounded-t-lg h-[45%]"></div>
+                  <div className="flex-1 bg-indigo-500 rounded-t-lg h-[90%]"></div>
+                  <div className="flex-1 bg-indigo-600 rounded-t-lg h-[70%]"></div>
+                  <div className="flex-1 bg-indigo-700 rounded-t-lg h-[95%]"></div>
+                </div>
               </div>
             </div>
             {/* Floating elements */}
