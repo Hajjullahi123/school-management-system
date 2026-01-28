@@ -7,10 +7,19 @@ const Billing = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
+  const [editPricing, setEditPricing] = useState({ basic: 0, standard: 0, premium: 0 });
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     fetchBillingStatus();
   }, []);
+
+  // Sync editPricing when data is loaded
+  useEffect(() => {
+    if (data?.pricing) {
+      setEditPricing({ ...data.pricing });
+    }
+  }, [data]);
 
   const fetchBillingStatus = async () => {
     try {
@@ -42,16 +51,6 @@ const Billing = () => {
     }
   };
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-    </div>
-  );
-
-  const { school, pricing } = data;
-  const [editPricing, setEditPricing] = useState({ ...pricing });
-  const [updating, setUpdating] = useState(false);
-
   const handleUpdateGlobalPricing = async (e) => {
     e.preventDefault();
     try {
@@ -68,6 +67,14 @@ const Billing = () => {
       setUpdating(false);
     }
   };
+
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+  );
+
+  const { school, pricing } = data;
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-10 animate-in fade-in duration-700">
