@@ -173,9 +173,11 @@ router.get('/subject/:subjectId/trends', authenticate, async (req, res) => {
 router.get('/subject/comparison/all', authenticate, async (req, res) => {
   try {
     const sId = parseInt(req.schoolId);
+    console.log(`[ANALYTICS] Subject Comparison - sId: ${sId}, type: ${typeof sId}`);
     const subjects = await prisma.subject.findMany({
       where: { schoolId: sId }
     });
+    console.log(`[ANALYTICS] Subjects found: ${subjects.length}`);
     const comparison = [];
 
     const { termId } = req.query;
@@ -577,9 +579,11 @@ router.get('/class/:classId/overview', authenticate, async (req, res) => {
 router.get('/class/comparison/all', authenticate, async (req, res) => {
   try {
     const sId = parseInt(req.schoolId);
+    console.log(`[ANALYTICS] Class Comparison - sId: ${sId}, type: ${typeof sId}`);
     const classes = await prisma.class.findMany({
       where: { schoolId: sId }
     });
+    console.log(`[ANALYTICS] Classes found: ${classes.length}`);
     const { termId } = req.query;
     console.log(`[ANALYTICS DEBUG] Fetching classes for schoolId: ${req.schoolId}, termId: ${termId}`);
     const comparison = [];

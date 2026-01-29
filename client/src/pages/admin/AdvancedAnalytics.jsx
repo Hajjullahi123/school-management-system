@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
 import { Line, Bar, Radar, Pie } from 'react-chartjs-2';
+import { toast } from 'react-hot-toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import * as AnalyticsExports from '../../utils/analyticsExports';
 import {
@@ -244,10 +245,12 @@ const AdvancedAnalytics = () => {
 
       if (subjectRes.ok) {
         const data = await subjectRes.json();
+        console.log('[ANALYTICS] Subjects received:', data.length);
         setSubjectComparison(Array.isArray(data) ? data : []);
       } else {
-        console.error('Subject analytics failed:', subjectRes.status);
-        toast.error('Failed to load subject analytics');
+        const errText = await subjectRes.text();
+        console.error('Subject analytics failed:', subjectRes.status, errText);
+        toast.error(`Subject analytics failed: ${subjectRes.status}`);
       }
 
       if (classRes.ok) {
