@@ -3,6 +3,29 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useMemo } from 'react';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const ProgressiveReport = () => {
   const { user } = useAuth();
@@ -304,66 +327,56 @@ const ProgressiveReport = () => {
           {/* Average Progress Line */}
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold mb-4">Performance Progression</h3>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-48 text-sm font-medium text-gray-700">After Assignment 1:</div>
-                <div className="flex-1 bg-gray-200 rounded-full h-8 relative">
-                  <div
-                    className="bg-red-500 h-8 rounded-full flex items-center justify-end pr-3"
-                    style={{ width: `${Math.min(progressData.afterAssignment1 * (100 / weights.assignment1), 100)}%` }}
-                  >
-                    <span className="text-white font-bold text-sm">{progressData.afterAssignment1}%</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="w-48 text-sm font-medium text-gray-700">After Assignment 2:</div>
-                <div className="flex-1 bg-gray-200 rounded-full h-8 relative">
-                  <div
-                    className="bg-orange-500 h-8 rounded-full flex items-center justify-end pr-3"
-                    style={{ width: `${Math.min(progressData.afterAssignment2 * (100 / (weights.assignment1 + weights.assignment2)), 100)}%` }}
-                  >
-                    <span className="text-white font-bold text-sm">{progressData.afterAssignment2}%</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="w-48 text-sm font-medium text-gray-700">After Test 1:</div>
-                <div className="flex-1 bg-gray-200 rounded-full h-8 relative">
-                  <div
-                    className="bg-yellow-500 h-8 rounded-full flex items-center justify-end pr-3"
-                    style={{ width: `${Math.min(progressData.afterTest1 * (100 / (weights.assignment1 + weights.assignment2 + weights.test1)), 100)}%` }}
-                  >
-                    <span className="text-white font-bold text-sm">{progressData.afterTest1}%</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="w-48 text-sm font-medium text-gray-700">After Test 2:</div>
-                <div className="flex-1 bg-gray-200 rounded-full h-8 relative">
-                  <div
-                    className="bg-blue-500 h-8 rounded-full flex items-center justify-end pr-3"
-                    style={{ width: `${Math.min(progressData.afterTest2 * (100 / (weights.assignment1 + weights.assignment2 + weights.test1 + weights.test2)), 100)}%` }}
-                  >
-                    <span className="text-white font-bold text-sm">{progressData.afterTest2}%</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="w-48 text-sm font-medium text-gray-700">After Exam (Final):</div>
-                <div className="flex-1 bg-gray-200 rounded-full h-8 relative">
-                  <div
-                    className="bg-green-600 h-8 rounded-full flex items-center justify-end pr-3"
-                    style={{ width: `${progressData.afterExam}%` }}
-                  >
-                    <span className="text-white font-bold text-sm">{progressData.afterExam}%</span>
-                  </div>
-                </div>
-              </div>
+            <div className="h-80">
+              <Line
+                data={{
+                  labels: ['Assign 1', 'Assign 2', 'Test 1', 'Test 2', 'Exam'],
+                  datasets: [
+                    {
+                      label: 'Cumulative Average',
+                      data: [
+                        progressData.afterAssignment1,
+                        progressData.afterAssignment2,
+                        progressData.afterTest1,
+                        progressData.afterTest2,
+                        progressData.afterExam
+                      ],
+                      fill: true,
+                      backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                      borderColor: 'rgba(59, 130, 246, 1)',
+                      tension: 0.3,
+                      pointBackgroundColor: '#fff',
+                      pointBorderColor: 'rgba(59, 130, 246, 1)',
+                      pointBorderWidth: 2,
+                      pointRadius: 6,
+                      pointHoverRadius: 8,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      max: 100,
+                      title: {
+                        display: true,
+                        text: 'Average Score (%)'
+                      }
+                    },
+                  },
+                  plugins: {
+                    tooltip: {
+                      callbacks: {
+                        label: function (context) {
+                          return `Average: ${context.parsed.y}%`;
+                        }
+                      }
+                    }
+                  }
+                }}
+              />
             </div>
           </div>
 

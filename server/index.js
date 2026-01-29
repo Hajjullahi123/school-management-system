@@ -147,6 +147,7 @@ const alumniRoutes = require('./routes/alumni');
 const auditRoutes = require('./routes/audit');
 const teacherAvailabilityRoutes = require('./routes/teacher-availability');
 const superadminRoutes = require('./routes/superadmin');
+const interventionRoutes = require('./routes/interventions');
 const platformBillingRoutes = require('./routes/platform-billing');
 const backupRoutes = require('./routes/backup');
 
@@ -196,6 +197,7 @@ app.use('/api/gallery', authenticate, checkSubscription, galleryRoutes);
 app.use('/api/news-events', authenticate, checkSubscription, newsEventsRoutes);
 app.use('/api/promotion', authenticate, checkSubscription, promotionRoutes);
 app.use('/api/alumni', authenticate, checkSubscription, requirePackage('standard'), alumniRoutes);
+app.use('/api/interventions', authenticate, checkSubscription, interventionRoutes);
 app.use('/api/audit', authenticate, checkSubscription, auditRoutes);
 app.use('/api/teacher-availability', authenticate, checkSubscription, teacherAvailabilityRoutes);
 app.use('/api/superadmin', authenticate, authorize('superadmin'), superadminRoutes);

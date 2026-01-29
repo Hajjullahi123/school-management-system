@@ -697,4 +697,78 @@ router.get('/ai/recommendations/:studentId', authenticate, async (req, res) => {
   }
 });
 
+// Heatmap analytics
+router.get('/heatmap', authenticate, async (req, res) => {
+  try {
+    const { termId } = req.query;
+
+    // 1. Fetch available classes and subjects for axes
+    const classes = await prisma.class.findMany({
+      where: { schoolId: req.schoolId },
+      orderBy: { name: 'asc' } // or custom order
+    });
+
+    const subjects = await prisma.subject.findMany({
+      where: { schoolId: req.schoolId },
+      orderBy: { name: 'asc' }
+    });
+
+    if (classes.length === 0 || subjects.length === 0) {
+      return res.json({ classes: [], subjects: [], heatmap: {} });
+    }
+
+    // 2. Fetch results
+    const whereClause = {
+      schoolId: req.schoolId
+    };
+    if (termId) {
+      whereClause.termId = parseInt(termId);
+    }
+
+    const results = await prisma.result.findMany({
+      where: whereClause,
+      include: {
+        subject: true,
+        student: {
+          select: { classId: true }
+        }
+      }
+    });
+
+    // 3. Aggregate data
+    // Map: "classId-subjectId" -> [scores]
+    const aggregation = {};
+
+    results.forEach(r => {
+      if (!r.student || !r.student.classId) return;
+
+      const key = `${r.student.classId}-${r.subjectId}`;
+      if (!aggregation[key]) {
+        aggregation[key] = [];
+      }
+      aggregation[key].push(r.totalScore || 0);
+    });
+
+    // 4. Calculate averages
+    const heatmap = {};
+    Object.keys(aggregation).forEach(key => {
+      heatmap[key] = {
+        average: parseFloat(Stats.mean(aggregation[key]).toFixed(1)),
+        count: aggregation[key].length
+      };
+    });
+
+    // 5. Return structure
+    res.json({
+      classes: classes.map(c => ({ id: c.id, name: `${c.name} ${c.arm}` })),
+      subjects: subjects.map(s => ({ id: s.id, name: s.name })),
+      data: heatmap
+    });
+
+  } catch (error) {
+    console.error('Heatmap error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

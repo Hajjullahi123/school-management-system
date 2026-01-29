@@ -3,9 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
 import { Line, Bar, Radar, Pie } from 'react-chartjs-2';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import * as AnalyticsExports from '../../utils/analyticsExports';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -20,6 +18,8 @@ import {
   Legend,
   Filler
 } from 'chart.js';
+import Skeleton from '../../components/common/Skeleton';
+import InterventionModal from '../../components/analytics/InterventionModal';
 
 ChartJS.register(
   CategoryScale,
@@ -56,6 +56,12 @@ const AdvancedAnalytics = () => {
   const [terms, setTerms] = useState([]);
   const [selectedTerm, setSelectedTerm] = useState('current');
 
+  const [heatmapData, setHeatmapData] = useState(null);
+
+  // Intervention State
+  const [showInterventionModal, setShowInterventionModal] = useState(false);
+  const [selectedStudentForIntervention, setSelectedStudentForIntervention] = useState(null);
+
   // Student Selection States
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -81,11 +87,19 @@ const AdvancedAnalytics = () => {
     if (selectedTerm && user) {
       if (user?.role === 'teacher') {
         fetchTeacherClass();
+      } else if (activeTab === 'heatmap') {
+        fetchHeatmapData();
       } else {
         fetchOverviewData();
       }
     }
   }, [selectedTerm]);
+
+  useEffect(() => {
+    if (activeTab === 'heatmap' && selectedTerm) {
+      fetchHeatmapData();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     // Filter students based on class and search query
@@ -220,25 +234,33 @@ const AdvancedAnalytics = () => {
       // Build query params
       const termParam = selectedTerm !== 'current' && selectedTerm ? `?termId=${selectedTerm}` : '';
 
-      // Fetch subject comparison
-      const subjectRes = await api.get(`/api/advanced-analytics/subject/comparison/all${termParam}`);
-      if (subjectRes.ok) {
-        setSubjectComparison(await subjectRes.json());
-      }
+      const [subjectRes, classRes, riskRes] = await Promise.all([
+        api.get(`/api/advanced-analytics/subject/comparison/all${termParam}`),
+        api.get(`/api/advanced-analytics/class/comparison/all${termParam}`),
+        api.get(`/api/advanced-analytics/ai/at-risk-students${termParam}`)
+      ]);
 
-      // Fetch class comparison
-      const classRes = await api.get(`/api/advanced-analytics/class/comparison/all${termParam}`);
-      if (classRes.ok) {
-        setClassComparison(await classRes.json());
-      }
+      if (subjectRes.ok) setSubjectComparison(await subjectRes.json());
+      if (classRes.ok) setClassComparison(await classRes.json());
+      if (riskRes.ok) setAtRiskStudents(await riskRes.json());
 
-      // Fetch at-risk students
-      const riskRes = await api.get(`/api/advanced-analytics/ai/at-risk-students${termParam}`);
-      if (riskRes.ok) {
-        setAtRiskStudents(await riskRes.json());
-      }
     } catch (error) {
       console.error('Error fetching overview data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchHeatmapData = async () => {
+    setLoading(true);
+    try {
+      const termParam = selectedTerm !== 'current' && selectedTerm ? `?termId=${selectedTerm}` : '';
+      const response = await api.get(`/api/advanced-analytics/heatmap${termParam}`);
+      if (response.ok) {
+        setHeatmapData(await response.json());
+      }
+    } catch (error) {
+      console.error('Error fetching heatmap:', error);
     } finally {
       setLoading(false);
     }
@@ -285,232 +307,31 @@ const AdvancedAnalytics = () => {
 
   // Export Functions
   const exportOverviewPDF = () => {
-    const doc = new jsPDF();
-    const schoolName = schoolSettings?.schoolName || 'School';
-
-    // Title
-    doc.setFontSize(18);
-    doc.setFont(undefined, 'bold');
-    doc.text(`${schoolName} - Analytics Overview`, 14, 20);
-
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
-
-    // Quick Stats
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('Summary Statistics', 14, 38);
-
-    const avgPerformance = subjectComparison.length > 0
-      ? (subjectComparison.reduce((sum, s) => sum + parseFloat(s.average), 0) / subjectComparison.length).toFixed(1)
-      : 0;
-
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Total Subjects: ${subjectComparison.length}`, 14, 46);
-    doc.text(`Total Classes: ${classComparison.length}`, 14, 52);
-    doc.text(`At-Risk Students: ${atRiskStudents.length}`, 14, 58);
-    doc.text(`Average Performance: ${avgPerformance}%`, 14, 64);
-
-    // Subject Performance Table
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('Subject Performance', 14, 74);
-
-    doc.autoTable({
-      startY: 78,
-      head: [['Subject', 'Students', 'Average', 'Pass Rate', 'Status']],
-      body: subjectComparison.map(s => [
-        s.subjectName,
-        s.students,
-        `${s.average}%`,
-        `${s.passRate}%`,
-        parseFloat(s.average) >= 70 ? 'Excellent' :
-          parseFloat(s.average) >= 60 ? 'Good' :
-            parseFloat(s.average) >= 50 ? 'Fair' : 'Needs Attention'
-      ]),
-      theme: 'grid',
-      headStyles: { fillColor: [59, 130, 246] }
-    });
-
-    // Class Performance Table
-    const finalY = doc.lastAutoTable.finalY + 10;
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('Class Performance', 14, finalY);
-
-    doc.autoTable({
-      startY: finalY + 4,
-      head: [['Class', 'Students', 'Average', 'Pass Rate', 'Rank']],
-      body: classComparison.map((c, idx) => [
-        c.className,
-        c.students,
-        `${c.average}%`,
-        `${c.passRate}%`,
-        `#${idx + 1}`
-      ]),
-      theme: 'grid',
-      headStyles: { fillColor: [16, 185, 129] }
-    });
-
-    doc.save(`${schoolName}_Analytics_Overview_${new Date().toISOString().split('T')[0]}.pdf`);
+    AnalyticsExports.exportOverviewPDF(schoolSettings, subjectComparison, classComparison, atRiskStudents);
   };
 
   const exportSubjectsPDF = () => {
-    const doc = new jsPDF();
-    const schoolName = schoolSettings?.schoolName || 'School';
-
-    doc.setFontSize(18);
-    doc.setFont(undefined, 'bold');
-    doc.text(`${schoolName} - Subject Analysis`, 14, 20);
-
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
-
-    doc.autoTable({
-      startY: 35,
-      head: [['Subject', 'Students', 'Average', 'Pass Rate', 'Status']],
-      body: subjectComparison.map(s => [
-        s.subjectName,
-        s.students,
-        `${s.average}%`,
-        `${s.passRate}%`,
-        parseFloat(s.average) >= 70 ? 'Excellent' :
-          parseFloat(s.average) >= 60 ? 'Good' :
-            parseFloat(s.average) >= 50 ? 'Fair' : 'Needs Attention'
-      ]),
-      theme: 'grid',
-      headStyles: { fillColor: [59, 130, 246] },
-      bodyStyles: { fontSize: 9 }
-    });
-
-    doc.save(`${schoolName}_Subject_Analysis_${new Date().toISOString().split('T')[0]}.pdf`);
+    AnalyticsExports.exportSubjectsPDF(schoolSettings, subjectComparison);
   };
 
   const exportSubjectsExcel = () => {
-    const schoolName = schoolSettings?.schoolName || 'School';
-    const data = subjectComparison.map(s => ({
-      'Subject': s.subjectName,
-      'Students': s.students,
-      'Average (%)': parseFloat(s.average),
-      'Pass Rate (%)': parseFloat(s.passRate),
-      'Status': parseFloat(s.average) >= 70 ? 'Excellent' :
-        parseFloat(s.average) >= 60 ? 'Good' :
-          parseFloat(s.average) >= 50 ? 'Fair' : 'Needs Attention'
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Subject Analysis');
-
-    XLSX.writeFile(wb, `${schoolName}_Subject_Analysis_${new Date().toISOString().split('T')[0]}.xlsx`);
+    AnalyticsExports.exportSubjectsExcel(schoolSettings, subjectComparison);
   };
 
   const exportClassesPDF = () => {
-    const doc = new jsPDF();
-    const schoolName = schoolSettings?.schoolName || 'School';
-
-    doc.setFontSize(18);
-    doc.setFont(undefined, 'bold');
-    doc.text(`${schoolName} - Class Comparison`, 14, 20);
-
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
-
-    doc.autoTable({
-      startY: 35,
-      head: [['Rank', 'Class', 'Students', 'Average', 'Pass Rate']],
-      body: classComparison.map((c, idx) => [
-        `#${idx + 1}`,
-        c.className,
-        c.students,
-        `${c.average}%`,
-        `${c.passRate}%`
-      ]),
-      theme: 'grid',
-      headStyles: { fillColor: [16, 185, 129] },
-      bodyStyles: { fontSize: 9 }
-    });
-
-    doc.save(`${schoolName}_Class_Comparison_${new Date().toISOString().split('T')[0]}.pdf`);
+    AnalyticsExports.exportClassesPDF(schoolSettings, classComparison);
   };
 
   const exportClassesExcel = () => {
-    const schoolName = schoolSettings?.schoolName || 'School';
-    const data = classComparison.map((c, idx) => ({
-      'Rank': idx + 1,
-      'Class': c.className,
-      'Students': c.students,
-      'Average (%)': parseFloat(c.average),
-      'Pass Rate (%)': parseFloat(c.passRate)
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Class Comparison');
-
-    XLSX.writeFile(wb, `${schoolName}_Class_Comparison_${new Date().toISOString().split('T')[0]}.xlsx`);
+    AnalyticsExports.exportClassesExcel(schoolSettings, classComparison);
   };
 
   const exportAtRiskPDF = () => {
-    const doc = new jsPDF();
-    const schoolName = schoolSettings?.schoolName || 'School';
-
-    doc.setFontSize(18);
-    doc.setFont(undefined, 'bold');
-    doc.text(`${schoolName} - At-Risk Students`, 14, 20);
-
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
-    doc.text(`Total At-Risk: ${atRiskStudents.length}`, 14, 34);
-
-    // Prepare data with recommendations
-    const tableData = atRiskStudents.map(s => [
-      s.name,
-      s.class,
-      s.admissionNumber || 'N/A',
-      `${s.averageScore}%`,
-      s.riskLevel,
-      `${s.trend > 0 ? '↑' : '↓'} ${Math.abs(s.trend)}%`,
-      s.recommendations ? s.recommendations.join('; ') : 'N/A'
-    ]);
-
-    doc.autoTable({
-      startY: 40,
-      head: [['Name', 'Class', 'Adm. No', 'Average', 'Risk', 'Trend', 'Recommendations']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: { fillColor: [249, 115, 22] },
-      bodyStyles: { fontSize: 8 },
-      columnStyles: {
-        6: { cellWidth: 60 }
-      }
-    });
-
-    doc.save(`${schoolName}_At_Risk_Students_${new Date().toISOString().split('T')[0]}.pdf`);
+    AnalyticsExports.exportAtRiskPDF(schoolSettings, atRiskStudents);
   };
 
   const exportAtRiskExcel = () => {
-    const schoolName = schoolSettings?.schoolName || 'School';
-    const data = atRiskStudents.map(s => ({
-      'Name': s.name,
-      'Class': s.class,
-      'Admission Number': s.admissionNumber || 'N/A',
-      'Average (%)': parseFloat(s.averageScore),
-      'Risk Level': s.riskLevel,
-      'Trend': `${s.trend > 0 ? '↑' : '↓'} ${Math.abs(s.trend)}%`,
-      'Recommendations': s.recommendations ? s.recommendations.join('; ') : 'N/A'
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'At-Risk Students');
-
-    XLSX.writeFile(wb, `${schoolName}_At_Risk_Students_${new Date().toISOString().split('T')[0]}.xlsx`);
+    AnalyticsExports.exportAtRiskExcel(schoolSettings, atRiskStudents);
   };
 
   // Chart configurations
@@ -547,8 +368,62 @@ const AdvancedAnalytics = () => {
     }]
   } : null;
 
+  const getTermId = () => {
+    if (selectedTerm && selectedTerm !== 'current') return parseInt(selectedTerm);
+    const current = terms.find(t => t.isActive || t.isCurrent); // handle both flags just in case
+    return current ? current.id : null;
+  };
+
+  const getCurrentSessionId = () => {
+    // Attempt to get session ID from current term or fallback
+    const termId = getTermId();
+    const term = terms.find(t => t.id === termId);
+    return term ? term.academicSessionId : null;
+  };
+
+  const handleLogIntervention = (student) => {
+    setSelectedStudentForIntervention(student);
+    setShowInterventionModal(true);
+  };
+
+  const handleSaveIntervention = async (data) => {
+    setLoading(true);
+    try {
+      const termId = getTermId();
+      const sessionId = getCurrentSessionId();
+
+      if (!termId || !sessionId) {
+        alert('Could not identify current term/session. Please select a specific term.');
+        setLoading(false);
+        return;
+      }
+
+      const response = await api.post('/api/interventions', {
+        studentId: selectedStudentForIntervention.id,
+        termId: termId,
+        academicSessionId: sessionId,
+        ...data
+      });
+
+      if (response.ok) {
+        setShowInterventionModal(false);
+        setSelectedStudentForIntervention(null);
+        alert('Intervention logged successfully');
+        // Optionally refresh data
+      } else {
+        alert('Failed to save intervention');
+      }
+    } catch (error) {
+      console.error('Error saving intervention:', error);
+      alert('Error saving intervention');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const tabs = [
     { id: 'overview', label: 'Overview' },
+    { id: 'heatmap', label: 'Heatmap' },
     { id: 'subjects', label: 'Subjects' },
     { id: 'students', label: 'Students' },
     { id: 'classes', label: 'Classes' },
@@ -562,6 +437,80 @@ const AdvancedAnalytics = () => {
   ];
 
   const visibleTabs = user?.role === 'teacher' ? teacherTabs : tabs;
+
+  const AnalyticsSkeleton = ({ type }) => {
+    if (type === 'overview') {
+      return (
+        <div className="space-y-6">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-white p-6 rounded-lg shadow-md">
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-16" />
+              </div>
+            ))}
+          </div>
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-lg shadow-md h-96">
+              <Skeleton className="h-6 w-48 mb-6" />
+              <div className="flex items-end gap-4 h-64 px-4">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <Skeleton key={i} className="w-full rounded-t-lg" style={{ height: `${Math.random() * 80 + 20}%` }} />
+                ))}
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md h-96">
+              <Skeleton className="h-6 w-48 mb-6" />
+              <div className="flex items-end gap-4 h-64 px-4">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <Skeleton key={i} className="w-full rounded-t-lg" style={{ height: `${Math.random() * 80 + 20}%` }} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (type === 'heatmap') {
+      return (
+        <div className="bg-white p-6 rounded-lg shadow-md overflow-hidden">
+          <Skeleton className="h-6 w-64 mb-6" />
+          <div className="grid grid-cols-12 gap-2 mb-4">
+            <Skeleton className="h-8 col-span-2" />
+            {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-8 col-span-1" />)}
+          </div>
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="grid grid-cols-12 gap-2">
+                <Skeleton className="h-10 col-span-2" />
+                {[1, 2, 3, 4, 5].map(j => <Skeleton key={j} className="h-10 col-span-1" />)}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // Table Skeleton (Subjects, Classes, Students)
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <Skeleton className="h-6 w-64 mb-6" />
+        <div className="space-y-4">
+          <div className="flex gap-4 mb-4">
+            {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-8 flex-1" />)}
+          </div>
+          {[1, 2, 3, 4, 5, 6, 7].map(i => (
+            <div key={i} className="flex gap-4">
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -704,6 +653,7 @@ const AdvancedAnalytics = () => {
       )}
 
       {/* Overview Tab */}
+      {activeTab === 'overview' && loading && <AnalyticsSkeleton type="overview" />}
       {activeTab === 'overview' && !loading && (
         <div className="space-y-6">
           {/* Quick Stats */}
@@ -779,391 +729,490 @@ const AdvancedAnalytics = () => {
         </div>
       )}
 
+      {/* Heatmap Tab */}
+      {activeTab === 'heatmap' && (
+        loading ? <AnalyticsSkeleton type="heatmap" /> : (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold">Class × Subject Performance Matrix</h3>
+                <div className="flex gap-4 text-xs">
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-green-100 border border-green-300 rounded"></span> 70%+ Excellent</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-blue-100 border border-blue-300 rounded"></span> 60-69% Good</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-yellow-100 border border-yellow-300 rounded"></span> 50-59% Fair</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-red-100 border border-red-300 rounded"></span> &lt;50% Critical</span>
+                </div>
+              </div>
+
+              {heatmapData && heatmapData.classes.length > 0 && heatmapData.subjects.length > 0 ? (
+                <div className="w-full">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 z-10 bg-gray-50">Class</th>
+                        {heatmapData.subjects.map(subject => (
+                          <th key={subject.id} className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap min-w-[100px]">
+                            {subject.name}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {heatmapData.classes.map(cls => (
+                        <tr key={cls.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900 sticky left-0 z-10 bg-white border-r">
+                            {cls.name}
+                          </td>
+                          {heatmapData.subjects.map(subject => {
+                            const key = `${cls.id}-${subject.id}`;
+                            const cell = heatmapData.data[key];
+                            return (
+                              <td key={subject.id} className="px-1 py-1 text-center">
+                                {cell ? (
+                                  <div
+                                    className={`w-full h-10 flex items-center justify-center rounded cursor-help transition-all ${cell.average >= 70 ? 'bg-green-100 text-green-800 hover:bg-green-200' :
+                                      cell.average >= 60 ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' :
+                                        cell.average >= 50 ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' :
+                                          'bg-red-100 text-red-800 hover:bg-red-200'
+                                      }`}
+                                    title={`${cls.name} - ${subject.name}: ${cell.average}% (${cell.count} students)`}
+                                  >
+                                    <span className="font-semibold text-sm">{cell.average}</span>
+                                  </div>
+                                ) : (
+                                  <div className="w-full h-10 bg-gray-50 rounded flex items-center justify-center text-gray-400 text-xs">
+                                    -
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No specific class/subject data available for this term.</p>
+              )}
+            </div>
+          </div>
+        )
+      )}
+
       {/* Subjects Tab */}
-      {activeTab === 'subjects' && !loading && (
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-xl font-bold mb-4">Subject-wise Performance Analysis</h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Students</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Average</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Pass Rate</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {subjectComparison.map((subject, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap font-medium text-blue-600 cursor-pointer hover:underline" onClick={() => fetchSubjectDetails(subject.subjectId)}>
-                        {subject.subjectName}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">{subject.students}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className={`font-bold ${subject.average >= 70 ? 'text-green-600' :
-                          subject.average >= 60 ? 'text-blue-600' :
-                            subject.average >= 50 ? 'text-yellow-600' :
-                              'text-red-600'
-                          }`}>
-                          {subject.average}%
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">{subject.passRate}%</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        {parseFloat(subject.average) >= 70 ? (
-                          <span className="text-green-600">✓ Excellent</span>
-                        ) : parseFloat(subject.average) >= 60 ? (
-                          <span className="text-blue-600">→ Good</span>
-                        ) : parseFloat(subject.average) >= 50 ? (
-                          <span className="text-yellow-600">⚡ Fair</span>
-                        ) : (
-                          <span className="text-red-600">⚠ Needs Attention</span>
-                        )}
-                      </td>
+      {activeTab === 'subjects' && (
+        loading ? <AnalyticsSkeleton type="table" /> : (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-bold mb-4">Subject-wise Performance Analysis</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Students</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Average</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Pass Rate</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {subjectComparison.map((subject, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap font-medium text-blue-600 cursor-pointer hover:underline" onClick={() => fetchSubjectDetails(subject.subjectId)}>
+                          {subject.subjectName}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">{subject.students}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <span className={`font-bold ${subject.average >= 70 ? 'text-green-600' :
+                            subject.average >= 60 ? 'text-blue-600' :
+                              subject.average >= 50 ? 'text-yellow-600' :
+                                'text-red-600'
+                            }`}>
+                            {subject.average}%
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">{subject.passRate}%</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          {parseFloat(subject.average) >= 70 ? (
+                            <span className="text-green-600">✓ Excellent</span>
+                          ) : parseFloat(subject.average) >= 60 ? (
+                            <span className="text-blue-600">→ Good</span>
+                          ) : parseFloat(subject.average) >= 50 ? (
+                            <span className="text-yellow-600">⚡ Fair</span>
+                          ) : (
+                            <span className="text-red-600">⚠ Needs Attention</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          </div>
+  ))
+}
+
+{/* Subject Detail View */ }
+{
+  activeTab === 'subject-detail' && subjectAnalytics && !loading && (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4 mb-4">
+        <button
+          onClick={() => setActiveTab('subjects')}
+          className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
+        >
+          ← Back to Subjects
+        </button>
+        <h2 className="text-2xl font-bold">{subjectAnalytics.subjectName} Analysis</h2>
+      </div>
+
+      {/* Subject Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <p className="text-sm text-gray-600">Average Score</p>
+          <p className="text-3xl font-bold text-blue-600 mt-2">{subjectAnalytics.statistics?.average || 0}%</p>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <p className="text-sm text-gray-600">Highest Score</p>
+          <p className="text-3xl font-bold text-green-600 mt-2">{subjectAnalytics.statistics?.highest || 0}%</p>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <p className="text-sm text-gray-600">Lowest Score</p>
+          <p className="text-3xl font-bold text-red-600 mt-2">{subjectAnalytics.statistics?.lowest || 0}%</p>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <p className="text-sm text-gray-600">Pass Rate</p>
+          <p className="text-3xl font-bold text-purple-600 mt-2">{subjectAnalytics.statistics?.passRate || 0}%</p>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-xl font-bold mb-4">Student Performance List</h3>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Score</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Rank</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {subjectAnalytics.students?.sort((a, b) => b.score - a.score).map((student, idx) => (
+                <tr key={idx} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                    {student.name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                    {student.class}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center font-bold">
+                    {student.score}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${student.score >= 70 ? 'bg-green-100 text-green-800' :
+                      student.score >= 60 ? 'bg-blue-100 text-blue-800' :
+                        student.score >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                      }`}>
+                      {student.grade || (
+                        student.score >= 70 ? 'A' :
+                          student.score >= 60 ? 'B' :
+                            student.score >= 50 ? 'C' : 'F'
+                      )}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center text-gray-500">
+                    #{idx + 1}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+{/* Students Tab */ }
+{ activeTab === 'students' && loading && <AnalyticsSkeleton type="table" /> }
+{
+  activeTab === 'students' && !loading && (
+    <div className="space-y-6">
+      {/* Student Search */}
+      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+        <h3 className="text-xl font-bold mb-4">Find Student</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Class Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Class</label>
+            {user?.role !== 'teacher' && (
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="w-full border rounded-md px-3 py-2"
+              >
+                <option value="">All Classes</option>
+                {classes.map(cls => (
+                  <option key={cls.id} value={cls.id}>{cls.name} {cls.arm}</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {/* Student Search Input */}
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Search Name/Admin No</label>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowStudentList(true);
+              }}
+              onFocus={() => setShowStudentList(true)}
+              placeholder="Enter name..."
+              className="w-full border rounded-md px-3 py-2"
+            />
+
+            {/* Dropdown Results */}
+            {showStudentList && filteredStudents.length > 0 && (
+              <div className="absolute z-10 w-full bg-white bg-opacity-100 border rounded-md shadow-lg max-h-60 overflow-y-auto mt-1">
+                {filteredStudents.map(student => (
+                  <div
+                    key={student.id}
+                    onClick={() => {
+                      setSelectedStudent(student.id);
+                      setSearchQuery(`${student.user.firstName} ${student.user.lastName}`);
+                      setShowStudentList(false);
+                      fetchStudentAnalytics(student.id);
+                    }}
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
+                  >
+                    <p className="font-semibold">{student.user.firstName} {student.user.lastName}</p>
+                    <p className="text-xs text-gray-500">{student.admissionNumber} • {student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : ''}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Manual ID Input (Fallback) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Or Enter ID Manually</label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={selectedStudent}
+                onChange={(e) => setSelectedStudent(e.target.value)}
+                placeholder="ID"
+                className="flex-1 border rounded-md px-3 py-2"
+              />
+              <button
+                onClick={() => fetchStudentAnalytics(selectedStudent)}
+                className="bg-primary text-white px-4 py-2 rounded-md hover:brightness-90"
+              >
+                Go
+              </button>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Subject Detail View */}
-      {activeTab === 'subject-detail' && subjectAnalytics && !loading && (
+      {/* Student Results */}
+      {studentAnalytics && (
         <div className="space-y-6">
-          <div className="flex items-center gap-4 mb-4">
-            <button
-              onClick={() => setActiveTab('subjects')}
-              className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
-            >
-              ← Back to Subjects
-            </button>
-            <h2 className="text-2xl font-bold">{subjectAnalytics.subjectName} Analysis</h2>
+          {/* Student Info */}
+          <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-6 rounded-lg shadow-lg">
+            <h3 className="text-2xl font-bold">{studentAnalytics.student.name}</h3>
+            <p className="mt-1">{studentAnalytics.student.class} • {studentAnalytics.student.admissionNumber}</p>
           </div>
 
-          {/* Subject Stats */}
+          {/* Performance Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-white p-6 rounded-lg shadow-md">
-              <p className="text-sm text-gray-600">Average Score</p>
-              <p className="text-3xl font-bold text-blue-600 mt-2">{subjectAnalytics.statistics?.average || 0}%</p>
+              <p className="text-sm text-gray-600">Current Average</p>
+              <p className="text-3xl font-bold text-primary mt-2">{studentAnalytics.overallPerformance.currentAverage}%</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
               <p className="text-sm text-gray-600">Highest Score</p>
-              <p className="text-3xl font-bold text-green-600 mt-2">{subjectAnalytics.statistics?.highest || 0}%</p>
+              <p className="text-3xl font-bold text-green-600 mt-2">{studentAnalytics.overallPerformance.highest}%</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
               <p className="text-sm text-gray-600">Lowest Score</p>
-              <p className="text-3xl font-bold text-red-600 mt-2">{subjectAnalytics.statistics?.lowest || 0}%</p>
+              <p className="text-3xl font-bold text-red-600 mt-2">{studentAnalytics.overallPerformance.lowest}%</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
-              <p className="text-sm text-gray-600">Pass Rate</p>
-              <p className="text-3xl font-bold text-purple-600 mt-2">{subjectAnalytics.statistics?.passRate || 0}%</p>
+              <p className="text-sm text-gray-600">Total Subjects</p>
+              <p className="text-3xl font-bold text-blue-600 mt-2">{studentAnalytics.overallPerformance.totalSubjects}</p>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-xl font-bold mb-4">Student Performance List</h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Score</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Rank</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {subjectAnalytics.students?.sort((a, b) => b.score - a.score).map((student, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                        {student.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                        {student.class}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center font-bold">
-                        {student.score}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${student.score >= 70 ? 'bg-green-100 text-green-800' :
-                          student.score >= 60 ? 'bg-blue-100 text-blue-800' :
-                            student.score >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                          }`}>
-                          {student.grade || (
-                            student.score >= 70 ? 'A' :
-                              student.score >= 60 ? 'B' :
-                                student.score >= 50 ? 'C' : 'F'
-                          )}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center text-gray-500">
-                        #{idx + 1}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Students Tab */}
-      {activeTab === 'students' && (
-        <div className="space-y-6">
-          {/* Student Search */}
-          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h3 className="text-xl font-bold mb-4">Find Student</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Class Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Class</label>
-                {user?.role !== 'teacher' && (
-                  <select
-                    value={selectedClass}
-                    onChange={(e) => setSelectedClass(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2"
-                  >
-                    <option value="">All Classes</option>
-                    {classes.map(cls => (
-                      <option key={cls.id} value={cls.id}>{cls.name} {cls.arm}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              {/* Student Search Input */}
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Search Name/Admin No</label>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setShowStudentList(true);
-                  }}
-                  onFocus={() => setShowStudentList(true)}
-                  placeholder="Enter name..."
-                  className="w-full border rounded-md px-3 py-2"
-                />
-
-                {/* Dropdown Results */}
-                {showStudentList && filteredStudents.length > 0 && (
-                  <div className="absolute z-10 w-full bg-white bg-opacity-100 border rounded-md shadow-lg max-h-60 overflow-y-auto mt-1">
-                    {filteredStudents.map(student => (
-                      <div
-                        key={student.id}
-                        onClick={() => {
-                          setSelectedStudent(student.id);
-                          setSearchQuery(`${student.user.firstName} ${student.user.lastName}`);
-                          setShowStudentList(false);
-                          fetchStudentAnalytics(student.id);
-                        }}
-                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
-                      >
-                        <p className="font-semibold">{student.user.firstName} {student.user.lastName}</p>
-                        <p className="text-xs text-gray-500">{student.admissionNumber} • {student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : ''}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Manual ID Input (Fallback) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Or Enter ID Manually</label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    value={selectedStudent}
-                    onChange={(e) => setSelectedStudent(e.target.value)}
-                    placeholder="ID"
-                    className="flex-1 border rounded-md px-3 py-2"
-                  />
-                  <button
-                    onClick={() => fetchStudentAnalytics(selectedStudent)}
-                    className="bg-primary text-white px-4 py-2 rounded-md hover:brightness-90"
-                  >
-                    Go
-                  </button>
-                </div>
+          {/* Radar Chart */}
+          {studentRadarData && (
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-bold mb-4">Subject Proficiency Radar</h3>
+              <div className="max-w-2xl mx-auto">
+                <Radar data={studentRadarData} />
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Student Results */}
-          {studentAnalytics && (
-            <div className="space-y-6">
-              {/* Student Info */}
-              <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-6 rounded-lg shadow-lg">
-                <h3 className="text-2xl font-bold">{studentAnalytics.student.name}</h3>
-                <p className="mt-1">{studentAnalytics.student.class} • {studentAnalytics.student.admissionNumber}</p>
-              </div>
-
-              {/* Performance Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                  <p className="text-sm text-gray-600">Current Average</p>
-                  <p className="text-3xl font-bold text-primary mt-2">{studentAnalytics.overallPerformance.currentAverage}%</p>
+          {/* AI Prediction */}
+          {studentPrediction && studentPrediction.overallPrediction && (
+            <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6">
+              <h3 className="text-xl font-bold text-purple-900 mb-4">🤖 AI Performance Prediction</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-purple-700">Next Term Predicted Average</p>
+                  <p className="text-4xl font-bold text-purple-900 mt-2">{studentPrediction.overallPrediction}%</p>
+                  <p className="text-sm text-purple-600 mt-1">Confidence: {studentPrediction.confidence}%</p>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                  <p className="text-sm text-gray-600">Highest Score</p>
-                  <p className="text-3xl font-bold text-green-600 mt-2">{studentAnalytics.overallPerformance.highest}%</p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                  <p className="text-sm text-gray-600">Lowest Score</p>
-                  <p className="text-3xl font-bold text-red-600 mt-2">{studentAnalytics.overallPerformance.lowest}%</p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                  <p className="text-sm text-gray-600">Total Subjects</p>
-                  <p className="text-3xl font-bold text-blue-600 mt-2">{studentAnalytics.overallPerformance.totalSubjects}</p>
+                <div className="bg-white rounded-lg p-4">
+                  <p className="font-semibold text-gray-900 mb-2">Recommendation:</p>
+                  <p className="text-sm text-gray-700">{studentPrediction.recommendation}</p>
                 </div>
               </div>
-
-              {/* Radar Chart */}
-              {studentRadarData && (
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                  <h3 className="text-xl font-bold mb-4">Subject Proficiency Radar</h3>
-                  <div className="max-w-2xl mx-auto">
-                    <Radar data={studentRadarData} />
-                  </div>
-                </div>
-              )}
-
-              {/* AI Prediction */}
-              {studentPrediction && studentPrediction.overallPrediction && (
-                <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6">
-                  <h3 className="text-xl font-bold text-purple-900 mb-4">🤖 AI Performance Prediction</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-purple-700">Next Term Predicted Average</p>
-                      <p className="text-4xl font-bold text-purple-900 mt-2">{studentPrediction.overallPrediction}%</p>
-                      <p className="text-sm text-purple-600 mt-1">Confidence: {studentPrediction.confidence}%</p>
-                    </div>
-                    <div className="bg-white rounded-lg p-4">
-                      <p className="font-semibold text-gray-900 mb-2">Recommendation:</p>
-                      <p className="text-sm text-gray-700">{studentPrediction.recommendation}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
       )}
-
-      {/* Classes Tab */}
-      {activeTab === 'classes' && !loading && (
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-xl font-bold mb-4">Class Performance Comparison</h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Students</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Average</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Pass Rate</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Rank</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {classComparison.map((cls, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{cls.className}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">{cls.students}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className={`font-bold ${cls.average >= 70 ? 'text-green-600' :
-                          cls.average >= 60 ? 'text-blue-600' :
-                            cls.average >= 50 ? 'text-yellow-600' :
-                              'text-red-600'
-                          }`}>
-                          {cls.average}%
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">{cls.passRate}%</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${idx === 0 ? 'bg-yellow-100 text-yellow-800' :
-                          idx === 1 ? 'bg-gray-100 text-gray-800' :
-                            idx === 2 ? 'bg-orange-100 text-orange-800' :
-                              'bg-blue-100 text-blue-800'
-                          }`}>
-                          #{idx + 1}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* At Risk Tab */}
-      {activeTab === 'risks' && !loading && (
-        <div className="space-y-6">
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <p className="text-orange-800">
-              <strong>⚠️ Intervention Needed:</strong> {atRiskStudents.length} students have been identified as needing immediate attention.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {atRiskStudents.map((student, idx) => (
-              <div key={idx} className={`bg-white border-l-4 rounded-lg shadow-md p-6 ${student.riskLevel === 'High' ? 'border-red-500' :
-                student.riskLevel === 'Medium' ? 'border-orange-500' :
-                  'border-yellow-500'
-                }`}>
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h4 className="text-lg font-bold text-gray-900">{student.name}</h4>
-                    <p className="text-sm text-gray-600">{student.class} • {student.admissionNumber}</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${student.riskLevel === 'High' ? 'bg-red-100 text-red-700' :
-                    student.riskLevel === 'Medium' ? 'bg-orange-100 text-orange-700' :
-                      'bg-yellow-100 text-yellow-700'
-                    }`}>
-                    {student.riskLevel} Risk
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-3">
-                  <div>
-                    <p className="text-xs text-gray-500">Average Score</p>
-                    <p className="text-xl font-bold text-red-600">{student.averageScore}%</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Trend</p>
-                    <p className={`text-xl font-bold ${parseFloat(student.trend) < 0 ? 'text-red-600' : 'text-green-600'
-                      }`}>
-                      {student.trend > 0 ? '↑' : '↓'} {Math.abs(student.trend)}%
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs font-semibold text-gray-700 mb-2">Recommended Actions:</p>
-                  <ul className="text-xs text-gray-600 space-y-1">
-                    {student.recommendations.map((rec, i) => (
-                      <li key={i}>• {rec}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
+  )
+}
+
+{/* Classes Tab */ }
+{
+  activeTab === 'classes' && (
+    loading ? <AnalyticsSkeleton type="table" /> : (
+      <div className="space-y-6">
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h3 className="text-xl font-bold mb-4">Class Performance Comparison</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Students</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Average</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Pass Rate</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Rank</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {classComparison.map((cls, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{cls.className}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">{cls.students}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className={`font-bold ${cls.average >= 70 ? 'text-green-600' :
+                        cls.average >= 60 ? 'text-blue-600' :
+                          cls.average >= 50 ? 'text-yellow-600' :
+                            'text-red-600'
+                        }`}>
+                        {cls.average}%
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">{cls.passRate}%</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${idx === 0 ? 'bg-yellow-100 text-yellow-800' :
+                        idx === 1 ? 'bg-gray-100 text-gray-800' :
+                          idx === 2 ? 'bg-orange-100 text-orange-800' :
+                            'bg-blue-100 text-blue-800'
+                        }`}>
+                        #{idx + 1}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+          </div >
+        ))
+}
+
+{/* At Risk Tab */ }
+{ activeTab === 'risks' && loading && <AnalyticsSkeleton type="table" /> }
+{
+  activeTab === 'risks' && !loading && (
+    <div className="space-y-6">
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+        <p className="text-orange-800">
+          <strong>⚠️ Intervention Needed:</strong> {atRiskStudents.length} students have been identified as needing immediate attention.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {atRiskStudents.map((student, idx) => (
+          <div key={idx} className={`bg-white border-l-4 rounded-lg shadow-md p-6 ${student.riskLevel === 'High' ? 'border-red-500' :
+            student.riskLevel === 'Medium' ? 'border-orange-500' :
+              'border-yellow-500'
+            }`}>
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <h4 className="text-lg font-bold text-gray-900">{student.name}</h4>
+                <p className="text-sm text-gray-600">{student.class} • {student.admissionNumber}</p>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${student.riskLevel === 'High' ? 'bg-red-100 text-red-700' :
+                student.riskLevel === 'Medium' ? 'bg-orange-100 text-orange-700' :
+                  'bg-yellow-100 text-yellow-700'
+                }`}>
+                {student.riskLevel} Risk
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-3">
+              <div>
+                <p className="text-xs text-gray-500">Average Score</p>
+                <p className="text-xl font-bold text-red-600">{student.averageScore}%</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Trend</p>
+                <p className={`text-xl font-bold ${parseFloat(student.trend) < 0 ? 'text-red-600' : 'text-green-600'
+                  }`}>
+                  {student.trend > 0 ? '↑' : '↓'} {Math.abs(student.trend)}%
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-xs font-semibold text-gray-700 mb-2">Recommended Actions:</p>
+              <ul className="text-xs text-gray-600 space-y-1">
+                {student.recommendations.map((rec, i) => (
+                  <li key={i}>• {rec}</li>
+                ))}
+              </ul>
+            </div>
+            <button
+              onClick={() => handleLogIntervention(student)}
+              className="mt-3 w-full px-4 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 text-sm font-medium transition-colors border border-blue-200"
+            >
+              Log Intervention
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+<InterventionModal
+  isOpen={showInterventionModal}
+  onClose={() => setShowInterventionModal(false)}
+  student={selectedStudentForIntervention}
+  onSave={handleSaveIntervention}
+  loading={loading}
+/>
+    </div >
   );
 };
 

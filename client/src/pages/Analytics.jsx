@@ -2,6 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import useSchoolSettings from '../hooks/useSchoolSettings';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+} from 'chart.js';
+import { Bar, Doughnut } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+);
 
 const Analytics = () => {
   const { user } = useAuth();
@@ -161,48 +182,69 @@ const Analytics = () => {
           {/* Subject Performance Chart */}
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-xl font-semibold mb-6">Subject Performance Comparison</h3>
-            <div className="space-y-4">
-              {Object.entries(analyticsData.subjectPerformance)
-                .sort((a, b) => b[1].average - a[1].average)
-                .map(([subject, data]) => (
-                  <div key={subject}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-gray-700">{subject}</span>
-                      <span className={`font-bold ${getPerformanceColor(data.average)}`}>
-                        {data.average.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-6 relative overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-primary/80 to-primary h-6 rounded-full transition-all duration-500 flex items-center justify-end pr-3"
-                        style={{ width: `${data.average}%` }}
-                      >
-                        {data.average >= 20 && (
-                          <span className="text-white text-xs font-semibold">
-                            {data.average.toFixed(1)}%
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            <div className="h-80">
+              <Bar
+                data={{
+                  labels: Object.keys(analyticsData.subjectPerformance),
+                  datasets: [
+                    {
+                      label: 'Average Score',
+                      data: Object.values(analyticsData.subjectPerformance).map(d => d.average),
+                      backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                      borderColor: 'rgba(59, 130, 246, 1)',
+                      borderWidth: 1,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      max: 100,
+                    },
+                  },
+                }}
+              />
             </div>
           </div>
 
           {/* Grade Distribution */}
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-xl font-semibold mb-6">Grade Distribution</h3>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-              {['A', 'B', 'C', 'D', 'E', 'F'].map(grade => (
-                <div key={grade} className="text-center">
-                  <div className={`${getGradeColor(grade)} text-white rounded-lg p-6 shadow-md`}>
-                    <p className="text-3xl font-bold">
-                      {analyticsData.gradeDistribution[grade] || 0}
-                    </p>
-                    <p className="text-sm mt-2 opacity-90">Grade {grade}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="flex justify-center h-64">
+              <Doughnut
+                data={{
+                  labels: ['A', 'B', 'C', 'D', 'E', 'F'],
+                  datasets: [
+                    {
+                      data: ['A', 'B', 'C', 'D', 'E', 'F'].map(grade => analyticsData.gradeDistribution[grade] || 0),
+                      backgroundColor: [
+                        'rgba(34, 197, 94, 0.6)',  // Green - A
+                        'rgba(59, 130, 246, 0.6)',  // Blue - B
+                        'rgba(234, 179, 8, 0.6)',   // Yellow - C
+                        'rgba(249, 115, 22, 0.6)',  // Orange - D
+                        'rgba(248, 113, 113, 0.6)', // Red-400 - E
+                        'rgba(220, 38, 38, 0.6)',   // Red-600 - F
+                      ],
+                      borderColor: [
+                        'rgba(34, 197, 94, 1)',
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(234, 179, 8, 1)',
+                        'rgba(249, 115, 22, 1)',
+                        'rgba(248, 113, 113, 1)',
+                        'rgba(220, 38, 38, 1)',
+                      ],
+                      borderWidth: 1,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                }}
+              />
             </div>
           </div>
 
