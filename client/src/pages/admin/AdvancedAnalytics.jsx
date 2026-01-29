@@ -48,6 +48,7 @@ const AdvancedAnalytics = () => {
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState('');
   const [studentAnalytics, setStudentAnalytics] = useState(null);
+  const [subjectAnalytics, setSubjectAnalytics] = useState(null);
   const [studentPrediction, setStudentPrediction] = useState(null);
   const [subjects, setSubjects] = useState([]);
 
@@ -238,6 +239,22 @@ const AdvancedAnalytics = () => {
       }
     } catch (error) {
       console.error('Error fetching overview data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSubjectDetails = async (subjectId) => {
+    setLoading(true);
+    try {
+      const termParam = selectedTerm !== 'current' && selectedTerm ? `?termId=${selectedTerm}` : '';
+      const response = await api.get(`/api/advanced-analytics/subject/${subjectId}${termParam}`);
+      if (response.ok) {
+        setSubjectAnalytics(await response.json());
+        setActiveTab('subject-detail');
+      }
+    } catch (error) {
+      console.error('Error fetching subject details:', error);
     } finally {
       setLoading(false);
     }
@@ -781,7 +798,9 @@ const AdvancedAnalytics = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {subjectComparison.map((subject, idx) => (
                     <tr key={idx} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{subject.subjectName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap font-medium text-blue-600 cursor-pointer hover:underline" onClick={() => fetchSubjectDetails(subject.subjectId)}>
+                        {subject.subjectName}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">{subject.students}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <span className={`font-bold ${subject.average >= 70 ? 'text-green-600' :
@@ -803,6 +822,89 @@ const AdvancedAnalytics = () => {
                         ) : (
                           <span className="text-red-600">⚠ Needs Attention</span>
                         )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Subject Detail View */}
+      {activeTab === 'subject-detail' && subjectAnalytics && !loading && (
+        <div className="space-y-6">
+          <div className="flex items-center gap-4 mb-4">
+            <button
+              onClick={() => setActiveTab('subjects')}
+              className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
+            >
+              ← Back to Subjects
+            </button>
+            <h2 className="text-2xl font-bold">{subjectAnalytics.subjectName} Analysis</h2>
+          </div>
+
+          {/* Subject Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <p className="text-sm text-gray-600">Average Score</p>
+              <p className="text-3xl font-bold text-blue-600 mt-2">{subjectAnalytics.statistics?.average || 0}%</p>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <p className="text-sm text-gray-600">Highest Score</p>
+              <p className="text-3xl font-bold text-green-600 mt-2">{subjectAnalytics.statistics?.highest || 0}%</p>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <p className="text-sm text-gray-600">Lowest Score</p>
+              <p className="text-3xl font-bold text-red-600 mt-2">{subjectAnalytics.statistics?.lowest || 0}%</p>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <p className="text-sm text-gray-600">Pass Rate</p>
+              <p className="text-3xl font-bold text-purple-600 mt-2">{subjectAnalytics.statistics?.passRate || 0}%</p>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-xl font-bold mb-4">Student Performance List</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Score</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Rank</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {subjectAnalytics.students?.sort((a, b) => b.score - a.score).map((student, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                        {student.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                        {student.class}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center font-bold">
+                        {student.score}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${student.score >= 70 ? 'bg-green-100 text-green-800' :
+                          student.score >= 60 ? 'bg-blue-100 text-blue-800' :
+                            student.score >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                          }`}>
+                          {student.grade || (
+                            student.score >= 70 ? 'A' :
+                              student.score >= 60 ? 'B' :
+                                student.score >= 50 ? 'C' : 'F'
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-gray-500">
+                        #{idx + 1}
                       </td>
                     </tr>
                   ))}
