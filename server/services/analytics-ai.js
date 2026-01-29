@@ -81,11 +81,12 @@ const Stats = {
  */
 async function predictPerformance(prisma, studentId, schoolId) {
   try {
+    const sId = parseInt(schoolId);
     // Get student's historical results in this school
     const results = await prisma.result.findMany({
       where: {
         studentId: parseInt(studentId),
-        schoolId: schoolId
+        schoolId: sId
       },
       include: {
         term: true,
@@ -155,10 +156,11 @@ async function predictPerformance(prisma, studentId, schoolId) {
  */
 async function identifyAtRiskStudents(prisma, schoolId, classId = null, termId = null) {
   try {
-    const whereClause = { schoolId };
+    const sId = parseInt(schoolId);
+    const whereClause = { schoolId: sId };
     if (classId) whereClause.student = {
       classId: parseInt(classId),
-      schoolId: schoolId
+      schoolId: sId
     };
     if (termId) whereClause.termId = parseInt(termId);
 
@@ -180,7 +182,7 @@ async function identifyAtRiskStudents(prisma, schoolId, classId = null, termId =
       const student = await prisma.student.findFirst({
         where: {
           id: result.studentId,
-          schoolId: schoolId
+          schoolId: sId
         },
         include: {
           user: { select: { firstName: true, lastName: true } },
@@ -194,7 +196,7 @@ async function identifyAtRiskStudents(prisma, schoolId, classId = null, termId =
       const studentResults = await prisma.result.findMany({
         where: {
           studentId: result.studentId,
-          schoolId: schoolId
+          schoolId: sId
         },
         orderBy: { createdAt: 'asc' },
         take: 5

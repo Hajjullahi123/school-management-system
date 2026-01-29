@@ -10,6 +10,38 @@ const {
 } = require('../services/analytics-ai');
 
 // =============================================
+// DIAGNOSTIC ENDPOINTS
+// =============================================
+
+router.get('/debug/counts', authenticate, async (req, res) => {
+  try {
+    const sId = parseInt(req.schoolId);
+    const [students, classes, subjects, results, sessions] = await Promise.all([
+      prisma.student.count({ where: { schoolId: sId } }),
+      prisma.class.count({ where: { schoolId: sId } }),
+      prisma.subject.count({ where: { schoolId: sId } }),
+      prisma.result.count({ where: { schoolId: sId } }),
+      prisma.academicSession.count({ where: { schoolId: sId } })
+    ]);
+
+    res.json({
+      schoolId: sId,
+      originalSchoolId: req.schoolId,
+      type: typeof req.schoolId,
+      counts: {
+        students,
+        classes,
+        subjects,
+        results,
+        sessions
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// =============================================
 // SUBJECT-WISE ANALYTICS
 // =============================================
 
@@ -21,7 +53,7 @@ router.get('/subject/:subjectId', authenticate, async (req, res) => {
 
     const whereClause = {
       subjectId,
-      schoolId: req.schoolId
+      schoolId: parseInt(req.schoolId)
     };
 
     if (termId) {
@@ -49,7 +81,7 @@ router.get('/subject/:subjectId', authenticate, async (req, res) => {
     const subject = await prisma.subject.findFirst({
       where: {
         id: subjectId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       }
     });
 
@@ -104,7 +136,7 @@ router.get('/subject/:subjectId/trends', authenticate, async (req, res) => {
     const results = await prisma.result.findMany({
       where: {
         subjectId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: {
         term: {
@@ -140,17 +172,19 @@ router.get('/subject/:subjectId/trends', authenticate, async (req, res) => {
 // Compare all subjects
 router.get('/subject/comparison/all', authenticate, async (req, res) => {
   try {
+    const sId = parseInt(req.schoolId);
     const subjects = await prisma.subject.findMany({
-      where: { schoolId: req.schoolId }
+      where: { schoolId: sId }
     });
     const comparison = [];
 
     const { termId } = req.query;
+    console.log(`[ANALYTICS DEBUG] Fetching subjects for schoolId: ${req.schoolId}, termId: ${termId}`);
 
     for (const subject of subjects) {
       const whereClause = {
         subjectId: subject.id,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       };
 
       if (termId) {
@@ -200,7 +234,7 @@ router.get('/student/:studentId/comprehensive', authenticate, async (req, res) =
     const student = await prisma.student.findFirst({
       where: {
         id: studentId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: {
         user: { select: { firstName: true, lastName: true } },
@@ -215,7 +249,7 @@ router.get('/student/:studentId/comprehensive', authenticate, async (req, res) =
     const results = await prisma.result.findMany({
       where: {
         studentId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: { subject: true, term: true },
       orderBy: { createdAt: 'desc' }
@@ -288,7 +322,7 @@ router.get('/student/:studentId/trends', authenticate, async (req, res) => {
     const results = await prisma.result.findMany({
       where: {
         studentId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: { term: { include: { academicSession: true } }, subject: true },
       orderBy: { createdAt: 'asc' }
@@ -338,7 +372,7 @@ router.get('/student/:studentId/peer-comparison', authenticate, async (req, res)
     const student = await prisma.student.findFirst({
       where: {
         id: studentId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: { classModel: true }
     });
@@ -351,7 +385,7 @@ router.get('/student/:studentId/peer-comparison', authenticate, async (req, res)
     const studentResults = await prisma.result.findMany({
       where: {
         studentId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: { subject: true }
     });
@@ -360,14 +394,14 @@ router.get('/student/:studentId/peer-comparison', authenticate, async (req, res)
     const classStudents = await prisma.student.findMany({
       where: {
         classId: student.classId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       }
     });
 
     const classResults = await prisma.result.findMany({
       where: {
         studentId: { in: classStudents.map(s => s.id) },
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: { subject: true }
     });
@@ -410,7 +444,7 @@ router.get('/teacher/:teacherId/effectiveness', authenticate, async (req, res) =
     const assignments = await prisma.teacherAssignment.findMany({
       where: {
         teacherId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: {
         classSubject: {
@@ -434,7 +468,7 @@ router.get('/teacher/:teacherId/effectiveness', authenticate, async (req, res) =
       const students = await prisma.student.findMany({
         where: {
           classId: assignment.classId,
-          schoolId: req.schoolId
+          schoolId: parseInt(req.schoolId)
         }
       });
 
@@ -442,7 +476,7 @@ router.get('/teacher/:teacherId/effectiveness', authenticate, async (req, res) =
         where: {
           subjectId: assignment.subjectId,
           studentId: { in: students.map(s => s.id) },
-          schoolId: req.schoolId
+          schoolId: parseInt(req.schoolId)
         }
       });
 
@@ -487,21 +521,21 @@ router.get('/class/:classId/overview', authenticate, async (req, res) => {
     const classInfo = await prisma.class.findFirst({
       where: {
         id: classId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       }
     });
 
     const students = await prisma.student.findMany({
       where: {
         classId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       }
     });
 
     const results = await prisma.result.findMany({
       where: {
         studentId: { in: students.map(s => s.id) },
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: { subject: true, student: { include: { user: true } } }
     });
@@ -542,23 +576,25 @@ router.get('/class/:classId/overview', authenticate, async (req, res) => {
 // Class comparison
 router.get('/class/comparison/all', authenticate, async (req, res) => {
   try {
+    const sId = parseInt(req.schoolId);
     const classes = await prisma.class.findMany({
-      where: { schoolId: req.schoolId }
+      where: { schoolId: sId }
     });
     const { termId } = req.query;
+    console.log(`[ANALYTICS DEBUG] Fetching classes for schoolId: ${req.schoolId}, termId: ${termId}`);
     const comparison = [];
 
     for (const cls of classes) {
       const students = await prisma.student.findMany({
         where: {
           classId: cls.id,
-          schoolId: req.schoolId
+          schoolId: parseInt(req.schoolId)
         }
       });
 
       const whereClause = {
         studentId: { in: students.map(s => s.id) },
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       };
 
       if (termId) {
