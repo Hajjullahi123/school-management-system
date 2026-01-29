@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { FiCheck, FiShield, FiBriefcase, FiZap, FiCreditCard, FiAlertCircle, FiClock, FiCalendar, FiUsers } from 'react-icons/fi';
 import { apiCall } from '../../api';
 import { toast } from '../../utils/toast';
+import { useAuth } from '../../context/AuthContext';
 
 const Billing = () => {
+  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
@@ -86,46 +88,48 @@ const Billing = () => {
         </div>
       </div>
 
-      {/* Global Pricing Editor (Platform Admin Section) */}
-      <div className="bg-indigo-900 text-white rounded-[40px] p-10 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-12 opacity-[0.05] pointer-events-none">
-          <FiZap size={300} />
-        </div>
-
-        <div className="relative z-10 flex flex-col lg:flex-row gap-12 items-start">
-          <div className="flex-1 space-y-4">
-            <div className="inline-flex items-center gap-2 bg-indigo-500/30 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-400/30">
-              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
-              Platform Economics
-            </div>
-            <h2 className="text-3xl font-black tracking-tighter italic uppercase">Market Price Adjustment</h2>
-            <p className="text-indigo-200/80 text-sm leading-relaxed max-w-md">As a platform owner, you can adjust the standard pricing displayed on the public landing page for new schools joining the ecosystem.</p>
+      {/* Global Pricing Editor (Platform Admin Section) - Only for Super Admins */}
+      {user?.role === 'superadmin' && (
+        <div className="bg-indigo-900 text-white rounded-[40px] p-10 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-12 opacity-[0.05] pointer-events-none">
+            <FiZap size={300} />
           </div>
 
-          <form onSubmit={handleUpdateGlobalPricing} className="bg-white/10 backdrop-blur-xl p-8 rounded-3xl border border-white/10 flex flex-col md:flex-row items-end gap-6 w-full lg:w-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
-              {['basic', 'standard', 'premium'].map(type => (
-                <div key={type} className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-indigo-300 ml-1">{type} (₦)</label>
-                  <input
-                    type="number"
-                    value={editPricing[type]}
-                    onChange={(e) => setEditPricing({ ...editPricing, [type]: e.target.value })}
-                    className="w-full bg-white/10 border border-white/20 rounded-2xl px-5 py-3 text-lg font-black focus:ring-4 focus:ring-white/10 outline-none transition-all"
-                  />
-                </div>
-              ))}
+          <div className="relative z-10 flex flex-col lg:flex-row gap-12 items-start">
+            <div className="flex-1 space-y-4">
+              <div className="inline-flex items-center gap-2 bg-indigo-500/30 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-400/30">
+                <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                Platform Economics
+              </div>
+              <h2 className="text-3xl font-black tracking-tighter italic uppercase">Market Price Adjustment</h2>
+              <p className="text-indigo-200/80 text-sm leading-relaxed max-w-md">As a platform owner, you can adjust the standard pricing displayed on the public landing page for new schools joining the ecosystem.</p>
             </div>
-            <button
-              type="submit"
-              disabled={updating}
-              className="bg-white text-indigo-900 px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/20 flex items-center gap-2 whitespace-nowrap"
-            >
-              {updating ? 'Applying...' : 'Sync Market Prices'}
-            </button>
-          </form>
+
+            <form onSubmit={handleUpdateGlobalPricing} className="bg-white/10 backdrop-blur-xl p-8 rounded-3xl border border-white/10 flex flex-col md:flex-row items-end gap-6 w-full lg:w-auto">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+                {['basic', 'standard', 'premium'].map(type => (
+                  <div key={type} className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-indigo-300 ml-1">{type} (₦)</label>
+                    <input
+                      type="number"
+                      value={editPricing[type]}
+                      onChange={(e) => setEditPricing({ ...editPricing, [type]: e.target.value })}
+                      className="w-full bg-white/10 border border-white/20 rounded-2xl px-5 py-3 text-lg font-black focus:ring-4 focus:ring-white/10 outline-none transition-all"
+                    />
+                  </div>
+                ))}
+              </div>
+              <button
+                type="submit"
+                disabled={updating}
+                className="bg-white text-indigo-900 px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/20 flex items-center gap-2 whitespace-nowrap"
+              >
+                {updating ? 'Applying...' : 'Sync Market Prices'}
+              </button>
+            </form>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Current Status Card */}
       <div className="bg-white rounded-[40px] shadow-xl shadow-gray-100 border border-gray-100 p-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
