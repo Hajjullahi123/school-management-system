@@ -63,6 +63,7 @@ export const useSchoolSettings = () => {
             test1Weight: data.test1Weight || 10,
             test2Weight: data.test2Weight || 10,
             examWeight: data.examWeight || 70,
+            currentSession: data.currentSession || null,
             isSetupComplete: data.isSetupComplete ?? true
           });
         }

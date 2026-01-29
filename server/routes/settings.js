@@ -65,6 +65,15 @@ router.get('/', async (req, res) => {
     // Map fields for frontend compatibility
     sanitizedSettings.schoolName = sanitizedSettings.name;
 
+    // Fetch current academic session
+    const currentSession = await prisma.academicSession.findFirst({
+      where: {
+        schoolId: settings.id,
+        isCurrent: true
+      }
+    });
+    sanitizedSettings.currentSession = currentSession;
+
     res.json(sanitizedSettings);
   } catch (error) {
     console.error('Error fetching settings:', error);

@@ -22,7 +22,10 @@ router.get('/debug/counts', authenticate, async (req, res) => {
       prisma.class.count({ where: { schoolId: sId } }),
       prisma.subject.count({ where: { schoolId: sId } }),
       prisma.result.count({ where: { schoolId: sId } }),
-      prisma.academicSession.count({ where: { schoolId: sId } })
+      prisma.academicSession.findMany({
+        where: { schoolId: sId },
+        include: { terms: true }
+      })
     ]);
 
     res.json({
@@ -34,8 +37,19 @@ router.get('/debug/counts', authenticate, async (req, res) => {
         classes,
         subjects,
         results,
-        sessions
-      }
+        sessions: sessions.length
+      },
+      sessionDetails: sessions.map(s => ({
+        id: s.id,
+        name: s.name,
+        isCurrent: s.isCurrent,
+        terms: s.terms.map(t => ({ id: t.id, name: t.name, isCurrent: t.isCurrent }))
+      })),
+      resultBreakdown: await prisma.result.groupBy({
+        by: ['termId'],
+        where: { schoolId: sId },
+        _count: { id: true }
+      })
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

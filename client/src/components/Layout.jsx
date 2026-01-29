@@ -930,7 +930,7 @@ const Layout = () => {
               <div className="flex items-center space-x-2 sm:space-x-4">
                 <div className="text-right hidden md:block">
                   <p className="text-xs sm:text-sm font-semibold text-gray-700">Academic Session</p>
-                  <p className="text-[10px] sm:text-xs text-gray-500">{new Date().getFullYear()}/{new Date().getFullYear() + 1}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500">{schoolSettings?.currentSession?.name || `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`}</p>
                 </div>
 
                 <div className="flex items-center space-x-2 sm:space-x-3 pl-2 sm:pl-4 border-l border-gray-200">
