@@ -17,12 +17,19 @@ const {
 router.get('/subject/:subjectId', authenticate, async (req, res) => {
   try {
     const subjectId = parseInt(req.params.subjectId);
+    const { termId } = req.query;
+
+    const whereClause = {
+      subjectId,
+      schoolId: req.schoolId
+    };
+
+    if (termId) {
+      whereClause.termId = parseInt(termId);
+    }
 
     const results = await prisma.result.findMany({
-      where: {
-        subjectId,
-        schoolId: req.schoolId
-      },
+      where: whereClause,
       include: {
         student: {
           include: {
@@ -138,12 +145,20 @@ router.get('/subject/comparison/all', authenticate, async (req, res) => {
     });
     const comparison = [];
 
+    const { termId } = req.query;
+
     for (const subject of subjects) {
+      const whereClause = {
+        subjectId: subject.id,
+        schoolId: req.schoolId
+      };
+
+      if (termId) {
+        whereClause.termId = parseInt(termId);
+      }
+
       const results = await prisma.result.findMany({
-        where: {
-          subjectId: subject.id,
-          schoolId: req.schoolId
-        }
+        where: whereClause
       });
 
       if (results.length > 0) {
@@ -522,6 +537,7 @@ router.get('/class/comparison/all', authenticate, async (req, res) => {
     const classes = await prisma.class.findMany({
       where: { schoolId: req.schoolId }
     });
+    const { termId } = req.query;
     const comparison = [];
 
     for (const cls of classes) {
@@ -532,11 +548,17 @@ router.get('/class/comparison/all', authenticate, async (req, res) => {
         }
       });
 
+      const whereClause = {
+        studentId: { in: students.map(s => s.id) },
+        schoolId: req.schoolId
+      };
+
+      if (termId) {
+        whereClause.termId = parseInt(termId);
+      }
+
       const results = await prisma.result.findMany({
-        where: {
-          studentId: { in: students.map(s => s.id) },
-          schoolId: req.schoolId
-        }
+        where: whereClause
       });
 
       if (results.length > 0) {
