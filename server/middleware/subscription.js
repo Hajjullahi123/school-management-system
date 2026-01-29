@@ -82,6 +82,7 @@ const requirePackage = (requiredLevel) => {
       if (currentRank < requiredRank) {
         return res.status(403).json({
           error: 'UPGRADE_REQUIRED',
+          requiredPackage: requiredLevel,
           message: `The ${requiredLevel} plan is required to access this premium feature.`
         });
       }

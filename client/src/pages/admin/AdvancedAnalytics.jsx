@@ -60,6 +60,7 @@ const AdvancedAnalytics = () => {
   const [heatmapData, setHeatmapData] = useState(null);
   const [diagnosticData, setDiagnosticData] = useState(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [isUpgradeRequired, setIsUpgradeRequired] = useState(false);
 
   // Intervention State
   const [showInterventionModal, setShowInterventionModal] = useState(false);
@@ -243,14 +244,21 @@ const AdvancedAnalytics = () => {
         api.get(`/api/advanced-analytics/ai/at-risk-students${termParam}`)
       ]);
 
+      if (subjectRes.status === 403) {
+        setIsUpgradeRequired(true);
+        // We still want to see if we can get diagnostics
+        return;
+      }
+
       if (subjectRes.ok) {
+        setIsUpgradeRequired(false);
         const data = await subjectRes.json();
         console.log('[ANALYTICS] Subjects received:', data.length);
         setSubjectComparison(Array.isArray(data) ? data : []);
       } else {
         const errText = await subjectRes.text();
         console.error('Subject analytics failed:', subjectRes.status, errText);
-        toast.error(`Subject analytics failed: ${subjectRes.status}`);
+        // toast.error(`Subject analytics failed: ${subjectRes.status}`);
       }
 
       if (classRes.ok) {
@@ -269,7 +277,7 @@ const AdvancedAnalytics = () => {
 
     } catch (error) {
       console.error('Error fetching overview data:', error);
-      toast.error('Failed to load analytics data. Please check connection.');
+      // toast.error('Failed to load analytics data. Please check connection.');
     } finally {
       setLoading(false);
     }
@@ -669,40 +677,119 @@ const AdvancedAnalytics = () => {
         </div>
       </div>
 
-      {/* Diagnostic Results Overlay */}
+      {/* Diagnostic Full-Screen Overlay */}
       {showDiagnostics && diagnosticData && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded shadow-sm">
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="text-sm font-bold text-yellow-800">System Diagnostic Report</h3>
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mt-2">
-                <div className="text-xs">
-                  <span className="text-gray-600 block">Students:</span>
-                  <span className="font-bold">{diagnosticData.counts.students}</span>
+        <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-4xl rounded-[40px] shadow-2xl overflow-hidden border border-white/20">
+            <div className="bg-amber-500 p-8 text-white relative">
+              <div className="absolute top-0 right-0 p-8">
+                <button onClick={() => setShowDiagnostics(false)} className="text-white/60 hover:text-white transition-colors">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-2">Internal Engine Audit</p>
+              <h2 className="text-4xl font-black italic tracking-tighter uppercase">System Intelligence Report</h2>
+            </div>
+
+            <div className="p-10 space-y-8">
+              {/* Core Identity Check */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    </div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active User context</p>
+                  </div>
+                  <p className="text-2xl font-black text-slate-800 tracking-tighter italic">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-1">{user?.role} Access Level</p>
                 </div>
-                <div className="text-xs">
-                  <span className="text-gray-600 block">Classes:</span>
-                  <span className="font-bold">{diagnosticData.counts.classes}</span>
+
+                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 shadow-sm border-l-4 border-l-red-500">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center text-red-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                    </div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Organization ID (JWT)</p>
+                  </div>
+                  <p className="text-3xl font-black text-slate-800 tracking-tighter italic underline decoration-red-400 decoration-3">{diagnosticData.schoolId}</p>
+                  <p className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em] mt-1">Data Mismatch Source: {diagnosticData.type}</p>
                 </div>
-                <div className="text-xs">
-                  <span className="text-gray-600 block">Subjects:</span>
-                  <span className="font-bold">{diagnosticData.counts.subjects}</span>
+              </div>
+
+              {/* Data Matrix */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Database Objects Found</p>
+                  <span className="h-px bg-slate-100 flex-1 ml-6"></span>
                 </div>
-                <div className="text-xs">
-                  <span className="text-gray-600 block">Results:</span>
-                  <span className="font-bold">{diagnosticData.counts.results}</span>
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                  {[
+                    { label: 'Students', val: diagnosticData.counts.students, color: 'text-blue-600', bg: 'bg-blue-50' },
+                    { label: 'Classes', val: diagnosticData.counts.classes, color: 'text-green-600', bg: 'bg-green-50' },
+                    { label: 'Subjects', val: diagnosticData.counts.subjects, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                    { label: 'Results', val: diagnosticData.counts.results, color: 'text-amber-600', bg: 'bg-amber-50' },
+                    { label: 'Sessions', val: diagnosticData.counts.sessions, color: 'text-rose-600', bg: 'bg-rose-50' }
+                  ].map(stat => (
+                    <div key={stat.label} className={`${stat.bg} p-6 rounded-3xl border border-transparent hover:border-slate-200 transition-all group`}>
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 opacity-60">{stat.label}</p>
+                      <p className={`text-4xl font-black italic tracking-tighter ${stat.val > 0 ? stat.color : 'text-slate-300'}`}>{stat.val}</p>
+                    </div>
+                  ))}
                 </div>
-                <div className="text-xs">
-                  <span className="text-gray-600 block">School ID:</span>
-                  <span className="font-bold">{diagnosticData.schoolId} ({diagnosticData.type})</span>
+              </div>
+
+              {/* AI Audit Findings */}
+              <div className="bg-slate-900 p-8 rounded-[32px] text-white">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-amber-400">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-black italic uppercase tracking-tight">Audit Findings & Recovery Plan</h4>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Status: {diagnosticData.counts.subjects === 0 ? 'CRITICAL DISCONNECT' : 'INPUT REQUIRED'}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {diagnosticData.counts.students === 0 ? (
+                    <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                      <p className="text-amber-300 font-bold text-sm italic underline decoration-amber-500">ROOT CAUSE: Identity Mismatch</p>
+                      <p className="text-slate-300 text-xs mt-2 leading-relaxed">The system is searching for data under School ID <span className="text-white font-black underline decoration-white">{diagnosticData.schoolId}</span>, but NO students were found. This usually means your account is linked to the wrong organization ID.</p>
+                    </div>
+                  ) : diagnosticData.counts.subjects === 0 ? (
+                    <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                      <p className="text-amber-300 font-bold text-sm italic underline decoration-amber-500">ROOT CAUSE: Missing Academic Catalog</p>
+                      <p className="text-slate-300 text-xs mt-2 leading-relaxed">Students were found, but subjects are missing. You must register subjects in the <span className="text-white font-black italic underline decoration-white">Subject Management</span> section before analytics can be processed.</p>
+                    </div>
+                  ) : diagnosticData.counts.results === 0 ? (
+                    <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                      <p className="text-amber-300 font-bold text-sm italic underline decoration-amber-500">ROOT CAUSE: Data Pipeline Empty</p>
+                      <p className="text-slate-300 text-xs mt-2 leading-relaxed">Subjects and students are verified, but NO test/exam results exist. Please upload results in the <span className="text-white font-black italic underline decoration-white">Bulk Result Upload</span> section.</p>
+                    </div>
+                  ) : null}
+
+                  {/* Logical Session/Term Check */}
+                  {diagnosticData.counts.sessions > 0 && terms.length === 0 && (
+                    <div className="p-4 bg-rose-500/10 rounded-2xl border border-rose-500/20">
+                      <p className="text-rose-300 font-bold text-sm italic underline decoration-rose-500 text-center">SESSION YEAR DISCREPANCY DETECTED</p>
+                      <p className="text-slate-300 text-xs mt-2 text-center">Your headers report 2026/2027, but no active terms were found for this year in the database. Please check your Academic Setup.</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-8 flex justify-center">
+                  <button
+                    onClick={() => setShowDiagnostics(false)}
+                    className="px-12 py-4 bg-primary text-white font-black rounded-2xl uppercase tracking-[0.3em] text-xs shadow-xl shadow-primary/20 hover:scale-[1.05] transition-transform active:scale-95"
+                  >
+                    Confirm & Close Audit
+                  </button>
                 </div>
               </div>
             </div>
-            <button onClick={() => setShowDiagnostics(false)} className="text-yellow-800 hover:text-yellow-600">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
         </div>
       )}
@@ -731,7 +818,42 @@ const AdvancedAnalytics = () => {
 
       {/* Overview Tab */}
       {activeTab === 'overview' && loading && <AnalyticsSkeleton type="overview" />}
-      {activeTab === 'overview' && !loading && (
+
+      {activeTab === 'overview' && !loading && isUpgradeRequired && (
+        <div className="bg-white p-12 rounded-[40px] border border-slate-100 shadow-xl text-center max-w-4xl mx-auto">
+          <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
+            <svg className="w-12 h-12 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h2 className="text-4xl font-black italic tracking-tighter uppercase mb-4">Unlocking Premium Intelligence</h2>
+          <p className="text-slate-500 max-w-lg mx-auto mb-10 leading-relaxed font-medium">
+            Advanced Predictive Analytics, AI-Risk Detection, and Performance Heatmaps are exclusive to the <span className="text-primary font-bold">Premium Package</span>.
+          </p>
+
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+            <button
+              onClick={() => window.location.href = '/dashboard/platform-billing'}
+              className="px-12 py-4 bg-primary text-white font-black rounded-2xl uppercase tracking-[0.2em] text-xs shadow-xl shadow-primary/30 hover:scale-[1.05] transition-all"
+            >
+              Upgrade Plan Now
+            </button>
+            <button
+              onClick={fetchDiagnostics}
+              className="px-8 py-4 bg-slate-900 text-white font-black rounded-2xl uppercase tracking-[0.2em] text-xs shadow-xl shadow-slate-900/30 hover:scale-[1.05] transition-all"
+            >
+              Verify System Data
+            </button>
+          </div>
+
+          <div className="mt-12 bg-slate-50 p-6 rounded-3xl border border-slate-100 inline-block">
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Status Verification</p>
+            <p className="text-xs text-slate-600 font-bold">Diagnostics are always enabled to ensure your database connection is healthy.</p>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'overview' && !loading && !isUpgradeRequired && (
         <div className="space-y-6">
           {/* Quick Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -765,13 +887,19 @@ const AdvancedAnalytics = () => {
               {subjectComparison.length > 0 ? (
                 <Bar data={subjectChartData} options={{ responsive: true, maintainAspectRatio: true }} />
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 mb-4">No data available for this term</p>
+                <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-slate-500 font-bold mb-2 uppercase tracking-widest text-xs">No data available for this term</p>
+                  <p className="text-slate-400 text-xs mb-6 max-w-xs mx-auto">Either no subjects are registered or no examination results have been uploaded yet.</p>
                   <button
                     onClick={fetchDiagnostics}
-                    className="text-primary text-sm font-medium hover:underline"
+                    className="px-6 py-2 bg-primary text-white text-xs font-black rounded-lg hover:brightness-90 transition-all shadow-lg shadow-primary/20 uppercase tracking-widest"
                   >
-                    Run System Diagnostic
+                    Run System Audit
                   </button>
                 </div>
               )}
@@ -783,7 +911,14 @@ const AdvancedAnalytics = () => {
               {classComparison.length > 0 ? (
                 <Bar data={classChartData} options={{ responsive: true, maintainAspectRatio: true }} />
               ) : (
-                <p className="text-gray-500 text-center py-8">No data available</p>
+                <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-500 text-center text-xs font-bold uppercase tracking-widest">No class data discovered</p>
+                </div>
               )}
             </div>
           </div>

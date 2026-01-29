@@ -163,7 +163,7 @@ app.use('/api/exams', authenticate, checkSubscription, requirePackage('standard'
 app.use('/api/results', authenticate, checkSubscription, resultsRoutes);
 app.use('/api/reports', authenticate, checkSubscription, reportRoutes);
 app.use('/api/analytics', authenticate, checkSubscription, analyticsRoutes);
-app.use('/api/advanced-analytics', authenticate, checkSubscription, requirePackage('premium'), advancedAnalyticsRoutes);
+app.use('/api/advanced-analytics', authenticate, checkSubscription, advancedAnalyticsRoutes);
 app.use('/api/academic-sessions', authenticate, checkSubscription, academicSessionRoutes);
 app.use('/api/terms', authenticate, checkSubscription, termRoutes);
 app.use('/api/classes', authenticate, checkSubscription, classRoutes);
