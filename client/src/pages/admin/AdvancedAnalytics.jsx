@@ -51,6 +51,10 @@ const AdvancedAnalytics = () => {
   const [studentPrediction, setStudentPrediction] = useState(null);
   const [subjects, setSubjects] = useState([]);
 
+  // Term Selection States
+  const [terms, setTerms] = useState([]);
+  const [selectedTerm, setSelectedTerm] = useState('current');
+
   // Student Selection States
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -60,6 +64,7 @@ const AdvancedAnalytics = () => {
   const [showStudentList, setShowStudentList] = useState(false);
 
   useEffect(() => {
+    fetchTerms();
     fetchSubjects();
     if (user?.role === 'teacher') {
       fetchTeacherClass();
@@ -69,6 +74,17 @@ const AdvancedAnalytics = () => {
       fetchClasses();
     }
   }, [user]);
+
+  // Re-fetch data when term changes
+  useEffect(() => {
+    if (selectedTerm && user) {
+      if (user?.role === 'teacher') {
+        fetchTeacherClass();
+      } else {
+        fetchOverviewData();
+      }
+    }
+  }, [selectedTerm]);
 
   useEffect(() => {
     // Filter students based on class and search query
@@ -169,23 +185,54 @@ const AdvancedAnalytics = () => {
     }
   };
 
+  const fetchTerms = async () => {
+    try {
+      const response = await api.get('/api/academic-sessions');
+      if (response.ok) {
+        const sessions = await response.json();
+        // Flatten terms from all sessions
+        const allTerms = sessions.flatMap(session =>
+          session.terms.map(term => ({
+            ...term,
+            sessionName: session.year,
+            fullName: `${session.year} - ${term.name}`
+          }))
+        );
+        setTerms(allTerms);
+
+        // Find current term
+        const currentTerm = allTerms.find(t => t.isCurrent);
+        if (currentTerm) {
+          setSelectedTerm(currentTerm.id.toString());
+        } else if (allTerms.length > 0) {
+          setSelectedTerm(allTerms[0].id.toString());
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching terms:', error);
+    }
+  };
+
   const fetchOverviewData = async () => {
     setLoading(true);
     try {
+      // Build query params
+      const termParam = selectedTerm !== 'current' && selectedTerm ? `?termId=${selectedTerm}` : '';
+
       // Fetch subject comparison
-      const subjectRes = await api.get('/api/advanced-analytics/subject/comparison/all');
+      const subjectRes = await api.get(`/api/advanced-analytics/subject/comparison/all${termParam}`);
       if (subjectRes.ok) {
         setSubjectComparison(await subjectRes.json());
       }
 
       // Fetch class comparison
-      const classRes = await api.get('/api/advanced-analytics/class/comparison/all');
+      const classRes = await api.get(`/api/advanced-analytics/class/comparison/all${termParam}`);
       if (classRes.ok) {
         setClassComparison(await classRes.json());
       }
 
       // Fetch at-risk students
-      const riskRes = await api.get('/api/advanced-analytics/ai/at-risk-students');
+      const riskRes = await api.get(`/api/advanced-analytics/ai/at-risk-students${termParam}`);
       if (riskRes.ok) {
         setAtRiskStudents(await riskRes.json());
       }
@@ -516,25 +563,25 @@ const AdvancedAnalytics = () => {
           </p>
         </div>
 
-        {/* Export Buttons */}
-        {!loading && (
-          <div className="flex gap-2">
-            {activeTab === 'overview' && (
-              <button
-                onClick={exportOverviewPDF}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span className="text-sm font-semibold">Export PDF</span>
-              </button>
-            )}
+        <div className="flex items-center gap-4">
+          {/* Term Selector */}
+          <select
+            value={selectedTerm}
+            onChange={(e) => setSelectedTerm(e.target.value)}
+            className="block w-48 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm"
+          >
+            <option value="current">Current Term</option>
+            {terms.map(term => (
+              <option key={term.id} value={term.id}>{term.fullName}</option>
+            ))}
+          </select>
 
-            {activeTab === 'subjects' && (
-              <>
+          {/* Export Buttons */}
+          {!loading && (
+            <div className="flex gap-2">
+              {activeTab === 'overview' && (
                 <button
-                  onClick={exportSubjectsPDF}
+                  onClick={exportOverviewPDF}
                   className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -542,65 +589,79 @@ const AdvancedAnalytics = () => {
                   </svg>
                   <span className="text-sm font-semibold">Export PDF</span>
                 </button>
-                <button
-                  onClick={exportSubjectsExcel}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span className="text-sm font-semibold">Export Excel</span>
-                </button>
-              </>
-            )}
+              )}
 
-            {activeTab === 'classes' && (
-              <>
-                <button
-                  onClick={exportClassesPDF}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span className="text-sm font-semibold">Export PDF</span>
-                </button>
-                <button
-                  onClick={exportClassesExcel}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span className="text-sm font-semibold">Export Excel</span>
-                </button>
-              </>
-            )}
+              {activeTab === 'subjects' && (
+                <>
+                  <button
+                    onClick={exportSubjectsPDF}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="text-sm font-semibold">Export PDF</span>
+                  </button>
+                  <button
+                    onClick={exportSubjectsExcel}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="text-sm font-semibold">Export Excel</span>
+                  </button>
+                </>
+              )}
 
-            {activeTab === 'risks' && (
-              <>
-                <button
-                  onClick={exportAtRiskPDF}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span className="text-sm font-semibold">Export PDF</span>
-                </button>
-                <button
-                  onClick={exportAtRiskExcel}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span className="text-sm font-semibold">Export Excel</span>
-                </button>
-              </>
-            )}
-          </div>
-        )}
+              {activeTab === 'classes' && (
+                <>
+                  <button
+                    onClick={exportClassesPDF}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="text-sm font-semibold">Export PDF</span>
+                  </button>
+                  <button
+                    onClick={exportClassesExcel}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="text-sm font-semibold">Export Excel</span>
+                  </button>
+                </>
+              )}
+
+              {activeTab === 'risks' && (
+                <>
+                  <button
+                    onClick={exportAtRiskPDF}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="text-sm font-semibold">Export PDF</span>
+                  </button>
+                  <button
+                    onClick={exportAtRiskExcel}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="text-sm font-semibold">Export Excel</span>
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
