@@ -243,18 +243,28 @@ const AdvancedAnalytics = () => {
       if (subjectRes.ok) {
         const data = await subjectRes.json();
         setSubjectComparison(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Subject analytics failed:', subjectRes.status);
+        toast.error('Failed to load subject analytics');
       }
+
       if (classRes.ok) {
         const data = await classRes.json();
         setClassComparison(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Class analytics failed:', classRes.status);
       }
+
       if (riskRes.ok) {
         const data = await riskRes.json();
         setAtRiskStudents(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Risk analytics failed:', riskRes.status);
       }
 
     } catch (error) {
       console.error('Error fetching overview data:', error);
+      toast.error('Failed to load analytics data. Please check connection.');
     } finally {
       setLoading(false);
     }
