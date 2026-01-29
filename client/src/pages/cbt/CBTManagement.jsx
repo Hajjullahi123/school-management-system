@@ -64,11 +64,26 @@ const CBTManagement = () => {
 
       const results = await Promise.all(requests);
 
-      setExams(await results[0].json());
-      setClasses(await results[1].json());
-      setSubjects(await results[2].json());
+      // Process Exams response
+      if (results[0].ok) {
+        const examsData = await results[0].json();
+        setExams(Array.isArray(examsData) ? examsData : []);
+      } else {
+        console.error('Failed to fetch exams');
+        setExams([]);
+      }
 
-      if (user?.role === 'teacher' && results[3]) {
+      // Process Classes response
+      if (results[1].ok) {
+        setClasses(await results[1].json());
+      }
+
+      // Process Subjects response
+      if (results[2].ok) {
+        setSubjects(await results[2].json());
+      }
+
+      if (user?.role === 'teacher' && results[3] && results[3].ok) {
         setTeacherAssignments(await results[3].json());
       }
     } catch (error) {
