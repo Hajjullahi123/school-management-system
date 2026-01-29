@@ -240,9 +240,18 @@ const AdvancedAnalytics = () => {
         api.get(`/api/advanced-analytics/ai/at-risk-students${termParam}`)
       ]);
 
-      if (subjectRes.ok) setSubjectComparison(await subjectRes.json());
-      if (classRes.ok) setClassComparison(await classRes.json());
-      if (riskRes.ok) setAtRiskStudents(await riskRes.json());
+      if (subjectRes.ok) {
+        const data = await subjectRes.json();
+        setSubjectComparison(Array.isArray(data) ? data : []);
+      }
+      if (classRes.ok) {
+        const data = await classRes.json();
+        setClassComparison(Array.isArray(data) ? data : []);
+      }
+      if (riskRes.ok) {
+        const data = await riskRes.json();
+        setAtRiskStudents(Array.isArray(data) ? data : []);
+      }
 
     } catch (error) {
       console.error('Error fetching overview data:', error);
@@ -336,10 +345,10 @@ const AdvancedAnalytics = () => {
 
   // Chart configurations
   const subjectChartData = {
-    labels: subjectComparison.map(s => s.subjectName),
+    labels: Array.isArray(subjectComparison) ? subjectComparison.map(s => s.subjectName) : [],
     datasets: [{
       label: 'Average Score',
-      data: subjectComparison.map(s => parseFloat(s.average)),
+      data: Array.isArray(subjectComparison) ? subjectComparison.map(s => parseFloat(s.average)) : [],
       backgroundColor: 'rgba(59, 130, 246, 0.5)',
       borderColor: 'rgb(59, 130, 246)',
       borderWidth: 2
@@ -347,17 +356,17 @@ const AdvancedAnalytics = () => {
   };
 
   const classChartData = {
-    labels: classComparison.map(c => c.className),
+    labels: Array.isArray(classComparison) ? classComparison.map(c => c.className) : [],
     datasets: [{
       label: 'Class Average',
-      data: classComparison.map(c => parseFloat(c.average)),
+      data: Array.isArray(classComparison) ? classComparison.map(c => parseFloat(c.average)) : [],
       backgroundColor: 'rgba(16, 185, 129, 0.5)',
       borderColor: 'rgb(16, 185, 129)',
       borderWidth: 2
     }]
   };
 
-  const studentRadarData = studentAnalytics?.subjectBreakdown ? {
+  const studentRadarData = studentAnalytics?.subjectBreakdown && Array.isArray(studentAnalytics.subjectBreakdown) ? {
     labels: studentAnalytics.subjectBreakdown.map(s => s.subject),
     datasets: [{
       label: 'Performance',
