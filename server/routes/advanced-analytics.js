@@ -170,6 +170,14 @@ router.get('/subject/comparison/all', authenticate, async (req, res) => {
           students: results.length,
           passRate: ((results.filter(r => r.totalScore >= 40).length / results.length) * 100).toFixed(1)
         });
+      } else {
+        comparison.push({
+          subjectId: subject.id,
+          subjectName: subject.name,
+          average: '0.00',
+          students: 0,
+          passRate: '0.0'
+        });
       }
     }
 
@@ -569,6 +577,14 @@ router.get('/class/comparison/all', authenticate, async (req, res) => {
           students: students.length,
           average: Stats.mean(scores).toFixed(2),
           passRate: ((results.filter(r => r.totalScore >= 40).length / results.length) * 100).toFixed(1)
+        });
+      } else {
+        comparison.push({
+          classId: cls.id,
+          className: `${cls.name} ${cls.arm}`,
+          students: students.length,
+          average: '0.00',
+          passRate: '0.0'
         });
       }
     }

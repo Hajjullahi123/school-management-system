@@ -209,8 +209,8 @@ const AdvancedAnalytics = () => {
         const allTerms = sessions.flatMap(session =>
           session.terms.map(term => ({
             ...term,
-            sessionName: session.year,
-            fullName: `${session.year} - ${term.name}`
+            sessionName: session.name,
+            fullName: `${session.name} - ${term.name}`
           }))
         );
         setTerms(allTerms);
