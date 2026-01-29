@@ -852,366 +852,365 @@ const AdvancedAnalytics = () => {
               </div>
             </div>
           </div>
-          </div>
-  ))
-}
-
-{/* Subject Detail View */ }
-{
-  activeTab === 'subject-detail' && subjectAnalytics && !loading && (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4 mb-4">
-        <button
-          onClick={() => setActiveTab('subjects')}
-          className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
-        >
-          ← Back to Subjects
-        </button>
-        <h2 className="text-2xl font-bold">{subjectAnalytics.subjectName} Analysis</h2>
-      </div>
-
-      {/* Subject Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <p className="text-sm text-gray-600">Average Score</p>
-          <p className="text-3xl font-bold text-blue-600 mt-2">{subjectAnalytics.statistics?.average || 0}%</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <p className="text-sm text-gray-600">Highest Score</p>
-          <p className="text-3xl font-bold text-green-600 mt-2">{subjectAnalytics.statistics?.highest || 0}%</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <p className="text-sm text-gray-600">Lowest Score</p>
-          <p className="text-3xl font-bold text-red-600 mt-2">{subjectAnalytics.statistics?.lowest || 0}%</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <p className="text-sm text-gray-600">Pass Rate</p>
-          <p className="text-3xl font-bold text-purple-600 mt-2">{subjectAnalytics.statistics?.passRate || 0}%</p>
-        </div>
-      </div>
-
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h3 className="text-xl font-bold mb-4">Student Performance List</h3>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Score</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Rank</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {subjectAnalytics.students?.sort((a, b) => b.score - a.score).map((student, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                    {student.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                    {student.class}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center font-bold">
-                    {student.score}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${student.score >= 70 ? 'bg-green-100 text-green-800' :
-                      student.score >= 60 ? 'bg-blue-100 text-blue-800' :
-                        student.score >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                      }`}>
-                      {student.grade || (
-                        student.score >= 70 ? 'A' :
-                          student.score >= 60 ? 'B' :
-                            student.score >= 50 ? 'C' : 'F'
-                      )}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center text-gray-500">
-                    #{idx + 1}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-{/* Students Tab */ }
-{ activeTab === 'students' && loading && <AnalyticsSkeleton type="table" /> }
-{
-  activeTab === 'students' && !loading && (
-    <div className="space-y-6">
-      {/* Student Search */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-        <h3 className="text-xl font-bold mb-4">Find Student</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Class Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Class</label>
-            {user?.role !== 'teacher' && (
-              <select
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              >
-                <option value="">All Classes</option>
-                {classes.map(cls => (
-                  <option key={cls.id} value={cls.id}>{cls.name} {cls.arm}</option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          {/* Student Search Input */}
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Search Name/Admin No</label>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setShowStudentList(true);
-              }}
-              onFocus={() => setShowStudentList(true)}
-              placeholder="Enter name..."
-              className="w-full border rounded-md px-3 py-2"
-            />
-
-            {/* Dropdown Results */}
-            {showStudentList && filteredStudents.length > 0 && (
-              <div className="absolute z-10 w-full bg-white bg-opacity-100 border rounded-md shadow-lg max-h-60 overflow-y-auto mt-1">
-                {filteredStudents.map(student => (
-                  <div
-                    key={student.id}
-                    onClick={() => {
-                      setSelectedStudent(student.id);
-                      setSearchQuery(`${student.user.firstName} ${student.user.lastName}`);
-                      setShowStudentList(false);
-                      fetchStudentAnalytics(student.id);
-                    }}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
-                  >
-                    <p className="font-semibold">{student.user.firstName} {student.user.lastName}</p>
-                    <p className="text-xs text-gray-500">{student.admissionNumber} • {student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : ''}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Manual ID Input (Fallback) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Or Enter ID Manually</label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={selectedStudent}
-                onChange={(e) => setSelectedStudent(e.target.value)}
-                placeholder="ID"
-                className="flex-1 border rounded-md px-3 py-2"
-              />
-              <button
-                onClick={() => fetchStudentAnalytics(selectedStudent)}
-                className="bg-primary text-white px-4 py-2 rounded-md hover:brightness-90"
-              >
-                Go
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Student Results */}
-      {studentAnalytics && (
-        <div className="space-y-6">
-          {/* Student Info */}
-          <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-6 rounded-lg shadow-lg">
-            <h3 className="text-2xl font-bold">{studentAnalytics.student.name}</h3>
-            <p className="mt-1">{studentAnalytics.student.class} • {studentAnalytics.student.admissionNumber}</p>
-          </div>
-
-          {/* Performance Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <p className="text-sm text-gray-600">Current Average</p>
-              <p className="text-3xl font-bold text-primary mt-2">{studentAnalytics.overallPerformance.currentAverage}%</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <p className="text-sm text-gray-600">Highest Score</p>
-              <p className="text-3xl font-bold text-green-600 mt-2">{studentAnalytics.overallPerformance.highest}%</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <p className="text-sm text-gray-600">Lowest Score</p>
-              <p className="text-3xl font-bold text-red-600 mt-2">{studentAnalytics.overallPerformance.lowest}%</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <p className="text-sm text-gray-600">Total Subjects</p>
-              <p className="text-3xl font-bold text-blue-600 mt-2">{studentAnalytics.overallPerformance.totalSubjects}</p>
-            </div>
-          </div>
-
-          {/* Radar Chart */}
-          {studentRadarData && (
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="text-xl font-bold mb-4">Subject Proficiency Radar</h3>
-              <div className="max-w-2xl mx-auto">
-                <Radar data={studentRadarData} />
-              </div>
-            </div>
-          )}
-
-          {/* AI Prediction */}
-          {studentPrediction && studentPrediction.overallPrediction && (
-            <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6">
-              <h3 className="text-xl font-bold text-purple-900 mb-4">🤖 AI Performance Prediction</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-purple-700">Next Term Predicted Average</p>
-                  <p className="text-4xl font-bold text-purple-900 mt-2">{studentPrediction.overallPrediction}%</p>
-                  <p className="text-sm text-purple-600 mt-1">Confidence: {studentPrediction.confidence}%</p>
-                </div>
-                <div className="bg-white rounded-lg p-4">
-                  <p className="font-semibold text-gray-900 mb-2">Recommendation:</p>
-                  <p className="text-sm text-gray-700">{studentPrediction.recommendation}</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-{/* Classes Tab */ }
-{
-  activeTab === 'classes' && (
-    loading ? <AnalyticsSkeleton type="table" /> : (
-      <div className="space-y-6">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-xl font-bold mb-4">Class Performance Comparison</h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Students</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Average</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Pass Rate</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Rank</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {classComparison.map((cls, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{cls.className}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">{cls.students}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className={`font-bold ${cls.average >= 70 ? 'text-green-600' :
-                        cls.average >= 60 ? 'text-blue-600' :
-                          cls.average >= 50 ? 'text-yellow-600' :
-                            'text-red-600'
-                        }`}>
-                        {cls.average}%
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">{cls.passRate}%</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${idx === 0 ? 'bg-yellow-100 text-yellow-800' :
-                        idx === 1 ? 'bg-gray-100 text-gray-800' :
-                          idx === 2 ? 'bg-orange-100 text-orange-800' :
-                            'bg-blue-100 text-blue-800'
-                        }`}>
-                        #{idx + 1}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-          </div >
         ))
-}
+      }
 
-{/* At Risk Tab */ }
-{ activeTab === 'risks' && loading && <AnalyticsSkeleton type="table" /> }
-{
-  activeTab === 'risks' && !loading && (
-    <div className="space-y-6">
-      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-        <p className="text-orange-800">
-          <strong>⚠️ Intervention Needed:</strong> {atRiskStudents.length} students have been identified as needing immediate attention.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {atRiskStudents.map((student, idx) => (
-          <div key={idx} className={`bg-white border-l-4 rounded-lg shadow-md p-6 ${student.riskLevel === 'High' ? 'border-red-500' :
-            student.riskLevel === 'Medium' ? 'border-orange-500' :
-              'border-yellow-500'
-            }`}>
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <h4 className="text-lg font-bold text-gray-900">{student.name}</h4>
-                <p className="text-sm text-gray-600">{student.class} • {student.admissionNumber}</p>
-              </div>
-              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${student.riskLevel === 'High' ? 'bg-red-100 text-red-700' :
-                student.riskLevel === 'Medium' ? 'bg-orange-100 text-orange-700' :
-                  'bg-yellow-100 text-yellow-700'
-                }`}>
-                {student.riskLevel} Risk
-              </span>
+      {/* Subject Detail View */}
+      {
+        activeTab === 'subject-detail' && subjectAnalytics && !loading && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-4 mb-4">
+              <button
+                onClick={() => setActiveTab('subjects')}
+                className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
+              >
+                ← Back to Subjects
+              </button>
+              <h2 className="text-2xl font-bold">{subjectAnalytics.subjectName} Analysis</h2>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-3">
-              <div>
-                <p className="text-xs text-gray-500">Average Score</p>
-                <p className="text-xl font-bold text-red-600">{student.averageScore}%</p>
+            {/* Subject Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <p className="text-sm text-gray-600">Average Score</p>
+                <p className="text-3xl font-bold text-blue-600 mt-2">{subjectAnalytics.statistics?.average || 0}%</p>
               </div>
-              <div>
-                <p className="text-xs text-gray-500">Trend</p>
-                <p className={`text-xl font-bold ${parseFloat(student.trend) < 0 ? 'text-red-600' : 'text-green-600'
-                  }`}>
-                  {student.trend > 0 ? '↑' : '↓'} {Math.abs(student.trend)}%
-                </p>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <p className="text-sm text-gray-600">Highest Score</p>
+                <p className="text-3xl font-bold text-green-600 mt-2">{subjectAnalytics.statistics?.highest || 0}%</p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <p className="text-sm text-gray-600">Lowest Score</p>
+                <p className="text-3xl font-bold text-red-600 mt-2">{subjectAnalytics.statistics?.lowest || 0}%</p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <p className="text-sm text-gray-600">Pass Rate</p>
+                <p className="text-3xl font-bold text-purple-600 mt-2">{subjectAnalytics.statistics?.passRate || 0}%</p>
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-xs font-semibold text-gray-700 mb-2">Recommended Actions:</p>
-              <ul className="text-xs text-gray-600 space-y-1">
-                {student.recommendations.map((rec, i) => (
-                  <li key={i}>• {rec}</li>
-                ))}
-              </ul>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-bold mb-4">Student Performance List</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Score</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Rank</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {subjectAnalytics.students?.sort((a, b) => b.score - a.score).map((student, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                          {student.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                          {student.class}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center font-bold">
+                          {student.score}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <span className={`px-2 py-1 rounded text-xs font-bold ${student.score >= 70 ? 'bg-green-100 text-green-800' :
+                            student.score >= 60 ? 'bg-blue-100 text-blue-800' :
+                              student.score >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
+                            }`}>
+                            {student.grade || (
+                              student.score >= 70 ? 'A' :
+                                student.score >= 60 ? 'B' :
+                                  student.score >= 50 ? 'C' : 'F'
+                            )}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center text-gray-500">
+                          #{idx + 1}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <button
-              onClick={() => handleLogIntervention(student)}
-              className="mt-3 w-full px-4 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 text-sm font-medium transition-colors border border-blue-200"
-            >
-              Log Intervention
-            </button>
           </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-<InterventionModal
-  isOpen={showInterventionModal}
-  onClose={() => setShowInterventionModal(false)}
-  student={selectedStudentForIntervention}
-  onSave={handleSaveIntervention}
-  loading={loading}
-/>
+        )
+      }
+
+      {/* Students Tab */}
+      {activeTab === 'students' && loading && <AnalyticsSkeleton type="table" />}
+      {
+        activeTab === 'students' && !loading && (
+          <div className="space-y-6">
+            {/* Student Search */}
+            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+              <h3 className="text-xl font-bold mb-4">Find Student</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Class Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Class</label>
+                  {user?.role !== 'teacher' && (
+                    <select
+                      value={selectedClass}
+                      onChange={(e) => setSelectedClass(e.target.value)}
+                      className="w-full border rounded-md px-3 py-2"
+                    >
+                      <option value="">All Classes</option>
+                      {classes.map(cls => (
+                        <option key={cls.id} value={cls.id}>{cls.name} {cls.arm}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {/* Student Search Input */}
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Search Name/Admin No</label>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setShowStudentList(true);
+                    }}
+                    onFocus={() => setShowStudentList(true)}
+                    placeholder="Enter name..."
+                    className="w-full border rounded-md px-3 py-2"
+                  />
+
+                  {/* Dropdown Results */}
+                  {showStudentList && filteredStudents.length > 0 && (
+                    <div className="absolute z-10 w-full bg-white bg-opacity-100 border rounded-md shadow-lg max-h-60 overflow-y-auto mt-1">
+                      {filteredStudents.map(student => (
+                        <div
+                          key={student.id}
+                          onClick={() => {
+                            setSelectedStudent(student.id);
+                            setSearchQuery(`${student.user.firstName} ${student.user.lastName}`);
+                            setShowStudentList(false);
+                            fetchStudentAnalytics(student.id);
+                          }}
+                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
+                        >
+                          <p className="font-semibold">{student.user.firstName} {student.user.lastName}</p>
+                          <p className="text-xs text-gray-500">{student.admissionNumber} • {student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : ''}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Manual ID Input (Fallback) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Or Enter ID Manually</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={selectedStudent}
+                      onChange={(e) => setSelectedStudent(e.target.value)}
+                      placeholder="ID"
+                      className="flex-1 border rounded-md px-3 py-2"
+                    />
+                    <button
+                      onClick={() => fetchStudentAnalytics(selectedStudent)}
+                      className="bg-primary text-white px-4 py-2 rounded-md hover:brightness-90"
+                    >
+                      Go
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Student Results */}
+            {studentAnalytics && (
+              <div className="space-y-6">
+                {/* Student Info */}
+                <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-6 rounded-lg shadow-lg">
+                  <h3 className="text-2xl font-bold">{studentAnalytics.student.name}</h3>
+                  <p className="mt-1">{studentAnalytics.student.class} • {studentAnalytics.student.admissionNumber}</p>
+                </div>
+
+                {/* Performance Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-white p-6 rounded-lg shadow-md">
+                    <p className="text-sm text-gray-600">Current Average</p>
+                    <p className="text-3xl font-bold text-primary mt-2">{studentAnalytics.overallPerformance.currentAverage}%</p>
+                  </div>
+                  <div className="bg-white p-6 rounded-lg shadow-md">
+                    <p className="text-sm text-gray-600">Highest Score</p>
+                    <p className="text-3xl font-bold text-green-600 mt-2">{studentAnalytics.overallPerformance.highest}%</p>
+                  </div>
+                  <div className="bg-white p-6 rounded-lg shadow-md">
+                    <p className="text-sm text-gray-600">Lowest Score</p>
+                    <p className="text-3xl font-bold text-red-600 mt-2">{studentAnalytics.overallPerformance.lowest}%</p>
+                  </div>
+                  <div className="bg-white p-6 rounded-lg shadow-md">
+                    <p className="text-sm text-gray-600">Total Subjects</p>
+                    <p className="text-3xl font-bold text-blue-600 mt-2">{studentAnalytics.overallPerformance.totalSubjects}</p>
+                  </div>
+                </div>
+
+                {/* Radar Chart */}
+                {studentRadarData && (
+                  <div className="bg-white p-6 rounded-lg shadow-md">
+                    <h3 className="text-xl font-bold mb-4">Subject Proficiency Radar</h3>
+                    <div className="max-w-2xl mx-auto">
+                      <Radar data={studentRadarData} />
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Prediction */}
+                {studentPrediction && studentPrediction.overallPrediction && (
+                  <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6">
+                    <h3 className="text-xl font-bold text-purple-900 mb-4">🤖 AI Performance Prediction</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-purple-700">Next Term Predicted Average</p>
+                        <p className="text-4xl font-bold text-purple-900 mt-2">{studentPrediction.overallPrediction}%</p>
+                        <p className="text-sm text-purple-600 mt-1">Confidence: {studentPrediction.confidence}%</p>
+                      </div>
+                      <div className="bg-white rounded-lg p-4">
+                        <p className="font-semibold text-gray-900 mb-2">Recommendation:</p>
+                        <p className="text-sm text-gray-700">{studentPrediction.recommendation}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )
+      }
+
+      {/* Classes Tab */}
+      {
+        activeTab === 'classes' && (
+          loading ? <AnalyticsSkeleton type="table" /> : (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-xl font-bold mb-4">Class Performance Comparison</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Students</th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Average</th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Pass Rate</th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Rank</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {classComparison.map((cls, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{cls.className}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">{cls.students}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <span className={`font-bold ${cls.average >= 70 ? 'text-green-600' :
+                              cls.average >= 60 ? 'text-blue-600' :
+                                cls.average >= 50 ? 'text-yellow-600' :
+                                  'text-red-600'
+                              }`}>
+                              {cls.average}%
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">{cls.passRate}%</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${idx === 0 ? 'bg-yellow-100 text-yellow-800' :
+                              idx === 1 ? 'bg-gray-100 text-gray-800' :
+                                idx === 2 ? 'bg-orange-100 text-orange-800' :
+                                  'bg-blue-100 text-blue-800'
+                              }`}>
+                              #{idx + 1}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )
+        )
+      }
+
+      {/* At Risk Tab */}
+      {activeTab === 'risks' && loading && <AnalyticsSkeleton type="table" />}
+      {
+        activeTab === 'risks' && !loading && (
+          <div className="space-y-6">
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <p className="text-orange-800">
+                <strong>⚠️ Intervention Needed:</strong> {atRiskStudents.length} students have been identified as needing immediate attention.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {atRiskStudents.map((student, idx) => (
+                <div key={idx} className={`bg-white border-l-4 rounded-lg shadow-md p-6 ${student.riskLevel === 'High' ? 'border-red-500' :
+                  student.riskLevel === 'Medium' ? 'border-orange-500' :
+                    'border-yellow-500'
+                  }`}>
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h4 className="text-lg font-bold text-gray-900">{student.name}</h4>
+                      <p className="text-sm text-gray-600">{student.class} • {student.admissionNumber}</p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${student.riskLevel === 'High' ? 'bg-red-100 text-red-700' :
+                      student.riskLevel === 'Medium' ? 'bg-orange-100 text-orange-700' :
+                        'bg-yellow-100 text-yellow-700'
+                      }`}>
+                      {student.riskLevel} Risk
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mb-3">
+                    <div>
+                      <p className="text-xs text-gray-500">Average Score</p>
+                      <p className="text-xl font-bold text-red-600">{student.averageScore}%</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Trend</p>
+                      <p className={`text-xl font-bold ${parseFloat(student.trend) < 0 ? 'text-red-600' : 'text-green-600'
+                        }`}>
+                        {student.trend > 0 ? '↑' : '↓'} {Math.abs(student.trend)}%
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-gray-700 mb-2">Recommended Actions:</p>
+                    <ul className="text-xs text-gray-600 space-y-1">
+                      {student.recommendations.map((rec, i) => (
+                        <li key={i}>• {rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <button
+                    onClick={() => handleLogIntervention(student)}
+                    className="mt-3 w-full px-4 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 text-sm font-medium transition-colors border border-blue-200"
+                  >
+                    Log Intervention
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      }
+      <InterventionModal
+        isOpen={showInterventionModal}
+        onClose={() => setShowInterventionModal(false)}
+        student={selectedStudentForIntervention}
+        onSave={handleSaveIntervention}
+        loading={loading}
+      />
     </div >
   );
 };
