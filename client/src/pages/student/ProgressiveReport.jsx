@@ -15,6 +15,8 @@ import {
   Filler
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 ChartJS.register(
   CategoryScale,
@@ -35,6 +37,7 @@ const ProgressiveReport = () => {
   const [classStudents, setClassStudents] = useState([]);
   const [progressData, setProgressData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Selection states
   const [searchMode, setSearchMode] = useState('admission'); // 'admission', 'class'
@@ -48,8 +51,8 @@ const ProgressiveReport = () => {
     assignment1: schoolSettings?.assignment1Weight || 5,
     assignment2: schoolSettings?.assignment2Weight || 5,
     test1: schoolSettings?.test1Weight || 10,
-    test2: schoolSettings?.test2Weight || 10,
-    exam: schoolSettings?.examWeight || 70
+    test2: schoolSettings?.test2Weight || 10
+    // exam: schoolSettings?.examWeight || 70 // Removed from Progressive Report
   }), [schoolSettings]);
 
   // Automatically select student for student role
@@ -113,6 +116,7 @@ const ProgressiveReport = () => {
     let targetStudentId = selectedStudentId;
 
     setLoading(true);
+    setError(null);
     try {
       // If searching by admission number, lookup first
       if (user?.role !== 'student' && searchMode === 'admission' && admissionNumber) {
@@ -144,10 +148,18 @@ const ProgressiveReport = () => {
           alert('No results found for this student and term');
           setProgressData(null);
         }
+      } else {
+        const data = await response.json();
+        if (response.status === 403 && data.error === 'Result Not Published') {
+          setError('Results for your class have not been published yet.');
+        } else {
+          setError('Failed to fetch report.');
+        }
+        setProgressData(null);
       }
     } catch (error) {
       console.error('Error fetching progressive report:', error);
-      alert(error.message || 'Failed to fetch report');
+      setError(error.message || 'Failed to fetch report');
     } finally {
       setLoading(false);
     }
@@ -160,15 +172,15 @@ const ProgressiveReport = () => {
       afterAssignment2: calculateAverage(results, ['assignment1Score', 'assignment2Score']),
       afterTest1: calculateAverage(results, ['assignment1Score', 'assignment2Score', 'test1Score']),
       afterTest2: calculateAverage(results, ['assignment1Score', 'assignment2Score', 'test1Score', 'test2Score']),
-      afterExam: calculateAverage(results, ['assignment1Score', 'assignment2Score', 'test1Score', 'test2Score', 'examScore']),
+      // afterExam: calculateAverage(results, ['assignment1Score', 'assignment2Score', 'test1Score', 'test2Score', 'examScore']),
       subjects: results.map(r => ({
         name: r.subject?.name,
         assignment1: r.assignment1Score || 0,
         assignment2: r.assignment2Score || 0,
         test1: r.test1Score || 0,
         test2: r.test2Score || 0,
-        exam: r.examScore || 0,
-        total: r.totalScore || 0,
+        // exam: r.examScore || 0, // Exclude Exam
+        total: (r.assignment1Score || 0) + (r.assignment2Score || 0) + (r.test1Score || 0) + (r.test2Score || 0), // Calculate CA total only? Or keep total? The prompt implies removing exam column.
         grade: r.grade
       }))
     };
@@ -181,6 +193,63 @@ const ProgressiveReport = () => {
     });
     const average = totals.reduce((a, b) => a + b, 0) / results.length;
     return average.toFixed(2);
+  };
+
+  const downloadPDF = () => {
+    if (!progressData) return;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+
+    doc.setFontSize(20);
+    doc.text(schoolSettings?.schoolName || 'School Name', pageWidth / 2, 15, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text('Progressive Report', pageWidth / 2, 25, { align: 'center' });
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    const date = new Date().toLocaleDateString();
+
+    // Find Term Name
+    const termName = terms.find(t => t.id == termId)?.name || 'Term';
+    // Find Student Name
+    let studentName = 'Student';
+    if (user?.role === 'student') studentName = `${user.firstName} ${user.lastName}`;
+    else if (classStudents.find(s => s.id == selectedStudentId)) {
+      const s = classStudents.find(s => s.id == selectedStudentId);
+      studentName = `${s.user.firstName} ${s.user.lastName} (${s.admissionNumber})`;
+    }
+
+    doc.text(`Student: ${studentName}`, 14, 35);
+    doc.text(`Term: ${termName}`, 14, 40);
+    doc.text(`Date: ${date}`, pageWidth - 14, 35, { align: 'right' });
+
+    // Table
+    const tableData = progressData.subjects.map(s => [
+      s.name,
+      s.assignment1.toFixed(1),
+      s.assignment2.toFixed(1),
+      s.test1.toFixed(1),
+      s.test2.toFixed(1),
+      s.total.toFixed(1)
+    ]);
+
+    doc.autoTable({
+      startY: 45,
+      head: [['Subject', 'Ass 1', 'Ass 2', 'Test 1', 'Test 2', 'Total CA']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [52, 152, 219] }
+    });
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(10);
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.height - 10, { align: 'center' });
+    }
+
+    doc.save(`progressive_report_${termName}_${studentName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`);
   };
 
   return (
@@ -217,6 +286,17 @@ const ProgressiveReport = () => {
               >
                 {loading ? 'Generating...' : 'View My Progressive Report'}
               </button>
+              {progressData && (
+                <button
+                  onClick={downloadPDF}
+                  className="w-full mt-2 bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 font-medium flex justify-center items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Download PDF
+                </button>
+              )}
             </div>
           ) : (
             <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -312,6 +392,17 @@ const ProgressiveReport = () => {
                       >
                         {loading ? 'Generating...' : 'Generate'}
                       </button>
+                      {progressData && (
+                        <button
+                          onClick={downloadPDF}
+                          className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+                          title="Download PDF"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </>
@@ -322,130 +413,145 @@ const ProgressiveReport = () => {
       </div>
 
       {/* Progressive Performance Chart */}
-      {progressData && (
-        <div className="space-y-6">
-          {/* Average Progress Line */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-4">Performance Progression</h3>
-            <div className="h-80">
-              <Line
-                data={{
-                  labels: ['Assign 1', 'Assign 2', 'Test 1', 'Test 2', 'Exam'],
-                  datasets: [
-                    {
-                      label: 'Cumulative Average',
-                      data: [
-                        progressData.afterAssignment1,
-                        progressData.afterAssignment2,
-                        progressData.afterTest1,
-                        progressData.afterTest2,
-                        progressData.afterExam
-                      ],
-                      fill: true,
-                      backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                      borderColor: 'rgba(59, 130, 246, 1)',
-                      tension: 0.3,
-                      pointBackgroundColor: '#fff',
-                      pointBorderColor: 'rgba(59, 130, 246, 1)',
-                      pointBorderWidth: 2,
-                      pointRadius: 6,
-                      pointHoverRadius: 8,
+      {
+        progressData && (
+          <div className="space-y-6">
+            {/* Average Progress Line */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold mb-4">Performance Progression</h3>
+              <div className="h-80">
+                <Line
+                  data={{
+                    labels: ['Assign 1', 'Assign 2', 'Test 1', 'Test 2'],
+                    datasets: [
+                      {
+                        label: 'Cumulative Average',
+                        data: [
+                          progressData.afterAssignment1,
+                          progressData.afterAssignment2,
+                          progressData.afterTest1,
+                          progressData.afterTest2
+                        ],
+                        fill: true,
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        tension: 0.3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: 'rgba(59, 130, 246, 1)',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                          display: true,
+                          text: 'Average Score (%)'
+                        }
+                      },
                     },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      max: 100,
-                      title: {
-                        display: true,
-                        text: 'Average Score (%)'
-                      }
-                    },
-                  },
-                  plugins: {
-                    tooltip: {
-                      callbacks: {
-                        label: function (context) {
-                          return `Average: ${context.parsed.y}%`;
+                    plugins: {
+                      tooltip: {
+                        callbacks: {
+                          label: function (context) {
+                            return `Average: ${context.parsed.y}%`;
+                          }
                         }
                       }
                     }
-                  }
-                }}
-              />
+                  }}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Subject-wise Breakdown */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-4">Subject-wise Progressive Scores</h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="px-4 py-3 text-left">Subject</th>
-                    <th className="px-4 py-3 text-center">Assign 1<br />({weights.assignment1}%)</th>
-                    <th className="px-4 py-3 text-center">Assign 2<br />({weights.assignment2}%)</th>
-                    <th className="px-4 py-3 text-center">Test 1<br />({weights.test1}%)</th>
-                    <th className="px-4 py-3 text-center">Test 2<br />({weights.test2}%)</th>
-                    <th className="px-4 py-3 text-center">Exam<br />({weights.exam}%)</th>
-                    <th className="px-4 py-3 text-center font-bold">Total<br />(100%)</th>
-                    <th className="px-4 py-3 text-center">Grade</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {progressData.subjects.map((subject, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">{subject.name}</td>
-                      <td className="px-4 py-3 text-center">{subject.assignment1.toFixed(1)}</td>
-                      <td className="px-4 py-3 text-center">{subject.assignment2.toFixed(1)}</td>
-                      <td className="px-4 py-3 text-center">{subject.test1.toFixed(1)}</td>
-                      <td className="px-4 py-3 text-center">{subject.test2.toFixed(1)}</td>
-                      <td className="px-4 py-3 text-center">{subject.exam.toFixed(1)}</td>
-                      <td className="px-4 py-3 text-center font-bold text-primary">{subject.total.toFixed(1)}</td>
-                      <td className="px-4 py-3 text-center">
+            {/* Subject-wise Breakdown */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold mb-4">Subject-wise Progressive Scores</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Subject</th>
+                      <th className="px-4 py-3 text-center">Assign 1<br />({weights.assignment1}%)</th>
+                      <th className="px-4 py-3 text-center">Assign 2<br />({weights.assignment2}%)</th>
+                      <th className="px-4 py-3 text-center">Test 1<br />({weights.test1}%)</th>
+                      <th className="px-4 py-3 text-center">Test 2<br />({weights.test2}%)</th>
+                      {/* <th className="px-4 py-3 text-center">Exam<br />({weights.exam}%)</th> */}
+                      <th className="px-4 py-3 text-center font-bold">Total CA<br />(30%)</th>
+                      {/* <th className="px-4 py-3 text-center">Grade</th> */}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {progressData.subjects.map((subject, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium">{subject.name}</td>
+                        <td className="px-4 py-3 text-center">{subject.assignment1.toFixed(1)}</td>
+                        <td className="px-4 py-3 text-center">{subject.assignment2.toFixed(1)}</td>
+                        <td className="px-4 py-3 text-center">{subject.test1.toFixed(1)}</td>
+                        <td className="px-4 py-3 text-center">{subject.test2.toFixed(1)}</td>
+                        {/* <td className="px-4 py-3 text-center">{subject.exam.toFixed(1)}</td> */}
+                        <td className="px-4 py-3 text-center font-bold text-primary">{subject.total.toFixed(1)}</td>
+                        {/* <td className="px-4 py-3 text-center">
                         <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold">
                           {subject.grade}
                         </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </td> */}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
 
-          {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex">
-              <svg className="w-5 h-5 text-blue-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-              <div>
-                <h4 className="text-sm font-medium text-blue-900">About Progressive Reports</h4>
-                <p className="text-sm text-blue-700 mt-1">
-                  This report shows how your average evolved after each assessment component throughout the term.
-                  It helps track improvement patterns and identify areas needing more focus.
-                </p>
+            {/* Info Box */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex">
+                <svg className="w-5 h-5 text-blue-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <h4 className="text-sm font-medium text-blue-900">About Progressive Reports</h4>
+                  <p className="text-sm text-blue-700 mt-1">
+                    This report shows how your average evolved after each assessment component throughout the term.
+                    It helps track improvement patterns and identify areas needing more focus.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      {!progressData && !loading && (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          <p className="text-gray-500 text-lg">Select a term and student to generate progressive report</p>
-        </div>
-      )}
-    </div>
+      {
+        !progressData && !loading && (
+          <div className="bg-white rounded-lg shadow p-12 text-center">
+            {error ? (
+              <>
+                <svg className="w-16 h-16 text-yellow-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Access Restricted</h3>
+                <p className="text-gray-600 text-lg">{error}</p>
+              </>
+            ) : (
+              <>
+                <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <p className="text-gray-500 text-lg">Select a term and student to generate progressive report</p>
+              </>
+            )}
+          </div>
+        )
+      }
+    </div >
   );
 };
 

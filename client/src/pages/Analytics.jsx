@@ -13,6 +13,8 @@ import {
   ArcElement
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 ChartJS.register(
   CategoryScale,
@@ -29,6 +31,7 @@ const Analytics = () => {
   const [studentId, setStudentId] = useState('');
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { settings: schoolSettings } = useSchoolSettings();
 
   useEffect(() => {
@@ -40,15 +43,25 @@ const Analytics = () => {
 
   const fetchAnalytics = async (id) => {
     setLoading(true);
+    setError(null);
     try {
       const response = await api.get(`/api/results?studentId=${id}`);
 
       if (response.ok) {
         const results = await response.json();
         processAnalytics(results);
+      } else {
+        const data = await response.json();
+        if (response.status === 403 && data.error === 'Result Not Published') {
+          setError('Results for your class have not been published yet.');
+        } else {
+          setError('Failed to load analytics.');
+        }
+        setAnalyticsData(null);
       }
     } catch (error) {
       console.error('Error fetching analytics:', error);
+      setError('An error occurred while fetching data.');
     } finally {
       setLoading(false);
     }
@@ -125,6 +138,65 @@ const Analytics = () => {
     return 'text-red-600';
   };
 
+  const downloadPDF = () => {
+    if (!analyticsData) return;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    doc.setFontSize(20);
+    doc.text(schoolSettings?.schoolName || 'School Name', pageWidth / 2, 15, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text('Performance Analytics Report', pageWidth / 2, 25, { align: 'center' });
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    const date = new Date().toLocaleDateString();
+    let studentName = `Student ID: ${studentId}`;
+    if (user?.role === 'student') studentName = `${user.firstName} ${user.lastName}`;
+
+    doc.text(`Student: ${studentName}`, 14, 35);
+    doc.text(`Date: ${date}`, pageWidth - 14, 35, { align: 'right' });
+
+    doc.autoTable({
+      startY: 40,
+      head: [['Overall Average', 'Highest Score', 'Lowest Score', 'Total Subjects']],
+      body: [[
+        `${analyticsData.overallAverage}%`,
+        `${analyticsData.highest}%`,
+        `${analyticsData.lowest}%`,
+        analyticsData.totalSubjects
+      ]],
+      theme: 'grid',
+      headStyles: { fillColor: [41, 128, 185] }
+    });
+
+    const tableData = analyticsData.results.map(r => [
+      r.subject?.name || 'Unknown',
+      `${r.totalScore}%`,
+      r.grade,
+      r.totalScore >= 40 ? 'Pass' : 'Fail',
+      r.term?.name || '-'
+    ]);
+
+    doc.text('Subject Performance Details', 14, doc.lastAutoTable.finalY + 10);
+
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 15,
+      head: [['Subject', 'Score', 'Grade', 'Status', 'Term']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [52, 152, 219] }
+    });
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(10);
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.height - 10, { align: 'center' });
+    }
+
+    doc.save(`analytics_report_${studentId}.pdf`);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -153,7 +225,29 @@ const Analytics = () => {
             >
               Load Analytics
             </button>
+            {analyticsData && (
+              <button
+                onClick={downloadPDF}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2"
+                title="Download Report PDF"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </button>
+            )}
           </div>
+        )}
+        {user?.role === 'student' && analyticsData && (
+          <button
+            onClick={downloadPDF}
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download Report
+          </button>
         )}
       </div>
 
@@ -332,14 +426,26 @@ const Analytics = () => {
         </>
       ) : (
         <div className="bg-white rounded-lg shadow p-12 text-center">
-          <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          <p className="text-gray-500 text-lg">
-            {user?.role === 'student'
-              ? 'No results available yet for analytics'
-              : 'Enter a student ID and click "Load Analytics" to view performance data'}
-          </p>
+          {error ? (
+            <>
+              <svg className="w-16 h-16 text-yellow-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Access Restricted</h3>
+              <p className="text-gray-600 text-lg">{error}</p>
+            </>
+          ) : (
+            <>
+              <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <p className="text-gray-500 text-lg">
+                {user?.role === 'student'
+                  ? 'No results available yet for analytics'
+                  : 'Enter a student ID and click "Load Analytics" to view performance data'}
+              </p>
+            </>
+          )}
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from '../../utils/toast';
 import { api, API_BASE_URL } from '../../api';
-import SystemSettings from './SystemSettings';
+
 import DocumentUploader from '../../components/DocumentUploader';
 
 const Settings = () => {
@@ -332,15 +332,7 @@ const Settings = () => {
             >
               License Activation
             </button>
-            <button
-              onClick={() => setActiveTab('system')}
-              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'system'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-              Academic Session
-            </button>
+
             <button
               onClick={() => setActiveTab('email')}
               className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'email'
@@ -1077,9 +1069,7 @@ const Settings = () => {
           )}
 
           {/* System Settings Tab */}
-          {activeTab === 'system' && (
-            <SystemSettings />
-          )}
+
         </div>
       </div >
     </div >

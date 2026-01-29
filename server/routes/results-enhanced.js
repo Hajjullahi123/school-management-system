@@ -21,12 +21,44 @@ router.get('/', authenticate, async (req, res) => {
     }
 
     // Ensure student can only view their own results
-    if (req.user.role === 'student') {
+    // Ensure student can only view their own results
+    if (req.user.role === 'student' || req.user.role === 'parent') {
+      let parentId = undefined;
+
+      // If parent, find the linked Parent record to get parentId
+      if (req.user.role === 'parent') {
+        const parentRecord = await prisma.parent.findFirst({
+          where: { userId: req.user.id }
+        });
+        if (!parentRecord) {
+          // If a parent user exists but has no Parent record, deny access
+          return res.status(403).json({ error: 'Parent record not found' });
+        }
+        parentId = parentRecord.id;
+      }
+
       const student = await prisma.student.findFirst({
-        where: { userId: req.user.id, schoolId: req.schoolId }
+        where: {
+          // If student, match userId. If parent, ignore userId filter (undefined).
+          userId: req.user.role === 'student' ? req.user.id : undefined,
+          // If parent, match parentId. If student, ignore parentId filter (undefined).
+          parentId: req.user.role === 'parent' ? parentId : undefined,
+          id: parseInt(studentId),
+          schoolId: req.schoolId
+        },
+        include: { classModel: true }
       });
-      if (!student || student.id !== parseInt(studentId)) {
+
+      if (!student) {
         return res.status(403).json({ error: 'Unauthorized Access' });
+      }
+
+      // Check if results are published for the student's current class
+      if (student.classModel && !student.classModel.isResultPublished) {
+        return res.status(403).json({
+          error: 'Result Not Published',
+          message: 'The result for this class has not been published.'
+        });
       }
     }
 
