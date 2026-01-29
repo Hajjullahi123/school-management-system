@@ -76,6 +76,7 @@ import QuranProgress from './pages/student/QuranProgress';
 import ParentQuranView from './pages/parent/ParentQuranView';
 import DashboardLogin from './pages/DashboardLogin';
 import Billing from './pages/admin/Billing';
+import ExamConfig from './pages/admin/ExamConfig';
 
 
 function App() {
@@ -385,6 +386,11 @@ function App() {
             <Route path="exam-tracker" element={
               <ProtectedRoute roles={['admin']}>
                 <ExamSubmissionTracker />
+              </ProtectedRoute>
+            } />
+            <Route path="exam-config" element={
+              <ProtectedRoute roles={['admin']}>
+                <ExamConfig />
               </ProtectedRoute>
             } />
 
