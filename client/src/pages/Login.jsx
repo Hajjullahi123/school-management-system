@@ -31,21 +31,7 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleDemoLogin = async () => {
-    setLoading(true);
-    try {
-      const result = await demoLogin();
-      if (result.success) {
-        navigate('/dashboard', { replace: true });
-      } else {
-        setError('Demo access temporarily unavailable. Please use credentials.');
-      }
-    } catch (err) {
-      setError('Connection refused. Is the server running?');
-    } finally {
-      setLoading(false);
-    }
-  };
+  /* handleDemoLogin removed - using /demo route directly */
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -269,7 +255,7 @@ const Login = () => {
           </div>
 
           <button
-            onClick={handleDemoLogin}
+            onClick={() => navigate('/demo')}
             disabled={loading}
             className="w-full mt-4 py-4 bg-white text-gray-900 border-2 border-gray-100 rounded-2xl font-black shadow-sm transform transition-all hover:border-primary hover:text-primary active:scale-[0.98] flex items-center justify-center gap-3 group"
           >

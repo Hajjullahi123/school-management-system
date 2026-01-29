@@ -31,21 +31,7 @@ const MarketingHome = () => {
       .catch(() => { });
   }, []);
 
-  const handleDemoLogin = async () => {
-    setLoading(true);
-    try {
-      const result = await demoLogin();
-      if (result.success) {
-        navigate('/dashboard', { replace: true });
-      } else {
-        toast.error('Demo currently unavailable');
-      }
-    } catch (err) {
-      toast.error('Server connection error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  /* handleDemoLogin removed - using /demo route directly */
 
   return (
     <div className="bg-white font-inter selection:bg-indigo-100 selection:text-indigo-900">
@@ -67,7 +53,7 @@ const MarketingHome = () => {
             <div className="hidden sm:flex items-center gap-6">
               <Link to="/login" className="text-sm font-black text-gray-700 hover:text-indigo-600 transition-colors uppercase tracking-widest">Login</Link>
               <button
-                onClick={handleDemoLogin}
+                onClick={() => navigate('/demo')}
                 className="bg-indigo-600 text-white px-8 py-3 rounded-full text-sm font-black shadow-xl shadow-indigo-100 transform transition-all hover:scale-105 active:scale-95 hover:bg-indigo-700 uppercase tracking-widest"
               >
                 Demo
@@ -100,7 +86,7 @@ const MarketingHome = () => {
             <a href="#mobile" onClick={() => setIsMenuOpen(false)} className="block text-lg font-black text-gray-900 uppercase tracking-widest">Mobile App</a>
             <div className="pt-4 flex flex-col gap-4">
               <Link to="/login" className="block text-center py-4 font-black border-2 border-gray-100 rounded-2xl text-gray-600">Login</Link>
-              <button onClick={handleDemoLogin} className="block w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-lg">Try Demo</button>
+              <button onClick={() => navigate('/demo')} className="block w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-lg">Try Demo</button>
             </div>
           </motion.div>
         )}
@@ -126,10 +112,10 @@ const MarketingHome = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <button
-                onClick={handleDemoLogin}
+                onClick={() => navigate('/demo')}
                 className="flex items-center justify-center gap-3 bg-gray-900 text-white px-8 py-5 rounded-[24px] font-black text-lg shadow-2xl hover:bg-black transition-all group"
               >
-                {loading ? 'Loading Demo...' : 'Explore Live Demo'}
+                Explore Live Demo
                 <FiPlayCircle className="group-hover:translate-x-1 transition-transform" />
               </button>
               <Link
@@ -351,7 +337,7 @@ const MarketingHome = () => {
               period="per Month"
               desc="Perfect for growing primary schools."
               features={["Up to 200 Students", "Result Management", "Basic Analytics", "S3 Daily Backups"]}
-              onAction={handleDemoLogin}
+              onAction={() => navigate('/demo')}
             />
             <PricingCard
               tier="Professional"
@@ -360,7 +346,7 @@ const MarketingHome = () => {
               desc="The standard for secondary institutions."
               features={["Unlimited Students", "Advanced AI Analytics", "CBT Exam Portal", "Parent Messaging Portal", "Financial Management"]}
               highlighted={true}
-              onAction={handleDemoLogin}
+              onAction={() => navigate('/demo')}
             />
             <PricingCard
               tier="Enterprise"
@@ -644,7 +630,7 @@ const MarketingHome = () => {
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-6 pt-6">
                 <button
-                  onClick={handleDemoLogin}
+                  onClick={() => navigate('/demo')}
                   className="bg-white text-indigo-600 px-10 py-5 rounded-[24px] font-black text-xl shadow-2xl hover:bg-gray-50 transition-all active:scale-95"
                 >
                   Claim My Free Demo

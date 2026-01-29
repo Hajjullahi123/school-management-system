@@ -77,6 +77,7 @@ import ParentQuranView from './pages/parent/ParentQuranView';
 import DashboardLogin from './pages/DashboardLogin';
 import Billing from './pages/admin/Billing';
 import ExamConfig from './pages/admin/ExamConfig';
+import DemoRedirect from './pages/DemoRedirect';
 
 
 function App() {
@@ -95,6 +96,7 @@ function App() {
           <Route path="/alumni" element={<AlumniPortal />} />
           <Route path="/alumni/directory" element={<AlumniDirectory />} />
           <Route path="/alumni/login" element={<AlumniLogin />} />
+          <Route path="/demo" element={<DemoRedirect />} />
           <Route path="/superadmin" element={<Navigate to="/dashboard/superadmin" replace />} />
 
           {/* 404 Catch-all */}
