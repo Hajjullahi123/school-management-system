@@ -17,15 +17,16 @@ const {
 router.get('/debug/counts', authenticate, async (req, res) => {
   try {
     const sId = parseInt(req.schoolId);
-    const [students, classes, subjects, results, sessions] = await Promise.all([
+    const [students, allClasses, subjects, results, sessions, feeStructures] = await Promise.all([
       prisma.student.count({ where: { schoolId: sId } }),
-      prisma.class.count({ where: { schoolId: sId } }),
+      prisma.class.findMany({ where: { schoolId: sId } }),
       prisma.subject.count({ where: { schoolId: sId } }),
       prisma.result.count({ where: { schoolId: sId } }),
       prisma.academicSession.findMany({
         where: { schoolId: sId },
         include: { terms: true }
-      })
+      }),
+      prisma.classFeeStructure.findMany({ where: { schoolId: sId } })
     ]);
 
     res.json({
@@ -34,17 +35,21 @@ router.get('/debug/counts', authenticate, async (req, res) => {
       type: typeof req.schoolId,
       counts: {
         students,
-        classes,
+        totalClasses: allClasses.length,
+        activeClasses: allClasses.filter(c => c.isActive).length,
         subjects,
         results,
-        sessions: sessions.length
+        sessions: sessions.length,
+        feeStructures: feeStructures.length
       },
+      classDetails: allClasses.map(c => ({ id: c.id, name: c.name, arm: c.arm, isActive: c.isActive })),
       sessionDetails: sessions.map(s => ({
         id: s.id,
         name: s.name,
         isCurrent: s.isCurrent,
         terms: s.terms.map(t => ({ id: t.id, name: t.name, isCurrent: t.isCurrent }))
       })),
+      feeStructureDetails: feeStructures.map(f => ({ id: f.id, classId: f.classId, termId: f.termId, amount: f.amount })),
       resultBreakdown: await prisma.result.groupBy({
         by: ['termId'],
         where: { schoolId: sId },
