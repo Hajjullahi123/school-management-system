@@ -846,9 +846,9 @@ const Layout = () => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all duration-200 ${location.pathname === item.path
-                  ? 'bg-primary/10 text-primary font-semibold'
-                  : 'text-gray-700 hover:bg-gray-100'
+                className={`flex items-center gap-3 px-3 py-3 text-base rounded-xl transition-all duration-200 ${location.pathname === item.path
+                  ? 'bg-white/20 text-white font-bold shadow-sm'
+                  : 'text-white/80 hover:bg-white/10 hover:text-white'
                   }`}
               >
                 <span className="flex-shrink-0">{item.icon}</span>
@@ -868,7 +868,7 @@ const Layout = () => {
           <Link
             to="/dashboard/change-password"
             onClick={() => setSidebarOpen(false)}
-            className="w-full flex items-center justify-center space-x-2 bg-white/10 hover:bg-white/20 text-white py-2 rounded-md transition-colors"
+            className="w-full flex items-center justify-center space-x-2 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl text-base font-semibold transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
@@ -879,7 +879,7 @@ const Layout = () => {
           {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center space-x-2 bg-black/20 hover:bg-black/30 text-white py-2 rounded-md transition-colors"
+            className="w-full flex items-center justify-center space-x-2 bg-black/20 hover:bg-black/30 text-white py-3 rounded-xl text-base font-semibold transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

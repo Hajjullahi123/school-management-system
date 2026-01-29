@@ -20,9 +20,9 @@ const CollapsibleMenu = ({ icon, label, items, badge }) => {
     <div>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-lg transition-all duration-200 ${isAnyChildActive
-            ? 'bg-primary/10 text-primary font-semibold'
-            : 'text-gray-700 hover:bg-gray-100'
+        className={`w-full flex items-center justify-between px-3 py-3 text-base rounded-xl transition-all duration-200 ${isAnyChildActive
+          ? 'bg-white/20 text-white font-bold'
+          : 'text-white/80 hover:bg-white/10 hover:text-white'
           }`}
       >
         <div className="flex items-center gap-3">
@@ -47,9 +47,9 @@ const CollapsibleMenu = ({ icon, label, items, badge }) => {
             <Link
               key={idx}
               to={item.path}
-              className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all duration-200 ${location.pathname === item.path
-                  ? 'bg-primary/10 text-primary font-semibold'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              className={`flex items-center gap-4 px-3 py-2.5 text-base rounded-xl transition-all duration-200 ${location.pathname === item.path
+                ? 'bg-white/30 text-white font-bold'
+                : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`}
             >
               {item.icon && <span className="flex-shrink-0">{item.icon}</span>}
