@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   FiCheck, FiGlobe, FiSmartphone, FiShield, FiTrendingUp,
   FiMessageSquare, FiArrowRight, FiActivity, FiZap, FiPlusCircle,
-  FiPlayCircle, FiDownloadCloud, FiBell
+  FiPlayCircle, FiDownloadCloud, FiBell, FiUsers
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
