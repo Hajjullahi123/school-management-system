@@ -64,11 +64,12 @@ const Attendance = () => {
     try {
       const response = await api.get('/api/classes');
       const data = await response.json();
-      setClasses(data);
+      const classesArr = Array.isArray(data) ? data : [];
+      setClasses(classesArr);
 
       if (user?.role === 'teacher') {
-        if (data.length === 1) {
-          const classIdStr = data[0].id.toString();
+        if (classesArr.length === 1) {
+          const classIdStr = classesArr[0].id.toString();
           setSelectedClassId(classIdStr);
           setDownloadFilters(prev => ({ ...prev, classId: classIdStr }));
         } else if (data.length === 0) {
@@ -85,9 +86,10 @@ const Attendance = () => {
     try {
       const response = await api.get(`/api/attendance/class/${selectedClassId}?date=${selectedDate}`);
       const data = await response.json();
+      const studentsData = Array.isArray(data?.students) ? data.students : [];
 
       // Initialize status to 'present' if it's 'pending' (for easier quick marking)
-      const initializedStudents = data.students.map(s => ({
+      const initializedStudents = studentsData.map(s => ({
         ...s,
         status: s.status === 'pending' ? 'present' : s.status
       }));
@@ -168,7 +170,7 @@ const Attendance = () => {
     try {
       const response = await api.get('/api/academic-sessions');
       const data = await response.json();
-      setSessions(data);
+      setSessions(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching sessions:', error);
     }
@@ -178,7 +180,7 @@ const Attendance = () => {
     try {
       const response = await api.get('/api/terms');
       const data = await response.json();
-      setTerms(data);
+      setTerms(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching terms:', error);
     }
@@ -303,7 +305,7 @@ const Attendance = () => {
                   disabled={user?.role === 'teacher' && classes.length === 1}
                 >
                   <option value="">Select Class</option>
-                  {classes.map(c => (
+                  {(Array.isArray(classes) ? classes : []).map(c => (
                     <option key={c.id} value={c.id}>{c.name} {c.arm}</option>
                   ))}
                 </select>

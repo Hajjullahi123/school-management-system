@@ -50,12 +50,16 @@ const SuperAdminDashboard = () => {
           apiCall(`/api/superadmin/global-settings?t=${t}`)
         ]);
 
+        const statsData = statsRes.data || null;
+        const schoolsData = Array.isArray(schoolsRes.data) ? schoolsRes.data : [];
+        const auditsData = Array.isArray(auditsRes.data?.logs) ? auditsRes.data.logs : [];
+
         if (!isMounted) return;
 
-        console.log('Fetched SuperAdmin Data:', statsRes.data);
-        setStats(statsRes.data);
-        setSchools(schoolsRes.data);
-        setAudits(auditsRes.data.logs);
+        console.log('Fetched SuperAdmin Data:', statsData);
+        setStats(statsData);
+        setSchools(schoolsData);
+        setAudits(auditsData);
         if (settingsRes.data) {
           setGlobalSettings(settingsRes.data);
         }
@@ -382,7 +386,7 @@ const SuperAdminDashboard = () => {
                     <button onClick={() => setActiveTab('schools')} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800">View All</button>
                   </div>
                   <div className="space-y-3">
-                    {schools.slice(0, 5).map(s => (
+                    {(Array.isArray(schools) ? schools : []).slice(0, 5).map(s => (
                       <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100">
                         <div>
                           <p className="font-semibold text-gray-800">{s.name}</p>
@@ -403,7 +407,7 @@ const SuperAdminDashboard = () => {
                     <button onClick={() => setActiveTab('audits')} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800">View All</button>
                   </div>
                   <div className="space-y-4">
-                    {audits.map(log => (
+                    {(Array.isArray(audits) ? audits : []).map(log => (
                       <div key={log.id} className="flex gap-4 items-start border-l-2 border-indigo-100 pl-4 py-1">
                         <div className="min-w-[80px]">
                           <p className="text-[10px] font-bold text-gray-400">{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
@@ -503,7 +507,7 @@ const SuperAdminDashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {schools?.map(s => (
+                  {(Array.isArray(schools) ? schools : []).map(s => (
                     <tr key={s.id} className="hover:bg-gray-50 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center">

@@ -87,10 +87,11 @@ const ResultEntry = () => {
     try {
       const response = await api.get('/api/academic-sessions');
       const data = await response.json();
-      setAcademicSessions(data);
+      const sessionsArr = Array.isArray(data) ? data : [];
+      setAcademicSessions(sessionsArr);
       // Auto-select current session if not already set
       if (!selectedSession) {
-        const current = data.find(s => s.isCurrent);
+        const current = sessionsArr.find(s => s.isCurrent);
         if (current) setSelectedSession(current.id);
       }
     } catch (error) {
@@ -102,10 +103,11 @@ const ResultEntry = () => {
     try {
       const response = await api.get(`/api/terms?sessionId=${sessionId}`);
       const data = await response.json();
-      setTerms(data);
+      const termsArr = Array.isArray(data) ? data : [];
+      setTerms(termsArr);
       // Auto-select current term if not already set
       if (!selectedTerm) {
-        const current = data.find(t => t.isCurrent);
+        const current = termsArr.find(t => t.isCurrent);
         if (current) setSelectedTerm(current.id);
       }
     } catch (error) {
@@ -117,7 +119,7 @@ const ResultEntry = () => {
     try {
       const response = await api.get('/api/classes');
       const data = await response.json();
-      setClasses(data);
+      setClasses(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
@@ -127,7 +129,7 @@ const ResultEntry = () => {
     try {
       const response = await api.get('/api/subjects');
       const data = await response.json();
-      setSubjects(data);
+      setSubjects(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching subjects:', error);
     }
@@ -138,7 +140,7 @@ const ResultEntry = () => {
       const response = await api.get(`/api/teacher-assignments/teacher/${user.id}`);
       if (response.ok) {
         const data = await response.json();
-        setTeacherAssignments(data);
+        setTeacherAssignments(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error('Error fetching teacher assignments:', error);
@@ -407,7 +409,7 @@ const ResultEntry = () => {
                 className="w-full border rounded-md px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-primary outline-none"
               >
                 <option value="">Select Session</option>
-                {academicSessions.map(session => (
+                {(Array.isArray(academicSessions) ? academicSessions : []).map(session => (
                   <option key={session.id} value={session.id}>
                     {session.name} {session.isCurrent && '(Current)'}
                   </option>
@@ -423,7 +425,7 @@ const ResultEntry = () => {
                 className="w-full border rounded-md px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-primary outline-none"
               >
                 <option value="">Select Term</option>
-                {terms.map(term => (
+                {(Array.isArray(terms) ? terms : []).map(term => (
                   <option key={term.id} value={term.id}>
                     {term.name} {term.isCurrent && '(Current)'}
                   </option>
@@ -440,7 +442,7 @@ const ResultEntry = () => {
                 disabled={filteredClasses.length === 0}
               >
                 <option value="">Select Class</option>
-                {filteredClasses.map(cls => (
+                {(Array.isArray(filteredClasses) ? filteredClasses : []).map(cls => (
                   <option key={cls.id} value={cls.id}>
                     {cls.name} {cls.arm || ''}
                   </option>
@@ -460,7 +462,7 @@ const ResultEntry = () => {
                 disabled={filteredSubjects.length === 0}
               >
                 <option value="">Select Subject</option>
-                {filteredSubjects.map(sub => (
+                {(Array.isArray(filteredSubjects) ? filteredSubjects : []).map(sub => (
                   <option key={sub.id} value={sub.id}>
                     {sub.name}
                   </option>
@@ -584,7 +586,7 @@ const ResultEntry = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {students.map((student, index) => {
+                {(Array.isArray(students) ? students : []).map((student, index) => {
                   const studentResult = results[student.id] || {};
                   return (
                     <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>

@@ -172,20 +172,23 @@ export default function FeeManagement() {
         api.get('/api/classes')
       ]);
 
-      const terms = await termsRes.json();
-      const sessions = await sessionsRes.json();
+      const termsData = await termsRes.json();
+      const sessionsData = await sessionsRes.json();
       const classesData = await classesRes.json();
 
-      const activeTerm = Array.isArray(terms) ? terms.find(t => t.isCurrent) : null;
-      const activeSession = Array.isArray(sessions) ? sessions.find(s => s.isCurrent) : null;
+      const terms = Array.isArray(termsData) ? termsData : [];
+      const sessions = Array.isArray(sessionsData) ? sessionsData : [];
+      const classesArr = Array.isArray(classesData) ? classesData : [];
+
+      const activeTerm = terms.find(t => t.isCurrent) || null;
+      const activeSession = sessions.find(s => s.isCurrent) || null;
 
       setCurrentTerm(activeTerm);
       setCurrentSession(activeSession);
-      setClasses(Array.isArray(classesData) ? classesData : []);
+      setClasses(classesArr);
 
-      // Store all terms and sessions for payment selection
-      setAllTerms(Array.isArray(terms) ? terms : []);
-      setAllSessions(Array.isArray(sessions) ? sessions : []);
+      setAllTerms(terms);
+      setAllSessions(sessions);
 
       // Set default payment term/session to current
       setSelectedPaymentTerm(activeTerm);
@@ -626,11 +629,11 @@ export default function FeeManagement() {
   };
 
   const exportToCSV = () => {
-    const csvData = filteredStudents.map(student => {
-      const feeRecord = student.feeRecords[0];
+    const csvData = (Array.isArray(filteredStudents) ? filteredStudents : []).map(student => {
+      const feeRecord = student.feeRecords?.[0];
       return {
-        'Admission Number': student.admissionNumber,
-        'Student Name': `${student.user.firstName} ${student.user.lastName}`,
+        'Admission Number': student.admissionNumber || 'N/A',
+        'Student Name': `${student.user?.firstName || ''} ${student.user?.lastName || ''}`,
         'Class': student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'N/A',
         'Expected Amount': feeRecord?.expectedAmount || 0,
         'Paid Amount': feeRecord?.paidAmount || 0,
@@ -654,10 +657,10 @@ export default function FeeManagement() {
   };
 
   // Filter students
-  const filteredStudents = students.filter(student => {
-    const feeRecord = student.feeRecords[0];
-    const fullName = `${student.user.firstName} ${student.user.lastName} `.toLowerCase();
-    const admissionNumber = student.admissionNumber.toLowerCase();
+  const filteredStudents = (Array.isArray(students) ? students : []).filter(student => {
+    const feeRecord = student.feeRecords?.[0];
+    const fullName = `${student.user?.firstName || ''} ${student.user?.lastName || ''} `.toLowerCase();
+    const admissionNumber = (student.admissionNumber || '').toLowerCase();
     const searchLower = searchQuery.toLowerCase();
 
     const matchesSearch = fullName.includes(searchLower) || admissionNumber.includes(searchLower);
@@ -753,7 +756,7 @@ export default function FeeManagement() {
                   cursor: 'pointer'
                 }}
               >
-                {allSessions.map(s => (
+                {(Array.isArray(allSessions) ? allSessions : []).map(s => (
                   <option key={s.id} value={s.id}>
                     {s.name} {s.isCurrent ? '(Current)' : ''}
                   </option>
@@ -786,7 +789,7 @@ export default function FeeManagement() {
                 }}
               >
                 <option value="all">📊 All Terms (Cumulative)</option>
-                {allTerms
+                {(Array.isArray(allTerms) ? allTerms : [])
                   .filter(t => t.academicSessionId === selectedViewSession?.id)
                   .map(t => (
                     <option key={t.id} value={t.id}>
