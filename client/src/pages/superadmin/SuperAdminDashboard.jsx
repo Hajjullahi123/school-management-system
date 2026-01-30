@@ -89,8 +89,12 @@ const SuperAdminDashboard = () => {
       ]);
       console.log('Fetched SuperAdmin Data:', statsRes.data);
       setStats(statsRes.data);
-      setSchools(schoolsRes.data);
-      setAudits(auditsRes.data.logs);
+      if (schoolsRes.ok) {
+        setSchools(Array.isArray(schoolsRes.data) ? schoolsRes.data : []);
+      }
+      if (auditsRes.ok) {
+        setAudits(Array.isArray(auditsRes.data?.logs) ? auditsRes.data.logs : []);
+      }
       if (settingsRes.data) {
         setGlobalSettings(settingsRes.data);
       }
@@ -444,7 +448,7 @@ const SuperAdminDashboard = () => {
                     <FiAlertCircle className="mr-2 text-amber-500" /> Approaching Quota
                   </h4>
                   <div className="space-y-3">
-                    {stats?.growthInsights?.approachingQuota?.length > 0 ? (
+                    {Array.isArray(stats?.growthInsights?.approachingQuota) && stats.growthInsights.approachingQuota.length > 0 ? (
                       stats.growthInsights.approachingQuota.map(s => (
                         <div key={s.id} className="space-y-1">
                           <div className="flex justify-between text-xs font-semibold">
@@ -468,7 +472,7 @@ const SuperAdminDashboard = () => {
                     <FiKey className="mr-2 text-rose-500" /> Expiring Soon
                   </h4>
                   <div className="space-y-3">
-                    {stats?.growthInsights?.expiringSoon?.length > 0 ? (
+                    {Array.isArray(stats?.growthInsights?.expiringSoon) && stats.growthInsights.expiringSoon.length > 0 ? (
                       stats.growthInsights.expiringSoon.map(s => (
                         <div key={s.id} className="flex items-center justify-between p-2 bg-rose-50 rounded-lg border border-rose-100 group hover:bg-rose-600 transition-colors cursor-pointer">
                           <div className="max-w-[140px]">
@@ -499,7 +503,7 @@ const SuperAdminDashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {schools.map(s => (
+                  {schools?.map(s => (
                     <tr key={s.id} className="hover:bg-gray-50 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center">
@@ -836,7 +840,7 @@ const SuperAdminDashboard = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {audits && audits.length > 0 ? (
-                      audits.map((log) => (
+                      audits?.map((log) => (
                         <tr key={log.id} className="hover:bg-indigo-50/30 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex flex-col">

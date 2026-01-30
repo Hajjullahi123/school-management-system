@@ -107,13 +107,14 @@ const Dashboard = () => {
         if (trackingRes.ok) {
           const data = await trackingRes.json();
           // Transform tracking data to match the component's expectations
-          const assignmentsWithStatus = data.tracking.map(item => ({
+          const trackingData = Array.isArray(data?.tracking) ? data.tracking : [];
+          const assignmentsWithStatus = trackingData.map(item => ({
             ...item,
             class: { name: item.className, arm: '' },
             subject: { name: item.subjectName }
           }));
           setTeacherAssignments(assignmentsWithStatus);
-          const uniqueClasses = new Set(data.tracking.map(a => a.classId));
+          const uniqueClasses = new Set(trackingData.map(a => a.classId));
           setAssignedClassCount(uniqueClasses.size);
         }
 
@@ -121,7 +122,7 @@ const Dashboard = () => {
         const cbtRes = await api.get(`/api/analytics/cbt-tracking?teacherId=${user.id}`);
         if (cbtRes.ok) {
           const cbtData = await cbtRes.json();
-          setTeacherCBTExams(cbtData);
+          setTeacherCBTExams(Array.isArray(cbtData) ? cbtData : []);
         }
       }
 
@@ -320,7 +321,7 @@ const Dashboard = () => {
               </h3>
             </div>
             <div className="divide-y divide-gray-100">
-              {notices.map(notice => (
+              {notices?.map(notice => (
                 <div key={notice.id} className="p-4 hover:bg-gray-50">
                   <h4 className="font-semibold text-gray-900">{notice.title}</h4>
                   <p className="text-sm text-gray-600 mt-1">{notice.content}</p>
@@ -353,7 +354,7 @@ const Dashboard = () => {
               </h3>
             </div>
             <div className="divide-y divide-gray-100">
-              {notices.map(notice => (
+              {notices?.map(notice => (
                 <div key={notice.id} className="p-4 hover:bg-gray-50">
                   <h4 className="font-semibold text-gray-900">{notice.title}</h4>
                   <p className="text-sm text-gray-600 mt-1">{notice.content}</p>
@@ -556,7 +557,7 @@ const Dashboard = () => {
               </h3>
             </div>
             <div className="divide-y divide-gray-100">
-              {notices.map(notice => (
+              {notices?.map(notice => (
                 <div key={notice.id} className="p-4 hover:bg-gray-50">
                   <h4 className="font-semibold text-gray-900">{notice.title}</h4>
                   <p className="text-sm text-gray-600 mt-1">{notice.content}</p>
@@ -582,7 +583,7 @@ const Dashboard = () => {
 
             {teacherAssignments.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {teacherAssignments.map((assignment) => (
+                {teacherAssignments?.map((assignment) => (
                   <Link
                     key={assignment.id}
                     to={`/dashboard/result-entry?classId=${assignment.classId}&subjectId=${assignment.subjectId}`}
@@ -667,7 +668,7 @@ const Dashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
-              {teacherCBTExams.map(exam => (
+              {teacherCBTExams?.map(exam => (
                 <div key={exam.id} className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/[0.08] transition-all">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1 min-w-0">
@@ -819,7 +820,7 @@ const Dashboard = () => {
             </h3>
           </div>
           <div className="divide-y divide-gray-100">
-            {notices.map(notice => (
+            {notices?.map(notice => (
               <div key={notice.id} className="p-4 hover:bg-gray-50">
                 <h4 className="font-semibold text-gray-900">{notice.title}</h4>
                 <p className="text-sm text-gray-600 mt-1">{notice.content}</p>

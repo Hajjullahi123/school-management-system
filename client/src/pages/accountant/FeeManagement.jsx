@@ -962,7 +962,7 @@ export default function FeeManagement() {
           </button>
 
           {/* Individual Class Cards */}
-          {Object.values(classSummaries).map((classSummary) => (
+          {Object.values(classSummaries || {}).map((classSummary) => (
             <button
               key={classSummary.classId}
               onClick={() => setSelectedClassView(classSummary.classId)}
@@ -1056,7 +1056,7 @@ export default function FeeManagement() {
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
             >
               <option value="all">All Classes</option>
-              {classes.map(cls => (
+              {classes?.map(cls => (
                 <option key={cls.id} value={cls.id}>
                   {cls.name}{cls.arm || ''}
                 </option>
@@ -1428,7 +1428,7 @@ export default function FeeManagement() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {paymentHistory.map((payment) => (
+                    {paymentHistory?.map((payment) => (
                       <tr key={payment.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {new Date(payment.paymentDate).toLocaleDateString()}

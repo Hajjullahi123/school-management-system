@@ -497,7 +497,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
                 </tr>
               </thead>
               <tbody>
-                ${payments.length > 0 ? payments.map(p => `
+                ${(Array.isArray(payments) ? payments : []).length > 0 ? (Array.isArray(payments) ? payments : []).map(p => `
                   <tr>
                     <td>${new Date(p.paymentDate).toLocaleDateString()}</td>
                     <td>School Fee Payment</td>
@@ -690,7 +690,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
 
             <h2 style="font-size: 16px; margin-bottom: 20px;">Term-by-Term Breakdown</h2>
             <div class="term-grid">
-              ${allFeeRecords.length > 0 ? allFeeRecords.map(record => `
+              ${(Array.isArray(allFeeRecords) ? allFeeRecords : []).length > 0 ? (Array.isArray(allFeeRecords) ? allFeeRecords : []).map(record => `
                 <div class="term-card">
                   <div class="term-title">
                     ${record.term.name}

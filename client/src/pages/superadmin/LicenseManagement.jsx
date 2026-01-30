@@ -35,12 +35,12 @@ const LicenseManagement = () => {
 
       if (licensesRes.ok) {
         const data = await licensesRes.json();
-        setLicenses(data);
+        setLicenses(Array.isArray(data) ? data : []);
       }
 
       if (schoolsRes.ok) {
         const data = await schoolsRes.json();
-        setSchools(data);
+        setSchools(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error('Error fetching data:', error);

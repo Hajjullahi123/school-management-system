@@ -309,7 +309,7 @@ const StudentFees = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {paymentHistory.map((payment) => (
+                    {Array.isArray(paymentHistory) && paymentHistory.map((payment) => (
                       <tr key={payment.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {new Date(payment.paymentDate).toLocaleDateString()}

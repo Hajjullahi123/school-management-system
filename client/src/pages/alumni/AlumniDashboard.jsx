@@ -58,8 +58,14 @@ const AlumniDashboard = () => {
         });
       }
 
-      if (donationsRes.ok) setDonations(await donationsRes.json());
-      if (storiesRes.ok) setStories(await storiesRes.json());
+      if (donationsRes.ok) {
+        const donationsData = await donationsRes.json();
+        setDonations(Array.isArray(donationsData) ? donationsData : []);
+      }
+      if (storiesRes.ok) {
+        const storiesData = await storiesRes.json();
+        setStories(Array.isArray(storiesData) ? storiesData : []);
+      }
 
     } catch (error) {
       console.error('Fetch dashboard error:', error);
@@ -188,7 +194,7 @@ const AlumniDashboard = () => {
                   <Link to="/alumni/stories" className="text-primary font-bold text-sm hover:underline">View All</Link>
                 </div>
                 <div className="p-6 space-y-6">
-                  {stories.length > 0 ? stories.slice(0, 2).map((story, i) => (
+                  {Array.isArray(stories) && stories.length > 0 ? stories.slice(0, 2).map((story, i) => (
                     <div key={i} className="flex gap-6 items-start group">
                       {story.imageUrl && (
                         <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 shadow-lg transition-transform group-hover:scale-105">
@@ -227,7 +233,7 @@ const AlumniDashboard = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
-                        {donations.length > 0 ? donations.map((d, i) => (
+                        {Array.isArray(donations) && donations.length > 0 ? donations.map((d, i) => (
                           <tr key={i} className="hover:bg-gray-50/30 transition-colors">
                             <td className="px-6 py-4 text-sm font-bold text-gray-600">{new Date(d.date).toLocaleDateString()}</td>
                             <td className="px-6 py-4 text-sm font-black text-green-600">₦{formatNumber(d.amount)}</td>

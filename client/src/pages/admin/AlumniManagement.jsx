@@ -993,7 +993,7 @@ const AlumniManagement = () => {
                   }}
                 >
                   <option value="">-- External Donor / Not Listed --</option>
-                  {alumniList.sort((a, b) => a.student.user.firstName.localeCompare(b.student.user.firstName)).map(a => (
+                  {(Array.isArray(alumniList) ? [...alumniList] : []).sort((a, b) => a.student.user.firstName.localeCompare(b.student.user.firstName)).map(a => (
                     <option key={a.id} value={a.id}>
                       {a.student.user.firstName} {a.student.user.lastName} (Class of {a.graduationYear})
                     </option>
