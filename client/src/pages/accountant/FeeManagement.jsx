@@ -3,6 +3,7 @@ import { saveAs } from 'file-saver';
 import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import PrintReceiptModal from '../../components/PrintReceiptModal';
+import { formatCurrency, formatNumber, formatDate } from '../../utils/formatters';
 
 export default function FeeManagement() {
   const { user: authUser } = useAuth();
@@ -85,7 +86,7 @@ export default function FeeManagement() {
       }
 
       if (paid > totalDue) {
-        alert(`Total Paid (₦${paid.toLocaleString()}) cannot exceed the total amount due (₦${totalDue.toLocaleString()})`);
+        alert(`Total Paid (₦${formatNumber(paid)}) cannot exceed the total amount due (₦${formatNumber(totalDue)})`);
         return;
       }
 
@@ -383,7 +384,7 @@ export default function FeeManagement() {
       return;
     }
     if (parseFloat(paymentAmount) > currentBalance) {
-      alert(`Payment amount cannot exceed the outstanding balance (₦${currentBalance.toLocaleString()})`);
+      alert(`Payment amount cannot exceed the outstanding balance (₦${formatNumber(currentBalance)})`);
       return;
     }
 
@@ -860,20 +861,20 @@ export default function FeeManagement() {
             <h3 className="text-lg font-semibold mb-4">Quick Info</h3>
             <div className="space-y-3 text-sm">
               <p className="text-white/90">📊 Total Students: <span className="font-bold text-white">{summary.totalStudents}</span></p>
-              <p className="text-white/90">💰 Avg. Payment: <span className="font-bold text-white">₦{summary.totalStudents > 0 ? (summary.totalPaid / summary.totalStudents).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 0}</span></p>
+              <p className="text-white/90">💰 Avg. Payment: <span className="font-bold text-white">₦{summary.totalStudents > 0 ? formatNumber(summary.totalPaid / summary.totalStudents, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 0}</span></p>
               <p className="text-white/90">✅ Allowance Rate: <span className="font-bold text-white">{summary.totalStudents > 0 ? ((summary.clearedStudents / summary.totalStudents) * 100).toFixed(1) : 0}%</span></p>
             </div>
           </div>
           <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
             <p className="text-sm opacity-90 mb-1">Total Collected</p>
-            <p className="text-3xl font-bold">₦{summary.totalPaid.toLocaleString()}</p>
+            <p className="text-3xl font-bold">₦{formatNumber(summary.totalPaid)}</p>
             <p className="text-xs opacity-75 mt-2">
               {summary.totalExpected > 0 ? ((summary.totalPaid / summary.totalExpected) * 100).toFixed(1) : 0}% collected
             </p>
           </div>
           <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-6 text-white">
             <p className="text-sm opacity-90 mb-1">Outstanding</p>
-            <p className="text-3xl font-bold">₦{summary.totalBalance.toLocaleString()}</p>
+            <p className="text-3xl font-bold">₦{formatNumber(summary.totalBalance)}</p>
             <p className="text-xs opacity-75 mt-2">
               {summary.totalExpected > 0 ? ((summary.totalBalance / summary.totalExpected) * 100).toFixed(1) : 0}% pending
             </p>
@@ -934,15 +935,15 @@ export default function FeeManagement() {
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-gray-500">Expected:</span>
-                <span className="font-semibold text-blue-600">₦{summary?.totalExpected.toLocaleString() || 0}</span>
+                <span className="font-semibold text-blue-600">₦{formatNumber(summary?.totalExpected || 0)}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-gray-500">Collected:</span>
-                <span className="font-semibold text-green-600">₦{summary?.totalPaid.toLocaleString() || 0}</span>
+                <span className="font-semibold text-green-600">₦{formatNumber(summary?.totalPaid || 0)}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-gray-500">Balance:</span>
-                <span className="font-semibold text-red-600">₦{summary?.totalBalance.toLocaleString() || 0}</span>
+                <span className="font-semibold text-red-600">₦{formatNumber(summary?.totalBalance || 0)}</span>
               </div>
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <div className="w-full bg-gray-100 rounded-full h-1.5">
@@ -985,15 +986,15 @@ export default function FeeManagement() {
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-500">Expected:</span>
-                  <span className="font-semibold text-blue-600">₦{classSummary.totalExpected.toLocaleString()}</span>
+                  <span className="font-semibold text-blue-600">₦{formatNumber(classSummary.totalExpected)}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-500">Collected:</span>
-                  <span className="font-semibold text-green-600">₦{classSummary.totalPaid.toLocaleString()}</span>
+                  <span className="font-semibold text-green-600">₦{formatNumber(classSummary.totalPaid)}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-500">Balance:</span>
-                  <span className="font-semibold text-red-600">₦{classSummary.totalBalance.toLocaleString()}</span>
+                  <span className="font-semibold text-red-600">₦{formatNumber(classSummary.totalBalance)}</span>
                 </div>
                 <div className="mt-3 pt-3 border-t border-gray-100">
                   <div className="flex justify-between text-[10px] font-medium">
@@ -1212,13 +1213,13 @@ export default function FeeManagement() {
                           'N/A'}
                       </td>
                       <td className="px-3 py-4 text-xs font-bold text-gray-900">
-                        ₦{feeRecord?.expectedAmount.toLocaleString() || '0'}
+                        ₦{formatNumber(feeRecord?.expectedAmount || 0)}
                       </td>
                       <td className="px-3 py-4 text-xs font-black text-green-600">
-                        ₦{feeRecord?.paidAmount.toLocaleString() || '0'}
+                        ₦{formatNumber(feeRecord?.paidAmount || 0)}
                       </td>
                       <td className="px-3 py-4 text-xs font-black text-red-600">
-                        ₦{feeRecord?.balance.toLocaleString() || '0'}
+                        ₦{formatNumber(feeRecord?.balance || 0)}
                       </td>
                       <td className="px-3 py-4">
                         {feeRecord?.isClearedForExam ? (
@@ -1305,7 +1306,7 @@ export default function FeeManagement() {
                   placeholder="0.00"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Outstanding: ₦{selectedStudent.feeRecords[0]?.balance.toLocaleString() || 0}
+                  Outstanding: ₦{formatNumber(selectedStudent.feeRecords[0]?.balance || 0)}
                 </p>
               </div>
 
@@ -1392,13 +1393,13 @@ export default function FeeManagement() {
                 <div>
                   <span className="block text-gray-500">Total Paid</span>
                   <span className="font-medium text-green-600">
-                    ₦{historyStudent.feeRecords[0]?.paidAmount.toLocaleString() || 0}
+                    ₦{formatNumber(historyStudent.feeRecords[0]?.paidAmount || 0)}
                   </span>
                 </div>
                 <div>
                   <span className="block text-gray-500">Total Outstanding</span>
                   <span className="font-medium text-red-600">
-                    ₦{historyStudent.feeRecords[0]?.balance.toLocaleString() || 0}
+                    ₦{formatNumber(historyStudent.feeRecords[0]?.balance || 0)}
                   </span>
                 </div>
               </div>
@@ -1433,7 +1434,7 @@ export default function FeeManagement() {
                           {new Date(payment.paymentDate).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">
-                          ₦{payment.amount.toLocaleString()}
+                          ₦{formatNumber(payment.amount)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
                           {payment.paymentMethod}
@@ -1647,19 +1648,19 @@ export default function FeeManagement() {
               <div className="p-4 bg-gray-50 rounded-lg space-y-2 text-xs border border-gray-200">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Arrears/Opening:</span>
-                  <span className="font-semibold text-gray-700">₦{(editingFeeRecord.record?.openingBalance || 0).toLocaleString()}</span>
+                  <span className="font-semibold text-gray-700">₦{formatNumber(editingFeeRecord.record?.openingBalance || 0)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Current Expected:</span>
-                  <span className="font-semibold text-gray-700">₦{(parseFloat(adjustedExpected) || 0).toLocaleString()}</span>
+                  <span className="font-semibold text-gray-700">₦{formatNumber(parseFloat(adjustedExpected) || 0)}</span>
                 </div>
                 <div className="flex justify-between border-t pt-1 border-gray-200">
                   <span className="text-gray-600 font-bold">Total Due:</span>
-                  <span className="font-bold text-gray-900 underline">₦{((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0)).toLocaleString()}</span>
+                  <span className="font-bold text-gray-900 underline">₦{formatNumber((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0))}</span>
                 </div>
                 <div className={`flex justify-between border-t pt-1 mt-1 ${((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0) - (parseFloat(adjustedPaid) || 0)) < 0 ? 'text-red-600' : 'text-orange-800'}`}>
                   <span className="font-bold">Remaining Balance:</span>
-                  <span className="font-bold">₦{((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0) - (parseFloat(adjustedPaid) || 0)).toLocaleString()}</span>
+                  <span className="font-bold">₦{formatNumber((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0) - (parseFloat(adjustedPaid) || 0))}</span>
                 </div>
               </div>
             </div>

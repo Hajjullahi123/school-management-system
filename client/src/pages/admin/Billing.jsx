@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiCheck, FiShield, FiBriefcase, FiZap, FiCreditCard, FiAlertCircle, FiClock, FiCalendar, FiUsers } from 'react-icons/fi';
 import { apiCall } from '../../api';
+import { formatNumber } from '../../utils/formatters';
 import { toast } from '../../utils/toast';
 import { useAuth } from '../../context/AuthContext';
 
@@ -241,7 +242,7 @@ const PricingCard = ({ title, price, current, students, features, onSelect, proc
     <div className="mb-8">
       <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gray-400 mb-2">{title} Plan</h3>
       <div className="flex items-baseline gap-1">
-        <span className="text-4xl font-black text-gray-900">₦{price.toLocaleString()}</span>
+        <span className="text-4xl font-black text-gray-900">₦{formatNumber(price)}</span>
         <span className="text-gray-400 font-bold text-xs uppercase">/ Year</span>
       </div>
     </div>

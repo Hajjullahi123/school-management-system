@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
+import { formatNumber } from '../../utils/formatters';
 import { toast } from '../../utils/toast';
 import { Link } from 'react-router-dom';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
@@ -155,7 +156,7 @@ const AlumniDashboard = () => {
               </div>
               <div>
                 <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Total Impact</p>
-                <p className="text-2xl font-black text-gray-900">₦{totalDonated.toLocaleString()}</p>
+                <p className="text-2xl font-black text-gray-900">₦{formatNumber(totalDonated)}</p>
               </div>
             </div>
             <div className="bg-white p-6 rounded-[30px] shadow-xl border border-gray-100 flex items-center gap-6">
@@ -229,7 +230,7 @@ const AlumniDashboard = () => {
                         {donations.length > 0 ? donations.map((d, i) => (
                           <tr key={i} className="hover:bg-gray-50/30 transition-colors">
                             <td className="px-6 py-4 text-sm font-bold text-gray-600">{new Date(d.date).toLocaleDateString()}</td>
-                            <td className="px-6 py-4 text-sm font-black text-green-600">₦{d.amount.toLocaleString()}</td>
+                            <td className="px-6 py-4 text-sm font-black text-green-600">₦{formatNumber(d.amount)}</td>
                             <td className="px-6 py-4 text-sm text-gray-500 italic">{d.message || '—'}</td>
                           </tr>
                         )) : (

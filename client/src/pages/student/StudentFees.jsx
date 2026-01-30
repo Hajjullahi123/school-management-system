@@ -3,6 +3,7 @@ import { toast } from '../../utils/toast';
 import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import PrintReceiptModal from '../../components/PrintReceiptModal';
+import { formatNumber, formatDate } from '../../utils/formatters';
 
 const StudentFees = () => {
   const { user } = useAuth();
@@ -170,13 +171,13 @@ const StudentFees = () => {
         {/* Fee Summary Card */}
         <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-500">
           <h3 className="text-gray-500 text-sm font-medium uppercase">Total Expected</h3>
-          <p className="text-3xl font-bold text-gray-900 mt-2">₦{feeData.expectedAmount.toLocaleString()}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-2">₦{formatNumber(feeData.expectedAmount)}</p>
           <p className="text-sm text-gray-500 mt-1">{feeData.termName} / {feeData.sessionName}</p>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-green-500">
           <h3 className="text-gray-500 text-sm font-medium uppercase">Total Paid</h3>
-          <p className="text-3xl font-bold text-green-600 mt-2">₦{feeData.paidAmount.toLocaleString()}</p>
+          <p className="text-3xl font-bold text-green-600 mt-2">₦{formatNumber(feeData.paidAmount)}</p>
           <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
             <div
               className="bg-green-500 h-2 rounded-full"
@@ -187,7 +188,7 @@ const StudentFees = () => {
 
         <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-red-500">
           <h3 className="text-gray-500 text-sm font-medium uppercase">Outstanding Balance</h3>
-          <p className="text-3xl font-bold text-red-600 mt-2">₦{feeData.balance.toLocaleString()}</p>
+          <p className="text-3xl font-bold text-red-600 mt-2">₦{formatNumber(feeData.balance)}</p>
           {feeData.isClearedForExam ? (
             <span className="inline-block mt-2 px-2 py-1 text-xs font-semibold rounded bg-indigo-100 text-indigo-800">
               ✓ Exam Card: Allowed
@@ -320,7 +321,7 @@ const StudentFees = () => {
                           {payment.paymentMethod}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                          ₦{payment.amount.toLocaleString()}
+                          ₦{formatNumber(payment.amount)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button

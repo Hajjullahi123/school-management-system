@@ -7,6 +7,7 @@ import {
 } from 'react-icons/fi';
 import { toast } from '../../utils/toast';
 import { apiCall } from '../../api';
+import { formatNumber } from '../../utils/formatters';
 import LicenseManagement from './LicenseManagement';
 
 const SuperAdminDashboard = () => {
@@ -1188,7 +1189,7 @@ const StatCard = ({ icon, label, value, bgColor }) => (
     </div>
     <div>
       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-      <h4 className="text-3xl font-extrabold text-gray-900">{value?.toLocaleString() || '0'}</h4>
+      <h4 className="text-3xl font-extrabold text-gray-900">{formatNumber(value)}</h4>
     </div>
   </div>
 );

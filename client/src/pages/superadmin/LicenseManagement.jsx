@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
+import { formatNumber } from '../../utils/formatters';
 import { FiKey, FiCheck, FiX, FiClock, FiUsers, FiAlertCircle, FiCopy, FiRefreshCw } from 'react-icons/fi';
 
 const LicenseManagement = () => {
@@ -240,7 +241,7 @@ const LicenseManagement = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 font-semibold uppercase tracking-wide">Total Students</p>
-              <p className="text-3xl font-black text-purple-600 mt-1">{stats.totalStudents.toLocaleString()}</p>
+              <p className="text-3xl font-black text-purple-600 mt-1">{formatNumber(stats.totalStudents)}</p>
             </div>
             <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
               <FiUsers className="w-6 h-6 text-purple-600" />

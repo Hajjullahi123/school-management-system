@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api, API_BASE_URL } from '../../api';
+import { formatNumber } from '../../utils/formatters';
 import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 import AlumniIDCard from '../../components/AlumniIDCard';
 import { useReactToPrint } from 'react-to-print';
@@ -371,7 +372,7 @@ const AlumniManagement = () => {
         <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
           <h3 className="text-gray-500 text-sm font-medium">Total Donations</h3>
           <p className="text-3xl font-bold mt-2">
-            ₦{donations.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()}
+            ₦{formatNumber(donations.reduce((acc, curr) => acc + curr.amount, 0))}
           </p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
@@ -544,7 +545,7 @@ const AlumniManagement = () => {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="text-xl font-bold text-green-600">₦{donation.amount.toLocaleString()}</p>
+                    <p className="text-xl font-bold text-green-600">₦{formatNumber(donation.amount)}</p>
                   </div>
                   <div className="flex gap-2">
                     <button

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../api';
+import { formatNumber } from '../../utils/formatters';
 
 const FeeStructureSetup = () => {
   const { user } = useAuth();
@@ -274,7 +275,7 @@ const FeeStructureSetup = () => {
                       {fs.term.name}
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ₦{fs.amount.toLocaleString()}
+                      ₦{formatNumber(fs.amount)}
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap text-sm">
                       <button

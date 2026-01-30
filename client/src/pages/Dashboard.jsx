@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api, API_BASE_URL } from '../api';
 import ParentDashboard from './parent/ParentDashboard';
 import useSchoolSettings from '../hooks/useSchoolSettings';
+import { formatCurrency, formatNumber } from '../utils/formatters';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -374,7 +375,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1 pr-2">
                     <p className="text-xs sm:text-sm text-gray-600">Total Expected</p>
-                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">₦{feeStats.totalExpected.toLocaleString()}</p>
+                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">₦{formatNumber(feeStats.totalExpected)}</p>
                   </div>
                   <svg className="w-8 h-8 sm:w-10 sm:h-10 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -386,7 +387,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1 pr-2">
                     <p className="text-xs sm:text-sm text-gray-600">Total Collected</p>
-                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">₦{feeStats.totalPaid.toLocaleString()}</p>
+                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">₦{formatNumber(feeStats.totalPaid)}</p>
                   </div>
                   <svg className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -398,7 +399,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1 pr-2">
                     <p className="text-xs sm:text-sm text-gray-600">Outstanding</p>
-                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">₦{feeStats.totalBalance.toLocaleString()}</p>
+                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">₦{formatNumber(feeStats.totalBalance)}</p>
                   </div>
                   <svg className="w-8 h-8 sm:w-10 sm:h-10 text-orange-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -467,7 +468,7 @@ const Dashboard = () => {
                   <p className="text-white/90">📊 Total Students: <span className="font-bold text-white">{feeStats.totalStudents}</span></p>
                   <p className="text-white/90">💰 Avg. Payment: <span className="font-bold text-white">
                     ₦{feeStats.totalStudents > 0
-                      ? (feeStats.totalPaid / feeStats.totalStudents).toLocaleString(undefined, { maximumFractionDigits: 0 })
+                      ? formatNumber(feeStats.totalPaid / feeStats.totalStudents, { maximumFractionDigits: 0 })
                       : 0}
                   </span></p>
                 </div>
@@ -877,16 +878,16 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 gap-3 sm:gap-6">
             <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-100">
               <p className="text-xs sm:text-sm text-blue-600 mb-1">Expected Amount</p>
-              <p className="text-xl sm:text-2xl font-bold text-blue-900">₦{studentFeeRecord.expectedAmount?.toLocaleString() || '0'}</p>
+              <p className="text-xl sm:text-2xl font-bold text-blue-900">₦{formatNumber(studentFeeRecord.expectedAmount || 0)}</p>
             </div>
             <div className="bg-green-50 p-3 sm:p-4 rounded-lg border border-green-100">
               <p className="text-xs sm:text-sm text-green-600 mb-1">Total Paid</p>
-              <p className="text-xl sm:text-2xl font-bold text-green-900">₦{studentFeeRecord.paidAmount?.toLocaleString() || '0'}</p>
+              <p className="text-xl sm:text-2xl font-bold text-green-900">₦{formatNumber(studentFeeRecord.paidAmount || 0)}</p>
             </div>
             <div className={`p-3 sm:p-4 rounded-lg border ${studentFeeRecord.balance > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
               <p className={`text-xs sm:text-sm mb-1 ${studentFeeRecord.balance > 0 ? 'text-red-600' : 'text-gray-600'}`}>Outstanding Balance</p>
               <p className={`text-xl sm:text-2xl font-bold ${studentFeeRecord.balance > 0 ? 'text-red-900' : 'text-gray-900'}`}>
-                ₦{studentFeeRecord.balance?.toLocaleString() || '0'}
+                ₦{formatNumber(studentFeeRecord.balance || 0)}
               </p>
             </div>
           </div>

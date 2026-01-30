@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../api';
 import useSchoolSettings from '../hooks/useSchoolSettings';
+import { formatNumber, formatDate, formatDateTime } from '../utils/formatters';
 
 export default function PrintReceiptModal({ student, isOpen, onClose, currentTerm, currentSession, allTerms, allSessions, currentPayment }) {
   const { settings: schoolSettings } = useSchoolSettings();
@@ -319,7 +320,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
 
             <div class="amount-section">
               <div class="amount-label">Amount Paid</div>
-              <div class="amount-value">₦${payment.amount.toLocaleString()}</div>
+              <div class="amount-value">₦${formatNumber(payment.amount)}</div>
             </div>
 
             <div class="qr-section" style="margin-bottom: 10px;">
@@ -501,7 +502,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
                     <td>${new Date(p.paymentDate).toLocaleDateString()}</td>
                     <td>School Fee Payment</td>
                     <td>${p.paymentMethod.toUpperCase()}</td>
-                    <td class="amount-col">₦${p.amount.toLocaleString()}</td>
+                    <td class="amount-col">₦${formatNumber(p.amount)}</td>
                   </tr>
                 `).join('') : '<tr><td colspan="4" style="text-align: center; color: #94a3b8;">No payments found for this period.</td></tr>'}
               </tbody>
@@ -510,15 +511,15 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
             <div class="summary-card">
               <div class="summary-item">
                 <div class="summary-label">Expected Charge</div>
-                <div class="summary-val">₦${(feeRecord?.expectedAmount || 0).toLocaleString()}</div>
+                <div class="summary-val">₦${formatNumber(feeRecord?.expectedAmount || 0)}</div>
               </div>
               <div class="summary-item">
                 <div class="summary-label">Total Paid</div>
-                <div class="summary-val" style="color: #10b981;">₦${totalPaid.toLocaleString()}</div>
+                <div class="summary-val" style="color: #10b981;">₦${formatNumber(totalPaid)}</div>
               </div>
               <div class="summary-item">
                 <div class="summary-label">Current Balance</div>
-                <div class="summary-val" style="color: ${(feeRecord?.balance || 0) > 0 ? '#ef4444' : '#10b981'};">₦${(feeRecord?.balance || 0).toLocaleString()}</div>
+                <div class="summary-val" style="color: ${(feeRecord?.balance || 0) > 0 ? '#ef4444' : '#10b981'};">₦${formatNumber(feeRecord?.balance || 0)}</div>
               </div>
             </div>
 
@@ -539,7 +540,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
 
             <div class="footer">
               <div>
-                Official computer-generated statement. Verified by system at ${new Date().toLocaleString()}.
+                Official computer-generated statement. Verified by system at ${formatDateTime(new Date())}.
               </div>
               <div style="text-align: right;">
                 Verification ID: ${securityHash}
@@ -671,15 +672,15 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
             <div class="summary-header">
               <div class="stat-item">
                 <div class="stat-label">Total Expected</div>
-                <div class="stat-val">₦${grandTotal.expected.toLocaleString()}</div>
+                <div class="stat-val">₦${formatNumber(grandTotal.expected)}</div>
               </div>
               <div class="stat-item">
                 <div class="stat-label">Total Remitted</div>
-                <div class="stat-val" style="color: #10b981;">₦${grandTotal.paid.toLocaleString()}</div>
+                <div class="stat-val" style="color: #10b981;">₦${formatNumber(grandTotal.paid)}</div>
               </div>
               <div class="stat-item">
                 <div class="stat-label">Outstanding Balance</div>
-                <div class="stat-val" style="color: ${grandTotal.balance > 0 ? '#ef4444' : '#10b981'};">₦${grandTotal.balance.toLocaleString()}</div>
+                <div class="stat-val" style="color: ${grandTotal.balance > 0 ? '#ef4444' : '#10b981'};">₦${formatNumber(grandTotal.balance)}</div>
               </div>
               <div class="stat-item">
                 <div class="stat-label">Completion</div>
@@ -699,19 +700,19 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
                   </div>
                   <div class="row">
                     <span>Charge:</span>
-                    <span>₦${(record.expectedAmount || 0).toLocaleString()}</span>
+                    <span>₦${formatNumber(record.expectedAmount || 0)}</span>
                   </div>
                   <div class="row">
                     <span>Arrears:</span>
-                    <span>₦${(record.openingBalance || 0).toLocaleString()}</span>
+                    <span>₦${formatNumber(record.openingBalance || 0)}</span>
                   </div>
                   <div class="row">
                     <span>Paid:</span>
-                    <span>₦${(record.paidAmount || 0).toLocaleString()}</span>
+                    <span>₦${formatNumber(record.paidAmount || 0)}</span>
                   </div>
                   <div class="row" style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #f1f5f9;">
                     <span>Term Balance:</span>
-                    <span style="color: ${record.balance > 0 ? '#ef4444' : '#10b981'};">₦${(record.balance || 0).toLocaleString()}</span>
+                    <span style="color: ${record.balance > 0 ? '#ef4444' : '#10b981'};">₦${formatNumber(record.balance || 0)}</span>
                   </div>
                 </div>
               `).join('') : '<p>No records found.</p>'}
@@ -736,7 +737,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
             <div class="footer">
               <div style="font-size: 10px; color: #94a3b8;">
                 Security Verification ID: <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700;">${securityHash}</span><br/>
-                Generated: ${new Date().toLocaleString()}
+                Generated: ${formatDateTime(new Date())}
               </div>
               <div style="text-align: right;">
                 <div style="height: 40px; border-bottom: 1px solid #cbd5e1; width: 150px; margin-bottom: 4px;"></div>
@@ -948,7 +949,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
                 >
                   {payments.map(p => (
                     <option key={p.id} value={p.id}>
-                      {new Date(p.paymentDate).toLocaleDateString()} - ₦{p.amount.toLocaleString()} ({p.paymentMethod})
+                      {formatDate(p.paymentDate)} - ₦{formatNumber(p.amount)} ({p.paymentMethod})
                     </option>
                   ))}
                 </select>
