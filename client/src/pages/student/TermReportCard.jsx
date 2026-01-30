@@ -44,7 +44,7 @@ const TermReportCard = () => {
     try {
       const response = await api.get('/api/parents/my-wards');
       const data = await response.json();
-      setClassStudents(data);
+      setClassStudents(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching wards:', error);
     }
@@ -54,8 +54,9 @@ const TermReportCard = () => {
     try {
       const response = await api.get('/api/terms');
       const data = await response.json();
-      setTerms(data);
-      const currentTerm = data.find(t => t.isCurrent);
+      const termsArray = Array.isArray(data) ? data : [];
+      setTerms(termsArray);
+      const currentTerm = termsArray.find(t => t.isCurrent);
       if (currentTerm) {
         setSelectedTerm(currentTerm.id.toString());
       }
@@ -68,15 +69,16 @@ const TermReportCard = () => {
     try {
       const response = await api.get('/api/classes');
       const data = await response.json();
+      const classesArray = Array.isArray(data) ? data : [];
 
       if (user?.role === 'teacher') {
-        const teacherClasses = data.filter(c => c.classTeacherId === user.id);
+        const teacherClasses = classesArray.filter(c => c.classTeacherId === user.id);
         setClasses(teacherClasses);
         if (teacherClasses.length === 1) {
           setSelectedClassId(teacherClasses[0].id.toString());
         }
       } else {
-        setClasses(data);
+        setClasses(classesArray);
       }
     } catch (error) {
       console.error('Error fetching classes:', error);
@@ -95,7 +97,7 @@ const TermReportCard = () => {
     try {
       const response = await api.get(`/api/students?classId=${classId}`);
       const data = await response.json();
-      setClassStudents(data);
+      setClassStudents(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching students:', error);
     }
@@ -123,7 +125,7 @@ const TermReportCard = () => {
 
         const data = await response.json();
 
-        if (data.reports.length === 0) {
+        if (!data || !data.reports || !Array.isArray(data.reports) || data.reports.length === 0) {
           alert('No results found for any student in this class.');
         } else {
           setBulkReports(data.reports);
@@ -376,7 +378,7 @@ const TermReportCard = () => {
       {/* Report Card Display */}
       {(reportData || bulkReports.length > 0) && (
         <>
-          {(bulkReports.length > 0 ? bulkReports : [reportData]).map((data, idx) => {
+          {(Array.isArray(bulkReports) && bulkReports.length > 0 ? bulkReports : [reportData]).map((data, idx) => {
             if (!data || !data.student) return null;
 
             const domainSplit = splitDomains(data.psychomotorRatings);

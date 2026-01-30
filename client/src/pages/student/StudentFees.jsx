@@ -37,8 +37,11 @@ const StudentFees = () => {
         api.get('/api/terms')
       ]);
 
-      const sessions = await sessionsRes.json();
-      const terms = await termsRes.json();
+      const sessionsData = await sessionsRes.json();
+      const termsData = await termsRes.json();
+
+      const sessions = Array.isArray(sessionsData) ? sessionsData : [];
+      const terms = Array.isArray(termsData) ? termsData : [];
 
       setAllSessions(sessions);
       setAllTerms(terms);
@@ -85,6 +88,7 @@ const StudentFees = () => {
       // 4. Get payment history
       const historyRes = await api.get(`/api/fees/payments/${studentId}?termId=${termId}&academicSessionId=${sessionId}`);
       const paymentHistoryData = await historyRes.json();
+      setPaymentHistory(Array.isArray(paymentHistoryData) ? paymentHistoryData : []);
 
       // 5. Get school settings for payment
       const settingsRes = await api.get('/api/settings');
@@ -102,7 +106,7 @@ const StudentFees = () => {
         sessionName: targetSession?.name || 'Unknown Session'
       } : null);
 
-      setPaymentHistory(paymentHistoryData);
+      setPaymentHistory(Array.isArray(paymentHistoryData) ? paymentHistoryData : []);
       setSettings(settingsData);
       setStudentData(studentData);
 

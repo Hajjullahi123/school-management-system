@@ -25,7 +25,10 @@ const MyClass = () => {
   const fetchDomains = async () => {
     try {
       const res = await api.get('/api/report-extras/domains');
-      if (res.ok) setDomains(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setDomains(Array.isArray(data) ? data : []);
+      }
     } catch (e) { console.error("Failed to fetch domains", e); }
   };
 
@@ -59,7 +62,7 @@ const MyClass = () => {
           formMasterRemark: data.formMasterRemark || '',
           principalRemark: data.principalRemark || ''
         });
-        setPsychomotorRatings(data.psychomotorRatings || []);
+        setPsychomotorRatings(Array.isArray(data.psychomotorRatings) ? data.psychomotorRatings : []);
       }
     } catch (e) {
       console.error("Error fetching report details", e);
@@ -257,7 +260,7 @@ const MyClass = () => {
                       <p className="text-sm text-gray-400 mt-1">Please ask the administrator to run the psychomotor seed script.</p>
                     </div>
                   ) : (
-                    domains.map(domain => {
+                    {(Array.isArray(domains) ? domains : []).map(domain => {
                       const rating = psychomotorRatings.find(r => r.domainId === domain.id) || { score: 0 };
                       return (
                         <div key={domain.id} className="bg-gray-50 p-4 rounded-md">
@@ -330,7 +333,7 @@ const MyClass = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-200">
-              {classData.students.map((student) => (
+              {(Array.isArray(classData?.students) ? classData.students : []).map((student) => (
                 <tr key={student.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     {student.photoUrl ? (

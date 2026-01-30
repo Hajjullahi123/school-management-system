@@ -63,7 +63,8 @@ const Dashboard = () => {
     try {
       const response = await api.get('/api/notices');
       if (response.ok) {
-        setNotices(await response.json());
+        const data = await response.json();
+        setNotices(Array.isArray(data) ? data : []);
       }
     } catch (e) {
       console.error('Failed to fetch notices');
@@ -74,11 +75,12 @@ const Dashboard = () => {
     try {
       // Fetch students count
       const studentsRes = await api.get('/api/students');
-      const students = await studentsRes.json();
+      const studentsResData = await studentsRes.json();
+      const students = Array.isArray(studentsResData) ? studentsResData : [];
 
       // Fetch classes count
-      const classesRes = await api.get('/api/classes');
-      const classes = await classesRes.json();
+      const classesResData = await classesRes.json();
+      const classes = Array.isArray(classesResData) ? classesResData : [];
 
       setTeacherStats({
         totalStudents: students.length,
@@ -92,12 +94,14 @@ const Dashboard = () => {
       ]);
 
       if (sessionsRes.ok) {
-        const sessions = await sessionsRes.json();
+        const sessionsData = await sessionsRes.json();
+        const sessions = Array.isArray(sessionsData) ? sessionsData : [];
         setCurrentSession(sessions.find(s => s.isCurrent));
       }
 
       if (termsRes.ok) {
-        const terms = await termsRes.json();
+        const termsData = await termsRes.json();
+        const terms = Array.isArray(termsData) ? termsData : [];
         setCurrentTerm(terms.find(t => t.isCurrent));
       }
 
@@ -147,8 +151,11 @@ const Dashboard = () => {
         api.get('/api/academic-sessions')
       ]);
 
-      const terms = await termsRes.json();
-      const sessions = await sessionsRes.json();
+      const termsData = await termsRes.json();
+      const sessionsData = await sessionsRes.json();
+
+      const terms = Array.isArray(termsData) ? termsData : [];
+      const sessions = Array.isArray(sessionsData) ? sessionsData : [];
 
       const currentTerm = terms.find(t => t.isCurrent);
       const currentSession = sessions.find(s => s.isCurrent);
@@ -196,7 +203,8 @@ const Dashboard = () => {
         if (currentTermData) {
           const allTermsResponse = await api.get('/api/terms');
           if (allTermsResponse.ok) {
-            const allTerms = await allTermsResponse.json();
+            const allTermsData = await allTermsResponse.json();
+            const allTerms = Array.isArray(allTermsData) ? allTermsData : [];
             const sortedTerms = allTerms.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
             const currentIndex = sortedTerms.findIndex(t => t.id === currentTermData.id);
             if (currentIndex > 0) {
@@ -261,7 +269,8 @@ const Dashboard = () => {
       const resultsResponse = await api.get(
         `/api/results?studentId=${user.student.id}`
       );
-      const results = await resultsResponse.json();
+      const resultsData = await resultsResponse.json();
+      const results = Array.isArray(resultsData) ? resultsData : [];
 
       if (results && results.length > 0) {
         setRecentResults(results.slice(0, 5)); // Top 5 recent
@@ -278,6 +287,7 @@ const Dashboard = () => {
         });
       } else {
         // Even if no results, update attendance
+        setRecentResults([]);
         setStats(prev => ({ ...prev, attendanceRate }));
       }
     } catch (error) {

@@ -94,9 +94,10 @@ const Timetable = () => {
       const response = await api.get('/api/classes');
       if (response.ok) {
         const data = await response.json();
-        setClasses(data);
-        if (isAdmin) {
-          setExpandedClasses(new Set(data.map(c => c.id)));
+        const classesArray = Array.isArray(data) ? data : [];
+        setClasses(classesArray);
+        if (isAdmin && classesArray.length > 0) {
+          setExpandedClasses(new Set(classesArray.map(c => c.id)));
         }
       }
     } catch (e) {
@@ -110,7 +111,7 @@ const Timetable = () => {
       const response = await api.get('/api/timetable/all');
       if (response.ok) {
         const data = await response.json();
-        const grouped = data.reduce((acc, slot) => {
+        const grouped = (Array.isArray(data) ? data : []).reduce((acc, slot) => {
           if (!acc[slot.classId]) acc[slot.classId] = [];
           acc[slot.classId].push(slot);
           return acc;
@@ -124,7 +125,8 @@ const Timetable = () => {
     try {
       const response = await api.get('/api/subjects');
       if (response.ok) {
-        setSubjects(await response.json());
+        const data = await response.json();
+        setSubjects(Array.isArray(data) ? data : []);
       }
     } catch (e) {
       console.error(e);
@@ -135,7 +137,8 @@ const Timetable = () => {
     try {
       const response = await api.get('/api/teachers');
       if (response.ok) {
-        setTeachers(await response.json());
+        const data = await response.json();
+        setTeachers(Array.isArray(data) ? data : []);
       }
     } catch (e) { console.error(e); }
   };
@@ -146,7 +149,8 @@ const Timetable = () => {
     try {
       const response = await api.get(`/api/timetable/class/${selectedClassId}`);
       if (response.ok) {
-        setSchedule(await response.json());
+        const data = await response.json();
+        setSchedule(Array.isArray(data) ? data : []);
       } else {
         setSchedule([]);
       }
@@ -172,7 +176,8 @@ const Timetable = () => {
     try {
       const response = await api.get(`/api/class-subjects/class/${selectedClassId}`);
       if (response.ok) {
-        setClassSubjects(await response.json());
+        const data = await response.json();
+        setClassSubjects(Array.isArray(data) ? data : []);
       }
     } catch (e) { console.error(e); }
   };
@@ -719,7 +724,7 @@ const Timetable = () => {
   const nonBreakTeachers = teachers.filter(t => t.user?.isActive);
   const averageSlotsPerTeacher = nonBreakTeachers.length > 0 ? (totalLessonSlots / nonBreakTeachers.length).toFixed(1) : 0;
 
-  const teacherStats = nonBreakTeachers.map(t => {
+  const teacherStats = (Array.isArray(nonBreakTeachers) ? nonBreakTeachers : []).map(t => {
     const count = allLessonSlots.filter(s => s.teacher?.id === t.userId).length;
     let status = 'optimum';
     const avg = parseFloat(averageSlotsPerTeacher);
@@ -729,7 +734,7 @@ const Timetable = () => {
 
     return {
       id: t.userId,
-      name: `${t.user.firstName} ${t.user.lastName}`,
+      name: `${t.user?.firstName || 'Teacher'} ${t.user?.lastName || ''}`,
       count,
       status
     };

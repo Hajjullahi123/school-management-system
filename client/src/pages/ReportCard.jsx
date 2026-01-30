@@ -38,9 +38,10 @@ const ReportCard = () => {
     try {
       const res = await api.get('/api/academic-sessions');
       const data = await res.json();
-      setSessions(data);
-      if (data.length > 0) {
-        const current = data.find(s => s.isCurrent) || data[0];
+      const sessionsArray = Array.isArray(data) ? data : [];
+      setSessions(sessionsArray);
+      if (sessionsArray.length > 0) {
+        const current = sessionsArray.find(s => s.isCurrent) || sessionsArray[0];
         setSelectedSession(current.id);
         fetchTerms(current.id);
       }
@@ -53,9 +54,10 @@ const ReportCard = () => {
     try {
       const res = await api.get(`/api/terms?sessionId=${sessionId}`);
       const data = await res.json();
-      setTerms(data);
-      if (data.length > 0) {
-        const current = data.find(t => t.isCurrent) || data[0];
+      const termsArray = Array.isArray(data) ? data : [];
+      setTerms(termsArray);
+      if (termsArray.length > 0) {
+        const current = termsArray.find(t => t.isCurrent) || termsArray[0];
         setSelectedTerm(current.id);
       }
     } catch (error) {
@@ -66,7 +68,8 @@ const ReportCard = () => {
   const fetchClasses = async () => {
     try {
       const response = await api.get('/api/classes');
-      setClasses(await response.json());
+      const data = await response.json();
+      setClasses(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
@@ -84,7 +87,7 @@ const ReportCard = () => {
     try {
       const response = await api.get(`/api/students?classId=${classId}`);
       const data = await response.json();
-      setClassStudents(data);
+      setClassStudents(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching students:', error);
     }
