@@ -128,11 +128,17 @@ const ReportCard = () => {
 
     try {
       const response = await api.get(`/api/reports/term/${targetStudentId}/${selectedTerm}`);
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to fetch report card');
+
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
       }
-      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || data?.message || 'Failed to fetch report card');
+      }
+
       setReportData(data);
     } catch (error) {
       console.error('Error fetching report:', error);

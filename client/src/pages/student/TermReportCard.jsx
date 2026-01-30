@@ -160,24 +160,30 @@ const TermReportCard = () => {
         `/api/reports/term/${targetStudentId}/${selectedTerm}`
       );
 
+      // Parse JSON once
+      let data;
+      const contentType = response.headers.get('content-type');
+      const isJson = contentType && contentType.includes('application/json');
+
+      if (isJson) {
+        data = await response.json();
+      }
+
       if (response.status === 403) {
-        const errorData = await response.json();
-        if (errorData.error === 'Result Not Published') {
+        if (data && data.error === 'Result Not Published') {
           setReportData(null);
-          throw new Error(errorData.message);
+          throw new Error(data.message || 'Results have not been published for this term yet.');
         }
       }
 
       if (!response.ok) {
         let errorMessage = 'Failed to fetch report';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (e) { }
+        if (data) {
+          errorMessage = data.message || data.error || errorMessage;
+        }
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
       setReportData(data);
     } catch (error) {
       console.error('Error fetching report:', error);
@@ -644,7 +650,7 @@ const TermReportCard = () => {
                         ))}
                       </div>
                       <p className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400">
-                        Verification ID: {data.student?.admissionNumber?.replace('/', '-')}-{data.term?.id?.toString().slice(-4)}
+                        Verification ID: {data.student?.admissionNumber?.toString().replace('/', '-')}-{data.term?.id?.toString().slice(-4)}
                       </p>
                     </div>
 

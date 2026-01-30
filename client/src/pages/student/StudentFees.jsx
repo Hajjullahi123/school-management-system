@@ -22,16 +22,16 @@ const StudentFees = () => {
   const [receiptPayment, setReceiptPayment] = useState(null);
   const [currentSession, setCurrentSession] = useState(null);
   const [currentTerm, setCurrentTerm] = useState(null);
+  const [selectedSessionId, setSelectedSessionId] = useState('');
+  const [selectedTermId, setSelectedTermId] = useState('');
 
   useEffect(() => {
-    fetchData();
+    initialLoad();
   }, []);
 
-  const fetchData = async () => {
+  const initialLoad = async () => {
     try {
       setLoading(true);
-
-      // 1. Get current session and term
       const [sessionsRes, termsRes] = await Promise.all([
         api.get('/api/academic-sessions'),
         api.get('/api/terms')
@@ -40,48 +40,71 @@ const StudentFees = () => {
       const sessions = await sessionsRes.json();
       const terms = await termsRes.json();
 
-      const currentSession = sessions.find(s => s.isCurrent);
-      const currentTerm = terms.find(t => t.isCurrent);
+      setAllSessions(sessions);
+      setAllTerms(terms);
 
-      if (!currentSession || !currentTerm) {
-        setLoading(false);
-        return;
+      const currentSec = sessions.find(s => s.isCurrent);
+      const currentTr = terms.find(t => t.isCurrent);
+
+      if (currentSec) {
+        setCurrentSession(currentSec);
+        setSelectedSessionId(currentSec.id.toString());
+      }
+      if (currentTr) {
+        setCurrentTerm(currentTr);
+        setSelectedTermId(currentTr.id.toString());
       }
 
-      // 3. Get fee record for this student
-      // We need to find the student ID first
+      // If we have both, fetch data for them
+      if (currentSec && currentTr) {
+        await fetchData(currentTr.id, currentSec.id);
+      } else {
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Error during initial load:', error);
+      setLoading(false);
+    }
+  };
+
+  const fetchData = async (termId, sessionId) => {
+    try {
+      if (!termId || !sessionId) return;
+
+      setLoading(true);
+      setError(null);
+
       const studentRes = await api.get(`/api/students/user/${user.id}`);
       const studentData = await studentRes.json();
       const studentId = studentData.id;
 
       // 3. Get fee record
-      const feeRes = await api.get(`/api/fees/student/${studentId}?termId=${currentTerm.id}&academicSessionId=${currentSession.id}`);
+      const feeRes = await api.get(`/api/fees/student/${studentId}?termId=${termId}&academicSessionId=${sessionId}`);
       const feeRecord = await feeRes.json();
 
       // 4. Get payment history
-      const historyRes = await api.get(`/api/fees/payments/${studentId}?termId=${currentTerm.id}&academicSessionId=${currentSession.id}`);
+      const historyRes = await api.get(`/api/fees/payments/${studentId}?termId=${termId}&academicSessionId=${sessionId}`);
       const paymentHistoryData = await historyRes.json();
 
       // 5. Get school settings for payment
       const settingsRes = await api.get('/api/settings');
       const settingsData = await settingsRes.json();
 
-      setFeeData({
+      const targetTerm = allTerms.find(t => t.id === parseInt(termId));
+      const targetSession = allSessions.find(s => s.id === parseInt(sessionId));
+
+      setFeeData(feeRecord ? {
         ...feeRecord,
         studentId,
-        termId: currentTerm.id,
-        sessionId: currentSession.id,
-        termName: currentTerm.name,
-        sessionName: currentSession.name
-      });
+        termId,
+        sessionId,
+        termName: targetTerm?.name || 'Unknown Term',
+        sessionName: targetSession?.name || 'Unknown Session'
+      } : null);
 
       setPaymentHistory(paymentHistoryData);
       setSettings(settingsData);
       setStudentData(studentData);
-      setAllSessions(sessions);
-      setAllTerms(terms);
-      setCurrentSession(currentSession);
-      setCurrentTerm(currentTerm);
 
       // Default amount to pay is the balance
       if (feeRecord) {
@@ -165,7 +188,34 @@ const StudentFees = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">My School Fees</h1>
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+        <h1 className="text-2xl font-bold text-gray-900">My School Fees</h1>
+
+        <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-lg shadow-sm border border-gray-100">
+          <select
+            value={selectedSessionId}
+            onChange={(e) => setSelectedSessionId(e.target.value)}
+            className="text-xs border-gray-300 rounded focus:ring-primary focus:border-primary px-2 py-1"
+          >
+            {allSessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <select
+            value={selectedTermId}
+            onChange={(e) => setSelectedTermId(e.target.value)}
+            className="text-xs border-gray-300 rounded focus:ring-primary focus:border-primary px-2 py-1"
+          >
+            {allTerms.filter(t => t.academicSessionId === parseInt(selectedSessionId)).map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => fetchData(selectedTermId, selectedSessionId)}
+            className="bg-primary text-white text-xs px-3 py-1 rounded hover:brightness-90 transition font-bold"
+          >
+            Filter
+          </button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Fee Summary Card */}
