@@ -74,12 +74,15 @@ const Dashboard = () => {
   const fetchTeacherStats = async () => {
     try {
       // Fetch students count
-      const studentsRes = await api.get('/api/students');
-      const studentsResData = await studentsRes.json();
-      const students = Array.isArray(studentsResData) ? studentsResData : [];
+      const [studentsRes, classesRes] = await Promise.all([
+        api.get('/api/students'),
+        api.get('/api/classes')
+      ]);
 
-      // Fetch classes count
+      const studentsResData = await studentsRes.json();
       const classesResData = await classesRes.json();
+
+      const students = Array.isArray(studentsResData) ? studentsResData : [];
       const classes = Array.isArray(classesResData) ? classesResData : [];
 
       setTeacherStats({

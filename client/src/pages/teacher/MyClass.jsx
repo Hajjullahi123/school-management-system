@@ -260,7 +260,7 @@ const MyClass = () => {
                       <p className="text-sm text-gray-400 mt-1">Please ask the administrator to run the psychomotor seed script.</p>
                     </div>
                   ) : (
-                    {(Array.isArray(domains) ? domains : []).map(domain => {
+                    (Array.isArray(domains) ? domains : []).map(domain => {
                       const rating = psychomotorRatings.find(r => r.domainId === domain.id) || { score: 0 };
                       return (
                         <div key={domain.id} className="bg-gray-50 p-4 rounded-md">
