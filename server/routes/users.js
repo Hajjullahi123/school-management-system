@@ -350,7 +350,8 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
       staffId,
       // Password reset
       password,
-      username
+      username,
+      role
     } = req.body;
 
     const user = await prisma.user.findFirst({

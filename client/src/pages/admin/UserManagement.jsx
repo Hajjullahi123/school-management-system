@@ -310,7 +310,12 @@ const UserManagement = () => {
                                   </div>
                                 )}
                                 {role === 'accountant' && <div className="text-amber-700 font-bold text-xs bg-amber-50 px-3 py-1 rounded-full w-fit border border-amber-100 tracking-tight">FINANCIAL DEPT</div>}
-                                {role === 'principal' && <div className="text-purple-700 font-bold text-xs bg-purple-50 px-3 py-1 rounded-full w-fit border border-purple-100 tracking-tight">ACADEMIC PRINCIPAL</div>}
+                                {role === 'principal' && (
+                                  <div className="space-y-1">
+                                    <div className="text-purple-700 font-bold text-xs bg-purple-50 px-3 py-1 rounded-full w-fit border border-purple-100 tracking-tight text-center">ACADEMIC PRINCIPAL</div>
+                                    <div className="flex items-center gap-1.5"><span className="text-[10px] font-black bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">USER</span> {user.username}</div>
+                                  </div>
+                                )}
                                 {role === 'admin' && <div className="text-indigo-700 font-bold text-xs bg-indigo-50 px-3 py-1 rounded-full w-fit border border-indigo-100 tracking-tight">SYSTEM ADMIN</div>}
                                 {role === 'parent' && <div className="text-rose-700 font-bold text-xs bg-rose-50 px-3 py-1 rounded-full w-fit border border-rose-100 tracking-tight">GUARDIAN ACCOUNT</div>}
                               </td>
