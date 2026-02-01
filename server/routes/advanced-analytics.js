@@ -750,7 +750,7 @@ router.get('/term/comparison', authenticate, requirePackage('premium'), async (r
 // =============================================
 
 // At-risk students
-router.get('/ai/at-risk-students', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+router.get('/ai/at-risk-students', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const { classId, termId } = req.query;
     const atRiskStudents = await identifyAtRiskStudents(prisma, req.schoolId, classId, termId);

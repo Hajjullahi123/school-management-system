@@ -489,7 +489,7 @@ router.get('/:id', authenticate, async (req, res) => {
 });
 
 // Create student with comprehensive information
-router.post('/', authenticate, authorize('admin'), async (req, res) => {
+router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     console.log('Creating student with data:', {
       firstName: req.body.firstName,
@@ -773,9 +773,9 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// Update student (Admin)
+// Update student (Admin/Principal)
 // WARNING: This route catches /:id, so it must be AFTER /my-profile
-router.put('/:id', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
+router.put('/:id', authenticate, authorize(['admin', 'accountant', 'principal']), async (req, res) => {
   try {
     const {
       firstName,

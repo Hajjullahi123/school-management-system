@@ -16,8 +16,8 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// Create subject
-router.post('/', authenticate, async (req, res) => {
+// Create subject (Admin/Principal only)
+router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { name, code } = req.body;
 
@@ -95,8 +95,8 @@ router.post('/', authenticate, async (req, res) => {
   }
 });
 
-// Update subject
-router.put('/:id', authenticate, async (req, res) => {
+// Update subject (Admin/Principal only)
+router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, code } = req.body;
@@ -116,8 +116,8 @@ router.put('/:id', authenticate, async (req, res) => {
   }
 });
 
-// Delete subject
-router.delete('/:id', authenticate, async (req, res) => {
+// Delete subject (Admin/Principal only)
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     const subjectId = parseInt(id);

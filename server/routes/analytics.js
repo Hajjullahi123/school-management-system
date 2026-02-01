@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 
 // Get class-wise performance
 router.get('/class-performance', authenticate, async (req, res) => {
@@ -265,7 +265,7 @@ router.get('/attendance-by-class', authenticate, async (req, res) => {
 });
 
 // GET /api/analytics/submission-tracking
-router.get('/submission-tracking', authenticate, async (req, res) => {
+router.get('/submission-tracking', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const school = await prisma.school.findUnique({
       where: { id: req.schoolId },
@@ -457,8 +457,47 @@ router.get('/cbt-tracking', authenticate, async (req, res) => {
   }
 });
 
+// GET /api/analytics/attendance-tracking
+router.get('/attendance-tracking', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const classes = await prisma.class.findMany({
+      where: { schoolId: req.schoolId },
+      include: {
+        classTeacher: {
+          select: { id: true, firstName: true, lastName: true, email: true }
+        }
+      }
+    });
+
+    const attendanceMarked = await prisma.attendanceRecord.groupBy({
+      by: ['classId'],
+      where: {
+        schoolId: req.schoolId,
+        date: today
+      }
+    });
+
+    const markedClassIds = new Set(attendanceMarked.map(a => a.classId));
+
+    const trackingData = classes.map(c => ({
+      classId: c.id,
+      className: `${c.name} ${c.arm || ''}`.trim(),
+      teacherId: c.classTeacherId,
+      teacherName: c.classTeacher ? `${c.classTeacher.firstName} ${c.classTeacher.lastName}` : 'Not Assigned',
+      isMarked: markedClassIds.has(c.id)
+    }));
+
+    res.json(trackingData);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // POST /api/analytics/nudge
-router.post('/nudge', authenticate, async (req, res) => {
+router.post('/nudge', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { teacherId, className, subjectName, targetType } = req.body;
     const { logAction } = require('../utils/audit');
@@ -499,12 +538,55 @@ router.post('/nudge', authenticate, async (req, res) => {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
       }
     });
-    // For now, we return a success response that the nudge was recorded.
 
     res.json({ message: `Teacher ${teacher.firstName} ${teacher.lastName} nudged successfully.` });
 
   } catch (error) {
     console.error('Nudge error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/analytics/nudge-attendance
+router.post('/nudge-attendance', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const { teacherId, className } = req.body;
+    const { logAction } = require('../utils/audit');
+
+    if (!teacherId) return res.status(400).json({ error: 'Teacher ID required' });
+
+    const teacher = await prisma.user.findFirst({
+      where: { id: parseInt(teacherId), schoolId: req.schoolId },
+      select: { firstName: true, lastName: true }
+    });
+
+    if (!teacher) return res.status(404).json({ error: 'Teacher not found' });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'NUDGE_ATTENDANCE',
+      resource: 'ATTENDANCE_TRACKING',
+      details: {
+        teacherName: `${teacher.firstName} ${teacher.lastName}`,
+        className
+      },
+      ipAddress: req.ip
+    });
+
+    await prisma.notice.create({
+      data: {
+        schoolId: req.schoolId,
+        title: 'Attendance Marking Reminder',
+        content: `Admin has noticed that attendance for ${className} hasn't been marked yet today. Please do so at your earliest convenience.`,
+        audience: `user:${teacherId}`,
+        authorId: req.user.id,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      }
+    });
+
+    res.json({ message: `Teacher ${teacher.firstName} ${teacher.lastName} nudged successfully.` });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });

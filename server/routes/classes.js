@@ -160,8 +160,8 @@ router.get('/:id', authenticate, async (req, res) => {
   }
 });
 
-// Create class (Admin only)
-router.post('/', authenticate, authorize('admin'), async (req, res) => {
+// Create class (Admin/Principal only)
+router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { name, arm, classTeacherId } = req.body;
 
@@ -229,8 +229,8 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// Update class (Admin only)
-router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
+// Update class (Admin/Principal only)
+router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, arm, classTeacherId } = req.body;
@@ -301,8 +301,8 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// Delete class (Admin only)
-router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
+// Delete class (Admin/Principal only)
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     const classId = parseInt(id);
@@ -339,7 +339,7 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
 });
 
 // Toggle result publishing status
-router.put('/:id/publish-results', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+router.put('/:id/publish-results', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     const { isPublished } = req.body;

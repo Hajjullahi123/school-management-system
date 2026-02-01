@@ -37,7 +37,7 @@ const parseCSV = (content) => {
 };
 
 // Bulk upload results from CSV
-router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.single('file'), async (req, res) => {
+router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']), upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });

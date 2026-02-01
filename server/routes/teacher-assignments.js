@@ -106,8 +106,8 @@ router.get('/teacher/:teacherId', authenticate, async (req, res) => {
   }
 });
 
-// Create a new teacher assignment
-router.post('/', authenticate, authorize(['admin']), async (req, res) => {
+// Create a new teacher assignment (Admin/Principal only)
+router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { teacherId, classSubjectId } = req.body;
 
@@ -204,8 +204,8 @@ router.post('/', authenticate, authorize(['admin']), async (req, res) => {
   }
 });
 
-// Update assignment (Edit)
-router.put('/:id', authenticate, authorize(['admin']), async (req, res) => {
+// Update assignment (Edit) (Admin/Principal only)
+router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const assignmentId = parseInt(req.params.id);
     const { teacherId, classSubjectId } = req.body;
@@ -286,8 +286,8 @@ router.put('/:id', authenticate, authorize(['admin']), async (req, res) => {
   }
 });
 
-// Delete a teacher assignment
-router.delete('/:id', authenticate, authorize(['admin']), async (req, res) => {
+// Delete a teacher assignment (Admin/Principal only)
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const assignmentId = parseInt(req.params.id);
 
@@ -322,8 +322,8 @@ router.delete('/:id', authenticate, authorize(['admin']), async (req, res) => {
   }
 });
 
-// Batch create assignments for a teacher
-router.post('/batch', authenticate, authorize(['admin']), async (req, res) => {
+// Batch create assignments for a teacher (Admin/Principal only)
+router.post('/batch', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { teacherId, classSubjectIds } = req.body;
 

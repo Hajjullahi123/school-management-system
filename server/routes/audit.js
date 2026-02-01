@@ -3,8 +3,8 @@ const router = express.Router();
 const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 
-// Get all audit logs (Admin only)
-router.get('/', authenticate, authorize('admin'), async (req, res) => {
+// Get all audit logs (Admin/Principal only)
+router.get('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { action, resource, userId, startDate, endDate, limit = 50, offset = 0 } = req.query;
 

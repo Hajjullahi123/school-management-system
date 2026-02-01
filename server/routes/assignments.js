@@ -40,8 +40,8 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// Create assignment (Admin only)
-router.post('/', authenticate, authorize('admin'), async (req, res) => {
+// Create assignment (Admin/Principal only)
+router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { classId, subjectId, teacherId, academicSessionId } = req.body;
 
@@ -109,8 +109,8 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// Delete assignment (Admin only)
-router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
+// Delete assignment (Admin/Principal only)
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
 

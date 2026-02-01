@@ -80,8 +80,8 @@ router.get('/current', authenticate, async (req, res) => {
   }
 });
 
-// Create term (Admin only)
-router.post('/', authenticate, authorize('admin'), async (req, res) => {
+// Create term (Admin/Principal only)
+router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { academicSessionId, name, startDate, endDate, isCurrent } = req.body;
 
@@ -136,8 +136,8 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// Update term (Admin only)
-router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
+// Update term (Admin/Principal only)
+router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, startDate, endDate, isCurrent } = req.body;
@@ -190,8 +190,8 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// Delete term (Admin only)
-router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
+// Delete term (Admin/Principal only)
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -221,8 +221,8 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// Set term as current (Admin only)
-router.put('/:id/set-current', authenticate, authorize(['admin']), async (req, res) => {
+// Set term as current (Admin/Principal only)
+router.put('/:id/set-current', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
 

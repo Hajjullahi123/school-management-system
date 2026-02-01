@@ -21,8 +21,8 @@ router.get('/', authenticate, async (req, res) => {
     }
 
     // Ensure student can only view their own results
-    // Ensure student can only view their own results
-    if (req.user.role === 'student' || req.user.role === 'parent') {
+    // Admins and Principals can view any student's results
+    if ((req.user.role === 'student' || req.user.role === 'parent') && req.user.role !== 'admin' && req.user.role !== 'principal') {
       let parentId = undefined;
 
       // If parent, find the linked Parent record to get parentId
@@ -126,7 +126,7 @@ router.get('/class/:classId/subject/:subjectId/term/:termId',
   });
 
 // Create or update a single result
-router.post('/entry', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+router.post('/entry', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const {
       studentId,
@@ -285,7 +285,7 @@ router.post('/entry', authenticate, authorize(['admin', 'teacher']), async (req,
 });
 
 // Batch entry for multiple students
-router.post('/batch-entry', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+router.post('/batch-entry', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const {
       academicSessionId,
@@ -420,7 +420,7 @@ router.post('/batch-entry', authenticate, authorize(['admin', 'teacher']), async
 });
 
 // Submit results (lock for editing)
-router.post('/submit', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+router.post('/submit', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const { classId, subjectId, termId } = req.body;
 

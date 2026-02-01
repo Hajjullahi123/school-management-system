@@ -58,8 +58,8 @@ router.get('/current', authenticate, async (req, res) => {
   }
 });
 
-// Create academic session (Admin only)
-router.post('/', authenticate, authorize('admin'), async (req, res) => {
+// Create academic session (Admin/Principal only)
+router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { name, startDate, endDate, isCurrent } = req.body;
 
@@ -109,8 +109,8 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// Update academic session (Admin only)
-router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
+// Update academic session (Admin/Principal only)
+router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, startDate, endDate, isCurrent } = req.body;
@@ -160,8 +160,8 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// Delete academic session (Admin only)
-router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
+// Delete academic session (Admin/Principal only)
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -191,8 +191,8 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// Set academic session as current (Admin only)
-router.put('/:id/set-current', authenticate, authorize(['admin']), async (req, res) => {
+// Set academic session as current (Admin/Principal only)
+router.put('/:id/set-current', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
 

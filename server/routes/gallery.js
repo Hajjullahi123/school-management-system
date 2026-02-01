@@ -121,8 +121,8 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
-// GET /api/gallery/all - Get all images including inactive (admin only)
-router.get('/all', authenticate, authorize(['admin']), async (req, res) => {
+// GET /api/gallery/all - Get all images including inactive (admin/principal only)
+router.get('/all', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const images = await prisma.galleryImage.findMany({
       where: { schoolId: req.schoolId },
@@ -146,8 +146,8 @@ router.get('/all', authenticate, authorize(['admin']), async (req, res) => {
   }
 });
 
-// POST /api/gallery/images - Upload new image with file (admin only)
-router.post('/images', authenticate, authorize(['admin']), upload.single('image'), async (req, res) => {
+// POST /api/gallery/images - Upload new image with file (admin/principal only)
+router.post('/images', authenticate, authorize(['admin', 'principal']), upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No image file uploaded' });
@@ -193,9 +193,8 @@ router.post('/images', authenticate, authorize(['admin']), upload.single('image'
   }
 });
 
-// OLD POST route (deprecated - keeping for reference)
-// POST /api/gallery/images - Upload new image (admin only)
-router.post('/images-url', authenticate, authorize(['admin']), async (req, res) => {
+// POST /api/gallery/images - Upload new image (admin/principal only)
+router.post('/images-url', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { title, description, imageUrl, category } = req.body;
 
@@ -244,8 +243,8 @@ router.post('/images-url', authenticate, authorize(['admin']), async (req, res) 
   }
 });
 
-// PUT /api/gallery/images/:id - Update image (admin only)
-router.put('/images/:id', authenticate, authorize(['admin']), async (req, res) => {
+// PUT /api/gallery/images/:id - Update image (admin/principal only)
+router.put('/images/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, category, isActive } = req.body;
@@ -291,8 +290,8 @@ router.put('/images/:id', authenticate, authorize(['admin']), async (req, res) =
   }
 });
 
-// DELETE /api/gallery/images/:id - Delete image (admin only)
-router.delete('/images/:id', authenticate, authorize(['admin']), async (req, res) => {
+// DELETE /api/gallery/images/:id - Delete image (admin/principal only)
+router.delete('/images/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -323,8 +322,8 @@ router.delete('/images/:id', authenticate, authorize(['admin']), async (req, res
 });
 
 
-// Simple upload endpoint (works!)
-router.post('/upload', authenticate, authorize(['admin']), upload.single('image'), async (req, res) => {
+// Simple upload endpoint (admin/principal only)
+router.post('/upload', authenticate, authorize(['admin', 'principal']), upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No image uploaded' });

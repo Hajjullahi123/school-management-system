@@ -131,8 +131,8 @@ router.get('/class/:classId/unassigned-count', authenticate, async (req, res) =>
   }
 });
 
-// Add a subject to a class
-router.post('/', authenticate, authorize(['admin']), async (req, res) => {
+// Add a subject to a class (Admin/Principal only)
+router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { classId, subjectId } = req.body;
 
@@ -191,8 +191,8 @@ router.post('/', authenticate, authorize(['admin']), async (req, res) => {
   }
 });
 
-// Batch add subjects to a class
-router.post('/batch', authenticate, authorize(['admin']), async (req, res) => {
+// Batch add subjects to a class (Admin/Principal only)
+router.post('/batch', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { classId, subjectIds } = req.body;
 
@@ -267,8 +267,8 @@ router.post('/batch', authenticate, authorize(['admin']), async (req, res) => {
   }
 });
 
-// Remove a subject from a class
-router.delete('/:id', authenticate, authorize(['admin']), async (req, res) => {
+// Remove a subject from a class (Admin/Principal only)
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
 
@@ -323,8 +323,8 @@ router.delete('/:id', authenticate, authorize(['admin']), async (req, res) => {
   }
 });
 
-// Update periods per week
-router.patch('/:id/periods', authenticate, authorize(['admin']), async (req, res) => {
+// Update periods per week (Admin/Principal only)
+router.patch('/:id/periods', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { periodsPerWeek } = req.body;

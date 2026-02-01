@@ -5,8 +5,8 @@ const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 
-// Get all users (Admin only)
-router.get('/', authenticate, authorize('admin'), async (req, res) => {
+// Get all users (Admin/Principal only)
+router.get('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { role, search } = req.query;
 
@@ -41,8 +41,8 @@ router.get('/', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// Create user (Admin only)
-router.post('/', authenticate, authorize('admin'), async (req, res) => {
+// Create user (Admin/Principal only)
+router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const {
       username,
@@ -96,7 +96,7 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
 
     // Password is now optional for all roles - will be auto-generated if not provided
 
-    if (!['admin', 'teacher', 'student', 'accountant'].includes(role)) {
+    if (!['admin', 'teacher', 'student', 'accountant', 'principal'].includes(role)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
 
@@ -331,8 +331,8 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// Update user (Admin only)
-router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
+// Update user (Admin/Principal only)
+router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -376,6 +376,13 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
       isActive,
       username
     };
+
+    if (role) {
+      if (!['admin', 'teacher', 'student', 'accountant', 'principal'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role' });
+      }
+      updateData.role = role;
+    }
 
     if (password && password.trim().length >= 6) {
       const trimmedPassword = password.trim();
@@ -458,8 +465,8 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// Delete user (Admin only) - Hard Delete
-router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
+// Delete user (Admin/Principal only) - Hard Delete
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     const userId = parseInt(id);
@@ -552,8 +559,8 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// Bulk create students (Admin only)
-router.post('/bulk-students', authenticate, authorize('admin'), async (req, res) => {
+// Bulk create students (Admin/Principal only)
+router.post('/bulk-students', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { students } = req.body; // Array of student data
 

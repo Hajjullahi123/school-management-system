@@ -52,7 +52,7 @@ const Dashboard = () => {
       fetchDashboardData();
     } else if (user?.role === 'accountant') {
       fetchAccountantData();
-    } else if (user?.role === 'teacher' || user?.role === 'admin') {
+    } else if (user?.role === 'teacher' || user?.role === 'admin' || user?.role === 'principal') {
       fetchTeacherStats();
     } else {
       setLoading(false);
@@ -528,8 +528,8 @@ const Dashboard = () => {
     );
   }
 
-  // Admin/Teacher Dashboard
-  if (user?.role === 'admin' || user?.role === 'teacher') {
+  // Admin/Principal/Teacher Dashboard
+  if (['admin', 'principal', 'teacher'].includes(user?.role)) {
     const isProfileIncomplete = user?.role === 'teacher' && (!user?.teacher?.photoUrl || !user?.teacher?.specialization);
 
     return (
@@ -750,9 +750,44 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Academic Oversight Hub - For Admin and Principal */}
+        {(user?.role === 'admin' || user?.role === 'principal') && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-6">
+            <Link to="/dashboard/attendance-tracker" className="bg-emerald-900 text-white p-6 rounded-[32px] shadow-2xl relative overflow-hidden flex items-center justify-between group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300">Daily Attendance Control</p>
+                </div>
+                <h3 className="text-2xl font-black italic tracking-tighter mb-1 uppercase">Attendance Tracking</h3>
+                <p className="text-xs font-bold text-emerald-200">Monitor teacher marking compliance</p>
+              </div>
+              <div className="relative z-10 bg-white text-emerald-900 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
+                Launch Tracker
+              </div>
+            </Link>
+
+            <Link to="/dashboard/exam-tracker" className="bg-indigo-900 text-white p-6 rounded-[32px] shadow-2xl relative overflow-hidden flex items-center justify-between group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></span>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">Live Result Intelligence</p>
+                </div>
+                <h3 className="text-2xl font-black italic tracking-tighter mb-1 uppercase">Submission Tracker</h3>
+                <p className="text-xs font-bold text-indigo-200">Track assessment and exam entries</p>
+              </div>
+              <div className="relative z-10 bg-white text-indigo-900 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
+                Enter Command Center
+              </div>
+            </Link>
+          </div>
+        )}
+
         {/* Quick Actions for Admin - More visible */}
         {user?.role === 'admin' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
             <Link to="/dashboard/timetable" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all border-l-8 border-indigo-600 flex items-center gap-4">
               <div className="bg-indigo-100 p-3 rounded-full">
                 <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -765,25 +800,17 @@ const Dashboard = () => {
               </div>
             </Link>
 
-            {schoolSettings?.examMode && (
-              <div className="bg-indigo-900 text-white p-6 rounded-[32px] shadow-2xl relative overflow-hidden flex items-center justify-between group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">Live Operation Tracker</p>
-                  </div>
-                  <h3 className="text-2xl font-black italic tracking-tighter mb-1 uppercase">Exam Mode Active</h3>
-                  <p className="text-xs font-bold text-indigo-200">Monitoring: <span className="text-white uppercase">{schoolSettings.examModeType}</span></p>
-                </div>
-                <Link
-                  to="/dashboard/exam-tracker"
-                  className="relative z-10 bg-white text-indigo-900 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all"
-                >
-                  Enter Tracking Center
-                </Link>
+            <Link to="/dashboard/settings" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all border-l-8 border-slate-600 flex items-center gap-4">
+              <div className="bg-slate-100 p-3 rounded-full">
+                <svg className="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                </svg>
               </div>
-            )}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">System Configuration</h3>
+                <p className="text-sm text-gray-600">Configure school terms, sessions and preferences</p>
+              </div>
+            </Link>
           </div>
         )}
       </div>

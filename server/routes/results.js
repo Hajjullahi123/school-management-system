@@ -34,8 +34,8 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// Add/Update result
-router.post('/', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+// Add/Update result (Admin/Principal/Teacher)
+router.post('/', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const { studentId, subjectId, examId, marks } = req.body;
 

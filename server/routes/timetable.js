@@ -66,7 +66,7 @@ router.get('/class/:classId', authenticate, async (req, res) => {
 });
 
 // Get All School Timetables (Admin Only)
-router.get('/all', authenticate, authorize(['admin']), async (req, res) => {
+router.get('/all', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const allSlots = await prisma.timetable.findMany({
       where: { schoolId: req.schoolId },
@@ -107,7 +107,7 @@ router.get('/all', authenticate, authorize(['admin']), async (req, res) => {
 });
 
 // Add Slot (Admin Only)
-router.post('/', authenticate, authorize(['admin']), async (req, res) => {
+router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { classId, subjectId, dayOfWeek, startTime, endTime, type } = req.body;
 
@@ -188,7 +188,7 @@ router.post('/', authenticate, authorize(['admin']), async (req, res) => {
 });
 
 // Publish/Unpublish Timetable for a Class (Admin Only)
-router.patch('/class/:classId/publish', authenticate, authorize(['admin']), async (req, res) => {
+router.patch('/class/:classId/publish', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { classId } = req.params;
     const { isPublished } = req.body;
@@ -225,7 +225,7 @@ router.patch('/class/:classId/publish', authenticate, authorize(['admin']), asyn
 });
 
 // Update a Slot (Admin Only)
-router.patch('/:id', authenticate, authorize(['admin']), async (req, res) => {
+router.patch('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { dayOfWeek, startTime, endTime, type, subjectId } = req.body;
 
@@ -293,7 +293,7 @@ router.get('/class/:classId/status', authenticate, async (req, res) => {
 });
 
 // Delete a Slot (Admin Only)
-router.delete('/:id', authenticate, authorize(['admin']), async (req, res) => {
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     await prisma.timetable.delete({
       where: {
@@ -321,7 +321,7 @@ router.delete('/:id', authenticate, authorize(['admin']), async (req, res) => {
 });
 
 // Generate Intelligent Timetable (Admin Only)
-router.post('/generate/:classId', authenticate, authorize(['admin']), async (req, res) => {
+router.post('/generate/:classId', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const classId = parseInt(req.params.classId);
     const schoolId = req.schoolId;
@@ -469,7 +469,7 @@ router.post('/generate/:classId', authenticate, authorize(['admin']), async (req
 });
 
 // Bulk Sync Timetable Structure (Admin Only)
-router.post('/sync', authenticate, authorize(['admin']), async (req, res) => {
+router.post('/sync', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { sourceClassId, targetClassIds } = req.body;
 
@@ -531,7 +531,7 @@ router.post('/sync', authenticate, authorize(['admin']), async (req, res) => {
 });
 
 // Sync slots from one day to selected other days within a class (Admin Only)
-router.post('/sync-days', authenticate, authorize(['admin']), async (req, res) => {
+router.post('/sync-days', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { classId, sourceDay, targetDays } = req.body;
 
@@ -597,7 +597,7 @@ router.post('/sync-days', authenticate, authorize(['admin']), async (req, res) =
 });
 
 // Timetable Health Audit (Admin Only)
-router.get('/audit', authenticate, authorize(['admin']), async (req, res) => {
+router.get('/audit', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const schoolId = req.schoolId;
 
@@ -694,7 +694,7 @@ router.get('/audit', authenticate, authorize(['admin']), async (req, res) => {
 });
 
 // Reset Timetable for a Class (Admin Only)
-router.delete('/reset/class/:classId', authenticate, authorize(['admin']), async (req, res) => {
+router.delete('/reset/class/:classId', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const classId = parseInt(req.params.classId);
     await prisma.timetable.deleteMany({
@@ -718,7 +718,7 @@ router.delete('/reset/class/:classId', authenticate, authorize(['admin']), async
 });
 
 // Reset All Timetables for the School (Admin Only)
-router.delete('/reset/all', authenticate, authorize(['admin']), async (req, res) => {
+router.delete('/reset/all', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     await prisma.timetable.deleteMany({
       where: { schoolId: req.schoolId }
@@ -740,7 +740,7 @@ router.delete('/reset/all', authenticate, authorize(['admin']), async (req, res)
 });
 
 // Generate All Timetables for the entire school (Admin Only)
-router.post('/generate-all', authenticate, authorize(['admin']), async (req, res) => {
+router.post('/generate-all', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const schoolId = req.schoolId;
 

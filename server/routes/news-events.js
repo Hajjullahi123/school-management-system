@@ -59,8 +59,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/news-events/all - Get all news/events including unpublished (admin only)
-router.get('/all', authenticate, authorize(['admin']), async (req, res) => {
+// GET /api/news-events/all - Get all news/events including unpublished (admin/principal only)
+router.get('/all', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const items = await prisma.newsEvent.findMany({
       where: { schoolId: req.schoolId },
@@ -120,8 +120,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/news-events - Create new news/event (admin only)
-router.post('/', authenticate, authorize(['admin']), async (req, res) => {
+// POST /api/news-events - Create new news/event (admin/principal only)
+router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { title, content, type, eventDate, imageUrl } = req.body;
 
@@ -174,8 +174,8 @@ router.post('/', authenticate, authorize(['admin']), async (req, res) => {
   }
 });
 
-// PUT /api/news-events/:id - Update news/event (admin only)
-router.put('/:id', authenticate, authorize(['admin']), async (req, res) => {
+// PUT /api/news-events/:id - Update news/event (admin/principal only)
+router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content, type, eventDate, imageUrl, isPublished } = req.body;
@@ -224,8 +224,8 @@ router.put('/:id', authenticate, authorize(['admin']), async (req, res) => {
   }
 });
 
-// PUT /api/news-events/:id/publish - Toggle publish status (admin only)
-router.put('/:id/publish', authenticate, authorize(['admin']), async (req, res) => {
+// PUT /api/news-events/:id/publish - Toggle publish status (admin/principal only)
+router.put('/:id/publish', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     const { isPublished } = req.body;
@@ -265,8 +265,8 @@ router.put('/:id/publish', authenticate, authorize(['admin']), async (req, res) 
   }
 });
 
-// DELETE /api/news-events/:id - Delete news/event (admin only)
-router.delete('/:id', authenticate, authorize(['admin']), async (req, res) => {
+// DELETE /api/news-events/:id - Delete news/event (admin/principal only)
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
 

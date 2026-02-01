@@ -3,8 +3,8 @@ const router = express.Router();
 const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 
-// Get all availabilities for a school
-router.get('/', authenticate, authorize(['admin']), async (req, res) => {
+// Get all availabilities for a school (Admin/Principal only)
+router.get('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const availabilities = await prisma.teacherAvailability.findMany({
       where: { schoolId: req.schoolId },
@@ -29,8 +29,8 @@ router.get('/teacher/:teacherId', authenticate, async (req, res) => {
   }
 });
 
-// Create/Update availability
-router.post('/', authenticate, authorize(['admin']), async (req, res) => {
+// Create/Update availability (Admin/Principal only)
+router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { teacherId, dayOfWeek, startTime, endTime, isAvailable } = req.body;
 
@@ -52,8 +52,8 @@ router.post('/', authenticate, authorize(['admin']), async (req, res) => {
   }
 });
 
-// Delete availability
-router.delete('/:id', authenticate, authorize(['admin']), async (req, res) => {
+// Delete availability (Admin/Principal only)
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     await prisma.teacherAvailability.delete({
       where: { id: parseInt(req.params.id), schoolId: req.schoolId }

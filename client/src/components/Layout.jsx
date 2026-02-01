@@ -128,8 +128,8 @@ const Layout = () => {
     });
   }
 
-  // Add Timetable only for non-admin/non-accountant/non-superadmin users
-  if (user?.role !== 'accountant' && user?.role !== 'admin' && user?.role !== 'superadmin' && user?.role !== 'alumni') {
+  // Add Timetable for all roles except Accountant/Superadmin
+  if (user?.role !== 'accountant' && user?.role !== 'superadmin' && user?.role !== 'alumni') {
     menuItems.push(
       {
         path: '/dashboard/timetable', icon: (
@@ -141,8 +141,8 @@ const Layout = () => {
     );
   }
 
-  // Add Report items (for teachers, students and parents only - NOT admins or accountants)
-  if (user?.role === 'teacher' || user?.role === 'student' || user?.role === 'parent') {
+  // Add Report items (for teachers, students, parents, and principals)
+  if (['teacher', 'student', 'parent', 'principal', 'admin'].includes(user?.role)) {
     menuItems.push(
       {
         path: '/dashboard/term-report', icon: (
@@ -168,9 +168,9 @@ const Layout = () => {
     );
   }
 
-  // Add Teacher items (only for teachers, not admins)
-  if (user?.role === 'teacher') {
-    if (isFormMaster) {
+  // Add Teacher/Principal items
+  if (user?.role === 'teacher' || user?.role === 'principal') {
+    if (isFormMaster || user?.role === 'principal') {
       menuItems.push({
         path: '/dashboard/attendance',
         icon: (
@@ -219,7 +219,7 @@ const Layout = () => {
     });
   }
 
-  // Add Teacher-only items
+  // Add Teacher-only items (Staff ID)
   if (user?.role === 'teacher') {
     menuItems.push({
       path: '/dashboard/id-card',
@@ -420,7 +420,8 @@ const Layout = () => {
   }
 
   // Add Admin-only items
-  if (user?.role === 'admin') {
+  // Add Admin/Principal items
+  if (user?.role === 'admin' || user?.role === 'principal') {
     // User Management Group
     menuItems.push({
       type: 'group',
@@ -479,36 +480,38 @@ const Layout = () => {
       ]
     });
 
-    // Fee Management Group
-    menuItems.push({
-      type: 'group',
-      label: 'Fee Management',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-      items: [
-        {
-          path: '/dashboard/fees',
-          icon: (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-          ),
-          label: 'Fee Records'
-        },
-        {
-          path: '/dashboard/fee-structure',
-          icon: (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
-          ),
-          label: 'Fee Structure'
-        }
-      ]
-    });
+    // Fee Management Group - ADMIN ONLY
+    if (user?.role === 'admin') {
+      menuItems.push({
+        type: 'group',
+        label: 'Fee Management',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ),
+        items: [
+          {
+            path: '/dashboard/fees',
+            icon: (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            ),
+            label: 'Fee Records'
+          },
+          {
+            path: '/dashboard/fee-structure',
+            icon: (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+            ),
+            label: 'Fee Structure'
+          }
+        ]
+      });
+    }
 
     // Academics & Curriculum Group
     menuItems.push({
@@ -573,7 +576,16 @@ const Layout = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           ),
-          label: 'Submission Tracker'
+          label: 'CA Submission Tracker'
+        },
+        {
+          path: '/dashboard/attendance-tracker',
+          icon: (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          ),
+          label: 'Attendance Tracker'
         }
       ]
     });
@@ -739,30 +751,33 @@ const Layout = () => {
       ]
     });
 
-    menuItems.push(
-      {
-        path: '/dashboard/id-card', icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-          </svg>
-        ), label: 'ID Cards'
-      },
-      {
-        path: '/dashboard/settings', icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        ), label: 'Settings'
-      },
-      {
-        path: '/dashboard/billing', icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-          </svg>
-        ), label: 'Billing & Subscription'
-      }
-    );
+    menuItems.push({
+      path: '/dashboard/id-card', icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+        </svg>
+      ), label: 'ID Cards'
+    });
+
+    if (user?.role === 'admin') {
+      menuItems.push(
+        {
+          path: '/dashboard/settings', icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          ), label: 'Settings'
+        },
+        {
+          path: '/dashboard/billing', icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+          ), label: 'Billing & Subscription'
+        }
+      );
+    }
   }
 
   const { settings: schoolSettings } = useSchoolSettings();

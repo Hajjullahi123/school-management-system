@@ -12,7 +12,7 @@ const upload = multer({ storage: storage });
 // ============ TEACHER ROUTES ============
 
 // Download Bulk Question Template (CSV)
-router.get('/template/questions', authenticate, authorize(['superadmin', 'admin', 'teacher']), async (req, res) => {
+router.get('/template/questions', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('CBT Questions');
@@ -47,7 +47,7 @@ router.get('/template/questions', authenticate, authorize(['superadmin', 'admin'
 });
 
 // Bulk Upload Questions
-router.post('/:id/questions/bulk', authenticate, authorize(['superadmin', 'admin', 'teacher']), upload.single('file'), async (req, res) => {
+router.post('/:id/questions/bulk', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), upload.single('file'), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
@@ -131,8 +131,8 @@ router.post('/:id/questions/bulk', authenticate, authorize(['superadmin', 'admin
   }
 });
 
-// Get all exams created by teacher or all for admin
-router.get('/teacher', authenticate, authorize(['superadmin', 'admin', 'teacher']), async (req, res) => {
+// Get all exams created by teacher or all for admin/principal
+router.get('/teacher', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const where = { schoolId: req.schoolId };
     if (req.user.role === 'teacher') {
@@ -160,8 +160,8 @@ router.get('/teacher', authenticate, authorize(['superadmin', 'admin', 'teacher'
   }
 });
 
-// Create Exam
-router.post('/', authenticate, authorize(['superadmin', 'admin', 'teacher']), async (req, res) => {
+// Create Exam (Admin/Principal/Teacher)
+router.post('/', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const {
       title, description, classId, subjectId,
@@ -229,8 +229,8 @@ router.post('/', authenticate, authorize(['superadmin', 'admin', 'teacher']), as
   }
 });
 
-// Add Questions to Exam
-router.post('/:id/questions', authenticate, authorize(['superadmin', 'admin', 'teacher']), async (req, res) => {
+// Add Questions to Exam (Admin/Principal/Teacher)
+router.post('/:id/questions', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
     const { questions } = req.body; // Array of questions
@@ -281,8 +281,8 @@ router.post('/:id/questions', authenticate, authorize(['superadmin', 'admin', 't
   }
 });
 
-// Publish Exam
-router.put('/:id/publish', authenticate, authorize(['superadmin', 'admin', 'teacher']), async (req, res) => {
+// Publish Exam (Admin/Principal/Teacher)
+router.put('/:id/publish', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
     const { isPublished } = req.body;
@@ -313,8 +313,8 @@ router.put('/:id/publish', authenticate, authorize(['superadmin', 'admin', 'teac
   }
 });
 
-// Delete Exam
-router.delete('/:id', authenticate, authorize(['superadmin', 'admin', 'teacher']), async (req, res) => {
+// Delete Exam (Admin/Principal/Teacher)
+router.delete('/:id', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
     await prisma.cBTExam.delete({
@@ -397,8 +397,8 @@ router.get('/:id', authenticate, async (req, res) => {
   }
 });
 
-// Get Exam Results (Teacher View)
-router.get('/:id/results', authenticate, authorize(['superadmin', 'admin', 'teacher']), async (req, res) => {
+// Get Exam Results (Teacher/Admin/Principal View)
+router.get('/:id/results', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
 
@@ -443,8 +443,8 @@ router.get('/:id/results', authenticate, authorize(['superadmin', 'admin', 'teac
   }
 });
 
-// Download Exam Results (CSV)
-router.get('/:id/results/download', authenticate, authorize(['superadmin', 'admin', 'teacher']), async (req, res) => {
+// Download Exam Results (CSV - Admin/Principal/Teacher)
+router.get('/:id/results/download', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
 
@@ -502,8 +502,8 @@ router.get('/:id/results/download', authenticate, authorize(['superadmin', 'admi
   }
 });
 
-// Import CBT scores into student results
-router.post('/:id/results/import', authenticate, authorize(['superadmin', 'admin', 'teacher']), async (req, res) => {
+// Import CBT scores into student results (Admin/Principal/Teacher)
+router.post('/:id/results/import', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
 
@@ -747,8 +747,8 @@ router.post('/:id/submit', authenticate, authorize(['student']), async (req, res
   }
 });
 
-// Delete a Result
-router.delete('/results/:id', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+// Delete a Result (Admin/Principal/Teacher)
+router.delete('/results/:id', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const resultId = parseInt(req.params.id);
 

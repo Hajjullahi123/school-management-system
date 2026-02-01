@@ -16,12 +16,13 @@ async function getCurrentSessionAndTerm(schoolId) {
 }
 
 // 1. Get Attendance Sheet for a Class (on a specific date)
-router.get('/class/:classId', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const { classId } = req.params;
     const { date } = req.query; // YYYY-MM-DD
 
     // TEACHER SCOPE CHECK: Ensure teacher is assigned to this class
+    // Principals and Admins bypass this
     if (req.user.role === 'teacher') {
       const classInfo = await prisma.class.findFirst({
         where: { id: parseInt(classId), schoolId: req.schoolId }
@@ -94,7 +95,7 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher']), asy
 });
 
 // 2. Mark Attendance (Bulk Upsert)
-router.post('/mark', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const { classId, date, records, adminOverride } = req.body;
     // records: [{ studentId: 1, status: 'present', notes: '' }, ...]
@@ -296,7 +297,8 @@ router.get('/student/:studentId/summary', authenticate, async (req, res) => {
   }
 });
 
-router.get('/download', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+// Download attendance report (Admin/Principal only)
+router.get('/download', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { classId, startDate, endDate, termId, sessionId } = req.query;
 

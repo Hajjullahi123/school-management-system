@@ -4,8 +4,8 @@ const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 
-// 1. Get students eligible for promotion/graduation from a class
-router.get('/class/:classId/eligibility', authenticate, authorize(['admin']), async (req, res) => {
+// 1. Get students eligible for promotion/graduation from a class (Admin/Principal only)
+router.get('/class/:classId/eligibility', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const classId = parseInt(req.params.classId);
 
@@ -35,8 +35,8 @@ router.get('/class/:classId/eligibility', authenticate, authorize(['admin']), as
   }
 });
 
-// 2. Batch Promote Students
-router.post('/promote', authenticate, authorize(['admin']), async (req, res) => {
+// 2. Batch Promote Students (Admin/Principal only)
+router.post('/promote', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   const { studentIds, targetClassId } = req.body;
 
   if (!studentIds || !Array.isArray(studentIds) || !targetClassId) {
@@ -128,8 +128,8 @@ router.post('/promote', authenticate, authorize(['admin']), async (req, res) => 
   }
 });
 
-// 3. Batch Graduate Students (Migrate to Alumni)
-router.post('/graduate', authenticate, authorize(['admin']), async (req, res) => {
+// 3. Batch Graduate Students (Migrate to Alumni) (Admin/Principal only)
+router.post('/graduate', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   const { studentIds, graduationYear } = req.body;
 
   if (!studentIds || !Array.isArray(studentIds) || !graduationYear) {
@@ -242,8 +242,8 @@ router.post('/graduate', authenticate, authorize(['admin']), async (req, res) =>
   }
 });
 
-// 4. Get Promotion History
-router.get('/history', authenticate, authorize(['admin']), async (req, res) => {
+// 4. Get Promotion History (Admin/Principal only)
+router.get('/history', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const history = await prisma.promotionHistory.findMany({
       where: { schoolId: req.schoolId },

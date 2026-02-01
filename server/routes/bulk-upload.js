@@ -12,7 +12,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // Download Bulk Student Template (CSV)
-router.get('/template/students', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Students');
@@ -73,7 +73,7 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher']), 
 });
 
 // Bulk upload students from file
-router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.single('file'), async (req, res) => {
+router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']), upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
@@ -309,7 +309,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher']), upload.sin
 });
 
 // Bulk upload students from CSV data (JSON format - Legacy)
-router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const { students } = req.body;
 
@@ -522,7 +522,7 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher']), async
 });
 
 // Bulk upload results from CSV data
-router.post('/results', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+router.post('/results', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const { results, termId, academicSessionId, classId, subjectId } = req.body;
 

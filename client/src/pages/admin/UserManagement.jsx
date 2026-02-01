@@ -197,6 +197,7 @@ const UserManagement = () => {
           <option value="admin">Administrators</option>
           <option value="teacher">Teachers</option>
           <option value="accountant">Accountants</option>
+          <option value="principal">Principals</option>
           <option value="parent">Parents</option>
           <option value="student">Students</option>
         </select>
@@ -208,7 +209,7 @@ const UserManagement = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         ) : (
-          ['admin', 'teacher', 'accountant', 'parent', 'student'].map(role => {
+          ['admin', 'principal', 'teacher', 'accountant', 'parent', 'student'].map(role => {
             const usersInRole = filteredUsers.filter(u => u.role === role);
             if (filter !== 'all' && filter !== role) return null;
             if (usersInRole.length === 0 && filter !== role) return null;
@@ -221,16 +222,19 @@ const UserManagement = () => {
                 <div
                   onClick={() => toggleRole(role)}
                   className={`px-6 py-4 flex justify-between items-center cursor-pointer select-none transition-colors ${role === 'admin' ? 'bg-indigo-600 hover:bg-indigo-700' :
-                    role === 'teacher' ? 'bg-blue-600 hover:bg-blue-700' :
-                      role === 'accountant' ? 'bg-amber-600 hover:bg-amber-700' :
-                        role === 'parent' ? 'bg-rose-600 hover:bg-rose-700' :
-                          'bg-emerald-600 hover:bg-emerald-700'
+                    role === 'principal' ? 'bg-purple-600 hover:bg-purple-700' :
+                      role === 'teacher' ? 'bg-blue-600 hover:bg-blue-700' :
+                        role === 'accountant' ? 'bg-amber-600 hover:bg-amber-700' :
+                          role === 'parent' ? 'bg-rose-600 hover:bg-rose-700' :
+                            'bg-emerald-600 hover:bg-emerald-700'
                     } text-white`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="p-2 bg-white/20 rounded-lg">
                       {role === 'admin' ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                      ) : role === 'principal' ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                       ) : role === 'teacher' ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                       ) : role === 'accountant' ? (
@@ -278,10 +282,11 @@ const UserManagement = () => {
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
                                   <div className={`h-11 w-11 rounded-2xl flex items-center justify-center text-white font-black shadow-lg transform transition-transform group-hover:rotate-6 ${role === 'admin' ? 'bg-indigo-500' :
-                                    role === 'teacher' ? 'bg-blue-500' :
-                                      role === 'accountant' ? 'bg-amber-500' :
-                                        role === 'parent' ? 'bg-rose-500' :
-                                          'bg-emerald-500'
+                                    role === 'principal' ? 'bg-purple-500' :
+                                      role === 'teacher' ? 'bg-blue-500' :
+                                        role === 'accountant' ? 'bg-amber-500' :
+                                          role === 'parent' ? 'bg-rose-500' :
+                                            'bg-emerald-500'
                                     }`}>
                                     {user.firstName[0]}{user.lastName[0]}
                                   </div>
@@ -305,6 +310,7 @@ const UserManagement = () => {
                                   </div>
                                 )}
                                 {role === 'accountant' && <div className="text-amber-700 font-bold text-xs bg-amber-50 px-3 py-1 rounded-full w-fit border border-amber-100 tracking-tight">FINANCIAL DEPT</div>}
+                                {role === 'principal' && <div className="text-purple-700 font-bold text-xs bg-purple-50 px-3 py-1 rounded-full w-fit border border-purple-100 tracking-tight">ACADEMIC PRINCIPAL</div>}
                                 {role === 'admin' && <div className="text-indigo-700 font-bold text-xs bg-indigo-50 px-3 py-1 rounded-full w-fit border border-indigo-100 tracking-tight">SYSTEM ADMIN</div>}
                                 {role === 'parent' && <div className="text-rose-700 font-bold text-xs bg-rose-50 px-3 py-1 rounded-full w-fit border border-rose-100 tracking-tight">GUARDIAN ACCOUNT</div>}
                               </td>
@@ -349,16 +355,15 @@ const UserManagement = () => {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-5">
-              {!editingUser && (
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Account Category</label>
-                  <select name="role" value={formData.role} onChange={handleInputChange} className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 bg-gray-50 font-black focus:ring-4 focus:ring-primary/10 outline-none appearance-none transition-all">
-                    <option value="teacher">Instructor / Teacher</option>
-                    <option value="accountant">Financial Accountant</option>
-                    <option value="admin">System Admin</option>
-                  </select>
-                </div>
-              )}
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Account Category</label>
+                <select name="role" value={formData.role} onChange={handleInputChange} className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 bg-gray-50 font-black focus:ring-4 focus:ring-primary/10 outline-none appearance-none transition-all">
+                  <option value="teacher">Instructor / Teacher</option>
+                  <option value="principal">School Principal</option>
+                  <option value="accountant">Financial Accountant</option>
+                  <option value="admin">System Admin</option>
+                </select>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">First Name</label>

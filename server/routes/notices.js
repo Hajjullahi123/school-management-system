@@ -41,8 +41,8 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// Create Notice (Admin Only)
-router.post('/', authenticate, authorize('admin'), async (req, res) => {
+// Create Notice (Admin/Principal Only)
+router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { title, content, audience } = req.body;
 
@@ -77,8 +77,8 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// Delete Notice
-router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
+// Delete Notice (Admin/Principal Only)
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     await prisma.notice.delete({
       where: {

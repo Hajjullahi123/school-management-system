@@ -106,8 +106,8 @@ router.get('/check-parent/:username', async (req, res) => {
   }
 });
 
-// 2. Register Parent (Admin only for now)
-router.post('/register', authenticate, authorize('admin'), async (req, res) => {
+// 2. Register Parent (Admin/Principal only)
+router.post('/register', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { firstName, lastName, email, phone, address, studentIds } = req.body;
 
@@ -245,8 +245,8 @@ router.post('/register', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// 3. Link Student to Parent
-router.post('/link-student', authenticate, authorize('admin'), async (req, res) => {
+// 3. Link Student to Parent (Admin/Principal)
+router.post('/link-student', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { parentId, studentId } = req.body;
 
@@ -303,8 +303,8 @@ router.post('/link-student', authenticate, authorize('admin'), async (req, res) 
   }
 });
 
-// 4. Get Parent Details (Admin)
-router.get('/', authenticate, authorize('admin'), async (req, res) => {
+// 4. Get Parent Details (Admin/Principal)
+router.get('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const enhancedParents = await prisma.parent.findMany({
       where: { schoolId: req.schoolId },
@@ -326,8 +326,8 @@ router.get('/', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// 5. Update Parent (Admin only)
-router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
+// 5. Update Parent (Admin/Principal)
+router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     const { firstName, lastName, email, phone, address } = req.body;
@@ -394,8 +394,8 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// 6. Delete Parent (Admin only)
-router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
+// 6. Delete Parent (Admin/Principal)
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -459,8 +459,8 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
   }
 });
 
-// 7. Unlink Student from Parent
-router.post('/unlink-student', authenticate, authorize('admin'), async (req, res) => {
+// 7. Unlink Student from Parent (Admin/Principal)
+router.post('/unlink-student', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { studentId } = req.body;
 
