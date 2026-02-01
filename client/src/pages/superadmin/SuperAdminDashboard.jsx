@@ -1042,8 +1042,8 @@ const SuperAdminDashboard = () => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 print:p-0 print:bg-white">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden print:shadow-none print:w-full print:max-w-none">
             <div className="bg-amber-600 p-6 text-white print:bg-white print:text-black print:border-b-2 print:border-gray-200">
-              <h3 className="text-xl font-bold flex items-center"><FiUnlock className="mr-2 print:hidden" /> Admin Credentials</h3>
-              <p className="text-amber-100 text-xs print:text-black">Official Login Details for {resetCreds.schoolName}</p>
+              <h3 className="text-xl font-bold flex items-center"><FiUnlock className="mr-2 print:hidden" /> Temporary Access Protocol</h3>
+              <p className="text-amber-100 text-xs print:text-black">One-time security credentials for {resetCreds.schoolName}</p>
             </div>
 
             <div className="p-8 space-y-6 print:p-10">
@@ -1057,16 +1057,16 @@ const SuperAdminDashboard = () => {
                   <p className="text-lg font-mono font-bold text-gray-800">{resetCreds.username}</p>
                 </div>
                 <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 print:bg-white print:border-gray-200">
-                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-1 print:text-gray-400">Default Password</p>
+                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-1 print:text-gray-400">Temporary Password</p>
                   <p className="text-2xl font-mono font-bold text-amber-700 print:text-black">{resetCreds.password}</p>
                 </div>
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-lg flex items-start gap-3 print:hidden">
-                <FiAlertCircle className="text-blue-600 mt-1 flex-shrink-0" />
-                <p className="text-[11px] text-blue-700 leading-relaxed font-medium">
-                  Please hand over these credentials to the school administrator.
-                  Advise them to change their password immediately upon first login.
+              <div className="bg-rose-50 p-4 rounded-lg flex items-start gap-3 print:hidden">
+                <FiAlertCircle className="text-rose-600 mt-1 flex-shrink-0" />
+                <p className="text-[11px] text-rose-700 leading-relaxed font-bold">
+                  SECURITY WARNING: This password will expire immediately after the first login.
+                  The administrator will be forced to set a secret permanent password.
                 </p>
               </div>
 

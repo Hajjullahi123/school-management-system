@@ -143,4 +143,65 @@ router.get('/list', authenticate, authorize(['superadmin']), async (req, res) =>
   }
 });
 
+// List all schools (Global Admin use - mapping to frontend expect)
+router.get('/schools', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    const schools = await prisma.school.findMany({
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        email: true,
+        phone: true,
+        isActivated: true,
+        packageType: true,
+        licenseKey: true,
+        expiresAt: true,
+        createdAt: true,
+        _count: {
+          select: {
+            students: true,
+            users: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Transform for frontend stats if needed
+    const transformed = schools.map(s => {
+      // Logic from LicenseManagement counts
+      const oneMonthFromNow = new Date();
+      oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
+
+      let daysRemaining = -1;
+      if (s.expiresAt) {
+        const diff = new Date(s.expiresAt) - new Date();
+        daysRemaining = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+      }
+
+      let status = 'inactive';
+      if (s.isActivated) {
+        if (!s.expiresAt) status = 'lifetime';
+        else if (daysRemaining > 0) status = 'active';
+        else status = 'expired';
+      }
+
+      return {
+        ...s,
+        currentStudents: s._count.students,
+        status,
+        daysRemaining,
+        maxStudents: s.packageType === 'basic' ? 500 : s.packageType === 'standard' ? 1500 : -1,
+        remainingSlots: s.packageType === 'premium' ? -1 : Math.max(0, (s.packageType === 'basic' ? 500 : 1500) - s._count.students)
+      };
+    });
+
+    res.json(transformed);
+  } catch (error) {
+    console.error('Error fetching schools for licensing:', error);
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
 module.exports = router;

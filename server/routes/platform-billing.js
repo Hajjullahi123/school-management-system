@@ -74,7 +74,9 @@ router.post('/initialize-subscription', authenticate, authorize(['admin']), asyn
     const school = await prisma.school.findUnique({ where: { id: req.schoolId } });
 
     if (!globalSettings || (!globalSettings.platformPaystackKey && provider === 'paystack')) {
-      return res.status(400).json({ error: 'Platform billing is not configured by the developer.' });
+      return res.status(400).json({
+        error: 'Platform billing is not configured. Super Admin must set Paystack Key in Dashboard > Platform settings.'
+      });
     }
 
     let amount = 0;

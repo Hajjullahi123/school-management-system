@@ -313,7 +313,8 @@ router.post('/schools/:id/reset-admin', authenticate, authorize(['superadmin']),
         where: { id: existingAdmin.id },
         data: {
           passwordHash: hashedPassword,
-          isActive: true
+          isActive: true,
+          mustChangePassword: true
         }
       });
     } else {
@@ -342,7 +343,8 @@ router.post('/schools/:id/reset-admin', authenticate, authorize(['superadmin']),
           firstName: 'School',
           lastName: 'Administrator',
           email: school.email || `admin@${school.slug}.com`,
-          isActive: true
+          isActive: true,
+          mustChangePassword: true
         }
       });
     }
