@@ -288,24 +288,47 @@ router.post('/schools/:id/reset-admin', authenticate, authorize(['superadmin']),
     const school = await prisma.school.findUnique({ where: { id: schoolId } });
     if (!school) return res.status(404).json({ error: 'School not found' });
 
-    const adminUser = await prisma.user.updateMany({
+    // Find the first admin user for this school (regardless of username)
+    const existingAdmin = await prisma.user.findFirst({
       where: {
         schoolId,
-        username: 'admin',
         role: 'admin'
       },
-      data: {
-        passwordHash: hashedPassword,
-        isActive: true
-      }
+      orderBy: { createdAt: 'asc' }
     });
 
-    if (adminUser.count === 0) {
-      // If no admin user exists, create one
+    let targetUsername = 'admin';
+
+    if (existingAdmin) {
+      targetUsername = existingAdmin.username;
+      await prisma.user.update({
+        where: { id: existingAdmin.id },
+        data: {
+          passwordHash: hashedPassword,
+          isActive: true
+        }
+      });
+    } else {
+      // If no admin user exists, attempt to create one with 'admin' username
+      // Check if 'admin' is already taken by a non-admin user
+      const usernameConflict = await prisma.user.findUnique({
+        where: {
+          schoolId_username: {
+            schoolId,
+            username: 'admin'
+          }
+        }
+      });
+
+      if (usernameConflict) {
+        // If 'admin' is taken, append a suffix
+        targetUsername = `admin_${school.slug}`;
+      }
+
       await prisma.user.create({
         data: {
           schoolId,
-          username: 'admin',
+          username: targetUsername,
           passwordHash: hashedPassword,
           role: 'admin',
           firstName: 'School',
@@ -319,7 +342,7 @@ router.post('/schools/:id/reset-admin', authenticate, authorize(['superadmin']),
     res.json({
       message: 'Admin credentials reset successfully',
       credentials: {
-        username: 'admin',
+        username: targetUsername,
         password: tempPassword,
         schoolSlug: school.slug
       }
