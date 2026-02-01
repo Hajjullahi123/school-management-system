@@ -46,8 +46,8 @@ const StudentFees = () => {
       setAllSessions(sessions);
       setAllTerms(terms);
 
-      const currentSec = sessions.find(s => s.isCurrent);
-      const currentTr = terms.find(t => t.isCurrent);
+      const currentSec = sessions.find(s => s.isCurrent) || sessions[0] || null;
+      const currentTr = terms.find(t => t.isCurrent) || terms[0] || null;
 
       if (currentSec) {
         setCurrentSession(currentSec);

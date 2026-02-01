@@ -180,8 +180,8 @@ export default function FeeManagement() {
       const sessions = Array.isArray(sessionsData) ? sessionsData : [];
       const classesArr = Array.isArray(classesData) ? classesData : [];
 
-      const activeTerm = terms.find(t => t.isCurrent) || null;
-      const activeSession = sessions.find(s => s.isCurrent) || null;
+      const activeTerm = terms.find(t => t.isCurrent) || terms[0] || null;
+      const activeSession = sessions.find(s => s.isCurrent) || sessions[0] || null;
 
       setCurrentTerm(activeTerm);
       setCurrentSession(activeSession);
@@ -713,7 +713,7 @@ export default function FeeManagement() {
       </div>
 
       {/* Term/Session Selector */}
-      {!loading && selectedViewSession && (
+      {!loading && allSessions.length > 0 && (
         <div style={{
           background: 'white',
           padding: '20px',

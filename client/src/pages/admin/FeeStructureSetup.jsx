@@ -67,15 +67,16 @@ const FeeStructureSetup = () => {
       // Set default session/term if available
       const sessions = Array.isArray(sessionsData) ? sessionsData : [];
       const terms = Array.isArray(termsData) ? termsData : [];
-      const currentSession = sessions.find(s => s.isCurrent);
-      if (currentSession) {
-        console.log('Setting current session:', currentSession);
-        setFormData(prev => ({ ...prev, academicSessionId: currentSession.id }));
+      const activeSession = sessions.find(s => s.isCurrent) || sessions[0];
+      if (activeSession) {
+        console.log('Setting active session for setup:', activeSession);
+        setFormData(prev => ({ ...prev, academicSessionId: activeSession.id }));
 
-        const currentTerm = terms.find(t => t.isCurrent && t.academicSessionId === currentSession.id);
-        if (currentTerm) {
-          console.log('Setting current term:', currentTerm);
-          setFormData(prev => ({ ...prev, termId: currentTerm.id }));
+        const activeTerm = terms.find(t => t.isCurrent && t.academicSessionId === activeSession.id) ||
+          terms.find(t => t.academicSessionId === activeSession.id);
+        if (activeTerm) {
+          console.log('Setting active term for setup:', activeTerm);
+          setFormData(prev => ({ ...prev, termId: activeTerm.id }));
         }
       }
     } catch (error) {
