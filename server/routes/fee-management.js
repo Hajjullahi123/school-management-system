@@ -822,24 +822,87 @@ router.get('/summary', authenticate, authorize(['admin', 'accountant']), async (
       return res.status(400).json({ error: 'Term ID and Academic Session ID are required' });
     }
 
-    const feeRecords = await prisma.feeRecord.findMany({
-      where: {
-        schoolId: req.schoolId,
-        termId: parseInt(termId),
-        academicSessionId: parseInt(academicSessionId)
+    const schoolIdInt = parseInt(req.schoolId);
+    const tId = parseInt(termId);
+    const sId = parseInt(academicSessionId);
+
+    // 1. Get all active students
+    const students = await prisma.student.findMany({
+      where: { schoolId: schoolIdInt, status: 'active' },
+      include: {
+        feeRecords: {
+          where: { termId: tId, academicSessionId: sId }
+        }
       }
     });
 
+    // 2. Get fee structures for this term/session
+    const feeStructures = await prisma.classFeeStructure.findMany({
+      where: { schoolId: schoolIdInt, termId: tId, academicSessionId: sId }
+    });
+
+    const structureMap = {};
+    feeStructures.forEach(fs => {
+      structureMap[fs.classId] = fs.amount;
+    });
+
+    // 3. Aggregate data across all students (Real + Virtual)
+    let totalStudents = students.length;
+    let totalExpected = 0;
+    let totalPaid = 0;
+    let totalBalance = 0;
+    let clearedStudents = 0;
+    let restrictedStudents = 0;
+    let fullyPaid = 0;
+    let partiallyPaid = 0;
+    let notPaid = 0;
+
+    for (const student of students) {
+      let record = student.feeRecords[0];
+      let expected = 0;
+      let paid = 0;
+      let balance = 0;
+      let isCleared = false;
+
+      if (record) {
+        // Use existing database record
+        expected = record.expectedAmount;
+        paid = record.paidAmount;
+        balance = record.balance;
+        isCleared = record.isClearedForExam;
+      } else {
+        // Calculate virtual record
+        const arrears = await calculatePreviousOutstanding(schoolIdInt, student.id, sId, tId);
+        const classExpected = student.isScholarship ? 0 : (structureMap[student.classId] || 0);
+
+        expected = classExpected;
+        paid = 0;
+        balance = arrears + classExpected;
+        isCleared = (classExpected === 0 && arrears <= 0);
+      }
+
+      // Aggregate
+      totalExpected += expected;
+      totalPaid += paid;
+      totalBalance += balance;
+      if (isCleared) clearedStudents++;
+      else restrictedStudents++;
+
+      if (balance <= 0) fullyPaid++;
+      else if (paid > 0) partiallyPaid++;
+      else notPaid++;
+    }
+
     const summary = {
-      totalStudents: feeRecords.length,
-      totalExpected: feeRecords.reduce((sum, record) => sum + record.expectedAmount, 0),
-      totalPaid: feeRecords.reduce((sum, record) => sum + record.paidAmount, 0),
-      totalBalance: feeRecords.reduce((sum, record) => sum + record.balance, 0),
-      clearedStudents: feeRecords.filter(r => r.isClearedForExam).length,
-      restrictedStudents: feeRecords.filter(r => !r.isClearedForExam).length,
-      fullyPaid: feeRecords.filter(r => r.balance <= 0).length,
-      partiallyPaid: feeRecords.filter(r => r.paidAmount > 0 && r.balance > 0).length,
-      notPaid: feeRecords.filter(r => r.paidAmount === 0).length
+      totalStudents,
+      totalExpected,
+      totalPaid,
+      totalBalance,
+      clearedStudents,
+      restrictedStudents, // Fixed: ensure this uses the calculated count
+      fullyPaid,
+      partiallyPaid,
+      notPaid
     };
 
     res.json(summary);
