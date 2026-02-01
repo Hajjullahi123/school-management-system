@@ -267,15 +267,29 @@ const SuperAdminDashboard = () => {
   };
 
   const handleResetAdminCreds = async (id, name) => {
-    if (!window.confirm(`Are you sure you want to regenerate the admin password for ${name}? A new secure random password will be created.`)) return;
+    const manualPassword = window.prompt(`Enter a new manual password for ${name} (minimum 6 characters), or leave blank to randomly generate one:`);
+
+    // If user cancelled the prompt, stop
+    if (manualPassword === null) return;
+
+    if (manualPassword.trim() !== "" && manualPassword.trim().length < 6) {
+      toast.error("Manual password must be at least 6 characters");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to reset the admin password for ${name}?`)) return;
+
     try {
       setReseting(true);
-      const res = await apiCall(`/api/superadmin/schools/${id}/reset-admin`, { method: 'POST' });
+      const res = await apiCall(`/api/superadmin/schools/${id}/reset-admin`, {
+        method: 'POST',
+        body: manualPassword.trim() !== "" ? JSON.stringify({ manualPassword: manualPassword.trim() }) : "{}"
+      });
       setResetCreds({ ...res.data.credentials, schoolName: name });
       setShowCredsModal(true);
       toast.success('Admin credentials reset');
     } catch (error) {
-      toast.error('Failed to reset credentials');
+      toast.error(error.response?.data?.error || 'Failed to reset credentials');
     } finally {
       setReseting(false);
     }

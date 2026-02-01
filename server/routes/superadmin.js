@@ -281,7 +281,15 @@ router.post('/schools', authenticate, authorize(['superadmin']), async (req, res
 router.post('/schools/:id/reset-admin', authenticate, authorize(['superadmin']), async (req, res) => {
   try {
     const schoolId = parseInt(req.params.id);
-    const tempPassword = generateRandomPassword();
+    const { manualPassword } = req.body;
+
+    // Use manual password if provided, otherwise generate random one
+    const tempPassword = manualPassword ? manualPassword.trim() : generateRandomPassword();
+
+    if (manualPassword && manualPassword.length < 6) {
+      return res.status(400).json({ error: 'Manual password must be at least 6 characters' });
+    }
+
     const bcrypt = require('bcryptjs');
     const hashedPassword = await bcrypt.hash(tempPassword, 12);
 
