@@ -32,13 +32,36 @@ router.post('/login', async (req, res) => {
     }
 
     // 1. Find school by slug
-    const school = await prisma.school.findFirst({
+    // Normalize slug: lowercase and handle spaces (common user error)
+    let school = await prisma.school.findFirst({
       where: { slug: schoolSlug }
     });
 
+    // Fallback 1: If not found, try replacing spaces with hyphens (e.g. "demo academy" -> "demo-academy")
+    if (!school && schoolSlug.includes(' ')) {
+      const normalizedSlug = schoolSlug.replace(/\s+/g, '-');
+      school = await prisma.school.findFirst({
+        where: { slug: normalizedSlug }
+      });
+      if (school) {
+        fs.appendFileSync(logPath, `[${new Date().toISOString()}] School FOUND via space normalization: ID: ${school.id}, Slug: ${school.slug}\n`);
+      }
+    }
+
+    // Fallback 2: Try searching by EXACT school name if slug lookup still fails
     if (!school) {
-      fs.appendFileSync(logPath, `[${new Date().toISOString()}] School NOT FOUND for slug: [${schoolSlug}]\n`);
-      console.log(`School not found for slug: [${schoolSlug}]`);
+      // Note: SQLite is often case-insensitive by default for ASCII
+      school = await prisma.school.findFirst({
+        where: { name: req.body.schoolSlug.trim() }
+      });
+      if (school) {
+        fs.appendFileSync(logPath, `[${new Date().toISOString()}] School FOUND via Name lookup: ID: ${school.id}, Name: ${school.name}\n`);
+      }
+    }
+
+    if (!school) {
+      fs.appendFileSync(logPath, `[${new Date().toISOString()}] School NOT FOUND for slug/name: [${schoolSlug}]\n`);
+      console.log(`School not found for slug/name: [${schoolSlug}]`);
       return res.status(404).json({ error: `School domain '${schoolSlug}' not found` });
     }
     fs.appendFileSync(logPath, `[${new Date().toISOString()}] School FOUND: ID: ${school.id}, Slug: ${school.slug}\n`);
