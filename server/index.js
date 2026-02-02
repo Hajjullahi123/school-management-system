@@ -72,7 +72,6 @@ app.use(cookieParser());
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Routes
 // DEBUG: File system check
 app.get('/api/debug/files', (req, res) => {
   const fs = require('fs');
@@ -94,6 +93,19 @@ app.get('/api/debug/files', (req, res) => {
     });
   } catch (err) {
     res.json({ error: err.message, stack: err.stack });
+  }
+});
+
+// DEBUG: Database check
+app.get('/api/debug/schools', async (req, res) => {
+  const prisma = require('./db');
+  try {
+    const schools = await prisma.school.findMany({
+      select: { id: true, name: true, slug: true, isActivated: true }
+    });
+    res.json(schools);
+  } catch (err) {
+    res.json({ error: err.message });
   }
 });
 
