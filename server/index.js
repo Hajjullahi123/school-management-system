@@ -111,13 +111,57 @@ app.get('/api/debug/schools', async (req, res) => {
 
 // DEBUG: Trigger Seeding
 app.get('/api/debug/seed', async (req, res) => {
+  const prisma = require('./db');
+  const bcrypt = require('bcryptjs');
   try {
-    const { execSync } = require('child_process');
-    const output = execSync('node prisma/seed-production.js', {
-      cwd: path.join(__dirname),
-      encoding: 'utf8'
+    const results = [];
+    results.push('🌱 Seeding production database internally...');
+
+    // 1. Ensure Demo Academy exists
+    const demoPassword = await bcrypt.hash('password123', 12);
+    const demoSchool = await prisma.school.upsert({
+      where: { slug: 'demo-academy' },
+      update: { isActivated: true, isSetupComplete: true },
+      create: {
+        slug: 'demo-academy',
+        name: 'Demo Excellence Academy',
+        address: '123 Demo Street, Innovation Hub',
+        phone: '0800-DEMO-ACADEMY',
+        email: 'info@demoacademy.com',
+        primaryColor: '#0f172a',
+        secondaryColor: '#3b82f6',
+        isActivated: true,
+        packageType: 'premium',
+        maxStudents: 1000,
+        isSetupComplete: true
+      }
     });
-    res.json({ success: true, message: 'Seeding successful', output });
+    results.push(`✅ Demo School: ${demoSchool.name} (ID: ${demoSchool.id})`);
+
+    // 2. Create Demo Admin
+    const demoAdmin = await prisma.user.upsert({
+      where: {
+        schoolId_username: {
+          schoolId: demoSchool.id,
+          username: 'demo.admin'
+        }
+      },
+      update: { passwordHash: demoPassword, isActive: true },
+      create: {
+        schoolId: demoSchool.id,
+        username: 'demo.admin',
+        passwordHash: demoPassword,
+        email: 'admin@demo.com',
+        role: 'admin',
+        firstName: 'System',
+        lastName: 'Admin',
+        isActive: true,
+        mustChangePassword: false
+      }
+    });
+    results.push(`✅ Demo Admin: ${demoAdmin.username}`);
+
+    res.json({ success: true, message: 'Seeding successful', results });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
