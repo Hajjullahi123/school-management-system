@@ -48,14 +48,23 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    // Fallback 2: Try searching by EXACT school name if slug lookup still fails
+    // Fallback 2: Try searching by school name if slug lookup still fails
     if (!school) {
-      // Note: SQLite is often case-insensitive by default for ASCII
+      const originalInput = req.body.schoolSlug.trim();
+      // Try exact name match first
       school = await prisma.school.findFirst({
-        where: { name: req.body.schoolSlug.trim() }
+        where: { name: originalInput }
       });
+
+      // If still not found, try a "contains" match for the name
+      if (!school && originalInput.length > 3) {
+        school = await prisma.school.findFirst({
+          where: { name: { contains: originalInput } }
+        });
+      }
+
       if (school) {
-        fs.appendFileSync(logPath, `[${new Date().toISOString()}] School FOUND via Name lookup: ID: ${school.id}, Name: ${school.name}\n`);
+        fs.appendFileSync(logPath, `[${new Date().toISOString()}] School FOUND via Name lookup ("${originalInput}"): ID: ${school.id}, Name: ${school.name}\n`);
       }
     }
 
