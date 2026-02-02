@@ -345,6 +345,16 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
       parentEmail,
       parentPhone,
       admissionNumber,
+      dateOfBirth,
+      gender,
+      stateOfOrigin,
+      nationality,
+      address,
+      bloodGroup,
+      genotype,
+      disability,
+      isScholarship,
+      parentGuardianName,
       // Teacher specific
       specialization,
       staffId,
@@ -404,10 +414,23 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
     if (user.student) {
       const studentUpdate = {
         parentEmail,
-        parentPhone
+        parentPhone,
+        parentGuardianName,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+        gender,
+        stateOfOrigin,
+        nationality,
+        address,
+        bloodGroup,
+        genotype,
+        disability,
+        isScholarship: isScholarship !== undefined ? isScholarship : undefined
       };
       if (classId !== undefined) studentUpdate.classId = classId ? parseInt(classId) : null;
       if (admissionNumber) studentUpdate.admissionNumber = admissionNumber;
+
+      // Filter out undefined values
+      Object.keys(studentUpdate).forEach(key => studentUpdate[key] === undefined && delete studentUpdate[key]);
 
       await prisma.student.update({
         where: {
