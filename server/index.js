@@ -74,8 +74,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const { authenticate, authorize, optionalAuth } = require('./middleware/auth');
 
-// DEBUG: Robust Full Seeding Endpoint
-app.get('/api/debug/seed', async (req, res) => {
+// DEBUG: Modular Seeder
+require('./seeder')(app);
+
+// Old seeder (Disabled)
+app.get('/api/debug/seed-disabled', async (req, res) => {
   const prisma = require('./db');
   const bcrypt = require('bcryptjs');
   try {
