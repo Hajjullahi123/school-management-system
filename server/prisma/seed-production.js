@@ -136,14 +136,63 @@ async function seedProduction() {
       console.log(`✅ Term: ${termData.name}`);
     }
 
+    // 6. Create Demo Academy (Added for persistent demo access)
+    console.log('\n🌟 Seeding Demo Academy...');
+    const demoPassword = await bcrypt.hash('password123', 12);
+
+    const demoSchool = await prisma.school.upsert({
+      where: { slug: 'demo-academy' },
+      update: { isActivated: true, isSetupComplete: true },
+      create: {
+        slug: 'demo-academy',
+        name: 'Demo Excellence Academy',
+        address: '123 Demo Street, Innovation Hub',
+        phone: '0800-DEMO-ACADEMY',
+        email: 'info@demoacademy.com',
+        primaryColor: '#0f172a',
+        secondaryColor: '#3b82f6',
+        isActivated: true,
+        packageType: 'premium',
+        maxStudents: 1000,
+        isSetupComplete: true
+      }
+    });
+    console.log(`✅ Demo School: ${demoSchool.name}`);
+
+    // Create Demo Admin
+    const demoAdmin = await prisma.user.upsert({
+      where: {
+        schoolId_username: {
+          schoolId: demoSchool.id,
+          username: 'demo.admin'
+        }
+      },
+      update: { passwordHash: demoPassword, isActive: true },
+      create: {
+        schoolId: demoSchool.id,
+        username: 'demo.admin',
+        passwordHash: demoPassword,
+        email: 'admin@demo.com',
+        role: 'admin',
+        firstName: 'System',
+        lastName: 'Admin',
+        isActive: true,
+        mustChangePassword: false
+      }
+    });
+    console.log(`✅ Demo Admin: ${demoAdmin.username}`);
+
     console.log('\n═══════════════════════════════════════');
     console.log('✅ Production database seeded successfully!');
     console.log('═══════════════════════════════════════');
-    console.log('📋 DEFAULT CREDENTIALS:');
+    console.log('📋 LATEST CREDENTIALS:');
     console.log('═══════════════════════════════════════');
     console.log(`School Domain: ${school.slug}`);
     console.log(`Superadmin:    superadmin / superadmin123`);
     console.log(`Admin:         admin / admin123`);
+    console.log('---------------------------------------');
+    console.log(`DEMO SCHOOL PATH: /s/demo-academy`);
+    console.log(`Demo Admin:    demo.admin / password123`);
     console.log('═══════════════════════════════════════\n');
 
   } catch (error) {

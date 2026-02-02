@@ -109,6 +109,20 @@ app.get('/api/debug/schools', async (req, res) => {
   }
 });
 
+// DEBUG: Trigger Seeding
+app.get('/api/debug/seed', async (req, res) => {
+  try {
+    const { execSync } = require('child_process');
+    const output = execSync('node prisma/seed-production.js', {
+      cwd: path.join(__dirname),
+      encoding: 'utf8'
+    });
+    res.json({ success: true, message: 'Seeding successful', output });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 const { authenticate, authorize, optionalAuth } = require('./middleware/auth');
 const { checkSubscription, requirePackage } = require('./middleware/subscription');
 const { resolveDomain } = require('./middleware/domainResolver');
