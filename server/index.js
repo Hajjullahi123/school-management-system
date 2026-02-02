@@ -73,6 +73,169 @@ app.use(cookieParser());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const { authenticate, authorize, optionalAuth } = require('./middleware/auth');
+
+// DEBUG: Full Seeding Endpoint
+app.get('/api/debug/seed', async (req, res) => {
+  const prisma = require('./db');
+  const bcrypt = require('bcryptjs');
+  try {
+    const results = [];
+    results.push('🚀 Starting Full Demo Data Seeding...');
+
+    const passwordHash = await bcrypt.hash('password123', 12);
+
+    // 1. Ensure School exists
+    const school = await prisma.school.upsert({
+      where: { slug: 'demo-academy' },
+      update: { isActivated: true, isSetupComplete: true },
+      create: {
+        slug: 'demo-academy',
+        name: 'Demo Excellence Academy',
+        address: '123 Demo Street, Innovation Hub',
+        phone: '0800-DEMO-ACADEMY',
+        email: 'info@demoacademy.com',
+        primaryColor: '#0f172a',
+        secondaryColor: '#3b82f6',
+        isActivated: true,
+        packageType: 'premium',
+        maxStudents: 1000,
+        isSetupComplete: true
+      }
+    });
+    results.push(`✅ School: ${school.name}`);
+
+    // 2. Admin User
+    const adminUser = await prisma.user.upsert({
+      where: { schoolId_username: { schoolId: school.id, username: 'demo.admin' } },
+      update: { passwordHash, isActive: true },
+      create: {
+        schoolId: school.id,
+        username: 'demo.admin',
+        passwordHash,
+        email: 'admin@demo.com',
+        role: 'admin',
+        firstName: 'System',
+        lastName: 'Admin',
+        isActive: true
+      }
+    });
+    results.push(`✅ Admin User: ${adminUser.username}`);
+
+    // 3. Academic Session & Term
+    const session = await prisma.academicSession.upsert({
+      where: { schoolId_name: { schoolId: school.id, name: '2025/2026 Academic Session' } },
+      update: { isCurrent: true },
+      create: {
+        schoolId: school.id,
+        name: '2025/2026 Academic Session',
+        startDate: new Date('2025-09-01'),
+        endDate: new Date('2026-07-31'),
+        isCurrent: true
+      }
+    });
+    const term = await prisma.term.upsert({
+      where: { schoolId_academicSessionId_name: { schoolId: school.id, academicSessionId: session.id, name: 'First Term' } },
+      update: { isCurrent: true },
+      create: {
+        schoolId: school.id,
+        academicSessionId: session.id,
+        name: 'First Term',
+        startDate: new Date('2025-09-01'),
+        endDate: new Date('2025-12-15'),
+        isCurrent: true
+      }
+    });
+    results.push(`✅ Session and Term created`);
+
+    // 4. Classes
+    const classJSS1 = await prisma.class.upsert({
+      where: { schoolId_name_arm: { schoolId: school.id, name: 'JSS 1', arm: 'Gold' } },
+      update: { isActive: true },
+      create: { schoolId: school.id, name: 'JSS 1', arm: 'Gold', isActive: true }
+    });
+    results.push(`✅ Class JSS 1 Gold created`);
+
+    // 5. Subjects
+    const subjectMaths = await prisma.subject.upsert({
+      where: { schoolId_code: { schoolId: school.id, code: 'MTH101' } },
+      update: { name: 'Mathematics' },
+      create: { schoolId: school.id, name: 'Mathematics', code: 'MTH101' }
+    });
+    results.push(`✅ Subject Mathematics created`);
+
+    // 6. Students (Creating 5 students)
+    const studentNames = [
+      { first: 'Abubakar', last: 'Sadiq' },
+      { first: 'Fatima', last: 'Zahra' },
+      { first: 'Musa', last: 'Kamal' },
+      { first: 'Aisha', last: 'Bello' },
+      { first: 'Ibrahim', last: 'Musa' }
+    ];
+
+    for (let i = 0; i < studentNames.length; i++) {
+      const s = studentNames[i];
+      const admissionNumber = `DEMO/2025/${String(i + 1).padStart(3, '0')}`;
+      const username = admissionNumber.toLowerCase().replace(/\//g, '');
+
+      const user = await prisma.user.upsert({
+        where: { schoolId_username: { schoolId: school.id, username } },
+        update: { isActive: true },
+        create: {
+          schoolId: school.id,
+          username,
+          passwordHash,
+          role: 'student',
+          firstName: s.first,
+          lastName: s.last,
+          isActive: true,
+          student: {
+            create: {
+              schoolId: school.id,
+              admissionNumber,
+              classId: classJSS1.id,
+              parentGuardianName: `Parent of ${s.first}`,
+              parentPhone: '0123456789',
+              rollNo: admissionNumber,
+              isScholarship: i === 0
+            }
+          }
+        },
+        include: { student: true }
+      });
+
+      // Fee Record
+      const expectedAmount = user.student.isScholarship ? 0 : 45000;
+      const paidAmount = i === 1 ? 45000 : (i === 2 ? 20000 : 0);
+
+      await prisma.feeRecord.upsert({
+        where: {
+          studentId_academicSessionId_termId: {
+            studentId: user.student.id,
+            academicSessionId: session.id,
+            termId: term.id
+          }
+        },
+        update: { paidAmount, balance: expectedAmount - paidAmount },
+        create: {
+          schoolId: school.id,
+          studentId: user.student.id,
+          academicSessionId: session.id,
+          termId: term.id,
+          expectedAmount,
+          paidAmount,
+          balance: expectedAmount - paidAmount,
+          isClearedForExam: user.student.isScholarship || paidAmount >= expectedAmount
+        }
+      });
+    }
+    results.push(`✅ ${studentNames.length} Students created with Fee Records`);
+
+    res.json({ success: true, results });
+  } catch (err) {
+    console.error('Seeding Error:', err);
+    res.status(500).json({ success: false, error: err.message, stack: err.stack });
+  }
+});
 const { checkSubscription, requirePackage } = require('./middleware/subscription');
 const { resolveDomain } = require('./middleware/domainResolver');
 
