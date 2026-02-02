@@ -261,11 +261,36 @@ app.get('/api/debug/seed', async (req, res) => {
               studentId: studentUser.student.id,
               academicSessionId: session.id,
               termId: term.id,
+              classId: cls.id,
               subjectId: sub.id,
-              ca1: 10 + Math.floor(Math.random() * 10),
-              ca2: 10 + Math.floor(Math.random() * 10),
-              exam: 30 + Math.floor(Math.random() * 40),
-              total: 50, grade: 'C', remark: 'Good'
+              assignment1Score: 10 + Math.floor(Math.random() * 5),
+              test1Score: 10 + Math.floor(Math.random() * 5),
+              examScore: 40 + Math.floor(Math.random() * 20),
+              totalScore: 60 + Math.floor(Math.random() * 10),
+              isSubmitted: true,
+              grade: 'B',
+              remark: 'Good'
+            }
+          });
+
+          // Attendance
+          await prisma.attendanceRecord.upsert({
+            where: {
+              schoolId_studentId_date: {
+                schoolId: school.id,
+                studentId: studentUser.student.id,
+                date: new Date()
+              }
+            },
+            update: {},
+            create: {
+              schoolId: school.id,
+              studentId: studentUser.student.id,
+              classId: cls.id,
+              academicSessionId: session.id,
+              termId: term.id,
+              date: new Date(),
+              status: 'present'
             }
           });
         }
