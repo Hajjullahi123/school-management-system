@@ -74,17 +74,17 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const { authenticate, authorize, optionalAuth } = require('./middleware/auth');
 
-// DEBUG: Full Seeding Endpoint
+// DEBUG: Robust Full Seeding Endpoint
 app.get('/api/debug/seed', async (req, res) => {
   const prisma = require('./db');
   const bcrypt = require('bcryptjs');
   try {
     const results = [];
-    results.push('🚀 Starting Full Demo Data Seeding...');
+    results.push('🚀 Starting ROBUST Master Demo Data Seeding...');
 
     const passwordHash = await bcrypt.hash('password123', 12);
 
-    // 1. Ensure School exists
+    // 1. School
     const school = await prisma.school.upsert({
       where: { slug: 'demo-academy' },
       update: { isActivated: true, isSetupComplete: true },
@@ -102,10 +102,11 @@ app.get('/api/debug/seed', async (req, res) => {
         isSetupComplete: true
       }
     });
+
     results.push(`✅ School: ${school.name}`);
 
     // 2. Admin User
-    const adminUser = await prisma.user.upsert({
+    await prisma.user.upsert({
       where: { schoolId_username: { schoolId: school.id, username: 'demo.admin' } },
       update: { passwordHash, isActive: true },
       create: {
@@ -119,7 +120,6 @@ app.get('/api/debug/seed', async (req, res) => {
         isActive: true
       }
     });
-    results.push(`✅ Admin User: ${adminUser.username}`);
 
     // 3. Academic Session & Term
     const session = await prisma.academicSession.upsert({
@@ -147,88 +147,131 @@ app.get('/api/debug/seed', async (req, res) => {
     });
     results.push(`✅ Session and Term created`);
 
-    // 4. Classes
-    const classJSS1 = await prisma.class.upsert({
-      where: { schoolId_name_arm: { schoolId: school.id, name: 'JSS 1', arm: 'Gold' } },
-      update: { isActive: true },
-      create: { schoolId: school.id, name: 'JSS 1', arm: 'Gold', isActive: true }
-    });
-    results.push(`✅ Class JSS 1 Gold created`);
+    // 4. Classes (6 Classes)
+    const classNames = ['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'];
+    const classes = [];
+    for (const name of classNames) {
+      const cls = await prisma.class.upsert({
+        where: { schoolId_name_arm: { schoolId: school.id, name, arm: 'A' } },
+        update: { isActive: true },
+        create: { schoolId: school.id, name, arm: 'A', isActive: true }
+      });
+      classes.push(cls);
+    }
+    results.push(`✅ ${classes.length} Classes created`);
 
-    // 5. Subjects
-    const subjectMaths = await prisma.subject.upsert({
-      where: { schoolId_code: { schoolId: school.id, code: 'MTH101' } },
-      update: { name: 'Mathematics' },
-      create: { schoolId: school.id, name: 'Mathematics', code: 'MTH101' }
-    });
-    results.push(`✅ Subject Mathematics created`);
-
-    // 6. Students (Creating 5 students)
-    const studentNames = [
-      { first: 'Abubakar', last: 'Sadiq' },
-      { first: 'Fatima', last: 'Zahra' },
-      { first: 'Musa', last: 'Kamal' },
-      { first: 'Aisha', last: 'Bello' },
-      { first: 'Ibrahim', last: 'Musa' }
+    // 5. Subjects (10 Subjects)
+    const subData = [
+      { n: 'Mathematics', c: 'MTH' }, { n: 'English Language', c: 'ENG' },
+      { n: 'Basic Science', c: 'SCI' }, { n: 'Social Studies', c: 'SOS' },
+      { n: 'ICT', c: 'ICT' }, { n: 'Agric Science', c: 'AGR' },
+      { n: 'Civic Education', c: 'CIV' }, { n: 'Business Studies', c: 'BUS' },
+      { n: 'P.H.E', c: 'PHE' }, { n: 'Fine Arts', c: 'ART' }
     ];
+    const subjects = [];
+    for (const s of subData) {
+      const sub = await prisma.subject.upsert({
+        where: { schoolId_code: { schoolId: school.id, code: s.c } },
+        update: { name: s.n },
+        create: { schoolId: school.id, name: s.n, code: s.c }
+      });
+      subjects.push(sub);
 
-    for (let i = 0; i < studentNames.length; i++) {
-      const s = studentNames[i];
-      const admissionNumber = `DEMO/2025/${String(i + 1).padStart(3, '0')}`;
-      const username = admissionNumber.toLowerCase().replace(/\//g, '');
+      // Link to each class
+      for (const cls of classes) {
+        await prisma.classSubject.upsert({
+          where: { schoolId_classId_subjectId: { schoolId: school.id, classId: cls.id, subjectId: sub.id } },
+          update: {},
+          create: { schoolId: school.id, classId: cls.id, subjectId: sub.id }
+        });
+      }
+    }
+    results.push(`✅ ${subjects.length} Subjects created and linked to classes`);
 
-      const user = await prisma.user.upsert({
-        where: { schoolId_username: { schoolId: school.id, username } },
+    // 6. Teachers (4 Teachers)
+    const tData = [
+      { u: 't.maths', f: 'Isaac', l: 'Newton' }, { u: 't.english', f: 'Jane', l: 'Austen' },
+      { u: 't.science', f: 'Marie', l: 'Curie' }, { u: 't.ict', f: 'Alan', l: 'Turing' }
+    ];
+    for (const t of tData) {
+      await prisma.user.upsert({
+        where: { schoolId_username: { schoolId: school.id, username: t.u } },
         update: { isActive: true },
         create: {
           schoolId: school.id,
-          username,
+          username: t.u,
           passwordHash,
-          role: 'student',
-          firstName: s.first,
-          lastName: s.last,
+          role: 'teacher',
+          firstName: t.f,
+          lastName: t.l,
           isActive: true,
-          student: {
-            create: {
-              schoolId: school.id,
-              admissionNumber,
-              classId: classJSS1.id,
-              parentGuardianName: `Parent of ${s.first}`,
-              parentPhone: '0123456789',
-              rollNo: admissionNumber,
-              isScholarship: i === 0
-            }
-          }
-        },
-        include: { student: true }
-      });
-
-      // Fee Record
-      const expectedAmount = user.student.isScholarship ? 0 : 45000;
-      const paidAmount = i === 1 ? 45000 : (i === 2 ? 20000 : 0);
-
-      await prisma.feeRecord.upsert({
-        where: {
-          studentId_academicSessionId_termId: {
-            studentId: user.student.id,
-            academicSessionId: session.id,
-            termId: term.id
-          }
-        },
-        update: { paidAmount, balance: expectedAmount - paidAmount },
-        create: {
-          schoolId: school.id,
-          studentId: user.student.id,
-          academicSessionId: session.id,
-          termId: term.id,
-          expectedAmount,
-          paidAmount,
-          balance: expectedAmount - paidAmount,
-          isClearedForExam: user.student.isScholarship || paidAmount >= expectedAmount
+          teacher: { create: { schoolId: school.id, staffId: t.u.toUpperCase(), specialization: 'General' } }
         }
       });
     }
-    results.push(`✅ ${studentNames.length} Students created with Fee Records`);
+
+    // 7. Students (2 students per class = 12 total)
+    const firstNames = ['James', 'Mary', 'Robert', 'Patricia', 'John', 'Jennifer', 'Michael', 'Linda', 'William', 'Elizabeth', 'David', 'Barbara'];
+    const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez'];
+
+    for (let i = 0; i < classes.length; i++) {
+      const cls = classes[i];
+      for (let j = 0; j < 2; j++) {
+        const idx = (i * 2) + j;
+        const adm = `STUD/2025/${String(idx + 1).padStart(3, '0')}`;
+        const uname = adm.toLowerCase().replace(/\//g, '');
+
+        const studentUser = await prisma.user.upsert({
+          where: { schoolId_username: { schoolId: school.id, username: uname } },
+          update: { isActive: true },
+          create: {
+            schoolId: school.id,
+            username: uname,
+            passwordHash,
+            role: 'student',
+            firstName: firstNames[idx],
+            lastName: lastNames[idx],
+            isActive: true,
+            student: {
+              create: {
+                schoolId: school.id,
+                admissionNumber: adm,
+                classId: cls.id,
+                rollNo: adm
+              }
+            }
+          },
+          include: { student: true }
+        });
+
+        // Scores for each subject
+        for (const sub of subjects) {
+          await prisma.result.upsert({
+            where: {
+              studentId_academicSessionId_termId_subjectId: {
+                studentId: studentUser.student.id,
+                academicSessionId: session.id,
+                termId: term.id,
+                subjectId: sub.id
+              }
+            },
+            update: {},
+            create: {
+              schoolId: school.id,
+              studentId: studentUser.student.id,
+              academicSessionId: session.id,
+              termId: term.id,
+              subjectId: sub.id,
+              ca1: 10 + Math.floor(Math.random() * 10),
+              ca2: 10 + Math.floor(Math.random() * 10),
+              exam: 30 + Math.floor(Math.random() * 40),
+              total: 50, grade: 'C', remark: 'Good'
+            }
+          });
+        }
+      }
+    }
+    results.push('✅ Full environment with classes, subjects, teachers and results created');
 
     res.json({ success: true, results });
   } catch (err) {
