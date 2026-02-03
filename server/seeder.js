@@ -123,7 +123,7 @@ module.exports = function (app) {
         { u: 't.science', f: 'Marie', l: 'Curie' }, { u: 't.ict', f: 'Alan', l: 'Turing' }
       ];
       for (const t of tData) {
-        const tUser = await prisma.user.upsert({
+        const teacherUser = await prisma.user.upsert({
           where: { schoolId_username: { schoolId: school.id, username: t.u } },
           update: { isActive: true },
           create: {
@@ -131,15 +131,18 @@ module.exports = function (app) {
             firstName: t.f, lastName: t.l, isActive: true
           }
         });
+        const existingTeacher = await prisma.teacher.findUnique({
+          where: { schoolId_staffId: { schoolId: school.id, staffId: t.u.toUpperCase() } }
+        });
         await prisma.teacher.upsert({
-          where: { schoolId_staffId: { schoolId: school.id, staffId: t.u.toUpperCase() } },
-          update: { userId: tUser.id },
-          create: { schoolId: school.id, userId: tUser.id, staffId: t.u.toUpperCase(), specialization: 'General' }
+          where: { id: existingTeacher ? existingTeacher.id : -1 },
+          update: { userId: teacherUser.id },
+          create: { schoolId: school.id, userId: teacherUser.id, staffId: t.u.toUpperCase(), specialization: 'General' }
         });
       }
 
       // Students
-      const fNames = ['James', 'Mary', 'Robert', 'Patricia', 'John', 'Jennifer', 'Michael', 'Linda', 'William', 'Elizabeth', 'David', 'Lopez'];
+      const fNames = ['James', 'Mary', 'Robert', 'Patricia', 'John', 'Jennifer', 'Michael', 'Linda', 'William', 'Elizabeth', 'David', 'Barbara'];
       const lNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez'];
 
       for (let i = 0; i < classes.length; i++) {
@@ -156,16 +159,22 @@ module.exports = function (app) {
               role: 'student', firstName: fNames[idx], lastName: lNames[idx], isActive: true
             }
           });
+          const existingStudent = await prisma.student.findUnique({
+            where: { schoolId_admissionNumber: { schoolId: school.id, admissionNumber: adm } }
+          });
           const student = await prisma.student.upsert({
-            where: { schoolId_admissionNumber: { schoolId: school.id, admissionNumber: adm } },
+            where: { id: existingStudent ? existingStudent.id : -1 },
             update: { classId: cls.id, rollNo: adm },
             create: {
               schoolId: school.id, userId: user.id, admissionNumber: adm, classId: cls.id, rollNo: adm
             }
           });
           for (const sub of subjects) {
+            const existingResult = await prisma.result.findFirst({
+              where: { studentId: student.id, academicSessionId: session.id, termId: term.id, subjectId: sub.id }
+            });
             await prisma.result.upsert({
-              where: { studentId_academicSessionId_termId_subjectId: { studentId: student.id, academicSessionId: session.id, termId: term.id, subjectId: sub.id } },
+              where: { id: existingResult ? existingResult.id : -1 },
               update: { isSubmitted: true },
               create: {
                 schoolId: school.id, studentId: student.id, academicSessionId: session.id, termId: term.id, classId: cls.id, subjectId: sub.id,
@@ -175,7 +184,7 @@ module.exports = function (app) {
           }
         }
       }
-      res.json({ success: true, message: 'Phase 3: Students/Teachers/Results created' });
+      res.json({ success: true, message: 'Phase 3: Students and Results seeded' });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }
