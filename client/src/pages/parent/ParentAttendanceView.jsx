@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -18,6 +19,8 @@ const ParentAttendanceView = () => {
     endDate: ''
   });
 
+  const location = useLocation();
+
   useEffect(() => {
     fetchWards();
     fetchSessions();
@@ -36,7 +39,19 @@ const ParentAttendanceView = () => {
       if (response.ok) {
         const data = await response.json();
         setWards(data);
-        if (data.length > 0) {
+
+        // Handle studentId from query params
+        const params = new URLSearchParams(location.search);
+        const studentIdParam = params.get('studentId');
+
+        if (studentIdParam && data.length > 0) {
+          const student = data.find(w => w.id === parseInt(studentIdParam));
+          if (student) {
+            setSelectedStudent(student);
+          } else {
+            setSelectedStudent(data[0]);
+          }
+        } else if (data.length > 0) {
           setSelectedStudent(data[0]);
         }
       }

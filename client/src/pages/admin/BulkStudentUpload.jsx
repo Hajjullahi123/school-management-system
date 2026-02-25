@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -164,7 +165,15 @@ Jane,Smith,${classes[0]?.id || 1},2010-03-20,Female,jane@example.com,Mrs. Smith,
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Bulk Student Upload</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900">Bulk Student Upload</h1>
+        <Link
+          to="/dashboard/users"
+          className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+        >
+          Back to User Management
+        </Link>
+      </div>
 
       {/* Instructions */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">

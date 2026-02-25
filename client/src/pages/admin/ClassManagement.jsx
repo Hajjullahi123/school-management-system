@@ -10,11 +10,28 @@ const ClassManagement = () => {
   const [classStudents, setClassStudents] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [showClassForm, setShowClassForm] = useState(false);
+  const [terms, setTerms] = useState([]);
+  const [selectedTermId, setSelectedTermId] = useState('');
 
   useEffect(() => {
     fetchClasses();
     fetchTeachers();
+    fetchTerms();
   }, []);
+
+  const fetchTerms = async () => {
+    try {
+      const response = await api.get('/api/terms');
+      if (response.ok) {
+        const data = await response.json();
+        setTerms(data);
+        const currentTerm = data.find(t => t.isCurrent);
+        if (currentTerm) setSelectedTermId(currentTerm.id.toString());
+      }
+    } catch (error) {
+      console.error('Error fetching terms:', error);
+    }
+  };
 
   const fetchClasses = async () => {
     try {
@@ -433,14 +450,30 @@ const ClassManagement = () => {
           </h1>
         </div>
         <div className="flex gap-2">
+          <div className="flex items-center gap-3 bg-white p-2 rounded-md border shadow-sm">
+            <label className="text-sm font-semibold text-gray-700">Select Term:</label>
+            <select
+              value={selectedTermId}
+              onChange={(e) => setSelectedTermId(e.target.value)}
+              className="border-none bg-transparent text-sm font-medium focus:ring-0 cursor-pointer"
+            >
+              {terms.map(term => (
+                <option key={term.id} value={term.id}>
+                  {term.name} ({term.academicSession?.name}) {term.isCurrent ? '• Active' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             onClick={async () => {
-              if (!selectedClass) return;
-              if (!confirm(`Are you sure you want to ${selectedClass.isResultPublished ? 'unpublish' : 'publish'} results for this class?`)) return;
+              if (!selectedClass || !selectedTermId) return;
+              if (!confirm(`Are you sure you want to ${selectedClass.isResultPublished ? 'unpublish' : 'publish'} results for this class in the selected term?`)) return;
 
               try {
                 const response = await api.put(`/api/classes/${selectedClass.id}/publish-results`, {
-                  isPublished: !selectedClass.isResultPublished
+                  isPublished: !selectedClass.isResultPublished,
+                  termId: parseInt(selectedTermId)
                 });
 
                 if (response.ok) {

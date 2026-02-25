@@ -970,13 +970,15 @@ const Timetable = () => {
             {selectedClassId ? (
               <div className="relative">
                 {renderTimetableGrid(schedule, selectedClassId)}
-                <div className="mt-10 flex justify-between items-center border-t border-slate-100 pt-8">
-                  <div className="flex gap-4">
-                    <button onClick={handleResetClass} className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:underline">Reset Unit Registry</button>
-                    <button onClick={() => setShowSyncModal(true)} className="text-[10px] font-black uppercase tracking-widest text-purple-600 hover:underline pl-4 border-l border-slate-200">Replicate to multiple targets</button>
+                {isAdmin && (
+                  <div className="mt-10 flex justify-between items-center border-t border-slate-100 pt-8">
+                    <div className="flex gap-4">
+                      <button onClick={handleResetClass} className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:underline">Reset Unit Registry</button>
+                      <button onClick={() => setShowSyncModal(true)} className="text-[10px] font-black uppercase tracking-widest text-purple-600 hover:underline pl-4 border-l border-slate-200">Replicate to multiple targets</button>
+                    </div>
+                    <button onClick={handleDownload} className="bg-slate-50 text-slate-600 px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-900 hover:text-white transition-all border border-slate-100">Standard Export</button>
                   </div>
-                  <button onClick={handleDownload} className="bg-slate-50 text-slate-600 px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-900 hover:text-white transition-all border border-slate-100">Standard Export</button>
-                </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-40 bg-slate-50 rounded-[60px] border-2 border-dashed border-slate-100">

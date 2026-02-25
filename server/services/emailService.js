@@ -391,7 +391,80 @@ const sendAbsenceAlert = async (absenceData) => {
 };
 
 /**
- * 4. FEE REMINDER EMAIL
+ * 4. STUDENT ARRIVAL NOTIFICATION
+ */
+const sendArrivalAlert = async (arrivalData) => {
+  const {
+    parentEmail,
+    studentName,
+    time,
+    className,
+    schoolName
+  } = arrivalData;
+
+  const subject = `Safe Arrival Alert - ${studentName}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .header h1 { margin: 0; font-size: 28px; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .arrival-box { background: white; padding: 25px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .success-badge { background: #10b981; color: white; padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: bold; margin-bottom: 20px; }
+        .button { background: #10b981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px; }
+        .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb; color: #6b7280; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✅ Safe Arrival</h1>
+          <p style="margin: 10px 0 0 0; opacity: 0.9;">Student Arrival Confirmation</p>
+        </div>
+        
+        <div class="content">
+          <div class="success-badge">✓ Arrived Safely</div>
+          
+          <p>Dear Parent/Guardian,</p>
+          
+          <p>We are pleased to inform you that <strong>${studentName}</strong> has arrived safely at school today.</p>
+          
+          <div class="arrival-box">
+            <h3 style="margin-top: 0; color: #059669;">Arrival Details</h3>
+            
+            <p><strong>Student:</strong> ${studentName}</p>
+            <p><strong>Class:</strong> ${className}</p>
+            <p><strong>Arrival Time:</strong> ${time}</p>
+            <p><strong>Date:</strong> ${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</p>
+          </div>
+          
+          <p>Your child is now in school and ready for the day's academic activities.</p>
+          
+          <div style="text-align: center;">
+            <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/parent/attendance" class="button">View Attendance History</a>
+          </div>
+        </div>
+        
+        <div class="footer">
+          <strong>${schoolName || "School Management System"}</strong><br>
+          This is an automated security notification.<br>
+          © ${new Date().getFullYear()} All rights reserved.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return await sendEmail(parentEmail, subject, html);
+};
+
+/**
+ * 5. FEE REMINDER EMAIL
  */
 const sendFeeReminder = async (reminderData) => {
   const {
@@ -574,6 +647,7 @@ module.exports = {
   sendPaymentConfirmation,
   sendResultReleaseNotification,
   sendAbsenceAlert,
+  sendArrivalAlert,
   sendFeeReminder,
   sendWelcomeEmail
 };

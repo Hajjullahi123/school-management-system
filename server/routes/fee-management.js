@@ -304,21 +304,30 @@ router.post('/payment', authenticate, authorize(['admin', 'accountant']), async 
       });
     }
 
-    const newPaidAmount = feeRecord.paidAmount + paymentAmountNum;
-    const newBalance = (feeRecord.openingBalance + feeRecord.expectedAmount) - newPaidAmount;
-
     // Use transaction to update fee record and create payment history
     const result = await prisma.$transaction(async (tx) => {
+      // Re-fetch record inside transaction to get latest balance
+      const currentRecord = await tx.feeRecord.findUnique({
+        where: { id: feeRecord.id },
+        lock: { mode: 'update' } // Lock for update to prevent concurrent modification
+      });
+
+      if (!currentRecord) throw new Error('Fee record not found');
+
+      const updatedPaidAmount = currentRecord.paidAmount + paymentAmountNum;
+      const updatedBalance = (currentRecord.openingBalance + currentRecord.expectedAmount) - updatedPaidAmount;
+
+      if (updatedBalance < -0.01) { // Allow for tiny floating point noise
+        throw new Error(`Payment would result in a negative balance (₦${updatedBalance.toLocaleString()})`);
+      }
+
       // Update fee record
       const updated = await tx.feeRecord.update({
-        where: {
-          id: feeRecord.id,
-          schoolId: req.schoolId
-        },
+        where: { id: feeRecord.id },
         data: {
-          paidAmount: newPaidAmount,
-          balance: newBalance,
-          isClearedForExam: (newBalance <= 0)
+          paidAmount: updatedPaidAmount,
+          balance: updatedBalance,
+          isClearedForExam: (updatedBalance <= 0)
         },
         include: {
           student: {
@@ -456,34 +465,38 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'accountant'
     const difference = newAmount - oldAmount;
 
     const result = await prisma.$transaction(async (tx) => {
-      // Update fee record balance
-      const feeRecord = await tx.feeRecord.findFirst({
-        where: {
-          id: payment.feeRecordId,
-          schoolId: req.schoolId
-        }
+      // Re-fetch everything inside transaction with lock
+      const currentPayment = await tx.feePayment.findUnique({
+        where: { id: paymentId },
+        include: { feeRecord: true }
       });
 
-      const newPaidAmount = feeRecord.paidAmount + difference;
-      const newBalance = (feeRecord.openingBalance + feeRecord.expectedAmount) - newPaidAmount;
+      if (!currentPayment || currentPayment.schoolId !== req.schoolId) {
+        throw new Error('Payment record not found or access denied');
+      }
 
-      if (newPaidAmount < 0) {
+      const feeRecord = await tx.feeRecord.findUnique({
+        where: { id: currentPayment.feeRecordId },
+        lock: { mode: 'update' }
+      });
+
+      const updatedPaidAmount = (feeRecord.paidAmount - currentPayment.amount) + newAmount;
+      const updatedBalance = (feeRecord.openingBalance + feeRecord.expectedAmount) - updatedPaidAmount;
+
+      if (updatedPaidAmount < 0) {
         throw new Error(`Invalid change. Total paid amount cannot be negative.`);
       }
 
-      if (isNaN(newBalance) || newBalance < 0) {
-        throw new Error(`Updated payment amount would exceed the total balance or is invalid. Maximum allowed change: ₦${feeRecord.balance.toLocaleString()}`);
+      if (updatedBalance < -0.01) {
+        throw new Error(`Updated payment amount would exceed the total budget. Balance: ₦${updatedBalance.toLocaleString()}`);
       }
 
       const updatedFeeRecord = await tx.feeRecord.update({
-        where: {
-          id: feeRecord.id,
-          schoolId: req.schoolId
-        },
+        where: { id: feeRecord.id },
         data: {
-          paidAmount: newPaidAmount,
-          balance: newBalance,
-          isClearedForExam: (newBalance <= 0)
+          paidAmount: updatedPaidAmount,
+          balance: updatedBalance,
+          isClearedForExam: (updatedBalance <= 0)
         },
         include: {
           student: {

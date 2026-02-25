@@ -10,6 +10,42 @@ const {
   Stats
 } = require('../services/analytics-ai');
 
+// Helper to check if results are published for any class in the school for a term
+async function isTermPublished(schoolId, termId = null) {
+  const where = {
+    schoolId: parseInt(schoolId),
+    isPublished: true
+  };
+
+  if (termId) {
+    where.termId = parseInt(termId);
+  }
+
+  const publications = await prisma.resultPublication.findMany({
+    where,
+    select: { classId: true }
+  });
+
+  if (publications.length > 0) return true;
+
+  // Fallback to legacy flag for current term if no ResultPublication records exist
+  const currentTerm = await prisma.term.findFirst({
+    where: { isCurrent: true, schoolId: parseInt(schoolId) }
+  });
+
+  if (currentTerm && (!termId || parseInt(termId) === currentTerm.id)) {
+    const publishedClasses = await prisma.class.findMany({
+      where: {
+        schoolId: parseInt(schoolId),
+        isResultPublished: true
+      }
+    });
+    return publishedClasses.length > 0;
+  }
+
+  return false;
+}
+
 // =============================================
 // DIAGNOSTIC ENDPOINTS
 // =============================================
@@ -70,6 +106,14 @@ router.get('/subject/:subjectId', authenticate, requirePackage('premium'), async
   try {
     const subjectId = parseInt(req.params.subjectId);
     const { termId } = req.query;
+
+    // Check publication (except for superadmin or special bypass if needed)
+    if (req.user.role !== 'superadmin' && !await isTermPublished(req.schoolId, termId)) {
+      return res.status(403).json({
+        error: 'Results Not Published',
+        message: 'Statistical insights are only available once results have been officially published.'
+      });
+    }
 
     const whereClause = {
       subjectId,
@@ -193,6 +237,16 @@ router.get('/subject/:subjectId/trends', authenticate, requirePackage('premium')
 router.get('/subject/comparison/all', authenticate, requirePackage('premium'), async (req, res) => {
   try {
     const sId = parseInt(req.schoolId);
+    const { termId } = req.query;
+
+    // Check publication
+    if (req.user.role !== 'superadmin' && !await isTermPublished(sId, termId)) {
+      return res.status(403).json({
+        error: 'Results Not Published',
+        message: 'Statistical insights are only available once results have been officially published.'
+      });
+    }
+
     console.log(`[ANALYTICS] Subject Comparison - sId: ${sId}, type: ${typeof sId}`);
     const subjects = await prisma.subject.findMany({
       where: { schoolId: sId }
@@ -200,7 +254,6 @@ router.get('/subject/comparison/all', authenticate, requirePackage('premium'), a
     console.log(`[ANALYTICS] Subjects found: ${subjects.length}`);
     const comparison = [];
 
-    const { termId } = req.query;
     console.log(`[ANALYTICS DEBUG] Fetching subjects for schoolId: ${req.schoolId}, termId: ${termId}`);
 
     for (const subject of subjects) {
@@ -599,12 +652,22 @@ router.get('/class/:classId/overview', authenticate, requirePackage('premium'), 
 router.get('/class/comparison/all', authenticate, requirePackage('premium'), async (req, res) => {
   try {
     const sId = parseInt(req.schoolId);
+    const { termId } = req.query;
+
+    // Check publication
+    if (req.user.role !== 'superadmin' && !await isTermPublished(sId, termId)) {
+      return res.status(403).json({
+        error: 'Results Not Published',
+        message: 'Statistical insights are only available once results have been officially published.'
+      });
+    }
+
     console.log(`[ANALYTICS] Class Comparison - sId: ${sId}, type: ${typeof sId}`);
     const classes = await prisma.class.findMany({
       where: { schoolId: sId }
     });
     console.log(`[ANALYTICS] Classes found: ${classes.length}`);
-    const { termId } = req.query;
+
     console.log(`[ANALYTICS DEBUG] Fetching classes for schoolId: ${req.schoolId}, termId: ${termId}`);
     const comparison = [];
 
@@ -753,6 +816,15 @@ router.get('/term/comparison', authenticate, requirePackage('premium'), async (r
 router.get('/ai/at-risk-students', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const { classId, termId } = req.query;
+
+    // Check publication
+    if (req.user.role !== 'superadmin' && !await isTermPublished(req.schoolId, termId)) {
+      return res.status(403).json({
+        error: 'Results Not Published',
+        message: 'Statistical insights are only available once results have been officially published.'
+      });
+    }
+
     const atRiskStudents = await identifyAtRiskStudents(prisma, req.schoolId, classId, termId);
     res.json(atRiskStudents);
   } catch (error) {
@@ -777,6 +849,14 @@ router.get('/ai/recommendations/:studentId', authenticate, requirePackage('premi
 router.get('/heatmap', authenticate, requirePackage('premium'), async (req, res) => {
   try {
     const { termId } = req.query;
+
+    // Check publication
+    if (req.user.role !== 'superadmin' && !await isTermPublished(req.schoolId, termId)) {
+      return res.status(403).json({
+        error: 'Results Not Published',
+        message: 'Statistical insights are only available once results have been officially published.'
+      });
+    }
 
     // 1. Fetch available classes and subjects for axes
     const classes = await prisma.class.findMany({

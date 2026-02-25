@@ -73,18 +73,37 @@ router.post('/:id/questions/bulk', authenticate, authorize(['superadmin', 'admin
     }
 
     const worksheet = workbook.worksheets[0];
+    const headerRow = worksheet.getRow(1);
+    const expectedHeaders = ['Question Text', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Option'];
+    const actualHeaders = [
+      headerRow.getCell(1).value?.toString() || '',
+      headerRow.getCell(2).value?.toString() || '',
+      headerRow.getCell(3).value?.toString() || '',
+      headerRow.getCell(4).value?.toString() || '',
+      headerRow.getCell(5).value?.toString() || '',
+      headerRow.getCell(6).value?.toString() || ''
+    ];
+
+    const isValidHeader = expectedHeaders.every((h, i) => actualHeaders[i].toLowerCase().includes(h.toLowerCase()));
+    if (!isValidHeader) {
+      return res.status(400).json({ error: 'Invalid file format. Please use the correct CBT Questions Template.' });
+    }
+
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return; // Skip header
 
-      const questionText = row.getCell(1).value?.toString();
-      const optA = row.getCell(2).value?.toString();
-      const optB = row.getCell(3).value?.toString();
-      const optC = row.getCell(4).value?.toString();
-      const optD = row.getCell(5).value?.toString();
-      const correct = row.getCell(6).value?.toString()?.toLowerCase();
+      const questionText = row.getCell(1).value?.toString()?.trim();
+      const optA = row.getCell(2).value?.toString()?.trim();
+      const optB = row.getCell(3).value?.toString()?.trim();
+      const optC = row.getCell(4).value?.toString()?.trim();
+      const optD = row.getCell(5).value?.toString()?.trim();
+      const correct = row.getCell(6).value?.toString()?.trim()?.toLowerCase();
       const points = parseFloat(row.getCell(7).value) || 1;
 
       if (questionText && optA && optB && optC && optD && correct) {
+        // Validate correct option
+        if (!['a', 'b', 'c', 'd'].includes(correct)) return;
+
         rows.push({
           questionText,
           options: [
@@ -101,21 +120,48 @@ router.post('/:id/questions/bulk', authenticate, authorize(['superadmin', 'admin
 
     if (rows.length === 0) return res.status(400).json({ error: 'No valid questions found in file' });
 
-    // Transaction to create questions
-    const createdQuestions = await prisma.$transaction(
-      rows.map(q => prisma.cBTQuestion.create({
-        data: {
-          schoolId: req.schoolId,
-          examId,
-          questionText: q.questionText,
-          options: JSON.stringify(q.options),
-          correctOption: q.correctOption,
-          points: q.points
-        }
-      }))
-    );
+    const { saveToBank } = req.body;
+    const saveToBankBool = saveToBank === 'true' || saveToBank === true;
 
-    res.json({ message: `Successfully imported ${createdQuestions.length} questions`, count: createdQuestions.length });
+    // Transaction to create questions (and optionally bank questions)
+    const result = await prisma.$transaction(async (tx) => {
+      const createdQuestions = await Promise.all(
+        rows.map(q => tx.cBTQuestion.create({
+          data: {
+            schoolId: req.schoolId,
+            examId,
+            questionText: q.questionText,
+            options: JSON.stringify(q.options),
+            correctOption: q.correctOption,
+            points: q.points
+          }
+        }))
+      );
+
+      if (saveToBankBool) {
+        await Promise.all(
+          rows.map(q => tx.cBTQuestionBank.create({
+            data: {
+              schoolId: req.schoolId,
+              teacherId: req.user.id,
+              subjectId: exam.subjectId,
+              classId: exam.classId,
+              questionText: q.questionText,
+              options: JSON.stringify(q.options),
+              correctOption: q.correctOption,
+              points: q.points
+            }
+          }))
+        );
+      }
+
+      return createdQuestions;
+    });
+
+    res.json({
+      message: `Successfully imported ${result.length} questions${saveToBankBool ? ' and saved to bank' : ''}`,
+      count: result.length
+    });
 
     logAction({
       schoolId: req.schoolId,
@@ -233,7 +279,7 @@ router.post('/', authenticate, authorize(['superadmin', 'admin', 'teacher', 'pri
 router.post('/:id/questions', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
-    const { questions } = req.body; // Array of questions
+    const { questions, saveToBank } = req.body; // Array of questions
 
     // Verify ownership
     const exam = await prisma.cBTExam.findFirst({
@@ -242,25 +288,48 @@ router.post('/:id/questions', authenticate, authorize(['superadmin', 'admin', 't
         schoolId: req.schoolId
       }
     });
+
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
     if (req.user.role === 'teacher' && exam.teacherId !== req.user.id) {
-      return res.status(403).json({ error: 'Unauthorized' });
+      return res.status(403).json({ error: 'Unauthorized to add questions to this exam' });
     }
 
-    // Wrap in transaction
-    const createdQuestions = await prisma.$transaction(
-      questions.map(q => prisma.cBTQuestion.create({
-        data: {
-          schoolId: req.schoolId,
-          examId,
-          questionText: q.questionText,
-          questionType: q.questionType || 'multiple_choice',
-          options: JSON.stringify(q.options), // Expecting array [{"id":"a", "text":"..."}]
-          correctOption: q.correctOption,
-          points: q.points || 1
-        }
-      }))
-    );
+    // ... inside transaction ...
+    const createdQuestions = await prisma.$transaction(async (tx) => {
+      const examQuestions = await Promise.all(
+        questions.map(q => tx.cBTQuestion.create({
+          data: {
+            schoolId: req.schoolId,
+            examId,
+            questionText: q.questionText,
+            questionType: q.questionType || 'multiple_choice',
+            options: JSON.stringify(q.options), // Expecting array [{"id":"a", "text":"..."}]
+            correctOption: q.correctOption,
+            points: q.points || 1
+          }
+        }))
+      );
+
+      if (saveToBank) {
+        await Promise.all(
+          questions.map(q => tx.cBTQuestionBank.create({
+            data: {
+              schoolId: req.schoolId,
+              teacherId: req.user.id,
+              subjectId: exam.subjectId,
+              classId: exam.classId,
+              questionText: q.questionText,
+              questionType: q.questionType || 'multiple_choice',
+              options: JSON.stringify(q.options),
+              correctOption: q.correctOption,
+              points: q.points || 1
+            }
+          }))
+        );
+      }
+
+      return examQuestions;
+    });
 
     res.json(createdQuestions);
 
@@ -309,6 +378,283 @@ router.put('/:id/publish', authenticate, authorize(['superadmin', 'admin', 'teac
       ipAddress: req.ip
     });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ STUDENT ROUTES ============
+
+// Get Available Exams for Student
+router.get('/student/available', authenticate, authorize(['student']), async (req, res) => {
+  try {
+    // Get student's class
+    const student = await prisma.student.findFirst({
+      where: {
+        userId: req.user.id,
+        schoolId: req.schoolId
+      },
+      include: { classModel: true }
+    });
+
+    if (!student || !student.classId) {
+      return res.json([]);
+    }
+
+    const availableExams = await prisma.cBTExam.findMany({
+      where: {
+        schoolId: req.schoolId,
+        classId: student.classId,
+        isPublished: true,
+      },
+      include: {
+        subject: true,
+        results: {
+          where: {
+            studentId: student.id,
+            schoolId: req.schoolId
+          }
+        }
+      }
+    });
+
+    res.json(availableExams);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ QUESTION BANK ROUTES ============
+
+// Get Questions from Bank
+router.get('/bank', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+  try {
+    const { subjectId, teacherId, classId } = req.query;
+    const where = { schoolId: req.schoolId };
+
+    if (subjectId) where.subjectId = parseInt(subjectId);
+    if (classId) where.classId = parseInt(classId);
+
+    // Teachers usually only see their own bank questions unless they are admin
+    if (req.user.role === 'teacher') {
+      where.teacherId = req.user.id;
+    } else if (teacherId) {
+      where.teacherId = parseInt(teacherId);
+    }
+
+    const questions = await prisma.cBTQuestionBank.findMany({
+      where,
+      include: {
+        subject: true,
+        teacher: {
+          select: { firstName: true, lastName: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json(questions);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk Upload to Question Bank
+router.post('/bank/upload', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const { subjectId, classId } = req.body;
+
+    if (!subjectId) return res.status(400).json({ error: 'Subject is required' });
+
+    const workbook = new ExcelJS.Workbook();
+    let rows = [];
+
+    if (req.file.originalname.endsWith('.csv')) {
+      const stream = require('stream');
+      const bufferStream = new stream.PassThrough();
+      bufferStream.end(req.file.buffer);
+      await workbook.csv.read(bufferStream);
+    } else {
+      await workbook.xlsx.load(req.file.buffer);
+    }
+
+    const worksheet = workbook.worksheets[0];
+    const headerRow = worksheet.getRow(1);
+    // Question Bank download has different headers, but upload should follow Template
+    const expectedHeaders = ['Question Text', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Option'];
+    const actualHeaders = [
+      headerRow.getCell(1).value?.toString() || '',
+      headerRow.getCell(2).value?.toString() || '',
+      headerRow.getCell(3).value?.toString() || '',
+      headerRow.getCell(4).value?.toString() || '',
+      headerRow.getCell(5).value?.toString() || '',
+      headerRow.getCell(6).value?.toString() || ''
+    ];
+
+    const isValidHeader = expectedHeaders.every((h, i) => actualHeaders[i].toLowerCase().includes(h.toLowerCase()));
+    if (!isValidHeader) {
+      return res.status(400).json({ error: 'Invalid file format. Please use the correct CBT Questions Template.' });
+    }
+
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header
+
+      const questionText = row.getCell(1).value?.toString()?.trim();
+      const optA = row.getCell(2).value?.toString()?.trim();
+      const optB = row.getCell(3).value?.toString()?.trim();
+      const optC = row.getCell(4).value?.toString()?.trim();
+      const optD = row.getCell(5).value?.toString()?.trim();
+      const correct = row.getCell(6).value?.toString()?.trim()?.toLowerCase();
+      const points = parseFloat(row.getCell(7).value) || 1;
+
+      if (questionText && optA && optB && optC && optD && correct) {
+        // Validate correct option
+        if (!['a', 'b', 'c', 'd'].includes(correct)) return;
+
+        rows.push({
+          questionText,
+          options: JSON.stringify([
+            { id: 'a', text: optA },
+            { id: 'b', text: optB },
+            { id: 'c', text: optC },
+            { id: 'd', text: optD }
+          ]),
+          correctOption: correct,
+          points
+        });
+      }
+    });
+
+    if (rows.length === 0) return res.status(400).json({ error: 'No valid questions found in file' });
+
+    // Transaction to create bank questions
+    const createdQuestions = await prisma.$transaction(
+      rows.map(q => prisma.cBTQuestionBank.create({
+        data: {
+          schoolId: req.schoolId,
+          teacherId: req.user.id,
+          subjectId: parseInt(subjectId),
+          classId: classId ? parseInt(classId) : null,
+          questionText: q.questionText,
+          options: q.options,
+          correctOption: q.correctOption,
+          points: q.points
+        }
+      }))
+    );
+
+    res.json({ message: `Successfully added ${createdQuestions.length} questions to bank`, count: createdQuestions.length });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'IMPORT',
+      resource: 'CBT_BANK',
+      details: { subjectId, count: createdQuestions.length },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Bank upload error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Download Question Bank (CSV) - Admin/Principal only for all, teachers for theirs
+router.get('/bank/download', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+  try {
+    const { subjectId } = req.query;
+    const where = { schoolId: req.schoolId };
+    if (subjectId) where.subjectId = parseInt(subjectId);
+    if (req.user.role === 'teacher') where.teacherId = req.user.id;
+
+    const questions = await prisma.cBTQuestionBank.findMany({
+      where,
+      include: { subject: true, teacher: true }
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Question Bank');
+
+    worksheet.columns = [
+      { header: 'Subject', key: 'subject', width: 20 },
+      { header: 'Question Text', key: 'questionText', width: 50 },
+      { header: 'Option A', key: 'a', width: 25 },
+      { header: 'Option B', key: 'b', width: 25 },
+      { header: 'Option C', key: 'c', width: 25 },
+      { header: 'Option D', key: 'd', width: 25 },
+      { header: 'Correct Option', key: 'correctOption', width: 15 },
+      { header: 'Points', key: 'points', width: 10 },
+      { header: 'Created By', key: 'teacher', width: 20 }
+    ];
+
+    questions.forEach(q => {
+      const opts = JSON.parse(q.options);
+      worksheet.addRow({
+        subject: q.subject.name,
+        questionText: q.questionText,
+        a: opts.find(o => o.id === 'a')?.text,
+        b: opts.find(o => o.id === 'b')?.text,
+        c: opts.find(o => o.id === 'c')?.text,
+        d: opts.find(o => o.id === 'd')?.text,
+        correctOption: q.correctOption,
+        points: q.points,
+        teacher: `${q.teacher.firstName} ${q.teacher.lastName}`
+      });
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=CBT_Question_Bank.xlsx');
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete Question from Bank
+router.delete('/bank/:id', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const question = await prisma.cBTQuestionBank.findUnique({ where: { id } });
+
+    if (!question) return res.status(404).json({ error: 'Question not found' });
+    if (req.user.role === 'teacher' && question.teacherId !== req.user.id) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    await prisma.cBTQuestionBank.delete({ where: { id } });
+    res.json({ message: 'Question deleted from bank' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk Delete Questions by Subject from Bank
+router.delete('/bank/subject/:subjectId', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+  try {
+    const subjectId = parseInt(req.params.subjectId);
+    const where = {
+      schoolId: req.schoolId,
+      subjectId: subjectId
+    };
+
+    if (req.user.role === 'teacher') {
+      where.teacherId = req.user.id;
+    }
+
+    const { count } = await prisma.cBTQuestionBank.deleteMany({ where });
+    res.json({ message: `Successfully deleted ${count} questions from bank`, count });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'DELETE',
+      resource: 'CBT_BANK_SUBJECT',
+      details: { subjectId, count },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Bulk delete by subject error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -621,49 +967,78 @@ router.post('/:id/results/import', authenticate, authorize(['superadmin', 'admin
       },
       ipAddress: req.ip
     });
-
   } catch (error) {
-    console.error('Import error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// ============ STUDENT ROUTES ============
 
-// Get Available Exams for Student
-router.get('/student/available', authenticate, authorize(['student']), async (req, res) => {
+// Import questions from bank to exam
+router.post('/:id/import-from-bank', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
   try {
-    // Get student's class
-    const student = await prisma.student.findFirst({
+    const examId = parseInt(req.params.id);
+    const { questionIds } = req.body;
+
+    // Verify exam exists and belongs to school
+    const exam = await prisma.cBTExam.findFirst({
       where: {
-        userId: req.user.id,
+        id: examId,
         schoolId: req.schoolId
-      },
-      include: { classModel: true }
-    });
-
-    if (!student || !student.classId) {
-      return res.json([]);
-    }
-
-    const availableExams = await prisma.cBTExam.findMany({
-      where: {
-        schoolId: req.schoolId,
-        classId: student.classId,
-        isPublished: true,
-      },
-      include: {
-        subject: true,
-        results: {
-          where: {
-            studentId: student.id,
-            schoolId: req.schoolId
-          }
-        }
       }
     });
 
-    res.json(availableExams);
+    if (!exam) return res.status(404).json({ error: 'Exam not found' });
+
+    // Verify ownership for teachers
+    if (req.user.role === 'teacher' && exam.teacherId !== req.user.id) {
+      return res.status(403).json({ error: 'Unauthorized to add questions to this exam' });
+    }
+
+    // Get bank questions
+    const bankQuestions = await prisma.cBTQuestionBank.findMany({
+      where: {
+        id: { in: questionIds.map(id => parseInt(id)) },
+        schoolId: req.schoolId
+      }
+    });
+
+    if (bankQuestions.length === 0) {
+      return res.status(400).json({ error: 'No valid bank questions found' });
+    }
+
+    // Add to exam questions
+    const createdQuestions = await prisma.$transaction(
+      bankQuestions.map(bq => prisma.cBTQuestion.create({
+        data: {
+          schoolId: req.schoolId,
+          examId,
+          questionText: bq.questionText,
+          questionType: bq.questionType || 'multiple_choice',
+          options: bq.options,
+          correctOption: bq.correctOption,
+          points: bq.points || 1
+        }
+      }))
+    );
+
+    res.json({
+      message: `Successfully imported ${createdQuestions.length} questions from bank`,
+      count: createdQuestions.length
+    });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'IMPORT',
+      resource: 'CBT_QUESTIONS',
+      details: {
+        examId: examId,
+        source: 'QUESTION_BANK',
+        count: createdQuestions.length
+      },
+      ipAddress: req.ip
+    });
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

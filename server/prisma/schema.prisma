@@ -39,6 +39,7 @@ model GlobalSettings {
 model School {
   id                    Int                 @id @default(autoincrement())
   slug                  String              @unique // e.g. "darul-quran"
+  code                  String?             @unique // e.g. "AMA" for Amana
   customDomain          String?             @unique // e.g. "portal.darulquran.com"
   name                  String
   address               String?
@@ -71,6 +72,13 @@ model School {
   smsSenderId           String?
   enableSMS             Boolean             @default(false)
   
+  // WhatsApp Bot Configuration
+  whatsappBotEnabled    Boolean             @default(false)
+  whatsappPhoneNumber   String?
+  twilioAccountSid      String?
+  twilioAuthToken       String?
+  geminiApiKey          String?
+  
   // Portal Links
   facebookUrl           String?
   instagramUrl          String?
@@ -101,6 +109,11 @@ model School {
   examModeType          String              @default("none") // none, assignment1, assignment2, test1, test2, examination
 
   isSetupComplete       Boolean             @default(false)
+  
+  // Staff Attendance Settings
+  staffExpectedArrivalTime String?           @default("07:00")
+  staffClockInDeadline     String?           @default("10:00")
+  enableStaffAttendanceReport Boolean        @default(true)
   
   // Grading & Promotion
   gradingSystem         String?             @default("[{\"grade\":\"A\",\"min\":70,\"max\":100,\"remark\":\"Excellent\"},{\"grade\":\"B\",\"min\":60,\"max\":69.9,\"remark\":\"Very Good\"},{\"grade\":\"C\",\"min\":50,\"max\":59.9,\"remark\":\"Good\"},{\"grade\":\"D\",\"min\":40,\"max\":49.9,\"remark\":\"Pass\"},{\"grade\":\"E\",\"min\":30,\"max\":39.9,\"remark\":\"Weak Pass\"},{\"grade\":\"F\",\"min\":0,\"max\":29.9,\"remark\":\"Fail\"}]")
@@ -136,6 +149,7 @@ model School {
   cbtExams              CBTExam[]
   cbtQuestions          CBTQuestion[]
   cbtResults            CBTResult[]
+  cbtQuestionBank       CBTQuestionBank[]
   psychomotorDomains    PsychomotorDomain[]
   studentReportCards    StudentReportCard[]
   galleryImages         GalleryImage[]
@@ -150,6 +164,13 @@ model School {
   homeworkSubmissions   HomeworkSubmission[]
   auditLogs             AuditLog[]
   interventions         Intervention[]
+  whatsappLogs          WhatsAppLog[]
+  miscellaneousFees     MiscellaneousFee[]
+  miscFeePayments       MiscellaneousFeePayment[]
+  staffAttendance       StaffAttendance[]
+  resultPublications    ResultPublication[]
+  certificates          Certificate[]
+  testimonials          Testimonial[]
 }
 
 model AuditLog {
@@ -167,7 +188,7 @@ model AuditLog {
 
 model User {
   id                 Int                 @id @default(autoincrement())
-  schoolId           Int                 // <-- Link to School
+  schoolId           Int?                // Optional - Link to School (superadmin has null)
   username           String
   passwordHash       String
   email              String?
@@ -178,7 +199,7 @@ model User {
   mustChangePassword Boolean             @default(false)
   createdAt          DateTime            @default(now())
   
-  school             School              @relation(fields: [schoolId], references: [id])
+  school             School?             @relation(fields: [schoolId], references: [id])
   
   cbtExamsCreated    CBTExam[]
   classesAsTeacher   Class[]             @relation("ClassTeacher")
@@ -195,7 +216,12 @@ model User {
   teacherAssignments TeacherAssignment[]
   quranRecords       QuranRecord[]      @relation("QuranTeacher")
   gradedSubmissions  HomeworkSubmission[]
-  interventionsGiven Intervention[]
+  interventionsGiven Intervention[]  
+  cbtQuestionBank    CBTQuestionBank[]
+  staffAttendance    StaffAttendance[] @relation("StaffUser")
+  verifiedAttendance StaffAttendance[] @relation("AttendanceVerifier")
+  certificatesIssued Certificate[]     @relation("CertificateIssuer")
+  testimonialsIssued Testimonial[]     @relation("TestimonialIssuer")
 
   @@unique([schoolId, username]) // Username unique PER school
   @@unique([schoolId, email])    // Email unique PER school
@@ -263,6 +289,9 @@ model Student {
   quranRecords        QuranRecord[]
   homeworkSubmissions HomeworkSubmission[]
   interventions       Intervention[]
+  miscFeePayments     MiscellaneousFeePayment[]
+  certificate         Certificate?
+  testimonial         Testimonial?
 
   @@unique([schoolId, admissionNumber])
   @@unique([schoolId, rollNo])
@@ -346,6 +375,7 @@ model Term {
   quranTargets      QuranTarget[]
   academicSession   AcademicSession     @relation(fields: [academicSessionId], references: [id])
   interventions     Intervention[]
+  resultPublications ResultPublication[]
 
   @@unique([schoolId, academicSessionId, name])
 }
@@ -377,8 +407,25 @@ model Class {
   toPromotions       PromotionHistory[]  @relation("ToClass")
   classSubjects      ClassSubject[]
   quranTargets       QuranTarget[]
+  resultPublications ResultPublication[]
 
   @@unique([schoolId, name, arm])
+}
+
+model ResultPublication {
+  id          Int      @id @default(autoincrement())
+  schoolId    Int
+  classId     Int
+  termId      Int
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id])
+  class  Class  @relation(fields: [classId], references: [id])
+  term   Term   @relation(fields: [termId], references: [id])
+
+  @@unique([schoolId, classId, termId])
 }
 
 model Subject {
@@ -396,6 +443,7 @@ model Subject {
   results            Result[]
   timetables         Timetable[]
   classSubjects      ClassSubject[]
+  cbtQuestionBank    CBTQuestionBank[]
 
   @@unique([schoolId, code])
 }
@@ -484,6 +532,31 @@ model AttendanceRecord {
 
   @@unique([schoolId, studentId, date])
 }
+
+model StaffAttendance {
+  id            Int      @id @default(autoincrement())
+  schoolId      Int
+  userId        Int      // Teacher/Staff user ID
+  date          DateTime
+  checkInTime   DateTime?
+  checkOutTime  DateTime?
+  status        String   // 'present', 'late', 'absent', 'half-day'
+  lateMinutes   Int?     // Minutes late (if applicable)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user          User     @relation("StaffUser", fields: [userId], references: [id], onDelete: Cascade)
+  verifiedById  Int?
+  verifiedAt    DateTime?
+  verifier      User?    @relation("AttendanceVerifier", fields: [verifiedById], references: [id])
+
+  @@unique([schoolId, userId, date])
+  @@index([schoolId, date])
+  @@index([userId, date])
+}
+
 
 model Timetable {
   id          Int      @id @default(autoincrement())
@@ -789,6 +862,26 @@ model CBTResult {
   @@unique([schoolId, examId, studentId])
 }
 
+model CBTQuestionBank {
+  id            Int      @id @default(autoincrement())
+  schoolId      Int
+  teacherId     Int
+  subjectId     Int
+  classId       Int?     // Optional: target class level
+  questionText  String
+  questionType  String   @default("multiple_choice")
+  options       String   // JSON string
+  correctOption String
+  points        Float    @default(1.0)
+  difficulty    String?  @default("medium") // easy, medium, hard
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  school        School   @relation(fields: [schoolId], references: [id])
+  teacher       User     @relation(fields: [teacherId], references: [id])
+  subject       Subject  @relation(fields: [subjectId], references: [id])
+}
+
 model PsychomotorDomain {
   id          Int     @id @default(autoincrement())
   schoolId    Int
@@ -816,6 +909,8 @@ model StudentReportCard {
   resultSummary         String? // JSON string of subject summaries
   teacherRemark         String?
   principalRemark       String?
+  formMasterRemark      String?
+  psychomotorRatings    String? // JSON string of ratings
   isPublished           Boolean         @default(false)
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
@@ -902,7 +997,11 @@ model Alumni {
   skills           String?  // Comma separated
   achievements     String?
   profilePicture   String?
-  alumniId         String?  
+  alumniId         String?
+  programType      String?  // e.g., "Primary School", "Transfer", "Expulsion"
+  phone            String?
+  contactEmail     String?
+  currentAddress   String?
   donations        AlumniDonation[]
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -911,6 +1010,54 @@ model Alumni {
   student          Student  @relation(fields: [studentId], references: [id])
 
   @@unique([schoolId, alumniId])
+}
+
+model Certificate {
+  id                Int      @id @default(autoincrement())
+  schoolId          Int
+  studentId         Int      @unique
+  certificateNumber String   @unique
+  graduationYear    Int
+
+  dateIssued        DateTime @default(now())
+  issuedBy          Int      // User ID of issuer
+  content           String?  // Custom certificate text
+  commencementYear  Int?     // Year student started
+  passportUrl       String?  // Specific photo for certificate
+  programType       String?  // e.g., "Primary School", "Junior Secondary", etc.
+  
+  // Relations
+  school            School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  issuer            User     @relation("CertificateIssuer", fields: [issuedBy], references: [id])
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([schoolId, studentId])
+}
+
+model Testimonial {
+  id                Int      @id @default(autoincrement())
+  schoolId          Int
+  studentId         Int      @unique
+  testimonialNumber String   @unique
+  conduct           String?  @default("Good") // Excellent, Good, Fair
+  character         String?  // Custom character testimonial
+  remarks           String?  // Additional remarks from school
+  programType       String?  // e.g., "Primary School", "Senior Secondary", etc.
+  dateIssued        DateTime @default(now())
+  issuedBy          Int      // User ID of issuer
+  
+  // Relations
+  school            School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  issuer            User     @relation("TestimonialIssuer", fields: [issuedBy], references: [id])
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([schoolId, studentId])
 }
 
 model AlumniEvent {
@@ -1028,4 +1175,54 @@ model QuranRecord {
   school            School          @relation(fields: [schoolId], references: [id])
   student           Student         @relation(fields: [studentId], references: [id])
   teacher           User            @relation(name: "QuranTeacher", fields: [teacherId], references: [id])
+}
+
+model WhatsAppLog {
+  id              Int      @id @default(autoincrement())
+  schoolId        Int
+  phoneNumber     String
+  parentId        Int?
+  message         String
+  response        String?
+  intent          String?  // balance, attendance, holiday, general, unknown
+  success         Boolean  @default(true)
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+  
+  school          School   @relation(fields: [schoolId], references: [id])
+  
+  @@index([schoolId, phoneNumber])
+  @@index([createdAt])
+}
+
+model MiscellaneousFee {
+  id            Int      @id @default(autoincrement())
+  schoolId      Int
+  title         String   // e.g., "School Uniform", "Field Trip", "Books"
+  description   String?
+  amount        Float
+  isCompulsory  Boolean  @default(false)
+  classIds      String   // JSON array of class IDs ["1", "2", "3"]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  payments      MiscellaneousFeePayment[]
+}
+
+model MiscellaneousFeePayment {
+  id            Int      @id @default(autoincrement())
+  schoolId      Int
+  studentId     Int
+  feeId         Int
+  amount        Float
+  paymentDate   DateTime @default(now())
+  paymentMethod String?  // cash, bank, online
+  receiptNumber String?
+  recordedBy    Int?     // User ID of who recorded the payment
+  createdAt     DateTime @default(now())
+  
+  school        School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student       Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  fee           MiscellaneousFee  @relation(fields: [feeId], references: [id], onDelete: Cascade)
 }

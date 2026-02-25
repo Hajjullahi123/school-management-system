@@ -61,15 +61,35 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
 
     // Check permissions
     if (req.user.role === 'student' || req.user.role === 'parent') {
-      if (!student.classModel || !student.classModel.isResultPublished) {
-        return res.status(403).json({
-          error: 'Result Not Published',
-          message: 'The result for this class has not been published by the Form Master yet.'
+      if (student.classModel) {
+        const publication = await prisma.resultPublication.findUnique({
+          where: {
+            schoolId_classId_termId: {
+              schoolId: req.schoolId,
+              classId: student.classModel.id,
+              termId: parseInt(termId)
+            }
+          }
         });
+
+        if (!publication || !publication.isPublished) {
+          // Fallback to legacy flag for current term
+          const currentTerm = await prisma.term.findFirst({
+            where: { isCurrent: true, schoolId: req.schoolId }
+          });
+          const isRequestingCurrentTerm = currentTerm && parseInt(termId) === currentTerm.id;
+
+          if (!(isRequestingCurrentTerm && student.classModel.isResultPublished)) {
+            return res.status(403).json({
+              error: 'Result Not Published',
+              message: 'The result for this class and term has not been published.'
+            });
+          }
+        }
       }
     } else if (req.user.role === 'teacher') {
       const isClassTeacher = student.classModel?.classTeacherId === req.user.id;
-      if (!isClassTeacher && req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      if (!isClassTeacher && req.user.role !== 'admin' && req.user.role !== 'principal' && req.user.role !== 'superadmin') {
         return res.status(403).json({
           error: 'Access Denied',
           message: 'You can only view reports for students in your assigned class.'
@@ -126,34 +146,24 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
     );
 
     // Calculate term position (rank among classmates) using Competition Ranking (1,1,3)
-    const classmates = await prisma.student.findMany({
-      where: { classId: student.classId, schoolId: req.schoolId, status: 'active' },
-      select: { id: true }
-    });
-
-    const studentTotals = {};
-    classmates.forEach(c => {
-      studentTotals[c.id] = 0;
-    });
-
-    const allClassResults = await prisma.result.findMany({
+    // Optimized: Use groupBy to sum scores instead of fetching all result objects
+    const resultsSummary = await prisma.result.groupBy({
+      by: ['studentId'],
       where: {
         classId: student.classId,
         termId: parseInt(termId),
-        schoolId: req.schoolId
+        schoolId: req.schoolId,
+        student: { status: 'active' }
+      },
+      _sum: {
+        totalScore: true
       }
     });
 
-    allClassResults.forEach(result => {
-      if (studentTotals[result.studentId] !== undefined) {
-        studentTotals[result.studentId] += result.totalScore || 0;
-      }
-    });
-
-    const sortedAverages = Object.entries(studentTotals)
-      .map(([id, total]) => ({
-        studentId: parseInt(id),
-        average: total / totalSubjectsCount
+    const sortedAverages = resultsSummary
+      .map(entry => ({
+        studentId: entry.studentId,
+        average: (entry._sum.totalScore || 0) / totalSubjectsCount
       }))
       .sort((a, b) => b.average - a.average);
 
@@ -220,7 +230,13 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       orderBy: { name: 'asc' }
     });
 
-    const ratings = reportExtras?.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : [];
+    let ratings = [];
+    try {
+      ratings = reportExtras?.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : [];
+    } catch (e) {
+      console.error('Error parsing psychomotor ratings:', e);
+      ratings = [];
+    }
 
     // --- NEW LOGIC FOR AGE, CLUB, AND TERM SEQUENCE ---
     const calculateAge = (dob) => {
@@ -279,7 +295,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         startDate: term.startDate,
         endDate: term.endDate,
         nextTermStartDate: nextTerm?.startDate || null,
-        nextTermBegins: term.endDate ? new Date(new Date(term.endDate).getTime() + 14 * 24 * 60 * 60 * 1000) : null,
+        nextTermBegins: nextTerm?.startDate || (term.endDate ? new Date(new Date(term.endDate).getTime() + 14 * 24 * 60 * 60 * 1000) : null),
         weights: {
           assignment1: schoolSettings.assignment1Weight,
           assignment2: schoolSettings.assignment2Weight,
@@ -410,14 +426,29 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
 
     // Check permissions
     if (req.user.role === 'student' || req.user.role === 'parent') {
-      if (!student.classModel || !student.classModel.isResultPublished) {
-        return res.status(403).json({
-          error: 'Result Not Published',
-          message: 'The result for this class has not been published by the Form Master yet.'
+      if (student.classModel) {
+        // Since cumulative depends on multiple terms, we follow a strict "all terms in session must be published" 
+        // OR we just check the current term's publication status as a gate for the session report.
+        // For now, let's check if the MOST RECENT term in this session reached by the student is published.
+        const publication = await prisma.resultPublication.findFirst({
+          where: {
+            schoolId: req.schoolId,
+            classId: student.classModel.id,
+            term: { academicSessionId: parseInt(sessionId) },
+            isPublished: true
+          },
+          orderBy: { term: { startDate: 'desc' } }
         });
+
+        if (!publication && !student.classModel.isResultPublished) {
+          return res.status(403).json({
+            error: 'Result Not Published',
+            message: 'Session results for this class have not been published yet.'
+          });
+        }
       }
     } else if (req.user.role === 'teacher') {
-      if (!student.classModel || student.classModel.classTeacherId !== req.user.id) {
+      if (!student.classModel || (student.classModel.classTeacherId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'principal' && req.user.role !== 'superadmin')) {
         return res.status(403).json({
           error: 'Access Denied',
           message: 'You can only view reports for students in your assigned class.'
@@ -452,7 +483,25 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
 
     // Fetch results for all terms in this session
     const termsData = [];
-    for (const term of session.terms) {
+    const subjectsMap = {};
+
+    // Initialize subjects map with all subjects
+    classSubjects.forEach(cs => {
+      subjectsMap[cs.subjectId] = {
+        id: cs.subjectId,
+        name: cs.subject?.name || 'Unknown Subject',
+        term1: 0,
+        term2: 0,
+        term3: 0,
+        total: 0,
+        count: 0
+      };
+    });
+
+    for (let i = 0; i < session.terms.length; i++) {
+      const term = session.terms[i];
+      const termIdx = i + 1;
+
       const results = await prisma.result.findMany({
         where: {
           studentId: parseInt(studentId),
@@ -461,11 +510,6 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
         },
         include: {
           subject: true
-        },
-        orderBy: {
-          subject: {
-            name: 'asc'
-          }
         }
       });
 
@@ -477,26 +521,32 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
         totalSubjectsCount
       );
 
+      // Map results to subjects map for side-by-side view
+      results.forEach(r => {
+        if (subjectsMap[r.subjectId]) {
+          const score = r.totalScore || 0;
+          subjectsMap[r.subjectId][`term${termIdx}`] = score;
+          subjectsMap[r.subjectId].total += score;
+          subjectsMap[r.subjectId].count += 1;
+        }
+      });
+
       termsData.push({
         termName: term.name,
-        subjects: classSubjects.map(cs => {
-          const result = results.find(r => r.subjectId === cs.subjectId);
-          return {
-            name: cs.subject?.name || 'Unknown Subject',
-            assignment1: result ? result.assignment1Score : 0,
-            assignment2: result ? result.assignment2Score : 0,
-            test1: result ? result.test1Score : 0,
-            test2: result ? result.test2Score : 0,
-            exam: result ? result.examScore : 0,
-            total: result ? result.totalScore : 0,
-            grade: result ? result.grade : getGrade(0, schoolSettings.gradingSystem),
-            position: result ? result.positionInClass : '-'
-          };
-        }),
         average: termAverage,
         grade: getGrade(termAverage, schoolSettings.gradingSystem)
       });
     }
+
+    // Convert subjects map to array and calculate cumulative averages
+    const cumulativeSubjects = Object.values(subjectsMap).map(s => {
+      const avg = s.count > 0 ? s.total / session.terms.length : 0; // Average over the session's terms
+      return {
+        ...s,
+        average: avg,
+        grade: getGrade(avg, schoolSettings.gradingSystem)
+      };
+    }).sort((a, b) => a.name.localeCompare(b.name));
 
     // Calculate overall session average
     const sessionAverage = await calculateStudentSessionAverage(
@@ -504,7 +554,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       parseInt(studentId),
       parseInt(sessionId),
       req.schoolId,
-      totalSubjectsCount * session.terms.length // Cumulative average should be over all expected results across terms
+      totalSubjectsCount * session.terms.length
     );
 
     // Determine promotion status
@@ -528,6 +578,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
         name: session.name
       },
       terms: termsData,
+      subjects: cumulativeSubjects,
       overallAverage: sessionAverage,
       overallGrade: getGrade(sessionAverage, schoolSettings.gradingSystem),
       overallRemark: getRemark(getGrade(sessionAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),

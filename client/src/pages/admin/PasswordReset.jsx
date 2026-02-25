@@ -12,6 +12,7 @@ const PasswordReset = () => {
   const [showCredentialsModal, setShowCredentialsModal] = useState(false);
   const [resetCredentials, setResetCredentials] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [expandedRoles, setExpandedRoles] = useState(['admin', 'teacher', 'accountant', 'parent', 'student']);
   const { settings: schoolSettings } = useSchoolSettings();
 
   useEffect(() => {
@@ -99,6 +100,14 @@ const PasswordReset = () => {
     setNewPassword(password);
   };
 
+  const toggleRole = (role) => {
+    setExpandedRoles(prev =>
+      prev.includes(role)
+        ? prev.filter(r => r !== role)
+        : [...prev, role]
+    );
+  };
+
   const getRoleBadgeColor = (role) => {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800';
@@ -134,84 +143,103 @@ const PasswordReset = () => {
         </div>
       </div>
 
-      {/* Users Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Username
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/90 rounded-full flex items-center justify-center text-white font-semibold mr-3">
-                        {user.firstName?.[0]}{user.lastName?.[0]}
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {user.firstName} {user.lastName}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-mono text-gray-900">{user.username}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${getRoleBadgeColor(user.role)}`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{user.email || 'N/A'}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <button
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setNewPassword('123456'); // Default password
-                        setShowResetModal(true);
-                      }}
-                      className="text-primary hover:text-primary-dark font-medium flex items-center justify-end gap-1 ml-auto"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                      Reset Password
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Users Table / List by Role */}
+      <div className="space-y-6">
+        {['admin', 'teacher', 'accountant', 'parent', 'student'].map(role => {
+          const roleUsers = filteredUsers.filter(u => u.role === role);
+          if (roleUsers.length === 0) return null;
 
-          {filteredUsers.length === 0 && (
-            <div className="text-center py-12">
-              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              <p className="text-gray-500">No users found</p>
+          const isExpanded = expandedRoles.includes(role);
+
+          return (
+            <div key={role} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+              <button
+                onClick={() => toggleRole(role)}
+                className={`w-full bg-gray-100 px-6 py-4 border-b flex justify-between items-center hover:bg-gray-200 transition-colors focus:outline-none`}
+              >
+                <div className="flex items-center gap-3">
+                  <svg
+                    className={`w-5 h-5 text-gray-500 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                  <h3 className="text-lg font-bold capitalize text-gray-800">{role}s</h3>
+                  <span className="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-xs font-bold uppercase">
+                    {roleUsers.length} {roleUsers.length === 1 ? 'User' : 'Users'}
+                  </span>
+                </div>
+                <div className="text-primary text-sm font-medium">
+                  {isExpanded ? 'Collapse' : 'Expand'}
+                </div>
+              </button>
+
+              <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {roleUsers.map((user) => (
+                        <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/90 rounded-full flex items-center justify-center text-white font-semibold mr-3">
+                                {user.firstName?.[0]}{user.lastName?.[0]}
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-mono text-gray-900">{user.username}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{user.email || 'N/A'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedUser(user);
+                                setNewPassword('123456'); // Default password
+                                setShowResetModal(true);
+                              }}
+                              className="bg-primary text-white hover:brightness-90 px-4 py-2 rounded-lg transition-all text-sm font-bold shadow-sm flex items-center justify-center gap-2 ml-auto"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                              </svg>
+                              Reset Password
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+          );
+        })}
+
+        {filteredUsers.length === 0 && (
+          <div className="bg-white rounded-lg shadow-md py-12 text-center">
+            <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <p className="text-gray-500">No users found</p>
+          </div>
+        )}
       </div>
 
       {/* Reset Password Modal */}

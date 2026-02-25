@@ -539,10 +539,11 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
       return res.status(400).json({ error: 'Invalid genotype. Must be one of: AA, AS, SS, AC, SC' });
     }
 
-    // --- LICENSE CHECK ---
+    // --- LICENSE & SCHOOL CODE CHECK ---
     const school = await prisma.school.findUnique({
       where: { id: req.schoolId }
     });
+
     if (school && school.licenseKey) {
       const license = await prisma.license.findUnique({
         where: { licenseKey: school.licenseKey }
@@ -558,6 +559,7 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
         }
       }
     }
+    const schoolCode = school?.code || 'SCH';
     // ---------------------
 
     // Get class information for admission number
@@ -578,28 +580,17 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
 
     // Generate admission number
     const baseAdmissionNumber = generateAdmissionNumber(
+      schoolCode,
       admissionYear || new Date().getFullYear(),
       className || 'NEW',
-      classArm,
-      firstName,
-      lastName
+      classArm
     );
 
     // Ensure admission number is unique
     const uniqueAdmissionNumber = await getUniqueAdmissionNumber(prisma, baseAdmissionNumber, classId, req.schoolId);
 
-    // Generate username
-    const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-    const classCode = className ? `${className.replace(/\s+/g, '')}${classArm || ''}` : 'NEW';
-    const session = admissionYear || new Date().getFullYear();
-    const generatedUsername = `${initials}-${classCode}-${session}`;
-
-    let username = generatedUsername;
-    let counter = 1;
-    while (await prisma.user.findFirst({ where: { username, schoolId: req.schoolId } })) {
-      username = `${generatedUsername}-${counter}`;
-      counter++;
-    }
+    // Sync username with admission number
+    const username = uniqueAdmissionNumber.toLowerCase();
 
     const defaultPassword = password || '123456';
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
@@ -616,7 +607,7 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
         email: email || `${uniqueEmailPrefix}@student.darulquran.edu`,
         passwordHash: hashedPassword,
         role: 'student',
-        mustChangePassword: !password
+        mustChangePassword: false
       }
     });
 
@@ -1083,7 +1074,7 @@ router.post('/:id/create-parent', authenticate, authorize(['admin']), async (req
             lastName,
             role: 'parent',
             isActive: true,
-            mustChangePassword: true,
+            mustChangePassword: false,
             email: student.parentEmail || `${phone}@parent.school`
           }
         });

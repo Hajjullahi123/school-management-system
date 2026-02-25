@@ -120,6 +120,10 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
       include: { academicSession: true }
     });
 
+    // Fetch school code
+    const school = await prisma.school.findUnique({ where: { id: schoolIdInt } });
+    const schoolCode = school?.code || 'SCH';
+
     // If user is a teacher, get their assigned classes
     let allowedClassIds = null;
     if (req.user.role === 'teacher') {
@@ -195,25 +199,16 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
 
         const admissionYear = new Date().getFullYear();
         const baseAdmissionNumber = generateAdmissionNumber(
+          schoolCode,
           admissionYear,
           classInfo.name,
-          classInfo.arm || '',
-          studentData.firstName,
-          studentData.lastName
+          classInfo.arm || ''
         );
 
         const admissionNumber = await getUniqueAdmissionNumber(prisma, baseAdmissionNumber, classIdInt, schoolIdInt);
 
-        // Unique username
-        const baseUsername = `${studentData.firstName.toLowerCase()}.${studentData.lastName.toLowerCase()}`;
-        let username = baseUsername;
-        let counter = 1;
-        while (await prisma.user.findUnique({
-          where: { schoolId_username: { schoolId: schoolIdInt, username } }
-        })) {
-          username = `${baseUsername}${counter}`;
-          counter++;
-        }
+        // Sync username with admission number
+        const username = admissionNumber.toLowerCase();
 
         const hashedPassword = await bcrypt.hash('student123', 10);
 
@@ -226,7 +221,8 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
             role: 'student',
             firstName: studentData.firstName,
             lastName: studentData.lastName,
-            isActive: true
+            isActive: true,
+            mustChangePassword: false
           }
         });
 
@@ -364,6 +360,10 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'princi
           continue;
         }
 
+        // Fetch school code
+        const school = await prisma.school.findUnique({ where: { id: schoolIdInt } });
+        const schoolCode = school?.code || 'SCH';
+
         // Generate admission number
         const classInfo = await prisma.class.findFirst({
           where: {
@@ -385,32 +385,16 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'princi
         const classArm = classInfo.arm || '';
 
         const baseAdmissionNumber = generateAdmissionNumber(
+          schoolCode,
           admissionYear,
           className,
-          classArm,
-          studentData.firstName,
-          studentData.lastName
+          classArm
         );
 
         const admissionNumber = await getUniqueAdmissionNumber(prisma, baseAdmissionNumber, parseInt(studentData.classId), req.schoolId);
 
-        // Generate username from first name and last name
-        const baseUsername = `${studentData.firstName.toLowerCase()}.${studentData.lastName.toLowerCase()}`;
-        let username = baseUsername;
-        let counter = 1;
-
-        // Ensure unique username
-        while (await prisma.user.findUnique({
-          where: {
-            schoolId_username: {
-              schoolId: req.schoolId,
-              username
-            }
-          }
-        })) {
-          username = `${baseUsername}${counter}`;
-          counter++;
-        }
+        // Sync username with admission number
+        const username = admissionNumber.toLowerCase();
 
         // Create user account
         const hashedPassword = await bcrypt.hash(studentData.password || 'student123', 10);
@@ -424,7 +408,8 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'princi
             role: 'student',
             firstName: studentData.firstName,
             lastName: studentData.lastName,
-            isActive: true
+            isActive: true,
+            mustChangePassword: false
           }
         });
 

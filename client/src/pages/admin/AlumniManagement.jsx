@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api, API_BASE_URL } from '../../api';
 import { formatNumber } from '../../utils/formatters';
 import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 import AlumniIDCard from '../../components/AlumniIDCard';
 import { useReactToPrint } from 'react-to-print';
+import { toast } from '../../utils/toast';
+import { FileText, Award, Printer } from 'lucide-react';
 
 const AlumniManagement = () => {
+  const navigate = useNavigate();
   const { settings: schoolSettings } = useSchoolSettings();
   const [activeTab, setActiveTab] = useState('directory');
   const [alumniList, setAlumniList] = useState([]);
@@ -28,6 +32,18 @@ const AlumniManagement = () => {
   // Form States
   const [createForm, setCreateForm] = useState({ studentId: '', graduationYear: new Date().getFullYear(), alumniId: '' });
   const [donationForm, setDonationForm] = useState({ donorName: '', amount: '', message: '', isAnonymous: false, alumniId: '' });
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkConfig, setBulkConfig] = useState({
+    year: '',
+    type: '', // 'certificate' or 'testimonial'
+    programType: '',
+    conduct: 'Good',
+    remarks: '',
+    content: '',
+    commencementYear: '',
+    character: ''
+  });
+  const [generatingBulk, setGeneratingBulk] = useState(false);
 
   // Direct Registration Form State
   const [directRegForm, setDirectRegForm] = useState({
@@ -42,6 +58,7 @@ const AlumniManagement = () => {
     address: '',
     graduationYear: new Date().getFullYear(),
     classGraduated: '',
+    programType: '',
     currentJob: '',
     currentCompany: '',
     university: '',
@@ -264,7 +281,9 @@ const AlumniManagement = () => {
       portfolioUrl: alumni.portfolioUrl || '',
       skills: alumni.skills || '',
       achievements: alumni.achievements || '',
-      profilePicture: alumni.profilePicture || ''
+      profilePicture: alumni.profilePicture || '',
+      graduationYear: alumni.graduationYear || '',
+      programType: alumni.programType || ''
     });
     setShowEditModal(true);
   };
@@ -284,6 +303,58 @@ const AlumniManagement = () => {
       }
     } catch (err) {
       alert('Error updating alumni profile');
+    }
+  };
+
+  const handleBulkGenerate = async (e) => {
+    e.preventDefault();
+    setGeneratingBulk(true);
+    try {
+      const endpoint = bulkConfig.type === 'certificate'
+        ? '/api/certificates/bulk-generate'
+        : '/api/testimonials/bulk-generate';
+
+      const payload = {
+        graduationYear: bulkConfig.year,
+        programType: bulkConfig.programType,
+        ...(bulkConfig.type === 'certificate' && {
+          content: bulkConfig.content,
+          commencementYear: bulkConfig.commencementYear
+        }),
+        ...(bulkConfig.type === 'testimonial' && {
+          conduct: bulkConfig.conduct,
+          character: bulkConfig.character,
+          remarks: bulkConfig.remarks
+        })
+      };
+
+      const res = await api.post(endpoint, payload);
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success(
+          <div className="flex flex-col gap-2">
+            <p className="font-bold">{data.message}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => navigate(`/dashboard/bulk-${bulkConfig.type}s/${bulkConfig.year}`)}
+                className="text-xs bg-white text-primary px-2 py-1 rounded border border-primary hover:bg-primary hover:text-white transition-all"
+              >
+                Go to Print View
+              </button>
+            </div>
+          </div>,
+          { duration: 6000 }
+        );
+        setShowBulkModal(false);
+      } else {
+        toast.error(data.error || 'Bulk generation failed');
+      }
+    } catch (error) {
+      console.error('Bulk generation error:', error);
+      toast.error('An error occurred during bulk generation');
+    } finally {
+      setGeneratingBulk(false);
     }
   };
 
@@ -308,22 +379,29 @@ const AlumniManagement = () => {
     formData.append('photo', file);
 
     try {
-      const response = await api.post(`/api/alumni/${editingAlumni.id}/photo`, formData, {
+      // Use raw fetch — api.post() forces Content-Type: application/json which breaks FormData
+      const token = localStorage.getItem('token');
+      const rawBase = (API_BASE_URL || window.location.origin).replace(/\/$/, '');
+      const response = await fetch(`${rawBase}/api/alumni/${editingAlumni.id}/photo`, {
+        method: 'POST',
         headers: {
-          // Let browser set Content-Type for FormData
-        }
+          'Authorization': `Bearer ${token}`
+          // Do NOT set Content-Type — browser sets multipart/form-data with boundary automatically
+        },
+        credentials: 'include',
+        body: formData
       });
 
+      const data = await response.json();
       if (response.ok) {
-        const data = await response.json();
-        const fullPhotoUrl = `${API_BASE_URL}${data.photoUrl}`;
+        const fullPhotoUrl = data.photoUrl?.startsWith('http')
+          ? data.photoUrl
+          : `${rawBase}${data.photoUrl}`;
         setEditingAlumni({ ...editingAlumni, profilePicture: fullPhotoUrl });
         alert('Photo uploaded successfully!');
-        // Refresh alumni list to show updated photo
         fetchAlumni();
       } else {
-        const errorData = await response.json();
-        alert(errorData.error || 'Failed to upload photo');
+        alert(data.error || 'Failed to upload photo');
       }
     } catch (error) {
       console.error('Photo upload error:', error);
@@ -334,9 +412,9 @@ const AlumniManagement = () => {
   };
 
   const filteredAlumni = alumniList.filter(a =>
-    a.student?.user?.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    a.student?.user?.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    a.alumniId?.toLowerCase().includes(searchTerm.toLowerCase())
+    (a.student?.user?.firstName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (a.student?.user?.lastName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (a.alumniId?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
   // Group alumni by graduation year
@@ -445,6 +523,43 @@ const AlumniManagement = () => {
                         {alumniByYear[year].length} {alumniByYear[year].length === 1 ? 'Alumni' : 'Alumni'}
                       </span>
                     </div>
+
+                    <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => navigate(`/dashboard/bulk-certificates/${year}`)}
+                        className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2 font-medium"
+                      >
+                        <Printer size={14} />
+                        Bulk Certificates
+                      </button>
+                      <button
+                        onClick={() => navigate(`/dashboard/bulk-testimonials/${year}`)}
+                        className="text-xs bg-green-50 text-green-600 px-3 py-1.5 rounded-lg border border-green-100 hover:bg-green-600 hover:text-white transition-all flex items-center gap-2 font-medium"
+                      >
+                        <Printer size={14} />
+                        Bulk Testimonials
+                      </button>
+                      <button
+                        onClick={() => {
+                          setBulkConfig({ ...bulkConfig, year, type: 'certificate', programType: '' });
+                          setShowBulkModal(true);
+                        }}
+                        className="flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-md text-sm font-bold border border-amber-200 hover:bg-amber-100 transition-all"
+                      >
+                        <Award size={14} />
+                        Bulk Certificates
+                      </button>
+                      <button
+                        onClick={() => {
+                          setBulkConfig({ ...bulkConfig, year, type: 'testimonial', programType: '', conduct: 'Good', remarks: '' });
+                          setShowBulkModal(true);
+                        }}
+                        className="flex items-center gap-2 bg-purple-50 text-purple-700 px-3 py-1.5 rounded-md text-sm font-bold border border-purple-200 hover:bg-purple-100 transition-all"
+                      >
+                        <FileText size={14} />
+                        Bulk Testimonials
+                      </button>
+                    </div>
                   </button>
 
                   {/* Alumni Table - Expandable */}
@@ -500,6 +615,28 @@ const AlumniManagement = () => {
                                 >
                                   Edit
                                 </button>
+                                <button
+                                  onClick={() => navigate(`/dashboard/transcript/${alumni.student.id}`)}
+                                  className="text-green-600 hover:text-green-900 mr-4"
+                                >
+                                  Transcript
+                                </button>
+                                {!(alumni.programType === 'Transfer/Other' || alumni.programType === 'Expulsion') && (
+                                  <>
+                                    <button
+                                      onClick={() => navigate(`/dashboard/certificate/${alumni.student.id}`)}
+                                      className="text-amber-600 hover:text-amber-900 mr-4"
+                                    >
+                                      Certificate
+                                    </button>
+                                    <button
+                                      onClick={() => navigate(`/dashboard/testimonial/${alumni.student.id}`)}
+                                      className="text-purple-600 hover:text-purple-900 mr-4"
+                                    >
+                                      Testimonial
+                                    </button>
+                                  </>
+                                )}
                                 <button
                                   onClick={() => {
                                     setSelectedAlumni(alumni);
@@ -644,6 +781,140 @@ const AlumniManagement = () => {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Generation Modal */}
+      {showBulkModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[95vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-2xl font-black text-gray-900">
+                  Bulk {bulkConfig.type === 'certificate' ? 'Certificates' : 'Testimonials'}
+                </h3>
+                <p className="text-sm text-gray-500 font-medium">Class of {bulkConfig.year}</p>
+              </div>
+              <button onClick={() => setShowBulkModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleBulkGenerate} className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 font-mono uppercase tracking-wider">Completion Level</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Senior Secondary"
+                    className="w-full rounded-xl border-gray-200 focus:ring-2 focus:ring-primary/20 transition-all font-medium py-3"
+                    value={bulkConfig.programType}
+                    onChange={(e) => setBulkConfig({ ...bulkConfig, programType: e.target.value })}
+                  />
+                </div>
+                {bulkConfig.type === 'certificate' && (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 font-mono uppercase tracking-wider">Start Year</label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 2020"
+                      className="w-full rounded-xl border-gray-200 focus:ring-2 focus:ring-primary/20 transition-all font-medium py-3"
+                      value={bulkConfig.commencementYear}
+                      onChange={(e) => setBulkConfig({ ...bulkConfig, commencementYear: e.target.value })}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {bulkConfig.type === 'certificate' && (
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 font-mono uppercase tracking-wider">Certificate Content</label>
+                  <textarea
+                    rows={3}
+                    className="w-full rounded-xl border-gray-200 focus:ring-2 focus:ring-primary/20 transition-all py-3 px-4"
+                    placeholder="e.g. has successfully completed the academic program and is hereby awarded this..."
+                    value={bulkConfig.content}
+                    onChange={(e) => setBulkConfig({ ...bulkConfig, content: e.target.value })}
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1 italic">Leave empty for default system text.</p>
+                </div>
+              )}
+
+              {bulkConfig.type === 'testimonial' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 font-mono uppercase tracking-wider">Set Conduct</label>
+                    <select
+                      className="w-full rounded-xl border-gray-200 focus:ring-2 focus:ring-primary/20 transition-all py-3"
+                      value={bulkConfig.conduct}
+                      onChange={(e) => setBulkConfig({ ...bulkConfig, conduct: e.target.value })}
+                    >
+                      <option value="Excellent">Excellent</option>
+                      <option value="Very Good">Very Good</option>
+                      <option value="Good">Good</option>
+                      <option value="Fair">Fair</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 font-mono uppercase tracking-wider">Character Description</label>
+                    <textarea
+                      rows={2}
+                      className="w-full rounded-xl border-gray-200 focus:ring-2 focus:ring-primary/20 transition-all py-3 px-4"
+                      placeholder="e.g. He was disciplined and respectful throughout his stay."
+                      value={bulkConfig.character}
+                      onChange={(e) => setBulkConfig({ ...bulkConfig, character: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 font-mono uppercase tracking-wider">General Remarks</label>
+                    <textarea
+                      rows={2}
+                      className="w-full rounded-xl border-gray-200 focus:ring-2 focus:ring-primary/20 transition-all py-3 px-4"
+                      placeholder="e.g. He was a diligent and hardworking student."
+                      value={bulkConfig.remarks}
+                      onChange={(e) => setBulkConfig({ ...bulkConfig, remarks: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 mb-6">
+                <div className="flex gap-3">
+                  <div className="mt-0.5">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                  <p className="text-sm text-amber-800 leading-relaxed font-medium">
+                    This will generate {bulkConfig.type}s for all <strong>{alumniByYear[bulkConfig.year]?.length}</strong> alumni in the <strong>Class of {bulkConfig.year}</strong>. Existing records will be updated.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBulkModal(false)}
+                  className="flex-1 py-4 font-bold text-gray-500 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all border-none"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={generatingBulk}
+                  className="flex-1 py-4 font-bold text-white bg-primary rounded-xl shadow-lg shadow-primary/20 hover:brightness-95 transition-all border-none flex items-center justify-center gap-2"
+                >
+                  {generatingBulk ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    `Generate All`
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -847,6 +1118,27 @@ const AlumniManagement = () => {
                         onChange={e => setDirectRegForm({ ...directRegForm, classGraduated: e.target.value })}
                         placeholder="e.g., SS3 A"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Completion Level (Program)</label>
+                      <input
+                        type="text"
+                        list="direct-graduation-levels"
+                        className="w-full border rounded-md px-3 py-2"
+                        value={directRegForm.programType}
+                        onChange={e => setDirectRegForm({ ...directRegForm, programType: e.target.value })}
+                        placeholder="e.g., Senior Secondary"
+                      />
+                      <datalist id="direct-graduation-levels">
+                        <option value="Kindergarten" />
+                        <option value="Nursery School" />
+                        <option value="Primary School" />
+                        <option value="Junior Secondary School" />
+                        <option value="Senior Secondary School" />
+                        <option value="Vocational Center" />
+                        <option value="Transfer/Other" />
+                        <option value="Expulsion" />
+                      </datalist>
                     </div>
                   </div>
                 </div>
@@ -1128,7 +1420,46 @@ const AlumniManagement = () => {
                     onChange={e => setEditingAlumni({ ...editingAlumni, achievements: e.target.value })}
                   />
                 </div>
+              </div>
 
+              <div className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-100">
+                <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3 font-mono">Graduation Details</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Graduation Year</label>
+                    <input
+                      type="number"
+                      required
+                      className="w-full border p-2 rounded focus:ring-2 focus:ring-primary/20 outline-none"
+                      value={editingAlumni.graduationYear}
+                      onChange={e => setEditingAlumni({ ...editingAlumni, graduationYear: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Completion Level (Program)</label>
+                    <input
+                      type="text"
+                      list="edit-graduation-levels"
+                      className="w-full border p-2 rounded focus:ring-2 focus:ring-primary/20 outline-none"
+                      value={editingAlumni.programType}
+                      onChange={e => setEditingAlumni({ ...editingAlumni, programType: e.target.value })}
+                      placeholder="e.g., Senior Secondary"
+                    />
+                    <datalist id="edit-graduation-levels">
+                      <option value="Kindergarten" />
+                      <option value="Nursery School" />
+                      <option value="Primary School" />
+                      <option value="Junior Secondary School" />
+                      <option value="Senior Secondary School" />
+                      <option value="Vocational Center" />
+                      <option value="Transfer/Other" />
+                      <option value="Expulsion" />
+                    </datalist>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">LinkedIn URL</label>
                   <input

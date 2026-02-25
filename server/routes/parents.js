@@ -173,7 +173,7 @@ router.post('/register', authenticate, authorize(['admin', 'principal']), async 
           passwordHash,
           role: 'parent',
           isActive: true,
-          mustChangePassword: true // Force password change on first login
+          mustChangePassword: false // No longer forced
         }
       });
 

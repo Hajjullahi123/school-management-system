@@ -47,20 +47,6 @@ router.post('/activate', authenticate, authorize(['admin']), async (req, res) =>
       }
     });
 
-    // 3. Update global license record if it exists
-    try {
-      await prisma.license.update({
-        where: { licenseKey },
-        data: {
-          activatedAt: new Date(),
-          isActive: true,
-          lastCheckedAt: new Date()
-        }
-      });
-    } catch (e) {
-      console.log('License tracking record not found or update failed, skipping...');
-    }
-
     res.json({ success: true, message: 'School activated successfully', school: updatedSchool });
 
     // Log activation
@@ -81,44 +67,53 @@ router.post('/activate', authenticate, authorize(['admin']), async (req, res) =>
   }
 });
 
-// Generate a new license (Global Admin use - optional partitioning)
-router.post('/generate', authenticate, authorize(['superadmin']), async (req, res) => {
-  const { schoolName, contactPerson, contactEmail, contactPhone, packageType, maxStudents } = req.body;
+// Generate a new license for a school (SuperAdmin only)
+router.post('/generate/:schoolId', authenticate, authorize(['superadmin']), async (req, res) => {
+  const schoolId = parseInt(req.params.schoolId);
+  const { packageType, maxStudents, expiresAt } = req.body;
 
-  if (!schoolName || !packageType) {
-    return res.status(400).json({ error: 'School name and package type are required' });
+  if (!packageType) {
+    return res.status(400).json({ error: 'Package type is required' });
   }
 
   try {
+    const school = await prisma.school.findUnique({ where: { id: schoolId } });
+    if (!school) {
+      return res.status(404).json({ error: 'School not found' });
+    }
+
+    // Generate a license key
     const key = generateLicenseKey({
-      schoolName,
+      schoolName: school.name,
       packageType,
       maxStudents,
-      expiresAt: null
+      expiresAt
     });
 
-    const newLicense = await prisma.license.create({
+    // Update the school with the new license
+    const updatedSchool = await prisma.school.update({
+      where: { id: schoolId },
       data: {
         licenseKey: key,
-        schoolName,
-        contactPerson: contactPerson || '',
-        contactEmail: contactEmail || '',
-        contactPhone: contactPhone || '',
+        isActivated: true,
         packageType,
-        maxStudents: maxStudents || (packageType === 'basic' ? 500 : packageType === 'standard' ? 1500 : -1)
+        maxStudents: maxStudents || (packageType === 'basic' ? 500 : packageType === 'standard' ? 1500 : -1),
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        subscriptionActive: true
       }
     });
 
-    res.json({ success: true, license: newLicense });
+    res.json({ success: true, school: updatedSchool, licenseKey: key });
 
-    // Log generation (Superadmin activity)
+    // Log generation
     logAction({
-      schoolId: 1, // System-level logs mapped to school 1
+      schoolId: null,  // Superadmin global action
       userId: req.user.id,
       action: 'GENERATE_LICENSE',
       resource: 'LICENSE',
       details: {
-        schoolName,
+        targetSchoolId: schoolId,
+        schoolName: school.name,
         packageType,
         licenseKey: key
       },
@@ -130,16 +125,50 @@ router.post('/generate', authenticate, authorize(['superadmin']), async (req, re
   }
 });
 
-// List all licenses (Global Admin use)
-router.get('/list', authenticate, authorize(['superadmin']), async (req, res) => {
+// Upgrade a school's package (SuperAdmin only)
+router.post('/upgrade/:schoolId', authenticate, authorize(['superadmin']), async (req, res) => {
+  const schoolId = parseInt(req.params.schoolId);
+  const { packageType, maxStudents, expiresAt } = req.body;
+
+  if (!packageType) {
+    return res.status(400).json({ error: 'Package type is required' });
+  }
+
   try {
-    const licenses = await prisma.license.findMany({
-      orderBy: { createdAt: 'desc' }
+    const school = await prisma.school.findUnique({ where: { id: schoolId } });
+    if (!school) {
+      return res.status(404).json({ error: 'School not found' });
+    }
+
+    const updatedSchool = await prisma.school.update({
+      where: { id: schoolId },
+      data: {
+        packageType,
+        maxStudents: maxStudents || (packageType === 'basic' ? 500 : packageType === 'standard' ? 1500 : -1),
+        expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+        subscriptionActive: true
+      }
     });
-    res.json(licenses);
+
+    res.json({ success: true, message: 'Package upgraded successfully', school: updatedSchool });
+
+    // Log upgrade
+    logAction({
+      schoolId: 1,
+      userId: req.user.id,
+      action: 'UPGRADE_PACKAGE',
+      resource: 'SCHOOL',
+      details: {
+        targetSchoolId: schoolId,
+        schoolName: school.name,
+        oldPackage: school.packageType,
+        newPackage: packageType
+      },
+      ipAddress: req.ip
+    });
   } catch (error) {
-    console.error('Error fetching licenses:', error);
-    res.status(500).json({ error: 'Failed to fetch licenses' });
+    console.error('Package upgrade error:', error);
+    res.status(500).json({ error: 'Failed to upgrade package' });
   }
 });
 

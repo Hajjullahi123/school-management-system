@@ -19,7 +19,7 @@ const authenticate = (req, res, next) => {
       req.query.token;
 
     if (!token) {
-      log(`MISSING TOKEN for ${req.method} ${req.url}. Headers: ${JSON.stringify(req.headers)}`);
+      log(`MISSING TOKEN for ${req.method} ${req.url}. Origin: ${req.headers.origin}. Referer: ${req.headers.referer}`);
       return res.status(401).json({ error: 'Authentication required' });
     }
 

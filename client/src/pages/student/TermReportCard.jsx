@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
@@ -21,6 +22,8 @@ const TermReportCard = () => {
   const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState('');
 
+  const location = useLocation();
+
   // Automatically select student for student role
   useEffect(() => {
     if (user?.role === 'student' && user?.student?.id) {
@@ -30,6 +33,23 @@ const TermReportCard = () => {
       }
     }
   }, [user]);
+
+  // Handle direct navigation from Parent Dashboard
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const studentIdParam = params.get('studentId');
+    if (studentIdParam && user?.role === 'parent') {
+      setSelectedStudentId(studentIdParam);
+      setSearchMode('class'); // Ensure it's in a mode that uses selectedStudentId
+    }
+  }, [location, user]);
+
+  // Trigger fetch if student and term are auto-selected
+  useEffect(() => {
+    if (selectedStudentId && selectedTerm && (user?.role === 'parent' || user?.role === 'student')) {
+      fetchReport();
+    }
+  }, [selectedStudentId, selectedTerm]);
 
   useEffect(() => {
     fetchTerms();
@@ -313,14 +333,29 @@ const TermReportCard = () => {
               </select>
             </div>
 
-            {user?.role === 'student' ? (
-              <div className="flex md:col-span-3 items-end">
+            {user?.role === 'student' || user?.role === 'parent' ? (
+              <div className="flex md:col-span-2 items-end gap-4">
+                {user?.role === 'parent' && (
+                  <div className="flex-1">
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Select Student</label>
+                    <select
+                      value={selectedStudentId}
+                      onChange={(e) => setSelectedStudentId(e.target.value)}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    >
+                      <option value="">Select Ward</option>
+                      {classStudents.map(s => (
+                        <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <button
                   onClick={fetchReport}
-                  disabled={!selectedTerm || loading}
+                  disabled={!selectedTerm || !selectedStudentId || loading}
                   className="bg-primary text-white px-8 py-3 rounded-md hover:brightness-90 disabled:bg-gray-400 w-full md:w-auto font-bold shadow"
                 >
-                  {loading ? 'Generating Report...' : 'View My Report'}
+                  {loading ? 'Generating Report...' : user?.role === 'parent' ? 'View Report' : 'View My Report'}
                 </button>
               </div>
             ) : (
@@ -386,7 +421,7 @@ const TermReportCard = () => {
             const termNumber = data.term?.number || data.academic?.termNumber;
 
             return (
-              <div key={idx} className="relative bg-white p-8 print:p-4 my-8 print:my-0 shadow-2xl print:shadow-none print:break-after-page text-black font-serif border-[12px] border-emerald-800 print:emerald-border">
+              <div key={idx} className="relative bg-white p-8 print:p-4 my-8 print:my-0 shadow-2xl print:shadow-none print:break-after-page text-black font-serif border-[12px] border-emerald-800 print:emerald-border-A4">
 
                 {/* PROTECTION WATERMARK */}
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
@@ -398,7 +433,7 @@ const TermReportCard = () => {
                   </div>
                 </div>
 
-                <div className="relative z-10 space-y-4">
+                <div className="relative z-10 space-y-3 print:space-y-2">
                   {/* HEAD SECTION */}
                   <div className="flex justify-between items-start gap-4">
                     <div className="w-24 h-24 flex-shrink-0">
@@ -412,14 +447,14 @@ const TermReportCard = () => {
                     </div>
 
                     <div className="flex-1 text-center">
-                      <h1 className="text-3xl font-extrabold uppercase tracking-wider leading-tight text-emerald-900" style={{ color: schoolSettings?.primaryColor }}>
+                      <h1 className="text-2xl font-extrabold uppercase tracking-wider leading-tight text-emerald-900" style={{ color: schoolSettings?.primaryColor }}>
                         {schoolSettings?.schoolName || 'SCHOOL NAME'}
                       </h1>
                       <p className="text-sm font-bold italic text-gray-700">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
                       <p className="text-xs font-bold">{schoolSettings?.address || 'School Address Location'}, TEL: {schoolSettings?.phone || '000000'}, Email: {schoolSettings?.email || 'email@school.com'}</p>
 
                       <div className="mt-4 border-b-2 border-emerald-800 inline-block px-4 pb-1">
-                        <h2 className="text-xl font-bold uppercase tracking-wide">
+                        <h2 className="text-lg font-bold uppercase tracking-wide">
                           {data.term?.name?.toUpperCase()} PERFORMANCE REPORT
                         </h2>
                       </div>
@@ -548,7 +583,7 @@ const TermReportCard = () => {
                               </tr>
                             ))}
                             {/* Fill empty spaces if needed */}
-                            {Array.from({ length: Math.max(0, 18 - (data.psychomotorRatings?.length || 0)) }).map((_, i) => (
+                            {Array.from({ length: Math.max(0, 9 - (data.psychomotorRatings?.length || 0)) }).map((_, i) => (
                               <tr key={`empty-${i}`} className="h-5">
                                 <td className="border border-black px-1 font-bold text-gray-200 italic">-</td>
                                 <td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td>
@@ -561,7 +596,7 @@ const TermReportCard = () => {
                   </div>
 
                   {/* SUMMARY & GRADING KEY */}
-                  <div className="grid grid-cols-[68%_31%] gap-2 mt-2">
+                  <div className="grid grid-cols-[68%_31%] gap-2 mt-1">
                     <div className="grid grid-cols-2 gap-0 border-2 border-black rounded-lg overflow-hidden divide-x-2 divide-black">
                       {/* DYNAMIC GRADE INFO */}
                       <div className="p-2 text-[9px] bg-gray-50/50 leading-tight flex flex-col justify-center">
@@ -601,13 +636,13 @@ const TermReportCard = () => {
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-center justify-center border-2 border-black rounded-lg bg-gray-50 font-mono text-[7px] uppercase tracking-[0.3em] text-gray-300 relative overflow-hidden">
+                    <div className="flex flex-col items-center justify-center border-2 border-black rounded-lg bg-gray-50/50 font-mono text-[7px] uppercase tracking-[0.3em] text-gray-700 relative overflow-hidden">
                       <div className="absolute inset-0 flex items-center justify-center opacity-10">
                         <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                         </svg>
                       </div>
-                      <span className="z-10 bg-white px-2">Official Result Certification</span>
+                      <span className="z-10 bg-white px-2 font-black">Official Result Certification</span>
                       <div className="absolute inset-x-0 h-[1px] bg-gray-200"></div>
                     </div>
                   </div>
@@ -644,7 +679,7 @@ const TermReportCard = () => {
                   </div>
 
                   {/* SIGNATURES & VERIFICATION */}
-                  <div className="mt-8 grid grid-cols-3 gap-8 items-end">
+                  <div className="mt-4 grid grid-cols-3 gap-8 items-end print:mt-2">
                     <div className="space-y-2">
                       <div className="w-full h-8 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-20 grayscale">
                         {[...Array(60)].map((_, i) => (
@@ -693,10 +728,11 @@ const TermReportCard = () => {
       {/* Printing Helpers */}
       <style>{`
         @media print {
+          @page { size: A4; margin: 5mm; }
           body { background: white !important; margin: 0; padding: 0; }
           .max-w-[210mm] { max-width: 100% !important; margin: 0 !important; }
           .print\\:break-after-page { break-after: page !important; }
-          .emerald-border { border: 20px solid #065f46 !important; -webkit-print-color-adjust: exact; }
+          .emerald-border-A4 { border: 8px solid #065f46 !important; -webkit-print-color-adjust: exact; }
           table { border-collapse: collapse !important; width: 100% !important; }
           td, th { border: 1px solid black !important; padding: 2px !important; }
           * { box-sizing: border-box !important; }

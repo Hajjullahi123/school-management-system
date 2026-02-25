@@ -33,6 +33,10 @@ const ParentDashboard = () => {
       setLoading(false);
     };
     init();
+
+    // Set up polling for alerts (every 60 seconds)
+    const alertInterval = setInterval(fetchAlerts, 60000);
+    return () => clearInterval(alertInterval);
   }, []);
 
   const fetchAcademicData = async () => {
@@ -111,16 +115,16 @@ const ParentDashboard = () => {
     return (
       <div className="space-y-6">
         {/* No Students Notification Banner */}
-        <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-4 rounded-lg shadow-lg animate-pulse">
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 p-3 rounded-full">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+        <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-3 sm:p-4 rounded-lg shadow-lg animate-pulse">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="bg-white/20 p-2 sm:p-3 rounded-full">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-lg">No Children Linked to Your Account</h3>
-              <p className="text-sm text-white/90">
+              <h3 className="font-bold text-base sm:text-lg">No Children Linked</h3>
+              <p className="text-xs sm:text-sm text-white/90">
                 Your parent account is active, but no student profiles have been connected yet.
               </p>
             </div>
@@ -131,94 +135,88 @@ const ParentDashboard = () => {
         <div className="max-w-3xl mx-auto mt-8">
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             {/* Header */}
-            <div className="bg-gradient-to-r from-primary to-primary/90 p-6 text-white">
-              <div className="flex items-center gap-4">
-                <div className="bg-white/20 p-4 rounded-full">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-gradient-to-r from-primary to-primary/90 p-4 sm:p-6 text-white">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="bg-white/20 p-2 sm:p-4 rounded-full">
+                  <svg className="w-6 h-6 sm:w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold">Welcome, {user.firstName}!</h2>
-                  <p className="text-white/90">{schoolSettings?.schoolName || 'School Management System'} - Parent Portal</p>
+                  <h2 className="text-xl sm:text-2xl font-bold">Welcome, {user.firstName}!</h2>
+                  <p className="text-xs sm:text-sm text-white/90">{schoolSettings?.schoolName || 'School Management System'} - Parent Portal</p>
                 </div>
               </div>
             </div>
 
             {/* Content */}
-            <div className="p-8">
-              <div className="text-center mb-8">
-                <div className="inline-block bg-yellow-100 p-6 rounded-full mb-4">
-                  <svg className="w-16 h-16 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-4 sm:p-8">
+              <div className="text-center mb-6 sm:mb-8">
+                <div className="inline-block bg-yellow-100 p-4 sm:p-6 rounded-full mb-3 sm:mb-4">
+                  <svg className="w-12 h-12 sm:w-16 h-16 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">No Students Linked</h3>
-                <p className="text-gray-600">
+                <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-2">No Students Linked</h3>
+                <p className="text-xs sm:text-base text-gray-600">
                   It appears that no student accounts are currently associated with your parent profile.
                 </p>
               </div>
 
               {/* Instructions */}
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-6">
-                <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 sm:p-6 rounded-lg mb-6">
+                <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2 text-sm sm:text-base">
+                  <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                   </svg>
                   What to do next:
                 </h4>
-                <ul className="space-y-2 text-blue-800">
+                <ul className="space-y-2 text-blue-800 text-xs sm:text-base">
                   <li className="flex items-start gap-2">
-                    <span className="flex-shrink-0 w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-blue-900 font-bold text-sm">1</span>
-                    <span>Contact the school administration office</span>
+                    <span className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 bg-blue-200 rounded-full flex items-center justify-center text-blue-900 font-bold text-[10px] sm:text-sm">1</span>
+                    <span>Contact the admin office</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="flex-shrink-0 w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-blue-900 font-bold text-sm">2</span>
-                    <span>Provide your child's/children's admission number(s)</span>
+                    <span className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 bg-blue-200 rounded-full flex items-center justify-center text-blue-900 font-bold text-[10px] sm:text-sm">2</span>
+                    <span>Provide admission number(s)</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="flex-shrink-0 w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-blue-900 font-bold text-sm">3</span>
-                    <span>Admin will link your children to this parent account</span>
+                    <span className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 bg-blue-200 rounded-full flex items-center justify-center text-blue-900 font-bold text-[10px] sm:text-sm">3</span>
+                    <span>Admin will link your children</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="flex-shrink-0 w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-blue-900 font-bold text-sm">4</span>
-                    <span>Refresh this page to see your children's information</span>
+                    <span className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 bg-blue-200 rounded-full flex items-center justify-center text-blue-900 font-bold text-[10px] sm:text-sm">4</span>
+                    <span>Refresh to see information</span>
                   </li>
                 </ul>
               </div>
 
               {/* What You'll See */}
-              <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-lg">
-                <h4 className="font-bold text-green-900 mb-3 flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <div className="bg-green-50 border-l-4 border-green-500 p-4 sm:p-6 rounded-lg">
+                <h4 className="font-bold text-green-900 mb-3 flex items-center gap-2 text-sm sm:text-base">
+                  <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  Once linked, you'll be able to view:
+                  Once linked, you'll see:
                 </h4>
-                <ul className="space-y-2 text-green-800">
+                <ul className="space-y-2 text-green-800 text-xs sm:text-base">
                   <li className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
-                    <span>School fee payment status and history</span>
+                    <span>Fee status & history</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
-                    <span>Academic performance and results</span>
+                    <span>Results & academic progress</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
-                    <span>Complete payment breakdown by term</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    <span>Student information and class details</span>
+                    <span>Student info & class details</span>
                   </li>
                 </ul>
               </div>
@@ -263,20 +261,38 @@ const ParentDashboard = () => {
       {alerts.length > 0 && (
         <div className="space-y-3 mb-6">
           {alerts.map(alert => (
-            <div key={alert.id} className="bg-gradient-to-r from-red-600 to-red-500 text-white p-4 rounded-xl shadow-xl border-l-8 border-white/30 animate-pulse-slow">
+            <div
+              key={alert.id}
+              className={`p-4 rounded-xl shadow-xl border-l-8 border-white/30 animate-pulse-slow ${alert.subject === 'Safe Arrival Alert'
+                ? 'bg-gradient-to-r from-teal-600 to-teal-500 text-white'
+                : 'bg-gradient-to-r from-red-600 to-red-500 text-white'
+                }`}
+            >
               <div className="flex items-center gap-4">
                 <div className="bg-white/20 p-2 rounded-lg">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  {alert.subject === 'Safe Arrival Alert' ? (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  )}
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-black uppercase text-xs tracking-tighter opacity-80 mb-1">Priority Alert</h4>
+                  <h4 className="font-black uppercase text-[10px] tracking-widest opacity-80 mb-1">
+                    {alert.subject === 'Safe Arrival Alert' ? 'Arrival Alert' : 'Priority Alert'}
+                  </h4>
                   <p className="text-sm font-bold leading-tight">{alert.message}</p>
                 </div>
                 <button
                   onClick={() => markAlertRead(alert.id)}
                   className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-all"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -312,25 +328,25 @@ const ParentDashboard = () => {
       )}
 
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-primary to-primary/90 p-8 rounded-lg text-white shadow-lg">
+      <div className="bg-gradient-to-r from-primary to-primary/90 p-4 sm:p-8 rounded-lg text-white shadow-lg">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Welcome, {user.firstName}!</h1>
-            <p className="text-white/90 mt-2">{schoolSettings?.schoolName || 'School Management System'} - Parent Portal</p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-3xl font-bold truncate">Welcome, {user.firstName}!</h1>
+            <p className="text-xs sm:text-sm text-white/90 mt-1 sm:mt-2 truncate">Portal Access • {schoolSettings?.schoolName || 'School System'}</p>
           </div>
-          <div className="hidden md:block">
-            <div className="bg-white/20 rounded-lg p-4">
-              <p className="text-sm text-white/90">Total Children</p>
-              <p className="text-4xl font-bold">{wards.length}</p>
+          <div className="hidden sm:block">
+            <div className="bg-white/20 rounded-lg p-3 sm:p-4">
+              <p className="text-[10px] sm:text-sm text-white/90 uppercase tracking-widest">Wards</p>
+              <p className="text-2xl sm:text-4xl font-bold">{wards.length}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Children Cards */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">My Children</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-4">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-4">My Children</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
           {wards.map(student => {
             const currentTermFeeRecord = student.feeRecords?.find(
               fee => fee.term?.isCurrent && fee.academicSession?.isCurrent
@@ -339,141 +355,103 @@ const ParentDashboard = () => {
             const hasFeeInfo = latestFeeRecord != null;
 
             return (
-              <div key={student.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
-                <div className="bg-gradient-to-r from-primary/5 to-blue-50 p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+              <div key={student.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow flex flex-col">
+                <div className="bg-gradient-to-r from-primary/5 to-blue-50 p-4 sm:p-6">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-lg sm:text-2xl font-bold shadow-lg flex-shrink-0">
                       {student.user?.firstName?.[0]}{student.user?.lastName?.[0]}
                     </div>
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-gray-900">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
                         {student.user?.firstName} {student.user?.lastName}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs sm:text-sm text-gray-600 truncate">
                         {student.classModel?.name} {student.classModel?.arm}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Admission: {student.admissionNumber}
+                      <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 truncate uppercase tracking-widest font-semibold">
+                        ID: {student.admissionNumber}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-6 border-b border-gray-100">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="p-4 sm:p-6 border-b border-gray-100 flex-1">
+                  <h4 className="text-xs sm:text-sm font-bold text-gray-700 mb-3 flex items-center gap-2 uppercase tracking-wider">
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
-                    School Fee Status {currentTermFeeRecord && <span className="text-primary text-xs">(Current Term)</span>}
+                    Fee Status {currentTermFeeRecord && <span className="text-primary text-[10px] sm:text-xs font-black ml-auto">CURRENT</span>}
                   </h4>
 
                   {hasFeeInfo ? (
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="text-sm text-gray-600">Total Fee</span>
-                        <span className="font-bold text-gray-900">{formatCurrency(latestFeeRecord.expectedAmount)}</span>
+                    <div className="space-y-2 sm:space-y-3">
+                      <div className="flex justify-between items-center p-2.5 sm:p-3 bg-gray-50 rounded-lg">
+                        <span className="text-xs sm:text-sm text-gray-600">Total</span>
+                        <span className="text-sm sm:text-base font-bold text-gray-900">{formatCurrency(latestFeeRecord.expectedAmount)}</span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                        <span className="text-sm text-gray-600">Paid</span>
-                        <span className="font-bold text-green-700">{formatCurrency(latestFeeRecord.paidAmount)}</span>
+                      <div className="flex justify-between items-center p-2.5 sm:p-3 bg-green-50 rounded-lg">
+                        <span className="text-xs sm:text-sm text-gray-600">Paid</span>
+                        <span className="text-sm sm:text-base font-bold text-green-700">{formatCurrency(latestFeeRecord.paidAmount)}</span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                        <span className="text-sm text-gray-600">Balance</span>
-                        <span className="font-bold text-red-700">{formatCurrency(latestFeeRecord.balance)}</span>
+                      <div className="flex justify-between items-center p-2.5 sm:p-3 bg-red-50 rounded-lg">
+                        <span className="text-xs sm:text-sm text-gray-600">Balance</span>
+                        <span className="text-sm sm:text-base font-bold text-red-700">{formatCurrency(latestFeeRecord.balance)}</span>
                       </div>
 
-                      <div className="pt-2">
+                      <div className="pt-1">
                         {latestFeeRecord.balance === 0 ? (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
-                            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-green-100 text-green-800">
                             Fully Paid
                           </span>
                         ) : latestFeeRecord.paidAmount > 0 ? (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
-                            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
-                            </svg>
-                            Partially Paid
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-yellow-100 text-yellow-800">
+                            Partial
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800">
-                            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                            </svg>
-                            Not Paid
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-red-100 text-red-800">
+                            Unpaid
                           </span>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-4 bg-gray-50 rounded-lg">
-                      <svg className="w-12 h-12 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <p className="text-sm text-gray-500">No fee records available</p>
+                    <div className="text-center py-4 sm:py-6 bg-gray-50 rounded-lg">
+                      <p className="text-xs sm:text-sm text-gray-400 font-bold uppercase tracking-widest">No Records Found</p>
                     </div>
                   )}
                 </div>
 
-                <div className="p-6 bg-gray-50/50 grid grid-cols-2 gap-4">
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Academic Session</p>
-                    <p className="text-sm font-bold text-gray-900">
-                      {latestFeeRecord?.academicSession?.name || 'N/A'}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Term</p>
-                    <p className="text-sm font-bold text-gray-900">
-                      {latestFeeRecord?.term?.name || 'N/A'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-white border-t border-gray-100 flex flex-col gap-2">
+                <div className="p-3 sm:p-4 bg-white border-t border-gray-100 grid grid-cols-1 gap-2">
                   <div className="flex gap-2">
                     {hasFeeInfo && (
                       <button
                         onClick={() => handleViewFees(student)}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-primary text-white rounded-lg text-sm font-semibold hover:brightness-90 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        Fee Details
+                        Fees
                       </button>
                     )}
                     <Link
-                      to="/dashboard/term-report"
-                      className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
+                      to={`/dashboard/term-report?studentId=${student.id}`}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Report Card
+                      Report
                     </Link>
                   </div>
-                  <Link
-                    to="/dashboard/parent/attendance"
-                    className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                    </svg>
-                    View Attendance
-                  </Link>
-                  <Link
-                    to="/dashboard/parent/messages"
-                    className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                    Message Form Master
-                  </Link>
+                  <div className="flex gap-2">
+                    <Link
+                      to={`/dashboard/parent/attendance?studentId=${student.id}`}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
+                    >
+                      Attendance
+                    </Link>
+                    <Link
+                      to="/dashboard/parent/messages"
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
+                    >
+                      Message
+                    </Link>
+                  </div>
                 </div>
               </div>
             );

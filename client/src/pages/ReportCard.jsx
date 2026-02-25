@@ -333,7 +333,7 @@ const ReportCard = () => {
             </button>
           </div>
 
-          <div id="result-sheet" className="relative bg-white p-8 print:p-4 shadow-2xl print:shadow-none print:break-after-page text-black font-serif border-[12px] border-emerald-800 print:emerald-border">
+          <div id="result-sheet" className="relative bg-white p-8 print:p-4 shadow-2xl print:shadow-none print:break-after-page text-black font-serif border-[12px] border-emerald-800 print:emerald-border-A4">
             {/* PROTECTION WATERMARK */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
               <div className="text-[100px] font-black uppercase text-gray-900 leading-[0.8] text-center">
@@ -344,7 +344,7 @@ const ReportCard = () => {
               </div>
             </div>
 
-            <div className="relative z-10 space-y-5">
+            <div className="relative z-10 space-y-3 print:space-y-2">
               {/* HEAD SECTION */}
               <div className="flex justify-between items-start gap-4">
                 <div className="w-24 h-24 flex-shrink-0">
@@ -358,14 +358,14 @@ const ReportCard = () => {
                 </div>
 
                 <div className="flex-1 text-center">
-                  <h1 className="text-3xl font-extrabold uppercase tracking-wider leading-tight text-emerald-900" style={{ color: schoolSettings?.primaryColor }}>
+                  <h1 className="text-2xl font-extrabold uppercase tracking-wider leading-tight text-emerald-900" style={{ color: schoolSettings?.primaryColor }}>
                     {schoolSettings?.schoolName || 'SCHOOL NAME'}
                   </h1>
                   <p className="text-sm font-bold italic text-gray-700">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
                   <p className="text-xs font-bold">{schoolSettings?.address || 'School Address Location'}, TEL: {schoolSettings?.phone || '000000'}, Email: {schoolSettings?.email || 'email@school.com'}</p>
 
                   <div className="mt-4 border-b-2 border-emerald-800 inline-block px-4 pb-1">
-                    <h2 className="text-xl font-bold uppercase tracking-wide">
+                    <h2 className="text-lg font-bold uppercase tracking-wide">
                       {reportData.term?.name?.toUpperCase()} PERFORMANCE REPORT
                     </h2>
                   </div>
@@ -492,7 +492,7 @@ const ReportCard = () => {
                             {renderRatingTicks(item.score)}
                           </tr>
                         ))}
-                        {Array.from({ length: Math.max(0, 18 - (reportData.psychomotorRatings?.length || 0)) }).map((_, i) => (
+                        {Array.from({ length: Math.max(0, 9 - (reportData.psychomotorRatings?.length || 0)) }).map((_, i) => (
                           <tr key={`empty-${i}`} className="h-5">
                             <td className="border border-black px-1 font-bold text-gray-200 italic">-</td>
                             <td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td>
@@ -505,7 +505,7 @@ const ReportCard = () => {
               </div>
 
               {/* SUMMARY & GRADING KEY */}
-              <div className="grid grid-cols-[68%_31%] gap-2 mt-2">
+              <div className="grid grid-cols-[68%_31%] gap-2 mt-1">
                 <div className="grid grid-cols-2 gap-0 border-2 border-black rounded-lg overflow-hidden divide-x-2 divide-black">
                   {/* DYNAMIC GRADE INFO */}
                   <div className="p-2 text-[9px] bg-gray-50/50 leading-tight flex flex-col justify-center">
@@ -543,13 +543,13 @@ const ReportCard = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col items-center justify-center border-2 border-black rounded-lg bg-gray-50/50 font-mono text-[7px] uppercase tracking-[0.3em] text-gray-300 relative overflow-hidden">
+                <div className="flex flex-col items-center justify-center border-2 border-black rounded-lg bg-gray-50/50 font-mono text-[7px] uppercase tracking-[0.3em] text-gray-700 relative overflow-hidden">
                   <div className="absolute inset-0 flex items-center justify-center opacity-10">
                     <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                     </svg>
                   </div>
-                  <span className="z-10 bg-white px-2">Official Result Certification</span>
+                  <span className="z-10 bg-white px-2 font-black">Official Result Certification</span>
                   <div className="absolute inset-x-0 h-[1px] bg-gray-200"></div>
                 </div>
               </div>
@@ -586,7 +586,7 @@ const ReportCard = () => {
               </div>
 
               {/* SIGNATURES & VERIFICATION */}
-              <div className="mt-8 grid grid-cols-3 gap-8 items-end p-2">
+              <div className="mt-4 grid grid-cols-3 gap-8 items-end p-2 print:mt-2">
                 <div className="space-y-2">
                   <div className="w-full h-8 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-20 grayscale">
                     {[...Array(60)].map((_, i) => (
@@ -666,11 +666,12 @@ const ReportCard = () => {
 
       <style>{`
         @media print {
+          @page { size: A4; margin: 5mm; }
           body { background: white !important; margin: 0; padding: 0; }
           .min-h-screen { background: white !important; padding: 0 !important; }
           .max-w-[210mm] { max-width: 100% !important; margin: 0 !important; width: 100% !important; }
           .print\\:break-after-page { break-after: page !important; }
-          .emerald-border { border: 20px solid #065f46 !important; -webkit-print-color-adjust: exact; }
+          .emerald-border-A4 { border: 8px solid #065f46 !important; -webkit-print-color-adjust: exact; }
           table { border-collapse: collapse !important; width: 100% !important; }
           td, th { border: 1px solid black !important; }
           * { box-sizing: border-box !important; }

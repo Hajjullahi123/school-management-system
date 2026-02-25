@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
-import { useMemo } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -55,6 +55,8 @@ const ProgressiveReport = () => {
     // exam: schoolSettings?.examWeight || 70 // Removed from Progressive Report
   }), [schoolSettings]);
 
+  const location = useLocation();
+
   // Automatically select student for student role
   useEffect(() => {
     if (user?.role === 'student' && user?.student?.id) {
@@ -62,18 +64,45 @@ const ProgressiveReport = () => {
     }
   }, [user]);
 
+  // Handle direct navigation from Parent Dashboard
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const studentIdParam = params.get('studentId');
+    if (studentIdParam && user?.role === 'parent') {
+      setSelectedStudentId(studentIdParam);
+      setSearchMode('class');
+    }
+  }, [location, user]);
+
   useEffect(() => {
     fetchTerms();
-    if (user?.role !== 'student') {
+    if (user?.role === 'parent') {
+      fetchMyWards();
+    } else if (user?.role !== 'student') {
       fetchClasses();
     }
   }, [user]);
+
+  const fetchMyWards = async () => {
+    try {
+      const response = await api.get('/api/parents/my-wards');
+      const data = await response.json();
+      setClassStudents(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching wards:', error);
+    }
+  };
 
   const fetchTerms = async () => {
     try {
       const response = await api.get('/api/terms');
       const data = await response.json();
-      setTerms(data);
+      const termsArray = Array.isArray(data) ? data : [];
+      setTerms(termsArray);
+      const currentTerm = termsArray.find(t => t.isCurrent);
+      if (currentTerm) {
+        setTermId(currentTerm.id.toString());
+      }
     } catch (error) {
       console.error('Error fetching terms:', error);
     }
@@ -136,8 +165,11 @@ const ProgressiveReport = () => {
         return;
       }
 
+      const selectedTerm = terms.find(t => t.id.toString() === termId);
+      const sessionId = selectedTerm?.academicSessionId;
+
       const response = await api.get(
-        `/api/results?studentId=${targetStudentId}&termId=${termId}`
+        `/api/results?studentId=${targetStudentId}&termId=${termId}${sessionId ? `&academicSessionId=${sessionId}` : ''}`
       );
 
       if (response.ok) {
@@ -145,7 +177,9 @@ const ProgressiveReport = () => {
         if (results && results.length > 0) {
           processProgressiveData(results);
         } else {
-          alert('No results found for this student and term');
+          const tName = terms.find(t => t.id.toString() === termId)?.name || 'the selected term';
+          const sName = classStudents.find(s => s.id.toString() === targetStudentId.toString())?.user?.firstName || 'this student';
+          alert(`No results found for ${sName} in ${tName}. Please ensure scores have been entered and published by teachers.`);
           setProgressData(null);
         }
       } else {
@@ -277,26 +311,45 @@ const ProgressiveReport = () => {
             </select>
           </div>
 
-          {user?.role === 'student' ? (
-            <div className="flex md:col-span-3 items-end">
-              <button
-                onClick={fetchProgressiveReport}
-                disabled={!termId || loading}
-                className="w-full bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400 font-medium"
-              >
-                {loading ? 'Generating...' : 'View My Progressive Report'}
-              </button>
-              {progressData && (
-                <button
-                  onClick={downloadPDF}
-                  className="w-full mt-2 bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 font-medium flex justify-center items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Download PDF
-                </button>
+          {user?.role === 'student' || user?.role === 'parent' ? (
+            <div className="md:col-span-3 items-end gap-4 grid grid-cols-1 md:grid-cols-2">
+              {user?.role === 'parent' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Student</label>
+                  <select
+                    value={selectedStudentId}
+                    onChange={(e) => setSelectedStudentId(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2"
+                  >
+                    <option value="">Choose your child</option>
+                    {classStudents.map((ward) => (
+                      <option key={ward.id} value={ward.id}>
+                        {ward.user?.firstName} {ward.user?.lastName} ({ward.admissionNumber})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
+              <div className="flex gap-2">
+                <button
+                  onClick={fetchProgressiveReport}
+                  disabled={!termId || !selectedStudentId || loading}
+                  className="flex-1 bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400 font-bold shadow"
+                >
+                  {loading ? 'Generating...' : user?.role === 'parent' ? 'View Report' : 'View My Progressive Report'}
+                </button>
+                {progressData && (
+                  <button
+                    onClick={downloadPDF}
+                    className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 shadow"
+                    title="Download PDF"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">

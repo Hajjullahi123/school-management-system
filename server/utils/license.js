@@ -18,7 +18,7 @@ class LicenseManager {
       schoolName: data.schoolName || 'Unknown School',
       packageType: data.packageType || 'basic', // basic, standard, premium
       maxStudents: data.maxStudents || 500,
-      features: this.getPackageFeatures(data.packageType || 'basic', data.customFeatures || []),
+      features: LicenseManager.getPackageFeatures(data.packageType || 'basic', data.customFeatures || []),
       expiresAt: data.expiresAt || null, // null = lifetime
       generatedAt: new Date().toISOString(),
       nonce: crypto.randomBytes(4).toString('hex') // Randomness
@@ -105,7 +105,7 @@ class LicenseManager {
    */
   static async checkActivationStatus(schoolId) {
     try {
-      if (!schoolId) return { activated: false };
+      if (!schoolId) return { isActivated: false, activated: false };
 
       const school = await prisma.school.findUnique({
         where: { id: schoolId },
@@ -117,11 +117,11 @@ class LicenseManager {
       });
 
       if (!school || !school.isActivated || !school.licenseKey) {
-        return { activated: false };
+        return { isActivated: false, activated: false };
       }
 
       // Re-validate the stored key
-      const validation = await this.validateLicenseKey(school.licenseKey);
+      const validation = await LicenseManager.validateLicenseKey(school.licenseKey);
 
       if (!validation.valid) {
         // Mark as inactive if license is invalid
@@ -129,7 +129,7 @@ class LicenseManager {
           where: { id: schoolId },
           data: { subscriptionActive: false }
         });
-        return { activated: false, error: validation.error };
+        return { isActivated: false, activated: false, error: validation.error };
       }
 
       const currentStudents = school._count.students;
@@ -137,18 +137,21 @@ class LicenseManager {
       const remainingSlots = maxStudents === -1 ? -1 : Math.max(0, maxStudents - currentStudents);
 
       return {
-        activated: true,
+        isActivated: true,
+        activated: true, // Keep for backwards compatibility
         license: validation.license,
         school,
         currentStudents,
         maxStudents,
         remainingSlots,
         daysRemaining: validation.daysRemaining,
-        packageType: school.packageType
+        packageType: school.packageType,
+        activatedAt: school.lastBillingDate || school.createdAt, // Use last billing date as activation date
+        expiresAt: school.expiresAt
       };
     } catch (error) {
       console.error('Status check error:', error);
-      return { activated: false, error: 'System error' };
+      return { isActivated: false, activated: false, error: 'System error' };
     }
   }
 

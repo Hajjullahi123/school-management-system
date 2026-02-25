@@ -9,26 +9,33 @@ const PromotionManager = () => {
   const [selectedClass, setSelectedClass] = useState('');
   const [targetClass, setTargetClass] = useState('');
   const [graduationYear, setGraduationYear] = useState(new Date().getFullYear());
+  const [programType, setProgramType] = useState('');
   const [students, setStudents] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
 
-  // Check if selected class is SS3
+  // Check if selected class is a graduation class (Final year of JSS or SS)
   const selectedClassObj = classes.find(c => c.id === parseInt(selectedClass));
-  const isSS3 = selectedClassObj?.name?.replace(/\s/g, '').toUpperCase().includes('SS3');
+  const className = selectedClassObj?.name?.replace(/\s/g, '').toUpperCase() || '';
+  const isFinalYear = className.includes('SS3') || className.includes('JSS3') || className.includes('SSS3') || className.includes('SENIOR3');
 
   useEffect(() => {
     fetchInitialData();
   }, []);
 
   useEffect(() => {
-    if (isSS3) {
+    if (isFinalYear) {
       setTargetClass('alumni');
+      setProgramType(className.includes('JSS') ? 'Junior Secondary School' : 'Senior Secondary School');
+    } else if (className.includes('PRI6') || className.includes('PRIMARY6') || className.includes('BASIC6')) {
+      setTargetClass('alumni');
+      setProgramType('Primary School');
     } else {
       setTargetClass('');
+      setProgramType('');
     }
-  }, [isSS3, selectedClass]);
+  }, [isFinalYear, className, selectedClass]);
 
   const fetchInitialData = async () => {
     try {
@@ -133,13 +140,21 @@ const PromotionManager = () => {
     try {
       const response = await api.post('/api/promotion/graduate', {
         studentIds: selectedStudents,
-        graduationYear: graduationYear
+        graduationYear: graduationYear,
+        programType: programType
       });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || 'Graduation failed');
       }
-      toast.success(data.message);
+      if (data.graduated?.length > 0) {
+        toast.success(data.message);
+      } else if (data.failed?.length > 0) {
+        const errorDetail = data.failed[0]?.error || 'Unknown error';
+        toast.error(`Graduation failed: ${errorDetail}`);
+      } else {
+        toast.error('No students were graduated. They may have already been graduated.');
+      }
       fetchStudents(selectedClass); // Refresh list
     } catch (error) {
       toast.error(error.message || 'Graduation failed');
@@ -186,21 +201,40 @@ const PromotionManager = () => {
               value={targetClass}
               onChange={(e) => setTargetClass(e.target.value)}
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-              disabled={isSS3}
             >
               <option value="">Select Next Class</option>
-              {isSS3 ? (
-                <option value="alumni">Alumni (Graduation)</option>
-              ) : (
-                classes.map(c => (
-                  <option key={c.id} value={c.id}>{c.name} {c.arm}</option>
-                ))
-              )}
+              <option value="alumni" className="font-bold text-accent">Alumni (Graduation)</option>
+              {classes.map(c => (
+                <option key={c.id} value={c.id}>{c.name} {c.arm}</option>
+              ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Graduation Year (For Alumni)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Graduation Level / Program</label>
+            <input
+              type="text"
+              list="graduation-levels"
+              value={programType}
+              onChange={(e) => setProgramType(e.target.value)}
+              placeholder="e.g. Primary School"
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+              disabled={targetClass !== 'alumni'}
+            />
+            <datalist id="graduation-levels">
+              <option value="Kindergarten" />
+              <option value="Nursery School" />
+              <option value="Primary School" />
+              <option value="Junior Secondary School" />
+              <option value="Senior Secondary School" />
+              <option value="Vocational Center" />
+              <option value="Transfer/Other" />
+              <option value="Expulsion" />
+            </datalist>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Graduation Year</label>
             <input
               type="number"
               value={graduationYear}
@@ -264,8 +298,8 @@ const PromotionManager = () => {
             onClick={targetClass === 'alumni' ? handleGraduate : handlePromote}
             disabled={processing || selectedStudents.length === 0}
             className={`flex items-center space-x-2 text-white px-6 py-2.5 rounded-lg font-medium shadow-md transition-all disabled:opacity-50 ${targetClass === 'alumni'
-                ? 'bg-accent hover:bg-accent/90'
-                : 'bg-primary hover:bg-primary/90'
+              ? 'bg-accent hover:bg-accent/90'
+              : 'bg-primary hover:bg-primary/90'
               }`}
           >
             {processing ? 'Processing...' : targetClass === 'alumni'
@@ -279,7 +313,7 @@ const PromotionManager = () => {
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
           <h3 className="text-lg font-bold text-blue-800 flex items-center">
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="I13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             How Promotion Works
           </h3>
           <ul className="mt-3 text-sm text-blue-700 space-y-2 list-disc list-inside">
@@ -292,7 +326,7 @@ const PromotionManager = () => {
 
         <div className="bg-amber-50 p-6 rounded-xl border border-amber-100">
           <h3 className="text-lg font-bold text-amber-800 flex items-center">
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="I12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             Graduation (Alumni)
           </h3>
           <p className="mt-3 text-sm text-amber-700">

@@ -33,30 +33,35 @@ async function seedProduction() {
     // 2. Create Superadmin User
     const superadminPassword = await bcrypt.hash('superadmin123', 12);
 
-    const superadmin = await prisma.user.upsert({
-      where: {
-        schoolId_username: {
-          schoolId: school.id,
-          username: 'superadmin'
-        }
-      },
-      update: {
-        passwordHash: superadminPassword,
-        isActive: true,
-        role: 'superadmin'
-      },
-      create: {
-        schoolId: school.id,
-        username: 'superadmin',
-        passwordHash: superadminPassword,
-        email: 'superadmin@system.local',
-        role: 'superadmin',
-        firstName: 'Global',
-        lastName: 'Superadmin',
-        isActive: true,
-        mustChangePassword: false
-      }
+    // Create/update superadmin with global access (schoolId: null)
+    let superadmin = await prisma.user.findFirst({
+      where: { username: 'superadmin', role: 'superadmin' }
     });
+
+    if (!superadmin) {
+      superadmin = await prisma.user.create({
+        data: {
+          schoolId: null, // Global access, not tied to any school
+          username: 'superadmin',
+          passwordHash: superadminPassword,
+          email: 'superadmin@system.local',
+          role: 'superadmin',
+          firstName: 'Global',
+          lastName: 'Superadmin',
+          isActive: true,
+          mustChangePassword: false
+        }
+      });
+    } else {
+      superadmin = await prisma.user.update({
+        where: { id: superadmin.id },
+        data: {
+          passwordHash: superadminPassword,
+          isActive: true,
+          role: 'superadmin'
+        }
+      });
+    }
 
     console.log(`✅ Superadmin: ${superadmin.username}`);
 

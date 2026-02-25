@@ -134,15 +134,12 @@ const SuperAdminDashboard = () => {
       });
       console.log('Create School Response:', res.data);
       const creds = res.data.credentials;
-      alert(
-        `SUCCESS: ${newSchool.name} initialized!\n\n` +
-        `DEFAULT ADMIN CREDENTIALS:\n` +
-        `--------------------------\n` +
-        `School Slug: ${creds.schoolSlug}\n` +
-        `Username: ${creds.username}\n` +
-        `Password: ${creds.password}\n\n` +
-        `Please provide these credentials to the school administrator.`
-      );
+      setResetCreds({
+        ...creds,
+        schoolName: newSchool.name,
+        isNewRegistration: true
+      });
+      setShowCredsModal(true);
       setShowModal(false);
       setNewSchool({ name: '', slug: '', email: '', phone: '', address: '' });
 
@@ -189,8 +186,8 @@ const SuperAdminDashboard = () => {
         maxStudents: parseInt(licenseData.maxStudents)
       };
 
-      const res = await apiCall('/api/license/generate', { method: 'POST', body: JSON.stringify(payload) });
-      const key = res.data.license.licenseKey;
+      const res = await apiCall(`/api/license/generate/${selectedSchoolForLicense.id}`, { method: 'POST', body: JSON.stringify(payload) });
+      const key = res.data.licenseKey;
       console.log('License generated:', key);
       setGeneratedKey(key);
       toast.success('License generated successfully!');
@@ -582,6 +579,22 @@ const SuperAdminDashboard = () => {
                             className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-100"
                           >
                             <FiKey className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setResetCreds({
+                                schoolName: s.name,
+                                schoolSlug: s.slug,
+                                username: 'admin', // Default admin username
+                                password: '— (Confidential)', // Don't show password on reprint
+                                isReprint: true
+                              });
+                              setShowCredsModal(true);
+                            }}
+                            title="Print School Details"
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100"
+                          >
+                            <FiPrinter className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleImpersonate(s.id)}
@@ -1041,13 +1054,22 @@ const SuperAdminDashboard = () => {
       {showCredsModal && resetCreds && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 print:p-0 print:bg-white">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden print:shadow-none print:w-full print:max-w-none">
-            <div className="bg-amber-600 p-6 text-white print:bg-white print:text-black print:border-b-2 print:border-gray-200">
-              <h3 className="text-xl font-bold flex items-center"><FiUnlock className="mr-2 print:hidden" /> Temporary Access Protocol</h3>
-              <p className="text-amber-100 text-xs print:text-black">One-time security credentials for {resetCreds.schoolName}</p>
+            <div className={`p-6 text-white print:bg-white print:text-black print:border-b-2 print:border-gray-200 ${resetCreds.isNewRegistration ? 'bg-indigo-600' : 'bg-amber-600'}`}>
+              <h3 className="text-xl font-bold flex items-center">
+                <FiUnlock className="mr-2 print:hidden" />
+                {resetCreds.isNewRegistration ? 'School Registration Protocol' : resetCreds.isReprint ? 'School Access Details' : 'Temporary Access Protocol'}
+              </h3>
+              <p className="text-indigo-100 text-xs text-opacity-80 print:text-black">
+                {resetCreds.isNewRegistration ? 'Welcome to the platform!' : 'Access credentials for'} {resetCreds.schoolName}
+              </p>
             </div>
 
             <div className="p-8 space-y-6 print:p-10">
               <div className="space-y-4">
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 print:bg-white print:border-gray-200">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Portal URL</p>
+                  <p className="text-lg font-mono font-bold text-indigo-600 truncate">{window.location.origin}/dashboard</p>
+                </div>
                 <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 print:bg-white print:border-gray-200">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">School URL Slug</p>
                   <p className="text-lg font-mono font-bold text-gray-800">{resetCreds.schoolSlug}</p>
@@ -1057,8 +1079,12 @@ const SuperAdminDashboard = () => {
                   <p className="text-lg font-mono font-bold text-gray-800">{resetCreds.username}</p>
                 </div>
                 <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 print:bg-white print:border-gray-200">
-                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-1 print:text-gray-400">Temporary Password</p>
-                  <p className="text-2xl font-mono font-bold text-amber-700 print:text-black">{resetCreds.password}</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                    {resetCreds.isReprint ? 'Password Status' : 'Temporary Password'}
+                  </p>
+                  <p className={`${resetCreds.isReprint ? 'text-lg' : 'text-2xl'} font-mono font-bold text-amber-700 print:text-black`}>
+                    {resetCreds.password}
+                  </p>
                 </div>
               </div>
 

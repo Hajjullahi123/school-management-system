@@ -5,6 +5,7 @@ import { api, API_BASE_URL } from '../api';
 import ParentDashboard from './parent/ParentDashboard';
 import useSchoolSettings from '../hooks/useSchoolSettings';
 import { formatCurrency, formatNumber } from '../utils/formatters';
+import StaffAttendanceWidget from '../components/StaffAttendanceWidget';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -40,10 +41,14 @@ const Dashboard = () => {
   const [teacherCBTExams, setTeacherCBTExams] = useState([]);
   const [currentSession, setCurrentSession] = useState(null);
   const [currentTerm, setCurrentTerm] = useState(null);
+  const [alumniCount, setAlumniCount] = useState(0);
+
 
   useEffect(() => {
     fetchNotices();
   }, [user]);
+
+
 
   useEffect(() => {
     if (user?.role === 'parent') {
@@ -52,7 +57,7 @@ const Dashboard = () => {
       fetchDashboardData();
     } else if (user?.role === 'accountant') {
       fetchAccountantData();
-    } else if (user?.role === 'teacher' || user?.role === 'admin' || user?.role === 'principal') {
+    } else if (user?.role === 'admin' || user?.role === 'principal' || user?.role === 'teacher') {
       fetchTeacherStats();
     } else {
       setLoading(false);
@@ -130,6 +135,19 @@ const Dashboard = () => {
         if (cbtRes.ok) {
           const cbtData = await cbtRes.json();
           setTeacherCBTExams(Array.isArray(cbtData) ? cbtData : []);
+        }
+      }
+
+      // Fetch Alumni Stats for Admin/Principal
+      if (user?.role === 'admin' || user?.role === 'principal') {
+        try {
+          const alumniRes = await api.get('/api/alumni/stats');
+          if (alumniRes.ok) {
+            const alumniData = await alumniRes.json();
+            setAlumniCount(alumniData.count || 0);
+          }
+        } catch (e) {
+          console.error('Error fetching alumni stats:', e);
         }
       }
 
@@ -352,9 +370,9 @@ const Dashboard = () => {
   if (user?.role === 'accountant') {
     return (
       <div className="space-y-3 sm:space-y-6">
-        <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-4 sm:p-6 rounded-lg shadow-lg">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Welcome back, {user?.firstName}!</h1>
-          <p className="text-white/90 text-sm sm:text-base mt-2">School Accountant Dashboard</p>
+        <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-5 sm:p-6 rounded-lg shadow-lg">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-black italic tracking-tighter uppercase">Welcome back, {user?.firstName}!</h1>
+          <p className="text-white/90 text-[10px] sm:text-sm font-bold uppercase tracking-widest mt-1.5 opacity-80">School Accountant Dashboard</p>
         </div>
 
         {/* Notices Section */}
@@ -385,51 +403,59 @@ const Dashboard = () => {
         {feeStats && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-green-600">
+              <div className="bg-white p-4 sm:p-5 rounded-xl shadow-md border-l-4 border-green-600 group hover:shadow-lg transition-all">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1 pr-2">
-                    <p className="text-xs sm:text-sm text-gray-600">Total Expected</p>
-                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">₦{formatNumber(feeStats.totalExpected)}</p>
+                    <p className="text-[10px] sm:text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Expected</p>
+                    <p className="text-lg sm:text-xl font-black text-gray-900 truncate">₦{formatNumber(feeStats.totalExpected)}</p>
                   </div>
-                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <div className="bg-green-50 p-2 sm:p-3 rounded-full group-hover:scale-110 transition-transform">
+                    <svg className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-blue-600">
+              <div className="bg-white p-4 sm:p-5 rounded-xl shadow-md border-l-4 border-blue-600 group hover:shadow-lg transition-all">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1 pr-2">
-                    <p className="text-xs sm:text-sm text-gray-600">Total Collected</p>
-                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">₦{formatNumber(feeStats.totalPaid)}</p>
+                    <p className="text-[10px] sm:text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Collected</p>
+                    <p className="text-lg sm:text-xl font-black text-gray-900 truncate">₦{formatNumber(feeStats.totalPaid)}</p>
                   </div>
-                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
+                  <div className="bg-blue-50 p-2 sm:p-3 rounded-full group-hover:scale-110 transition-transform">
+                    <svg className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-orange-600">
+              <div className="bg-white p-4 sm:p-5 rounded-xl shadow-md border-l-4 border-orange-600 group hover:shadow-lg transition-all">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1 pr-2">
-                    <p className="text-xs sm:text-sm text-gray-600">Outstanding</p>
-                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">₦{formatNumber(feeStats.totalBalance)}</p>
+                    <p className="text-[10px] sm:text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Outstanding</p>
+                    <p className="text-lg sm:text-xl font-black text-gray-900 truncate">₦{formatNumber(feeStats.totalBalance)}</p>
                   </div>
-                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-orange-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <div className="bg-orange-50 p-2 sm:p-3 rounded-full group-hover:scale-110 transition-transform">
+                    <svg className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-purple-600">
+              <div className="bg-white p-4 sm:p-5 rounded-xl shadow-md border-l-4 border-purple-600 group hover:shadow-lg transition-all">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1 pr-2">
-                    <p className="text-xs sm:text-sm text-gray-600">Cleared Students</p>
-                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{feeStats.clearedStudents}/{feeStats.totalStudents}</p>
+                    <p className="text-[10px] sm:text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Cleared</p>
+                    <p className="text-lg sm:text-xl font-black text-gray-900">{feeStats.clearedStudents}/{feeStats.totalStudents}</p>
                   </div>
-                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <div className="bg-purple-50 p-2 sm:p-3 rounded-full group-hover:scale-110 transition-transform">
+                    <svg className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
@@ -496,6 +522,7 @@ const Dashboard = () => {
             <p className="text-yellow-700">No fee data available for the current term. Please set up fee structures first.</p>
           </div>
         )}
+
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 gap-3 sm:gap-4">
@@ -584,6 +611,9 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* Teacher Attendance Widget */}
+        {user?.role === 'teacher' && <StaffAttendanceWidget />}
+
         {/* Teacher Assignments Section */}
         {user?.role === 'teacher' && (
           <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-t-4 border-primary">
@@ -611,15 +641,15 @@ const Dashboard = () => {
                           {assignment.subject.name}
                         </p>
                       </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <div className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider border shadow-sm ${assignment.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                      <div className="flex flex-col items-end gap-1.5 sm:gap-2">
+                        <div className={`px-2 py-1 rounded-md text-[8px] sm:text-[9px] font-black uppercase tracking-wider border shadow-sm ${assignment.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                           assignment.status === 'Partial' ? 'bg-amber-50 text-amber-600 border-amber-100' :
                             'bg-slate-50 text-slate-400 border-slate-100'
                           }`}>
                           {assignment.status}
                         </div>
-                        <div className="bg-primary/5 p-2 rounded-full group-hover:bg-primary/10 transition-colors">
-                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="bg-primary/5 p-1.5 sm:p-2 rounded-full group-hover:bg-primary/10 transition-colors">
+                          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                           </svg>
                         </div>
@@ -667,34 +697,34 @@ const Dashboard = () => {
         {user?.role === 'teacher' && teacherCBTExams.length > 0 && (
           <div className="bg-slate-900 p-4 sm:p-6 rounded-[32px] shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 relative z-10">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6 relative z-10">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary-light">Live CBT Operations</p>
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full animate-pulse"></span>
+                  <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-primary-light">Live CBT Operations</p>
                 </div>
-                <h2 className="text-xl font-black italic tracking-tighter text-white uppercase">Active Examinations</h2>
+                <h2 className="text-lg sm:text-xl font-black italic tracking-tighter text-white uppercase leading-tight">Active Examinations</h2>
               </div>
-              <Link to="/dashboard/cbt-management" className="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+              <Link to="/dashboard/cbt-management" className="w-full sm:w-auto text-center bg-white/5 hover:bg-white/10 text-white px-4 py-2 sm:py-2.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all">
                 Manage Center
               </Link>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
               {teacherCBTExams?.map(exam => (
-                <div key={exam.id} className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/[0.08] transition-all">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-white font-black italic tracking-tight truncate">{exam.title}</h4>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{exam.className} • {exam.subjectName}</p>
+                <div key={exam.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5 hover:bg-white/[0.08] transition-all">
+                  <div className="flex justify-between items-start mb-3 sm:mb-4">
+                    <div className="flex-1 min-w-0 pr-2">
+                      <h4 className="text-white font-black italic tracking-tight truncate text-sm sm:text-base">{exam.title}</h4>
+                      <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">{exam.className} • {exam.subjectName}</p>
                     </div>
-                    <div className="bg-primary/20 text-primary-light px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest">
+                    <div className="bg-primary/20 text-primary-light px-2 py-1 rounded-md text-[8px] sm:text-[9px] font-black uppercase tracking-widest flex-shrink-0">
                       {exam.participationRate}%
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <div className="flex justify-between text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-widest">
                       <span>Participation</span>
                       <span>{exam.completedCount}/{exam.totalStudents}</span>
                     </div>
@@ -748,46 +778,62 @@ const Dashboard = () => {
               </svg>
             </div>
           </div>
+
+          {(user?.role === 'admin' || user?.role === 'principal') && (
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-amber-600">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs sm:text-sm text-gray-600">Total Alumni</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">{alumniCount || 0}</p>
+                </div>
+                <svg className="w-10 h-10 sm:w-12 sm:h-12 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+                </svg>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Academic Oversight Hub - For Admin and Principal */}
         {(user?.role === 'admin' || user?.role === 'principal') && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-6">
-            <Link to="/dashboard/attendance-tracker" className="bg-emerald-900 text-white p-6 rounded-[32px] shadow-2xl relative overflow-hidden flex items-center justify-between group">
+            <Link to="/dashboard/attendance-tracker" className="bg-emerald-900 text-white p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] shadow-2xl relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between group gap-4">
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300">Daily Attendance Control</p>
+              <div className="relative z-10 w-full sm:w-auto">
+                <div className="flex items-center gap-2 mb-1.5 sm:mb-2 text-emerald-300">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                  <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em]">Daily Control</p>
                 </div>
-                <h3 className="text-2xl font-black italic tracking-tighter mb-1 uppercase">Attendance Tracking</h3>
-                <p className="text-xs font-bold text-emerald-200">Monitor teacher marking compliance</p>
+                <h3 className="text-xl sm:text-2xl font-black italic tracking-tighter mb-0.5 sm:mb-1 uppercase leading-tight">Attendance</h3>
+                <p className="text-[10px] sm:text-xs font-bold text-emerald-200">Compliance Monitoring</p>
               </div>
-              <div className="relative z-10 bg-white text-emerald-900 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
-                Launch Tracker
+              <div className="relative z-10 w-full sm:w-auto text-center bg-white text-emerald-900 px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
+                Launch
               </div>
             </Link>
 
-            <Link to="/dashboard/exam-tracker" className="bg-indigo-900 text-white p-6 rounded-[32px] shadow-2xl relative overflow-hidden flex items-center justify-between group">
+            <Link to="/dashboard/exam-tracker" className="bg-indigo-900 text-white p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] shadow-2xl relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between group gap-4">
               <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></span>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">Live Result Intelligence</p>
+              <div className="relative z-10 w-full sm:w-auto">
+                <div className="flex items-center gap-2 mb-1.5 sm:mb-2 text-indigo-300">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-indigo-400 rounded-full animate-pulse"></span>
+                  <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em]">Live Intelligence</p>
                 </div>
-                <h3 className="text-2xl font-black italic tracking-tighter mb-1 uppercase">Submission Tracker</h3>
-                <p className="text-xs font-bold text-indigo-200">Track assessment and exam entries</p>
+                <h3 className="text-xl sm:text-2xl font-black italic tracking-tighter mb-0.5 sm:mb-1 uppercase leading-tight">Submissions</h3>
+                <p className="text-[10px] sm:text-xs font-bold text-indigo-200">Assessment Trends</p>
               </div>
-              <div className="relative z-10 bg-white text-indigo-900 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
-                Enter Command Center
+              <div className="relative z-10 w-full sm:w-auto text-center bg-white text-indigo-900 px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
+                Enter
               </div>
             </Link>
           </div>
         )}
 
-        {/* Quick Actions for Admin - More visible */}
-        {user?.role === 'admin' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+
+
+        {/* Quick Actions for Admin & Principal - More visible */}
+        {(user?.role === 'admin' || user?.role === 'principal') && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
             <Link to="/dashboard/timetable" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all border-l-8 border-indigo-600 flex items-center gap-4">
               <div className="bg-indigo-100 p-3 rounded-full">
                 <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -797,6 +843,18 @@ const Dashboard = () => {
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Timetable Management</h3>
                 <p className="text-sm text-gray-600">Generate, view, and manage class schedules</p>
+              </div>
+            </Link>
+
+            <Link to="/dashboard/alumni-management" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all border-l-8 border-amber-600 flex items-center gap-4">
+              <div className="bg-amber-100 p-3 rounded-full">
+                <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Alumni Management</h3>
+                <p className="text-sm text-gray-600">Manage graduated students and their academic history</p>
               </div>
             </Link>
 
@@ -821,29 +879,29 @@ const Dashboard = () => {
   return (
     <div className="space-y-3 sm:space-y-6">
       {/* Welcome Header with Photo */}
-      <div className="bg-gradient-to-r from-primary to-primary/80 text-white p-3 sm:p-6 rounded-lg shadow-lg">
-        <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
+      <div className="bg-gradient-to-r from-primary to-primary/80 text-white p-5 sm:p-6 rounded-lg shadow-lg">
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
           {studentData?.photoUrl ? (
             <img
               src={`${API_BASE_URL}${studentData.photoUrl}`}
               alt="Student"
-              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white shadow-lg"
+              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white shadow-xl"
             />
           ) : (
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white flex items-center justify-center text-primary font-bold text-2xl sm:text-3xl border-4 border-white shadow-lg">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white flex items-center justify-center text-primary font-black text-2xl sm:text-3xl border-4 border-white shadow-xl">
               {user?.firstName?.[0]}{user?.lastName?.[0]}
             </div>
           )}
-          <div className="text-center sm:text-left">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">
+          <div className="text-center sm:text-left flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black italic tracking-tighter uppercase leading-tight">
               Welcome, {user?.firstName}!
             </h1>
-            <div className="flex flex-col mt-2 space-y-1">
-              <span className="text-white/90 text-sm sm:text-base lg:text-lg">
+            <div className="flex flex-col mt-2 space-y-2">
+              <span className="text-white/90 text-xs sm:text-base font-bold uppercase tracking-widest opacity-80 truncate">
                 {studentData?.classModel?.name} {studentData?.classModel?.arm || ''}
               </span>
-              <span className="text-white font-medium bg-white/20 px-3 py-1 rounded-full text-xs sm:text-sm w-fit mx-auto sm:mx-0">
-                Admission No: {studentData?.admissionNumber || 'N/A'}
+              <span className="text-white font-black bg-white/20 px-3 py-1.5 rounded-full text-[10px] sm:text-xs w-fit mx-auto sm:mx-0 uppercase tracking-widest border border-white/20">
+                ADM: {studentData?.admissionNumber || 'N/A'}
               </span>
             </div>
           </div>
@@ -916,18 +974,18 @@ const Dashboard = () => {
       <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mb-3 sm:mb-6">
         <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Fee Status</h2>
         {studentFeeRecord ? (
-          <div className="grid grid-cols-1 gap-3 sm:gap-6">
-            <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-100">
-              <p className="text-xs sm:text-sm text-blue-600 mb-1">Expected Amount</p>
-              <p className="text-xl sm:text-2xl font-bold text-blue-900">₦{formatNumber(studentFeeRecord.expectedAmount || 0)}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col items-center sm:items-start">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Expected</p>
+              <p className="text-xl font-black text-slate-900 leading-tight">₦{formatNumber(studentFeeRecord.expectedAmount || 0)}</p>
             </div>
-            <div className="bg-green-50 p-3 sm:p-4 rounded-lg border border-green-100">
-              <p className="text-xs sm:text-sm text-green-600 mb-1">Total Paid</p>
-              <p className="text-xl sm:text-2xl font-bold text-green-900">₦{formatNumber(studentFeeRecord.paidAmount || 0)}</p>
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col items-center sm:items-start">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Paid</p>
+              <p className="text-xl font-black text-emerald-600 leading-tight">₦{formatNumber(studentFeeRecord.paidAmount || 0)}</p>
             </div>
-            <div className={`p-3 sm:p-4 rounded-lg border ${studentFeeRecord.balance > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
-              <p className={`text-xs sm:text-sm mb-1 ${studentFeeRecord.balance > 0 ? 'text-red-600' : 'text-gray-600'}`}>Outstanding Balance</p>
-              <p className={`text-xl sm:text-2xl font-bold ${studentFeeRecord.balance > 0 ? 'text-red-900' : 'text-gray-900'}`}>
+            <div className={`p-4 rounded-xl border flex flex-col items-center sm:items-start ${studentFeeRecord.balance > 0 ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
+              <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${studentFeeRecord.balance > 0 ? 'text-red-400' : 'text-slate-400'}`}>Balance</p>
+              <p className={`text-xl font-black leading-tight ${studentFeeRecord.balance > 0 ? 'text-red-600' : 'text-slate-900'}`}>
                 ₦{formatNumber(studentFeeRecord.balance || 0)}
               </p>
             </div>
@@ -990,38 +1048,44 @@ const Dashboard = () => {
 
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <Link
           to="/dashboard/term-report"
-          className="bg-primary text-white p-6 rounded-lg shadow-md hover:brightness-90 transition-colors"
+          className="bg-primary text-white p-5 rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all group"
         >
-          <svg className="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <h3 className="font-bold mb-1">Term Report</h3>
-          <p className="text-sm text-white/90">View your current term report card</p>
+          <div className="bg-white/20 w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h3 className="font-black italic uppercase tracking-tighter text-lg mb-0.5">Term Report</h3>
+          <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Current Grade Data</p>
         </Link>
 
         <Link
           to="/dashboard/cumulative-report"
-          className="bg-blue-600 text-white p-6 rounded-lg shadow-md hover:bg-blue-700 transition-colors"
+          className="bg-blue-600 text-white p-5 rounded-xl shadow-lg shadow-blue-600/20 hover:scale-[1.02] active:scale-[0.98] transition-all group"
         >
-          <svg className="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-          <h3 className="font-bold mb-1">Cumulative Report</h3>
-          <p className="text-sm text-blue-100">Check your full session performance</p>
+          <div className="bg-white/20 w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <h3 className="font-black italic uppercase tracking-tighter text-lg mb-0.5">Session</h3>
+          <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Cumulative History</p>
         </Link>
 
         <Link
           to="/dashboard/progressive-report"
-          className="bg-purple-600 text-white p-6 rounded-lg shadow-md hover:bg-purple-700 transition-colors"
+          className="bg-purple-600 text-white p-5 rounded-xl shadow-lg shadow-purple-600/20 hover:scale-[1.02] active:scale-[0.98] transition-all group"
         >
-          <svg className="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          <h3 className="font-bold mb-1">Analytics</h3>
-          <p className="text-sm text-purple-100">View performance trends and graphs</p>
+          <div className="bg-white/20 w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <h3 className="font-black italic uppercase tracking-tighter text-lg mb-0.5">Analytics</h3>
+          <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Performance Graphs</p>
         </Link>
       </div>
     </div >

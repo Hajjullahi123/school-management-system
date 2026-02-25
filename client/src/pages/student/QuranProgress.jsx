@@ -7,6 +7,7 @@ const QuranProgress = () => {
   const [records, setRecords] = useState([]);
   const [targets, setTargets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     totalRecords: 0,
     thisWeek: 0,
@@ -24,12 +25,25 @@ const QuranProgress = () => {
   const fetchRecords = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await api.get(`/api/quran-tracker/records/${user.student.id}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || errorData.error || 'Failed to fetch records');
+      }
+
       const data = await response.json();
-      setRecords(data);
-      calculateStats(data);
+      if (Array.isArray(data)) {
+        setRecords(data);
+        calculateStats(data);
+      } else {
+        console.error('Expected an array for records, got:', data);
+        setRecords([]);
+      }
     } catch (error) {
       console.error('Error fetching records:', error);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -39,14 +53,22 @@ const QuranProgress = () => {
     if (!user?.student?.classId) return;
     try {
       const response = await api.get(`/api/quran-tracker/targets/${user.student.classId}`);
-      const data = await response.json();
-      setTargets(data);
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setTargets(data);
+        } else {
+          setTargets([]);
+        }
+      }
     } catch (error) {
       console.error('Error fetching targets:', error);
     }
   };
 
   const calculateStats = (records) => {
+    if (!Array.isArray(records)) return;
+
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -96,6 +118,26 @@ const QuranProgress = () => {
         <h1 className="text-2xl font-bold mb-2">My Qur'an Progress</h1>
         <p className="text-green-100">Track your memorization journey</p>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">
+                {error}
+                {error.includes('UPGRADE_REQUIRED') || error.includes('premium') ? (
+                  <span className="block mt-1 font-medium">Please contact your school administrator to upgrade to the Premium package.</span>
+                ) : null}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

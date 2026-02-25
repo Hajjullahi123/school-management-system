@@ -46,6 +46,14 @@ const CBTManagement = () => {
     points: 1
   });
 
+  // Bank Import State
+  const [bankQuestions, setBankQuestions] = useState([]);
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [selectedBankQuestions, setSelectedBankQuestions] = useState([]);
+  const [bankLoading, setBankLoading] = useState(false);
+  const [saveToBank, setSaveToBank] = useState(false);
+  const [bankSearchTerm, setBankSearchTerm] = useState('');
+
   useEffect(() => {
     fetchInitialData();
   }, []);
@@ -157,7 +165,10 @@ const CBTManagement = () => {
 
     try {
       // Send as array
-      const payload = { questions: [newQuestion] };
+      const payload = {
+        questions: [newQuestion],
+        saveToBank
+      };
       const response = await api.post(`/api/cbt/${selectedExam.id}/questions`, payload);
       const data = await response.json();
 
@@ -404,6 +415,7 @@ const CBTManagement = () => {
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('saveToBank', saveToBank);
 
     const token = localStorage.getItem('token');
     try {
@@ -428,6 +440,53 @@ const CBTManagement = () => {
       toast.error('Failed to upload file');
     } finally {
       e.target.value = '';
+    }
+  };
+
+  const fetchBankQuestions = async () => {
+    if (!selectedExam?.subjectId) return;
+    setBankLoading(true);
+    try {
+      const response = await api.get(`/api/cbt/bank?subjectId=${selectedExam.subjectId}`);
+      if (response.ok) {
+        setBankQuestions(await response.json());
+      }
+    } catch (error) {
+      toast.error('Failed to load bank questions');
+    } finally {
+      setBankLoading(false);
+    }
+  };
+
+  const handleImportFromBank = async () => {
+    if (selectedBankQuestions.length === 0) {
+      toast.error('No questions selected');
+      return;
+    }
+
+    try {
+      const response = await api.post(`/api/cbt/${selectedExam.id}/import-from-bank`, {
+        questionIds: selectedBankQuestions
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(data.message || 'Questions imported');
+        setShowBankModal(false);
+        setSelectedBankQuestions([]);
+        handleManageQuestions(selectedExam); // Refresh
+      } else {
+        toast.error(data.error || 'Import failed');
+      }
+    } catch (error) {
+      toast.error('Error importing from bank');
+    }
+  };
+
+  const toggleBankQuestion = (id) => {
+    if (selectedBankQuestions.includes(id)) {
+      setSelectedBankQuestions(selectedBankQuestions.filter(qid => qid !== id));
+    } else {
+      setSelectedBankQuestions([...selectedBankQuestions, id]);
     }
   };
 
@@ -761,6 +820,19 @@ const CBTManagement = () => {
                 />
               </div>
 
+              <div className="flex items-center gap-2 py-2">
+                <input
+                  type="checkbox"
+                  id="saveToBank"
+                  className="h-4 w-4 text-primary focus:ring-primary rounded border-gray-300"
+                  checked={saveToBank}
+                  onChange={(e) => setSaveToBank(e.target.checked)}
+                />
+                <label htmlFor="saveToBank" className="text-sm font-medium text-gray-700 cursor-pointer">
+                  Save to Question Bank
+                </label>
+              </div>
+
               <button
                 onClick={handleAddQuestion}
                 className="w-full py-2 bg-primary text-white rounded-md hover:brightness-90 font-medium"
@@ -799,8 +871,144 @@ const CBTManagement = () => {
                     onChange={handleBulkUpload}
                   />
                 </label>
+                <button
+                  onClick={() => {
+                    setShowBankModal(true);
+                    fetchBankQuestions();
+                  }}
+                  className="px-3 py-1.4 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700 transition flex items-center gap-1.5"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  Import from Bank
+                </button>
               </div>
             </div>
+
+            {/* Bulk Upload Options */}
+            <div className="flex items-center gap-4 px-4 pb-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="bulkSaveToBank"
+                  className="h-3.5 w-3.5 text-primary focus:ring-primary rounded border-gray-300"
+                  checked={saveToBank}
+                  onChange={(e) => setSaveToBank(e.target.checked)}
+                />
+                <label htmlFor="bulkSaveToBank" className="text-xs text-gray-600 cursor-pointer">
+                  Save bulk uploads to Bank
+                </label>
+              </div>
+            </div>
+
+            {/* Bank Import Modal */}
+            {showBankModal && (
+              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                  <div className="p-6 border-b flex justify-between items-center">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">Import from Question Bank</h3>
+                      <p className="text-sm text-gray-500">Subject: {selectedExam.subject?.name}</p>
+                    </div>
+                    <button onClick={() => setShowBankModal(false)} className="text-gray-400 hover:text-gray-600">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-6">
+                    <div className="mb-4">
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="Search questions in bank..."
+                          className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary"
+                          value={bankSearchTerm}
+                          onChange={(e) => setBankSearchTerm(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {bankLoading ? (
+                      <p className="text-center py-10">Loading bank...</p>
+                    ) : bankQuestions.length === 0 ? (
+                      <p className="text-center py-10 text-gray-500">No questions found for this subject in the bank.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200 sticky top-0 z-10">
+                          <span className="text-sm font-medium text-gray-700">{selectedBankQuestions.length} questions selected</span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setSelectedBankQuestions(bankQuestions.map(q => q.id))}
+                              className="text-xs text-primary font-medium"
+                            >
+                              Select All
+                            </button>
+                            <button
+                              onClick={() => setSelectedBankQuestions([])}
+                              className="text-xs text-red-500 font-medium"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        </div>
+                        {bankQuestions
+                          .filter(q => q.questionText.toLowerCase().includes(bankSearchTerm.toLowerCase()))
+                          .map(q => (
+                            <div
+                              key={q.id}
+                              onClick={() => toggleBankQuestion(q.id)}
+                              className={`p-4 border rounded-lg cursor-pointer transition ${selectedBankQuestions.includes(q.id) ? 'border-primary bg-primary/5' : 'border-gray-200 hover:bg-gray-50'
+                                }`}
+                            >
+                              <div className="flex gap-4">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedBankQuestions.includes(q.id)}
+                                  onChange={() => { }} // Controlled by div click
+                                  className="mt-1 h-5 w-5 text-primary rounded border-gray-300 pointer-events-none"
+                                />
+                                <div className="flex-1">
+                                  <p className="font-medium text-gray-900 mb-1">{q.questionText}</p>
+                                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                                    <span>Options: {JSON.parse(q.options).length}</span>
+                                    <span>Correct: {q.correctOption.toUpperCase()}</span>
+                                    <span>Level: {q.difficulty || 'Medium'}</span>
+                                    <span>Points: {q.points}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-6 border-t bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+                    <button
+                      onClick={() => setShowBankModal(false)}
+                      className="px-6 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleImportFromBank}
+                      disabled={selectedBankQuestions.length === 0}
+                      className="px-8 py-2 bg-primary text-white rounded-lg hover:brightness-90 disabled:bg-gray-400 font-medium transition shadow-md"
+                    >
+                      Import {selectedBankQuestions.length} Questions
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {questions.map((q, qIndex) => (
               <div key={q.id} className="bg-white rounded-lg shadow p-4 border border-gray-200">

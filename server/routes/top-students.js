@@ -40,6 +40,24 @@ router.get('/top-students', async (req, res) => {
 
     // For each class, find the top student
     for (const classItem of classes) {
+      // Check if results are published for this class and term
+      const publication = await prisma.resultPublication.findUnique({
+        where: {
+          schoolId_classId_termId: {
+            schoolId: finalSchoolId,
+            classId: classItem.id,
+            termId: finalTermId
+          }
+        }
+      });
+
+      // If not published via new model, check legacy flag (only for current term)
+      if (!publication || !publication.isPublished) {
+        if (!(classItem.isResultPublished && (!currentTerm || finalTermId === currentTerm.id))) {
+          continue; // Skip this class if not published
+        }
+      }
+
       // Get all students in this class with their results
       const students = await prisma.student.findMany({
         where: {
@@ -188,8 +206,27 @@ router.get('/top-performers', async (req, res) => {
       }
     });
 
-    // Calculate average for each student
-    const studentsWithAverage = students.map(student => {
+    // Filter students by publication status
+    const studentsWithAveragePromises = students.map(async student => {
+      // Check if results are published for this student's class and term
+      if (student.classModel) {
+        const publication = await prisma.resultPublication.findUnique({
+          where: {
+            schoolId_classId_termId: {
+              schoolId: finalSchoolId,
+              classId: student.classModel.id,
+              termId: finalTermId
+            }
+          }
+        });
+
+        if (!publication || !publication.isPublished) {
+          if (!(student.classModel.isResultPublished && (!currentTerm || finalTermId === currentTerm.id))) {
+            return null; // Skip this student if class results are not published
+          }
+        }
+      }
+
       if (student.results.length === 0) {
         return null;
       }
@@ -224,6 +261,8 @@ router.get('/top-performers', async (req, res) => {
         totalSubjects: student.results.length
       };
     }).filter(Boolean); // Remove nulls
+
+    const studentsWithAverage = (await Promise.all(studentsWithAveragePromises)).filter(Boolean);
 
     // Sort by average (descending) and assign positions
     studentsWithAverage.sort((a, b) => b.averageNumeric - a.averageNumeric);

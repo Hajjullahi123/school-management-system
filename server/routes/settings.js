@@ -61,6 +61,8 @@ router.get('/', async (req, res) => {
     delete sanitizedSettings.flutterwaveSecretKey;
     delete sanitizedSettings.emailPassword;
     delete sanitizedSettings.smsApiKey;
+    delete sanitizedSettings.twilioAuthToken;
+    delete sanitizedSettings.geminiApiKey;
 
     // Map fields for frontend compatibility
     sanitizedSettings.schoolName = sanitizedSettings.name;
@@ -94,7 +96,9 @@ router.put('/', authenticate, async (req, res) => {
     assignment1Weight, assignment2Weight, test1Weight, test2Weight, examWeight,
     openingHours, welcomeTitle, welcomeMessage,
     examMode, examModeType,
-    gradingSystem, passThreshold
+    gradingSystem, passThreshold,
+    whatsappBotEnabled, whatsappPhoneNumber, twilioAccountSid, twilioAuthToken, geminiApiKey,
+    staffExpectedArrivalTime, enableStaffAttendanceReport, staffClockInDeadline
   } = req.body;
 
   // Validate weightings if provided
@@ -168,6 +172,16 @@ router.put('/', authenticate, async (req, res) => {
 
     if (gradingSystem !== undefined) updateData.gradingSystem = gradingSystem;
     if (passThreshold !== undefined) updateData.passThreshold = Number(passThreshold);
+
+    if (whatsappBotEnabled !== undefined) updateData.whatsappBotEnabled = !!whatsappBotEnabled;
+    if (whatsappPhoneNumber !== undefined) updateData.whatsappPhoneNumber = whatsappPhoneNumber;
+    if (twilioAccountSid !== undefined) updateData.twilioAccountSid = twilioAccountSid;
+    if (twilioAuthToken !== undefined) updateData.twilioAuthToken = twilioAuthToken;
+    if (geminiApiKey !== undefined) updateData.geminiApiKey = geminiApiKey;
+
+    if (staffExpectedArrivalTime !== undefined) updateData.staffExpectedArrivalTime = staffExpectedArrivalTime;
+    if (staffClockInDeadline !== undefined) updateData.staffClockInDeadline = staffClockInDeadline;
+    if (enableStaffAttendanceReport !== undefined) updateData.enableStaffAttendanceReport = !!enableStaffAttendanceReport;
 
     // Automatically complete setup if basic info is provided
     if (schoolName && schoolAddress && schoolPhone) {

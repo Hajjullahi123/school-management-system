@@ -2,10 +2,12 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
 const { authenticate, authorize, optionalAuth } = require('../middleware/auth');
+const { checkSubscription } = require('../middleware/subscription');
 const { logAction } = require('../utils/audit');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { generateAlumniUsername } = require('../utils/usernameGenerator');
 
 // Configure multer for photo uploads
 const storage = multer.diskStorage({
@@ -40,10 +42,15 @@ const upload = multer({
 
 // Helper function to resolve schoolId from query or authenticated request
 async function resolveSchoolId(req) {
+  // 1. Check if schoolId is already on the request (from authenticate/optionalAuth for non-superadmins)
   if (req.schoolId) return req.schoolId;
-  if (req.user?.schoolId) return req.user.schoolId;
 
-  const schoolParam = req.query.school;
+  // 2. If it's a superadmin, they might not have a schoolId in their token. 
+  // We should try to get it from the query params or user object.
+  if (req.user?.role === 'superadmin' && req.user.schoolId) return req.user.schoolId;
+
+  // 3. Resolve from school query parameter
+  const schoolParam = req.query.school || req.body.schoolId;
   if (schoolParam) {
     const school = await prisma.school.findFirst({
       where: {
@@ -55,7 +62,9 @@ async function resolveSchoolId(req) {
     });
     return school?.id || null;
   }
-  return null;
+
+  // 4. Final fallback to user's schoolId if available
+  return req.user?.schoolId || null;
 }
 
 // 1. Get Public Alumni Directory
@@ -75,16 +84,16 @@ router.get('/directory', optionalAuth, async (req, res) => {
     const { year, search } = req.query;
 
     const where = {
-      schoolId: schoolId,
-      student: {
-        status: 'alumni',
-        schoolId: schoolId
-      }
+      schoolId: schoolId
     };
 
     // If it's a public request, only show public profiles
-    // If it's an admin of THIS school, show everyone
-    if (!req.user || req.user.role !== 'admin' || req.user.schoolId !== schoolId) {
+    // If it's an authenticated admin/principal/superadmin of THIS school, show everyone
+    const isStaffOfSchool = req.user &&
+      ['admin', 'principal', 'superadmin'].includes(req.user.role) &&
+      (req.user.role === 'superadmin' || req.user.schoolId === schoolId);
+
+    if (!isStaffOfSchool) {
       where.isPublic = true;
     }
 
@@ -117,6 +126,22 @@ router.get('/directory', optionalAuth, async (req, res) => {
   } catch (error) {
     console.error('Alumni directory error:', error);
     res.status(500).json({ error: 'Failed to fetch alumni directory' });
+  }
+});
+
+// 1.1 Get Alumni Stats (Admin Only)
+router.get('/stats', authenticate, checkSubscription, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
+  try {
+    const schoolId = await resolveSchoolId(req);
+    if (!schoolId) return res.status(400).json({ error: 'School identifier is required' });
+
+    const count = await prisma.alumni.count({
+      where: { schoolId }
+    });
+    res.json({ count });
+  } catch (error) {
+    console.error('Alumni stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch alumni stats' });
   }
 });
 
@@ -168,7 +193,7 @@ router.get('/profile/current', authenticate, async (req, res) => {
         student: {
           include: {
             user: {
-              select: { firstName: true, lastName: true, email: true }
+              select: { firstName: true, lastName: true, email: true, phone: true }
             }
           }
         }
@@ -237,7 +262,7 @@ router.put('/profile', authenticate, async (req, res) => {
     const {
       currentJob, currentCompany, university, courseOfStudy,
       bio, isPublic, linkedinUrl, twitterUrl, portfolioUrl,
-      skills, achievements
+      skills, achievements, phone, contactEmail, currentAddress
     } = req.body;
 
     const updated = await prisma.alumni.update({
@@ -247,7 +272,10 @@ router.put('/profile', authenticate, async (req, res) => {
       data: {
         currentJob, currentCompany, university, courseOfStudy,
         bio, isPublic, linkedinUrl, twitterUrl, portfolioUrl,
-        skills, achievements
+        skills, achievements,
+        phone: phone || null,
+        contactEmail: contactEmail || null,
+        currentAddress: currentAddress || null
       }
     });
 
@@ -258,13 +286,63 @@ router.put('/profile', authenticate, async (req, res) => {
   }
 });
 
-// Admin create story
-router.post('/stories', authenticate, authorize(['admin']), async (req, res) => {
+// 4.1 Upload Profile Photo
+router.post('/upload-photo', authenticate, upload.single('photo'), async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No photo provided' });
+    }
+
+    const userId = req.user.id;
+    const user = await prisma.user.findFirst({
+      where: { id: userId, schoolId: req.schoolId },
+      include: { student: { where: { schoolId: req.schoolId } } }
+    });
+
+    if (!user?.student) {
+      return res.status(404).json({ error: 'Alumni profile not found' });
+    }
+
+    const photoUrl = `/uploads/alumni/${req.file.filename}`;
+
+    // Update alumni record
+    await prisma.alumni.update({
+      where: {
+        studentId: user.student.id
+      },
+      data: {
+        profilePicture: photoUrl
+      }
+    });
+
+    res.json({ message: 'Photo uploaded successfully', url: photoUrl });
+
+    // Log action
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPDATE',
+      resource: 'ALUMNI_PHOTO',
+      details: { url: photoUrl },
+      ipAddress: req.ip
+    });
+
+  } catch (error) {
+    console.error('Photo upload error:', error);
+    res.status(500).json({ error: 'Failed to upload photo' });
+  }
+});
+
+// Admin create story
+router.post('/stories', authenticate, checkSubscription, authorize(['admin', 'superadmin']), async (req, res) => {
+  try {
+    const schoolId = await resolveSchoolId(req);
+    if (!schoolId) return res.status(400).json({ error: 'School identifier is required' });
+
     const story = await prisma.alumniStory.create({
       data: {
         ...req.body,
-        schoolId: req.schoolId,
+        schoolId: schoolId,
         isPublished: true
       }
     });
@@ -272,7 +350,7 @@ router.post('/stories', authenticate, authorize(['admin']), async (req, res) => 
 
     // Log the action
     logAction({
-      schoolId: req.schoolId,
+      schoolId: schoolId,
       userId: req.user.id,
       action: 'CREATE',
       resource: 'ALUMNI_STORY',
@@ -288,7 +366,7 @@ router.post('/stories', authenticate, authorize(['admin']), async (req, res) => 
 });
 
 // 5. Create Alumni Record from Existing Student (Admin Only - Promotion)
-router.post('/admin/create', authenticate, authorize(['admin']), async (req, res) => {
+router.post('/admin/create', authenticate, checkSubscription, authorize(['admin', 'superadmin']), async (req, res) => {
   try {
     const { studentId, graduationYear, alumniId } = req.body;
 
@@ -305,9 +383,20 @@ router.post('/admin/create', authenticate, authorize(['admin']), async (req, res
 
     // Ensure student exists
     const student = await prisma.student.findFirst({
-      where: { id: parseInt(studentId), schoolId: req.schoolId }
+      where: { id: parseInt(studentId), schoolId: req.schoolId },
+      include: {
+        user: { select: { firstName: true, lastName: true } }
+      }
     });
+
     if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    // Fetch school code
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { code: true }
+    });
+    const schoolCode = school?.code || 'SCH';
 
     // Update student status to 'alumni'
     await prisma.student.update({
@@ -321,7 +410,13 @@ router.post('/admin/create', authenticate, authorize(['admin']), async (req, res
         schoolId: req.schoolId,
         studentId: parseInt(studentId),
         graduationYear: parseInt(graduationYear),
-        alumniId: alumniId || `AL/${graduationYear}/${student.admissionNumber}`
+        alumniId: alumniId || await generateAlumniUsername(
+          req.schoolId,
+          schoolCode,
+          student.user.firstName,
+          student.user.lastName,
+          graduationYear
+        )
       }
     });
 
@@ -347,14 +442,14 @@ router.post('/admin/create', authenticate, authorize(['admin']), async (req, res
 });
 
 // 5B. Direct Alumni Registration (Admin Only - for alumni not previously in system)
-router.post('/admin/register-direct', authenticate, authorize(['admin']), async (req, res) => {
+router.post('/admin/register-direct', authenticate, checkSubscription, authorize(['admin', 'superadmin']), async (req, res) => {
   try {
     const {
       // Personal Information
       firstName, lastName, middleName, email,
       dateOfBirth, gender, stateOfOrigin, nationality, address,
       // Academic Information
-      graduationYear, classGraduated,
+      graduationYear, classGraduated, programType,
       // Alumni-Specific Information
       currentJob, currentCompany, university, courseOfStudy,
       bio, linkedinUrl, twitterUrl, portfolioUrl, skills, achievements,
@@ -378,8 +473,21 @@ router.post('/admin/register-direct', authenticate, authorize(['admin']), async 
     });
     const admissionNumber = `ALM${year}${String(count + 1).padStart(4, '0')}`;
 
-    // Generate alumni ID
-    const alumniId = `AL/${graduationYear}/${admissionNumber}`;
+    // Fetch school for code
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { code: true }
+    });
+    const schoolCode = school?.code || 'SCH';
+
+    // Generate alumni ID and username
+    const alumniId = await generateAlumniUsername(
+      req.schoolId,
+      schoolCode,
+      firstName,
+      lastName,
+      graduationYear
+    );
 
     // 1. Check if email already exists
     const targetEmail = email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@alumni.school`;
@@ -424,7 +532,7 @@ router.post('/admin/register-direct', authenticate, authorize(['admin']), async 
           firstName,
           lastName,
           isActive: true,
-          mustChangePassword: true
+          mustChangePassword: false
         }
       });
 
@@ -468,6 +576,7 @@ router.post('/admin/register-direct', authenticate, authorize(['admin']), async 
           portfolioUrl: portfolioUrl || null,
           skills: skills || null,
           achievements: achievements || null,
+          programType: programType || null,
           isPublic: true
         },
         include: {
@@ -514,7 +623,7 @@ router.post('/admin/register-direct', authenticate, authorize(['admin']), async 
 });
 
 // 6. Generate/Reset Alumni Credentials (Admin Only)
-router.post('/admin/generate-credentials', authenticate, authorize(['admin']), async (req, res) => {
+router.post('/admin/generate-credentials', authenticate, checkSubscription, authorize(['admin', 'superadmin']), async (req, res) => {
   try {
     const { studentId } = req.body;
     const bcrypt = require('bcryptjs');
@@ -531,7 +640,25 @@ router.post('/admin/generate-credentials', authenticate, authorize(['admin']), a
       return res.status(404).json({ error: 'Alumni record not found' });
     }
 
-    const alumniId = student.alumniProfile.alumniId || `AL/${student.alumniProfile.graduationYear}/${student.admissionNumber}`;
+    // Fetch school code
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { code: true }
+    });
+    const schoolCode = school?.code || 'SCH';
+
+    // Use existing alumniId if present, otherwise generate new one
+    let alumniId = student.alumniProfile.alumniId;
+
+    if (!alumniId) {
+      alumniId = await generateAlumniUsername(
+        req.schoolId,
+        schoolCode,
+        student.user.firstName,
+        student.user.lastName,
+        student.alumniProfile.graduationYear
+      );
+    }
 
     const rawPassword = Math.random().toString(36).slice(-8);
     const passwordHash = await bcrypt.hash(rawPassword, 10);
@@ -677,7 +804,7 @@ router.get('/my-donations', authenticate, async (req, res) => {
 });
 
 // 9. Delete Donation (Admin Only)
-router.delete('/donation/:id', authenticate, authorize(['admin']), async (req, res) => {
+router.post('/donation/:id', authenticate, checkSubscription, authorize(['admin', 'superadmin']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     await prisma.alumniDonation.delete({
@@ -703,7 +830,7 @@ router.delete('/donation/:id', authenticate, authorize(['admin']), async (req, r
 });
 
 // 10. Update Donation (Admin Only)
-router.put('/donation/:id', authenticate, authorize(['admin']), async (req, res) => {
+router.put('/donation/:id', authenticate, checkSubscription, authorize(['admin', 'superadmin']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { donorName, amount, message, isAnonymous, alumniId } = req.body;
@@ -739,21 +866,27 @@ router.put('/donation/:id', authenticate, authorize(['admin']), async (req, res)
 });
 
 // 11. Update Alumni Profile (Admin Only)
-router.put('/:id', authenticate, authorize(['admin']), async (req, res) => {
+router.put('/:id', authenticate, checkSubscription, authorize(['admin', 'superadmin']), async (req, res) => {
   try {
+    const schoolId = await resolveSchoolId(req);
+    if (!schoolId) return res.status(400).json({ error: 'School identifier is required' });
+
     const id = parseInt(req.params.id);
     const {
       currentJob, currentCompany, university, courseOfStudy,
       bio, linkedinUrl, twitterUrl, portfolioUrl,
-      skills, achievements, profilePicture
+      skills, achievements, profilePicture,
+      graduationYear, programType
     } = req.body;
 
     const updated = await prisma.alumni.update({
-      where: { id, schoolId: req.schoolId },
+      where: { id, schoolId: schoolId },
       data: {
         currentJob, currentCompany, university, courseOfStudy,
         bio, linkedinUrl, twitterUrl, portfolioUrl,
-        skills, achievements, profilePicture
+        skills, achievements, profilePicture,
+        graduationYear: graduationYear ? parseInt(graduationYear) : undefined,
+        programType: programType !== undefined ? programType : undefined
       }
     });
 
@@ -765,7 +898,7 @@ router.put('/:id', authenticate, authorize(['admin']), async (req, res) => {
 });
 
 // 12. Upload Alumni Photo (Admin Only)
-router.post('/:id/photo', authenticate, authorize(['admin']), upload.single('photo'), async (req, res) => {
+router.post('/:id/photo', authenticate, checkSubscription, authorize(['admin', 'superadmin']), upload.single('photo'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -774,10 +907,20 @@ router.post('/:id/photo', authenticate, authorize(['admin']), upload.single('pho
     const alumniId = parseInt(req.params.id);
     const photoUrl = `/uploads/alumni/${req.file.filename}`;
 
+    // Update alumni profilePicture
     const updated = await prisma.alumni.update({
       where: { id: alumniId, schoolId: req.schoolId },
-      data: { profilePicture: photoUrl }
+      data: { profilePicture: photoUrl },
+      include: { student: { select: { id: true } } }
     });
+
+    // Also sync photo to student.photoUrl so the transcript can display it
+    if (updated?.student?.id) {
+      await prisma.student.update({
+        where: { id: updated.student.id },
+        data: { photoUrl }
+      });
+    }
 
     res.json({
       message: 'Photo uploaded successfully',
@@ -787,7 +930,7 @@ router.post('/:id/photo', authenticate, authorize(['admin']), upload.single('pho
   } catch (error) {
     console.error('Photo upload error:', error);
     if (req.file) {
-      fs.unlinkSync(req.file.path);
+      try { fs.unlinkSync(req.file.path); } catch (_) { }
     }
     res.status(500).json({ error: 'Failed to upload photo' });
   }

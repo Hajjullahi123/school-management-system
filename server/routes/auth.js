@@ -5,21 +5,154 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../db');
 const { JWT_SECRET, authenticate } = require('../middleware/auth');
 
+// Identify school based on username/email/admissionNumber
+router.post('/identify', async (req, res) => {
+  try {
+    let { identifier } = req.body;
+    if (!identifier) {
+      return res.status(400).json({ error: 'Username or Email is required' });
+    }
+
+    console.log(`[AUTH DEBUG] Identification attempt for: [${identifier}]`);
+
+    identifier = identifier.trim();
+
+    // Search for the user across all schools
+    // We check three things: username, email, and admission number
+
+    // 1. Search by Username
+    const usersByUsername = await prisma.user.findMany({
+      where: { username: identifier },
+      include: { school: true }
+    });
+
+    // 2. Search by Email
+    const usersByEmail = await prisma.user.findMany({
+      where: { email: identifier },
+      include: { school: true }
+    });
+
+    // 3. Search by Admission Number
+    const studentsByAdmission = await prisma.student.findMany({
+      where: { admissionNumber: identifier },
+      include: { school: true }
+    });
+
+    // Collect distinct schools found
+    const schoolsMap = new Map();
+
+    usersByUsername.forEach(u => {
+      if (u.school) schoolsMap.set(u.school.id, u.school);
+    });
+
+    usersByEmail.forEach(u => {
+      if (u.school) schoolsMap.set(u.school.id, u.school);
+    });
+
+    studentsByAdmission.forEach(s => {
+      if (s.school) schoolsMap.set(s.school.id, s.school);
+    });
+
+    // Check if any user has global access (superadmin with null schoolId)
+    const globalUsers = [...usersByUsername, ...usersByEmail].filter(u => !u.schoolId && u.role === 'superadmin');
+
+    if (globalUsers.length > 0) {
+      // Superadmin with global access - allow direct login without school selection
+      return res.json({
+        schools: [],
+        count: 0,
+        globalAccess: true,
+        message: 'Global administrator account detected'
+      });
+    }
+
+    const matchedSchools = Array.from(schoolsMap.values()).map(s => ({
+      id: s.id,
+      name: s.name,
+      slug: s.slug,
+      logoUrl: s.logoUrl
+    }));
+
+    if (matchedSchools.length === 0) {
+      return res.status(404).json({ error: 'We couldn\'t find an account with that information. Please check and try again.' });
+    }
+
+    res.json({
+      schools: matchedSchools,
+      count: matchedSchools.length
+    });
+  } catch (error) {
+    console.error('Identify error:', error);
+    res.status(500).json({ error: 'Identification failed' });
+  }
+});
+
 // Login endpoint
 router.post('/login', async (req, res) => {
   try {
     let { username, password, schoolSlug } = req.body;
 
-    if (!username || !password || !schoolSlug) {
-      return res.status(400).json({ error: 'Username, password, and school slug are required' });
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
     }
 
     username = username.trim();
     password = password.trim();
-    schoolSlug = schoolSlug.trim().toLowerCase();
     const fs = require('fs');
     const path = require('path');
     const logPath = path.join(__dirname, '../auth-debug.log');
+
+    // Check if this is a global admin login (no schoolSlug provided)
+    if (!schoolSlug) {
+      // Attempt global admin login
+      const globalUser = await prisma.user.findFirst({
+        where: {
+          username,
+          schoolId: null,
+          role: 'superadmin'
+        },
+        include: {
+          student: true,
+          teacher: true,
+          school: true
+        }
+      });
+
+      if (!globalUser) {
+        return res.status(401).json({ error: 'Invalid credentials or no global access' });
+      }
+
+      // Verify password
+      const passwordValid = await bcrypt.compare(password, globalUser.passwordHash);
+      if (!passwordValid) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: globalUser.id, role: globalUser.role, schoolId: null },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      return res.json({
+        token,
+        user: {
+          id: globalUser.id,
+          username: globalUser.username,
+          email: globalUser.email,
+          role: globalUser.role,
+          firstName: globalUser.firstName,
+          lastName: globalUser.lastName,
+          schoolId: null,
+          school: null,
+          globalAccess: true
+        }
+      });
+    }
+
+    // Normal school-based login
+    schoolSlug = schoolSlug.trim().toLowerCase();
 
     try {
       fs.appendFileSync(logPath, `[${new Date().toISOString()}] Login attempt - username: [${username}], schoolSlug: [${schoolSlug}], origin: ${req.headers.origin}\n`);
@@ -188,7 +321,7 @@ router.post('/login', async (req, res) => {
         student: user.student,
         teacher: user.teacher,
         school: user.school,
-        mustChangePassword: user.mustChangePassword
+        mustChangePassword: false // Never force password change on login
       },
       token
     });
@@ -343,12 +476,12 @@ router.post('/reset-password', authenticate, async (req, res) => {
     // Hash new password
     const hashedPassword = await bcrypt.hash(trimmedPassword, 12);
 
-    // Update password and set mustChangePassword flag
+    // Update password
     await prisma.user.update({
       where: { id: parseInt(userId) },
       data: {
         passwordHash: hashedPassword,
-        mustChangePassword: true // Force user to change password on next login
+        mustChangePassword: false
       }
     });
 

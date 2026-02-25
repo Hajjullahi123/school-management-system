@@ -27,9 +27,14 @@ export const useSchoolSettings = () => {
 
     const fetchSettings = async () => {
       try {
-        // Get slug from URL or localStorage or default to 'default'
+        // Get slug from URL path, or query param, or localStorage
+        const pathParts = window.location.pathname.split('/').filter(Boolean);
         const urlParams = new URLSearchParams(window.location.search);
-        const slug = urlParams.get('school') || localStorage.getItem('schoolSlug');
+
+        // Priority: 1. Path slug (e.g. /amana-academy/), 2. Query param (?school=), 3. localStorage
+        const slug = pathParts[0] && !['login', 'news-events', 'contact', 'gallery', 'alumni', 'demo', 'verify', 'dashboard', 'superadmin', 'school-home', 'verify-dashboard'].includes(pathParts[0])
+          ? pathParts[0]
+          : urlParams.get('school') || localStorage.getItem('schoolSlug');
 
         const endpoint = slug ? `/api/settings?schoolSlug=${slug}` : '/api/settings';
         const response = await api.get(endpoint);
@@ -39,10 +44,15 @@ export const useSchoolSettings = () => {
           setSettings({
             schoolId: data.id,
             schoolName: data.schoolName || data.name || "School Management",
+            name: data.schoolName || data.name || "School Management", // Alias for components using .name
             schoolMotto: data.schoolMotto || data.motto || "In Pursuit of Knowledge and Excellence",
+            motto: data.schoolMotto || data.motto || "In Pursuit of Knowledge and Excellence", // Alias
             schoolAddress: data.schoolAddress || data.address || "",
+            address: data.address || data.schoolAddress || "", // Critical Alias for Transcript/Report Cards
             schoolPhone: data.schoolPhone || data.phone || "",
+            phone: data.schoolPhone || data.phone || "", // Alias
             schoolEmail: data.schoolEmail || data.email || "",
+            email: data.schoolEmail || data.email || "", // Alias
             logoUrl: data.logoUrl ? (data.logoUrl.startsWith('data:') || data.logoUrl.startsWith('http') ? data.logoUrl : `${API_BASE_URL}${data.logoUrl}`) : null,
             primaryColor: data.primaryColor || '#0f766e',
             secondaryColor: data.secondaryColor || '#0d9488',

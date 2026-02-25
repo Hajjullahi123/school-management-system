@@ -3,9 +3,53 @@ const router = express.Router();
 const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 
+// Helper to check if results are published for any class in the school for a term
+async function isTermPublished(schoolId, termId = null) {
+  const where = {
+    schoolId: parseInt(schoolId),
+    isPublished: true
+  };
+
+  if (termId) {
+    where.termId = parseInt(termId);
+  }
+
+  const publications = await prisma.resultPublication.findMany({
+    where,
+    select: { classId: true }
+  });
+
+  if (publications.length > 0) return true;
+
+  // Fallback to legacy flag for current term if no ResultPublication records exist
+  const currentTerm = await prisma.term.findFirst({
+    where: { isCurrent: true, schoolId: parseInt(schoolId) }
+  });
+
+  if (currentTerm && (!termId || parseInt(termId) === currentTerm.id)) {
+    const publishedClasses = await prisma.class.findMany({
+      where: {
+        schoolId: parseInt(schoolId),
+        isResultPublished: true
+      }
+    });
+    return publishedClasses.length > 0;
+  }
+
+  return false;
+}
+
 // Get class-wise performance
 router.get('/class-performance', authenticate, async (req, res) => {
   try {
+    // Check publication
+    if (req.user.role !== 'superadmin' && !await isTermPublished(req.schoolId)) {
+      return res.status(403).json({
+        error: 'Results Not Published',
+        message: 'Statistical insights are only available once results have been officially published.'
+      });
+    }
+
     const results = await prisma.result.findMany({
       where: { schoolId: req.schoolId },
       include: {
@@ -39,6 +83,14 @@ router.get('/class-performance', authenticate, async (req, res) => {
 // Get subject-wise performance
 router.get('/subject-performance', authenticate, async (req, res) => {
   try {
+    // Check publication
+    if (req.user.role !== 'superadmin' && !await isTermPublished(req.schoolId)) {
+      return res.status(403).json({
+        error: 'Results Not Published',
+        message: 'Statistical insights are only available once results have been officially published.'
+      });
+    }
+
     const results = await prisma.result.findMany({
       where: { schoolId: req.schoolId },
       include: {
@@ -71,6 +123,14 @@ router.get('/subject-performance', authenticate, async (req, res) => {
 // Get grade distribution
 router.get('/grade-distribution', authenticate, async (req, res) => {
   try {
+    // Check publication
+    if (req.user.role !== 'superadmin' && !await isTermPublished(req.schoolId)) {
+      return res.status(403).json({
+        error: 'Results Not Published',
+        message: 'Statistical insights are only available once results have been officially published.'
+      });
+    }
+
     const calculateGrade = (marks) => {
       if (marks >= 90) return 'A+';
       if (marks >= 80) return 'A';
@@ -103,6 +163,14 @@ router.get('/grade-distribution', authenticate, async (req, res) => {
 router.get('/top-performers', authenticate, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
+
+    // Check publication
+    if (req.user.role !== 'admin' && req.user.role !== 'principal' && !await isTermPublished(req.schoolId)) {
+      return res.status(403).json({
+        error: 'Results Not Published',
+        message: 'Statistical insights are only available once results have been officially published.'
+      });
+    }
 
     // Get all results grouped by student
     const results = await prisma.result.findMany({
@@ -152,6 +220,14 @@ router.get('/top-performers', authenticate, async (req, res) => {
 // Get students needing attention (below 50%)
 router.get('/students-at-risk', authenticate, async (req, res) => {
   try {
+    // Check publication
+    if (req.user.role !== 'admin' && req.user.role !== 'principal' && !await isTermPublished(req.schoolId)) {
+      return res.status(403).json({
+        error: 'Results Not Published',
+        message: 'Statistical insights are only available once results have been officially published.'
+      });
+    }
+
     const results = await prisma.result.findMany({
       where: { schoolId: req.schoolId },
       include: {

@@ -45,7 +45,15 @@ const Settings = () => {
     test2Weight: 10,
     examWeight: 70,
     gradingSystem: '[{"grade":"A","min":70,"max":100,"remark":"Excellent"},{"grade":"B","min":60,"max":69.9,"remark":"Very Good"},{"grade":"C","min":50,"max":59.9,"remark":"Good"},{"grade":"D","min":40,"max":49.9,"remark":"Pass"},{"grade":"E","min":30,"max":39.9,"remark":"Weak Pass"},{"grade":"F","min":0,"max":29.9,"remark":"Fail"}]',
-    passThreshold: 40
+    passThreshold: 40,
+    whatsappBotEnabled: false,
+    whatsappPhoneNumber: '',
+    twilioAccountSid: '',
+    twilioAuthToken: '',
+    geminiApiKey: '',
+    staffExpectedArrivalTime: '07:00',
+    staffClockInDeadline: '10:00',
+    enableStaffAttendanceReport: true
   });
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
@@ -350,6 +358,24 @@ const Settings = () => {
                 }`}
             >
               SMS Config
+            </button>
+            <button
+              onClick={() => setActiveTab('whatsapp')}
+              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'whatsapp'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              WhatsApp AI Bot
+            </button>
+            <button
+              onClick={() => setActiveTab('attendance')}
+              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'attendance'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              Staff Attendance
             </button>
           </nav>
         </div>
@@ -829,8 +855,8 @@ const Settings = () => {
                   </h3>
                   {licenseStatus.isActivated && (
                     <div className="text-sm text-gray-700 space-y-1">
-                      <p><strong>Activated:</strong> {new Date(licenseStatus.activatedAt).toLocaleDateString()}</p>
-                      <p><strong>Expires:</strong> {new Date(licenseStatus.expiresAt).toLocaleDateString()}</p>
+                      <p><strong>Activated:</strong> {licenseStatus.activatedAt ? new Date(licenseStatus.activatedAt).toLocaleDateString() : 'N/A'}</p>
+                      <p><strong>Expires:</strong> {licenseStatus.expiresAt ? new Date(licenseStatus.expiresAt).toLocaleDateString() : 'Never (Lifetime)'}</p>
                     </div>
                   )}
                 </div>
@@ -1066,6 +1092,201 @@ const Settings = () => {
                 </button>
               </div>
             </form>
+          )}
+
+          {/* WhatsApp Tab */}
+          {activeTab === 'whatsapp' && (
+            <form onSubmit={handleSaveSettings} className="space-y-6">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <h3 className="text-green-800 font-semibold flex items-center">
+                  <span className="mr-2">🤖</span> WhatsApp AI Parent Assistant
+                </h3>
+                <p className="text-sm text-green-700 mt-1">
+                  Enable this to allow parents to query student information (fees, attendance, etc.) via natural language on WhatsApp.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div>
+                  <h4 className="font-medium text-gray-900">Enable WhatsApp Bot</h4>
+                  <p className="text-sm text-gray-500">Allow the AI to respond to incoming WhatsApp messages</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="whatsappBotEnabled"
+                    checked={settings.whatsappBotEnabled}
+                    onChange={handleInputChange}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    WhatsApp Phone Number (Twilio)
+                  </label>
+                  <input
+                    type="text"
+                    name="whatsappPhoneNumber"
+                    value={settings.whatsappPhoneNumber}
+                    onChange={handleInputChange}
+                    placeholder="e.g. +14155238886"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Your Twilio WhatsApp-enabled number (Sandbox or Production)</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Google Gemini API Key
+                  </label>
+                  <input
+                    type="password"
+                    name="geminiApiKey"
+                    value={settings.geminiApiKey}
+                    onChange={handleInputChange}
+                    placeholder="Enter your Gemini API key"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Used for natural language processing of parent queries</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Twilio Account SID
+                  </label>
+                  <input
+                    type="text"
+                    name="twilioAccountSid"
+                    value={settings.twilioAccountSid}
+                    onChange={handleInputChange}
+                    placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Twilio Auth Token
+                  </label>
+                  <input
+                    type="password"
+                    name="twilioAuthToken"
+                    value={settings.twilioAuthToken}
+                    onChange={handleInputChange}
+                    placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+                <p className="font-semibold mb-1">Webhook URL Configuration:</p>
+                <p>Set your Twilio Sandbox/Production webhook URL to:</p>
+                <code className="bg-white/50 px-2 py-1 rounded block mt-2 border border-blue-100 select-all">
+                  {`${window.location.origin}/api/whatsapp/webhook`}
+                </code>
+              </div>
+
+              <div className="flex justify-end space-x-4 pt-4 border-t">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-md font-medium disabled:opacity-50 flex items-center"
+                >
+                  {saving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Saving...
+                    </>
+                  ) : 'Save WhatsApp Configuration'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Attendance Tab */}
+          {activeTab === 'attendance' && (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-blue-800">Attendance Configuration</h3>
+                    <div className="mt-2 text-sm text-blue-700">
+                      <p>Set expectations for staff arrival times and manage attendance reporting preferences. These settings will be used to track punctuality and generate reports.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Staff Expected Arrival Time</label>
+                  <input
+                    type="time"
+                    name="staffExpectedArrivalTime"
+                    value={settings.staffExpectedArrivalTime}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 italic">Staff arriving after this time will be flagged as late.</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Staff Clock-in Deadline</label>
+                  <input
+                    type="time"
+                    name="staffClockInDeadline"
+                    value={settings.staffClockInDeadline || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 italic">Prevent staff from clocking in after this time.</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Enable Staff Attendance Report</label>
+                  <div className="flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => setSettings(prev => ({ ...prev, enableStaffAttendanceReport: !prev.enableStaffAttendanceReport }))}
+                      className={`${settings.enableStaffAttendanceReport ? 'bg-primary' : 'bg-gray-200'
+                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
+                    >
+                      <span
+                        className={`${settings.enableStaffAttendanceReport ? 'translate-x-5' : 'translate-x-0'
+                          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                      />
+                    </button>
+                    <span className="ml-3 font-medium text-gray-700">{settings.enableStaffAttendanceReport ? 'Enabled' : 'Disabled'}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500 italic">When enabled, admins will receive end-of-day summary reports.</p>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-4 pt-4 border-t">
+                <button
+                  onClick={handleSaveSettings}
+                  disabled={saving}
+                  className="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-md font-medium disabled:opacity-50 flex items-center"
+                >
+                  {saving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Saving...
+                    </>
+                  ) : 'Save Attendance Settings'}
+                </button>
+              </div>
+            </div>
           )}
 
           {/* System Settings Tab */}

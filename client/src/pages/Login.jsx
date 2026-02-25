@@ -1,26 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import useSchoolSettings from '../hooks/useSchoolSettings';
 import { apiCall } from '../api';
+import { API_BASE_URL } from '../config';
 import { FiFacebook, FiInstagram, FiMessageCircle, FiGlobe } from 'react-icons/fi';
 
 const Login = () => {
   const { settings: schoolSettings } = useSchoolSettings();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const { schoolSlug: urlSlug } = useParams();
   const [schoolSlug, setSchoolSlug] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [globalSettings, setGlobalSettings] = useState(null);
 
+  const [step, setStep] = useState(1); // 1: Identifier, 2: School Selection, 3: Password
+  const [matchedSchools, setMatchedSchools] = useState([]);
+  const [selectedSchool, setSelectedSchool] = useState(null);
+
   useEffect(() => {
     fetchGlobalSettings();
-  }, []);
+    // 1. Check if schoolSlug is in the URL
+    if (urlSlug) {
+      setSchoolSlug(urlSlug);
+      setStep(3); // Go straight to password if school is identified via URL
+      localStorage.setItem('schoolSlug', urlSlug);
+    } else {
+      // 2. Otherwise check if schoolSlug already exists in localStorage
+      const savedSlug = localStorage.getItem('schoolSlug');
+      if (savedSlug && savedSlug !== 'undefined') {
+        setSchoolSlug(savedSlug);
+      }
+    }
+  }, [urlSlug]);
+
+  // Sync selectedSchool with schoolSettings when branding is loaded from URL slug
+  useEffect(() => {
+    if (urlSlug && schoolSettings?.schoolId && !selectedSchool) {
+      setSelectedSchool({
+        id: schoolSettings.schoolId,
+        name: schoolSettings.name,
+        slug: urlSlug,
+        logoUrl: schoolSettings.logoUrl
+      });
+    }
+  }, [urlSlug, schoolSettings, selectedSchool]);
 
   const fetchGlobalSettings = async () => {
     try {
-      const res = await apiCall('/api/superadmin/global-settings');
+      const res = await apiCall('/api/public/global-settings');
       setGlobalSettings(res.data);
     } catch (error) {
       console.error('Failed to fetch global settings:', error);
@@ -31,7 +61,44 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  /* handleDemoLogin removed - using /demo route directly */
+  const handleIdentify = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const res = await apiCall('/api/auth/identify', {
+        method: 'POST',
+        body: JSON.stringify({ identifier: username })
+      });
+
+      if (res.data.globalAccess) {
+        // Superadmin with global access - skip school selection and go directly to password
+        setSchoolSlug(null); // No school needed
+        setStep(3);
+      } else if (res.data.schools && res.data.schools.length > 0) {
+        setMatchedSchools(res.data.schools);
+        if (res.data.schools.length === 1) {
+          const school = res.data.schools[0];
+          setSelectedSchool(school);
+          setSchoolSlug(school.slug);
+          setStep(3);
+        } else {
+          setStep(2);
+        }
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Account not found. Please check your username/email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSchoolSelect = (school) => {
+    setSelectedSchool(school);
+    setSchoolSlug(school.slug);
+    setStep(3);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,14 +109,8 @@ const Login = () => {
       const result = await login(username, password, schoolSlug);
 
       if (result.success) {
-        if (result.mustChangePassword) {
-          navigate('/dashboard/change-password', { replace: true, state: { forced: true } });
-        } else {
-          // Superadmins go straight to dashboard (they have dashboardUnlocked=true)
-          // Regular users go to school-home (landing page)
-          const redirectPath = result.role === 'superadmin' ? '/dashboard' : '/school-home';
-          navigate(redirectPath, { replace: true });
-        }
+        const redirectPath = result.role === 'superadmin' ? '/dashboard' : '/school-home';
+        navigate(redirectPath, { replace: true });
       } else {
         setError(result.error);
       }
@@ -58,6 +119,13 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetFlow = () => {
+    setStep(1);
+    setPassword('');
+    setSelectedSchool(null);
+    setMatchedSchools([]);
   };
 
   return (
@@ -148,7 +216,7 @@ const Login = () => {
       {/* Right Side: Login Form */}
       <div className="md:w-1/2 lg:w-2/5 flex items-center justify-center p-8 bg-gray-50 relative">
         <div className="absolute top-0 right-0 p-8">
-          <Link to="/school-home" className="text-gray-400 hover:text-primary font-bold text-sm flex items-center gap-2">
+          <Link to={urlSlug ? `/${urlSlug}` : "/school-home"} className="text-gray-400 hover:text-primary font-bold text-sm flex items-center gap-2">
             Back to Home <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
           </Link>
         </div>
@@ -159,7 +227,7 @@ const Login = () => {
             <p className="text-gray-500 font-medium font-inter">Enter your portal credentials to continue.</p>
           </div>
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={step === 1 ? handleIdentify : handleSubmit}>
             {error && (
               <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-xl flex items-center gap-3 animate-shake">
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
@@ -168,84 +236,152 @@ const Login = () => {
             )}
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-2">School Domain</label>
-                <div className="relative group">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 group-focus-within:text-primary transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                  </span>
-                  <input
-                    type="text"
-                    required
-                    value={schoolSlug}
-                    onChange={(e) => setSchoolSlug(e.target.value)}
-                    placeholder="e.g. 'School Name'"
-                    className="block w-full pl-10 pr-4 py-4 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium"
-                  />
+              {step === 1 && (
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-2">Username / Admission No / Email</label>
+                  <div className="relative group">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 group-focus-within:text-primary transition-colors">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    </span>
+                    <input
+                      id="username"
+                      name="username"
+                      type="text"
+                      autoComplete="username"
+                      required
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Enter your unique ID or Email"
+                      className="block w-full pl-10 pr-4 py-4 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium"
+                    />
+                  </div>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-2">Username / Admission No</label>
-                <div className="relative group">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 group-focus-within:text-primary transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                  </span>
-                  <input
-                    id="username"
-                    name="username"
-                    type="text"
-                    autoComplete="username"
-                    required
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter your unique ID"
-                    className="block w-full pl-10 pr-4 py-4 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-2">Secret Password</label>
-                <div className="relative group">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 group-focus-within:text-primary transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                  </span>
-                  <input
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="block w-full pl-10 pr-4 py-4 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
-                <span className="text-sm font-bold text-gray-600 group-hover:text-primary transition-colors">Keep me signed in</span>
-              </label>
-              <a href="#" className="text-sm font-black text-primary hover:text-accent transition-colors">Support Help?</a>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-4 bg-gray-900 text-white rounded-2xl font-black shadow-xl transform transition-all hover:scale-[1.02] active:scale-[0.98] ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary'}`}
-            >
-              {loading ? (
-                <div className="flex items-center justify-center gap-3">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span>Authenticating...</span>
-                </div>
-              ) : (
-                "Access Your Portal"
               )}
-            </button>
+
+              {step === 2 && (
+                <div className="space-y-3">
+                  <label className="block text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-2">Select Your School</label>
+                  <div className="grid grid-cols-1 gap-3">
+                    {matchedSchools.map(school => (
+                      <button
+                        key={school.id}
+                        type="button"
+                        onClick={() => handleSchoolSelect(school)}
+                        className="flex items-center gap-4 p-4 text-left border-2 border-gray-100 rounded-2xl hover:border-primary hover:bg-gray-50 transition-all group"
+                      >
+                        <div className="w-12 h-12 rounded-xl bg-gray-100 flex-shrink-0 flex items-center justify-center overflow-hidden border border-gray-200">
+                          {school.logoUrl ? (
+                            <img src={`${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${school.logoUrl.startsWith('/') ? school.logoUrl : '/' + school.logoUrl}`} className="w-full h-full object-contain" />
+                          ) : (
+                            <span className="text-xl font-black text-gray-300">{school.name.charAt(0)}</span>
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-gray-900 group-hover:text-primary transition-colors">{school.name}</h4>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{school.slug}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={resetFlow} type="button" className="text-xs font-bold text-gray-400 hover:text-primary mt-2 flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" /></svg> Use a different ID
+                  </button>
+                </div>
+              )}
+
+              {step === 3 && (
+                <div className="space-y-4 animate-fadeIn">
+                  {/* School Identity Card or Global Access Badge */}
+                  {selectedSchool ? (
+                    <div className="flex items-center gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 relative group">
+                      <div className="w-12 h-12 rounded-xl bg-white flex-shrink-0 flex items-center justify-center overflow-hidden border border-emerald-200">
+                        {selectedSchool?.logoUrl ? (
+                          <img src={`${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${selectedSchool.logoUrl.startsWith('/') ? selectedSchool.logoUrl : '/' + selectedSchool.logoUrl}`} className="w-full h-full object-contain" />
+                        ) : (
+                          <span className="text-xl font-black text-emerald-300">{selectedSchool?.name.charAt(0)}</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1">Logging into</p>
+                        <h4 className="font-bold text-gray-900 truncate">{selectedSchool?.name}</h4>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={resetFlow}
+                        className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-lg hover:bg-emerald-200 transition-colors"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-4 p-4 bg-purple-50 rounded-2xl border border-purple-100 relative group">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 flex-shrink-0 flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[9px] font-black text-purple-600 uppercase tracking-widest leading-none mb-1">Global Access</p>
+                        <h4 className="font-bold text-gray-900">System Administrator</h4>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={resetFlow}
+                        className="text-[10px] font-bold text-purple-700 bg-purple-100 px-3 py-1.5 rounded-lg hover:bg-purple-200 transition-colors"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-2">Secret Password</label>
+                    <div className="relative group">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 group-focus-within:text-primary transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                      </span>
+                      <input
+                        type="password"
+                        autoComplete="current-password"
+                        required
+                        autoFocus
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="block w-full pl-10 pr-4 py-4 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {step !== 2 && (
+              <div className="flex items-center justify-between pt-2">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                  <span className="text-sm font-bold text-gray-600 group-hover:text-primary transition-colors">Keep me signed in</span>
+                </label>
+                <a href="#" className="text-sm font-black text-primary hover:text-accent transition-colors">Support Help?</a>
+              </div>
+            )}
+
+            {step !== 2 && (
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full py-4 bg-gray-900 text-white rounded-2xl font-black shadow-xl transform transition-all hover:scale-[1.02] active:scale-[0.98] ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary'}`}
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span>{step === 1 ? 'Identifying...' : 'Authenticating...'}</span>
+                  </div>
+                ) : (
+                  step === 1 ? "Identify Account" : "Access Your Portal"
+                )}
+              </button>
+            )}
           </form>
 
           <div className="mt-4 flex items-center justify-between gap-4">

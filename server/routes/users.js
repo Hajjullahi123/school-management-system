@@ -107,7 +107,7 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
     // Check if username already exists in THIS school
     const existingUser = await prisma.user.findFirst({
       where: {
-        username,
+        username: finalUsername,
         schoolId: req.schoolId
       }
     });
@@ -398,7 +398,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
     if (password && password.trim().length >= 6) {
       const trimmedPassword = password.trim();
       updateData.passwordHash = await bcrypt.hash(trimmedPassword, 12);
-      updateData.mustChangePassword = true; // Force change on next login if admin manually sets it
+      updateData.mustChangePassword = false;
     }
 
     // Update user

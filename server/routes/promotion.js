@@ -2,10 +2,13 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
+const { checkSubscription } = require('../middleware/subscription');
 const { logAction } = require('../utils/audit');
 
+const { generateAlumniUsername } = require('../utils/usernameGenerator');
+
 // 1. Get students eligible for promotion/graduation from a class (Admin/Principal only)
-router.get('/class/:classId/eligibility', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.get('/class/:classId/eligibility', authenticate, checkSubscription, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const classId = parseInt(req.params.classId);
 
@@ -36,7 +39,7 @@ router.get('/class/:classId/eligibility', authenticate, authorize(['admin', 'pri
 });
 
 // 2. Batch Promote Students (Admin/Principal only)
-router.post('/promote', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.post('/promote', authenticate, checkSubscription, authorize(['admin', 'principal']), async (req, res) => {
   const { studentIds, targetClassId } = req.body;
 
   if (!studentIds || !Array.isArray(studentIds) || !targetClassId) {
@@ -129,16 +132,24 @@ router.post('/promote', authenticate, authorize(['admin', 'principal']), async (
 });
 
 // 3. Batch Graduate Students (Migrate to Alumni) (Admin/Principal only)
-router.post('/graduate', authenticate, authorize(['admin', 'principal']), async (req, res) => {
-  const { studentIds, graduationYear } = req.body;
+router.post('/graduate', authenticate, checkSubscription, authorize(['admin', 'principal']), async (req, res) => {
+  const { studentIds, graduationYear, programType } = req.body;
 
   if (!studentIds || !Array.isArray(studentIds) || !graduationYear) {
     return res.status(400).json({ error: 'Student IDs and graduation year are required' });
   }
 
   try {
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { code: true }
+    });
+
     const currentSession = await prisma.academicSession.findFirst({
-      where: { isCurrent: true }
+      where: {
+        isCurrent: true,
+        schoolId: req.schoolId
+      }
     });
 
     const graduated = [];
@@ -155,7 +166,11 @@ router.post('/graduate', authenticate, authorize(['admin', 'principal']), async 
               id: studentId,
               schoolId: req.schoolId
             },
-            select: { classId: true, admissionNumber: true }
+            select: {
+              classId: true,
+              admissionNumber: true,
+              user: { select: { firstName: true, lastName: true } }
+            }
           });
 
           if (!student) {
@@ -175,24 +190,33 @@ router.post('/graduate', authenticate, authorize(['admin', 'principal']), async 
           });
 
           // 2. Create alumni profile
-          const alumniId = `AL/${graduationYear}/${student.admissionNumber}`;
+          // Include school code to prevent global collisions
+          const schoolCode = school?.code || 'SCH';
+
+          // Generate new format username/alumniId
+          const alumniId = await generateAlumniUsername(
+            req.schoolId,
+            schoolCode,
+            student.user.firstName,
+            student.user.lastName,
+            graduationYear
+          );
 
           await tx.alumni.upsert({
             where: {
-              schoolId_studentId: {
-                schoolId: req.schoolId,
-                studentId: studentId
-              }
+              studentId: studentId
             },
             update: {
               graduationYear: parseInt(graduationYear),
-              alumniId: { set: alumniId }
+              alumniId: alumniId,
+              programType: programType || null
             },
             create: {
               schoolId: req.schoolId,
               studentId,
               graduationYear: parseInt(graduationYear),
-              alumniId
+              alumniId,
+              programType: programType || null
             }
           });
 
@@ -208,19 +232,63 @@ router.post('/graduate', authenticate, authorize(['admin', 'principal']), async 
               performedBy: req.user.id
             }
           });
+
+          // 4. Generate Certificate & Testimonial (Skipped for Transfer/Expulsion)
+          const skipDocuments = programType === 'Transfer/Other' || programType === 'Expulsion';
+
+          if (!skipDocuments) {
+            const certificateNumber = `CERT/${schoolCode}/${graduationYear}/${student.admissionNumber}`;
+            await tx.certificate.upsert({
+              where: { studentId: studentId },
+              update: {
+                certificateNumber,
+                graduationYear: parseInt(graduationYear),
+                programType: programType || null,
+                issuedBy: req.user.id
+              },
+              create: {
+                schoolId: req.schoolId,
+                studentId: studentId,
+                certificateNumber,
+                graduationYear: parseInt(graduationYear),
+                programType: programType || null,
+                issuedBy: req.user.id
+              }
+            });
+
+            const testimonialNumber = `TEST/${schoolCode}/${graduationYear}/${student.admissionNumber}`;
+            await tx.testimonial.upsert({
+              where: { studentId: studentId },
+              update: {
+                testimonialNumber,
+                programType: programType || null,
+                issuedBy: req.user.id
+              },
+              create: {
+                schoolId: req.schoolId,
+                studentId: studentId,
+                testimonialNumber,
+                conduct: 'Good',
+                character: '',
+                programType: programType || null,
+                issuedBy: req.user.id
+              }
+            });
+          }
         });
 
         graduated.push(parseInt(id));
       } catch (e) {
-        console.error(`Graduation error for student ${id}:`, e);
-        failed.push(parseInt(id));
+        console.error(`Graduation error for student ${id}:`, e.message || e);
+        failed.push({ id: parseInt(id), error: e.message || 'Unknown error' });
       }
     }
 
     res.json({
       message: `Successfully graduated ${graduated.length} students to the Alumni Portal.${failed.length > 0 ? ` Failed: ${failed.length}` : ''}`,
       graduated,
-      failed
+      failed,
+      errors: failed.length > 0 ? `${failed.length} student(s) failed during graduation. Check server logs for details.` : undefined
     });
 
     // Log the batch graduation
@@ -243,7 +311,7 @@ router.post('/graduate', authenticate, authorize(['admin', 'principal']), async 
 });
 
 // 4. Get Promotion History (Admin/Principal only)
-router.get('/history', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.get('/history', authenticate, checkSubscription, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const history = await prisma.promotionHistory.findMany({
       where: { schoolId: req.schoolId },
@@ -263,6 +331,121 @@ router.get('/history', authenticate, authorize(['admin', 'principal']), async (r
   } catch (error) {
     console.error('Fetch history error:', error);
     res.status(500).json({ error: 'Failed to fetch promotion history' });
+  }
+});
+
+// 5. Aggregate Transcript Data (Admin/Principal only)
+router.get('/transcript/:studentId', authenticate, checkSubscription, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const studentId = parseInt(req.params.studentId);
+
+    // 1. Get student & school details
+    const student = await prisma.student.findFirst({
+      where: { id: studentId, schoolId: req.schoolId },
+      include: {
+        user: { select: { firstName: true, lastName: true, username: true } },
+        classModel: true,
+        school: true,
+        alumniProfile: { select: { graduationYear: true, alumniId: true } }
+      }
+    });
+
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    // 2. Get all results, ordered by session and term
+    const results = await prisma.result.findMany({
+      where: { studentId, schoolId: req.schoolId },
+      include: {
+        subject: { select: { name: true, code: true } },
+        academicSession: { select: { name: true, id: true } },
+        term: { select: { name: true, id: true } }
+      },
+      orderBy: [
+        { academicSessionId: 'asc' },
+        { termId: 'asc' }
+      ]
+    });
+
+    // 3. Get promotion history to show transitions
+    const history = await prisma.promotionHistory.findMany({
+      where: { studentId, schoolId: req.schoolId },
+      include: {
+        fromClass: { select: { name: true, arm: true } },
+        toClass: { select: { name: true, arm: true } },
+        academicSession: { select: { name: true } }
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    // 4. Group results by session and term for easier frontend rendering
+    const sessions = {};
+    results.forEach(r => {
+      const sName = r.academicSession.name;
+      const tName = r.term.name;
+
+      if (!sessions[sName]) sessions[sName] = {};
+      if (!sessions[sName][tName]) sessions[sName][tName] = { results: [], average: 0 };
+
+      sessions[sName][tName].results.push({
+        subject: r.subject.name,
+        code: r.subject.code,
+        score: r.totalScore,
+        grade: r.grade,
+        position: r.positionInClass
+      });
+    });
+
+    // Calculate averages per term
+    Object.keys(sessions).forEach(sKey => {
+      Object.keys(sessions[sKey]).forEach(tKey => {
+        const term = sessions[sKey][tKey];
+        const sum = term.results.reduce((acc, curr) => acc + curr.score, 0);
+        term.average = term.results.length > 0 ? (sum / term.results.length).toFixed(2) : 0;
+      });
+    });
+
+    // Remap alumniProfile -> alumni for frontend compatibility
+    const studentData = { ...student, alumni: student.alumniProfile };
+    delete studentData.alumniProfile;
+
+    res.json({
+      student: studentData,
+      academicHistory: sessions,
+      promotionHistory: history,
+      generatedAt: new Date()
+    });
+  } catch (error) {
+    console.error('Transcript aggregation error:', error);
+    res.status(500).json({ error: 'Failed to aggregate transcript data' });
+  }
+});
+
+// 6. Public Verification Route (Public)
+router.get('/verify/:studentId', async (req, res) => {
+  try {
+    const studentId = parseInt(req.params.studentId);
+
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      include: {
+        user: { select: { firstName: true, lastName: true } },
+        school: { select: { name: true, logo: true, isActivated: true } },
+        alumni: { select: { graduationYear: true } }
+      }
+    });
+
+    if (!student) return res.status(404).json({ error: 'Verification record not found' });
+
+    res.json({
+      verified: true,
+      studentName: `${student.user.firstName} ${student.user.lastName}`,
+      schoolName: student.school.name,
+      graduationYear: student.alumni?.graduationYear,
+      status: student.status,
+      lastUpdated: student.updatedAt
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Verification system error' });
   }
 });
 

@@ -35,7 +35,10 @@ const ProtectedRoute = ({ children, roles = [] }) => {
   const isVerifyPath = location.pathname === '/verify-dashboard';
   const isChangePasswordPath = location.pathname === '/dashboard/change-password';
 
-  if (isDashboardPath && !isVerifyPath && !isChangePasswordPath && !dashboardUnlocked) {
+  // Superadmins never get locked out of the dashboard layer
+  const canSkipLock = dashboardUnlocked || user.role === 'superadmin';
+
+  if (isDashboardPath && !isVerifyPath && !isChangePasswordPath && !canSkipLock) {
     return <Navigate to="/verify-dashboard" state={{ from: location }} replace />;
   }
 

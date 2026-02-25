@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../api';
 import { formatNumber } from '../../utils/formatters';
 import { toast } from '../../utils/toast';
@@ -12,7 +12,10 @@ const AlumniDashboard = () => {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' or 'profile'
+  const [activeTab, setActiveTab] = useState('overview');
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     currentJob: '',
@@ -25,7 +28,10 @@ const AlumniDashboard = () => {
     twitterUrl: '',
     portfolioUrl: '',
     skills: '',
-    achievements: ''
+    achievements: '',
+    phone: '',
+    contactEmail: '',
+    currentAddress: ''
   });
 
   useEffect(() => {
@@ -54,7 +60,10 @@ const AlumniDashboard = () => {
           twitterUrl: data.twitterUrl || '',
           portfolioUrl: data.portfolioUrl || '',
           skills: data.skills || '',
-          achievements: data.achievements || ''
+          achievements: data.achievements || '',
+          phone: data.phone || '',
+          contactEmail: data.contactEmail || '',
+          currentAddress: data.currentAddress || ''
         });
       }
 
@@ -81,6 +90,37 @@ const AlumniDashboard = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+  };
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Photo must be under 5MB');
+      return;
+    }
+    // Show local preview immediately
+    setPhotoPreview(URL.createObjectURL(file));
+    // Upload to server
+    setUploadingPhoto(true);
+    try {
+      const fd = new FormData();
+      fd.append('photo', file);
+      const res = await api.postForm('/api/alumni/upload-photo', fd);
+      if (res.ok) {
+        const data = await res.json();
+        setProfile(prev => ({ ...prev, profilePicture: data.url }));
+        toast.success('Profile photo updated!');
+      } else {
+        toast.error('Photo upload failed');
+        setPhotoPreview(null);
+      }
+    } catch {
+      toast.error('Photo upload failed');
+      setPhotoPreview(null);
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -119,12 +159,33 @@ const AlumniDashboard = () => {
         <div className="h-32 bg-gradient-to-r from-primary via-primary/90 to-secondary opacity-90 absolute inset-0 z-0"></div>
         <div className="relative z-10 p-8 pt-12">
           <div className="flex flex-col md:flex-row items-center md:items-end gap-6">
-            <div className="w-32 h-32 rounded-3xl bg-white shadow-2xl border-4 border-white overflow-hidden flex items-center justify-center text-5xl font-black text-primary">
-              {profile?.profilePicture ? (
-                <img src={profile.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <span>{profile?.student?.user?.firstName[0]}{profile?.student?.user?.lastName[0]}</span>
+            <div className="relative group cursor-pointer" onClick={() => activeTab === 'profile' && photoInputRef.current?.click()}>
+              <div className="w-32 h-32 rounded-3xl bg-white shadow-2xl border-4 border-white overflow-hidden flex items-center justify-center text-5xl font-black text-primary">
+                {(photoPreview || profile?.profilePicture) ? (
+                  <img src={photoPreview || profile.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span>{profile?.student?.user?.firstName[0]}{profile?.student?.user?.lastName[0]}</span>
+                )}
+              </div>
+              {activeTab === 'profile' && (
+                <div className="absolute inset-0 bg-black/40 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  {uploadingPhoto ? (
+                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent" />
+                  ) : (
+                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  )}
+                </div>
               )}
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
             </div>
             <div className="flex-1 text-center md:text-left pb-2">
               <h1 className="text-3xl md:text-4xl font-black text-gray-900 leading-tight">
@@ -145,7 +206,7 @@ const AlumniDashboard = () => {
                 onClick={() => setActiveTab('profile')}
                 className={`px-6 py-2.5 rounded-2xl font-bold transition-all ${activeTab === 'profile' ? 'bg-primary text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
               >
-                Edit Bio
+                Edit Profile
               </button>
             </div>
           </div>
@@ -277,6 +338,27 @@ const AlumniDashboard = () => {
                   <p className="text-primary font-bold text-sm mb-4">{formData.currentCompany || 'No Company Set'}</p>
                   <p className="text-gray-500 text-xs leading-relaxed mb-6 line-clamp-3 italic">"{formData.bio || 'Your bio will appear here...'}"</p>
 
+                  <div className="flex flex-col gap-3 mb-6">
+                    {formData.phone && (
+                      <div className="flex items-center gap-3 text-gray-500 text-xs font-bold">
+                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                        <span>{formData.phone}</span>
+                      </div>
+                    )}
+                    {formData.contactEmail && (
+                      <div className="flex items-center gap-3 text-gray-500 text-xs font-bold">
+                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        <span className="truncate">{formData.contactEmail}</span>
+                      </div>
+                    )}
+                    {formData.currentAddress && (
+                      <div className="flex items-center gap-3 text-gray-500 text-xs font-bold">
+                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <span className="line-clamp-2">{formData.currentAddress}</span>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex gap-4">
                     {formData.linkedinUrl && (
                       <a href={formData.linkedinUrl} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-blue-600 transition-colors">
@@ -364,6 +446,37 @@ const AlumniDashboard = () => {
                       <label className="ml-3 block text-sm font-black text-gray-900 cursor-pointer uppercase tracking-wide">Public Directory Visibility</label>
                     </div>
                     <p className="mt-2 text-xs text-gray-500 ml-8 font-medium italic">When enabled, your professional profile will be visible to other graduates for networking.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Info */}
+              <div className="md:col-span-2 space-y-6 mt-4">
+                <h3 className="text-xs font-black text-primary uppercase tracking-[0.2em] mb-4">Contact & Location</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Phone Number</label>
+                    <input
+                      type="tel" name="phone" value={formData.phone} onChange={handleChange}
+                      className="w-full rounded-2xl border-gray-200 py-4 focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium placeholder:text-gray-300"
+                      placeholder="e.g. 0801 234 5678"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Contact Email</label>
+                    <input
+                      type="email" name="contactEmail" value={formData.contactEmail} onChange={handleChange}
+                      className="w-full rounded-2xl border-gray-200 py-4 focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium placeholder:text-gray-300"
+                      placeholder="e.g. yourname@gmail.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Current Address</label>
+                    <input
+                      type="text" name="currentAddress" value={formData.currentAddress} onChange={handleChange}
+                      className="w-full rounded-2xl border-gray-200 py-4 focus:ring-2 focus:ring-primary focus:border-primary transition-all font-medium placeholder:text-gray-300"
+                      placeholder="e.g. 12 Unity Street, Abuja"
+                    />
                   </div>
                 </div>
               </div>

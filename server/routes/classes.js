@@ -342,7 +342,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
 router.put('/:id/publish-results', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
-    const { isPublished } = req.body;
+    const { isPublished, termId } = req.body;
     const classId = parseInt(id);
 
     // If teacher, verify it's their class
@@ -356,17 +356,49 @@ router.put('/:id/publish-results', authenticate, authorize(['admin', 'teacher', 
       }
     }
 
+    // Get current term if termId not provided
+    let activeTermId = termId;
+    if (!activeTermId) {
+      const currentTerm = await prisma.term.findFirst({
+        where: { isCurrent: true, schoolId: req.schoolId }
+      });
+      activeTermId = currentTerm?.id;
+    }
+
+    if (!activeTermId) {
+      return res.status(400).json({ error: 'Term ID is required for publishing' });
+    }
+
+    // Update ResultPublication (Upsert)
+    const publication = await prisma.resultPublication.upsert({
+      where: {
+        schoolId_classId_termId: {
+          schoolId: req.schoolId,
+          classId: classId,
+          termId: activeTermId
+        }
+      },
+      update: { isPublished: isPublished },
+      create: {
+        schoolId: req.schoolId,
+        classId: classId,
+        termId: activeTermId,
+        isPublished: isPublished
+      }
+    });
+
+    // Also update the legacy flag for compatibility
     const updatedClass = await prisma.class.update({
       where: { id: classId, schoolId: req.schoolId },
       data: { isResultPublished: isPublished }
     });
 
-    // 4. Send notifications if published (non-blocking)
+    // Send notifications if published (non-blocking)
     if (isPublished) {
       const { sendResultReleaseNotification } = require('../services/emailService');
 
       try {
-        const currentTerm = await prisma.term.findFirst({ where: { isCurrent: true, schoolId: req.schoolId } });
+        const currentTerm = await prisma.term.findUnique({ where: { id: activeTermId } });
         const currentSession = await prisma.academicSession.findFirst({ where: { isCurrent: true, schoolId: req.schoolId } });
         const settings = await prisma.school.findUnique({ where: { id: req.schoolId } });
         const schoolName = settings?.name || process.env.SCHOOL_NAME || 'School Management System';
@@ -388,7 +420,7 @@ router.put('/:id/publish-results', authenticate, authorize(['admin', 'teacher', 
               const resultCount = await prisma.result.count({
                 where: {
                   studentId: student.id,
-                  termId: currentTerm?.id,
+                  termId: activeTermId,
                   academicSessionId: currentSession?.id,
                   schoolId: req.schoolId
                 }
@@ -414,7 +446,11 @@ router.put('/:id/publish-results', authenticate, authorize(['admin', 'teacher', 
       }
     }
 
-    res.json({ message: `Results ${isPublished ? 'published' : 'unpublished'} successfully`, class: updatedClass });
+    res.json({
+      message: `Results ${isPublished ? 'published' : 'unpublished'} successfully for ${activeTermId}`,
+      class: updatedClass,
+      publication
+    });
 
     // Log the publishing action
     logAction({
@@ -423,7 +459,8 @@ router.put('/:id/publish-results', authenticate, authorize(['admin', 'teacher', 
       action: isPublished ? 'PUBLISH_RESULTS' : 'UNPUBLISH_RESULTS',
       resource: 'CLASS',
       details: {
-        classId: classId
+        classId: classId,
+        termId: activeTermId
       },
       ipAddress: req.ip
     });

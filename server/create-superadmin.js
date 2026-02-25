@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
@@ -36,10 +37,10 @@ async function createOrUpdateSuperadmin() {
       }
     }
 
-    // Check if superadmin exists
+    // Check if superadmin exists (global, not tied to any school)
     let superadmin = await prisma.user.findFirst({
       where: {
-        schoolId: school.id,
+        username: 'superadmin',
         role: 'superadmin'
       }
     });
@@ -51,7 +52,7 @@ async function createOrUpdateSuperadmin() {
       console.log('👤 Creating superadmin user...');
       superadmin = await prisma.user.create({
         data: {
-          schoolId: school.id,
+          schoolId: null, // Global access, not tied to any school
           username: 'superadmin',
           passwordHash: passwordHash,
           email: 'superadmin@system.local',
@@ -64,16 +65,17 @@ async function createOrUpdateSuperadmin() {
       });
       console.log('✅ Superadmin created!\n');
     } else {
-      console.log('👤 Superadmin exists, updating password...');
+      console.log('👤 Superadmin exists, updating password and removing school association...');
       await prisma.user.update({
         where: { id: superadmin.id },
         data: {
+          schoolId: null, // Remove school association for global access
           passwordHash: passwordHash,
           isActive: true,
           mustChangePassword: false
         }
       });
-      console.log('✅ Superadmin password updated!\n');
+      console.log('✅ Superadmin updated with global access!\n');
     }
 
     console.log('═══════════════════════════════════════');

@@ -417,4 +417,100 @@ router.post('/admission-guide', authenticate, authorize(['admin']), documentUplo
   }
 });
 
+// ============ CERTIFICATE PHOTO UPLOAD ============
+
+// Create certificates uploads directory
+const certificatesUploadsDir = path.join(__dirname, '../uploads/certificates');
+if (!fs.existsSync(certificatesUploadsDir)) {
+  fs.mkdirSync(certificatesUploadsDir, { recursive: true });
+}
+
+// Configure multer for certificate photos
+const certificateStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, certificatesUploadsDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'cert-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const certificateUpload = multer({
+  storage: certificateStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: fileFilter
+});
+
+// Upload certificate photo
+router.post('/certificate/:certificateId/photo', authenticate, authorize(['admin']), certificateUpload.single('photo'), async (req, res) => {
+  try {
+    const certificateId = parseInt(req.params.certificateId);
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Check if certificate exists
+    const certificate = await prisma.certificate.findUnique({
+      where: { id: certificateId }
+    });
+
+    if (!certificate) {
+      // Delete uploaded file if certificate doesn't exist
+      if (req.file.path) fs.unlinkSync(req.file.path);
+      return res.status(404).json({ error: 'Certificate not found' });
+    }
+
+    // Delete old photo if exists
+    if (certificate.passportUrl) {
+      const oldPhotoPath = path.join(__dirname, '..', certificate.passportUrl);
+      if (fs.existsSync(oldPhotoPath)) {
+        fs.unlinkSync(oldPhotoPath);
+      }
+    }
+
+    // Update certificate with new photo URL
+    const passportUrl = `/uploads/certificates/${req.file.filename}`;
+    const updatedCertificate = await prisma.certificate.update({
+      where: { id: certificateId },
+      data: { passportUrl },
+      include: {
+        student: {
+          include: {
+            user: { select: { firstName: true, lastName: true } }
+          }
+        }
+      }
+    });
+
+    res.json({
+      message: 'Photo uploaded successfully',
+      passportUrl: passportUrl,
+      certificate: updatedCertificate
+    });
+
+    // Log the upload
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPLOAD_PHOTO',
+      resource: 'CERTIFICATE',
+      details: {
+        certificateId: certificateId,
+        passportUrl: passportUrl
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error uploading certificate photo:', error);
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

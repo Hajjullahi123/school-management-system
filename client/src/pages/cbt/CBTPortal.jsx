@@ -7,6 +7,7 @@ const CBTPortal = () => {
   const [view, setView] = useState('list'); // 'list', 'taking', 'result'
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { settings: schoolSettings } = useSchoolSettings();
 
   // Active Exam State
@@ -27,12 +28,26 @@ const CBTPortal = () => {
 
   const fetchAvailableExams = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await api.get('/api/cbt/student/available');
       const data = await response.json();
-      setExams(data);
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || 'Failed to fetch available exams');
+      }
+
+      if (Array.isArray(data)) {
+        setExams(data);
+      } else {
+        console.error('Expected array of exams, got:', data);
+        setExams([]);
+        setError('Invalid data format received from server.');
+      }
     } catch (error) {
       console.error('Error fetching exams:', error);
-      toast.error('Failed to load exams');
+      setError(error.message);
+      toast.error(error.message || 'Failed to load exams');
     } finally {
       setLoading(false);
     }
@@ -368,8 +383,25 @@ const CBTPortal = () => {
         )}
       </div>
 
+      {error && (
+        <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700 font-medium whitespace-pre-line">
+                {error}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {exams.map(exam => {
+        {Array.isArray(exams) && exams.map(exam => {
           const hasTaken = exam.results && exam.results.length > 0;
           const result = hasTaken ? exam.results[0] : null;
 

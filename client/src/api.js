@@ -12,6 +12,9 @@ export const apiCall = async (endpoint, options = {}) => {
   const url = `${baseURL}${path}`;
 
   console.log(`[API DEBUG] ${options.method || 'GET'} ${url} - Token: ${localStorage.getItem('token') ? 'Yes' : 'No'}`);
+  if (!localStorage.getItem('token')) {
+    console.warn(`[API WARNING] Request to ${endpoint} is being sent WITHOUT a token.`);
+  }
 
   const defaultOptions = {
     headers: {
@@ -112,6 +115,16 @@ export const api = {
     const headers = { 'Content-Type': 'application/json', ...options.headers };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     return fetch(url, { ...options, method: 'PATCH', headers, credentials: 'include', body: JSON.stringify(data) });
+  },
+
+  postForm: async (endpoint, formData, options = {}) => {
+    const baseURL = API_BASE_URL || window.location.origin;
+    const url = `${baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+    const token = localStorage.getItem('token');
+    // For FormData, we must NOT set Content-Type header so the browser sets it with the boundary
+    const headers = { ...options.headers };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(url, { ...options, method: 'POST', headers, credentials: 'include', body: formData });
   }
 };
 

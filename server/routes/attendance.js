@@ -15,6 +15,23 @@ async function getCurrentSessionAndTerm(schoolId) {
   return { session, term };
 }
 
+// Staff Attendance Helpers
+function calculateLateMinutes(checkInTime, expectedArrivalTime) {
+  if (!expectedArrivalTime) return 0;
+  const today = new Date().toISOString().split('T')[0];
+  const expected = new Date(`${today}T${expectedArrivalTime}`);
+  const actual = new Date(checkInTime);
+  const diffMs = actual - expected;
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  return diffMinutes > 0 ? diffMinutes : 0;
+}
+
+function determineStaffStatus(checkInTime, lateMinutes) {
+  if (!checkInTime) return 'absent';
+  if (lateMinutes > 30) return 'late';
+  return 'present';
+}
+
 // 1. Get Attendance Sheet for a Class (on a specific date)
 router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
@@ -28,8 +45,14 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
         where: { id: parseInt(classId), schoolId: req.schoolId }
       });
 
+      console.log(`[ATTENDANCE DEBUG] Teacher ${req.user.id} attempting access to class ${classId}. Class found: ${classInfo ? 'Yes' : 'No'}. Assigned teacher ID: ${classInfo?.classTeacherId}`);
+
       if (!classInfo || classInfo.classTeacherId !== req.user.id) {
-        return res.status(403).json({ error: 'Access Denied: You are not the assigned Class Teacher for this class.' });
+        console.warn(`[ATTENDANCE WARNING] Access Denied for Teacher ${req.user.id} on class ${classId}.`);
+        return res.status(403).json({
+          error: 'Access Denied',
+          message: 'You are not the assigned Class Teacher (Form Master) for this class.'
+        });
       }
     }
 
@@ -42,9 +65,6 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
       where: {
         classId: parseInt(classId),
         schoolId: req.schoolId
-      },
-      include: {
-        user: { select: { firstName: true, lastName: true } }
       },
       select: {
         id: true,
@@ -159,23 +179,19 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal']),
       })
     );
 
-    // 4. Send absence alerts (non-blocking)
-    const absentRecords = records.filter(r => r.status === 'absent');
-    if (absentRecords.length > 0) {
+    // 4. Send alerts (non-blocking)
+    const markedRecords = records.filter(r => r.status === 'absent' || r.status === 'present');
+    if (markedRecords.length > 0) {
       // Get school settings once
       const settings = await prisma.school.findUnique({
         where: { id: req.schoolId }
       });
-      const schoolName = settings?.name || settings?.schoolName || process.env.SCHOOL_NAME || 'School Management System';
+      const schoolName = settings?.name || settings?.schoolName || 'School System';
 
-      // Process alerts asynchronously
-      absentRecords.forEach(async (record) => {
+      markedRecords.forEach(async (record) => {
         try {
           const student = await prisma.student.findFirst({
-            where: {
-              id: record.studentId,
-              schoolId: req.schoolId
-            },
+            where: { id: record.studentId, schoolId: req.schoolId },
             include: {
               user: { select: { firstName: true, lastName: true } },
               parent: { include: { user: { select: { email: true } } } },
@@ -183,49 +199,107 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal']),
             }
           });
 
-          // 1. Email Alert
-          if (student?.parent?.user?.email) {
-            const absenceData = {
-              parentEmail: student.parent.user.email,
-              studentName: `${student.user.firstName} ${student.user.lastName}`,
-              date: targetDate,
-              className: `${student.classModel?.name} ${student.classModel?.arm || ''}`.trim(),
-              schoolName
-            };
+          if (!student) return;
 
-            const { sendAbsenceAlert } = require('../services/emailService');
-            sendAbsenceAlert(absenceData).catch(e => console.error('Absence email error:', e));
+          // ABSENCE ALERT
+          if (record.status === 'absent') {
+            // Email Alert
+            if (student.parent?.user?.email) {
+              const { sendAbsenceAlert } = require('../services/emailService');
+              sendAbsenceAlert({
+                parentEmail: student.parent.user.email,
+                studentName: `${student.user.firstName} ${student.user.lastName}`,
+                date: targetDate.toLocaleDateString(),
+                className: `${student.classModel?.name} ${student.classModel?.arm || ''}`.trim(),
+                schoolName
+              }).catch(e => console.error('Absence email error:', e));
+            }
+
+            // SMS Alert
+            if (student.parent?.phone) {
+              const { sendAbsenceSMS } = require('../services/smsService');
+              sendAbsenceSMS({
+                phone: student.parent.phone,
+                studentName: student.user.firstName,
+                date: targetDate.toLocaleDateString(),
+                schoolName
+              }).catch(e => console.error('Absence SMS error:', e));
+            }
+
+            // In-App Alert
+            if (student.parent?.userId) {
+              await prisma.parentTeacherMessage.create({
+                data: {
+                  schoolId: req.schoolId,
+                  senderId: req.user.id,
+                  receiverId: student.parent.userId,
+                  senderRole: req.user.role,
+                  studentId: student.id,
+                  subject: 'Absence Notification',
+                  message: `Automatic Alert: ${student.user.firstName} ${student.user.lastName} was marked ABSENT today (${targetDate.toLocaleDateString()}).`,
+                  messageType: 'attendance',
+                  isRead: false
+                }
+              }).catch(e => console.error('In-app notification error:', e));
+            }
           }
 
-          // 2. SMS Alert
-          if (student?.parent?.phone) {
-            const { sendAbsenceSMS } = require('../services/smsService');
-            sendAbsenceSMS({
-              phone: student.parent.phone,
-              studentName: `${student.user.firstName} ${student.user.lastName}`,
-              date: targetDate,
-              schoolName
-            }).catch(e => console.error('Absence SMS error:', e));
-          }
-
-          // 3. NEW: In-App Parent Alert (via Message System)
-          if (student?.parent?.userId) {
-            await prisma.parentTeacherMessage.create({
-              data: {
-                schoolId: req.schoolId,
-                senderId: req.user.id,
-                receiverId: student.parent.userId,
-                senderRole: req.user.role,
+          // SAFE ARRIVAL ALERT
+          if (record.status === 'present') {
+            // Check if already notified today for arrival
+            const existingArrivalMsg = await prisma.parentTeacherMessage.findFirst({
+              where: {
+                receiverId: student.parent?.userId,
                 studentId: student.id,
-                subject: 'Absence Notification',
-                message: `Automatic Alert: ${student.user.firstName} ${student.user.lastName} was marked ABSENT today (${targetDate.toLocaleDateString()}). If this is an error, please contact the class teacher.`,
-                messageType: 'attendance',
-                isRead: false
+                subject: 'Safe Arrival Alert',
+                createdAt: { gte: targetDate }
               }
-            }).catch(e => console.error('In-app notification error:', e));
+            });
+
+            if (!existingArrivalMsg && student.parent?.userId) {
+              const arrivalTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+              // In-App Notification
+              await prisma.parentTeacherMessage.create({
+                data: {
+                  schoolId: req.schoolId,
+                  senderId: req.user.id,
+                  receiverId: student.parent.userId,
+                  senderRole: req.user.role,
+                  studentId: student.id,
+                  subject: 'Safe Arrival Alert',
+                  message: `${student.user.firstName} has arrived safely at school (${arrivalTime}).`,
+                  messageType: 'attendance',
+                  isRead: false
+                }
+              }).catch(e => console.error('In-app arrival notification error:', e));
+
+              // SMS Alert
+              if (settings?.enableSMS && student.parent.phone) {
+                const { sendArrivalSMS } = require('../services/smsService');
+                sendArrivalSMS({
+                  phone: student.parent.phone,
+                  studentName: student.user.firstName,
+                  time: arrivalTime,
+                  schoolName
+                }).catch(e => console.error('Arrival SMS error:', e));
+              }
+
+              // Email Alert
+              if (student.parent.user?.email) {
+                const { sendArrivalAlert } = require('../services/emailService');
+                sendArrivalAlert({
+                  parentEmail: student.parent.user.email,
+                  studentName: student.user.firstName,
+                  time: arrivalTime,
+                  className: `${student.classModel?.name} ${student.classModel?.arm || ''}`.trim(),
+                  schoolName
+                }).catch(e => console.error('Arrival email error:', e));
+              }
+            }
           }
         } catch (err) {
-          console.error('Error in absence alert processing:', err);
+          console.error('Error in alert processing:', err);
         }
       });
     }
@@ -409,6 +483,296 @@ router.get('/download', authenticate, authorize(['admin', 'principal']), async (
   } catch (error) {
     console.error('Download attendance error:', error);
     res.status(500).json({ error: 'Failed to download attendance records' });
+  }
+});
+
+// 4. Student Scan (Safe-Arrival Notification)
+router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', 'staff']), async (req, res) => {
+  try {
+    const { admissionNumber } = req.body;
+    if (!admissionNumber) {
+      return res.status(400).json({ error: 'Admission number is required' });
+    }
+
+    const { session, term } = await getCurrentSessionAndTerm(req.schoolId);
+    if (!session || !term) {
+      return res.status(400).json({ error: 'No active academic session or term found' });
+    }
+
+    // 1. Find the student
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const student = await prisma.student.findFirst({
+      where: { admissionNumber, schoolId: req.schoolId },
+      include: {
+        user: { select: { firstName: true, lastName: true } },
+        classModel: true,
+        parent: { include: { user: { select: { email: true, firstName: true } } } }
+      }
+    });
+
+    // 4. Handle Scan (Student or Staff)
+    if (!student) {
+      // Logic for staff scanning
+      const staffUser = await prisma.user.findFirst({
+        where: {
+          schoolId: req.schoolId,
+          role: { in: ['teacher', 'admin', 'principal', 'accountant', 'staff'] },
+          OR: [
+            { username: admissionNumber },
+            { email: admissionNumber }
+          ]
+        }
+      });
+
+      if (staffUser) {
+        const staffSettings = await prisma.school.findUnique({
+          where: { id: req.schoolId },
+          select: { staffExpectedArrivalTime: true }
+        });
+
+        const checkInTime = new Date();
+        const expectedArrivalTime = staffSettings?.staffExpectedArrivalTime || '07:00';
+        const lateMinutes = calculateLateMinutes(checkInTime, expectedArrivalTime);
+        const status = determineStaffStatus(checkInTime, lateMinutes);
+
+        const staffRecord = await prisma.staffAttendance.upsert({
+          where: {
+            schoolId_userId_date: {
+              schoolId: req.schoolId,
+              userId: staffUser.id,
+              date: today
+            }
+          },
+          update: { checkInTime, status, lateMinutes },
+          create: {
+            schoolId: req.schoolId,
+            userId: staffUser.id,
+            date: today,
+            checkInTime,
+            status,
+            lateMinutes
+          }
+        });
+
+        logAction({
+          schoolId: req.schoolId,
+          userId: req.user.id,
+          action: 'STAFF_SCAN_ARRIVAL',
+          resource: 'STAFF_ATTENDANCE',
+          details: { staffUserId: staffUser.id, status },
+          ipAddress: req.ip
+        });
+
+        return res.json({
+          message: `${staffUser.firstName} (Staff) arrival logged`,
+          isStaff: true,
+          staff: {
+            name: `${staffUser.firstName} ${staffUser.lastName}`,
+            role: staffUser.role,
+            status,
+            isLate: status === 'late',
+            lateMinutes
+          }
+        });
+      }
+
+      return res.status(404).json({ error: 'ID not recognized (not a student or staff)' });
+    }
+
+    // 2. Mark Attendance (already handled for student in original code logic above, but let's re-align)
+    // Actually, if we reach here, it IS a student.
+    const record = await prisma.attendanceRecord.upsert({
+      where: {
+        schoolId_studentId_date: {
+          schoolId: req.schoolId,
+          studentId: student.id,
+          date: today
+        }
+      },
+      update: {
+        status: 'present',
+        notes: 'Arrived via scan'
+      },
+      create: {
+        schoolId: req.schoolId,
+        studentId: student.id,
+        classId: student.classId,
+        academicSessionId: session.id,
+        termId: term.id,
+        date: today,
+        status: 'present',
+        notes: 'Arrived via scan'
+      }
+    });
+
+    // 3. Trigger Notification (Non-blocking)
+    const schoolSettings = await prisma.school.findUnique({
+      where: { id: req.schoolId }
+    });
+    const schoolName = schoolSettings?.name || schoolSettings?.schoolName || 'Your School';
+
+    if (student.parent?.userId) {
+      const arrivalTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // In-App Notification
+      await prisma.parentTeacherMessage.create({
+        data: {
+          schoolId: req.schoolId,
+          senderId: req.user.id,
+          receiverId: student.parent.userId,
+          senderRole: req.user.role,
+          studentId: student.id,
+          subject: 'Safe Arrival Alert',
+          message: `${student.user.firstName} has arrived safely at school today (${arrivalTime}).`,
+          messageType: 'attendance',
+          isRead: false
+        }
+      }).catch(e => console.error('In-app notification error:', e));
+
+      // SMS Alert (if enabled)
+      if (schoolSettings?.enableSMS && student.parent.phone) {
+        const { sendArrivalSMS } = require('../services/smsService');
+        sendArrivalSMS({
+          phone: student.parent.phone,
+          studentName: student.user.firstName,
+          time: arrivalTime,
+          schoolName
+        }).catch(e => console.error('Arrival SMS error:', e));
+      }
+
+      // Email Alert
+      if (student.parent.user?.email) {
+        const { sendArrivalAlert } = require('../services/emailService');
+        sendArrivalAlert({
+          parentEmail: student.parent.user.email,
+          studentName: student.user.firstName,
+          time: arrivalTime,
+          className: student.classModel?.name || 'N/A',
+          schoolName
+        }).catch(e => console.error('Arrival email error:', e));
+      }
+    }
+
+    res.json({
+      message: `${student.user.firstName} arrival logged successfully`,
+      student: {
+        name: `${student.user.firstName} ${student.user.lastName}`,
+        class: student.classModel?.name,
+        admissionNumber: student.admissionNumber
+      }
+    });
+
+    // Log the action
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'SCAN_ARRIVAL',
+      resource: 'ATTENDANCE',
+      details: {
+        studentId: student.id,
+        admissionNumber: student.admissionNumber
+      },
+      ipAddress: req.ip
+    });
+
+  } catch (error) {
+    console.error('Scan arrival error:', error);
+    res.status(500).json({ error: 'Failed to process arrival scan' });
+  }
+});
+
+// 5. Get Arrival Statistics for Gate Scanner
+router.get('/arrival-stats', authenticate, authorize(['admin', 'principal', 'staff']), async (req, res) => {
+  try {
+    const { days = 5 } = req.query;
+    const numDays = parseInt(days);
+
+    // Generate dates for the last N days
+    const dailyStats = [];
+    const classes = await prisma.class.findMany({
+      where: { schoolId: req.schoolId },
+      include: {
+        _count: {
+          select: { students: true }
+        }
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    const staffTotal = await prisma.user.count({
+      where: {
+        schoolId: req.schoolId,
+        role: { in: ['teacher', 'admin', 'principal', 'accountant'] },
+        isActive: true
+      }
+    });
+
+    for (let i = 0; i < numDays; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+
+      // 1. Get Student Stats per Class for this date
+      const studentArrivals = await prisma.attendanceRecord.groupBy({
+        by: ['classId'],
+        where: {
+          schoolId: req.schoolId,
+          date: date,
+          status: 'present'
+        },
+        _count: {
+          studentId: true
+        }
+      });
+
+      const studentArrivalMap = new Map();
+      studentArrivals.forEach(a => studentArrivalMap.set(a.classId, a._count.studentId));
+
+      const studentStats = classes.map(c => {
+        const scanned = studentArrivalMap.get(c.id) || 0;
+        const total = c._count.students;
+        return {
+          classId: c.id,
+          className: `${c.name} ${c.arm || ''}`.trim(),
+          total,
+          scanned,
+          unscanned: Math.max(0, total - scanned)
+        };
+      });
+
+      // 2. Get Staff Stats for this date
+      const staffArrivals = await prisma.staffAttendance.count({
+        where: {
+          schoolId: req.schoolId,
+          date: date,
+          checkInTime: { not: null }
+        }
+      });
+
+      const staffStats = {
+        total: staffTotal,
+        scanned: staffArrivals,
+        unscanned: Math.max(0, staffTotal - staffArrivals)
+      };
+
+      // Only add to dailyStats if there was any scanning activity (staff or students) 
+      // OR if it's today
+      if (staffArrivals > 0 || studentArrivals.length > 0 || i === 0) {
+        dailyStats.push({
+          date: date.toISOString(),
+          studentStats,
+          staffStats
+        });
+      }
+    }
+
+    res.json(dailyStats);
+
+  } catch (error) {
+    console.error('Get arrival stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch arrival statistics' });
   }
 });
 

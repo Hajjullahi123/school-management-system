@@ -27,7 +27,16 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
-        const response = await api.get('/api/auth/me');
+        // Create a promise that rejects after 5 seconds
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Auth check timed out')), 5000)
+        );
+
+        // Race the API call against the timeout
+        const response = await Promise.race([
+          api.get('/api/auth/me'),
+          timeoutPromise
+        ]);
 
         console.log('Auth check response status:', response.status);
 
@@ -53,6 +62,8 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         if (isMounted) {
           console.error('Auth check error:', error);
+          // If auth check fails (network error, timeout), we should probably let them try to login again
+          // rather than hanging on loading screen.
           setUser(null);
           setDashboardUnlocked(false);
         }

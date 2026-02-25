@@ -75,7 +75,6 @@ const StudentFees = () => {
       if (!termId || !sessionId) return;
 
       setLoading(true);
-      setError(null);
 
       const studentRes = await api.get(`/api/students/user/${user.id}`);
       const studentData = await studentRes.json();

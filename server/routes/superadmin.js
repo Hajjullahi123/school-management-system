@@ -214,26 +214,49 @@ router.post('/schools', authenticate, authorize(['superadmin']), async (req, res
     console.log(`[SuperAdmin] Creating school: ${name} (${slug})`);
     const tempPassword = generateRandomPassword();
 
+    // Generate 3-letter code from name
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    let rawCode = '';
+    if (words.length >= 3) {
+      rawCode = (words[0][0] + words[1][0] + words[2][0]).toUpperCase();
+    } else if (words.length === 2) {
+      rawCode = (words[0][0] + words[1][0] + words[1][1]).toUpperCase();
+    } else {
+      rawCode = name.substring(0, 3).toUpperCase();
+    }
+    rawCode = rawCode.replace(/[^A-Z0-9]/g, '');
+    if (rawCode.length < 3) rawCode = (rawCode + 'XXX').substring(0, 3);
+
     // Use a transaction to ensure both school and admin user are created
     const result = await prisma.$transaction(async (tx) => {
+      // Ensure code is unique in transaction
+      let code = rawCode;
+      let counter = 1;
+      while (await tx.school.findFirst({ where: { code } })) {
+        code = rawCode.substring(0, 2) + counter;
+        counter++;
+      }
+
       const newSchool = await tx.school.create({
         data: {
           name,
           slug,
+          code,
           address,
           phone,
           email
         }
       });
 
-      // Create default admin user for this school
+      // Create default admin user for this school with prefixed username
       const bcrypt = require('bcryptjs');
       const hashedPassword = await bcrypt.hash(tempPassword, 12);
+      const adminUsername = `${code}-admin`.toLowerCase();
 
       const adminUser = await tx.user.create({
         data: {
           schoolId: newSchool.id,
-          username: 'admin',
+          username: adminUsername,
           passwordHash: hashedPassword,
           role: 'admin',
           firstName: 'School',
@@ -247,12 +270,12 @@ router.post('/schools', authenticate, authorize(['superadmin']), async (req, res
     });
 
     const { school, admin } = result;
-    console.log(`[SuperAdmin] School created with ID: ${school.id} and Admin user created`);
+    console.log(`[SuperAdmin] School created with ID: ${school.id} (Code: ${school.code}) and Admin user created`);
 
     res.status(201).json({
       school,
       credentials: {
-        username: 'admin',
+        username: admin.username,
         password: tempPassword,
         schoolSlug: slug
       }
@@ -314,17 +337,18 @@ router.post('/schools/:id/reset-admin', authenticate, authorize(['superadmin']),
         data: {
           passwordHash: hashedPassword,
           isActive: true,
-          mustChangePassword: true
+          mustChangePassword: false
         }
       });
     } else {
-      // If no admin user exists, attempt to create one with 'admin' username
-      // Check if 'admin' is already taken by a non-admin user
+      let targetUsername = school.code ? `${school.code}-admin`.toLowerCase() : 'admin';
+
+      // Check if this username is already taken in this school
       const usernameConflict = await prisma.user.findUnique({
         where: {
           schoolId_username: {
             schoolId,
-            username: 'admin'
+            username: targetUsername
           }
         }
       });
@@ -344,7 +368,7 @@ router.post('/schools/:id/reset-admin', authenticate, authorize(['superadmin']),
           lastName: 'Administrator',
           email: school.email || `admin@${school.slug}.com`,
           isActive: true,
-          mustChangePassword: true
+          mustChangePassword: false
         }
       });
     }

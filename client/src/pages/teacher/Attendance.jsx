@@ -15,6 +15,7 @@ const Attendance = () => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   // Stats
   const [stats, setStats] = useState({ present: 0, absent: 0, late: 0, excused: 0 });
@@ -64,7 +65,13 @@ const Attendance = () => {
     try {
       const response = await api.get('/api/classes');
       const data = await response.json();
-      const classesArr = Array.isArray(data) ? data : [];
+      let classesArr = Array.isArray(data) ? data : [];
+
+      // Filter classes: Only show classes where user is the Form Master
+      if (user?.role === 'teacher') {
+        classesArr = classesArr.filter(c => c.classTeacherId == user.id);
+      }
+
       setClasses(classesArr);
 
       if (user?.role === 'teacher') {
@@ -72,19 +79,27 @@ const Attendance = () => {
           const classIdStr = classesArr[0].id.toString();
           setSelectedClassId(classIdStr);
           setDownloadFilters(prev => ({ ...prev, classId: classIdStr }));
-        } else if (data.length === 0) {
+        } else if (classesArr.length === 0) {
           setSelectedClassId('');
         }
       }
     } catch (error) {
       console.error('Error fetching classes:', error);
+      setError('Failed to load classes. Please refresh the page.');
     }
   };
 
   const fetchAttendanceSheet = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await api.get(`/api/attendance/class/${selectedClassId}?date=${selectedDate}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || errorData.error || 'Failed to load attendance list');
+      }
+
       const data = await response.json();
       const studentsData = Array.isArray(data?.students) ? data.students : [];
 
@@ -104,7 +119,8 @@ const Attendance = () => {
       }
     } catch (error) {
       console.error('Error fetching attendance:', error);
-      toast.error('Failed to load attendance list');
+      setError(error.message);
+      toast.error(error.message || 'Failed to load attendance list');
     } finally {
       setLoading(false);
     }
@@ -173,6 +189,7 @@ const Attendance = () => {
       setSessions(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching sessions:', error);
+      setError('Failed to load academic sessions.');
     }
   };
 
@@ -183,6 +200,7 @@ const Attendance = () => {
       setTerms(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching terms:', error);
+      setError('Failed to load academic terms.');
     }
   };
 
@@ -246,7 +264,7 @@ const Attendance = () => {
             Download Records
           </button>
         </div>
-        {students.length > 0 && (
+        {students.length > 0 && !error && (
           <div className="text-sm font-medium flex gap-4 bg-white px-4 py-2 rounded-lg shadow-sm">
             <span className="text-green-600">Present: {stats.present}</span>
             <span className="text-red-600">Absent: {stats.absent}</span>
@@ -255,6 +273,23 @@ const Attendance = () => {
           </div>
         )}
       </div>
+
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700 font-medium">
+                {error}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {initialLoading ? (
         <div className="flex flex-col items-center justify-center p-20 bg-white rounded-lg shadow-sm border border-gray-100">

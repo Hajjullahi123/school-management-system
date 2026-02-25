@@ -217,15 +217,26 @@ const UserManagement = () => {
     <div className="space-y-6 pb-20">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">User Management Dashboard</h1>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-primary text-white px-6 py-2.5 rounded-xl hover:brightness-90 flex items-center shadow-lg transition-all active:scale-95 font-bold"
-        >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add New User
-        </button>
+        <div className="flex gap-2">
+          <Link
+            to="/dashboard/bulk-student-upload"
+            className="bg-amber-500 text-white px-6 py-2.5 rounded-xl hover:brightness-90 flex items-center shadow-lg transition-all active:scale-95 font-bold"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Bulk Student Upload
+          </Link>
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-primary text-white px-6 py-2.5 rounded-xl hover:brightness-90 flex items-center shadow-lg transition-all active:scale-95 font-bold"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add New User
+          </button>
+        </div>
       </div>
 
       <div className="bg-white p-4 rounded-xl shadow-md flex gap-4 items-center border border-gray-100">
@@ -390,9 +401,6 @@ const UserManagement = () => {
                                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0c0 .884-.896 1.75-2.129 2.25M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                     </Link>
                                   )}
-                                  <button onClick={() => handleEdit(user)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Edit">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                  </button>
                                   {user.id !== currentUser?.id && (
                                     <button onClick={() => handleDelete(user.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Delete">
                                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>

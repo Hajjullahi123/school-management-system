@@ -26,6 +26,7 @@ import CumulativeReport from './pages/student/CumulativeReport';
 import ProgressiveReport from './pages/student/ProgressiveReport';
 import UserManagement from './pages/admin/UserManagement';
 import StudentManagement from './pages/admin/StudentManagement';
+import BulkStudentUpload from './pages/admin/BulkStudentUpload';
 import AcademicSetup from './pages/admin/AcademicSetup';
 import ClassManagement from './pages/admin/ClassManagement';
 import AlumniManagement from './pages/admin/AlumniManagement';
@@ -45,6 +46,8 @@ import BulkResultUpload from './pages/teacher/BulkResultUpload';
 import BulkReportDownload from './pages/teacher/BulkReportDownload';
 import FeeManagement from './pages/accountant/FeeManagement';
 import FeeStructureSetup from './pages/admin/FeeStructureSetup';
+import MiscellaneousFees from './pages/admin/MiscellaneousFees';
+import MiscFeePayments from './pages/admin/MiscFeePayments';
 import ExamCardGenerator from './pages/student/ExamCardGenerator';
 import IDCardGenerator from './pages/IDCardGenerator';
 import TeacherProfile from './pages/teacher/TeacherProfile';
@@ -70,6 +73,9 @@ import ParentMessages from './pages/parent/ParentMessages';
 import TeacherMessages from './pages/teacher/TeacherMessages';
 import CBTManagement from './pages/cbt/CBTManagement';
 import CBTPortal from './pages/cbt/CBTPortal';
+import CBTQuestionBank from './pages/cbt/CBTQuestionBank';
+import ArrivalScanner from './pages/admin/ArrivalScanner';
+import StaffAttendanceReport from './pages/admin/StaffAttendanceReport';
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
 import LicenseManagement from './pages/superadmin/LicenseManagement';
 import QuranTracker from './pages/teacher/QuranTracker';
@@ -80,6 +86,16 @@ import Billing from './pages/admin/Billing';
 import ExamConfig from './pages/admin/ExamConfig';
 import DemoRedirect from './pages/DemoRedirect';
 
+
+import TranscriptView from './pages/admin/TranscriptView';
+import CertificateView from './pages/admin/CertificateView';
+import TestimonialView from './pages/admin/TestimonialView';
+import BulkCertificateView from './pages/admin/BulkCertificateView';
+import BulkTestimonialView from './pages/admin/BulkTestimonialView';
+
+import TranscriptVerification from './pages/TranscriptVerification';
+import CertificateVerification from './pages/CertificateVerification';
+import TestimonialVerification from './pages/TestimonialVerification';
 
 function App() {
   return (
@@ -94,10 +110,15 @@ function App() {
           <Route path="/news-events" element={<NewsEvents />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/gallery" element={<Gallery />} />
+          <Route path="/:schoolSlug" element={<LandingPage />} />
+          <Route path="/:schoolSlug/login" element={<Login />} />
           <Route path="/alumni" element={<AlumniPortal />} />
           <Route path="/alumni/directory" element={<AlumniDirectory />} />
           <Route path="/alumni/login" element={<AlumniLogin />} />
           <Route path="/demo" element={<DemoRedirect />} />
+          <Route path="/verify/transcript/:studentId" element={<TranscriptVerification />} />
+          <Route path="/verify/certificate/:certificateNumber" element={<CertificateVerification />} />
+          <Route path="/verify/testimonial/:testimonialNumber" element={<TestimonialVerification />} />
           <Route path="/superadmin" element={<Navigate to="/dashboard/superadmin" replace />} />
 
           {/* 404 Catch-all */}
@@ -180,6 +201,31 @@ function App() {
             <Route path="cbt-management" element={
               <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
                 <CBTManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="cbt-bank" element={
+              <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
+                <CBTQuestionBank />
+              </ProtectedRoute>
+            } />
+            <Route path="gate-scan" element={
+              <ProtectedRoute roles={['admin', 'principal', 'teacher']}>
+                <ArrivalScanner />
+              </ProtectedRoute>
+            } />
+            <Route path="users" element={
+              <ProtectedRoute roles={['admin', 'principal']}>
+                <UserManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="bulk-student-upload" element={
+              <ProtectedRoute roles={['admin', 'principal']}>
+                <BulkStudentUpload />
+              </ProtectedRoute>
+            } />
+            <Route path="staff-attendance" element={
+              <ProtectedRoute roles={['admin', 'principal']}>
+                <StaffAttendanceReport />
               </ProtectedRoute>
             } />
             <Route path="teacher/messages" element={
@@ -288,6 +334,16 @@ function App() {
                 <FeeStructureSetup />
               </ProtectedRoute>
             } />
+            <Route path="misc-fees" element={
+              <ProtectedRoute roles={['admin', 'accountant']}>
+                <MiscellaneousFees />
+              </ProtectedRoute>
+            } />
+            <Route path="misc-fee-payments" element={
+              <ProtectedRoute roles={['admin', 'accountant']}>
+                <MiscFeePayments />
+              </ProtectedRoute>
+            } />
 
             {/* Admin Routes */}
             <Route path="users" element={
@@ -361,6 +417,31 @@ function App() {
                 <AlumniManagement />
               </ProtectedRoute>
             } />
+            <Route path="transcript/:studentId" element={
+              <ProtectedRoute roles={['admin', 'principal']}>
+                <TranscriptView />
+              </ProtectedRoute>
+            } />
+            <Route path="certificate/:studentId" element={
+              <ProtectedRoute roles={['admin', 'principal']}>
+                <CertificateView />
+              </ProtectedRoute>
+            } />
+            <Route path="testimonial/:studentId" element={
+              <ProtectedRoute roles={['admin', 'principal']}>
+                <TestimonialView />
+              </ProtectedRoute>
+            } />
+            <Route path="bulk-certificates/:year" element={
+              <ProtectedRoute roles={['admin', 'principal']}>
+                <BulkCertificateView />
+              </ProtectedRoute>
+            } />
+            <Route path="bulk-testimonials/:year" element={
+              <ProtectedRoute roles={['admin', 'principal']}>
+                <BulkTestimonialView />
+              </ProtectedRoute>
+            } />
             <Route path="advanced-analytics" element={
               <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
                 <AdvancedAnalytics />
@@ -424,7 +505,7 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
-    </AuthProvider>
+    </AuthProvider >
   );
 }
 

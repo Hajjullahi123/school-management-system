@@ -69,10 +69,22 @@ const sendPaymentSMS = async (paymentData) => {
  * Send Absence Alert SMS
  */
 const sendAbsenceSMS = async (absenceData) => {
-  const { phone, studentName, date, schoolName } = absenceData;
+  const { phone, studentName, date, schoolName, customMessage } = absenceData;
   if (!phone) return;
 
-  const message = `ABENCE ALERT: ${studentName} was marked absent today (${date}). Please contact ${schoolName} for more info.`;
+  const defaultMessage = `ABSENCE ALERT: ${studentName} was marked absent today (${date}). Please contact ${schoolName} for more info.`;
+  const message = customMessage || defaultMessage;
+  return sendSMS(phone, message);
+};
+
+/**
+ * Send Arrival Alert SMS
+ */
+const sendArrivalSMS = async (arrivalData) => {
+  const { phone, studentName, time, schoolName } = arrivalData;
+  if (!phone) return;
+
+  const message = `SAFE ARRIVAL: ${studentName} has arrived safely at school (${time}). - ${schoolName}`;
   return sendSMS(phone, message);
 };
 
@@ -91,5 +103,6 @@ module.exports = {
   sendSMS,
   sendPaymentSMS,
   sendAbsenceSMS,
+  sendArrivalSMS,
   sendWelcomeSMS
 };

@@ -14,7 +14,7 @@ const {
 // Get results for a student (Dashboard view)
 router.get('/', authenticate, async (req, res) => {
   try {
-    const { studentId } = req.query;
+    const { studentId, termId, academicSessionId } = req.query;
 
     if (!studentId) {
       return res.status(400).json({ error: 'Student ID is required' });
@@ -28,10 +28,9 @@ router.get('/', authenticate, async (req, res) => {
       // If parent, find the linked Parent record to get parentId
       if (req.user.role === 'parent') {
         const parentRecord = await prisma.parent.findFirst({
-          where: { userId: req.user.id }
+          where: { userId: req.user.id, schoolId: req.schoolId }
         });
         if (!parentRecord) {
-          // If a parent user exists but has no Parent record, deny access
           return res.status(403).json({ error: 'Parent record not found' });
         }
         parentId = parentRecord.id;
@@ -39,9 +38,7 @@ router.get('/', authenticate, async (req, res) => {
 
       const student = await prisma.student.findFirst({
         where: {
-          // If student, match userId. If parent, ignore userId filter (undefined).
           userId: req.user.role === 'student' ? req.user.id : undefined,
-          // If parent, match parentId. If student, ignore parentId filter (undefined).
           parentId: req.user.role === 'parent' ? parentId : undefined,
           id: parseInt(studentId),
           schoolId: req.schoolId
@@ -53,20 +50,48 @@ router.get('/', authenticate, async (req, res) => {
         return res.status(403).json({ error: 'Unauthorized Access' });
       }
 
-      // Check if results are published for the student's current class
-      if (student.classModel && !student.classModel.isResultPublished) {
-        return res.status(403).json({
-          error: 'Result Not Published',
-          message: 'The result for this class has not been published.'
+      // Check if results are published for the student's class and the requested term
+      if (student.classModel) {
+        // Find if a per-term publication exists
+        const publication = await prisma.resultPublication.findUnique({
+          where: {
+            schoolId_classId_termId: {
+              schoolId: req.schoolId,
+              classId: student.classModel.id,
+              termId: parseInt(termId || 0) // Fallback to 0 if not provided to avoid crash, though usually termId should be there
+            }
+          }
         });
+
+        if (!publication || !publication.isPublished) {
+          // If no per-term publication, fall back to legacy flag IF it's the current term
+          // This ensures backward compatibility for sessions that were already published
+          const currentTerm = await prisma.term.findFirst({
+            where: { isCurrent: true, schoolId: req.schoolId }
+          });
+
+          const isRequestingCurrentTerm = currentTerm && parseInt(termId) === currentTerm.id;
+
+          if (!(isRequestingCurrentTerm && student.classModel.isResultPublished)) {
+            return res.status(403).json({
+              error: 'Result Not Published',
+              message: 'The result for this class and term has not been published.'
+            });
+          }
+        }
       }
     }
 
+    const where = {
+      schoolId: req.schoolId,
+      studentId: parseInt(studentId)
+    };
+
+    if (termId) where.termId = parseInt(termId);
+    if (academicSessionId) where.academicSessionId = parseInt(academicSessionId);
+
     const results = await prisma.result.findMany({
-      where: {
-        schoolId: req.schoolId,
-        studentId: parseInt(studentId)
-      },
+      where,
       include: {
         subject: true,
         academicSession: true,

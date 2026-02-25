@@ -64,7 +64,10 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/teacher/:teacherId', authenticate, async (req, res) => {
   try {
     const assignments = await prisma.teacherAssignment.findMany({
-      where: { teacherId: parseInt(req.params.teacherId) },
+      where: {
+        teacherId: parseInt(req.params.teacherId),
+        schoolId: req.schoolId
+      },
       include: {
         classSubject: {
           include: {
@@ -120,7 +123,8 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
     const existing = await prisma.teacherAssignment.findFirst({
       where: {
         teacherId: parseInt(teacherId),
-        classSubjectId: parseInt(classSubjectId)
+        classSubjectId: parseInt(classSubjectId),
+        schoolId: req.schoolId
       }
     });
 
@@ -129,8 +133,11 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
     }
 
     // Verify the classSubject exists
-    const classSubject = await prisma.classSubject.findUnique({
-      where: { id: parseInt(classSubjectId) },
+    const classSubject = await prisma.classSubject.findFirst({
+      where: {
+        id: parseInt(classSubjectId),
+        schoolId: req.schoolId
+      },
       include: {
         class: true,
         subject: true
@@ -215,12 +222,27 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
     }
 
     // Verify the classSubject exists
-    const classSubject = await prisma.classSubject.findUnique({
-      where: { id: parseInt(classSubjectId) }
+    const classSubject = await prisma.classSubject.findFirst({
+      where: {
+        id: parseInt(classSubjectId),
+        schoolId: req.schoolId
+      }
     });
 
     if (!classSubject) {
       return res.status(404).json({ error: 'Class subject not found' });
+    }
+
+    // Verify the assignment exists AND belongs to this school
+    const existingAssignment = await prisma.teacherAssignment.findFirst({
+      where: {
+        id: assignmentId,
+        schoolId: req.schoolId
+      }
+    });
+
+    if (!existingAssignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
     }
 
     const updated = await prisma.teacherAssignment.update({
@@ -291,8 +313,11 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
   try {
     const assignmentId = parseInt(req.params.id);
 
-    const assignment = await prisma.teacherAssignment.findUnique({
-      where: { id: assignmentId }
+    const assignment = await prisma.teacherAssignment.findFirst({
+      where: {
+        id: assignmentId,
+        schoolId: req.schoolId
+      }
     });
 
     if (!assignment) {

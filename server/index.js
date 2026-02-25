@@ -364,6 +364,7 @@ const licenseRoutes = require('./routes/license');
 const settingsRoutes = require('./routes/settings');
 const paymentRoutes = require('./routes/payments');
 const attendanceRoutes = require('./routes/attendance');
+const staffAttendanceRoutes = require('./routes/staff-attendance');
 const messageRoutes = require('./routes/messages');
 const timetableRoutes = require('./routes/timetable');
 const noticeRoutes = require('./routes/notices');
@@ -383,16 +384,29 @@ const superadminRoutes = require('./routes/superadmin');
 const interventionRoutes = require('./routes/interventions');
 const platformBillingRoutes = require('./routes/platform-billing');
 const backupRoutes = require('./routes/backup');
+const whatsappRoutes = require('./routes/whatsapp');
+const miscFeesRoutes = require('./routes/misc-fees');
 
 // Resolve Custom Domains (White-Label)
 app.use(resolveDomain);
+
+// Public metadata (For login branding)
+app.get('/api/public/global-settings', async (req, res) => {
+  const prisma = require('./db');
+  try {
+    const settings = await prisma.globalSettings.findFirst();
+    res.json(settings || { id: 1 });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+});
 
 // Use Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', authenticate, checkSubscription, userRoutes);
 app.use('/api/students', authenticate, checkSubscription, studentRoutes);
 app.use('/api/subjects', authenticate, checkSubscription, subjectRoutes);
-app.use('/api/exams', authenticate, checkSubscription, requirePackage('standard'), examRoutes);
+app.use('/api/exams', authenticate, checkSubscription, examRoutes);
 app.use('/api/results', authenticate, checkSubscription, resultsRoutes);
 app.use('/api/reports', authenticate, checkSubscription, reportRoutes);
 app.use('/api/analytics', authenticate, checkSubscription, analyticsRoutes);
@@ -408,34 +422,40 @@ app.use('/api/upload', authenticate, checkSubscription, uploadRoutes);
 app.use('/api/teacher-assignments', authenticate, checkSubscription, teacherAssignmentRoutes);
 app.use('/api/bulk-upload', authenticate, checkSubscription, bulkUploadRoutes);
 app.use('/api/scoresheet', authenticate, checkSubscription, scoresheetRoutes);
-app.use('/api/fees', authenticate, checkSubscription, requirePackage('basic'), feeRoutes);
-app.use('/api/fee-structure', authenticate, checkSubscription, requirePackage('basic'), feeStructureRoutes);
+app.use('/api/fees', authenticate, checkSubscription, feeRoutes);
+app.use('/api/fee-structure', authenticate, checkSubscription, feeStructureRoutes);
 app.use('/api/exam-cards', authenticate, checkSubscription, examCardRoutes);
 app.use('/api/teachers', authenticate, checkSubscription, teacherProfileRoutes);
 app.use('/api/top-students', authenticate, checkSubscription, topStudentsRoutes);
 app.use('/api/license', authenticate, licenseRoutes); // License activation itself needs to be accessible
-app.use('/api/settings', authenticate, checkSubscription, settingsRoutes);
+app.use('/api/settings', settingsRoutes); // Protection handled inside router (GET is public)
 app.use('/api/payments', authenticate, checkSubscription, paymentRoutes);
 app.use('/api/attendance', authenticate, checkSubscription, attendanceRoutes);
+app.use('/api/staff-attendance', authenticate, checkSubscription, staffAttendanceRoutes);
 app.use('/api/messages', authenticate, checkSubscription, messageRoutes);
 app.use('/api/timetable', authenticate, checkSubscription, timetableRoutes);
 app.use('/api/notices', authenticate, checkSubscription, noticeRoutes);
 app.use('/api/lms', authenticate, checkSubscription, lmsRoutes);
 app.use('/api/parents', authenticate, checkSubscription, parentRoutes);
 app.use('/api/system', authenticate, checkSubscription, statusRoutes);
-app.use('/api/cbt', authenticate, checkSubscription, requirePackage('standard'), cbtRoutes);
+app.use('/api/cbt', authenticate, checkSubscription, cbtRoutes);
 app.use('/api/report-extras', authenticate, checkSubscription, reportExtraRoutes);
-app.use('/api/quran-tracker', authenticate, checkSubscription, requirePackage('premium'), quranTrackerRoutes);
+app.use('/api/quran-tracker', authenticate, checkSubscription, quranTrackerRoutes);
 app.use('/api/gallery', authenticate, checkSubscription, galleryRoutes);
 app.use('/api/news-events', authenticate, checkSubscription, newsEventsRoutes);
-app.use('/api/promotion', authenticate, checkSubscription, promotionRoutes);
-app.use('/api/alumni', authenticate, checkSubscription, requirePackage('standard'), alumniRoutes);
+app.use('/api/promotion', promotionRoutes);
+app.use('/api/alumni', alumniRoutes);
+app.use('/api/certificates', require('./routes/certificates'));
+app.use('/api/testimonials', require('./routes/testimonials'));
 app.use('/api/interventions', authenticate, checkSubscription, interventionRoutes);
 app.use('/api/audit', authenticate, checkSubscription, auditRoutes);
 app.use('/api/teacher-availability', authenticate, checkSubscription, teacherAvailabilityRoutes);
 app.use('/api/superadmin', authenticate, authorize('superadmin'), superadminRoutes);
-app.use('/api/platform-billing', authenticate, platformBillingRoutes);
+app.use('/api/platform-billing', platformBillingRoutes);
 app.use('/api/backup', backupRoutes);
+app.use('/api/whatsapp', whatsappRoutes); // Public webhook endpoint for Twilio
+app.use('/api/misc-fees', authenticate, checkSubscription, miscFeesRoutes);
+app.use('/api/upload', require('./routes/upload'));
 
 
 // Serve frontend in production
