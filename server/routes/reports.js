@@ -182,7 +182,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       prevAverage = sortedAverages[i].average;
     }
 
-    const totalStudents = classmates.length;
+    const totalStudents = sortedAverages.length;
 
     // Fetch Attendance Stats
     const totalAttendanceDays = await prisma.attendanceRecord.count({
@@ -427,23 +427,38 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
     // Check permissions
     if (req.user.role === 'student' || req.user.role === 'parent') {
       if (student.classModel) {
-        // Since cumulative depends on multiple terms, we follow a strict "all terms in session must be published" 
-        // OR we just check the current term's publication status as a gate for the session report.
-        // For now, let's check if the MOST RECENT term in this session reached by the student is published.
-        const publication = await prisma.resultPublication.findFirst({
+        // Cumulative report requires the LAST term (3rd term) in the session to be published.
+        // Find the last term in this session
+        const lastTermInSession = await prisma.term.findFirst({
           where: {
-            schoolId: req.schoolId,
-            classId: student.classModel.id,
-            term: { academicSessionId: parseInt(sessionId) },
-            isPublished: true
+            academicSessionId: parseInt(sessionId),
+            schoolId: req.schoolId
           },
-          orderBy: { term: { startDate: 'desc' } }
+          orderBy: { startDate: 'desc' }
         });
 
-        if (!publication && !student.classModel.isResultPublished) {
+        if (!lastTermInSession) {
           return res.status(403).json({
             error: 'Result Not Published',
-            message: 'Session results for this class have not been published yet.'
+            message: 'No terms found for this session.'
+          });
+        }
+
+        // Check if the last term's result is published for this class
+        const lastTermPublication = await prisma.resultPublication.findUnique({
+          where: {
+            schoolId_classId_termId: {
+              schoolId: req.schoolId,
+              classId: student.classModel.id,
+              termId: lastTermInSession.id
+            }
+          }
+        });
+
+        if (!lastTermPublication || !lastTermPublication.isPublished) {
+          return res.status(403).json({
+            error: 'Result Not Published',
+            message: 'The cumulative report is only available after the third term results have been published.'
           });
         }
       }
@@ -794,6 +809,39 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     });
     const totalSubjectsCount = classSubjects.length || 1;
 
+    // Initialize reports array
+    const reports = [];
+
+    // Determine term sequence (1, 2, or 3)
+    const allTerms = await prisma.term.findMany({
+      where: { academicSessionId: term.academicSessionId, schoolId: req.schoolId },
+      orderBy: { startDate: 'asc' }
+    });
+    const termIndex = allTerms.findIndex(t => t.id === parseInt(termId));
+    const termNumber = termIndex + 1;
+
+    // Find next term
+    const nextTerm = await prisma.term.findFirst({
+      where: {
+        schoolId: req.schoolId,
+        startDate: { gt: term.startDate }
+      },
+      orderBy: { startDate: 'asc' }
+    });
+
+    // Helper to calculate age
+    const calculateAge = (dob) => {
+      if (!dob) return '-';
+      const birthDate = new Date(dob);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
+    };
+
     // NEW: Pre-calculate positions and averages for ALL students in class to avoid N+1 queries
     const allStudentsInClass = await prisma.student.findMany({
       where: { classId: parseInt(classId), schoolId: req.schoolId, status: 'active' },
@@ -1032,7 +1080,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         overallRemark: getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
         // Extras
         formMasterRemark: reportExtras?.formMasterRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
-        principalRemark: reportExtras?.principalRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSession), schoolSettings.gradingSystem),
+        principalRemark: reportExtras?.principalRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
         psychomotorRatings: psychomotorDomains.map(d => {
           const rating = studentRatings.find(r => r.domainId === d.id);
           return {

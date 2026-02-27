@@ -4,7 +4,9 @@ import { api } from '../../api';
 const ParentManagement = () => {
   const [parents, setParents] = useState([]);
   const [students, setStudents] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedClassId, setSelectedClassId] = useState('');
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -31,7 +33,15 @@ const ParentManagement = () => {
   useEffect(() => {
     fetchParents();
     fetchStudents();
+    fetchClasses();
   }, []);
+
+  const fetchClasses = async () => {
+    try {
+      const res = await api.get('/api/classes');
+      if (res.ok) setClasses(await res.json());
+    } catch (e) { console.error('Error fetching classes'); }
+  };
 
   const fetchParents = async () => {
     setLoading(true);
@@ -165,6 +175,14 @@ const ParentManagement = () => {
     setShowDeleteModal(true);
   };
 
+  const filteredParents = parents.filter(p => {
+    if (!selectedClassId) return true;
+    return p.students?.some(s => {
+      const sClassId = s.classId || s.classModel?.id;
+      return sClassId?.toString() === selectedClassId.toString();
+    });
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -183,6 +201,22 @@ const ParentManagement = () => {
         </button>
       </div>
 
+      {/* Filters */}
+      <div className="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row gap-4 justify-between items-center z-10 relative">
+        <div className="flex-1 w-full max-w-sm">
+          <select
+            value={selectedClassId}
+            onChange={(e) => setSelectedClassId(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:border-transparent text-gray-700 bg-white"
+          >
+            <option value="">All Classes</option>
+            {classes.map(c => (
+              <option key={c.id} value={c.id}>{c.name} {c.arm || ''}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {/* Parent List - Responsive with Vertical Scroll */}
       <div className="bg-white rounded-lg shadow overflow-hidden max-h-[600px] overflow-y-auto">
         <table className="w-full table-fixed divide-y divide-gray-200">
@@ -198,10 +232,10 @@ const ParentManagement = () => {
           <tbody className="divide-y divide-gray-200 bg-white">
             {loading ? (
               <tr><td colSpan="5" className="text-center py-8"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div></td></tr>
-            ) : parents.length === 0 ? (
+            ) : filteredParents.length === 0 ? (
               <tr><td colSpan="5" className="text-center py-8 text-gray-500">No parents found.</td></tr>
             ) : (
-              parents.map(p => (
+              filteredParents.map(p => (
                 <tr key={p.id} className="hover:bg-gray-50">
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2">

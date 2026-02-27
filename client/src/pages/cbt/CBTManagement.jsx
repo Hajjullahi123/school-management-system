@@ -533,7 +533,7 @@ const CBTManagement = () => {
 
       {/* VIEW: List */}
       {view === 'list' && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-lg shadow overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -598,6 +598,12 @@ const CBTManagement = () => {
                       className="text-gray-600 hover:text-gray-900"
                     >
                       Print
+                    </button>
+                    <button
+                      onClick={() => handlePublishToggle(exam)}
+                      className={exam.isPublished ? "text-yellow-600 hover:text-yellow-900" : "text-green-600 hover:text-green-900"}
+                    >
+                      {exam.isPublished ? 'Unpublish' : 'Publish'}
                     </button>
                     <button
                       onClick={() => handleDeleteExam(exam.id)}
@@ -844,12 +850,48 @@ const CBTManagement = () => {
 
           {/* Right Col: Question List */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-blue-50 p-4 rounded-lg flex justify-between items-center">
+            <div className="bg-blue-50 p-4 rounded-lg flex justify-between items-center flex-wrap gap-4">
               <div>
                 <h2 className="text-xl font-bold text-blue-900">{selectedExam.title}</h2>
-                <p className="text-sm text-blue-700">Total Questions: {questions.length} | Est. Marks: {questions.reduce((sum, q) => sum + q.points, 0)}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`px-2 py-0.5 text-xs rounded-full font-semibold ${selectedExam.isPublished
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                    {selectedExam.isPublished ? 'Published' : 'Draft'}
+                  </span>
+                  <p className="text-sm text-blue-700">| Total Questions: {questions.length} | Est. Marks: {questions.reduce((sum, q) => sum + q.points, 0)}</p>
+                </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => {
+                    handlePublishToggle(selectedExam);
+                    setSelectedExam(prev => ({ ...prev, isPublished: !prev.isPublished }));
+                  }}
+                  className={`px-3 py-1.4 text-sm font-medium rounded transition flex items-center gap-1.5 ${selectedExam.isPublished
+                    ? 'bg-white border border-yellow-400 text-yellow-700 hover:bg-yellow-50'
+                    : 'bg-white border border-green-400 text-green-700 hover:bg-green-50'
+                    }`}
+                >
+                  {selectedExam.isPublished ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                      Unpublish
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      Publish Exam
+                    </>
+                  )}
+                </button>
+                <div className="w-px bg-blue-200 mx-1"></div>
                 <button
                   onClick={handleDownloadTemplate}
                   className="px-3 py-1.4 bg-white border border-blue-300 text-blue-700 rounded text-sm font-medium hover:bg-blue-50 transition flex items-center gap-1.5"

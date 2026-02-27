@@ -68,7 +68,6 @@ router.post('/check-in', authenticate, authorize(['teacher', 'admin', 'principal
       where: { id: schoolId },
       select: {
         name: true,
-        schoolName: true,
         staffExpectedArrivalTime: true,
         staffClockInDeadline: true
       }

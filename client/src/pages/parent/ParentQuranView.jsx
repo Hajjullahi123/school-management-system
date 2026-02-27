@@ -17,13 +17,26 @@ const ParentQuranView = () => {
   });
 
   useEffect(() => {
-    if (user?.parent?.students) {
-      setChildren(user.parent.students);
-      if (user.parent.students.length > 0) {
-        setSelectedChild(user.parent.students[0]);
+    fetchWards();
+  }, []);
+
+  const fetchWards = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/api/parents/my-wards');
+      if (response.ok) {
+        const data = await response.json();
+        setChildren(data);
+        if (data.length > 0) {
+          setSelectedChild(data[0]);
+        }
       }
+    } catch (error) {
+      console.error('Error fetching wards:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [user]);
+  };
 
   useEffect(() => {
     if (selectedChild) {

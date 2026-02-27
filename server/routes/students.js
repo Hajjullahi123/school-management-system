@@ -8,6 +8,7 @@ const fs = require('fs');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 const { generateAdmissionNumber, getUniqueAdmissionNumber, isValidBloodGroup, isValidGenotype } = require('../utils/studentUtils');
+const { generateStudentUsername } = require('../utils/usernameGenerator');
 const { createOrUpdateFeeRecordWithOpening } = require('../utils/feeCalculations');
 
 // Configure multer for student photo upload
@@ -578,16 +579,14 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
       }
     }
 
-    // Generate admission number
-    const baseAdmissionNumber = generateAdmissionNumber(
+    // Generate unique student username / admission number
+    const uniqueAdmissionNumber = await generateStudentUsername(
+      req.schoolId,
       schoolCode,
-      admissionYear || new Date().getFullYear(),
-      className || 'NEW',
-      classArm
+      firstName,
+      lastName,
+      admissionYear || new Date().getFullYear()
     );
-
-    // Ensure admission number is unique
-    const uniqueAdmissionNumber = await getUniqueAdmissionNumber(prisma, baseAdmissionNumber, classId, req.schoolId);
 
     // Sync username with admission number
     const username = uniqueAdmissionNumber.toLowerCase();

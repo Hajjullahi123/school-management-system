@@ -435,7 +435,13 @@ const ParentDashboard = () => {
                       to={`/dashboard/term-report?studentId=${student.id}`}
                       className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
                     >
-                      Report
+                      Term Report
+                    </Link>
+                    <Link
+                      to={`/dashboard/cumulative-report?studentId=${student.id}`}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-800 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
+                    >
+                      Cumulative
                     </Link>
                   </div>
                   <div className="flex gap-2">

@@ -5,6 +5,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 const { generateAdmissionNumber, getUniqueAdmissionNumber } = require('../utils/studentUtils');
 const { createOrUpdateFeeRecordWithOpening } = require('../utils/feeCalculations');
+const { generateStudentUsername } = require('../utils/usernameGenerator');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const ExcelJS = require('exceljs');
@@ -198,14 +199,13 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
         }
 
         const admissionYear = new Date().getFullYear();
-        const baseAdmissionNumber = generateAdmissionNumber(
+        const admissionNumber = await generateStudentUsername(
+          schoolIdInt,
           schoolCode,
-          admissionYear,
-          classInfo.name,
-          classInfo.arm || ''
+          studentData.firstName,
+          studentData.lastName,
+          admissionYear
         );
-
-        const admissionNumber = await getUniqueAdmissionNumber(prisma, baseAdmissionNumber, classIdInt, schoolIdInt);
 
         // Sync username with admission number
         const username = admissionNumber.toLowerCase();

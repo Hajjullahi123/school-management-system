@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
+const { generateTeacherUsername, generateStudentUsername } = require('../utils/usernameGenerator');
 
 // Get all users (Admin/Principal only)
 router.get('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
@@ -67,31 +68,47 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Auto-generate username if not provided (firstname.lastname format)
-    let finalUsername = username;
-    if (!finalUsername) {
-      const baseUsername = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`.replace(/\s+/g, '');
-
-      // Check if username exists and add number if needed (PER school)
-      let usernameExists = await prisma.user.findFirst({
-        where: {
-          username: baseUsername,
-          schoolId: req.schoolId
-        }
+    // Auto-generate username if not provided
+    if (!username) {
+      // Fetch school information to get code
+      const school = await prisma.school.findUnique({
+        where: { id: req.schoolId },
+        select: { code: true }
       });
-      let counter = 1;
-      finalUsername = baseUsername;
 
-      while (usernameExists) {
-        finalUsername = `${baseUsername}${counter}`;
-        usernameExists = await prisma.user.findFirst({
+      if (role === 'teacher') {
+        finalUsername = await generateTeacherUsername(
+          req.schoolId,
+          school?.code || 'SCH',
+          firstName,
+          lastName,
+          new Date().getFullYear()
+        );
+      } else {
+        const baseUsername = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`.replace(/\s+/g, '');
+        // Check if username exists and add number if needed (PER school)
+        let usernameExists = await prisma.user.findFirst({
           where: {
-            username: finalUsername,
+            username: baseUsername,
             schoolId: req.schoolId
           }
         });
-        counter++;
+        let counter = 1;
+        finalUsername = baseUsername;
+
+        while (usernameExists) {
+          finalUsername = `${baseUsername}${counter}`;
+          usernameExists = await prisma.user.findFirst({
+            where: {
+              username: finalUsername,
+              schoolId: req.schoolId
+            }
+          });
+          counter++;
+        }
       }
+    } else {
+      finalUsername = username;
     }
 
     // Password is now optional for all roles - will be auto-generated if not provided
@@ -145,8 +162,29 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
     let user;
 
     if (role === 'student') {
-      if (!admissionNumber) {
-        return res.status(400).json({ error: 'Admission number is required for students' });
+      let finalAdmissionNumber = admissionNumber;
+
+      // Auto-generate admission number if not provided
+      if (!finalAdmissionNumber) {
+        // Fetch school information to get code
+        const school = await prisma.school.findUnique({
+          where: { id: req.schoolId },
+          select: { code: true }
+        });
+
+        finalAdmissionNumber = await generateStudentUsername(
+          req.schoolId,
+          school?.code || 'SCH',
+          firstName,
+          lastName,
+          new Date().getFullYear()
+        );
+
+        // Use it as username if not provided
+        if (!username) {
+          finalUsername = finalAdmissionNumber.toLowerCase();
+          userData.username = finalUsername;
+        }
       }
 
       user = await prisma.user.create({
@@ -155,12 +193,12 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
           student: {
             create: {
               schoolId: req.schoolId,
-              admissionNumber,
+              admissionNumber: finalAdmissionNumber,
               classId: classId ? parseInt(classId) : null,
               dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
               parentEmail,
               parentPhone,
-              rollNo: admissionNumber // For backward compatibility
+              rollNo: finalAdmissionNumber // For backward compatibility
             }
           }
         },

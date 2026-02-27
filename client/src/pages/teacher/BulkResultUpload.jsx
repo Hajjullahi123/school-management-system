@@ -121,8 +121,8 @@ export default function BulkResultUpload() {
     // Transform and prepare Preview
     const preparedResults = data.map(row => {
       const scores = {
-        assignment1: parseFloat(getValue(row, ['1st Assignment', 'Assignment 1', 'Ass 1'])) || 0,
-        assignment2: parseFloat(getValue(row, ['2nd Assignment', 'Assignment 2', 'Ass 2'])) || 0,
+        assignment1: parseFloat(getValue(row, ['1st Assignment', 'Assignment 1', 'Assign 1', 'Ass 1', '1st CA'])) || 0,
+        assignment2: parseFloat(getValue(row, ['2nd Assignment', 'Assignment 2', 'Assign 2', 'Ass 2', '2nd CA'])) || 0,
         test1: parseFloat(getValue(row, ['1st Test', 'Test 1', 'CA 1'])) || 0,
         test2: parseFloat(getValue(row, ['2nd Test', 'Test 2', 'CA 2'])) || 0,
         exam: parseFloat(getValue(row, ['Exam', 'Examination'])) || 0
@@ -191,8 +191,8 @@ export default function BulkResultUpload() {
       errors.push('Missing admission number');
     }
 
-    const assignment1 = parseFloat(getValue(row, ['1st Assignment', 'Assignment 1', 'Ass 1']));
-    const assignment2 = parseFloat(getValue(row, ['2nd Assignment', 'Assignment 2', 'Ass 2']));
+    const assignment1 = parseFloat(getValue(row, ['1st Assignment', 'Assignment 1', 'Assign 1', 'Ass 1', '1st CA']));
+    const assignment2 = parseFloat(getValue(row, ['2nd Assignment', 'Assignment 2', 'Assign 2', 'Ass 2', '2nd CA']));
     const test1 = parseFloat(getValue(row, ['1st Test', 'Test 1', 'CA 1']));
     const test2 = parseFloat(getValue(row, ['2nd Test', 'Test 2', 'CA 2']));
     const exam = parseFloat(getValue(row, ['Exam', 'Examination']));

@@ -3,6 +3,7 @@ const router = express.Router();
 const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
+const { generateAdminUsername } = require('../utils/usernameGenerator');
 
 /**
  * @route   GET /api/superadmin/stats
@@ -251,7 +252,7 @@ router.post('/schools', authenticate, authorize(['superadmin']), async (req, res
       // Create default admin user for this school with prefixed username
       const bcrypt = require('bcryptjs');
       const hashedPassword = await bcrypt.hash(tempPassword, 12);
-      const adminUsername = `${code}-admin`.toLowerCase();
+      const adminUsername = await generateAdminUsername(newSchool.id, code, new Date().getFullYear());
 
       const adminUser = await tx.user.create({
         data: {
@@ -341,7 +342,7 @@ router.post('/schools/:id/reset-admin', authenticate, authorize(['superadmin']),
         }
       });
     } else {
-      let targetUsername = school.code ? `${school.code}-admin`.toLowerCase() : 'admin';
+      let targetUsername = await generateAdminUsername(schoolId, school.code || 'SCH', new Date().getFullYear());
 
       // Check if this username is already taken in this school
       const usernameConflict = await prisma.user.findUnique({

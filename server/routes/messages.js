@@ -42,7 +42,7 @@ router.post('/', authenticate, authorize(['parent', 'teacher']), async (req, res
         return res.status(400).json({ error: 'Student does not have a class assigned' });
       }
 
-      if (student.classModel.formMasterId !== parseInt(receiverId)) {
+      if (student.classModel.classTeacherId !== parseInt(receiverId)) {
         return res.status(403).json({ error: 'You can only message the form master of your child\'s class' });
       }
     } else if (req.user.role === 'teacher') {
@@ -55,7 +55,7 @@ router.post('/', authenticate, authorize(['parent', 'teacher']), async (req, res
         include: { classModel: true }
       });
 
-      if (!student || !student.classModel || student.classModel.formMasterId !== req.user.id) {
+      if (!student || !student.classModel || student.classModel.classTeacherId !== req.user.id) {
         return res.status(403).json({ error: 'You can only message parents of students in your form class' });
       }
 
@@ -318,18 +318,13 @@ router.get('/form-master/:studentId', authenticate, authorize(['parent']), async
       include: {
         classModel: {
           include: {
-            formMaster: {
+            classTeacher: {
               select: {
                 id: true,
-                userId: true,
-                user: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    schoolId: true
-                  }
-                }
+                schoolId: true,
+                firstName: true,
+                lastName: true,
+                role: true
               }
             }
           }
@@ -337,12 +332,19 @@ router.get('/form-master/:studentId', authenticate, authorize(['parent']), async
       }
     });
 
-    if (!student || !student.classModel || !student.classModel.formMaster) {
+    if (!student || !student.classModel || !student.classModel.classTeacher) {
       return res.status(404).json({ error: 'Form master not found for this student' });
     }
 
+    // Map `classTeacher` to `formMaster` expected format and make sure `userId` is present as `id` since it's querying User table
+    const formMasterData = {
+      id: student.classModel.classTeacher.id,
+      userId: student.classModel.classTeacher.id, // The User's ID is the actual ID we need
+      user: student.classModel.classTeacher
+    };
+
     res.json({
-      formMaster: student.classModel.formMaster,
+      formMaster: formMasterData,
       class: {
         name: student.classModel.name,
         arm: student.classModel.arm
@@ -351,6 +353,63 @@ router.get('/form-master/:studentId', authenticate, authorize(['parent']), async
   } catch (error) {
     console.error('Get form master error:', error);
     res.status(500).json({ error: 'Failed to get form master' });
+  }
+});
+
+// 7. Delete a message
+router.delete('/:id', authenticate, authorize(['parent', 'teacher']), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the message
+    const message = await prisma.parentTeacherMessage.findFirst({
+      where: {
+        id: parseInt(id),
+        schoolId: req.schoolId
+      }
+    });
+
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    // Only allow the original sender to delete it
+    if (message.senderId !== req.user.id) {
+      return res.status(403).json({ error: 'You can only delete messages you sent' });
+    }
+
+    // Delete message and all its replies (parentMessageId = id)
+    await prisma.$transaction([
+      prisma.parentTeacherMessage.deleteMany({
+        where: {
+          parentMessageId: parseInt(id),
+          schoolId: req.schoolId
+        }
+      }),
+      prisma.parentTeacherMessage.delete({
+        where: {
+          id: parseInt(id),
+          schoolId: req.schoolId
+        }
+      })
+    ]);
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'DELETE_MESSAGE',
+      resource: 'PARENT_TEACHER_MESSAGE',
+      details: {
+        messageId: id,
+        subject: message.subject
+      },
+      ipAddress: req.ip
+    });
+
+    res.json({ message: 'Message deleted successfully' });
+  } catch (error) {
+    console.error('Delete message error:', error);
+    res.status(500).json({ error: 'Failed to delete message' });
   }
 });
 

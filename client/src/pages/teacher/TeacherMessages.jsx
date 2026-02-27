@@ -33,7 +33,7 @@ const TeacherMessages = () => {
 
   const fetchMyClass = async () => {
     try {
-      const response = await api.get('/api/teachers/my-class');
+      const response = await api.get('/api/classes/my-class');
       if (response.ok) {
         const data = await response.json();
         setMyClass(data);
@@ -160,6 +160,28 @@ const TeacherMessages = () => {
     } catch (error) {
       console.error('Error sending reply:', error);
       alert('Error sending reply');
+    }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      const response = await api.delete(`/api/messages/${messageId}`);
+      if (response.ok) {
+        // Remove from list
+        setMessages(messages.filter(msg => msg.id !== messageId));
+        // If we are viewing the thread of the deleted message, go back to list
+        if (showThread && thread[0]?.id === messageId) {
+          setShowThread(false);
+          setSelectedMessage(null);
+          setThread([]);
+        }
+      } else {
+        const error = await response.json();
+        alert(`Failed to delete message: ${error.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      alert('Error deleting message');
     }
   };
 
@@ -427,8 +449,26 @@ const TeacherMessages = () => {
                       </p>
                       <p className="text-sm text-gray-500 mt-1 line-clamp-2">{msg.message}</p>
                     </div>
-                    <div className="text-xs text-gray-500 ml-4">
-                      {new Date(msg.createdAt).toLocaleDateString()}
+                    <div className="flex flex-col items-end gap-2 ml-4">
+                      <div className="text-xs text-gray-500">
+                        {new Date(msg.createdAt).toLocaleDateString()}
+                      </div>
+                      {msg.senderId === user.id && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm('Are you sure you want to delete this message?')) {
+                              handleDeleteMessage(msg.id);
+                            }
+                          }}
+                          className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
+                          title="Delete Message"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

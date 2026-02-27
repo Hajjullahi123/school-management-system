@@ -79,6 +79,17 @@ router.get('/my-class', authenticate, async (req, res) => {
                 email: true,
                 isActive: true
               }
+            },
+            parent: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true
+                  }
+                }
+              }
             }
           }
         },
