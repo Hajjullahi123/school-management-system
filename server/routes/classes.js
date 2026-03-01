@@ -62,10 +62,13 @@ router.get('/', authenticate, async (req, res) => {
 // Get class assigned to the logged-in teacher
 router.get('/my-class', authenticate, async (req, res) => {
   try {
+    const userId = parseInt(req.user.id);
+    const schoolId = parseInt(req.schoolId);
+
     const classData = await prisma.class.findFirst({
       where: {
-        classTeacherId: req.user.id,
-        schoolId: req.schoolId,
+        classTeacherId: userId,
+        schoolId: schoolId,
         isActive: true
       },
       include: {
@@ -353,7 +356,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
 router.put('/:id/publish-results', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
-    const { isPublished, termId } = req.body;
+    const { isPublished, isProgressivePublished, termId } = req.body;
     const classId = parseInt(id);
 
     // If teacher, verify it's their class
@@ -389,20 +392,26 @@ router.put('/:id/publish-results', authenticate, authorize(['admin', 'teacher', 
           termId: activeTermId
         }
       },
-      update: { isPublished: isPublished },
+      update: {
+        isPublished: isPublished !== undefined ? isPublished : undefined,
+        isProgressivePublished: isProgressivePublished !== undefined ? isProgressivePublished : undefined
+      },
       create: {
         schoolId: req.schoolId,
         classId: classId,
         termId: activeTermId,
-        isPublished: isPublished
+        isPublished: isPublished || false,
+        isProgressivePublished: isProgressivePublished || false
       }
     });
 
-    // Also update the legacy flag for compatibility
-    const updatedClass = await prisma.class.update({
-      where: { id: classId, schoolId: req.schoolId },
-      data: { isResultPublished: isPublished }
-    });
+    // Also update the legacy flag for compatibility (only if term results are being published)
+    if (isPublished !== undefined) {
+      await prisma.class.update({
+        where: { id: classId, schoolId: req.schoolId },
+        data: { isResultPublished: isPublished }
+      });
+    }
 
     // Send notifications if published (non-blocking)
     if (isPublished) {
@@ -457,9 +466,12 @@ router.put('/:id/publish-results', authenticate, authorize(['admin', 'teacher', 
       }
     }
 
+    const statusText = isPublished !== undefined
+      ? (isPublished ? 'published' : 'unpublished')
+      : (isProgressivePublished ? 'published (progressive)' : 'unpublished (progressive)');
+
     res.json({
-      message: `Results ${isPublished ? 'published' : 'unpublished'} successfully for ${activeTermId}`,
-      class: updatedClass,
+      message: `Results ${statusText} successfully for ${activeTermId}`,
       publication
     });
 
@@ -478,6 +490,38 @@ router.put('/:id/publish-results', authenticate, authorize(['admin', 'teacher', 
   } catch (error) {
     console.error('Publish results error:', error);
     res.status(500).json({ error: `Failed to update result publishing status: ${error.message}` });
+  }
+});
+
+// Get publication status for a class and term
+router.get('/:id/publication-status', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { termId } = req.query;
+    const classId = parseInt(id);
+
+    if (!termId) {
+      return res.status(400).json({ error: 'Term ID is required' });
+    }
+
+    const publication = await prisma.resultPublication.findUnique({
+      where: {
+        schoolId_classId_termId: {
+          schoolId: req.schoolId,
+          classId: classId,
+          termId: parseInt(termId)
+        }
+      }
+    });
+
+    if (!publication) {
+      return res.json({ isPublished: false, isProgressivePublished: false });
+    }
+
+    res.json(publication);
+  } catch (error) {
+    console.error('Get publication status error:', error);
+    res.status(500).json({ error: 'Failed to fetch publication status' });
   }
 });
 

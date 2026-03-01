@@ -128,17 +128,13 @@ router.put('/my-profile', authenticate, async (req, res) => {
     }
 
     const {
-      firstName, // Student might want to suggest a fix, but usually read-only. Let's allow middleName.
       middleName,
-      lastName,
       address,
       parentGuardianPhone,
       parentEmail,
       disability,
-      dateOfBirth,
-      gender,
-      stateOfOrigin,
       nationality,
+      stateOfOrigin,
       bloodGroup,
       genotype
     } = req.body;
@@ -171,16 +167,10 @@ router.put('/my-profile', authenticate, async (req, res) => {
     if (parentGuardianPhone !== undefined) dataToUpdate.parentGuardianPhone = parentGuardianPhone;
     if (parentEmail !== undefined) dataToUpdate.parentEmail = parentEmail;
     if (disability !== undefined) dataToUpdate.disability = disability;
-    if (gender !== undefined) dataToUpdate.gender = gender;
     if (stateOfOrigin !== undefined) dataToUpdate.stateOfOrigin = stateOfOrigin;
     if (nationality !== undefined) dataToUpdate.nationality = nationality;
     if (bloodGroup !== undefined) dataToUpdate.bloodGroup = bloodGroup;
     if (genotype !== undefined) dataToUpdate.genotype = genotype;
-
-    // Handle dateOfBirth specifically
-    if (dateOfBirth !== undefined) {
-      dataToUpdate.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
-    }
 
     // Update only allowed fields in the Student model
     const updatedStudent = await prisma.student.update({

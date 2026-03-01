@@ -296,21 +296,30 @@ const StudentProfile = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-500 mb-1">Gender</label>
                   <select
+                    disabled
                     value={formData.gender}
-                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full border border-gray-200 bg-gray-100 rounded-md px-3 py-2 text-gray-500 cursor-not-allowed"
                   >
                     <option value="">Select Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Date of Birth</label>
+                  <input
+                    type="date"
+                    disabled
+                    value={formData.dateOfBirth}
+                    className="w-full border border-gray-200 bg-gray-100 rounded-md px-3 py-2 text-gray-500 cursor-not-allowed"
+                  />
+                </div>
               </div>
               <p className="text-xs text-gray-500 mt-2">
                 <svg className="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
-                Contact your admin to update name, admission number or class
+                Contact your admin to update name, admission number, class, gender or date of birth
               </p>
             </div>
 
@@ -336,17 +345,6 @@ const StudentProfile = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date of Birth
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -593,7 +591,7 @@ const StudentProfile = () => {
             <h4 className="text-sm font-medium text-blue-900">Note</h4>
             <ul className="text-sm text-blue-700 mt-1 space-y-1">
               <li>• You can update your contact information and upload your photo</li>
-              <li>• Important details like name, admission number, and class can only be changed by admin</li>
+              <li>• Important details like name, admission number, gender, date of birth and class can only be changed by admin</li>
               <li>• Make sure your information is accurate and up to date</li>
             </ul>
           </div>
