@@ -35,18 +35,20 @@ router.get('/', async (req, res) => {
       if (token) {
         try {
           const jwt = require('jsonwebtoken');
-          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          const JWT_SECRET = process.env.JWT_SECRET || 'darul-quran-secret-key-change-in-production';
+          // console.log('Settings token verification with secret length:', JWT_SECRET.length);
+          const decoded = jwt.verify(token, JWT_SECRET);
           settings = await prisma.school.findUnique({
             where: { id: decoded.schoolId }
           });
         } catch (e) {
-          console.error('Invalid token in settings fetch');
+          console.error('Invalid token in settings fetch:', e.message);
         }
       }
     }
 
-    if (!settings && !schoolSlug) {
-      // Fallback: If no slug and no token, just get the first school
+    if (!settings && (!schoolSlug || schoolSlug === 'undefined' || schoolSlug === 'null')) {
+      // Fallback: If no valid slug and no token, just get the first school
       // This is necessary for the public landing page in single-school setups
       settings = await prisma.school.findFirst();
     }
@@ -98,7 +100,8 @@ router.put('/', authenticate, async (req, res) => {
     examMode, examModeType,
     gradingSystem, passThreshold,
     whatsappBotEnabled, whatsappPhoneNumber, twilioAccountSid, twilioAuthToken, geminiApiKey,
-    staffExpectedArrivalTime, enableStaffAttendanceReport, staffClockInDeadline
+    staffExpectedArrivalTime, enableStaffAttendanceReport, staffClockInDeadline,
+    staffClockInMode, authorizedIP
   } = req.body;
 
   // Validate weightings if provided
@@ -133,6 +136,7 @@ router.put('/', authenticate, async (req, res) => {
     if (primaryColor !== undefined) updateData.primaryColor = primaryColor;
     if (secondaryColor !== undefined) updateData.secondaryColor = secondaryColor;
     if (accentColor !== undefined) updateData.accentColor = accentColor;
+    if (req.body.principalSignatureUrl !== undefined) updateData.principalSignatureUrl = req.body.principalSignatureUrl;
 
     if (paystackPublicKey !== undefined) updateData.paystackPublicKey = paystackPublicKey;
     if (paystackSecretKey !== undefined) updateData.paystackSecretKey = paystackSecretKey;
@@ -182,6 +186,8 @@ router.put('/', authenticate, async (req, res) => {
     if (staffExpectedArrivalTime !== undefined) updateData.staffExpectedArrivalTime = staffExpectedArrivalTime;
     if (staffClockInDeadline !== undefined) updateData.staffClockInDeadline = staffClockInDeadline;
     if (enableStaffAttendanceReport !== undefined) updateData.enableStaffAttendanceReport = !!enableStaffAttendanceReport;
+    if (staffClockInMode !== undefined) updateData.staffClockInMode = staffClockInMode;
+    if (authorizedIP !== undefined) updateData.authorizedIP = authorizedIP;
 
     // Automatically complete setup if basic info is provided
     if (schoolName && schoolAddress && schoolPhone) {
@@ -259,6 +265,47 @@ router.post('/logo-base64', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error uploading logo:', error);
     res.status(500).json({ error: 'Failed to save logo: ' + error.message });
+  }
+});
+
+// NEW: Simple Base64 Principal Signature Upload
+router.post('/principal-signature-base64', authenticate, async (req, res) => {
+  console.log('===Base64 principal signature upload received===');
+
+  try {
+    const { imageData } = req.body;
+
+    if (!imageData) {
+      return res.status(400).json({ error: 'No image data provided' });
+    }
+
+    // Store the FULL base64 data URL (including prefix) in database
+    const signatureData = imageData;
+
+    // Update database with base64 data
+    await prisma.school.update({
+      where: { id: req.schoolId },
+      data: {
+        principalSignatureUrl: signatureData
+      }
+    });
+
+    res.json({ success: true, principalSignatureUrl: signatureData });
+
+    // Log the action
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPDATE',
+      resource: 'PRINCIPAL_SIGNATURE',
+      details: {
+        method: 'base64_database_storage'
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error uploading principal signature:', error);
+    res.status(500).json({ error: 'Failed to save signature: ' + error.message });
   }
 });
 

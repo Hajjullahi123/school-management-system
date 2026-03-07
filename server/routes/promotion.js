@@ -40,7 +40,7 @@ router.get('/class/:classId/eligibility', authenticate, checkSubscription, autho
 
 // 2. Batch Promote Students (Admin/Principal only)
 router.post('/promote', authenticate, checkSubscription, authorize(['admin', 'principal']), async (req, res) => {
-  const { studentIds, targetClassId } = req.body;
+  const { studentIds, targetClassId, generateDocuments, graduationYear, programType } = req.body;
 
   if (!studentIds || !Array.isArray(studentIds) || !targetClassId) {
     return res.status(400).json({ error: 'Student IDs and target class are required' });
@@ -53,6 +53,12 @@ router.post('/promote', authenticate, checkSubscription, authorize(['admin', 'pr
         schoolId: req.schoolId
       }
     });
+
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { code: true }
+    });
+    const schoolCode = school?.code || 'SCH';
 
     const results = await prisma.$transaction(async (tx) => {
       const promoted = [];
@@ -96,6 +102,78 @@ router.post('/promote', authenticate, checkSubscription, authorize(['admin', 'pr
               performedBy: req.user.id
             }
           });
+
+          // Generate Completion Documents if requested
+          if (generateDocuments) {
+            const studentInfo = await tx.student.findUnique({
+              where: { id: studentId },
+              select: { admissionNumber: true }
+            });
+
+            const certYear = graduationYear || new Date().getFullYear();
+            const certificateNumber = `CERT/${schoolCode}/${certYear}/${studentInfo.admissionNumber}`;
+            await tx.certificate.upsert({
+              where: { studentId: studentId },
+              update: {
+                certificateNumber,
+                graduationYear: parseInt(certYear),
+                programType: programType || null,
+                issuedBy: req.user.id
+              },
+              create: {
+                schoolId: req.schoolId,
+                studentId: studentId,
+                certificateNumber,
+                graduationYear: parseInt(certYear),
+                programType: programType || null,
+                issuedBy: req.user.id
+              }
+            });
+
+            const testimonialNumber = `TEST/${schoolCode}/${certYear}/${studentInfo.admissionNumber}`;
+            await tx.testimonial.upsert({
+              where: { studentId: studentId },
+              update: {
+                testimonialNumber,
+                programType: programType || null,
+                issuedBy: req.user.id
+              },
+              create: {
+                schoolId: req.schoolId,
+                studentId: studentId,
+                testimonialNumber,
+                conduct: 'Good',
+                character: '',
+                programType: programType || null,
+                issuedBy: req.user.id
+              }
+            });
+
+            // Also create Alumni record so they appear in Alumni/Document Management
+            // but keep their student status as 'active' (unlike /graduate)
+            const alumniRef = await tx.alumni.findUnique({
+              where: { studentId: studentId },
+              select: { alumniId: true }
+            });
+            const alumniId = alumniRef?.alumniId || `ALM-${certYear}-${studentInfo.admissionNumber}`;
+
+            await tx.alumni.upsert({
+              where: { studentId: studentId },
+              update: {
+                graduationYear: parseInt(certYear),
+                programType: programType || null,
+                alumniId
+              },
+              create: {
+                schoolId: req.schoolId,
+                studentId: studentId,
+                graduationYear: parseInt(certYear),
+                programType: programType || null,
+                alumniId,
+                isPublic: false
+              }
+            });
+          }
 
           promoted.push(updated.id);
         } catch (e) {

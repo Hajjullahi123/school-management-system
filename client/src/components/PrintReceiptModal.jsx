@@ -55,12 +55,9 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
       ? `<img src="${logoUrl}" alt="School Logo" style="height: 80px; width: auto; max-width: 250px; object-fit: contain; margin-bottom: 12px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));" />`
       : '';
 
-    // Generate a unique security hash
-    // Generate security markers
     const securityHash = btoa(`PAY-${payment.id}-${student.id}`).substring(0, 12).toUpperCase();
-    const verificationUrl = `${window.location.origin}/verify/payment/${securityHash}`;
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}&bgcolor=ffffff`;
-    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=PAY-${payment.id}&scale=2&rotate=N&includetext=true&backgroundcolor=ffffff`;
+    const barcodeText = `PAY-${payment.id}`;
+    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&rotate=N&includetext=true&backgroundcolor=ffffff&height=12`;
 
     return `
       <!DOCTYPE html>
@@ -323,12 +320,8 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
               <div class="amount-value">₦${formatNumber(payment.amount)}</div>
             </div>
 
-            <div class="qr-section" style="margin-bottom: 10px;">
-              <img src="${qrCodeUrl}" alt="QR" class="qr-code" width="60" height="60" />
-              <div style="font-size: 7px; color: #94a3b8; font-weight: 600;">VERIFIED</div>
-              <div class="barcode-wrapper">
-                <img src="${barcodeUrl}" alt="Barcode" class="barcode-img" />
-              </div>
+            <div style="margin: 10px 0; text-align: center;">
+              <img src="${barcodeUrl}" alt="Barcode" style="max-width: 160px; height: auto;" onerror="this.style.display='none'" />
             </div>
 
             <div class="signatures">
@@ -394,7 +387,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
 
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
     const securityHash = btoa(`TERM-${selectedTerm.id}-${student.id}`).substring(0, 10).toUpperCase();
-    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=TERM-${selectedTerm.id}-${student.id}&scale=2&rotate=N&height=10&includetext=true`;
+    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(`TERM-${selectedTerm.id}-${student.id}`)}&scale=2&rotate=N&height=10&includetext=true&backgroundcolor=ffffff`;
 
     return `
       <!DOCTYPE html>
@@ -595,7 +588,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
     };
 
     const securityHash = btoa(`SESS-${selectedSession.id}-${student.id}`).substring(0, 12).toUpperCase();
-    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=SESS-${selectedSession.id}-${student.id}&scale=2&rotate=N&height=10&includetext=true`;
+    const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(`SESS-${selectedSession.id}-${student.id}`)}&scale=2&rotate=N&height=10&includetext=true&backgroundcolor=ffffff`;
 
     return `
       <!DOCTYPE html>

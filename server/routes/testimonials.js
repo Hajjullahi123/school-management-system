@@ -169,6 +169,66 @@ router.get('/bulk/:year', authenticate, authorize(['admin', 'principal']), async
   }
 });
 
+// Get all testimonials for students who transitioned from a specific class in a specific session
+router.get('/bulk-history/:classId/:sessionId', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const classId = parseInt(req.params.classId);
+    const sessionId = parseInt(req.params.sessionId);
+
+    // Get all students who have a promotion history from this class
+    const transitions = await prisma.studentTransition.findMany({
+      where: {
+        fromClassId: classId,
+        academicSessionId: sessionId,
+        student: {
+          schoolId: req.schoolId
+        }
+      },
+      select: {
+        studentId: true
+      }
+    });
+
+    const studentIds = transitions.map(t => t.studentId);
+
+    if (studentIds.length === 0) {
+      return res.json([]);
+    }
+
+    const testimonials = await prisma.testimonial.findMany({
+      where: {
+        schoolId: req.schoolId,
+        studentId: {
+          in: studentIds
+        }
+      },
+      include: {
+        student: {
+          include: {
+            user: { select: { firstName: true, lastName: true, username: true } },
+            alumniProfile: { select: { graduationYear: true, alumniId: true, programType: true } },
+            classModel: { select: { name: true } }
+          }
+        },
+        school: { select: { name: true, logoUrl: true, address: true, primaryColor: true } },
+        issuer: { select: { firstName: true, lastName: true } }
+      },
+      orderBy: {
+        student: {
+          user: {
+            firstName: 'asc'
+          }
+        }
+      }
+    });
+
+    res.json(testimonials);
+  } catch (error) {
+    console.error('Error fetching bulk history testimonials:', error);
+    res.status(500).json({ error: 'Failed to fetch history testimonials' });
+  }
+});
+
 // Generate or regenerate testimonial for a student (Admin/Principal only)
 router.post('/generate/:studentId', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
@@ -188,8 +248,8 @@ router.post('/generate/:studentId', authenticate, authorize(['admin', 'principal
       return res.status(404).json({ error: 'Student not found' });
     }
 
-    if (student.status !== 'alumni' || !student.alumniProfile) {
-      return res.status(400).json({ error: 'Testimonial can only be generated for graduated students' });
+    if (!student.alumniProfile) {
+      return res.status(400).json({ error: 'Testimonial can only be generated for students with a graduation/completion record' });
     }
 
     const schoolCode = student.school.code || 'SCH';

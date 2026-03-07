@@ -102,9 +102,9 @@ const BulkStudentUpload = () => {
 
   const downloadTemplate = () => {
     const template =
-      `firstName,lastName,classId,dateOfBirth,gender,email,parentGuardianName,parentGuardianPhone,parentEmail,bloodGroup,genotype,stateOfOrigin,nationality,address,disability
-John,Doe,${classes[0]?.id || 1},2010-01-15,Male,john@example.com,Mr. Doe,08012345678,parent@example.com,O+,AA,Lagos,Nigerian,123 Street,None
-Jane,Smith,${classes[0]?.id || 1},2010-03-20,Female,jane@example.com,Mrs. Smith,08087654321,parent2@example.com,A+,AS,Abuja,Nigerian,456 Avenue,None`;
+      `firstName,lastName,classId,dateOfBirth,gender,email,parentGuardianName,parentGuardianPhone,parentEmail,bloodGroup,genotype,stateOfOrigin,nationality,address,disability,isScholarship
+John,Doe,${classes[0]?.id || 1},2010-01-15,Male,john@example.com,Mr. Doe,08012345678,parent@example.com,O+,AA,Lagos,Nigerian,123 Street,None,No
+Jane,Smith,${classes[0]?.id || 1},2010-03-20,Female,jane@example.com,Mrs. Smith,08087654321,parent2@example.com,A+,AS,Abuja,Nigerian,456 Avenue,None,Yes`;
 
     const blob = new Blob([template], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -134,8 +134,9 @@ Jane,Smith,${classes[0]?.id || 1},2010-03-20,Female,jane@example.com,Mrs. Smith,
       '2. Open the template in Excel, Google Sheets, or a text editor.',
       '3. Fill in the student data. Ensure firstName, lastName, and classId are provided.',
       '4. The "classId" MUST be numeric. Refer to the table below for correct IDs.',
-      '5. Save your file as "Comma Separated Values (.csv)".',
-      '6. Upload the saved CSV file through the system to complete import.'
+      '5. For the "isScholarship" column, use "Yes" for scholarship students and "No" for others.',
+      '6. Save your file as "Comma Separated Values (.csv)".',
+      '7. Upload the saved CSV file through the system to complete import.'
     ];
     doc.text(instructions, 20, 45);
 
@@ -359,6 +360,7 @@ Jane,Smith,${classes[0]?.id || 1},2010-03-20,Female,jane@example.com,Mrs. Smith,
               <li><code className="bg-gray-100 px-1">email</code></li>
               <li><code className="bg-gray-100 px-1">parentGuardianName</code></li>
               <li><code className="bg-gray-100 px-1">bloodGroup</code> (A+, O+, etc.)</li>
+              <li><code className="bg-gray-100 px-1">isScholarship</code> (Yes/No)</li>
               <li>...and more (see template)</li>
             </ul>
           </div>

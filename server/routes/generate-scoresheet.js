@@ -164,48 +164,78 @@ async function generateExcel(res, titleData, studentData, filename, weights) {
 }
 
 // Route: Get available scoresheets for a teacher
-router.get('/teacher/:teacherId', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+router.get('/teacher/:teacherId', authenticate, authorize(['admin', 'teacher', 'examination_officer']), async (req, res) => {
   try {
     const teacherId = parseInt(req.params.teacherId);
 
     // Authorization Check
-    if (req.user.role !== 'admin' && req.user.id !== teacherId) {
+    if (req.user.role !== 'admin' && req.user.role !== 'examination_officer' && req.user.id !== teacherId) {
       return res.status(403).json({ error: 'Unauthorized access to these scoresheets' });
     }
-
-    const assignments = await prisma.teacherAssignment.findMany({
-      where: {
-        teacherId,
-        schoolId: req.schoolId
-      },
-      include: {
-        classSubject: {
-          include: {
-            class: {
-              include: {
-                _count: {
-                  select: {
-                    students: { where: { schoolId: req.schoolId } }
-                  }
-                }
-              }
-            },
-            subject: true
-          }
-        }
-      }
-    });
 
     const termId = parseInt(req.query.termId);
     const academicSessionId = parseInt(req.query.academicSessionId);
 
-    const scoresheets = await Promise.all(assignments.map(async a => {
+    let classSubjectPairs;
+
+    if (req.user.role === 'examination_officer' || req.user.role === 'admin') {
+      // Examination officer & admin: get ALL class-subject pairs for the school
+      const classSubjects = await prisma.classSubject.findMany({
+        where: { schoolId: req.schoolId },
+        include: {
+          class: {
+            include: {
+              _count: {
+                select: {
+                  students: { where: { schoolId: req.schoolId } }
+                }
+              }
+            }
+          },
+          subject: true
+        }
+      });
+      classSubjectPairs = classSubjects.map(cs => ({
+        class: cs.class,
+        subject: cs.subject
+      }));
+    } else {
+      // Teacher: get only assigned class-subject pairs
+      const assignments = await prisma.teacherAssignment.findMany({
+        where: {
+          teacherId,
+          schoolId: req.schoolId
+        },
+        include: {
+          classSubject: {
+            include: {
+              class: {
+                include: {
+                  _count: {
+                    select: {
+                      students: { where: { schoolId: req.schoolId } }
+                    }
+                  }
+                }
+              },
+              subject: true
+            }
+          }
+        }
+      });
+      classSubjectPairs = assignments.map(a => ({
+        class: a.classSubject.class,
+        subject: a.classSubject.subject
+      }));
+    }
+
+    const scoresheets = await Promise.all(classSubjectPairs.map(async pair => {
       // Get count of students who have at least one score component entered
       const resultCount = await prisma.result.count({
         where: {
           schoolId: req.schoolId,
-          classId: a.classSubject.class.id,
-          subjectId: a.classSubject.subject.id,
+          classId: pair.class.id,
+          subjectId: pair.subject.id,
           termId: termId || undefined,
           academicSessionId: academicSessionId || undefined,
           OR: [
@@ -219,14 +249,14 @@ router.get('/teacher/:teacherId', authenticate, authorize(['admin', 'teacher']),
       });
 
       return {
-        classId: a.classSubject.class.id,
-        subjectId: a.classSubject.subject.id,
-        className: `${a.classSubject.class.name} ${a.classSubject.class.arm || ''}`.trim(),
-        subjectName: a.classSubject.subject.name,
-        studentCount: a.classSubject.class._count.students,
+        classId: pair.class.id,
+        subjectId: pair.subject.id,
+        className: `${pair.class.name} ${pair.class.arm || ''}`.trim(),
+        subjectName: pair.subject.name,
+        studentCount: pair.class._count.students,
         recordedCount: resultCount,
-        isCompleted: resultCount > 0 && resultCount >= a.classSubject.class._count.students,
-        filename: `${a.classSubject.class.name}_${a.classSubject.subject.name}_Scoresheet.xlsx`.replace(/\s+/g, '_')
+        isCompleted: resultCount > 0 && resultCount >= pair.class._count.students,
+        filename: `${pair.class.name}_${pair.subject.name}_Scoresheet.xlsx`.replace(/\s+/g, '_')
       };
     }));
 
@@ -238,7 +268,7 @@ router.get('/teacher/:teacherId', authenticate, authorize(['admin', 'teacher']),
 });
 
 // Route: Generate and Download Excel Scoresheet
-router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin', 'teacher', 'examination_officer']), async (req, res) => {
   try {
     const classId = parseInt(req.params.classId);
     const subjectId = parseInt(req.params.subjectId);
@@ -301,8 +331,8 @@ router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin
       include: { teacher: true }
     });
 
-    // Check if requester is authorized (Admin or the Assigned Teacher)
-    if (req.user.role !== 'admin') {
+    // Check if requester is authorized (Admin, Exam Officer or the Assigned Teacher)
+    if (req.user.role !== 'admin' && req.user.role !== 'examination_officer') {
       if (!assignment || assignment.teacherId !== req.user.id) {
         return res.status(403).json({ error: 'You are not assigned to this subject/class' });
       }

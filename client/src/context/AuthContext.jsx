@@ -62,10 +62,12 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         if (isMounted) {
           console.error('Auth check error:', error);
-          // If auth check fails (network error, timeout), we should probably let them try to login again
+          // If auth check fails (network error, timeout), we should let them try to login again
           // rather than hanging on loading screen.
           setUser(null);
           setDashboardUnlocked(false);
+          localStorage.removeItem('token');
+          sessionStorage.removeItem('dashboardUnlocked');
         }
       } finally {
         if (isMounted) {
@@ -98,7 +100,14 @@ export const AuthProvider = ({ children }) => {
       }
 
       localStorage.setItem('token', data.token);
-      localStorage.setItem('schoolSlug', schoolSlug);
+
+      if (schoolSlug && schoolSlug !== 'null' && schoolSlug !== 'undefined') {
+        localStorage.setItem('schoolSlug', schoolSlug);
+      } else if (data.user.role !== 'superadmin') {
+        // Only clear it if not a superadmin, or handle appropriately
+        // Actually, if it's invalid, it's safer to remove it unless superadmin
+      }
+
       setUser(data.user);
 
       // Superadmins bypass the second layer
@@ -126,7 +135,10 @@ export const AuthProvider = ({ children }) => {
 
       // We can re-use the login endpoint, but we need the school slug.
       // We can get it from localStorage or user settings if available.
-      const schoolSlug = localStorage.getItem('schoolSlug') || '';
+      let schoolSlug = localStorage.getItem('schoolSlug') || '';
+      if (schoolSlug === 'null' || schoolSlug === 'undefined') {
+        schoolSlug = '';
+      }
 
       const response = await api.post('/api/auth/login', {
         username: user.username,

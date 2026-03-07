@@ -417,7 +417,14 @@ const PasswordReset = () => {
 
             <div className="p-6 border-t border-gray-200 flex gap-3 print:hidden sticky bottom-0 bg-white">
               <button
-                onClick={() => window.print()}
+                onClick={() => {
+                  const originalTitle = document.title;
+                  if (resetCredentials?.username) {
+                    document.title = `${resetCredentials.username}_Credentials`;
+                  }
+                  window.print();
+                  document.title = originalTitle;
+                }}
                 className="flex-1 bg-primary text-white px-6 py-3 rounded-md hover:brightness-90 transition-colors flex items-center justify-center gap-2 font-semibold"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

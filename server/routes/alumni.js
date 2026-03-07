@@ -130,7 +130,7 @@ router.get('/directory', optionalAuth, async (req, res) => {
 });
 
 // 1.1 Get Alumni Stats (Admin Only)
-router.get('/stats', authenticate, checkSubscription, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
+router.get('/stats', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const schoolId = await resolveSchoolId(req);
     if (!schoolId) return res.status(400).json({ error: 'School identifier is required' });

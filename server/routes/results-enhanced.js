@@ -64,20 +64,10 @@ router.get('/', authenticate, async (req, res) => {
         });
 
         if (!publication || !publication.isPublished) {
-          // If no per-term publication, fall back to legacy flag IF it's the current term
-          // This ensures backward compatibility for sessions that were already published
-          const currentTerm = await prisma.term.findFirst({
-            where: { isCurrent: true, schoolId: req.schoolId }
+          return res.status(403).json({
+            error: 'Result Not Published',
+            message: 'The result for this class and term has not been published.'
           });
-
-          const isRequestingCurrentTerm = currentTerm && parseInt(termId) === currentTerm.id;
-
-          if (!(isRequestingCurrentTerm && student.classModel.isResultPublished)) {
-            return res.status(403).json({
-              error: 'Result Not Published',
-              message: 'The result for this class and term has not been published.'
-            });
-          }
         }
       }
     }
@@ -110,7 +100,7 @@ router.get('/', authenticate, async (req, res) => {
 // Get results for a specific class, subject, and term (for teachers)
 router.get('/class/:classId/subject/:subjectId/term/:termId',
   authenticate,
-  authorize(['admin', 'teacher']),
+  authorize(['admin', 'teacher', 'examination_officer']),
   async (req, res) => {
     try {
       const { classId, subjectId, termId } = req.params;
@@ -151,7 +141,7 @@ router.get('/class/:classId/subject/:subjectId/term/:termId',
   });
 
 // Create or update a single result
-router.post('/entry', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
+router.post('/entry', authenticate, authorize(['admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const {
       studentId,
@@ -310,7 +300,7 @@ router.post('/entry', authenticate, authorize(['admin', 'teacher', 'principal'])
 });
 
 // Batch entry for multiple students
-router.post('/batch-entry', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
+router.post('/batch-entry', authenticate, authorize(['admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const {
       academicSessionId,
@@ -445,7 +435,7 @@ router.post('/batch-entry', authenticate, authorize(['admin', 'teacher', 'princi
 });
 
 // Submit results (lock for editing)
-router.post('/submit', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
+router.post('/submit', authenticate, authorize(['admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const { classId, subjectId, termId } = req.body;
 

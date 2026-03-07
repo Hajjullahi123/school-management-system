@@ -140,10 +140,16 @@ const CertificateView = () => {
     documentTitle: `Certificate_${certificate?.student?.user?.firstName}_${certificate?.student?.user?.lastName}`,
     pageStyle: `
         @page {
-          size: A4 landscape;
+          size: landscape;
           margin: 0;
         }
         @media print {
+          html, body {
+            height: 100%;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden;
+          }
           body {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
@@ -294,17 +300,17 @@ const CertificateView = () => {
               </div>
             </div>
 
-            <h1 className="text-3xl font-bold mb-1 pt-1" style={{ color: certificate.school?.primaryColor || '#1e40af' }}>
+            <h1 className="text-3xl font-bold mb-1 pt-1 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" style={{ color: certificate.school?.primaryColor || '#1e40af' }} contentEditable suppressContentEditableWarning>
               {certificate.school?.name}
             </h1>
             {certificate.school?.address && (
-              <p className="text-gray-600 text-sm">{certificate.school.address}</p>
+              <p className="text-gray-600 text-sm outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>{certificate.school.address}</p>
             )}
 
             <div className="mt-4 mb-3">
               <div className="inline-block border-t-4 border-b-4 border-yellow-600 py-2 px-10">
-                <h2 className="text-3xl font-serif text-yellow-700 uppercase">
-                  CERTIFICATE OF {formData.programType?.toUpperCase() || 'GRADUATION'}
+                <h2 className="text-3xl font-serif text-yellow-700 uppercase outline-none focus:ring-2 focus:ring-yellow-500/50 rounded" contentEditable suppressContentEditableWarning>
+                  CERTIFICATE
                 </h2>
               </div>
             </div>
@@ -312,9 +318,9 @@ const CertificateView = () => {
 
           {/* Body */}
           <div className="flex-1 flex flex-col justify-center text-center px-8">
-            <p className="text-xl mb-3 text-gray-700">This is to certify that</p>
+            <p className="text-xl mb-3 text-gray-700 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>This is to certify that</p>
 
-            <h3 className="text-4xl font-bold mb-3 text-gray-900 border-b-2 border-gray-300 pb-2 inline-block mx-auto px-6">
+            <h3 className="text-4xl font-bold mb-3 text-gray-900 border-b-2 border-gray-300 pb-2 inline-block mx-auto px-6 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>
               {studentName.toUpperCase()}
             </h3>
 
@@ -328,7 +334,7 @@ const CertificateView = () => {
                 />
               </div>
             ) : (
-              <p className="text-xl mb-3 text-gray-700 max-w-4xl mx-auto">
+              <p className="text-xl mb-3 text-gray-700 max-w-4xl mx-auto outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>
                 {certificate.content || 'has successfully completed the academic program and is hereby awarded this'}
               </p>
             )}
@@ -345,13 +351,13 @@ const CertificateView = () => {
                 />
               </div>
             ) : (
-              <p className="text-2xl font-semibold mb-3" style={{ color: certificate.school?.primaryColor || '#1e40af' }}>
+              <p className="text-2xl font-semibold mb-3 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" style={{ color: certificate.school?.primaryColor || '#1e40af' }} contentEditable suppressContentEditableWarning>
                 {formData.programType || 'Certificate of Graduation'}
               </p>
             )}
 
             <div className="flex justify-center items-center gap-2 text-lg text-gray-700">
-              <span>in recognition of dedicated study and achievement from</span>
+              <span className="outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>in recognition of dedicated study and achievement from</span>
               {isEditing ? (
                 <input
                   type="number"
@@ -361,10 +367,10 @@ const CertificateView = () => {
                   className="w-24 p-1 border rounded text-center"
                 />
               ) : (
-                <span className="font-semibold">{certificate.commencementYear || '____'}</span>
+                <span className="font-semibold outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>{certificate.commencementYear || '____'}</span>
               )}
-              <span>to</span>
-              <span className="font-semibold">{certificate.graduationYear}</span>
+              <span className="outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>to</span>
+              <span className="font-semibold outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>{certificate.graduationYear}</span>
             </div>
           </div>
 
@@ -418,9 +424,16 @@ const CertificateView = () => {
             display: none !important;
           }
           
+          @page {
+            size: landscape;
+            margin: 0mm;
+          }
+          
           body {
             margin: 0;
             padding: 0;
+            width: 297mm;
+            height: 210mm;
           }
         }
       `}</style>

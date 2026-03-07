@@ -97,10 +97,14 @@ const StaffAttendanceWidget = () => {
 
       {!status?.hasCheckedIn ? (
         <div>
-          <p className="text-gray-600 mb-4 text-sm">You haven't checked in yet today</p>
+          <p className="text-gray-600 mb-4 text-sm">
+            {status?.staffClockInMode === 'scan_only'
+              ? '⚠️ Your school requires attendance to be marked at the gate scanner.'
+              : "You haven't checked in yet today"}
+          </p>
           <button
             onClick={handleCheckIn}
-            disabled={actionLoading}
+            disabled={actionLoading || status?.staffClockInMode === 'scan_only'}
             className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {actionLoading ? (
@@ -116,10 +120,19 @@ const StaffAttendanceWidget = () => {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Clock In</span>
+                <span>Clock In/Commence lesson</span>
               </>
             )}
           </button>
+          {status?.staffClockInMode === 'ip_locked' && (
+            <p className="mt-2 text-xs text-blue-600 text-center flex items-center justify-center gap-1 font-medium">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              On-Premises Restriction Active
+            </p>
+          )}
         </div>
       ) : (
         <div className="space-y-3">

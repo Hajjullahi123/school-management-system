@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../api';
 import { toast } from '../../utils/toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
+import useTermContext from '../../hooks/useTermContext';
 
 const CBTPortal = () => {
   const [view, setView] = useState('list'); // 'list', 'taking', 'result'
@@ -9,6 +10,7 @@ const CBTPortal = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { settings: schoolSettings } = useSchoolSettings();
+  const { currentTerm } = useTermContext();
 
   // Active Exam State
   const [activeExam, setActiveExam] = useState(null);
@@ -376,7 +378,9 @@ const CBTPortal = () => {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{schoolSettings?.schoolName || 'School'} Online Exams</h1>
-          <p className="text-gray-600">Available computer-based tests for your class.</p>
+          <p className="text-gray-600">
+            Available computer-based tests for <span className="text-primary font-bold uppercase">{currentTerm?.name || '...'}</span>.
+          </p>
         </div>
         {schoolSettings?.logoUrl && (
           <img src={schoolSettings.logoUrl} alt="School Logo" className="h-16 w-16 object-contain" />

@@ -243,7 +243,7 @@ const PricingCard = ({ title, price, current, students, features, onSelect, proc
       <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gray-400 mb-2">{title} Plan</h3>
       <div className="flex items-baseline gap-1">
         <span className="text-4xl font-black text-gray-900">₦{formatNumber(price)}</span>
-        <span className="text-gray-400 font-bold text-xs uppercase">/ Year</span>
+        <span className="text-gray-400 font-bold text-xs uppercase">/ Month</span>
       </div>
     </div>
 

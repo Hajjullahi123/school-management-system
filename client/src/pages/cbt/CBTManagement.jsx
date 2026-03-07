@@ -3,6 +3,7 @@ import { api, API_BASE_URL } from '../../api';
 import { toast } from '../../utils/toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useAuth } from '../../context/AuthContext';
+import useTermContext from '../../hooks/useTermContext';
 
 const CBTManagement = () => {
   const [view, setView] = useState('list'); // 'list', 'create', 'questions'
@@ -54,14 +55,18 @@ const CBTManagement = () => {
   const [saveToBank, setSaveToBank] = useState(false);
   const [bankSearchTerm, setBankSearchTerm] = useState('');
 
+  const { currentTerm, currentSession, loading: termLoading } = useTermContext();
+
   useEffect(() => {
-    fetchInitialData();
-  }, []);
+    if (!termLoading && currentTerm) {
+      fetchInitialData();
+    }
+  }, [termLoading, currentTerm]);
 
   const fetchInitialData = async () => {
     try {
       const requests = [
-        api.get('/api/cbt/teacher'),
+        api.get(`/api/cbt/teacher?termId=${currentTerm?.id || ''}`),
         api.get('/api/classes'),
         api.get('/api/subjects')
       ];
@@ -508,7 +513,10 @@ const CBTManagement = () => {
           )}
           <div>
             <h1 className="text-2xl font-bold text-gray-800">CBT Management</h1>
-            <p className="text-sm text-gray-500">{schoolSettings?.schoolName || 'School Management System'}</p>
+            <p className="text-sm text-gray-500">
+              {schoolSettings?.schoolName || 'School Management System'} -
+              <span className="text-primary font-bold uppercase ml-1">{currentTerm?.name || '...'}</span>
+            </p>
           </div>
         </div>
         <div className="space-x-2">
@@ -537,39 +545,39 @@ const CBTManagement = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exam Title</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class & Subject</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Info</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Questions</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exam Title</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class & Subject</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Info</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Questions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {exams.map((exam) => (
                 <tr key={exam.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium text-gray-900">{exam.title}</div>
+                  <td className="px-4 py-4">
+                    <div className="font-medium text-gray-900 max-w-[200px] break-words">{exam.title}</div>
                     <div className="text-xs text-gray-500">{new Date(exam.createdAt).toLocaleDateString()}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-4">
                     <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full capitalize">
                       {exam.examType?.replace('_', ' ') || 'Examination'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-4">
                     <div className="text-sm text-gray-900">{exam.class?.name}</div>
                     <div className="text-sm text-gray-500">{exam.subject?.name}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div>{exam.durationMinutes} mins</div>
                     <div>{exam.totalMarks} Marks</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                     {exam._count?.questions || 0}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-4 whitespace-nowrap">
                     <button
                       onClick={() => handlePublishToggle(exam)}
                       className={`px-2 py-1 text-xs rounded-full font-semibold ${exam.isPublished
@@ -580,37 +588,39 @@ const CBTManagement = () => {
                       {exam.isPublished ? 'Published' : 'Draft'}
                     </button>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
-                    <button
-                      onClick={() => handleViewResults(exam)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      Results
-                    </button>
-                    <button
-                      onClick={() => handleManageQuestions(exam)}
-                      className="text-primary hover:text-primary-dark"
-                    >
-                      Questions
-                    </button>
-                    <button
-                      onClick={() => handlePrintExam(exam)}
-                      className="text-gray-600 hover:text-gray-900"
-                    >
-                      Print
-                    </button>
-                    <button
-                      onClick={() => handlePublishToggle(exam)}
-                      className={exam.isPublished ? "text-yellow-600 hover:text-yellow-900" : "text-green-600 hover:text-green-900"}
-                    >
-                      {exam.isPublished ? 'Unpublish' : 'Publish'}
-                    </button>
-                    <button
-                      onClick={() => handleDeleteExam(exam.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex flex-wrap gap-2 max-w-[220px]">
+                      <button
+                        onClick={() => handleViewResults(exam)}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        Results
+                      </button>
+                      <button
+                        onClick={() => handleManageQuestions(exam)}
+                        className="text-primary hover:text-primary-dark"
+                      >
+                        Questions
+                      </button>
+                      <button
+                        onClick={() => handlePrintExam(exam)}
+                        className="text-gray-600 hover:text-gray-900"
+                      >
+                        Print
+                      </button>
+                      <button
+                        onClick={() => handlePublishToggle(exam)}
+                        className={exam.isPublished ? "text-yellow-600 hover:text-yellow-900" : "text-green-600 hover:text-green-900"}
+                      >
+                        {exam.isPublished ? 'Unpublish' : 'Publish'}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteExam(exam.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1121,39 +1131,39 @@ const CBTManagement = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submission Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correct Answers</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submission Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Correct Answers</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {examResults.map((result) => (
                     <tr key={result.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {result.student.user.firstName} {result.student.user.lastName}
                         </div>
                         <div className="text-xs text-gray-500">{result.student.admissionNumber}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(result.submittedAt).toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                         {result.score}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${(result.score / selectedExam.totalMarks) >= 0.5 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                           }`}>
                           {selectedExam.totalMarks > 0 ? Math.round((result.score / selectedExam.totalMarks) * 100) : 0}%
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                         {result.correctAnswers} / {result.totalQuestions}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => handleDeleteResult(result.id)}
                           className="text-red-600 hover:text-red-900"

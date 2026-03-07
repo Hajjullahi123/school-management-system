@@ -98,13 +98,11 @@ const ParentMessages = () => {
         setThread(data);
         setShowThread(true);
 
-        // Mark as read if current user is receiver
-        const mainMsg = data[0];
-        if (mainMsg.receiverId === user.id && !mainMsg.isRead) {
-          await api.put(`/api/messages/${messageId}/read`);
-          fetchUnreadCount();
-          fetchMessages();
-        }
+        setShowThread(true);
+        // Refresh unread count and messages since viewing the thread 
+        // now automatically marks them as read in the backend
+        fetchUnreadCount();
+        fetchMessages();
       }
     } catch (error) {
       console.error('Error fetching thread:', error);

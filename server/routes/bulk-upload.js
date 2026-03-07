@@ -507,7 +507,7 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'princi
 });
 
 // Bulk upload results from CSV data
-router.post('/results', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
+router.post('/results', authenticate, authorize(['admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const { results, termId, academicSessionId, classId, subjectId } = req.body;
 

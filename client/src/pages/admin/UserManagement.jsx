@@ -1,8 +1,7 @@
- import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
-import { useReactToPrint } from 'react-to-print';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -13,6 +12,7 @@ const UserManagement = () => {
     username: '',
     password: '',
     email: '',
+    phone: '',
     firstName: '',
     lastName: '',
     role: 'teacher',
@@ -38,15 +38,14 @@ const UserManagement = () => {
   const [filter, setFilter] = useState('all'); // all, student, teacher, admin
   const [searchTerm, setSearchTerm] = useState('');
   const [generatedCredentials, setGeneratedCredentials] = useState(null);
-  const [classes, setClasses] = useState([]); // Added class fetch
-  const [expandedRoles, setExpandedRoles] = useState({}); // Tracking expanded state for each role
-  const credentialPrintRef = useRef();
-
-  const handlePrintCredentials = useReactToPrint({
-    contentRef: credentialPrintRef,
-  });
-
-  const { user: currentUser } = useAuth();
+  const handlePrintCredentials = () => {
+    const originalTitle = document.title;
+    if (generatedCredentials?.username) {
+      document.title = `${generatedCredentials.username}_Credentials`;
+    }
+    window.print();
+    document.title = originalTitle;
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -102,13 +101,17 @@ const UserManagement = () => {
 
       if (response.ok) {
         const result = await response.json();
-        if (result.generatedCredentials) {
+        const isAdminRole = ['admin', 'principal', 'accountant', 'examination_officer', 'teacher'].includes(result.role);
+
+        if (result.generatedCredentials && (isAdminRole || !editingUser)) {
           setGeneratedCredentials({
             name: `${result.firstName} ${result.lastName}`,
             ...result.generatedCredentials
           });
+        } else if (!editingUser) {
+          alert(`✅ User created successfully!\n\nName: ${result.firstName} ${result.lastName}\nUsername: ${result.username}\nRole: ${result.role.toUpperCase()}`);
         } else {
-          alert(editingUser ? 'User updated successfully!' : `✅ User created successfully!\n\nName: ${result.firstName} ${result.lastName}\nUsername: ${result.username}\nRole: ${result.role.toUpperCase()}`);
+          alert('User updated successfully!');
         }
         closeModal();
         fetchUsers();
@@ -128,6 +131,7 @@ const UserManagement = () => {
       username: user.username,
       password: '',
       email: user.email || '',
+      phone: user.phone || '',
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
@@ -177,6 +181,7 @@ const UserManagement = () => {
       username: '',
       password: '',
       email: '',
+      phone: '',
       firstName: '',
       lastName: '',
       role: 'teacher',
@@ -214,8 +219,8 @@ const UserManagement = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 print:m-0 print:p-0">
+      <div className="flex justify-between items-center print:hidden">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">User Management Dashboard</h1>
         <div className="flex gap-2">
           <Link
@@ -259,6 +264,7 @@ const UserManagement = () => {
         >
           <option value="all">All Category Views</option>
           <option value="admin">Administrators</option>
+          <option value="examination_officer">Examination Officers</option>
           <option value="teacher">Teachers</option>
           <option value="accountant">Accountants</option>
           <option value="principal">Principals</option>
@@ -273,8 +279,13 @@ const UserManagement = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         ) : (
-          ['admin', 'principal', 'teacher', 'accountant', 'parent', 'student'].map(role => {
-            const usersInRole = filteredUsers.filter(u => u.role === role);
+          ['admin', 'examination_officer', 'principal', 'teacher', 'accountant', 'parent', 'student'].map(role => {
+            const usersInRole = filteredUsers.filter(u => {
+              if (role === 'parent') {
+                return u.role === 'parent' || (u.parent && Object.keys(u.parent).length > 0);
+              }
+              return u.role === role;
+            });
             if (filter !== 'all' && filter !== role) return null;
             if (usersInRole.length === 0 && filter !== role) return null;
 
@@ -286,17 +297,20 @@ const UserManagement = () => {
                 <div
                   onClick={() => toggleRole(role)}
                   className={`px-6 py-4 flex justify-between items-center cursor-pointer select-none transition-colors ${role === 'admin' ? 'bg-indigo-600 hover:bg-indigo-700' :
-                    role === 'principal' ? 'bg-purple-600 hover:bg-purple-700' :
-                      role === 'teacher' ? 'bg-blue-600 hover:bg-blue-700' :
-                        role === 'accountant' ? 'bg-amber-600 hover:bg-amber-700' :
-                          role === 'parent' ? 'bg-rose-600 hover:bg-rose-700' :
-                            'bg-emerald-600 hover:bg-emerald-700'
+                    role === 'examination_officer' ? 'bg-cyan-600 hover:bg-cyan-700' :
+                      role === 'principal' ? 'bg-purple-600 hover:bg-purple-700' :
+                        role === 'teacher' ? 'bg-blue-600 hover:bg-blue-700' :
+                          role === 'accountant' ? 'bg-amber-600 hover:bg-amber-700' :
+                            role === 'parent' ? 'bg-rose-600 hover:bg-rose-700' :
+                              'bg-emerald-600 hover:bg-emerald-700'
                     } text-white`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="p-2 bg-white/20 rounded-lg">
                       {role === 'admin' ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                      ) : role === 'examination_officer' ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                       ) : role === 'principal' ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                       ) : role === 'teacher' ? (
@@ -346,11 +360,12 @@ const UserManagement = () => {
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
                                   <div className={`h-11 w-11 rounded-2xl flex items-center justify-center text-white font-black shadow-lg transform transition-transform group-hover:rotate-6 ${role === 'admin' ? 'bg-indigo-500' :
-                                    role === 'principal' ? 'bg-purple-500' :
-                                      role === 'teacher' ? 'bg-blue-500' :
-                                        role === 'accountant' ? 'bg-amber-500' :
-                                          role === 'parent' ? 'bg-rose-500' :
-                                            'bg-emerald-500'
+                                    role === 'examination_officer' ? 'bg-cyan-500' :
+                                      role === 'principal' ? 'bg-purple-500' :
+                                        role === 'teacher' ? 'bg-blue-500' :
+                                          role === 'accountant' ? 'bg-amber-500' :
+                                            role === 'parent' ? 'bg-rose-500' :
+                                              'bg-emerald-500'
                                     }`}>
                                     {user.firstName[0]}{user.lastName[0]}
                                   </div>
@@ -430,24 +445,36 @@ const UserManagement = () => {
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Account Category</label>
                 <select name="role" value={formData.role} onChange={handleInputChange} className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 bg-gray-50 font-black focus:ring-4 focus:ring-primary/10 outline-none appearance-none transition-all">
                   <option value="teacher">Instructor / Teacher</option>
+                  <option value="examination_officer">Examination Officer</option>
                   <option value="principal">School Principal</option>
                   <option value="accountant">Financial Accountant</option>
                   <option value="admin">System Admin</option>
                 </select>
+                {/* Singleton role warning */}
+                {!editingUser && ['admin', 'principal', 'accountant', 'examination_officer'].includes(formData.role) && (() => {
+                  const roleLabel = formData.role === 'admin' ? 'System Admin' : formData.role === 'principal' ? 'School Principal' : formData.role === 'examination_officer' ? 'Examination Officer' : 'Financial Accountant';
+                  const already = users.some(u => u.role === formData.role);
+                  return already ? (
+                    <div className="mt-2 flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                      <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                      <p className="text-[11px] font-bold text-red-700">A <span className="uppercase">{roleLabel}</span> account already exists for this school. Only one is allowed.</p>
+                    </div>
+                  ) : null;
+                })()}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">First Name</label>
-                  <input type="text" name="firstName" required value={formData.firstName} onChange={handleInputChange} className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all" />
+                  <input type="text" name="firstName" required value={formData.firstName} onChange={handleInputChange} placeholder="Enter first name" className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Last Name</label>
-                  <input type="text" name="lastName" required value={formData.lastName} onChange={handleInputChange} className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all" />
+                  <input type="text" name="lastName" required value={formData.lastName} onChange={handleInputChange} placeholder="Enter last name" className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all" />
                 </div>
               </div>
               {editingUser && (
@@ -458,11 +485,17 @@ const UserManagement = () => {
               )}
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Secure Password</label>
-                <input type="password" name="password" value={formData.password} onChange={handleInputChange} className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all" placeholder={editingUser ? "Blank to keep current" : "Auto-gen if empty"} />
+                <input type="password" name="password" value={formData.password} onChange={handleInputChange} autoComplete="new-password" placeholder={editingUser ? "••••••••" : "Enter secure password"} className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all" />
               </div>
-              <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Email Connection</label>
-                <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Email Connection</label>
+                  <input type="email" name="email" value={formData.email} onChange={handleInputChange} autoComplete="off" placeholder="user@example.com" className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Phone Number</label>
+                  <input type="text" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="08012345678" className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all" />
+                </div>
               </div>
 
               {/* Student Specific Fields */}
@@ -546,7 +579,11 @@ const UserManagement = () => {
               )}
               <div className="flex gap-4 pt-4">
                 <button type="button" onClick={closeModal} className="flex-1 bg-gray-100 text-gray-600 font-black py-4 rounded-2xl hover:bg-gray-200 transition-all uppercase text-xs tracking-widest">Cancel</button>
-                <button type="submit" className="flex-1 bg-primary text-white font-black py-4 rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20 uppercase text-xs tracking-widest">Confirm</button>
+                <button
+                  type="submit"
+                  disabled={!editingUser && ['admin', 'principal', 'accountant', 'examination_officer'].includes(formData.role) && users.some(u => u.role === formData.role)}
+                  className="flex-1 bg-primary text-white font-black py-4 rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20 uppercase text-xs tracking-widest disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100"
+                >Confirm</button>
               </div>
             </form>
           </div>
@@ -554,7 +591,7 @@ const UserManagement = () => {
       )}
 
       {generatedCredentials && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center z-[100] p-4">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center z-[100] p-4 print:hidden">
           <div className="bg-white p-10 rounded-[3rem] w-full max-w-sm shadow-2xl relative border-4 border-primary/20">
             <h2 className="text-3xl font-black mb-1 text-center text-primary uppercase tracking-tighter">Accredited!</h2>
             <p className="text-center text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] mb-10">Access Protocol Ready</p>
@@ -578,49 +615,52 @@ const UserManagement = () => {
         </div>
       )}
 
-      <div className="hidden">
-        <div ref={credentialPrintRef} className="p-20 text-gray-900 border-[20px] border-primary/5 rounded-[5rem] bg-white">
-          <div className="flex justify-between items-end mb-16 border-b-4 border-gray-100 pb-8">
-            <div>
-              <h1 className="text-6xl font-black uppercase tracking-tighter mb-2">Security ID</h1>
-              <p className="text-primary font-black tracking-[0.4em] uppercase text-sm">Official System Credentials</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Generation Date</p>
-              <p className="text-xl font-black">{new Date().toLocaleDateString()}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-12 mb-16">
-            <div className="bg-gray-50 p-10 rounded-[3rem]">
-              <p className="text-xs font-black text-gray-400 uppercase mb-4 tracking-widest">Account Holder</p>
-              <p className="text-4xl font-black text-gray-900 uppercase tracking-tighter">{generatedCredentials?.name}</p>
-            </div>
-            <div className="bg-gray-50 p-10 rounded-[3rem]">
-              <p className="text-xs font-black text-gray-400 uppercase mb-4 tracking-widest">Access Role</p>
-              <p className="text-4xl font-black text-primary uppercase tracking-tighter">{generatedCredentials?.role}</p>
-            </div>
-          </div>
-
-          <div className="bg-gray-900 text-white p-16 rounded-[4rem] text-center shadow-inner">
-            <p className="text-xs font-black text-white/30 uppercase mb-10 tracking-[1em]">Authentication Payload</p>
-            <div className="grid grid-cols-2 gap-8 mb-4">
-              <div className="border-r border-white/10">
-                <p className="text-[10px] font-black uppercase opacity-40 mb-2">Username</p>
-                <p className="text-4xl font-mono font-black tracking-tighter">{generatedCredentials?.username}</p>
-              </div>
+      {/* Print-only View */}
+      {generatedCredentials && (
+        <div className="hidden print:block print:absolute print:inset-0 print:bg-white print:z-[9999]">
+          <div className="p-10 text-gray-900 border-[8px] border-primary/10 rounded-[3rem] bg-white h-auto max-w-3xl mx-auto mt-10">
+            <div className="flex justify-between items-end mb-12 border-b-4 border-gray-100 pb-6">
               <div>
-                <p className="text-[10px] font-black uppercase opacity-40 mb-2">Access Key</p>
-                <p className="text-4xl font-mono font-black text-rose-400 tracking-[0.2em]">{generatedCredentials?.password}</p>
+                <h1 className="text-5xl font-black uppercase tracking-tighter mb-2">Security ID</h1>
+                <p className="text-primary font-black tracking-[0.4em] uppercase text-xs">Official System Credentials</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Generation Date</p>
+                <p className="text-lg font-black">{new Date().toLocaleDateString()}</p>
               </div>
             </div>
-          </div>
 
-          <div className="mt-16 text-center">
-            <p className="text-xs font-black text-gray-300 uppercase max-w-lg mx-auto leading-relaxed">Please update your password immediately after initial login. Keep this document in a safe environment.</p>
+            <div className="flex gap-8 mb-12">
+              <div className="flex-1 bg-gray-50 p-8 rounded-[2rem]">
+                <p className="text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Account Holder</p>
+                <p className="text-2xl font-black text-gray-900 uppercase tracking-tighter break-all">{generatedCredentials?.name}</p>
+              </div>
+              <div className="flex-1 bg-gray-50 p-8 rounded-[2rem]">
+                <p className="text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Access Role</p>
+                <p className="text-2xl font-black text-primary uppercase tracking-tighter">{generatedCredentials?.role}</p>
+              </div>
+            </div>
+
+            <div className="bg-gray-900 text-white p-12 rounded-[3rem] text-center shadow-inner">
+              <p className="text-[10px] font-black text-white/30 uppercase mb-8 tracking-[1em]">Authentication Payload</p>
+              <div className="flex gap-6 mb-2">
+                <div className="flex-1 border-r border-white/10 px-4">
+                  <p className="text-[10px] font-black uppercase opacity-40 mb-2">Username</p>
+                  <p className="text-xl font-mono font-black tracking-tighter break-all">{generatedCredentials?.username}</p>
+                </div>
+                <div className="flex-1 px-4">
+                  <p className="text-[10px] font-black uppercase opacity-40 mb-2">Access Key</p>
+                  <p className="text-xl font-mono font-black text-rose-400 tracking-[0.2em] break-all">{generatedCredentials?.password}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-12 text-center">
+              <p className="text-[10px] font-black text-gray-400 uppercase max-w-sm mx-auto leading-relaxed">Please update your password immediately after initial login. Keep this document in a safe environment.</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

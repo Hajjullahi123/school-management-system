@@ -23,6 +23,8 @@ const TermReportCard = () => {
   const [selectedStudentId, setSelectedStudentId] = useState('');
 
   const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const isParentView = queryParams.get('view') === 'parent' || user?.role === 'parent';
 
   // Automatically select student for student role
   useEffect(() => {
@@ -31,6 +33,8 @@ const TermReportCard = () => {
       if (user.student.admissionNumber) {
         setAdmissionNumber(user.student.admissionNumber);
       }
+    } else if (user?.role === 'teacher') {
+      setSearchMode('class');
     }
   }, [user]);
 
@@ -46,19 +50,19 @@ const TermReportCard = () => {
 
   // Trigger fetch if student and term are auto-selected
   useEffect(() => {
-    if (selectedStudentId && selectedTerm && (user?.role === 'parent' || user?.role === 'student')) {
+    if (selectedStudentId && selectedTerm && (isParentView || user?.role === 'student')) {
       fetchReport();
     }
-  }, [selectedStudentId, selectedTerm]);
+  }, [selectedStudentId, selectedTerm, isParentView]);
 
   useEffect(() => {
     fetchTerms();
-    if (user?.role === 'parent') {
+    if (isParentView) {
       fetchMyWards();
     } else if (user?.role !== 'student') {
       fetchClasses();
     }
-  }, [user]);
+  }, [user, isParentView]);
 
   const fetchMyWards = async () => {
     try {
@@ -333,9 +337,9 @@ const TermReportCard = () => {
               </select>
             </div>
 
-            {user?.role === 'student' || user?.role === 'parent' ? (
+            {user?.role === 'student' || isParentView ? (
               <div className="flex md:col-span-2 items-end gap-4">
-                {user?.role === 'parent' && (
+                {isParentView && (
                   <div className="flex-1">
                     <label className="block text-sm font-bold text-gray-700 mb-2">Select Student</label>
                     <select
@@ -355,23 +359,25 @@ const TermReportCard = () => {
                   disabled={!selectedTerm || !selectedStudentId || loading}
                   className="bg-primary text-white px-8 py-3 rounded-md hover:brightness-90 disabled:bg-gray-400 w-full md:w-auto font-bold shadow"
                 >
-                  {loading ? 'Generating Report...' : user?.role === 'parent' ? 'View Report' : 'View My Report'}
+                  {loading ? 'Generating Report...' : isParentView ? 'View Report' : 'View My Report'}
                 </button>
               </div>
             ) : (
               <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2 flex gap-4 mb-2">
-                  <label className="inline-flex items-center cursor-pointer">
-                    <input type="radio" className="form-radio text-primary" name="searchMode" value="admission" checked={searchMode === 'admission'} onChange={(e) => setSearchMode(e.target.value)} />
-                    <span className="ml-2 font-medium">By Admission No</span>
-                  </label>
-                  <label className="inline-flex items-center cursor-pointer">
-                    <input type="radio" className="form-radio text-primary" name="searchMode" value="class" checked={searchMode === 'class'} onChange={(e) => setSearchMode(e.target.value)} />
-                    <span className="ml-2 font-medium">By Class</span>
-                  </label>
-                </div>
+                {user?.role !== 'teacher' && (
+                  <div className="md:col-span-2 flex gap-4 mb-2">
+                    <label className="inline-flex items-center cursor-pointer">
+                      <input type="radio" className="form-radio text-primary" name="searchMode" value="admission" checked={searchMode === 'admission'} onChange={(e) => setSearchMode(e.target.value)} />
+                      <span className="ml-2 font-medium">By Admission No</span>
+                    </label>
+                    <label className="inline-flex items-center cursor-pointer">
+                      <input type="radio" className="form-radio text-primary" name="searchMode" value="class" checked={searchMode === 'class'} onChange={(e) => setSearchMode(e.target.value)} />
+                      <span className="ml-2 font-medium">By Class</span>
+                    </label>
+                  </div>
+                )}
 
-                {searchMode === 'admission' ? (
+                {searchMode === 'admission' && user?.role !== 'teacher' ? (
                   <div className="md:col-span-2 flex gap-2">
                     <input
                       type="text"
@@ -565,7 +571,7 @@ const TermReportCard = () => {
                       {/* AFFECTIVE & PSYCHOMOTOR Mapped from improved API */}
                       <div className="flex-1 flex flex-col min-h-0">
                         <table className="w-full border-2 border-black border-collapse text-[10px] flex-1">
-                          <thead className="bg-gray-200 uppercase font-bold sticky top-0">
+                          <thead className="bg-gray-200 uppercase font-bold">
                             <tr>
                               <th className="border-b border-r border-black text-left px-1 py-0.5">BEHAVIORAL DOMAINS</th>
                               <th className="border-b border-black w-5">5</th>
@@ -671,8 +677,14 @@ const TermReportCard = () => {
                           "{data.principalRemark || 'Satisfactory result. Keep striving for excellence.'}"
                         </p>
                         <div className="pt-1 border-t border-black/10 flex justify-between items-center text-[9px] font-bold">
-                          <span>Next Term Begins:</span>
-                          <span className="underline font-black">{data.term?.nextTermBegins ? new Date(data.term.nextTermBegins).toLocaleDateString() : '....................'}</span>
+                          <div>
+                            <span className="mr-1">Term Ends:</span>
+                            <span className="underline font-black">{data.term?.endDate ? new Date(data.term.endDate).toLocaleDateString() : '....................'}</span>
+                          </div>
+                          <div>
+                            <span className="mr-1">Next Term Begins:</span>
+                            <span className="underline font-black">{data.term?.nextTermBegins ? new Date(data.term.nextTermBegins).toLocaleDateString() : '....................'}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -691,30 +703,37 @@ const TermReportCard = () => {
                       </p>
                     </div>
 
-                    <div className="text-center relative">
-                      {/* Automated Seal Visualization */}
-                      <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-20 pointer-events-none">
-                        <svg width="60" height="60" viewBox="0 0 100 100">
-                          <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
-                          <text x="50" y="45" textAnchor="middle" fontSize="8" fontWeight="bold">OFFICIAL</text>
-                          <text x="50" y="55" textAnchor="middle" fontSize="10" fontWeight="black">SEAL</text>
-                        </svg>
+                    <div className="text-center flex flex-col items-center">
+                      <div className="h-[45px] flex items-end justify-center mb-1">
+                        {data.student?.formMasterSignatureUrl ? (
+                          <img src={data.student.formMasterSignatureUrl.startsWith('data:') || data.student.formMasterSignatureUrl.startsWith('http') ? data.student.formMasterSignatureUrl : `${API_BASE_URL}${data.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-[40px] w-auto mix-blend-multiply" />
+                        ) : (
+                          <svg width="50" height="50" viewBox="0 0 100 100" className="opacity-15">
+                            <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
+                            <text x="50" y="45" textAnchor="middle" fontSize="8" fontWeight="bold">OFFICIAL</text>
+                            <text x="50" y="55" textAnchor="middle" fontSize="10" fontWeight="black">SEAL</text>
+                          </svg>
+                        )}
                       </div>
                       <div className="border-b-2 border-black w-full mb-1 opacity-80"></div>
                       <p className="text-[10px] font-black uppercase">Teacher's Signature</p>
-                      <p className="text-[8px] text-gray-400 uppercase mt-0.5">Automated Seal</p>
+                      <p className="text-[8px] text-gray-400 uppercase mt-0.5">{data.student?.formMasterSignatureUrl ? 'Digitally Signed' : 'Automated Seal'}</p>
                     </div>
 
-                    <div className="text-center relative">
-                      <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-30 pointer-events-none">
-                        <svg width="80" height="80" viewBox="0 0 100 100" style={{ color: schoolSettings?.primaryColor }}>
-                          <path d="M20 50 Q 50 10, 80 50 T 20 80" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.5" />
-                          <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
-                          <text x="50" y="52" textAnchor="middle" fontSize="6" fontWeight="bold" transform="rotate(-15 50 50)">CERTIFIED OFFICIAL</text>
-                        </svg>
+                    <div className="text-center flex flex-col items-center">
+                      <div className="h-[45px] flex items-end justify-center mb-1">
+                        {data.term?.principalSignatureUrl ? (
+                          <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-[40px] w-auto mix-blend-multiply" />
+                        ) : (
+                          <svg width="60" height="60" viewBox="0 0 100 100" className="opacity-20" style={{ color: schoolSettings?.primaryColor }}>
+                            <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
+                            <text x="50" y="52" textAnchor="middle" fontSize="6" fontWeight="bold" transform="rotate(-15 50 50)">CERTIFIED OFFICIAL</text>
+                          </svg>
+                        )}
                       </div>
-                      <div className="border-b-2 border-emerald-800 w-full mb-1" style={{ borderColor: schoolSettings?.primaryColor }}></div>
-                      <p className="text-[10px] font-black uppercase text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>Principal's Signature</p>
+                      <div className="border-b-2 w-full mb-1" style={{ borderColor: schoolSettings?.primaryColor || '#065f46' }}></div>
+                      <p className="text-[10px] font-black uppercase" style={{ color: schoolSettings?.primaryColor || '#065f46' }}>Principal's Signature</p>
+                      <p className="text-[8px] text-gray-400 uppercase mt-0.5">{data.term?.principalSignatureUrl ? 'Digitally Signed' : 'Automated Seal'}</p>
                     </div>
                   </div>
                 </div>

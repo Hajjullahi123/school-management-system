@@ -14,15 +14,8 @@ const ProtectedRoute = ({ children, roles = [] }) => {
     );
   }
 
-  // If user is null but token exists, keep showing loading
-  // This prevents redirect during navigation race condition
-  if (!user && localStorage.getItem('token')) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  // Removed the infinite loading condition for null user with token.
+  // We should rely purely on the 'loading' state array from useAuth.
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;

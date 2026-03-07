@@ -457,6 +457,7 @@ const ClassManagement = () => {
               onChange={(e) => setSelectedTermId(e.target.value)}
               className="border-none bg-transparent text-sm font-medium focus:ring-0 cursor-pointer"
             >
+              <option value="">Select Term</option>
               {terms.map(term => (
                 <option key={term.id} value={term.id}>
                   {term.name} ({term.academicSession?.name}) {term.isCurrent ? '• Active' : ''}
@@ -465,40 +466,66 @@ const ClassManagement = () => {
             </select>
           </div>
 
-          <button
-            onClick={async () => {
-              if (!selectedClass || !selectedTermId) return;
-              if (!confirm(`Are you sure you want to ${selectedClass.isResultPublished ? 'unpublish' : 'publish'} results for this class in the selected term?`)) return;
+          <div className="flex items-center gap-3 bg-white p-2 rounded-md border shadow-sm">
+            <label className="text-sm font-semibold text-gray-700">Publish:</label>
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  if (!selectedClass || !selectedTermId) return;
+                  const isPublished = selectedClass.isProgressivePublished;
+                  if (!confirm(`Are you sure you want to ${isPublished ? 'unpublish' : 'publish'} PROGRESSIVE results?`)) return;
 
-              try {
-                const response = await api.put(`/api/classes/${selectedClass.id}/publish-results`, {
-                  isPublished: !selectedClass.isResultPublished,
-                  termId: parseInt(selectedTermId)
-                });
+                  try {
+                    const response = await api.put(`/api/classes/${selectedClass.id}/publish-results`, {
+                      isProgressivePublished: !isPublished,
+                      termId: parseInt(selectedTermId)
+                    });
 
-                if (response.ok) {
-                  const result = await response.json();
-                  alert(`Results ${!selectedClass.isResultPublished ? 'published' : 'unpublished'} successfully!`);
-                  // Update local state
-                  setSelectedClass(prev => ({ ...prev, isResultPublished: !prev.isResultPublished }));
-                  // Also update main list
-                  setClasses(prev => prev.map(c => c.id === selectedClass.id ? { ...c, isResultPublished: !c.isResultPublished } : c));
-                } else {
-                  const errorData = await response.json();
-                  alert(`Failed to update status: ${errorData.error || 'Unknown error'}`);
-                }
-              } catch (error) {
-                console.error(error);
-                alert(`Error updating status: ${error.message}`);
-              }
-            }}
-            className={`px-4 py-2 rounded-md text-white transition-colors ${selectedClass.isResultPublished
-              ? 'bg-orange-500 hover:bg-orange-600'
-              : 'bg-green-600 hover:bg-green-700'
-              }`}
-          >
-            {selectedClass.isResultPublished ? 'Unpublish Results' : 'Publish Results'}
-          </button>
+                    if (response.ok) {
+                      alert(`Progressive results ${!isPublished ? 'published' : 'unpublished'} successfully!`);
+                      setSelectedClass(prev => ({ ...prev, isProgressivePublished: !isPublished }));
+                    } else {
+                      const errorData = await response.json();
+                      alert(`Failed: ${errorData.error}`);
+                    }
+                  } catch (e) {
+                    alert(`Error: ${e.message}`);
+                  }
+                }}
+                className={`px-3 py-1 text-xs rounded-md text-white transition-colors ${selectedClass.isProgressivePublished ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'}`}
+              >
+                {selectedClass.isProgressivePublished ? 'Progressive: Published' : 'Progressive: Draft'}
+              </button>
+              <button
+                onClick={async () => {
+                  if (!selectedClass || !selectedTermId) return;
+                  const isPublished = selectedClass.isResultPublished;
+                  if (!confirm(`Are you sure you want to ${isPublished ? 'unpublish' : 'publish'} FINAL results?`)) return;
+
+                  try {
+                    const response = await api.put(`/api/classes/${selectedClass.id}/publish-results`, {
+                      isPublished: !isPublished,
+                      termId: parseInt(selectedTermId)
+                    });
+
+                    if (response.ok) {
+                      alert(`Final results ${!isPublished ? 'published' : 'unpublished'} successfully!`);
+                      setSelectedClass(prev => ({ ...prev, isResultPublished: !isPublished }));
+                      setClasses(prev => prev.map(c => c.id === selectedClass.id ? { ...c, isResultPublished: !isPublished } : c));
+                    } else {
+                      const errorData = await response.json();
+                      alert(`Failed: ${errorData.error}`);
+                    }
+                  } catch (e) {
+                    alert(`Error: ${e.message}`);
+                  }
+                }}
+                className={`px-3 py-1 text-xs rounded-md text-white transition-colors ${selectedClass.isResultPublished ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+              >
+                {selectedClass.isResultPublished ? 'Final: Published' : 'Final: Draft'}
+              </button>
+            </div>
+          </div>
 
           {selectedStudents.length > 0 && (
             <button
@@ -537,80 +564,82 @@ const ClassManagement = () => {
       </div>
 
       {/* Students Table */}
-      {classStudents.length > 0 ? (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left">
-                    <input
-                      type="checkbox"
-                      checked={selectedStudents.length === classStudents.length}
-                      onChange={handleSelectAll}
-                      className="w-4 h-4 text-primary rounded focus:ring-primary"
-                    />
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Admission No.
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Gender
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date of Birth
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {classStudents.map((student) => (
-                  <tr
-                    key={student.id}
-                    className={`hover:bg-gray-50 transition-colors ${selectedStudents.includes(student.id) ? 'bg-primary/5' : ''
-                      }`}
-                  >
-                    <td className="px-6 py-4">
+      {
+        classStudents.length > 0 ? (
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left">
                       <input
                         type="checkbox"
-                        checked={selectedStudents.includes(student.id)}
-                        onChange={() => handleSelectStudent(student.id)}
+                        checked={selectedStudents.length === classStudents.length}
+                        onChange={handleSelectAll}
                         className="w-4 h-4 text-primary rounded focus:ring-primary"
                       />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{student.admissionNumber}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {student.user ? `${student.user.firstName} ${student.user.lastName}` : 'N/A'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{student.gender}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : 'N/A'}
-                      </div>
-                    </td>
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Admission No.
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Gender
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date of Birth
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {classStudents.map((student) => (
+                    <tr
+                      key={student.id}
+                      className={`hover:bg-gray-50 transition-colors ${selectedStudents.includes(student.id) ? 'bg-primary/5' : ''
+                        }`}
+                    >
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedStudents.includes(student.id)}
+                          onChange={() => handleSelectStudent(student.id)}
+                          className="w-4 h-4 text-primary rounded focus:ring-primary"
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{student.admissionNumber}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {student.user ? `${student.user.firstName} ${student.user.lastName}` : 'N/A'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{student.gender}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : 'N/A'}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="text-center py-12 bg-white rounded-lg shadow">
-          <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-          <p className="text-gray-500 text-lg">No students in this class yet</p>
-        </div>
-      )}
-    </div>
+        ) : (
+          <div className="text-center py-12 bg-white rounded-lg shadow">
+            <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <p className="text-gray-500 text-lg">No students in this class yet</p>
+          </div>
+        )
+      }
+    </div >
   );
 };
 

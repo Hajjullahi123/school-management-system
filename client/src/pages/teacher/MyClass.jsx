@@ -13,8 +13,9 @@ const MyClass = () => {
   const [remarks, setRemarks] = useState({ formMasterRemark: '', principalRemark: '' });
   const [psychomotorRatings, setPsychomotorRatings] = useState([]);
   const [domains, setDomains] = useState([]);
-  const [currentTermId, setCurrentTermId] = useState(null);
+  const [currentTerm, setCurrentTerm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [publication, setPublication] = useState({ isPublished: false, isProgressivePublished: false });
 
   useEffect(() => {
     fetchMyClass();
@@ -37,13 +38,24 @@ const MyClass = () => {
       const res = await api.get('/api/terms/current');
       if (res.ok) {
         const term = await res.json();
-        setCurrentTermId(term.id);
+        setCurrentTerm(term);
+        fetchPublicationStatus(term.id);
       }
     } catch (e) { console.error("Failed to fetch current term", e); }
   };
 
+  const fetchPublicationStatus = async (termId) => {
+    if (!classData?.id || !termId) return;
+    try {
+      const res = await api.get(`/api/classes/${classData.id}/publication-status?termId=${termId}`);
+      if (res.ok) {
+        setPublication(await res.json());
+      }
+    } catch (e) { console.error("Failed to fetch publication status", e); }
+  };
+
   const openGradingModal = async (student) => {
-    if (!currentTermId) {
+    if (!currentTerm) {
       alert("No current term found. Please contact admin.");
       return;
     }
@@ -55,7 +67,7 @@ const MyClass = () => {
     setPsychomotorRatings([]);
 
     try {
-      const res = await api.get(`/api/report-extras/${student.id}/${currentTermId}`);
+      const res = await api.get(`/api/report-extras/${student.id}/${currentTerm.id}`);
       if (res.ok) {
         const data = await res.json();
         setRemarks({
@@ -72,12 +84,12 @@ const MyClass = () => {
   };
 
   const saveGrading = async () => {
-    if (!gradingStudent || !currentTermId) return;
+    if (!gradingStudent || !currentTerm) return;
     setSaving(true);
     try {
       const payload = {
         studentId: gradingStudent.id,
-        termId: currentTermId,
+        termId: currentTerm.id,
         classId: classData.id,
         formMasterRemark: remarks.formMasterRemark,
         principalRemark: remarks.principalRemark,
@@ -104,7 +116,9 @@ const MyClass = () => {
       const response = await api.get('/api/classes/my-class');
 
       if (response.status === 404) {
-        setError('You are not currently assigned as a Form Master for any class.');
+        const data = await response.json();
+        const debugInfo = data.debug ? ` (UID: ${data.debug.userId}, SID: ${data.debug.schoolId}, Classes: ${data.debug.classCount})` : '';
+        setError('You are not currently assigned as a Form Master for any class.' + debugInfo);
         setLoading(false);
         return;
       }
@@ -154,30 +168,30 @@ const MyClass = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div className="flex items-center gap-4">
           {schoolSettings?.logoUrl && (
-            <img src={schoolSettings.logoUrl} alt="Logo" className="h-16 w-16 object-contain" />
+            <img src={schoolSettings.logoUrl} alt="Logo" className="h-12 w-12 object-contain" />
           )}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Class Management</h1>
-            <p className="text-gray-600 mt-1">
-              Form Master for: <span className="font-semibold text-primary text-lg">{classData.name} {classData.arm}</span>
+            <h1 className="text-xl font-bold text-gray-900">Class Management</h1>
+            <p className="text-sm text-gray-600">
+              Form Master: <span className="font-bold text-primary">{classData.name} {classData.arm}</span>
             </p>
-            <p className="text-xs text-gray-400">{schoolSettings?.schoolName || 'School Management System'}</p>
           </div>
         </div>
-        <div>
+        <div className="flex gap-3">
           <button
             onClick={async () => {
-              if (!confirm(`Are you sure you want to ${classData.isResultPublished ? 'unpublish' : 'publish'} results for this class?`)) return;
+              if (!confirm(`Are you sure you want to ${publication.isProgressivePublished ? 'unpublish' : 'publish'} PROGRESSIVE results for this class?`)) return;
               try {
                 const response = await api.put(`/api/classes/${classData.id}/publish-results`, {
-                  isPublished: !classData.isResultPublished
+                  isProgressivePublished: !publication.isProgressivePublished,
+                  termId: currentTerm.id
                 });
                 if (response.ok) {
-                  alert(`Results ${!classData.isResultPublished ? 'published' : 'unpublished'} successfully!`);
-                  fetchMyClass();
+                  alert(`Progressive results ${!publication.isProgressivePublished ? 'published' : 'unpublished'} successfully!`);
+                  fetchPublicationStatus(currentTerm.id);
                 } else {
                   const errorData = await response.json();
                   alert(`Failed to update status: ${errorData.error || 'Unknown error'}`);
@@ -187,29 +201,101 @@ const MyClass = () => {
                 alert(`Error: ${e.message}`);
               }
             }}
-            className={`px-4 py-2 rounded-md font-medium text-white transition-colors ${classData.isResultPublished
+            className={`px-4 py-2 rounded-md font-medium text-white transition-colors ${publication.isProgressivePublished
+              ? 'bg-orange-600 hover:bg-orange-700'
+              : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+          >
+            {publication.isProgressivePublished ? 'Unpublish Progressive' : 'Publish Progressive'}
+          </button>
+          <button
+            onClick={async () => {
+              if (!confirm(`Are you sure you want to ${publication.isPublished ? 'unpublish' : 'publish'} FINAL results for this class?`)) return;
+              try {
+                const response = await api.put(`/api/classes/${classData.id}/publish-results`, {
+                  isPublished: !publication.isPublished,
+                  termId: currentTerm.id
+                });
+                if (response.ok) {
+                  alert(`Final results ${!publication.isPublished ? 'published' : 'unpublished'} successfully!`);
+                  fetchPublicationStatus(currentTerm.id);
+                } else {
+                  const errorData = await response.json();
+                  alert(`Failed to update status: ${errorData.error || 'Unknown error'}`);
+                }
+              } catch (e) {
+                console.error(e);
+                alert(`Error: ${e.message}`);
+              }
+            }}
+            className={`px-4 py-2 rounded-md font-medium text-white transition-colors ${publication.isPublished
               ? 'bg-red-600 hover:bg-red-700'
               : 'bg-green-600 hover:bg-green-700'
               }`}
           >
-            {classData.isResultPublished ? 'Unpublish Results' : 'Publish Results'}
+            {publication.isPublished ? 'Unpublish Final' : 'Publish Final'}
           </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-primary">
-          <p className="text-sm text-gray-600">Active Students</p>
-          <p className="text-3xl font-bold text-gray-900">{activeStudents.length}</p>
+      {/* Compact Info Bar */}
+      <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-100 flex flex-wrap items-center justify-between gap-y-4 gap-x-2 sm:gap-6">
+        {/* Active Students */}
+        <div className="flex items-center gap-3 min-w-[120px]">
+          <div className="p-2 bg-green-50 rounded-lg">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest leading-none mb-1">Active</p>
+            <p className="text-lg font-black text-gray-900 leading-none">{activeStudents.length}</p>
+          </div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-gray-400">
-          <p className="text-sm text-gray-600">Total Registered</p>
-          <p className="text-3xl font-bold text-gray-900">{classData.students.length}</p>
+
+        <div className="hidden lg:block w-px h-8 bg-gray-100"></div>
+
+        {/* Total Registered */}
+        <div className="flex items-center gap-3 min-w-[120px]">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest leading-none mb-1">Registered</p>
+            <p className="text-lg font-black text-gray-900 leading-none">{classData.students.length}</p>
+          </div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 focus:border-primary">
-          <p className="text-sm text-gray-600">Inactive Students</p>
-          <p className="text-3xl font-bold text-gray-900">{classData.students.length - activeStudents.length}</p>
+
+        <div className="hidden lg:block w-px h-8 bg-gray-100"></div>
+
+        {/* Session */}
+        <div className="flex items-center gap-3 min-w-[140px]">
+          <div className="p-2 bg-blue-50 rounded-lg">
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest leading-none mb-1">Session</p>
+            <p className="text-sm font-black text-gray-900 leading-none">{currentTerm?.academicSession?.name || '...'}</p>
+          </div>
+        </div>
+
+        <div className="hidden lg:block w-px h-8 bg-gray-100"></div>
+
+        {/* Term */}
+        <div className="flex items-center gap-3 min-w-[140px]">
+          <div className="p-2 bg-indigo-50 rounded-lg">
+            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest leading-none mb-1">Term</p>
+            <p className="text-sm font-black text-gray-900 leading-none uppercase">{currentTerm?.name || '...'}</p>
+          </div>
         </div>
       </div>
 

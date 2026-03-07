@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api, API_BASE_URL } from '../../api';
 
 const TeacherProfile = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [signatureFile, setSignatureFile] = useState(null);
+  const [signaturePreview, setSignaturePreview] = useState(null);
   const [formData, setFormData] = useState({
     specialization: '',
     staffId: '',
@@ -17,16 +21,19 @@ const TeacherProfile = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
-    if (user?.teacher) {
+    if (user) {
       setFormData({
-        specialization: user.teacher.specialization || '',
-        staffId: user.teacher.staffId || '',
+        specialization: user.teacher?.specialization || '',
+        staffId: user.teacher?.staffId || user.username || '',
         email: user.email || '',
         firstName: user.firstName || '',
         lastName: user.lastName || ''
       });
-      if (user.teacher.photoUrl) {
+      if (user.teacher?.photoUrl) {
         setPhotoPreview(`${API_BASE_URL}${user.teacher.photoUrl}`);
+      }
+      if (user.signatureUrl) {
+        setSignaturePreview(user.signatureUrl.startsWith('data:') || user.signatureUrl.startsWith('http') ? user.signatureUrl : `${API_BASE_URL}${user.signatureUrl}`);
       }
     }
   }, [user]);
@@ -43,6 +50,22 @@ const TeacherProfile = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setPhotoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSignatureChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        setMessage({ type: 'error', text: 'File size must be less than 2MB' });
+        return;
+      }
+      setSignatureFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSignaturePreview(reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -80,12 +103,27 @@ const TeacherProfile = () => {
       const data = await response.json();
       console.log('Server response:', data);
 
+      // Upload Signature if changed
+      if (response.ok && signatureFile) {
+        const reader = new FileReader();
+        const base64Data = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(signatureFile);
+        });
+
+        await api.post('/api/teachers/signature-base64', {
+          imageData: base64Data,
+          fileName: signatureFile.name
+        });
+      }
+
       if (response.ok) {
         setMessage({ type: 'success', text: 'Profile updated successfully! Redirecting to dashboard...' });
 
-        // Redirect to home after 1.5 seconds
+        // Force a hard redirect to the dashboard so AuthContext completely refreshes the new user photo state
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = '/dashboard';
         }, 1500);
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to update profile. Please try again.' });
@@ -152,9 +190,8 @@ const TeacherProfile = () => {
                 type="text"
                 name="firstName"
                 value={formData.firstName}
-                onChange={handleInputChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                readOnly
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-transparent bg-gray-100 text-gray-500 cursor-not-allowed"
               />
             </div>
 
@@ -164,9 +201,8 @@ const TeacherProfile = () => {
                 type="text"
                 name="lastName"
                 value={formData.lastName}
-                onChange={handleInputChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                readOnly
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-transparent bg-gray-100 text-gray-500 cursor-not-allowed"
               />
             </div>
 
@@ -176,9 +212,8 @@ const TeacherProfile = () => {
                 type="text"
                 name="staffId"
                 value={formData.staffId}
-                onChange={handleInputChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                readOnly
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-transparent bg-gray-100 text-gray-500 cursor-not-allowed"
               />
             </div>
 
@@ -194,23 +229,47 @@ const TeacherProfile = () => {
             </div>
           </div>
 
+          {user?.teacher && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Specialization / Subject</label>
+              <input
+                type="text"
+                name="specialization"
+                value={formData.specialization}
+                readOnly
+                placeholder="e.g., Mathematics, English, Physics"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-transparent bg-gray-100 text-gray-500 cursor-not-allowed"
+              />
+            </div>
+          )}
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Specialization / Subject</label>
-            <input
-              type="text"
-              name="specialization"
-              value={formData.specialization}
-              onChange={handleInputChange}
-              required
-              placeholder="e.g., Mathematics, English, Physics"
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Digital Signature
+            </label>
+            <div className="flex items-center space-x-4">
+              {signaturePreview ? (
+                <img src={signaturePreview} alt="Signature Preview" className="h-16 w-32 object-contain border rounded bg-gray-50 dark:bg-gray-100" />
+              ) : (
+                <div className="h-16 w-32 border border-dashed rounded flex flex-col items-center justify-center text-gray-400 bg-gray-50">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                  <span className="text-[10px] mt-1">No Signature</span>
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleSignatureChange}
+                className="text-sm w-full block file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/5 file:text-primary hover:file:bg-primary/10"
+              />
+            </div>
+            <p className="mt-2 text-xs text-gray-500">PNG with transparent background (Recommended: 300x100px). This will be appended to student report cards if you are a Form Master.</p>
           </div>
 
           <div className="flex justify-end space-x-4">
             <button
               type="button"
-              onClick={() => window.history.back()}
+              onClick={() => navigate(-1)}
               className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
             >
               Cancel

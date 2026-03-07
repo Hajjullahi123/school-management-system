@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   FiBriefcase, FiUsers, FiUserCheck, FiShield, FiPlus,
   FiTrash2, FiActivity, FiSearch, FiKey, FiGlobe, FiAlertCircle,
@@ -11,6 +12,8 @@ import { formatNumber } from '../../utils/formatters';
 import LicenseManagement from './LicenseManagement';
 
 const SuperAdminDashboard = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [schools, setSchools] = useState([]);
   const [audits, setAudits] = useState([]);
@@ -34,12 +37,21 @@ const SuperAdminDashboard = () => {
   });
   const [updatingSettings, setUpdatingSettings] = useState(false);
 
+  // Sync activeTab with URL hash
+  useEffect(() => {
+    const hash = location.hash.replace('#', '');
+    if (hash && ['schools', 'platform', 'audits'].includes(hash)) {
+      setActiveTab(hash);
+    } else {
+      setActiveTab('overview');
+    }
+  }, [location.hash]);
+
+  // Initial Load Data
   useEffect(() => {
     let isMounted = true;
 
     const loadData = async () => {
-      if (!isMounted) return;
-
       try {
         setLoading(true);
         const t = Date.now();
@@ -50,16 +62,11 @@ const SuperAdminDashboard = () => {
           apiCall(`/api/superadmin/global-settings?t=${t}`)
         ]);
 
-        const statsData = statsRes.data || null;
-        const schoolsData = Array.isArray(schoolsRes.data) ? schoolsRes.data : [];
-        const auditsData = Array.isArray(auditsRes.data?.logs) ? auditsRes.data.logs : [];
-
         if (!isMounted) return;
 
-        console.log('Fetched SuperAdmin Data:', statsData);
-        setStats(statsData);
-        setSchools(schoolsData);
-        setAudits(auditsData);
+        setStats(statsRes.data || null);
+        setSchools(Array.isArray(schoolsRes.data) ? schoolsRes.data : []);
+        setAudits(Array.isArray(auditsRes.data?.logs) ? auditsRes.data.logs : []);
         if (settingsRes.data) {
           setGlobalSettings(settingsRes.data);
         }
@@ -75,10 +82,7 @@ const SuperAdminDashboard = () => {
     };
 
     loadData();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
   const fetchData = async () => {
@@ -91,7 +95,6 @@ const SuperAdminDashboard = () => {
         apiCall(`/api/superadmin/audit?limit=50&t=${t}`),
         apiCall(`/api/superadmin/global-settings?t=${t}`)
       ]);
-      console.log('Fetched SuperAdmin Data:', statsRes.data);
       setStats(statsRes.data);
       if (schoolsRes.ok) {
         setSchools(Array.isArray(schoolsRes.data) ? schoolsRes.data : []);
@@ -380,10 +383,10 @@ const SuperAdminDashboard = () => {
       {/* Tabs */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="flex border-b border-gray-100 bg-gray-50/50">
-          <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<FiActivity />} label="Overview" />
-          <TabButton active={activeTab === 'schools'} onClick={() => setActiveTab('schools')} icon={<FiBriefcase />} label="School Management" />
-          <TabButton active={activeTab === 'platform'} onClick={() => setActiveTab('platform')} icon={<FiGlobe />} label="Platform" />
-          <TabButton active={activeTab === 'audits'} onClick={() => setActiveTab('audits')} icon={<FiShield />} label="Global Log" />
+          <TabButton active={activeTab === 'overview'} onClick={() => navigate('/dashboard/superadmin')} icon={<FiActivity />} label="Overview" />
+          <TabButton active={activeTab === 'schools'} onClick={() => navigate('/dashboard/superadmin#schools')} icon={<FiBriefcase />} label="School Management" />
+          <TabButton active={activeTab === 'platform'} onClick={() => navigate('/dashboard/superadmin#platform')} icon={<FiGlobe />} label="Platform" />
+          <TabButton active={activeTab === 'audits'} onClick={() => navigate('/dashboard/superadmin#audits')} icon={<FiShield />} label="Global Log" />
         </div>
 
         <div className="p-6">

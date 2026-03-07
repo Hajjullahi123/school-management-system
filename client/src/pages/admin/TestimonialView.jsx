@@ -156,8 +156,9 @@ const TestimonialView = () => {
         className="bg-white relative overflow-hidden testimonial-paper mx-auto shadow-xl print:shadow-none"
         style={{
           width: '210mm',
-          minHeight: '297mm',
-          padding: '20mm'
+          height: '297mm',
+          padding: '15mm',
+          boxSizing: 'border-box'
         }}
       >
         {/* Ornate Border */}
@@ -171,14 +172,14 @@ const TestimonialView = () => {
           </h1>
         </div>
 
-        <div className="px-16 py-12 relative z-10 flex flex-col h-full items-center text-center">
+        <div className="px-8 py-8 relative z-10 flex flex-col h-full items-center text-center">
           {/* Letterhead */}
-          <div className="mb-12 w-full">
+          <div className="mb-8 w-full">
             {testimonial.school?.logoUrl ? (
               <img
                 src={testimonial.school.logoUrl}
                 alt="School Logo"
-                className="h-28 mx-auto mb-8 object-contain"
+                className="h-24 mx-auto mb-6 object-contain"
               />
             ) : (
               <div className="h-24 w-24 mx-auto mb-6 bg-gray-50 rounded-full flex items-center justify-center border-2 border-dashed border-gray-200">
@@ -193,11 +194,11 @@ const TestimonialView = () => {
             </p>
           </div>
 
-          <div className="w-1/2 h-1 mb-12" style={{ background: `linear-gradient(to right, transparent, ${testimonial.school?.primaryColor || '#1e40af'}, transparent)` }}></div>
+          <div className="w-1/2 h-1 mb-8" style={{ background: `linear-gradient(to right, transparent, ${testimonial.school?.primaryColor || '#1e40af'}, transparent)` }}></div>
 
           {/* Document Title */}
-          <div className="mb-14">
-            <h2 className="text-5xl font-serif italic font-bold mb-6" style={{ color: testimonial.school?.primaryColor || '#1e40af' }}>
+          <div className="mb-8">
+            <h2 className="text-4xl font-serif italic font-bold mb-4" style={{ color: testimonial.school?.primaryColor || '#1e40af' }}>
               Student Testimonial
             </h2>
             <div className="inline-block px-4 py-1 bg-gray-50 border border-gray-200 rounded text-xs font-mono text-gray-500">
@@ -206,7 +207,7 @@ const TestimonialView = () => {
           </div>
 
           {/* Body */}
-          <div className="max-w-2xl mx-auto text-gray-800 space-y-12 text-xl leading-[2] font-serif flex-grow flex flex-col justify-center">
+          <div className="max-w-2xl mx-auto text-gray-800 space-y-8 text-lg leading-relaxed font-serif flex-grow flex flex-col justify-center">
             <p className="text-center italic mb-4">To Whom It May Concern,</p>
 
             <p className="text-center">
@@ -306,7 +307,7 @@ const TestimonialView = () => {
           )}
 
           {/* Signatures & Seal Section */}
-          <div className="mt-auto w-full pt-16 grid grid-cols-3 items-end gap-8">
+          <div className="mt-8 w-full pt-8 grid grid-cols-3 items-end gap-6">
             <div className="flex flex-col items-center">
               <div className="h-20 w-full flex items-end justify-center">
                 <div className="italic font-serif text-blue-900/30 text-xl select-none mb-2">Registrar Signature</div>
@@ -333,9 +334,15 @@ const TestimonialView = () => {
               </div>
             </div>
 
-            <div className="flex flex-col items-center">
-              <div className="h-20 w-full flex items-end justify-center">
-                <div className="italic font-serif text-blue-900/30 text-xl select-none mb-2">Principal Signature</div>
+            <div className="flex flex-col items-center relative">
+              <div className="h-20 w-full flex items-end justify-center relative">
+                {testimonial.school?.principalSignatureUrl ? (
+                  <div className="absolute bottom-1 left-1/2 -translate-x-1/2">
+                    <img src={testimonial.school.principalSignatureUrl.startsWith('data:') || testimonial.school.principalSignatureUrl.startsWith('http') ? testimonial.school.principalSignatureUrl : `${API_BASE_URL}${testimonial.school.principalSignatureUrl}`} alt="Principal Signature" className="h-[50px] w-auto mix-blend-multiply" />
+                  </div>
+                ) : (
+                  <div className="italic font-serif text-blue-900/30 text-xl select-none mb-2">Principal Signature</div>
+                )}
               </div>
               <div className="w-full border-t border-gray-900 pt-2 text-xs font-bold uppercase tracking-wider">
                 Principal / School Head

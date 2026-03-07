@@ -370,7 +370,18 @@ const ResultEntry = () => {
       )}
 
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">Result Entry</h1>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="p-2 text-gray-600 hover:text-primary bg-gray-100 hover:bg-primary/10 rounded-full transition-colors flex items-center justify-center"
+            title="Back to Dashboard"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900">Result Entry</h1>
+        </div>
         <div className="flex gap-2">
           <button
             onClick={handleSave}

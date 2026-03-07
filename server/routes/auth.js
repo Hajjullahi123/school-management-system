@@ -114,6 +114,15 @@ router.post('/login', async (req, res) => {
         include: {
           student: true,
           teacher: true,
+          parent: {
+            include: {
+              students: {
+                include: {
+                  classModel: true
+                }
+              }
+            }
+          },
           school: true
         }
       });
@@ -130,7 +139,7 @@ router.post('/login', async (req, res) => {
 
       // Generate JWT token
       const token = jwt.sign(
-        { userId: globalUser.id, role: globalUser.role, schoolId: null },
+        { id: globalUser.id, role: globalUser.role, schoolId: null },
         process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
@@ -183,7 +192,7 @@ router.post('/login', async (req, res) => {
 
     // Fallback 2: Try searching by school name if slug lookup still fails
     if (!school) {
-      const originalInput = req.body.schoolSlug.trim();
+      const originalInput = (req.body.schoolSlug || '').trim();
       // Try exact name match first
       school = await prisma.school.findFirst({
         where: { name: originalInput }
@@ -220,7 +229,20 @@ router.post('/login', async (req, res) => {
       include: {
         student: true,
         teacher: true,
-        school: true
+        parent: {
+          include: {
+            students: {
+              include: {
+                classModel: true
+              }
+            }
+          }
+        },
+        school: true,
+        classesAsTeacher: {
+          where: { isActive: true },
+          select: { id: true, name: true, arm: true }
+        }
       }
     });
 
@@ -236,7 +258,20 @@ router.post('/login', async (req, res) => {
             include: {
               student: true,
               teacher: true,
-              school: true
+              parent: {
+                include: {
+                  students: {
+                    include: {
+                      classModel: true
+                    }
+                  }
+                }
+              },
+              school: true,
+              classesAsTeacher: {
+                where: { isActive: true },
+                select: { id: true, name: true, arm: true }
+              }
             }
           }
         }
@@ -256,7 +291,20 @@ router.post('/login', async (req, res) => {
         include: {
           student: true,
           teacher: true,
-          school: true
+          parent: {
+            include: {
+              students: {
+                include: {
+                  classModel: true
+                }
+              }
+            }
+          },
+          school: true,
+          classesAsTeacher: {
+            where: { isActive: true },
+            select: { id: true, name: true, arm: true }
+          }
         }
       });
     }
@@ -320,7 +368,9 @@ router.post('/login', async (req, res) => {
         lastName: user.lastName,
         student: user.student,
         teacher: user.teacher,
+        parent: user.parent,
         school: user.school,
+        classesAsTeacher: user.classesAsTeacher,
         mustChangePassword: false // Never force password change on login
       },
       token
@@ -340,8 +390,13 @@ router.post('/logout', (req, res) => {
 // Get current user
 router.get('/me', authenticate, async (req, res) => {
   try {
+    const userId = req.user.id || req.user.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Invalid token payload: missing user ID' });
+    }
+
     const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
+      where: { id: userId },
       include: {
         school: true,
         student: {

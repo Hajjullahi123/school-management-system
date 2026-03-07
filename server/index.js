@@ -1,8 +1,11 @@
+console.log('[DEBUG] Server starting index.js...'); // Trigger restart
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 require('dotenv').config();
+
+console.log('[DEBUG] Environment loaded. PORT:', process.env.PORT);
 
 const app = express();
 
@@ -28,6 +31,15 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
+});
+
+const fs = require('fs');
+
+app.post('/api/log-client-error', (req, res) => {
+  const errorHtml = `[${new Date().toISOString()}] CLIENT ERROR: ${JSON.stringify(req.body)}\n`;
+  fs.appendFileSync('client-errors.log', errorHtml);
+  console.log('LOGGED CLIENT ERROR:', req.body.message);
+  res.status(200).send('Logged');
 });
 
 // Middleware
@@ -386,6 +398,7 @@ const platformBillingRoutes = require('./routes/platform-billing');
 const backupRoutes = require('./routes/backup');
 const whatsappRoutes = require('./routes/whatsapp');
 const miscFeesRoutes = require('./routes/misc-fees');
+const holidayRoutes = require('./routes/holidays');
 
 // Resolve Custom Domains (White-Label)
 app.use(resolveDomain);
@@ -402,6 +415,7 @@ app.get('/api/public/global-settings', async (req, res) => {
 });
 
 // Use Routes
+console.log('[DEBUG] Registering routes...');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', authenticate, checkSubscription, userRoutes);
 app.use('/api/students', authenticate, checkSubscription, studentRoutes);
@@ -426,7 +440,7 @@ app.use('/api/fees', authenticate, checkSubscription, feeRoutes);
 app.use('/api/fee-structure', authenticate, checkSubscription, feeStructureRoutes);
 app.use('/api/exam-cards', authenticate, checkSubscription, examCardRoutes);
 app.use('/api/teachers', authenticate, checkSubscription, teacherProfileRoutes);
-app.use('/api/top-students', authenticate, checkSubscription, topStudentsRoutes);
+app.use('/api/top-students', topStudentsRoutes);
 app.use('/api/license', authenticate, licenseRoutes); // License activation itself needs to be accessible
 app.use('/api/settings', settingsRoutes); // Protection handled inside router (GET is public)
 app.use('/api/payments', authenticate, checkSubscription, paymentRoutes);
@@ -455,6 +469,7 @@ app.use('/api/platform-billing', platformBillingRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/whatsapp', whatsappRoutes); // Public webhook endpoint for Twilio
 app.use('/api/misc-fees', authenticate, checkSubscription, miscFeesRoutes);
+app.use('/api/holidays', authenticate, checkSubscription, holidayRoutes);
 app.use('/api/upload', require('./routes/upload'));
 
 
@@ -492,11 +507,14 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const PORT = process.env.PORT || 3000;
-const { performFullBackup } = require('./services/backupService');
-
+console.log('[DEBUG] Attempting to listen on port:', PORT);
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`[DEBUG] Server successfully running on port ${PORT}`);
 
-  // Initialize Automated Offsite Backups
-  performFullBackup().catch(err => console.error('Backup Error:', err));
+  // Initialize Automated Offsite Backups (Optional/Background)
+  require('./services/backupService').performFullBackup().catch(err => console.error('Backup Error:', err));
 });
+
+// Trigger nodemon restart
+
+// nodemon restart again - trigger fix

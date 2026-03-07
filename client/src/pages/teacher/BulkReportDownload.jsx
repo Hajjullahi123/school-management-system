@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { api } from '../../api';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
+import { useReactToPrint } from 'react-to-print';
+import { Printer } from 'lucide-react';
 
 const BulkReportDownload = () => {
   const { user } = useAuth();
@@ -16,9 +16,10 @@ const BulkReportDownload = () => {
   const [endAdmission, setEndAdmission] = useState('');
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [classStudents, setClassStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
-  const [downloading, setDownloading] = useState(false);
-  const [viewingReport, setViewingReport] = useState(null);
+  const componentRef = useRef();
 
   useEffect(() => {
     fetchClasses();
@@ -60,6 +61,35 @@ const BulkReportDownload = () => {
     }
   };
 
+  useEffect(() => {
+    const fetchClassStudents = async () => {
+      if (!selectedClass) {
+        setClassStudents([]);
+        return;
+      }
+      setLoadingStudents(true);
+      try {
+        const response = await api.get(`/api/students?classId=${selectedClass}`);
+        if (response.ok) {
+          const data = await response.json();
+          const sortedStudents = (Array.isArray(data) ? data : []).map(student => ({
+            ...student,
+            name: `${student.user?.firstName || ''} ${student.user?.lastName || ''}`.trim()
+          })).sort((a, b) =>
+            a.name.localeCompare(b.name)
+          );
+          setClassStudents(sortedStudents);
+        }
+      } catch (error) {
+        console.error('Error fetching class students:', error);
+      } finally {
+        setLoadingStudents(false);
+      }
+    };
+
+    fetchClassStudents();
+  }, [selectedClass]);
+
   const fetchReports = async () => {
     if (!selectedClass || !selectedTerm) {
       alert('Please select both class and term');
@@ -94,250 +124,100 @@ const BulkReportDownload = () => {
     }
   };
 
-  const generatePDF = async () => {
-    if (reports.length === 0) {
-      alert('No reports to download');
-      return;
-    }
-
-    setDownloading(true);
-    try {
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      for (let i = 0; i < reports.length; i++) {
-        const report = reports[i];
-
-        // Create a temporary div for the report card
-        const reportCard = document.createElement('div');
-        reportCard.style.width = '210mm';
-        reportCard.style.padding = '10mm';
-        reportCard.style.backgroundColor = 'white';
-        reportCard.style.fontFamily = 'Arial, sans-serif';
-
-        reportCard.innerHTML = `
-          <div style="border: 4px solid ${schoolSettings.primaryColor || '#0d9488'}; padding: 30px; border-radius: 15px; position: relative; background: white; overflow: hidden; min-height: 280mm;">
-            <!-- Watermark -->
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(30deg); opacity: 0.03; font-size: 100px; font-weight: 900; z-index: 0; white-space: nowrap; pointer-events: none;">
-              ${schoolSettings.schoolName || 'OFFICIAL'}
-            </div>
-
-            <!-- Header -->
-            <div style="background: linear-gradient(135deg, ${schoolSettings.primaryColor || '#0d9488'}, #0f766e); color: white; padding: 30px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; gap: 25px; position: relative; z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-              ${schoolSettings.logoUrl ? `<img src="${schoolSettings.logoUrl}" style="height: 70px; width: 70px; object-fit: contain; background: white; padding: 8px; border-radius: 10px;" />` : ''}
-              <div>
-                <h1 style="margin: 0; font-size: 32px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.02em;">${schoolSettings.schoolName || 'School Name'}</h1>
-                <p style="margin: 5px 0 0 0; font-size: 16px; font-style: italic; opacity: 0.9;">${schoolSettings.schoolMotto || 'Excellence in Education'}</p>
-                <p style="margin: 8px 0 0 0; font-size: 11px; text-transform: uppercase; opacity: 0.8; letter-spacing: 0.1em;">${schoolSettings.schoolAddress || ''}</p>
-              </div>
-            </div>
-
-            <!-- Student Info Section -->
-            <div style="margin-bottom: 30px; border-bottom: 3px solid #f3f4f6; padding-bottom: 20px; position: relative; z-index: 10;">
-              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 15px;">
-                <h2 style="font-size: 20px; font-weight: 800; color: #111827; text-transform: uppercase; margin: 0;">Terminal Report Card</h2>
-                <span style="background: ${schoolSettings.primaryColor || '#0d9488'}20; color: ${schoolSettings.primaryColor || '#0d9488'}; font-weight: 800; padding: 6px 15px; border-radius: 20px; font-size: 12px;">
-                  ${report.term.name} - ${report.term.session}
-                </span>
-              </div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 13px;">
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding: 5px 0;">
-                  <strong style="color: #4b5563;">Student Name:</strong> <span style="font-weight: 800;">${report.student.name}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding: 5px 0;">
-                  <strong style="color: #4b5563;">Admission No:</strong> <span style="font-weight: 800; color: ${schoolSettings.primaryColor || '#0d9488'}; font-family: monospace;">${report.student.admissionNumber}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding: 5px 0;">
-                  <strong style="color: #4b5563;">Class:</strong> <span>${report.student.class}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding: 5px 0;">
-                  <strong style="color: #4b5563;">Gender:</strong> <span>${report.student.gender || 'N/A'}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding: 5px 0;">
-                  <strong style="color: #4b5563; font-style: italic;">Clubs:</strong> <span style="opacity: 0.8;">${report.student.clubs || 'None Assigned'}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding: 5px 0;">
-                  <strong style="color: #4b5563; font-style: italic;">Position:</strong> <span style="font-weight: 900; color: ${schoolSettings.primaryColor || '#0d9488'}; text-decoration: underline;">${report.termPosition} / ${report.totalStudents}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Performance Table -->
-            <div style="margin-bottom: 30px; position: relative; z-index: 10;">
-              <table style="width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; border: 2px solid ${schoolSettings.primaryColor || '#0d9488'}20; border-radius: 12px; overflow: hidden;">
-                <thead>
-                  <tr style="background-color: ${schoolSettings.primaryColor || '#0d9488'}10;">
-                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; font-weight: 800; text-transform: uppercase;">Subject</th>
-                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; font-size: 9px; min-width: 40px;">CA 1<br/>(${report.term.weights?.assignment1})</th>
-                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; font-size: 9px; min-width: 40px;">CA 2<br/>(${report.term.weights?.assignment2})</th>
-                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; font-size: 9px; min-width: 40px;">TST 1<br/>(${report.term.weights?.test1})</th>
-                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; font-size: 9px; min-width: 40px;">TST 2<br/>(${report.term.weights?.test2})</th>
-                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; font-size: 9px; min-width: 45px;">EXAM<br/>(${report.term.weights?.exam})</th>
-                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; background: ${schoolSettings.primaryColor || '#0d9488'}20; font-weight: 900; color: ${schoolSettings.primaryColor || '#0d9488'};">TOTAL</th>
-                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px solid #e5e7eb; background: ${schoolSettings.primaryColor || '#0d9488'}; color: white;">GRD</th>
-                    <th style="padding: 8px; text-align: left; border-bottom: 2px solid #e5e7eb; font-weight: 600; font-style: italic; color: #6b7280; font-size: 10px;">REMARK</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${(report.subjects || []).map((sub, idx) => `
-          < tr style = "background-color: ${idx % 2 === 0 ? 'white' : '#f9fafb'};" >
-                      <td style="padding: 10px; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; font-weight: 700;">${sub.name}</td>
-                      <td style="padding: 8px; text-align: center; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6;">${sub.assignment1?.toFixed(1) || '-'}</td>
-                      <td style="padding: 8px; text-align: center; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6;">${sub.assignment2?.toFixed(1) || '-'}</td>
-                      <td style="padding: 8px; text-align: center; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6;">${sub.test1?.toFixed(1) || '-'}</td>
-                      <td style="padding: 8px; text-align: center; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6;">${sub.test2?.toFixed(1) || '-'}</td>
-                      <td style="padding: 8px; text-align: center; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6;">${sub.exam?.toFixed(1) || '-'}</td>
-                      <td style="padding: 8px; text-align: center; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; font-weight: 900; background: ${schoolSettings.primaryColor || '#0d9488'}05; color: ${schoolSettings.primaryColor || '#0d9488'};">${sub.total.toFixed(1)}</td>
-                      <td style="padding: 8px; text-align: center; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; font-weight: 900; color: ${sub.grade === 'F' ? '#e11d48' : (schoolSettings.primaryColor || '#0d9488')};">${sub.grade}</td>
-                      <td style="padding: 8px; border-bottom: 1px solid #f3f4f6; font-style: italic; color: #6b7280; font-size: 9px; font-weight: 500;">${sub.remark}</td>
-                    </tr >
-  `).join('')}
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Stats & Psychomotor -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; position: relative; z-index: 10;">
-              <div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                   <div style="background: ${schoolSettings.primaryColor || '#0d9488'}08; padding: 12px; border-radius: 12px; border: 1px solid ${schoolSettings.primaryColor || '#0d9488'}15; text-align: center;">
-                     <p style="margin: 0; font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase;">Average</p>
-                     <p style="margin: 5px 0 0 0; font-size: 22px; font-weight: 900; color: ${schoolSettings.primaryColor || '#0d9488'};">${report.termAverage.toFixed(2)}%</p>
-                   </div>
-                   <div style="background: ${schoolSettings.primaryColor || '#0d9488'}08; padding: 12px; border-radius: 12px; border: 1px solid ${schoolSettings.primaryColor || '#0d9488'}15; text-align: center;">
-                     <p style="margin: 0; font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase;">Grade</p>
-                     <p style="margin: 5px 0 0 0; font-size: 22px; font-weight: 900; color: ${schoolSettings.primaryColor || '#0d9488'};">${report.overallGrade}</p>
-                   </div>
-                   <div style="grid-column: span 2; background: ${schoolSettings.primaryColor || '#0d9488'}08; padding: 12px; border-radius: 12px; border: 1px solid ${schoolSettings.primaryColor || '#0d9488'}15; display: flex; justify-content: space-between; align-items: center; padding-left: 20px; padding-right: 20px;">
-                     <span style="font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase;">Attendance</span>
-                     <span style="font-size: 18px; font-weight: 900; color: ${schoolSettings.primaryColor || '#0d9488'};">${report.attendance?.percentage || 0}%</span>
-                     <span style="font-size: 10px; color: #9ca3af; font-weight: 600;">(${report.attendance?.present}/${report.attendance?.total} Days)</span>
-                   </div>
-                </div>
-                <div style="margin-top: 15px; background: #f9fafb; padding: 12px; border-radius: 10px; border: 1px solid #e5e7eb;">
-                   <p style="margin: 0 0 5px 0; font-size: 9px; font-weight: 800; color: #9ca3af; text-transform: uppercase;">Next Term Begins</p>
-                   <p style="margin: 0; font-size: 12px; font-weight: 700; color: #374151;">${report.term.nextTermStartDate ? new Date(report.term.nextTermStartDate).toDateString() : (report.term.nextTermBegins ? new Date(report.term.nextTermBegins).toDateString() : 'To be announced')}</p>
-                </div>
-              </div>
-              
-              <div style="background: #f9fafb; padding: 15px; border-radius: 12px; border: 1px solid #e5e7eb;">
-                <h3 style="margin: 0 0 10px 0; font-size: 10px; font-weight: 900; text-transform: uppercase; color: #9ca3af; text-align: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px;">Psychomotor Evaluation</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                  ${report.psychomotorRatings?.map(r => `
-                    <div style="display: flex; justify-content: space-between; font-size: 9px; border-bottom: 1px solid #eeeff1; padding: 3px 0;">
-                      <span style="font-weight: 700; color: #4b5563;">${r.name}</span>
-                      <span style="color: ${schoolSettings.primaryColor || '#0d9488'}; font-weight: 900;">${r.score || 0}/${r.maxScore || 5}</span>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-            </div>
-
-            <!-- Remarks -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px; position: relative; z-index: 10;">
-              <div style="padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px; background: white;">
-                <p style="margin: 0 0 5px 0; font-size: 9px; font-weight: 800; color: #9ca3af; text-transform: uppercase;">Form Master's Remark</p>
-                <p style="margin: 0; font-size: 11px; font-style: italic; color: #4b5563; font-weight: 500; min-height: 25px;">"${report.formMasterRemark}"</p>
-              </div>
-              <div style="padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px; background: white;">
-                <p style="margin: 0 0 5px 0; font-size: 9px; font-weight: 800; color: #9ca3af; text-transform: uppercase;">Principal's Remark</p>
-                <p style="margin: 0; font-size: 11px; font-style: italic; color: #4b5563; font-weight: 500; min-height: 25px;">"${report.principalRemark}"</p>
-              </div>
-            </div>
-
-            <!-- Signatures Section -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: auto; padding-top: 30px; border-top: 2px solid ${schoolSettings.primaryColor || '#0d9488'}20; position: relative; z-index: 10;">
-              <!-- Form Master Seal -->
-              <div style="text-align: center; position: relative;">
-                <div style="position: absolute; top: -45px; left: 50%; transform: translateX(-50%); opacity: 0.15;">
-                  <svg width="60" height="60" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2"/><text x="50" y="45" text-anchor="middle" font-size="8" font-weight="bold">OFFICIAL</text><text x="50" y="55" text-anchor="middle" font-size="10" font-weight="black">SEAL</text></svg>
-                </div>
-                <div style="border-bottom: 2px solid #374151; width: 100%; margin-bottom: 5px;"></div>
-                <p style="margin: 0; font-size: 10px; font-weight: 900; text-transform: uppercase;">${report.student.formMaster}</p>
-                <p style="margin: 0; font-size: 8px; color: #9ca3af; text-transform: uppercase; font-weight: 700;">Form Master</p>
-              </div>
-
-              <!-- Verification Badge -->
-              <div style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <div style="border: 2px solid ${schoolSettings.primaryColor || '#0d9488'}20; border-radius: 40px; padding: 4px 12px; background: ${schoolSettings.primaryColor || '#0d9488'}05; margin-bottom: 5px;">
-                   <span style="font-size: 9px; font-weight: 900; color: ${schoolSettings.primaryColor || '#0d9488'}; letter-spacing: 0.1em;">DIGITALLY VERIFIED</span>
-                </div>
-                <p style="margin: 0; font-size: 8px; color: #d1d5db; font-weight: 700; text-transform: uppercase;">${new Date().toLocaleDateString()}</p>
-              </div>
-
-              <!-- Principal Stamp -->
-              <div style="text-align: center; position: relative;">
-                <div style="position: absolute; top: -45px; left: 50%; transform: translateX(-50%); opacity: 0.15; color: ${schoolSettings.primaryColor || '#0d9488'};">
-                  <svg width="60" height="60" viewBox="0 0 100 100"><polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="none" stroke="currentColor" stroke-width="2"/><text x="50" y="45" text-anchor="middle" font-size="8" font-weight="bold">SCHOOL</text><text x="50" y="55" text-anchor="middle" font-size="10" font-weight="black">STAMP</text></svg>
-                </div>
-                <div style="border-bottom: 2px solid #374151; width: 100%; margin-bottom: 5px;"></div>
-                <p style="margin: 0; font-size: 10px; font-weight: 900; text-transform: uppercase;">School Principal</p>
-                <p style="margin: 0; font-size: 8px; color: #9ca3af; text-transform: uppercase; font-weight: 700;">Authorized Signature</p>
-              </div>
-            </div>
-
-            <!-- Footer Legend -->
-            <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center; font-size: 8px; font-weight: 800; color: #d1d5db; position: relative; z-index: 10;">
-               <div style="text-transform: uppercase; letter-spacing: 0.1em;">
-                 Grade Key: ${(() => {
-            try {
-              const scales = JSON.parse(schoolSettings?.gradingSystem || '[]');
-              return scales.sort((a, b) => b.min - a.min).map(s => `${s.grade}: ${s.min}-${s.max || 100}`).join(' | ');
-            } catch (e) { return 'Legend Error'; }
-          })()}
-               </div>
-               <div style="text-transform: uppercase; letter-spacing: 0.1em;">
-                 Generated by ${schoolSettings.schoolName || 'Portal'} Management System
-               </div>
-            </div>
-          </div>
-        `;
-
-        document.body.appendChild(reportCard);
-
-        // Convert to canvas
-        const canvas = await html2canvas(reportCard, {
-          scale: 2,
-          useCORS: true,
-          logging: false
-        });
-
-        // Remove temporary element
-        document.body.removeChild(reportCard);
-
-        // Add to PDF
-        if (i > 0) {
-          pdf.addPage();
-        }
-
-        const imgData = canvas.toDataURL('image/png');
-        const imgWidth = pageWidth - 20;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-        pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
-      }
-
-      // Save PDF
-      const className = classes.find(c => c.id === parseInt(selectedClass))?.name || 'Class';
-      const termName = terms.find(t => t.id === parseInt(selectedTerm))?.name || 'Term';
-      pdf.save(`${className}_${termName}_Reports.pdf`);
-
-      alert(`Successfully generated PDF with ${reports.length} report cards!`);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Failed to generate PDF: ' + error.message);
-    } finally {
-      setDownloading(false);
-    }
+  const calculateCA = (subject) => {
+    return (subject.assignment1 || 0) + (subject.assignment2 || 0) + (subject.test1 || 0) + (subject.test2 || 0);
   };
+
+  const getGradeAnalysis = (subjects) => {
+    const analysis = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 };
+    subjects.forEach(sub => {
+      const grade = sub.grade || 'F';
+      if (analysis[grade] !== undefined) analysis[grade]++;
+    });
+    return analysis;
+  };
+
+  const renderRatingTicks = (score) => {
+    const rounded = Math.round(score);
+    return (
+      <>
+        {[5, 4, 3, 2, 1].map(val => (
+          <td key={val} className="border border-black text-center w-6 h-6">
+            {rounded === val ? '✔' : ''}
+          </td>
+        ))}
+      </>
+    );
+  };
+
+  const splitDomains = (ratings) => {
+    const defaultAffective = [
+      'Punctuality', 'Neatness', 'Politeness', 'Honesty', 'Relationship with others',
+      'Cooperation', 'Leadership', 'Self Control', 'Attentiveness', 'Reliability', 'Perseverance'
+    ];
+    const defaultPsychomotor = [
+      'Handwriting', 'Games/Sports', 'Crafts', 'Musical Skills', 'Drawing/Painting',
+      'Verbal Communication', 'Fluency in Speech', 'Physical Agility'
+    ];
+
+    if (!ratings || ratings.length === 0) {
+      return {
+        affective: defaultAffective.map(name => ({ name, score: null })),
+        psychomotor: defaultPsychomotor.map(name => ({ name, score: null }))
+      };
+    }
+
+    const mid = Math.ceil(ratings.length / 2);
+    let affective = [...ratings.slice(0, mid)];
+    let psychomotor = [...ratings.slice(mid)];
+
+    // Ensure we have a decent number of domains to fill space
+    defaultAffective.forEach(name => {
+      if (affective.length < 12 && !affective.find(a => a.name.toLowerCase() === name.toLowerCase())) {
+        affective.push({ name, score: null });
+      }
+    });
+
+    defaultPsychomotor.forEach(name => {
+      if (psychomotor.length < 10 && !psychomotor.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+        psychomotor.push({ name, score: null });
+      }
+    });
+
+    return { affective, psychomotor };
+  };
+
+  const handlePrint = useReactToPrint({
+    contentRef: componentRef,
+    documentTitle: `Bulk_Reports`,
+    pageStyle: `
+      @media print {
+        @page { size: A4; margin: 5mm; }
+        body { background: white !important; margin: 0; padding: 0; }
+        .print\\:break-after-page { break-after: page !important; }
+        .emerald-border-A4 { border: 8px solid #065f46 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        table { border-collapse: collapse !important; width: 100% !important; }
+        td, th { border: 1px solid black !important; padding: 2px !important; }
+        * { box-sizing: border-box !important; }
+        .bg-emerald-800 { background-color: #065f46 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .bg-gray-200 { background-color: #e5e7eb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .bg-gray-100 { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .bg-gray-50 { background-color: #f9fafb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .no-print { display: none !important; }
+      }
+      * { box-sizing: border-box !important; }
+      .border-black { border-color: black !important; }
+    `
+  });
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Bulk Report Card Download</h1>
+      <div className="flex justify-between items-center no-print">
+        <h1 className="text-2xl font-bold text-gray-900">Bulk Report Card Download</h1>
+      </div>
 
       {user.role === 'teacher' && classes.length === 0 ? (
-        <div className="bg-white p-12 rounded-lg shadow text-center">
+        <div className="bg-white p-12 rounded-lg shadow text-center no-print border border-gray-200">
           <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -349,7 +229,7 @@ const BulkReportDownload = () => {
       ) : (
         <>
           {/* Filters */}
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white p-6 rounded-lg shadow no-print border border-gray-200">
             <h3 className="text-lg font-semibold mb-4">
               {user.role === 'teacher' && classes.length === 1
                 ? `Academic Report Generation: ${classes[0].name} ${classes[0].arm || ''}`
@@ -392,27 +272,42 @@ const BulkReportDownload = () => {
             </div>
 
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="font-semibold text-blue-900 mb-2">Optional: Filter by Admission Number Range</h4>
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="font-semibold text-blue-900">Optional: Filter by Student Range</h4>
+                {loadingStudents && <span className="text-xs text-blue-600 font-medium animate-pulse">Loading students...</span>}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Admission Number</label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Student</label>
+                  <select
                     value={startAdmission}
                     onChange={(e) => setStartAdmission(e.target.value)}
-                    placeholder="e.g., 2025-JSS1A-AA"
                     className="w-full border rounded-md px-3 py-2"
-                  />
+                    disabled={loadingStudents || classStudents.length === 0}
+                  >
+                    <option value="">-- Select Start Student --</option>
+                    {classStudents.map(student => (
+                      <option key={`start-${student.id}`} value={student.admissionNumber}>
+                        {student.name} ({student.admissionNumber})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">End Admission Number</label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium text-gray-700 mb-2">End Student</label>
+                  <select
                     value={endAdmission}
                     onChange={(e) => setEndAdmission(e.target.value)}
-                    placeholder="e.g., 2025-JSS1A-ZZ"
                     className="w-full border rounded-md px-3 py-2"
-                  />
+                    disabled={loadingStudents || classStudents.length === 0}
+                  >
+                    <option value="">-- Select End Student --</option>
+                    {classStudents.map(student => (
+                      <option key={`end-${student.id}`} value={student.admissionNumber}>
+                        {student.name} ({student.admissionNumber})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <p className="text-sm text-gray-600 mt-2">
@@ -423,323 +318,372 @@ const BulkReportDownload = () => {
             <button
               onClick={fetchReports}
               disabled={!selectedClass || !selectedTerm || loading}
-              className="mt-4 bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400"
+              className="mt-4 bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400 font-bold shadow"
             >
               {loading ? 'Loading...' : 'Load Reports'}
             </button>
           </div>
 
-          {/* Preview */}
+          {/* Action Bar */}
           {reports.length > 0 && (
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold">Report Preview</h3>
-                  <p className="text-sm text-gray-600">{reports.length} student(s) found</p>
-                </div>
-                <button
-                  onClick={generatePDF}
-                  disabled={downloading}
-                  className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 flex items-center gap-2"
-                >
-                  {downloading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      Generating PDF...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Download as PDF
-                    </>
-                  )}
-                </button>
+            <div className="bg-white p-4 rounded-lg shadow no-print flex justify-between items-center border border-gray-200">
+              <div>
+                <h3 className="text-lg font-semibold text-emerald-800">Reports Ready for Printing</h3>
+                <p className="text-sm text-gray-600">{reports.length} student(s) loaded successfully.</p>
               </div>
-
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left">#</th>
-                      <th className="px-4 py-2 text-left">Admission No.</th>
-                      <th className="px-4 py-2 text-left">Name</th>
-                      <th className="px-4 py-2 text-left">Average</th>
-                      <th className="px-4 py-2 text-left">Grade</th>
-                      <th className="px-4 py-2 text-left">Position</th>
-                      <th className="px-4 py-2 text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {(Array.isArray(reports) ? reports : []).map((report, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50">
-                        <td className="px-4 py-2">{idx + 1}</td>
-                        <td className="px-4 py-2 font-mono text-xs">{report.student?.admissionNumber}</td>
-                        <td className="px-4 py-2">{report.student?.name}</td>
-                        <td className="px-4 py-2 font-semibold text-primary">{report.termAverage?.toFixed(2)}%</td>
-                        <td className="px-4 py-2 font-semibold">{report.overallGrade}</td>
-                        <td className="px-4 py-2">{report.termPosition}/{report.totalStudents}</td>
-                        <td className="px-4 py-2 text-center">
-                          <button
-                            onClick={() => setViewingReport(report)}
-                            className="text-primary hover:text-primary font-medium text-xs border border-primary px-2 py-1 rounded hover:bg-primary/5"
-                          >
-                            View Report
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <button
+                onClick={handlePrint}
+                className="bg-emerald-600 text-white px-8 py-3 rounded-md hover:bg-emerald-700 font-bold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
+              >
+                <Printer size={20} />
+                Print All Reports Now
+              </button>
             </div>
           )}
 
           {!loading && reports.length === 0 && selectedClass && selectedTerm && (
-            <div className="bg-white p-12 rounded-lg shadow text-center">
+            <div className="bg-white p-12 rounded-lg shadow text-center no-print">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <p className="mt-4 text-gray-600">No reports found for the selected criteria</p>
             </div>
           )}
-          {/* View Modal */}
-          {viewingReport && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4 overflow-y-auto">
-              <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto relative">
-                <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
-                  <h3 className="text-xl font-bold text-gray-800">Report Preview</h3>
-                  <button
-                    onClick={() => setViewingReport(null)}
-                    className="text-gray-500 hover:text-gray-700 p-2"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+
+          {/* EXACT COPY: Report Card Print Container (Hidden on screen unless printing, or we can show them as preview) */}
+          <div className="print-container mt-8" ref={componentRef}>
+            {reports.map((data, idx) => {
+              if (!data || !data.student) return null;
+
+              const domainSplit = splitDomains(data.psychomotorRatings);
+              const gradeAnalysis = getGradeAnalysis(data.subjects || []);
+              const termNumber = data.term?.number || data.academic?.termNumber;
+
+              return (
+                <div key={idx} className="relative bg-white p-8 print:p-4 my-8 print:my-0 shadow-2xl print:shadow-none print:break-after-page text-black font-serif border-[12px] border-emerald-800 print:emerald-border-A4 max-w-[210mm] mx-auto">
+
+                  {/* PROTECTION WATERMARK */}
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
+                    <div className="text-[100px] font-black uppercase text-gray-900 leading-[0.8] text-center">
+                      {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
+                      {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
+                      {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
+                      {schoolSettings?.schoolName || 'OFFICIAL RESULT'}
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 space-y-3 print:space-y-2">
+                    {/* HEAD SECTION */}
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="w-24 h-24 flex-shrink-0">
+                        {schoolSettings?.logoUrl && (
+                          <img
+                            src={schoolSettings.logoUrl.startsWith('data:') || schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${schoolSettings.logoUrl.startsWith('/') ? schoolSettings.logoUrl : '/' + schoolSettings.logoUrl}`}
+                            alt="Logo"
+                            className="w-full h-full object-contain object-left"
+                          />
+                        )}
+                      </div>
+
+                      <div className="flex-1 text-center">
+                        <h1 className="text-2xl font-extrabold uppercase tracking-wider leading-tight text-emerald-900" style={{ color: schoolSettings?.primaryColor }}>
+                          {schoolSettings?.schoolName || 'SCHOOL NAME'}
+                        </h1>
+                        <p className="text-sm font-bold italic text-gray-700">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
+                        <p className="text-xs font-bold">{schoolSettings?.address || 'School Address Location'}, TEL: {schoolSettings?.phone || '000000'}, Email: {schoolSettings?.email || 'email@school.com'}</p>
+
+                        <div className="mt-4 border-b-2 border-emerald-800 inline-block px-4 pb-1">
+                          <h2 className="text-lg font-bold uppercase tracking-wide">
+                            {data.term?.name?.toUpperCase()} PERFORMANCE REPORT
+                          </h2>
+                        </div>
+                      </div>
+
+                      <div className="w-24 h-28 border-2 border-black bg-gray-50 flex-shrink-0 relative overflow-hidden">
+                        {data.student?.photoUrl ? (
+                          <img src={data.student.photoUrl.startsWith('http') ? data.student.photoUrl : `${API_BASE_URL}${data.student.photoUrl}`} alt="Student" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 font-bold text-gray-300">PHOTO</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* STUDENT INFO TABLE */}
+                    <table className="w-full border-2 border-black border-collapse text-xs font-bold uppercase">
+                      <tbody>
+                        <tr className="border-b border-black">
+                          <td className="border-r border-black p-1 w-1/6">NAME:</td>
+                          <td className="border-r border-black p-1 w-2/3 text-emerald-800 font-black" style={{ color: schoolSettings?.primaryColor }}>{data.student?.name}</td>
+                          <td className="border-r border-black p-1 w-1/6">GENDER:</td>
+                          <td className="p-1">{data.student?.gender}</td>
+                        </tr>
+                        <tr className="border-b border-black">
+                          <td className="border-r border-black p-1">CLASS:</td>
+                          <td className="border-r border-black p-1">{data.student?.class}</td>
+                          <td className="border-r border-black p-1">SESSION:</td>
+                          <td className="p-1">{data.term?.session}</td>
+                        </tr>
+                        <tr className="border-b border-black">
+                          <td className="border-r border-black p-1">ADM NO:</td>
+                          <td className="border-r border-black p-1">{data.student?.admissionNumber}</td>
+                          <td className="border-r border-black p-1">D.O.B:</td>
+                          <td className="p-1">{data.student?.dateOfBirth ? new Date(data.student.dateOfBirth).toLocaleDateString() : 'N/A'}</td>
+                        </tr>
+                        <tr className="border-b border-black">
+                          <td className="border-r border-black p-1">AGE:</td>
+                          <td className="border-r border-black p-1">{data.student?.age || '-'}</td>
+                          <td className="border-r border-black p-1">CLUB:</td>
+                          <td className="p-1">{data.student?.clubs !== 'None Assigned' ? data.student?.clubs : 'N/A'}</td>
+                        </tr>
+                        <tr>
+                          <td className="border-r border-black p-1">ATTENDANCE:</td>
+                          <td className="border-r border-black p-1 text-emerald-700" style={{ color: schoolSettings?.primaryColor }}>{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
+                          <td className="border-r border-black p-1">TERM:</td>
+                          <td className="p-1">{data.term?.name}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    {/* ACADEMIC SECTION */}
+                    <div className="grid grid-cols-[68%_31%] gap-2 items-stretch">
+                      {/* LEFT: COGNITIVE */}
+                      <div className="space-y-0 text-[10px] md:text-sm h-full flex flex-col">
+                        <div className="bg-emerald-800 text-white text-center font-bold py-1 text-sm border-2 border-b-0 border-black" style={{ backgroundColor: schoolSettings?.primaryColor }}>
+                          COGNITIVE DOMAIN PERFORMANCE
+                        </div>
+                        <table className="w-full border-2 border-black border-collapse">
+                          <thead>
+                            <tr className="bg-gray-200">
+                              <th className="border border-black p-1 text-left">SUBJECTS</th>
+                              <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">1ST CA<br />{data.term?.weights?.assignment1 || 5}</th>
+                              <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">2ND CA<br />{data.term?.weights?.assignment2 || 5}</th>
+                              <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">1ST TST<br />{data.term?.weights?.test1 || 10}</th>
+                              <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">2ND TST<br />{data.term?.weights?.test2 || 10}</th>
+                              <th className="border border-black p-1 text-center w-8">EXM<br />{data.term?.weights?.exam || 70}</th>
+                              <th className="border border-black p-1 text-center w-8 font-black">TOT<br />100</th>
+                              {termNumber === 3 && (
+                                <>
+                                  <th className="border border-black p-1 text-center w-6 text-[7px]">T1</th>
+                                  <th className="border border-black p-1 text-center w-6 text-[7px]">T2</th>
+                                  <th className="border border-black p-1 text-center w-8 text-[7px] font-bold">CUM</th>
+                                </>
+                              )}
+                              <th className="border border-black p-1 text-center w-6">GRD</th>
+                              <th className="border border-black p-1 text-center w-6 text-[7px]">POS</th>
+                              <th className="border border-black p-1 text-left px-1 text-[8px]">REMARKS</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(data.subjects || []).map((sub, i) => (
+                              <tr key={i} className="font-bold uppercase h-6">
+                                <td className="border border-black px-1 leading-tight text-[11px] font-black">{sub.name}</td>
+                                <td className="border border-black text-center text-[10px]">{sub.assignment1 || '0'}</td>
+                                <td className="border border-black text-center text-[10px]">{sub.assignment2 || '0'}</td>
+                                <td className="border border-black text-center text-[10px]">{sub.test1 || '0'}</td>
+                                <td className="border border-black text-center text-[10px]">{sub.test2 || '0'}</td>
+                                <td className="border border-black text-center text-[10px]">{sub.exam || '0'}</td>
+                                <td className="border border-black text-center bg-gray-50 text-[10px] font-black">{sub.total?.toFixed(0)}</td>
+                                {termNumber === 3 && (
+                                  <>
+                                    <td className="border border-black text-center text-[9px]">{sub.term1Score ?? '0'}</td>
+                                    <td className="border border-black text-center text-[9px]">{sub.term2Score ?? '0'}</td>
+                                    <td className="border border-black text-center bg-gray-50 text-[9px] font-bold">{sub.cumulativeAverage?.toFixed(1) ?? '0'}</td>
+                                  </>
+                                )}
+                                <td className="border border-black text-center text-[10px] font-black">{sub.grade}</td>
+                                <td className="border border-black text-center text-[10px]">{sub.position}</td>
+                                <td className="border border-black px-1 text-[8px] leading-tight italic font-medium">{sub.remark}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* RIGHT: DOMAINS */}
+                      <div className="flex flex-col h-full gap-2">
+                        {/* AFFECTIVE & PSYCHOMOTOR Mapped from improved API */}
+                        <div className="flex-1 flex flex-col min-h-0">
+                          <table className="w-full border-2 border-black border-collapse text-[10px] flex-1">
+                            <thead className="bg-gray-200 uppercase font-bold">
+                              <tr>
+                                <th className="border-b border-r border-black text-left px-1 py-0.5">BEHAVIORAL DOMAINS</th>
+                                <th className="border-b border-black w-5">5</th>
+                                <th className="border-b border-black w-5">4</th>
+                                <th className="border-b border-black w-5">3</th>
+                                <th className="border-b border-black w-5">2</th>
+                                <th className="border-b border-black w-5">1</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(data.psychomotorRatings || []).map((item, i) => (
+                                <tr key={i} className="h-5">
+                                  <td className="border border-black px-1 truncate font-bold uppercase">{item.name}</td>
+                                  {renderRatingTicks(item.score)}
+                                </tr>
+                              ))}
+                              {/* Fill empty spaces if needed */}
+                              {Array.from({ length: Math.max(0, 9 - (data.psychomotorRatings?.length || 0)) }).map((_, i) => (
+                                <tr key={`empty-${i}`} className="h-5">
+                                  <td className="border border-black px-1 font-bold text-gray-200 italic">-</td>
+                                  <td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SUMMARY & GRADING KEY */}
+                    <div className="grid grid-cols-[68%_31%] gap-2 mt-1">
+                      <div className="grid grid-cols-2 gap-0 border-2 border-black rounded-lg overflow-hidden divide-x-2 divide-black">
+                        {/* DYNAMIC GRADE INFO */}
+                        <div className="p-2 text-[9px] bg-gray-50/50 leading-tight flex flex-col justify-center">
+                          <p className="font-black border-b border-black mb-1 uppercase text-gray-500 text-[8px]">Grading Legend</p>
+                          <div className="grid grid-cols-2 gap-x-2 font-bold">
+                            {(() => {
+                              try {
+                                const scales = JSON.parse(schoolSettings?.gradingSystem || '[]');
+                                return scales.sort((a, b) => b.min - a.min).map(s => (
+                                  <span key={s.grade} className={s.grade === 'F' ? 'text-red-600' : ''}>{s.grade}: {s.min}-{s.max || 100}</span>
+                                ));
+                              } catch (e) {
+                                return <span>Legend could not be loaded</span>;
+                              }
+                            })()}
+                          </div>
+                          <p className="mt-1 border-t border-black/10 pt-1 text-[8px] italic">5: Exceptional, 4: Commendable, 3: Satisfactory, 2: Fair, 1: Poor</p>
+                        </div>
+
+                        {/* POSITION & AVG */}
+                        <div className="p-0 flex flex-col">
+                          <div className="bg-emerald-800 text-white text-[9px] font-bold text-center py-0.5 uppercase tracking-tighter" style={{ backgroundColor: schoolSettings?.primaryColor }}>Status Summary</div>
+                          <div className="bg-white flex-1 grid grid-cols-2 divide-x divide-black/10">
+                            <div className="flex flex-col items-center justify-center p-1">
+                              <span className="text-[7px] text-gray-400 uppercase font-black">Position</span>
+                              <span className="text-sm font-black italic">{data.termPosition || '-'} / {data.totalStudents || '-'}</span>
+                            </div>
+                            <div className="flex flex-col items-center justify-center p-1">
+                              <span className="text-[7px] text-gray-400 uppercase font-black">Average</span>
+                              <span className="text-sm font-black italic">{data.termAverage?.toFixed(1)}%</span>
+                            </div>
+                          </div>
+                          <div className="border-t border-black p-1 flex items-center justify-between bg-emerald-50" style={{ backgroundColor: `${schoolSettings?.primaryColor}10` }}>
+                            <span className="text-[9px] font-black uppercase text-gray-500">Overall Grade:</span>
+                            <span className="text-lg font-black text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>{data.overallGrade}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center border-2 border-black rounded-lg bg-gray-50/50 font-mono text-[7px] uppercase tracking-[0.3em] text-gray-700 relative overflow-hidden">
+                        <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                          <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                          </svg>
+                        </div>
+                        <span className="z-10 bg-white px-2 font-black">Official Result Certification</span>
+                        <div className="absolute inset-x-0 h-[1px] bg-gray-200"></div>
+                      </div>
+                    </div>
+
+                    {/* REMARKS SECTION */}
+                    <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-4">
+                      <div className="grid grid-cols-2 divide-x-2 divide-black">
+                        <div className="p-2 space-y-1">
+                          <p className="text-[10px] font-black uppercase text-gray-500">Form Master's Remark</p>
+                          <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
+                            "{data.formMasterRemark || 'No specific remark recorded.'}"
+                          </p>
+                          <div className="pt-1 border-t border-black/10 flex justify-between items-center">
+                            <span className="text-[9px] font-bold">Name: {data.student?.formMaster || '......................'}</span>
+                            <div className="flex items-center gap-1">
+                              <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              <span className="text-[7px] font-mono text-gray-400">VERIFIED</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-2 space-y-1">
+                          <p className="text-[10px] font-black uppercase text-gray-500">Principal's Remark</p>
+                          <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
+                            "{data.principalRemark || 'Satisfactory result. Keep striving for excellence.'}"
+                          </p>
+                          <div className="pt-1 border-t border-black/10 flex justify-between items-center text-[9px] font-bold">
+                            <div>
+                              <span className="mr-1">Term Ends:</span>
+                              <span className="underline font-black">{data.term?.endDate ? new Date(data.term.endDate).toLocaleDateString() : '....................'}</span>
+                            </div>
+                            <div>
+                              <span className="mr-1">Next Term Begins:</span>
+                              <span className="underline font-black">{data.term?.nextTermBegins ? new Date(data.term.nextTermBegins).toLocaleDateString() : '....................'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SIGNATURES & VERIFICATION */}
+                    <div className="mt-4 grid grid-cols-3 gap-8 items-end print:mt-2">
+                      <div className="space-y-2">
+                        <div className="w-full h-8 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-20 grayscale">
+                          {[...Array(60)].map((_, i) => (
+                            <div key={i} className="bg-black" style={{ height: (i % 8 === 0 ? '100%' : '80%'), width: (i % 5 === 0 ? '2px' : '1px') }}></div>
+                          ))}
+                        </div>
+                        <p className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400">
+                          Verification ID: {data.student?.admissionNumber?.toString().replace('/', '-')}-{data.term?.id?.toString().slice(-4)}
+                        </p>
+                      </div>
+
+                      <div className="text-center flex flex-col justify-end h-full">
+                        <div className="h-[45px] w-full flex items-end justify-center mb-1 overflow-hidden">
+                          {data.student?.formMasterSignatureUrl ? (
+                            <img src={data.student.formMasterSignatureUrl.startsWith('data:') || data.student.formMasterSignatureUrl.startsWith('http') ? data.student.formMasterSignatureUrl : `${API_BASE_URL}${data.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                          ) : (
+                            <div className="flex justify-center items-end opacity-20 pointer-events-none mb-1">
+                              <svg width="50" height="50" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
+                                <text x="50" y="45" textAnchor="middle" fontSize="8" fontWeight="bold">OFFICIAL</text>
+                                <text x="50" y="55" textAnchor="middle" fontSize="10" fontWeight="black">SEAL</text>
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="border-b-2 border-black w-full mb-1 opacity-80"></div>
+                        <p className="text-[10px] font-black uppercase">Teacher's Signature</p>
+                        <p className="text-[8px] text-gray-400 uppercase mt-0.5">{data.student?.formMasterSignatureUrl ? 'Digitally Signed' : 'Automated Seal'}</p>
+                      </div>
+
+                      <div className="text-center flex flex-col justify-end h-full">
+                        <div className="h-[45px] w-full flex items-end justify-center mb-1 overflow-hidden">
+                          {data.term?.principalSignatureUrl ? (
+                            <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                          ) : (
+                            <div className="flex justify-center items-end opacity-30 pointer-events-none mb-1">
+                              <svg width="70" height="70" viewBox="0 0 100 100" style={{ color: schoolSettings?.primaryColor }}>
+                                <path d="M20 50 Q 50 10, 80 50 T 20 80" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.5" />
+                                <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
+                                <text x="50" y="52" textAnchor="middle" fontSize="6" fontWeight="bold" transform="rotate(-15 50 50)">CERTIFIED OFFICIAL</text>
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="border-b-2 border-emerald-800 w-full mb-1" style={{ borderColor: schoolSettings?.primaryColor }}></div>
+                        <p className="text-[10px] font-black uppercase text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>Principal's Signature</p>
+                        <p className="text-[8px] text-gray-400 uppercase mt-0.5">{data.term?.principalSignatureUrl ? 'Digitally Signed' : 'Automated Seal'}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-6 bg-gray-100">
-                  <ReportCardPreview report={viewingReport} />
-                </div>
-                <div className="px-6 py-4 border-t bg-gray-50 flex justify-end">
-                  <button
-                    onClick={() => setViewingReport(null)}
-                    className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+              );
+            })}
+          </div>
+
         </>
       )}
-    </div>
-  );
-};
-const ReportCardPreview = ({ report }) => {
-  const { settings: schoolSettings } = useSchoolSettings();
-
-  return (
-    <div className="bg-white p-8 shadow-lg mx-auto max-w-3xl border-2 border-primary rounded-lg text-sm text-gray-800 font-sans relative overflow-hidden">
-      {/* Watermark */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none rotate-[30deg]">
-        <h1 className="text-9xl font-black">{schoolSettings?.schoolName || 'OFFICIAL'}</h1>
-      </div>
-
-      {/* Header */}
-      <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-6 rounded-lg mb-6 flex items-center gap-6 relative z-10">
-        {schoolSettings.logoUrl && (
-          <img
-            src={schoolSettings.logoUrl}
-            alt="School Logo"
-            className="h-16 w-16 bg-white rounded-lg p-2 object-contain"
-          />
-        )}
-        <div>
-          <h1 className="text-2xl font-bold m-0 uppercase tracking-tight">{schoolSettings.schoolName || 'School Name'}</h1>
-          <p className="mt-1 opacity-90 italic">{schoolSettings.schoolMotto || 'Excellence in Education'}</p>
-          <p className="text-[10px] mt-2 opacity-80 uppercase tracking-widest">{schoolSettings.schoolAddress}</p>
-        </div>
-      </div>
-
-      {/* Student Info */}
-      <div className="mb-6 border-b-2 border-gray-200 pb-4 relative z-10">
-        <div className="flex justify-between items-baseline mb-4">
-          <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wide">Terminal Report Card</h2>
-          <span className="text-primary font-bold px-3 py-1 bg-primary/10 rounded-full text-xs uppercase tracking-widest">
-            {report.term.name} - {report.term.session}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-y-2 gap-x-8">
-          <div className="flex justify-between border-b border-gray-100 py-1">
-            <span className="font-semibold text-gray-600">Name:</span>
-            <span className="font-bold">{report.student.name}</span>
-          </div>
-          <div className="flex justify-between border-b border-gray-100 py-1">
-            <span className="font-semibold text-gray-600">Admission No:</span>
-            <span className="font-mono font-bold text-primary">{report.student.admissionNumber}</span>
-          </div>
-          <div className="flex justify-between border-b border-gray-100 py-1">
-            <span className="font-semibold text-gray-600">Class:</span>
-            <span>{report.student.class}</span>
-          </div>
-          <div className="flex justify-between border-b border-gray-100 py-1">
-            <span className="font-semibold text-gray-600">Gender:</span>
-            <span>{report.student.gender || 'N/A'}</span>
-          </div>
-          <div className="flex justify-between border-b border-gray-100 py-1 text-xs">
-            <span className="font-semibold text-gray-600 italic">Clubs:</span>
-            <span className="opacity-70">{report.student.clubs || 'None Assigned'}</span>
-          </div>
-          <div className="flex justify-between border-b border-gray-100 py-1">
-            <span className="font-semibold text-gray-600 italic font-mono text-[10px]">Position:</span>
-            <span className="font-black text-primary">{report.termPosition} / {report.totalStudents}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Results Table */}
-      <div className="mb-6 relative z-10">
-        <h2 className="text-[10px] font-black mb-2 text-primary uppercase tracking-[0.2em]">Academic Performance Breakdown</h2>
-        <div className="overflow-hidden border-2 border-primary/20 rounded-xl">
-          <table className="min-w-full divide-y divide-gray-200 text-xs">
-            <thead className="bg-primary/10">
-              <tr>
-                <th className="px-3 py-3 text-left font-black text-primary border-r border-primary/20 uppercase tracking-tighter">Subject</th>
-                <th className="px-1 py-3 text-center text-gray-600 border-r border-gray-100 text-[9px] leading-tight font-bold uppercase">1ST CA<br />(${report.term.weights?.assignment1})</th>
-                <th className="px-1 py-3 text-center text-gray-600 border-r border-gray-100 text-[9px] leading-tight font-bold uppercase">2ND CA<br />(${report.term.weights?.assignment2})</th>
-                <th className="px-1 py-3 text-center text-gray-600 border-r border-gray-100 text-[9px] leading-tight font-bold uppercase">1ST TST<br />(${report.term.weights?.test1})</th>
-                <th className="px-1 py-3 text-center text-gray-600 border-r border-gray-100 text-[9px] leading-tight font-bold uppercase">2ND TST<br />(${report.term.weights?.test2})</th>
-                <th className="px-2 py-3 text-center text-gray-600 border-r border-gray-100 text-[9px] leading-tight font-bold uppercase">EXAM<br />(${report.term.weights?.exam})</th>
-                <th className="px-3 py-3 text-center font-black text-primary bg-primary/20 border-r border-primary/20 uppercase tracking-tighter">Total</th>
-                <th className="px-3 py-3 text-center font-black text-white bg-primary border-r border-primary">GRD</th>
-                <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase italic">Remark</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 bg-white">
-              {(report.subjects || []).map((subject, idx) => (
-                <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-primary/[0.02]'}>
-                  <td className="px-3 py-2.5 font-bold text-gray-900 border-r border-gray-100 text-[11px]">{subject.name}</td>
-                  <td className="px-2 py-2.5 text-center border-r border-gray-50">{subject.assignment1?.toFixed(1) || '-'}</td>
-                  <td className="px-2 py-2.5 text-center border-r border-gray-50">{subject.assignment2?.toFixed(1) || '-'}</td>
-                  <td className="px-2 py-2.5 text-center border-r border-gray-50">{subject.test1?.toFixed(1) || '-'}</td>
-                  <td className="px-2 py-2.5 text-center border-r border-gray-50">{subject.test2?.toFixed(1) || '-'}</td>
-                  <td className="px-2 py-2.5 text-center border-r border-gray-50">{subject.exam?.toFixed(1) || '-'}</td>
-                  <td className="px-3 py-2.5 text-center font-black bg-primary/10 text-primary border-r border-primary/10">{subject.total?.toFixed(1)}</td>
-                  <td className={`px-3 py-2.5 text-center font-black border-r border-primary/10 ${subject.grade === 'F' ? 'text-red-600 bg-red-50' : 'text-primary bg-primary/5'}`}>{subject.grade}</td>
-                  <td className="px-3 py-2.5 text-[10px] text-gray-500 italic font-medium">{subject.remark}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-6 mb-6 relative z-10">
-        {/* Summary Stats */}
-        <div className="grid grid-cols-2 gap-3 h-fit">
-          <div className="bg-primary/5 p-3 rounded-xl text-center border border-primary/10 shadow-sm">
-            <p className="text-gray-500 text-[9px] font-black uppercase tracking-widest mb-1">Average</p>
-            <p className="text-xl font-black text-primary">{report.termAverage.toFixed(2)}%</p>
-          </div>
-          <div className="bg-primary/5 p-3 rounded-xl text-center border border-primary/10 shadow-sm">
-            <p className="text-gray-500 text-[9px] font-black uppercase tracking-widest mb-1">Final Grade</p>
-            <p className="text-xl font-black text-primary">{report.overallGrade}</p>
-          </div>
-          <div className="bg-primary/5 p-3 rounded-xl text-center border border-primary/10 shadow-sm col-span-2 flex justify-between items-center px-4">
-            <span className="text-gray-500 text-[9px] font-black uppercase tracking-widest">Attendance</span>
-            <span className="text-lg font-black text-primary">{report.attendance?.percentage || 0}%</span>
-            <span className="text-[10px] text-gray-400 font-bold">(${report.attendance?.present}/${report.attendance?.total} Days)</span>
-          </div>
-        </div>
-
-        {/* Psychomotor Ratings */}
-        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-inner h-fit">
-          <h3 className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-3 text-center">Psychomotor & Behavioral Evaluation</h3>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-            {report.psychomotorRatings?.map((rating, idx) => (
-              <div key={idx} className="flex justify-between items-center text-[10px] border-b border-gray-200/50 pb-1">
-                <span className="text-gray-600 font-bold">{rating.name}</span>
-                <span className="flex gap-0.5">
-                  {[...Array(rating.maxScore)].map((_, i) => (
-                    <span key={i} className={`w-2 h-2 rounded-full ${i < rating.score ? 'bg-primary' : 'bg-gray-300'}`}></span>
-                  ))}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Remarks */}
-      <div className="grid grid-cols-2 gap-6 mb-8 relative z-10">
-        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-[9px] font-black text-gray-400 uppercase mb-1">Form Master's Remarks</p>
-          <p className="text-[11px] italic text-gray-600 font-medium leading-relaxed">"${report.formMasterRemark}"</p>
-        </div>
-        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-[9px] font-black text-gray-400 uppercase mb-1">Principal's Remarks</p>
-          <p className="text-[11px] italic text-gray-600 font-medium leading-relaxed">"${report.principalRemark}"</p>
-        </div>
-      </div>
-
-      {/* Signatures */}
-      <div className="grid grid-cols-3 gap-8 mt-12 pt-6 border-t-2 border-primary/20 relative z-10">
-        <div className="text-center relative">
-          <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-20 pointer-events-none">
-            <svg width="60" height="60" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
-              <text x="50" y="45" textAnchor="middle" fontSize="8" fontWeight="bold">OFFICIAL</text>
-              <text x="50" y="55" textAnchor="middle" fontSize="10" fontWeight="black">SEAL</text>
-            </svg>
-          </div>
-          <div className="border-b-2 border-black w-full mb-1 opacity-80"></div>
-          <p className="text-[10px] font-black uppercase">{report.student.formMaster}</p>
-          <p className="text-[8px] text-gray-400 uppercase mt-0.5 italic">Form Master</p>
-        </div>
-
-        <div className="text-center flex flex-col justify-center items-center">
-          <div className="p-2 border-2 border-primary/20 rounded-full mb-1">
-            <div className="bg-primary/5 text-primary p-2 rounded-full font-black text-[10px]">VERIFIED</div>
-          </div>
-          <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">${new Date().toLocaleDateString()}</p>
-        </div>
-
-        <div className="text-center relative">
-          <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-20 pointer-events-none">
-            <svg width="60" height="60" viewBox="0 0 100 100" className="text-primary">
-              <polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="none" stroke="currentColor" strokeWidth="2" />
-              <text x="50" y="45" textAnchor="middle" fontSize="8" fontWeight="bold">SCHOOL</text>
-              <text x="50" y="55" textAnchor="middle" fontSize="10" fontWeight="black">STAMP</text>
-            </svg>
-          </div>
-          <div className="border-b-2 border-black w-full mb-1 opacity-80"></div>
-          <p className="text-[10px] font-black uppercase">Principal's Signature</p>
-          <p className="text-[8px] text-gray-400 uppercase mt-0.5 italic">School Authority</p>
-        </div>
-      </div>
-
-      {/* Legend Footer */}
-      <div className="mt-8 pt-4 border-t border-gray-100 flex justify-between items-center text-[9px] text-gray-400 font-bold relative z-10">
-        <div className="flex gap-4 uppercase tracking-widest">
-          <span>GP: Grade Point</span>
-          <span>CA: Continuous Assessment</span>
-          <span>% Attend: Attendance Percentage</span>
-        </div>
-        <div className="flex gap-2 text-primary/60">
-          {(() => {
-            try {
-              const scales = JSON.parse(schoolSettings?.gradingSystem || '[]');
-              return scales.sort((a, b) => b.min - a.min).map(s => (
-                <span key={s.grade}>{s.grade}: {s.min}-{s.max || 100}</span>
-              ));
-            } catch (e) { return null; }
-          })()}
-        </div>
-      </div>
     </div>
   );
 };

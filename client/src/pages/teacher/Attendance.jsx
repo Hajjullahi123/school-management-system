@@ -19,6 +19,8 @@ const Attendance = () => {
 
   // Stats
   const [stats, setStats] = useState({ present: 0, absent: 0, late: 0, excused: 0 });
+  const [holidayCheck, setHolidayCheck] = useState({ isHoliday: false, info: null });
+  const [isPastDate, setIsPastDate] = useState(false);
 
   // Download functionality
   const [showDownloadDialog, setShowDownloadDialog] = useState(false);
@@ -103,10 +105,15 @@ const Attendance = () => {
       const data = await response.json();
       const studentsData = Array.isArray(data?.students) ? data.students : [];
 
-      // Initialize status to 'present' if it's 'pending' (for easier quick marking)
+      setHolidayCheck({
+        isHoliday: data?.isHoliday || false,
+        info: data?.holidayInfo || null
+      });
+
+      // Initialize status to 'absent' if it's 'pending'
       const initializedStudents = studentsData.map(s => ({
         ...s,
-        status: s.status === 'pending' ? 'present' : s.status
+        status: s.status === 'pending' ? 'absent' : s.status
       }));
 
       setStudents(initializedStudents);
@@ -114,9 +121,20 @@ const Attendance = () => {
 
       // Lock check: If the date is more than 48 hours ago, teachers cannot edit
       const dateDiff = (new Date() - new Date(selectedDate)) / (1000 * 60 * 60);
-      if (user?.role === 'teacher' && dateDiff > 48) {
-        toast('Attendance is locked for this date (48h window)', { icon: '🔒', duration: 4000 });
+      if (user?.role === 'teacher' && dateDiff > 48 && !data?.isHoliday) {
+        toast.info('Attendance is locked for this date (48h window)');
       }
+
+      // Check if selected date is in the past (before today's local date)
+      const selectedParts = selectedDate.split('-');
+      const selected = new Date(selectedParts[0], selectedParts[1] - 1, selectedParts[2]);
+      selected.setHours(0, 0, 0, 0);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      setIsPastDate(selected < today);
+
     } catch (error) {
       console.error('Error fetching attendance:', error);
       setError(error.message);
@@ -266,10 +284,10 @@ const Attendance = () => {
         </div>
         {students.length > 0 && !error && (
           <div className="text-sm font-medium flex gap-4 bg-white px-4 py-2 rounded-lg shadow-sm">
-            <span className="text-green-600">Present: {stats.present}</span>
-            <span className="text-red-600">Absent: {stats.absent}</span>
-            <span className="text-yellow-600">Late: {stats.late}</span>
-            <span className="text-blue-600">Excused: {stats.excused}</span>
+            <span className="text-green-600">Present: {holidayCheck.isHoliday ? 0 : stats.present}</span>
+            <span className="text-red-600">Absent: {holidayCheck.isHoliday ? 0 : stats.absent}</span>
+            <span className="text-yellow-600">Late: {holidayCheck.isHoliday ? 0 : stats.late}</span>
+            <span className="text-blue-600">Excused: {holidayCheck.isHoliday ? 0 : stats.excused}</span>
           </div>
         )}
       </div>
@@ -362,23 +380,49 @@ const Attendance = () => {
       {/* Attendance Sheet */}
       {selectedClassId && (
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          {loading ? (
+          {holidayCheck.isHoliday && (
+            <div className={`border-b-4 p-8 flex flex-col items-center justify-center text-center ${holidayCheck.info?.type === 'weekend' ? 'bg-blue-50 border-blue-200' : 'bg-orange-50 border-orange-200'}`}>
+              <span className="text-5xl mb-3 drop-shadow-sm">{holidayCheck.info?.type === 'weekend' ? '🌴' : '🎉'}</span>
+              <h3 className={`text-xl font-bold uppercase ${holidayCheck.info?.type === 'weekend' ? 'text-blue-900' : 'text-orange-900'}`}>
+                {holidayCheck.info?.name} ({holidayCheck.info?.type})
+              </h3>
+              <p className={`text-sm mt-2 font-medium ${holidayCheck.info?.type === 'weekend' ? 'text-blue-700' : 'text-orange-800'}`}>
+                {holidayCheck.info?.description || 'Daily attendance cannot be marked on this day.'}
+              </p>
+            </div>
+          )}
+
+          {loading && !holidayCheck.isHoliday ? (
             <div className="p-12 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
               <p className="mt-4 text-gray-600">Loading student list...</p>
             </div>
-          ) : students.length === 0 ? (
+          ) : students.length === 0 && !holidayCheck.isHoliday ? (
             <div className="p-12 text-center text-gray-500">
               No students found in this class.
             </div>
-          ) : (
+          ) : !holidayCheck.isHoliday ? (
             <>
+              {isPastDate && (
+                <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4 mx-4 mt-4 rounded-r-md">
+                  <div className="flex items-center">
+                    <svg className="h-5 w-5 text-amber-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <p className="text-sm text-amber-700 font-medium">
+                      Attendance records for past dates are <strong>read-only</strong>. You can view or download the records, but you cannot make changes.
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="p-4 bg-primary/5 border-b border-primary/10 flex justify-between items-center">
                 <span className="font-semibold text-primary">Class Roll Call</span>
-                <div className="flex gap-2 text-xs">
-                  <button onClick={() => markAll('present')} className="px-3 py-1 bg-white border border-primary/20 text-primary rounded hover:bg-primary/10">Mark All Present</button>
-                  <button onClick={() => markAll('absent')} className="px-3 py-1 bg-white border border-red-200 text-red-700 rounded hover:bg-red-50">Mark All Absent</button>
-                </div>
+                {!isPastDate && (
+                  <div className="flex gap-2 text-xs">
+                    <button onClick={() => markAll('present')} className="px-3 py-1 bg-white border border-primary/20 text-primary rounded hover:bg-primary/10">Mark All Present</button>
+                    <button onClick={() => markAll('absent')} className="px-3 py-1 bg-white border border-red-200 text-red-700 rounded hover:bg-red-50">Mark All Absent</button>
+                  </div>
+                )}
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
@@ -429,9 +473,11 @@ const Attendance = () => {
                                   checked={student.status === status}
                                   onChange={() => handleStatusChange(student.studentId, status)}
                                   className="sr-only"
+                                  disabled={isPastDate}
                                 />
                                 <span className={`text-xs capitalize font-medium
                                                             ${student.status === status ? 'text-gray-900' : 'text-gray-500'}
+                                                            ${isPastDate ? 'opacity-70' : ''}
                                                         `}>
                                   {status}
                                 </span>
@@ -445,8 +491,9 @@ const Attendance = () => {
                             value={student.notes || ''}
                             onChange={(e) => handleNoteChange(student.studentId, e.target.value)}
                             placeholder={student.status === 'excused' || student.status === 'late' ? "Reason required..." : "Optional note..."}
+                            readOnly={isPastDate}
                             className={`w-full text-sm border-gray-200 rounded-lg focus:ring-primary focus:border-primary transition-all ${(student.status === 'excused' || student.status === 'late') && !student.notes ? 'border-orange-300 bg-orange-50' : ''
-                              }`}
+                              } ${isPastDate ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''}`}
                           />
                         </td>
                       </tr>
@@ -457,37 +504,39 @@ const Attendance = () => {
 
               <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
                 <div className="text-xs text-gray-500 italic">
-                  {(students.some(s => (s.status === 'excused' || s.status === 'late') && !s.notes)) && (
+                  {(students.some(s => (s.status === 'excused' || s.status === 'late') && !s.notes)) && !isPastDate && (
                     <span className="text-orange-600 font-bold flex items-center gap-1 animate-pulse">
                       ⚠️ Please provide reasons for lates/excuses before saving.
                     </span>
                   )}
                 </div>
-                <button
-                  onClick={handleSave}
-                  disabled={saving || (user?.role === 'teacher' && (new Date() - new Date(selectedDate)) / (1000 * 60 * 60) > 48)}
-                  className="bg-indigo-600 text-white px-8 py-3 rounded-lg shadow-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:shadow-none flex items-center gap-2 font-black uppercase text-xs tracking-widest transition-all"
-                >
-                  {saving ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Saving Attendance...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Save Daily Roll
-                    </>
-                  )}
-                </button>
+                {!isPastDate && (
+                  <button
+                    onClick={handleSave}
+                    disabled={saving || (user?.role === 'teacher' && holidayCheck.isHoliday) || (user?.role === 'teacher' && (new Date() - new Date(selectedDate)) / (1000 * 60 * 60) > 48)}
+                    className="bg-indigo-600 text-white px-8 py-3 rounded-lg shadow-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:shadow-none flex items-center gap-2 font-black uppercase text-xs tracking-widest transition-all"
+                  >
+                    {saving ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Saving Attendance...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Save Daily Roll
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </>
-          )}
+          ) : null}
         </div>
       )}
 
@@ -626,8 +675,9 @@ const Attendance = () => {
             </div>
           </div>
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 };
 

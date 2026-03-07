@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { toast } from '../utils/toast';
+import useTermContext from '../hooks/useTermContext';
 
 const Homework = () => {
   const { user } = useAuth();
@@ -38,6 +39,8 @@ const Homework = () => {
     file: null
   });
 
+  const { currentTerm, currentSession, loading: termLoading } = useTermContext();
+
   const [gradeData, setGradeData] = useState({
     grade: '',
     feedback: ''
@@ -59,8 +62,8 @@ const Homework = () => {
   }, [user]);
 
   useEffect(() => {
-    if (selectedClassId) fetchHomework();
-  }, [selectedClassId]);
+    if (selectedClassId && !termLoading && currentTerm) fetchHomework();
+  }, [selectedClassId, termLoading, currentTerm]);
 
   const fetchClasses = async () => {
     try {
@@ -89,7 +92,7 @@ const Homework = () => {
   const fetchHomework = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/api/lms/homework/class/${selectedClassId}`);
+      const response = await api.get(`/api/lms/homework/class/${selectedClassId}?termId=${currentTerm?.id || ''}`);
       if (response.ok) setHomeworks(await response.json());
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -105,6 +108,8 @@ const Homework = () => {
     data.append('title', formData.title);
     data.append('description', formData.description);
     data.append('dueDate', formData.dueDate);
+    if (currentTerm) data.append('termId', currentTerm.id);
+    if (currentSession) data.append('sessionId', currentSession.id);
     if (formData.externalUrl) data.append('externalUrl', formData.externalUrl);
     if (formData.file) data.append('file', formData.file);
 
@@ -207,7 +212,9 @@ const Homework = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight italic underline decoration-primary/30 underline-offset-8">Assignments & Homework</h1>
-          <p className="text-gray-500 font-bold mt-2">Manage course work and track student progress</p>
+          <p className="text-gray-500 font-bold mt-2">
+            Manage course work for <span className="text-primary uppercase">{currentTerm?.name || 'Loading...'}</span>
+          </p>
         </div>
         {isTeacher && selectedClassId && (
           <button

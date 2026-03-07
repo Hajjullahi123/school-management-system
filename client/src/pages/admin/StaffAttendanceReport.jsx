@@ -6,6 +6,7 @@ const StaffAttendanceReport = () => {
   const [dailyReports, setDailyReports] = useState([]); // Array<{ date, stats, staff }>
   const [expandedDays, setExpandedDays] = useState([0]); // Default first day expanded
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
 
@@ -21,16 +22,39 @@ const StaffAttendanceReport = () => {
   const [isMarkMode, setIsMarkMode] = useState(false);
   const [attendanceUpdates, setAttendanceUpdates] = useState({}); // { userId: { status, notes } }
   const [savingBulk, setSavingBulk] = useState(false);
+  const [schoolInfo, setSchoolInfo] = useState(null);
 
   useEffect(() => {
     fetchDailyReport();
-  }, [selectedDate]);
+    fetchSchoolInfo();
+  }, [selectedDate, endDate]);
+
+  const fetchSchoolInfo = async () => {
+    try {
+      const response = await api.get('/api/settings');
+      if (response.ok) {
+        const data = await response.json();
+        setSchoolInfo(data);
+      }
+    } catch (error) {
+      console.error('Error fetching school info:', error);
+    }
+  };
 
   const fetchDailyReport = async () => {
     try {
       setLoading(true);
-      // Fetch 5 days by default
-      const response = await api.get(`/api/staff-attendance/daily-report?date=${selectedDate}&days=5`);
+
+      // Calculate days between selectedDate and endDate
+      const start = new Date(selectedDate);
+      const end = new Date(endDate);
+      const diffTime = Math.abs(end - start);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+      // Fetch the range (max 31 days to prevent overload)
+      const daysToFetch = Math.min(Math.max(diffDays, 1), 31);
+
+      const response = await api.get(`/api/staff-attendance/daily-report?date=${endDate}&days=${daysToFetch}`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -156,6 +180,36 @@ const StaffAttendanceReport = () => {
     }
   };
 
+  const handleFullDownload = () => {
+    const url = `${api.baseURL}/api/staff-attendance/download?startDate=${selectedDate}&endDate=${endDate}`;
+    // Since we're using auth tokens, we need to fetch or use a hidden form/link with token if possible
+    // But for a simple GET with redirect, most systems use a temporary token or session cookie.
+    // If api.get handles headers, we can't easily use window.location.
+    // Let's use the fetch approach to get the blob.
+
+    setExporting(true);
+    api.get(`/api/staff-attendance/download?startDate=${selectedDate}&endDate=${endDate}`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Failed to download');
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Staff_Attendance_${selectedDate}_to_${endDate}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(err => {
+        console.error('Download error:', err);
+        toast.error('Failed to download Excel report');
+      })
+      .finally(() => setExporting(false));
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   const exportToCSV = (report) => {
     setExporting(true);
     try {
@@ -203,33 +257,90 @@ const StaffAttendanceReport = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
+    <div className="p-6 max-w-7xl mx-auto report-container">
+      {/* Formal Report Header (Print Only) */}
+      <div className="hidden print-header mb-8">
+        <div className="flex items-center justify-between border-b-2 border-gray-800 pb-4">
+          <div className="flex items-center gap-6">
+            {schoolInfo?.logoUrl ? (
+              <img src={schoolInfo.logoUrl} alt="Logo" className="w-24 h-24 object-contain" />
+            ) : (
+              <div className="w-24 h-24 bg-gray-200 flex items-center justify-center font-bold text-gray-400">LOGO</div>
+            )}
+            <div>
+              <h1 className="text-3xl font-black text-gray-900 uppercase leading-none mb-1">
+                {schoolInfo?.schoolName || schoolInfo?.name || 'SCHOOL MANAGEMENT SYSTEM'}
+              </h1>
+              <p className="text-sm font-bold text-gray-700 italic mb-1">{schoolInfo?.motto || 'Knowledge is Light'}</p>
+              <p className="text-xs text-gray-600 max-w-md">{schoolInfo?.address || 'School Premises, Nigerian Territory'}</p>
+              <p className="text-xs text-gray-600">{schoolInfo?.phone} | {schoolInfo?.email}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <h2 className="text-xl font-black text-gray-800 uppercase tracking-widest mb-1">Staff Attendance Report</h2>
+            <div className="text-[10px] font-bold text-gray-500 uppercase">
+              <p>Period: {selectedDate} To {endDate}</p>
+              <p>Generated: {new Date().toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-6 no-print">
         <h1 className="text-2xl font-black text-gray-800 mb-2">Staff Attendance Report</h1>
         <p className="text-gray-500 font-medium">Monitor and manage staff attendance records with daily history</p>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white p-4 rounded-xl shadow-md mb-6 border border-gray-100">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex-1 min-w-[200px]">
+      {/* Filters & Actions */}
+      <div className="bg-white p-4 rounded-xl shadow-md mb-6 border border-gray-100 no-print">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="min-w-[180px]">
             <label className="block text-xs font-black text-gray-400 uppercase mb-2 ml-1">
-              Select Start Date
+              Start Date
             </label>
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              max={new Date().toISOString().split('T')[0]}
               className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:border-transparent outline-none font-bold text-gray-700"
             />
           </div>
-          <div className="flex items-end gap-2">
+          <div className="min-w-[180px]">
+            <label className="block text-xs font-black text-gray-400 uppercase mb-2 ml-1">
+              End Date
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              min={selectedDate}
+              className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:border-transparent outline-none font-bold text-gray-700"
+            />
+          </div>
+
+          <div className="flex-1 flex flex-wrap gap-2 justify-end">
             <button
-              onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg transition-all"
+              onClick={handlePrint}
+              className="bg-gray-800 text-white hover:bg-black font-bold py-2 px-6 rounded-lg transition-all flex items-center gap-2"
             >
-              Today
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Print Report
+            </button>
+            <button
+              onClick={handleFullDownload}
+              disabled={exporting}
+              className="bg-green-600 text-white hover:bg-green-700 font-bold py-2 px-6 rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
+            >
+              {exporting ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              )}
+              Download Excel
             </button>
             <button
               onClick={() => setIsMarkMode(!isMarkMode)}
@@ -238,7 +349,7 @@ const StaffAttendanceReport = () => {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              {isMarkMode ? 'Exit Mark Mode' : 'Mark Daily Roll'}
+              {isMarkMode ? 'Exit Mark' : 'Daily Roll'}
             </button>
           </div>
         </div>
@@ -597,6 +708,32 @@ const StaffAttendanceReport = () => {
           * Records with <span className="text-green-500">✔</span> indicate manual admin verification.
         </div>
       </div>
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @media print {
+          .no-print { display: none !important; }
+          body { background: white !important; }
+          .p-6 { padding: 0 !important; }
+          .max-w-7xl { max-width: 100% !important; }
+          .shadow-md { shadow: none !important; border: 1px solid #eee !important; }
+          .animate-fadeIn { opacity: 1 !important; }
+          
+          /* Expand all daily reports for printing */
+          .animate-fadeIn > div { margin-bottom: 2rem !important; break-inside: avoid; }
+          
+          /* Ensure table is visible and clean */
+          table { width: 100% !important; border-collapse: collapse !important; }
+          th, td { border: 1px solid #ddd !important; padding: 8px !important; font-size: 10px !important; }
+          th { background-color: #f8f9fa !important; -webkit-print-color-adjust: exact; }
+          
+          /* Hide expansion icons */
+          .p-2.rounded-lg.bg-primary { display: none !important; }
+          
+          /* Force page breaks between major sections if needed */
+          h1, h3 { color: black !important; }
+        }
+      `}} />
     </div>
   );
 };

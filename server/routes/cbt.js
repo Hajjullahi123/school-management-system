@@ -12,7 +12,7 @@ const upload = multer({ storage: storage });
 // ============ TEACHER ROUTES ============
 
 // Download Bulk Question Template (CSV)
-router.get('/template/questions', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+router.get('/template/questions', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('CBT Questions');
@@ -47,7 +47,7 @@ router.get('/template/questions', authenticate, authorize(['superadmin', 'admin'
 });
 
 // Bulk Upload Questions
-router.post('/:id/questions/bulk', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), upload.single('file'), async (req, res) => {
+router.post('/:id/questions/bulk', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), upload.single('file'), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
@@ -178,11 +178,15 @@ router.post('/:id/questions/bulk', authenticate, authorize(['superadmin', 'admin
 });
 
 // Get all exams created by teacher or all for admin/principal
-router.get('/teacher', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+router.get('/teacher', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
+    const { termId } = req.query;
     const where = { schoolId: req.schoolId };
     if (req.user.role === 'teacher') {
       where.teacherId = req.user.id;
+    }
+    if (termId) {
+      where.termId = parseInt(termId);
     }
 
     const exams = await prisma.cBTExam.findMany({
@@ -207,7 +211,7 @@ router.get('/teacher', authenticate, authorize(['superadmin', 'admin', 'teacher'
 });
 
 // Create Exam (Admin/Principal/Teacher)
-router.post('/', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+router.post('/', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const {
       title, description, classId, subjectId,
@@ -276,7 +280,7 @@ router.post('/', authenticate, authorize(['superadmin', 'admin', 'teacher', 'pri
 });
 
 // Add Questions to Exam (Admin/Principal/Teacher)
-router.post('/:id/questions', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+router.post('/:id/questions', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
     const { questions, saveToBank } = req.body; // Array of questions
@@ -351,7 +355,7 @@ router.post('/:id/questions', authenticate, authorize(['superadmin', 'admin', 't
 });
 
 // Publish Exam (Admin/Principal/Teacher)
-router.put('/:id/publish', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+router.put('/:id/publish', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
     const { isPublished } = req.body;
@@ -400,11 +404,17 @@ router.get('/student/available', authenticate, authorize(['student']), async (re
       return res.json([]);
     }
 
+    // Get current active term for the school
+    const currentTerm = await prisma.term.findFirst({
+      where: { schoolId: req.schoolId, isCurrent: true }
+    });
+
     const availableExams = await prisma.cBTExam.findMany({
       where: {
         schoolId: req.schoolId,
         classId: student.classId,
         isPublished: true,
+        termId: currentTerm?.id || undefined // Only show exams for current term
       },
       include: {
         subject: true,
@@ -426,7 +436,7 @@ router.get('/student/available', authenticate, authorize(['student']), async (re
 // ============ QUESTION BANK ROUTES ============
 
 // Get Questions from Bank
-router.get('/bank', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+router.get('/bank', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const { subjectId, teacherId, classId } = req.query;
     const where = { schoolId: req.schoolId };
@@ -459,7 +469,7 @@ router.get('/bank', authenticate, authorize(['superadmin', 'admin', 'teacher', '
 });
 
 // Bulk Upload to Question Bank
-router.post('/bank/upload', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), upload.single('file'), async (req, res) => {
+router.post('/bank/upload', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const { subjectId, classId } = req.body;
@@ -560,7 +570,7 @@ router.post('/bank/upload', authenticate, authorize(['superadmin', 'admin', 'tea
 });
 
 // Download Question Bank (CSV) - Admin/Principal only for all, teachers for theirs
-router.get('/bank/download', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+router.get('/bank/download', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const { subjectId } = req.query;
     const where = { schoolId: req.schoolId };
@@ -612,7 +622,7 @@ router.get('/bank/download', authenticate, authorize(['superadmin', 'admin', 'te
 });
 
 // Delete Question from Bank
-router.delete('/bank/:id', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+router.delete('/bank/:id', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const question = await prisma.cBTQuestionBank.findUnique({ where: { id } });
@@ -630,7 +640,7 @@ router.delete('/bank/:id', authenticate, authorize(['superadmin', 'admin', 'teac
 });
 
 // Bulk Delete Questions by Subject from Bank
-router.delete('/bank/subject/:subjectId', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+router.delete('/bank/subject/:subjectId', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const subjectId = parseInt(req.params.subjectId);
     const where = {
@@ -660,7 +670,7 @@ router.delete('/bank/subject/:subjectId', authenticate, authorize(['superadmin',
 });
 
 // Delete Exam (Admin/Principal/Teacher)
-router.delete('/:id', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+router.delete('/:id', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
     await prisma.cBTExam.delete({
@@ -744,7 +754,7 @@ router.get('/:id', authenticate, async (req, res) => {
 });
 
 // Get Exam Results (Teacher/Admin/Principal View)
-router.get('/:id/results', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+router.get('/:id/results', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
 
@@ -790,7 +800,7 @@ router.get('/:id/results', authenticate, authorize(['superadmin', 'admin', 'teac
 });
 
 // Download Exam Results (CSV - Admin/Principal/Teacher)
-router.get('/:id/results/download', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+router.get('/:id/results/download', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
 
@@ -849,7 +859,7 @@ router.get('/:id/results/download', authenticate, authorize(['superadmin', 'admi
 });
 
 // Import CBT scores into student results (Admin/Principal/Teacher)
-router.post('/:id/results/import', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+router.post('/:id/results/import', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
 
@@ -974,7 +984,7 @@ router.post('/:id/results/import', authenticate, authorize(['superadmin', 'admin
 
 
 // Import questions from bank to exam
-router.post('/:id/import-from-bank', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal']), async (req, res) => {
+router.post('/:id/import-from-bank', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
     const { questionIds } = req.body;

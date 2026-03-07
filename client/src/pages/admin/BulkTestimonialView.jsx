@@ -191,8 +191,14 @@ const BulkTestimonialView = () => {
                     <p className="text-[8px] text-gray-400 mt-2 font-mono uppercase tracking-tighter">Scan to Verify</p>
                   </div>
 
-                  <div className="flex flex-col items-center">
-                    <div className="h-14 w-full border-b border-gray-900 mb-1"></div>
+                  <div className="flex flex-col items-center relative">
+                    <div className="h-14 w-full border-b border-gray-900 mb-1 relative">
+                      {testimonial.school?.principalSignatureUrl && (
+                        <div className="absolute bottom-1 left-1/2 -translate-x-1/2">
+                          <img src={testimonial.school.principalSignatureUrl.startsWith('data:') || testimonial.school.principalSignatureUrl.startsWith('http') ? testimonial.school.principalSignatureUrl : `${API_BASE_URL}${testimonial.school.principalSignatureUrl}`} alt="Principal Signature" className="h-[40px] w-auto mix-blend-multiply" />
+                        </div>
+                      )}
+                    </div>
                     <div className="text-[10px] font-bold uppercase tracking-wider">Principal</div>
                   </div>
                 </div>

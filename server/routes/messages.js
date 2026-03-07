@@ -5,7 +5,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 
 // 1. Send a new message
-router.post('/', authenticate, authorize(['parent', 'teacher']), async (req, res) => {
+router.post('/', authenticate, authorize(['parent', 'teacher', 'principal', 'admin']), async (req, res) => {
   try {
     const { receiverId, studentId, subject, message, messageType, parentMessageId } = req.body;
 
@@ -111,7 +111,7 @@ router.post('/', authenticate, authorize(['parent', 'teacher']), async (req, res
 });
 
 // 2. Get all messages for current user
-router.get('/', authenticate, authorize(['parent', 'teacher']), async (req, res) => {
+router.get('/', authenticate, authorize(['parent', 'teacher', 'principal', 'admin']), async (req, res) => {
   try {
     const { studentId } = req.query;
 
@@ -182,7 +182,7 @@ router.get('/', authenticate, authorize(['parent', 'teacher']), async (req, res)
 });
 
 // 3. Get message thread (message and all its replies)
-router.get('/thread/:id', authenticate, authorize(['parent', 'teacher']), async (req, res) => {
+router.get('/thread/:id', authenticate, authorize(['parent', 'teacher', 'principal', 'admin']), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -214,6 +214,24 @@ router.get('/thread/:id', authenticate, authorize(['parent', 'teacher']), async 
 
     // Get user details for all messages
     const thread = [mainMessage, ...replies];
+
+    // Mark all messages in this thread as read for the current user
+    await prisma.parentTeacherMessage.updateMany({
+      where: {
+        OR: [
+          { id: parseInt(id) },
+          { parentMessageId: parseInt(id) }
+        ],
+        receiverId: req.user.id,
+        isRead: false,
+        schoolId: req.schoolId
+      },
+      data: {
+        isRead: true,
+        readAt: new Date()
+      }
+    });
+
     const threadWithDetails = await Promise.all(
       thread.map(async (msg) => {
         const sender = await prisma.user.findFirst({
@@ -236,7 +254,7 @@ router.get('/thread/:id', authenticate, authorize(['parent', 'teacher']), async 
 });
 
 // 4. Mark message as read
-router.put('/:id/read', authenticate, authorize(['parent', 'teacher']), async (req, res) => {
+router.put('/:id/read', authenticate, authorize(['parent', 'teacher', 'principal', 'admin']), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -275,7 +293,7 @@ router.put('/:id/read', authenticate, authorize(['parent', 'teacher']), async (r
 });
 
 // 5. Get unread message count
-router.get('/unread-count', authenticate, authorize(['parent', 'teacher']), async (req, res) => {
+router.get('/unread-count', authenticate, authorize(['parent', 'teacher', 'principal', 'admin']), async (req, res) => {
   try {
     const count = await prisma.parentTeacherMessage.count({
       where: {
@@ -293,7 +311,7 @@ router.get('/unread-count', authenticate, authorize(['parent', 'teacher']), asyn
 });
 
 // 6. Get form master for a student (helper endpoint)
-router.get('/form-master/:studentId', authenticate, authorize(['parent']), async (req, res) => {
+router.get('/form-master/:studentId', authenticate, authorize(['parent', 'admin', 'principal']), async (req, res) => {
   try {
     const { studentId } = req.params;
 
@@ -357,7 +375,7 @@ router.get('/form-master/:studentId', authenticate, authorize(['parent']), async
 });
 
 // 7. Delete a message
-router.delete('/:id', authenticate, authorize(['parent', 'teacher']), async (req, res) => {
+router.delete('/:id', authenticate, authorize(['parent', 'teacher', 'principal', 'admin']), async (req, res) => {
   try {
     const { id } = req.params;
 

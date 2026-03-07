@@ -30,7 +30,8 @@ router.get('/', authenticate, authorize(['admin', 'principal']), async (req, res
             classModel: true
           }
         },
-        teacher: true
+        teacher: true,
+        parent: true
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -60,12 +61,34 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
       parentPhone,
       // Teacher-specific
       staffId,
-      specialization
+      specialization,
+      // General
+      phone
     } = req.body;
+
+    let finalUsername;
 
     // Validation
     if (!role || !firstName || !lastName) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Enforce singleton roles: only ONE admin, principal, accountant, examination_officer per school
+    if (['admin', 'principal', 'accountant', 'examination_officer'].includes(role)) {
+      const existing = await prisma.user.findFirst({
+        where: { schoolId: req.schoolId, role }
+      });
+      if (existing) {
+        let roleLabel = '';
+        if (role === 'admin') roleLabel = 'System Admin';
+        else if (role === 'principal') roleLabel = 'School Principal';
+        else if (role === 'examination_officer') roleLabel = 'Examination Officer';
+        else roleLabel = 'School Accountant';
+
+        return res.status(400).json({
+          error: `A ${roleLabel} account already exists for this school. Only one account of this type is allowed.`
+        });
+      }
     }
 
     // Auto-generate username if not provided
@@ -84,6 +107,24 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
           lastName,
           new Date().getFullYear()
         );
+      } else if (['admin', 'principal', 'accountant', 'examination_officer'].includes(role)) {
+        const schoolInitials = school?.name
+          ? school.name.split(' ').filter(word => word.length > 0).map(word => word[0].toUpperCase()).join('').substring(0, 3)
+          : (school?.code || 'SCH');
+
+        // e.g., principal/AMA@123 or exam_off/AMA@123
+        const position = role === 'examination_officer' ? 'exam_off' : role.toLowerCase();
+
+        let usernameExists = true;
+        while (usernameExists) {
+          const randomNums = Math.floor(100 + Math.random() * 900); // 3-digit random number
+          finalUsername = `${position}/${schoolInitials}@${randomNums}`;
+
+          const existing = await prisma.user.findFirst({
+            where: { username: finalUsername, schoolId: req.schoolId }
+          });
+          if (!existing) usernameExists = false;
+        }
       } else {
         const baseUsername = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`.replace(/\s+/g, '');
         // Check if username exists and add number if needed (PER school)
@@ -113,7 +154,7 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
 
     // Password is now optional for all roles - will be auto-generated if not provided
 
-    if (!['admin', 'teacher', 'student', 'accountant', 'principal'].includes(role)) {
+    if (!['admin', 'teacher', 'student', 'accountant', 'principal', 'examination_officer'].includes(role)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
 
@@ -153,7 +194,8 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
       schoolId: req.schoolId,
       username: finalUsername,
       passwordHash,
-      email: email || null, // Convert empty string to null
+      email: email || null,
+      phone: phone || null,
       role,
       firstName,
       lastName
@@ -278,15 +320,13 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
         }
       });
 
-      // Add generated credentials to response if auto-generated
-      if (!staffId || !password) {
-        user.generatedCredentials = {
-          staffId: finalStaffId,
-          password: password || generatedPassword,
-          username: finalUsername,
-          role: 'Teacher'
-        };
-      }
+      // Add generated credentials to response if auto-generated or if it's an admin-type role
+      user.generatedCredentials = {
+        staffId: finalStaffId,
+        password: password || generatedPassword,
+        username: finalUsername,
+        role: 'Teacher'
+      };
     } else if (role === 'accountant') {
       // Auto-generate password for accountant
       const generatedPassword = Math.random().toString(36).slice(-8).toUpperCase();
@@ -300,13 +340,11 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
       });
 
       // Add generated credentials to response
-      if (!password) {
-        user.generatedCredentials = {
-          password: generatedPassword,
-          username: finalUsername,
-          role: 'Accountant'
-        };
-      }
+      user.generatedCredentials = {
+        password: password || generatedPassword,
+        username: finalUsername,
+        role: 'Financial Accountant'
+      };
     } else {
       // Admin or other roles
       const generatedPassword = Math.random().toString(36).slice(-8).toUpperCase();
@@ -320,13 +358,11 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
       });
 
       // Add generated credentials to response
-      if (!password) {
-        user.generatedCredentials = {
-          password: generatedPassword,
-          username: finalUsername,
-          role: role.charAt(0).toUpperCase() + role.slice(1)
-        };
-      }
+      user.generatedCredentials = {
+        password: password || generatedPassword,
+        username: finalUsername,
+        role: role === 'examination_officer' ? 'Examination Officer' : (role === 'admin' ? 'System Admin' : (role === 'principal' ? 'School Principal' : role.charAt(0).toUpperCase() + role.slice(1)))
+      };
     }
 
     // Remove password from response
@@ -375,6 +411,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
     const { id } = req.params;
     const {
       email,
+      phone,
       firstName,
       lastName,
       isActive,
@@ -420,6 +457,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
     // Build update data
     const updateData = {
       email,
+      phone,
       firstName,
       lastName,
       isActive,
@@ -427,7 +465,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
     };
 
     if (role) {
-      if (!['admin', 'teacher', 'student', 'accountant', 'principal'].includes(role)) {
+      if (!['admin', 'teacher', 'student', 'accountant', 'principal', 'examination_officer'].includes(role)) {
         return res.status(400).json({ error: 'Invalid role' });
       }
       updateData.role = role;

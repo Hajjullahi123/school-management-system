@@ -7,6 +7,78 @@ import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useMemo } from 'react';
 import { toast } from 'react-hot-toast';
+
+// Reusable Subject Card component
+function SubjectCard({ assignment, selectedAssignment, onSelect, onDownload, compact, groupBy }) {
+  const isSelected = selectedAssignment === assignment;
+  return (
+    <div
+      className={`border-2 rounded-xl ${compact ? 'p-3' : 'p-4'} cursor-pointer transition-all duration-200 ${isSelected
+        ? 'border-primary bg-primary/5 shadow-md transform scale-[1.02]'
+        : 'border-gray-100 hover:border-primary/30 hover:bg-gray-50'
+        }`}
+      onClick={() => onSelect(assignment)}
+    >
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className={`font-bold text-gray-900 leading-tight ${compact ? 'text-sm' : ''}`}>
+            {groupBy === 'class' ? assignment.subjectName : groupBy === 'subject' ? assignment.className : assignment.subjectName}
+          </h3>
+          {!compact && (
+            <p className="text-xs font-medium text-primary mt-1 uppercase tracking-wider">{assignment.className}</p>
+          )}
+          {compact && groupBy === 'class' && (
+            <span className="text-[10px] text-gray-400 font-medium">{assignment.studentCount} students</span>
+          )}
+          {compact && groupBy === 'subject' && (
+            <span className="text-[10px] text-gray-400 font-medium">{assignment.studentCount} students</span>
+          )}
+        </div>
+        <div className="text-right">
+          <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${assignment.recordedCount > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+            {assignment.recordedCount}/{assignment.studentCount}
+          </span>
+          {assignment.recordedCount > 0 && !compact && (
+            <p className="text-[9px] font-black text-emerald-600 uppercase mt-1">Data Found</p>
+          )}
+        </div>
+      </div>
+
+      {assignment.recordedCount > 0 && assignment.recordedCount < assignment.studentCount && (
+        <div className="mt-2 w-full bg-gray-100 h-1 rounded-full overflow-hidden">
+          <div className="bg-emerald-500 h-full transition-all" style={{ width: `${(assignment.recordedCount / assignment.studentCount) * 100}%` }} />
+        </div>
+      )}
+
+      <div className={`${compact ? 'mt-2' : 'mt-4'} flex items-center justify-between border-t border-gray-100 pt-2`}>
+        <button
+          onClick={(e) => { e.stopPropagation(); onDownload(assignment); }}
+          className={`text-[11px] font-bold flex items-center gap-1 px-2 py-1 rounded ${assignment.recordedCount > 0
+            ? 'text-primary bg-primary/10 hover:bg-primary/20'
+            : 'text-green-600 bg-green-50 hover:bg-green-100'}`}
+          title={assignment.recordedCount > 0 ? "Download scoresheet with existing records" : "Download empty template"}
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          {compact ? '↓' : (assignment.recordedCount > 0 ? 'DOWNLOAD SCORES' : 'GET TEMPLATE')}
+        </button>
+
+        <button
+          onClick={(e) => { e.stopPropagation(); onSelect(assignment); }}
+          className={`text-[11px] font-bold flex items-center gap-1 px-2 py-1 rounded transition-colors ${isSelected ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500 hover:bg-primary/10'}`}
+        >
+          SELECT
+          {assignment.isCompleted && (
+            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
 export default function BulkResultUpload() {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState([]);
@@ -17,6 +89,9 @@ export default function BulkResultUpload() {
   const [loading, setLoading] = useState(true);
   const [previewData, setPreviewData] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [groupBy, setGroupBy] = useState('class'); // 'class' or 'subject'
+  const [collapsedGroups, setCollapsedGroups] = useState({});
   const { settings: schoolSettings } = useSchoolSettings();
 
   const weights = useMemo(() => ({
@@ -120,15 +195,22 @@ export default function BulkResultUpload() {
 
     // Transform and prepare Preview
     const preparedResults = data.map(row => {
-      const scores = {
-        assignment1: parseFloat(getValue(row, ['1st Assignment', 'Assignment 1', 'Assign 1', 'Ass 1', '1st CA'])) || 0,
-        assignment2: parseFloat(getValue(row, ['2nd Assignment', 'Assignment 2', 'Assign 2', 'Ass 2', '2nd CA'])) || 0,
-        test1: parseFloat(getValue(row, ['1st Test', 'Test 1', 'CA 1'])) || 0,
-        test2: parseFloat(getValue(row, ['2nd Test', 'Test 2', 'CA 2'])) || 0,
-        exam: parseFloat(getValue(row, ['Exam', 'Examination'])) || 0
+      const getScoreValue = (row, keywords) => {
+        const val = getValue(row, keywords);
+        if (val === undefined || val === null || val === '') return null;
+        const num = parseFloat(val);
+        return isNaN(num) ? null : num;
       };
 
-      const total = Object.values(scores).reduce((a, b) => a + b, 0);
+      const scores = {
+        assignment1: getScoreValue(row, ['1st Assignment', 'Assignment 1', 'Assign 1', 'Ass 1', '1st CA']),
+        assignment2: getScoreValue(row, ['2nd Assignment', 'Assignment 2', 'Assign 2', 'Ass 2', '2nd CA']),
+        test1: getScoreValue(row, ['1st Test', 'Test 1', 'CA 1']),
+        test2: getScoreValue(row, ['2nd Test', 'Test 2', 'CA 2']),
+        exam: getScoreValue(row, ['Exam', 'Examination'])
+      };
+
+      const total = Object.values(scores).reduce((a, b) => a + (b || 0), 0);
 
       let grade = '';
       if (schoolSettings?.gradingSystem) {
@@ -247,82 +329,114 @@ export default function BulkResultUpload() {
             <div className="lg:w-1/3">
               <div className="bg-white rounded-lg shadow sticky top-6">
                 <div className="px-6 py-4 border-b bg-gray-50/50">
-                  <h2 className="text-lg font-semibold">Your Subjects</h2>
-                </div>
-                <div className="p-4 max-h-[calc(100vh-250px)] overflow-y-auto">
-                  {assignments.length === 0 ? (
-                    <p className="text-gray-500 italic p-4">No subjects assigned.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {assignments.map((assignment, idx) => (
-                        <div
-                          key={idx}
-                          className={`border-2 rounded-xl p-4 cursor-pointer transition-all duration-200 ${selectedAssignment === assignment
-                            ? 'border-primary bg-primary/5 shadow-md transform scale-[1.02]'
-                            : 'border-gray-100 hover:border-primary/30 hover:bg-gray-50'
-                            }`}
-                          onClick={() => setSelectedAssignment(assignment)}
+                  <h2 className="text-lg font-semibold">{user?.role === 'examination_officer' || user?.role === 'admin' ? 'All Subjects' : 'Your Subjects'}</h2>
+                  {/* Search + Group controls for admin/exam officer */}
+                  {(user?.role === 'examination_officer' || user?.role === 'admin') && assignments.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <input
+                        type="text"
+                        placeholder="Search class or subject..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none"
+                      />
+                      <div className="flex bg-gray-100 rounded-lg p-0.5">
+                        <button
+                          onClick={() => { setGroupBy('class'); setCollapsedGroups({}); }}
+                          className={`flex-1 text-[11px] font-bold py-1.5 rounded-md transition-all ${groupBy === 'class' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                         >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-bold text-gray-900 leading-tight">{assignment.subjectName}</h3>
-                              <p className="text-xs font-medium text-primary mt-1 uppercase tracking-wider">{assignment.className}</p>
-                            </div>
-                            <div className="text-right">
-                              <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${assignment.recordedCount > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
-                                {assignment.recordedCount}/{assignment.studentCount} Recorded
-                              </span>
-                              {assignment.recordedCount > 0 && (
-                                <p className="text-[9px] font-black text-emerald-600 uppercase mt-1">Data Found</p>
-                              )}
-                            </div>
-                          </div>
-
-                          {assignment.recordedCount > 0 && assignment.recordedCount < assignment.studentCount && (
-                            <div className="mt-3 w-full bg-gray-100 h-1 rounded-full overflow-hidden">
-                              <div
-                                className="bg-emerald-500 h-full transition-all"
-                                style={{ width: `${(assignment.recordedCount / assignment.studentCount) * 100}%` }}
-                              />
-                            </div>
-                          )}
-
-                          <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                downloadScoresheet(assignment);
-                              }}
-                              className={`text-[11px] font-bold flex items-center gap-1 px-2 py-1 rounded ${assignment.recordedCount > 0
-                                ? 'text-primary bg-primary/10 hover:bg-primary/20'
-                                : 'text-green-600 bg-green-50 hover:bg-green-100'}`}
-                              title={assignment.recordedCount > 0 ? "Download scoresheet with existing records" : "Download empty template"}
-                            >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 8m4-4v12" />
-                              </svg>
-                              {assignment.recordedCount > 0 ? 'DOWNLOAD SCORES' : 'GET TEMPLATE'}
-                            </button>
-
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedAssignment(assignment);
-                              }}
-                              className={`text-[11px] font-bold flex items-center gap-1 px-2 py-1 rounded transition-colors ${selectedAssignment === assignment ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500 hover:bg-primary/10'}`}
-                            >
-                              SELECT
-                              {assignment.isCompleted && (
-                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                </svg>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                          By Class
+                        </button>
+                        <button
+                          onClick={() => { setGroupBy('subject'); setCollapsedGroups({}); }}
+                          className={`flex-1 text-[11px] font-bold py-1.5 rounded-md transition-all ${groupBy === 'subject' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                          By Subject
+                        </button>
+                      </div>
                     </div>
                   )}
+                </div>
+                <div className="p-4 max-h-[calc(100vh-320px)] overflow-y-auto">
+                  {assignments.length === 0 ? (
+                    <p className="text-gray-500 italic p-4">{user?.role === 'examination_officer' ? 'No class-subject combinations found. Please set up Class Subjects first.' : 'No subjects assigned.'}</p>
+                  ) : (() => {
+                    const isGrouped = user?.role === 'examination_officer' || user?.role === 'admin';
+                    const query = searchQuery.toLowerCase().trim();
+
+                    // Filter assignments by search
+                    const filtered = query
+                      ? assignments.filter(a =>
+                        a.subjectName.toLowerCase().includes(query) ||
+                        a.className.toLowerCase().includes(query)
+                      )
+                      : assignments;
+
+                    if (filtered.length === 0) {
+                      return <p className="text-gray-400 italic text-sm p-4 text-center">No matches for "{searchQuery}"</p>;
+                    }
+
+                    if (!isGrouped) {
+                      // Teacher: flat list
+                      return (
+                        <div className="space-y-3">
+                          {filtered.map((assignment, idx) => (
+                            <SubjectCard key={idx} assignment={assignment} selectedAssignment={selectedAssignment} onSelect={setSelectedAssignment} onDownload={downloadScoresheet} />
+                          ))}
+                        </div>
+                      );
+                    }
+
+                    // Group assignments
+                    const groups = {};
+                    filtered.forEach(a => {
+                      const key = groupBy === 'class' ? a.className : a.subjectName;
+                      if (!groups[key]) groups[key] = [];
+                      groups[key].push(a);
+                    });
+
+                    // Sort group keys
+                    const sortedKeys = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+
+                    return (
+                      <div className="space-y-2">
+                        {sortedKeys.map(groupKey => {
+                          const items = groups[groupKey];
+                          const isCollapsed = collapsedGroups[groupKey];
+                          const completedCount = items.filter(a => a.isCompleted).length;
+
+                          return (
+                            <div key={groupKey} className="border border-gray-100 rounded-xl overflow-hidden">
+                              <button
+                                onClick={() => setCollapsedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }))}
+                                className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-gray-50 to-white hover:from-primary/5 hover:to-white transition-colors"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                  </svg>
+                                  <span className="text-sm font-bold text-gray-800">{groupKey}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {completedCount > 0 && (
+                                    <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">{completedCount}✓</span>
+                                  )}
+                                  <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold">{items.length}</span>
+                                </div>
+                              </button>
+                              {!isCollapsed && (
+                                <div className="px-3 pb-3 space-y-2">
+                                  {items.sort((a, b) => (groupBy === 'class' ? a.subjectName : a.className).localeCompare(groupBy === 'class' ? b.subjectName : b.className)).map((assignment, idx) => (
+                                    <SubjectCard key={idx} assignment={assignment} selectedAssignment={selectedAssignment} onSelect={setSelectedAssignment} onDownload={downloadScoresheet} compact groupBy={groupBy} />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

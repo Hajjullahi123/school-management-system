@@ -217,50 +217,52 @@ const TranscriptView = () => {
         </div>
 
         {/* Academic History Table */}
-        <div className="space-y-10 relative z-10 mb-12">
-          {Object.entries(academicHistory).length > 0 ? Object.entries(academicHistory).map(([sessionName, terms]) => (
-            <div key={sessionName} className="page-break-inside-avoid">
-              <div className="bg-gray-800 text-white px-4 py-2 flex justify-between items-center rounded-t-lg">
-                <h4 className="font-bold uppercase text-sm tracking-widest">Academic Session: {sessionName}</h4>
-              </div>
-              <div className="space-y-8 p-4 border-x border-b rounded-b-lg bg-white">
-                {Object.entries(terms).map(([termName, termData]) => (
-                  <div key={termName} className="term-block">
-                    <div className="flex justify-between items-center mb-3 border-b border-dashed pb-2">
-                      <h5 className="font-bold text-gray-700">{termName} Results</h5>
-                      <div className="text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1 rounded-full border">
-                        Term Average: {termData.average}%
-                      </div>
-                    </div>
-                    <table className="min-w-full text-xs">
-                      <thead>
-                        <tr className="bg-gray-50 text-gray-500 font-bold">
-                          <th className="px-3 py-2 text-left w-12 border">CODE</th>
-                          <th className="px-3 py-2 text-left border">SUBJECT DESCRIPTION</th>
-                          <th className="px-3 py-2 text-center w-20 border">SCORE (100)</th>
-                          <th className="px-3 py-2 text-center w-16 border">GRADE</th>
-                          <th className="px-3 py-2 text-center w-20 border">REMARK</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y border">
-                        {termData.results.map((res, idx) => (
-                          <tr key={idx} className="hover:bg-blue-50/30">
-                            <td className="px-3 py-2 font-mono text-gray-600 border">{res.code || 'SUBJ'}</td>
-                            <td className="px-3 py-2 font-medium text-gray-900 border">{res.subject}</td>
-                            <td className="px-3 py-2 text-center font-bold border">{res.score}</td>
-                            <td className={`px-3 py-2 text-center font-bold border ${res.grade === 'A' ? 'text-green-600' : ''}`}>{res.grade}</td>
-                            <td className="px-3 py-2 text-center text-[10px] uppercase font-medium text-gray-500 border italic">
-                              {res.score >= 70 ? 'Distinction' : res.score >= 60 ? 'Credit' : res.score >= 40 ? 'Pass' : 'Fail'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+        <div className="space-y-8 relative z-10 mb-12">
+          {Object.entries(academicHistory).length > 0 ? Object.entries(academicHistory).flatMap(([sessionName, terms]) =>
+            Object.entries(terms).map(([termName, termData]) => (
+              <div key={`${sessionName}-${termName}`} className="page-break-inside-avoid border rounded-lg overflow-hidden bg-white shadow-sm">
+                <div className="bg-gray-800 text-white px-4 py-2.5 flex justify-between items-center">
+                  <h4 className="font-bold uppercase text-[10px] tracking-[0.2em]">
+                    {termName} - {sessionName} ACADEMIC SESSION
+                  </h4>
+                  <div className="text-[10px] font-black bg-white/10 px-2 py-1 rounded border border-white/10 uppercase tracking-widest">
+                    Performance Report
                   </div>
-                ))}
+                </div>
+                <div className="p-4">
+                  <table className="min-w-full text-[11px] border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 text-gray-400 font-black uppercase tracking-widest text-[9px]">
+                        <th className="px-3 py-2 text-left w-16 border">Subject Code</th>
+                        <th className="px-3 py-2 text-left border">Course Description</th>
+                        <th className="px-3 py-2 text-center w-24 border">Score (100)</th>
+                        <th className="px-3 py-2 text-center w-16 border">Grade</th>
+                        <th className="px-3 py-2 text-center w-24 border">Remark</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y border">
+                      {termData.results.map((res, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 font-mono text-gray-500 border">{res.code || 'N/A'}</td>
+                          <td className="px-3 py-2 font-bold text-gray-800 border uppercase">{res.subject}</td>
+                          <td className="px-3 py-2 text-center font-black border text-gray-900">{res.score}</td>
+                          <td className={`px-3 py-2 text-center font-black border ${res.grade === 'A' ? 'text-green-600' : res.grade === 'F' ? 'text-red-600' : 'text-gray-900'}`}>{res.grade}</td>
+                          <td className="px-3 py-2 text-center text-[9px] uppercase font-black text-gray-400 border italic">
+                            {res.score >= 70 ? 'Distinction' : res.score >= 60 ? 'Credit' : res.score >= 40 ? 'Pass' : 'Fail'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="mt-4 flex justify-end">
+                    <div className="text-[10px] font-black text-gray-600 bg-gray-50 px-4 py-2 rounded border border-gray-100 uppercase tracking-widest">
+                      Term Weighted Average: <span className="text-primary ml-2">{termData.average}%</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          )) : (
+            ))
+          ) : (
             <div className="text-center py-20 border-2 border-dashed rounded-xl text-gray-400">
               <Award className="w-12 h-12 mx-auto mb-4 opacity-20" />
               <p className="font-medium">No consolidated academic records found for this student.</p>
@@ -298,9 +300,15 @@ const TranscriptView = () => {
             <p className="text-[10px] font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded">WWW.VERIFY.SCHOOL.EDU</p>
           </div>
 
-          <div className="w-1/3 flex flex-col items-center">
-            <div className="h-24 flex items-end">
-              <div className="italic font-serif text-2xl text-blue-900/40 select-none">Principal Signature</div>
+          <div className="w-1/3 flex flex-col items-center relative">
+            <div className="h-24 flex items-end justify-center relative w-full">
+              {schoolSettings?.principalSignatureUrl ? (
+                <div className="absolute bottom-1 left-1/2 -translate-x-1/2">
+                  <img src={schoolSettings.principalSignatureUrl.startsWith('data:') || schoolSettings.principalSignatureUrl.startsWith('http') ? schoolSettings.principalSignatureUrl : `${API_BASE_URL}${schoolSettings.principalSignatureUrl}`} alt="Principal Signature" className="h-[60px] w-auto mix-blend-multiply" />
+                </div>
+              ) : (
+                <div className="italic font-serif text-2xl text-blue-900/40 select-none">Principal Signature</div>
+              )}
             </div>
             <div className="w-full border-b border-gray-900 mb-2 mt-4"></div>
             <p className="text-[10px] font-bold uppercase text-gray-800">School Principal / Head</p>

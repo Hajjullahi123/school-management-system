@@ -332,7 +332,14 @@ const ParentDashboard = () => {
         <div className="flex items-center justify-between">
           <div className="min-w-0">
             <h1 className="text-xl sm:text-3xl font-bold truncate">Welcome, {user.firstName}!</h1>
-            <p className="text-xs sm:text-sm text-white/90 mt-1 sm:mt-2 truncate">Portal Access • {schoolSettings?.schoolName || 'School System'}</p>
+            <div className="flex flex-wrap items-center gap-2 mt-1 sm:mt-2">
+              <p className="text-xs sm:text-sm text-white/90 truncate">Portal Access • {schoolSettings?.schoolName || 'School System'}</p>
+              {currentTerm && (
+                <span className="bg-white/20 text-white text-[10px] sm:text-xs px-2 py-0.5 rounded border border-white/20 font-black uppercase tracking-tighter italic">
+                  {currentTerm.name}
+                </span>
+              )}
+            </div>
           </div>
           <div className="hidden sm:block">
             <div className="bg-white/20 rounded-lg p-3 sm:p-4">
@@ -421,39 +428,52 @@ const ParentDashboard = () => {
                   )}
                 </div>
 
-                <div className="p-3 sm:p-4 bg-white border-t border-gray-100 grid grid-cols-1 gap-2">
+                <div className="p-3 sm:p-4 bg-white border-t border-gray-100 flex flex-col gap-2">
+                  {/* Row 1: Core Info */}
                   <div className="flex gap-2">
                     {hasFeeInfo && (
                       <button
                         onClick={() => handleViewFees(student)}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
                       >
                         Fees
                       </button>
                     )}
                     <Link
-                      to={`/dashboard/term-report?studentId=${student.id}`}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
+                      to={`/dashboard/parent/attendance?studentId=${student.id}&view=parent`}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
                     >
-                      Term Report
+                      Attendance
+                    </Link>
+                  </div>
+
+                  {/* Row 2: Results/Reports */}
+                  <div className="flex gap-2">
+                    <Link
+                      to={`/dashboard/term-report?studentId=${student.id}&view=parent`}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
+                    >
+                      Terminal
                     </Link>
                     <Link
-                      to={`/dashboard/cumulative-report?studentId=${student.id}`}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-800 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
+                      to={`/dashboard/progressive-report?studentId=${student.id}&view=parent`}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
+                    >
+                      Progressive
+                    </Link>
+                    <Link
+                      to={`/dashboard/cumulative-report?studentId=${student.id}&view=parent`}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
                     >
                       Cumulative
                     </Link>
                   </div>
-                  <div className="flex gap-2">
+
+                  {/* Row 3: Communication */}
+                  <div className="flex">
                     <Link
-                      to={`/dashboard/parent/attendance?studentId=${student.id}`}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
-                    >
-                      Attendance
-                    </Link>
-                    <Link
-                      to="/dashboard/parent/messages"
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
+                      to="/dashboard/parent/messages?view=parent"
+                      className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-purple-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
                     >
                       Message
                     </Link>
@@ -618,6 +638,7 @@ const ParentDashboard = () => {
           allSessions={allSessions}
         />
       )}
+
     </div>
   );
 };

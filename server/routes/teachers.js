@@ -47,7 +47,7 @@ router.get('/', authenticate, authorize(['admin']), async (req, res) => {
 });
 
 // Update teacher profile
-router.put('/profile', authenticate, authorize(['teacher']), upload.single('photo'), async (req, res) => {
+router.put('/profile', authenticate, authorize(['teacher', 'examination_officer', 'admin', 'principal']), upload.single('photo'), async (req, res) => {
   try {
     const userId = req.user.id;
     const { specialization, staffId, email, firstName, lastName } = req.body;
@@ -72,29 +72,32 @@ router.put('/profile', authenticate, authorize(['teacher']), upload.single('phot
       data: userUpdateData
     });
 
-    // Update teacher specific info
-    const teacherUpdateData = {
-      specialization: specialization || undefined,
-      staffId: staffId || undefined
-    };
+    let updatedTeacher = null;
+    if (req.user.role === 'teacher' || req.user.teacher) {
+      // Update teacher specific info
+      const teacherUpdateData = {
+        specialization: specialization || undefined,
+        staffId: staffId || undefined
+      };
 
-    // Add photo path if uploaded
-    if (req.file) {
-      teacherUpdateData.photoUrl = `/uploads/teacher-photos/${req.file.filename}`;
+      // Add photo path if uploaded
+      if (req.file) {
+        teacherUpdateData.photoUrl = `/uploads/teacher-photos/${req.file.filename}`;
+      }
+
+      // Remove undefined values
+      Object.keys(teacherUpdateData).forEach(key =>
+        teacherUpdateData[key] === undefined && delete teacherUpdateData[key]
+      );
+
+      updatedTeacher = await prisma.teacher.update({
+        where: {
+          userId: userId,
+          schoolId: req.schoolId
+        },
+        data: teacherUpdateData
+      });
     }
-
-    // Remove undefined values
-    Object.keys(teacherUpdateData).forEach(key =>
-      teacherUpdateData[key] === undefined && delete teacherUpdateData[key]
-    );
-
-    const updatedTeacher = await prisma.teacher.update({
-      where: {
-        userId: userId,
-        schoolId: req.schoolId
-      },
-      data: teacherUpdateData
-    });
 
     res.json({
       message: 'Profile updated successfully',
@@ -117,6 +120,44 @@ router.put('/profile', authenticate, authorize(['teacher']), upload.single('phot
   } catch (error) {
     console.error('Error updating teacher profile:', error);
     res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// NEW: Simple Base64 Signature Upload
+router.post('/signature-base64', authenticate, authorize(['teacher', 'examination_officer', 'admin', 'principal']), async (req, res) => {
+  console.log('===Base64 teacher signature upload received===');
+
+  try {
+    const { imageData } = req.body;
+
+    if (!imageData) {
+      return res.status(400).json({ error: 'No image data provided' });
+    }
+
+    // Update database with base64 data to the User model
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        signatureUrl: imageData
+      }
+    });
+
+    res.json({ success: true, signatureUrl: imageData });
+
+    // Log the action
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPDATE',
+      resource: 'TEACHER_SIGNATURE',
+      details: {
+        method: 'base64_database_storage'
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error uploading teacher signature:', error);
+    res.status(500).json({ error: 'Failed to save signature: ' + error.message });
   }
 });
 

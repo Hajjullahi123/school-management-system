@@ -555,12 +555,12 @@ const ReportCard = () => {
               </div>
 
               {/* REMARKS SECTION */}
-              <div className="border-2 border-black bg-white rounded-xl overflow-hidden mt-4">
+              <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-4">
                 <div className="grid grid-cols-2 divide-x-2 divide-black">
-                  <div className="p-3 space-y-1">
+                  <div className="p-2 space-y-1">
                     <p className="text-[10px] font-black uppercase text-gray-500">Form Master's Remark</p>
                     <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
-                      "{reportData.formMasterRemark || 'Performance is encouraging.'}"
+                      "{reportData.formMasterRemark || 'No specific remark recorded.'}"
                     </p>
                     <div className="pt-1 border-t border-black/10 flex justify-between items-center">
                       <span className="text-[9px] font-bold">Name: {reportData.student?.formMaster || '......................'}</span>
@@ -572,21 +572,27 @@ const ReportCard = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="p-3 space-y-1">
+                  <div className="p-2 space-y-1">
                     <p className="text-[10px] font-black uppercase text-gray-500">Principal's Remark</p>
                     <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
-                      "{reportData.principalRemark || 'Satisfactory academic performance.'}"
+                      "{reportData.principalRemark || 'Satisfactory result. Keep striving for excellence.'}"
                     </p>
                     <div className="pt-1 border-t border-black/10 flex justify-between items-center text-[9px] font-bold">
-                      <span>Next Term Begins:</span>
-                      <span className="underline font-black">{reportData.term?.nextTermBegins ? new Date(reportData.term.nextTermBegins).toLocaleDateString() : '....................'}</span>
+                      <div>
+                        <span className="mr-1">Term Ends:</span>
+                        <span className="underline font-black">{reportData.term?.endDate ? new Date(reportData.term.endDate).toLocaleDateString() : '....................'}</span>
+                      </div>
+                      <div>
+                        <span className="mr-1">Next Term Begins:</span>
+                        <span className="underline font-black">{reportData.term?.nextTermBegins ? new Date(reportData.term.nextTermBegins).toLocaleDateString() : '....................'}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* SIGNATURES & VERIFICATION */}
-              <div className="mt-4 grid grid-cols-3 gap-8 items-end p-2 print:mt-2">
+              <div className="mt-4 grid grid-cols-3 gap-8 items-end print:mt-2">
                 <div className="space-y-2">
                   <div className="w-full h-8 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-20 grayscale">
                     {[...Array(60)].map((_, i) => (
@@ -594,33 +600,41 @@ const ReportCard = () => {
                     ))}
                   </div>
                   <p className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400">
-                    Verification ID: {reportData.student?.admissionNumber?.replace('/', '-')}-{selectedTerm?.toString().slice(-4)}
+                    Verification ID: {reportData.student?.admissionNumber?.toString().replace('/', '-')}-{reportData.term?.id?.toString().slice(-4)}
                   </p>
                 </div>
 
-                <div className="text-center relative">
-                  <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-20 pointer-events-none">
-                    <svg width="60" height="60" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
-                      <text x="50" y="45" textAnchor="middle" fontSize="8" fontWeight="bold">OFFICIAL</text>
-                      <text x="50" y="55" textAnchor="middle" fontSize="10" fontWeight="black">SEAL</text>
-                    </svg>
+                <div className="text-center flex flex-col items-center">
+                  <div className="h-[45px] flex items-end justify-center mb-1">
+                    {reportData.student?.formMasterSignatureUrl ? (
+                      <img src={reportData.student.formMasterSignatureUrl.startsWith('data:') || reportData.student.formMasterSignatureUrl.startsWith('http') ? reportData.student.formMasterSignatureUrl : `${API_BASE_URL}${reportData.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-[40px] w-auto mix-blend-multiply" />
+                    ) : (
+                      <svg width="50" height="50" viewBox="0 0 100 100" className="opacity-15">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
+                        <text x="50" y="45" textAnchor="middle" fontSize="8" fontWeight="bold">OFFICIAL</text>
+                        <text x="50" y="55" textAnchor="middle" fontSize="10" fontWeight="black">SEAL</text>
+                      </svg>
+                    )}
                   </div>
                   <div className="border-b-2 border-black w-full mb-1 opacity-80"></div>
                   <p className="text-[10px] font-black uppercase">Teacher's Signature</p>
-                  <p className="text-[8px] text-gray-400 uppercase mt-0.5">Automated Seal</p>
+                  <p className="text-[8px] text-gray-400 uppercase mt-0.5">{reportData.student?.formMasterSignatureUrl ? 'Digitally Signed' : 'Automated Seal'}</p>
                 </div>
 
-                <div className="text-center relative">
-                  <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-30 pointer-events-none">
-                    <svg width="80" height="80" viewBox="0 0 100 100" style={{ color: schoolSettings?.primaryColor }}>
-                      <path d="M20 50 Q 50 10, 80 50 T 20 80" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.5" />
-                      <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
-                      <text x="50" y="52" textAnchor="middle" fontSize="6" fontWeight="bold" transform="rotate(-15 50 50)">CERTIFIED OFFICIAL</text>
-                    </svg>
+                <div className="text-center flex flex-col items-center">
+                  <div className="h-[45px] flex items-end justify-center mb-1">
+                    {reportData.term?.principalSignatureUrl ? (
+                      <img src={reportData.term.principalSignatureUrl.startsWith('data:') || reportData.term.principalSignatureUrl.startsWith('http') ? reportData.term.principalSignatureUrl : `${API_BASE_URL}${reportData.term.principalSignatureUrl}`} alt="Principal Signature" className="h-[40px] w-auto mix-blend-multiply" />
+                    ) : (
+                      <svg width="60" height="60" viewBox="0 0 100 100" className="opacity-20" style={{ color: schoolSettings?.primaryColor }}>
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
+                        <text x="50" y="52" textAnchor="middle" fontSize="6" fontWeight="bold" transform="rotate(-15 50 50)">CERTIFIED OFFICIAL</text>
+                      </svg>
+                    )}
                   </div>
-                  <div className="border-b-2 border-emerald-800 w-full mb-1" style={{ borderColor: schoolSettings?.primaryColor }}></div>
-                  <p className="text-[10px] font-black uppercase text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>Principal's Signature</p>
+                  <div className="border-b-2 w-full mb-1" style={{ borderColor: schoolSettings?.primaryColor || '#065f46' }}></div>
+                  <p className="text-[10px] font-black uppercase" style={{ color: schoolSettings?.primaryColor || '#065f46' }}>Principal's Signature</p>
+                  <p className="text-[8px] text-gray-400 uppercase mt-0.5">{reportData.term?.principalSignatureUrl ? 'Digitally Signed' : 'Automated Seal'}</p>
                 </div>
               </div>
             </div>

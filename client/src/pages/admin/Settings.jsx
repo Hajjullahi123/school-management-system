@@ -53,10 +53,14 @@ const Settings = () => {
     geminiApiKey: '',
     staffExpectedArrivalTime: '07:00',
     staffClockInDeadline: '10:00',
-    enableStaffAttendanceReport: true
+    enableStaffAttendanceReport: true,
+    staffClockInMode: 'anywhere',
+    authorizedIP: ''
   });
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
+  const [signatureFile, setSignatureFile] = useState(null);
+  const [signaturePreview, setSignaturePreview] = useState(null);
   const [brochureFile, setBrochureFile] = useState(null);
   const [admissionGuideFile, setAdmissionGuideFile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -76,6 +80,9 @@ const Settings = () => {
       setSettings(data);
       if (data.logoUrl) {
         setLogoPreview(data.logoUrl.startsWith('data:') || data.logoUrl.startsWith('http') ? data.logoUrl : `${API_BASE_URL}${data.logoUrl}`);
+      }
+      if (data.principalSignatureUrl) {
+        setSignaturePreview(data.principalSignatureUrl.startsWith('data:') || data.principalSignatureUrl.startsWith('http') ? data.principalSignatureUrl : `${API_BASE_URL}${data.principalSignatureUrl}`);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -115,6 +122,18 @@ const Settings = () => {
     }
   };
 
+  const handleSignatureChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        toast.error('File size must be less than 2MB');
+        return;
+      }
+      setSignatureFile(file);
+      setSignaturePreview(URL.createObjectURL(file));
+    }
+  };
+
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -140,6 +159,26 @@ const Settings = () => {
         const logoData = await logoResponse.json();
         if (logoResponse.ok) {
           updatedSettings.logoUrl = logoData.logoUrl;
+        }
+      }
+
+      // 1b. Upload Principal Signature if changed (Use base64!)
+      if (signatureFile) {
+        const reader = new FileReader();
+        const base64Data = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(signatureFile);
+        });
+
+        const sigResponse = await api.post('/api/settings/principal-signature-base64', {
+          imageData: base64Data,
+          fileName: signatureFile.name
+        });
+
+        const sigData = await sigResponse.json();
+        if (sigResponse.ok) {
+          updatedSettings.principalSignatureUrl = sigData.principalSignatureUrl;
         }
       }
 
@@ -403,6 +442,24 @@ const Settings = () => {
                 <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB (Recommended: 500x500px)</p>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Principal's Signature
+                </label>
+                <div className="flex items-center space-x-4">
+                  {signaturePreview && (
+                    <img src={signaturePreview} alt="Signature Preview" className="h-16 w-32 object-contain border rounded bg-gray-50 dark:bg-gray-100" />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleSignatureChange}
+                    className="text-sm w-full"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">PNG with transparent background (Recommended: 300x100px)</p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -515,50 +572,52 @@ const Settings = () => {
                 </div>
               </div>
 
-              {/* Data Backup & Export Section */}
-              <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm space-y-6">
-                <div className="flex items-center gap-4 border-b border-gray-50 pb-4">
-                  <div className="p-3 bg-indigo-100 text-indigo-600 rounded-lg">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-7-4h.01M11 16h.01" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">Data Backup & Export</h3>
-                    <p className="text-sm text-gray-500">Securely download your school's data and digital assets</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
-                    <h4 className="font-bold text-gray-800">Database Export</h4>
-                    <p className="text-xs text-gray-500">
-                      Download a complete snapshot of records in JSON format.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => window.open(`${API_BASE_URL}/api/backup/export?token=${localStorage.getItem('token')}`, '_blank')}
-                      className="w-full py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
-                    >
-                      Download Data Backup
-                    </button>
+              {/* Data Backup & Export Section — hidden for now */}
+              {false && (
+                <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm space-y-6">
+                  <div className="flex items-center gap-4 border-b border-gray-50 pb-4">
+                    <div className="p-3 bg-indigo-100 text-indigo-600 rounded-lg">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-7-4h.01M11 16h.01" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">Data Backup & Export</h3>
+                      <p className="text-sm text-gray-500">Securely download your school's data and digital assets</p>
+                    </div>
                   </div>
 
-                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
-                    <h4 className="font-bold text-gray-800">Assets Export</h4>
-                    <p className="text-xs text-gray-500">
-                      Download all uploaded files in a compressed ZIP archive.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => window.open(`${API_BASE_URL}/api/backup/export-assets?token=${localStorage.getItem('token')}`, '_blank')}
-                      className="w-full py-2 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
-                    >
-                      Download Assets (ZIP)
-                    </button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
+                      <h4 className="font-bold text-gray-800">Database Export</h4>
+                      <p className="text-xs text-gray-500">
+                        Download a complete snapshot of records in JSON format.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => window.open(`${API_BASE_URL}/api/backup/export?token=${localStorage.getItem('token')}`, '_blank')}
+                        className="w-full py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                      >
+                        Download Data Backup
+                      </button>
+                    </div>
+
+                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
+                      <h4 className="font-bold text-gray-800">Assets Export</h4>
+                      <p className="text-xs text-gray-500">
+                        Download all uploaded files in a compressed ZIP archive.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => window.open(`${API_BASE_URL}/api/backup/export-assets?token=${localStorage.getItem('token')}`, '_blank')}
+                        className="w-full py-2 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+                      >
+                        Download Assets (ZIP)
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Footer Links & Documents */}
               <div>
@@ -1270,6 +1329,60 @@ const Settings = () => {
                   </div>
                   <p className="mt-1 text-xs text-gray-500 italic">When enabled, admins will receive end-of-day summary reports.</p>
                 </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Staff Clock-in Mode</label>
+                  <select
+                    name="staffClockInMode"
+                    value={settings.staffClockInMode || 'anywhere'}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
+                  >
+                    <option value="anywhere">Anywhere (No Restrictions)</option>
+                    <option value="ip_locked">On-Premises (Authorized IP Only)</option>
+                    <option value="scan_only">Admin Scan Only (Must be scanned at gate)</option>
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500 italic">
+                    {settings.staffClockInMode === 'anywhere' && 'Staff can clock in from their personal dashboard from any location.'}
+                    {settings.staffClockInMode === 'ip_locked' && 'Staff can only clock in when connected to the school\'s authorized network.'}
+                    {settings.staffClockInMode === 'scan_only' && 'Staff cannot clock in themselves; an admin must scan their ID at the arrival scanner.'}
+                  </p>
+                </div>
+
+                {settings.staffClockInMode === 'ip_locked' && (
+                  <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg border border-gray-200 animate-fadeIn">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Authorized School Network IP</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        name="authorizedIP"
+                        value={settings.authorizedIP || ''}
+                        onChange={handleInputChange}
+                        placeholder="e.g. 1.2.3.4"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch('https://api.ipify.org?format=json');
+                            const data = await res.json();
+                            setSettings(prev => ({ ...prev, authorizedIP: data.ip }));
+                            toast.success(`Detected IP: ${data.ip}`);
+                          } catch (e) {
+                            toast.error('Failed to auto-detect IP');
+                          }
+                        }}
+                        className="px-4 py-2 bg-secondary text-white rounded-lg font-medium hover:brightness-90 transition-all text-sm"
+                      >
+                        Detect Current IP
+                      </button>
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500 italic">
+                      Staff must be on this network to clock in. Currently detected IP: <span className="font-mono font-bold text-primary">...</span>
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end space-x-4 pt-4 border-t">

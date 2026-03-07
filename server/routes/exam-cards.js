@@ -4,8 +4,8 @@ const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 
-// Generate exam card (Student, Admin, Accountant)
-router.post('/generate', authenticate, authorize(['student', 'admin', 'accountant']), async (req, res) => {
+// Generate exam card (Student, Admin, Accountant, ExamOfficer)
+router.post('/generate', authenticate, authorize(['student', 'admin', 'accountant', 'examination_officer']), async (req, res) => {
   try {
     const { termId, academicSessionId, studentId } = req.body;
 
@@ -28,9 +28,9 @@ router.post('/generate', authenticate, authorize(['student', 'admin', 'accountan
         }
       });
     } else {
-      // Admin/Accountant must provide studentId
+      // Admin/Accountant/ExamOfficer must provide studentId
       if (!studentId) {
-        return res.status(400).json({ error: 'Student ID is required for admin/accountant' });
+        return res.status(400).json({ error: 'Student ID is required for this role' });
       }
       student = await prisma.student.findFirst({
         where: {
@@ -48,11 +48,14 @@ router.post('/generate', authenticate, authorize(['student', 'admin', 'accountan
       return res.status(404).json({ error: 'Student profile not found' });
     }
 
-    if (student.isExamRestricted) {
-      return res.status(403).json({
-        error: 'ACCESS DENIED: You have been restricted from accessing exam cards.',
-        restrictionReason: student.examRestrictionReason || 'Please contact school administration.'
-      });
+    // Skip restriction checks for examination_officer (they can print for all students)
+    if (req.user.role !== 'examination_officer') {
+      if (student.isExamRestricted) {
+        return res.status(403).json({
+          error: 'ACCESS DENIED: You have been restricted from accessing exam cards.',
+          restrictionReason: student.examRestrictionReason || 'Please contact school administration.'
+        });
+      }
     }
 
     // Check fee clearance - Default to allowed if no record exists
@@ -67,17 +70,20 @@ router.post('/generate', authenticate, authorize(['student', 'admin', 'accountan
       }
     });
 
-    // If restricted, block generation
-    if (feeRecord && !feeRecord.isClearedForExam) {
-      return res.status(403).json({
-        error: 'Your exam card access has been restricted by the school administration. Please resolve any outstanding issues with the accountant.',
-        requiresClearance: true,
-        feeStatus: {
-          expected: feeRecord.expectedAmount,
-          paid: feeRecord.paidAmount,
-          balance: feeRecord.balance
-        }
-      });
+    // Skip fee clearance check for examination_officer
+    if (req.user.role !== 'examination_officer') {
+      // If restricted, block generation
+      if (feeRecord && !feeRecord.isClearedForExam) {
+        return res.status(403).json({
+          error: 'Your exam card access has been restricted by the school administration. Please resolve any outstanding issues with the accountant.',
+          requiresClearance: true,
+          feeStatus: {
+            expected: feeRecord.expectedAmount,
+            paid: feeRecord.paidAmount,
+            balance: feeRecord.balance
+          }
+        });
+      }
     }
 
     // Check if exam card already exists
@@ -232,8 +238,8 @@ router.get('/my-card', authenticate, authorize(['student']), async (req, res) =>
   }
 });
 
-// Get student's exam card (Admin/Accountant view)
-router.get('/student/:studentId', authenticate, authorize(['admin', 'accountant', 'teacher']), async (req, res) => {
+// Get student's exam card (Reporting view)
+router.get('/student/:studentId', authenticate, authorize(['admin', 'accountant', 'teacher', 'examination_officer']), async (req, res) => {
   try {
     const { studentId } = req.params;
     const { termId, academicSessionId } = req.query;
@@ -294,8 +300,8 @@ router.get('/student/:studentId', authenticate, authorize(['admin', 'accountant'
   }
 });
 
-// Verify exam card (Admin/Teacher)
-router.get('/verify/:cardNumber', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+// Verify exam card (Admin/Teacher/ExamOfficer)
+router.get('/verify/:cardNumber', authenticate, authorize(['admin', 'teacher', 'examination_officer']), async (req, res) => {
   try {
     const { cardNumber } = req.params;
 
@@ -348,8 +354,8 @@ router.get('/verify/:cardNumber', authenticate, authorize(['admin', 'teacher']),
   }
 });
 
-// Get all exam cards (Admin)
-router.get('/all', authenticate, authorize(['admin']), async (req, res) => {
+// Get all exam cards (Admin/ExamOfficer)
+router.get('/all', authenticate, authorize(['admin', 'examination_officer']), async (req, res) => {
   try {
     const { termId, academicSessionId } = req.query;
 
@@ -380,7 +386,7 @@ router.get('/all', authenticate, authorize(['admin']), async (req, res) => {
 });
 
 // Bulk generate exam cards for all cleared students
-router.post('/bulk-generate', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
+router.post('/bulk-generate', authenticate, authorize(['admin', 'accountant', 'examination_officer']), async (req, res) => {
   try {
     const { termId, academicSessionId, classId } = req.body;
 
@@ -388,32 +394,66 @@ router.post('/bulk-generate', authenticate, authorize(['admin', 'accountant']), 
       return res.status(400).json({ error: 'Term and Session are required' });
     }
 
-    // Find all cleared students
-    const where = {
-      schoolId: req.schoolId,
-      termId: parseInt(termId),
-      academicSessionId: parseInt(academicSessionId),
-      isClearedForExam: true
-    };
+    let studentsToProcess = [];
 
-    if (classId) {
-      where.student = { classId: parseInt(classId) };
-    }
+    if (req.user.role === 'examination_officer') {
+      // Exam officer: generate for ALL students, regardless of fee clearance
+      const studentWhere = {
+        schoolId: req.schoolId
+      };
+      if (classId) {
+        studentWhere.classId = parseInt(classId);
+      }
 
-    const clearedRecords = await prisma.feeRecord.findMany({
-      where,
-      include: {
-        student: {
-          include: {
-            user: true,
-            classModel: true
+      const allStudents = await prisma.student.findMany({
+        where: studentWhere,
+        include: {
+          user: true,
+          classModel: true
+        }
+      });
+
+      studentsToProcess = allStudents.map(s => ({
+        studentId: s.id,
+        student: s
+      }));
+
+      if (studentsToProcess.length === 0) {
+        return res.status(400).json({ error: 'No students found' });
+      }
+    } else {
+      // Admin/Accountant: only fee-cleared students
+      const where = {
+        schoolId: req.schoolId,
+        termId: parseInt(termId),
+        academicSessionId: parseInt(academicSessionId),
+        isClearedForExam: true
+      };
+
+      if (classId) {
+        where.student = { classId: parseInt(classId) };
+      }
+
+      const clearedRecords = await prisma.feeRecord.findMany({
+        where,
+        include: {
+          student: {
+            include: {
+              user: true,
+              classModel: true
+            }
           }
         }
-      }
-    });
+      });
 
-    if (clearedRecords.length === 0) {
-      return res.status(400).json({ error: 'No cleared students found' });
+      if (clearedRecords.length === 0) {
+        return res.status(400).json({ error: 'No cleared students found' });
+      }
+
+      studentsToProcess = clearedRecords.map(r => ({
+        studentId: r.studentId,
+        student: r.student
+      }));
     }
 
     const results = {
@@ -422,7 +462,7 @@ router.post('/bulk-generate', authenticate, authorize(['admin', 'accountant']), 
       errors: []
     };
 
-    for (const record of clearedRecords) {
+    for (const record of studentsToProcess) {
       try {
         // Check if card exists
         const existing = await prisma.examCard.findUnique({
@@ -500,7 +540,7 @@ router.post('/bulk-generate', authenticate, authorize(['admin', 'accountant']), 
 });
 
 // Get statistics
-router.get('/stats/:termId/:sessionId', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
+router.get('/stats/:termId/:sessionId', authenticate, authorize(['admin', 'accountant', 'examination_officer']), async (req, res) => {
   try {
     const termId = parseInt(req.params.termId);
     const sessionId = parseInt(req.params.sessionId);

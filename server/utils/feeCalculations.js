@@ -12,19 +12,18 @@ async function calculatePreviousOutstanding(schoolId, studentId, currentSessionI
   try {
     const sId = Number(schoolId);
     const studId = Number(studentId);
-    const sessId = Number(currentSessionId);
     const termId = Number(currentTermId);
 
-    // 1. Get current session and term dates
+    // 1. Get current term to determine its start date
     const currentTerm = await prisma.term.findUnique({
-      where: { id: termId },
-      include: { academicSession: true }
+      where: { id: termId }
     });
 
     if (!currentTerm) return 0;
 
-    // 2. Get the MOST RECENT previous fee record (strictly before current term's start date)
-    const latestPreviousRecord = await prisma.feeRecord.findFirst({
+    // 2. Get ALL fee records from terms that started before this term
+    //    This ensures we catch every previous term, even if some in between are missing
+    const previousRecords = await prisma.feeRecord.findMany({
       where: {
         schoolId: sId,
         studentId: studId,
@@ -32,17 +31,22 @@ async function calculatePreviousOutstanding(schoolId, studentId, currentSessionI
           startDate: { lt: currentTerm.startDate }
         }
       },
-      orderBy: {
-        term: {
-          startDate: 'desc'
-        }
-      },
       select: {
-        balance: true
+        expectedAmount: true,
+        paidAmount: true
       }
     });
 
-    return parseFloat(latestPreviousRecord?.balance) || 0;
+    if (previousRecords.length === 0) return 0;
+
+    // 3. Sum total expected and total paid across ALL previous terms
+    //    Opening balance = total owed from all previous terms
+    //    If negative, it means the student has a credit/overpayment
+    const totalExpected = previousRecords.reduce((sum, r) => sum + (parseFloat(r.expectedAmount) || 0), 0);
+    const totalPaid = previousRecords.reduce((sum, r) => sum + (parseFloat(r.paidAmount) || 0), 0);
+    const outstanding = totalExpected - totalPaid;
+
+    return outstanding;
   } catch (error) {
     console.error('Error calculating previous outstanding:', error);
     return 0;

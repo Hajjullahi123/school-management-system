@@ -118,11 +118,10 @@ const LandingPage = () => {
       const response = await fetch(`${API_BASE_URL}/api/top-students/top-students?limit=6&schoolId=${schoolId}`);
       if (!response.ok) throw new Error('Failed to fetch top students');
       const data = await response.json();
-      setTopStudents(data);
+      setTopStudents(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching top students:', error);
-      // Use fallback data if API fails
-      setTopStudents(getFallbackStudents());
+      setTopStudents([]);
     } finally {
       setLoadingStudents(false);
     }
@@ -416,15 +415,22 @@ const LandingPage = () => {
                     </div>
                   </div>
 
+                  {/* Fallback term notice */}
+                  {student.isFallback && (
+                    <div className="absolute top-4 left-4 z-10">
+                      <div className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[9px] font-bold shadow border border-blue-200">
+                        📅 {student.fallbackTerm}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Photo Section */}
                   <div className="relative h-64 bg-gradient-to-br from-primary/70 to-primary overflow-hidden">
-                    {/* Decorative Background Pattern */}
                     <div className="absolute inset-0 opacity-10">
                       <div className="absolute top-0 left-0 w-32 h-32 bg-white rounded-full -translate-x-16 -translate-y-16"></div>
                       <div className="absolute bottom-0 right-0 w-40 h-40 bg-white rounded-full translate-x-20 translate-y-20"></div>
                     </div>
 
-                    {/* Student Photo */}
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-40 h-40 rounded-full bg-white shadow-2xl flex items-center justify-center overflow-hidden border-4 border-white group-hover:scale-110 transition-transform duration-500">
                         {student.photo ? (
@@ -437,7 +443,6 @@ const LandingPage = () => {
                       </div>
                     </div>
 
-                    {/* Floating Achievement Badge */}
                     <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-max max-w-[90%] text-center">
                       <p className="text-xs font-semibold text-primary truncate">{student.achievement}</p>
                     </div>
@@ -445,12 +450,10 @@ const LandingPage = () => {
 
                   {/* Info Section */}
                   <div className="p-6">
-                    {/* Name */}
                     <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-primary transition-colors truncate">
                       {student.name}
                     </h3>
 
-                    {/* Class */}
                     <div className="flex items-center gap-2 mb-3">
                       <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -458,13 +461,11 @@ const LandingPage = () => {
                       <span className="text-sm font-medium text-gray-600">{student.class}</span>
                     </div>
 
-                    {/* Average Score */}
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-gray-600">Average Score</span>
                         <span className="text-2xl font-bold text-primary">{student.average}</span>
                       </div>
-                      {/* Progress Bar */}
                       <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                         <div
                           className="bg-gradient-to-r from-primary to-accent h-2 rounded-full transition-all duration-1000 ease-out"
@@ -473,32 +474,64 @@ const LandingPage = () => {
                       </div>
                     </div>
 
-                    {/* Best Subjects */}
                     <div className="mb-4 h-12 overflow-hidden">
                       <p className="text-xs text-gray-500 mb-1">Best Subjects:</p>
                       <p className="text-sm text-gray-700 font-medium line-clamp-2">{student.subjects}</p>
                     </div>
 
-                    {/* View Profile Button */}
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedStudent(student);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); setSelectedStudent(student); }}
                       className="block w-full text-center bg-gradient-to-r from-primary to-primary/90 text-white py-2 px-4 rounded-lg font-medium hover:brightness-90 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
                     >
                       View Full Profile
                     </button>
                   </div>
 
-                  {/* Hover Glow Effect */}
                   <div className="absolute inset-0 bg-gradient-to-t from-primary/0 to-primary/0 group-hover:from-primary/5 group-hover:to-transparent transition-all duration-500 pointer-events-none"></div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <p className="text-xl text-gray-500">No top performers found for the current session yet.</p>
+            /* Premium Empty State */
+            <div className="flex flex-col items-center justify-center py-20 px-6">
+              <div className="relative mb-8">
+                {/* Animated rings */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-48 h-48 rounded-full border-4 border-primary/10 animate-ping" style={{ animationDuration: '3s' }}></div>
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-36 h-36 rounded-full border-4 border-primary/20 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }}></div>
+                </div>
+                {/* Central trophy icon */}
+                <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-2xl mx-auto">
+                  <span className="text-6xl">🏆</span>
+                </div>
+              </div>
+
+              <h3 className="text-3xl font-black text-gray-800 mb-3 text-center">Hall of Fame Awaits</h3>
+              <p className="text-gray-500 text-center max-w-md text-lg mb-8">
+                Results haven't been published yet for any class this term. Once results are released, our top performers will shine here!
+              </p>
+
+              {/* Decorative star row */}
+              <div className="flex gap-3 mb-8">
+                {[...Array(5)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-12 h-12 rounded-full bg-gradient-to-br flex items-center justify-center shadow-lg text-2xl"
+                    style={{
+                      background: `linear-gradient(135deg, hsl(${220 + i * 15}, 80%, 60%), hsl(${220 + i * 15}, 80%, 40%))`,
+                      animationDelay: `${i * 0.2}s`
+                    }}
+                  >
+                    ⭐
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-primary/5 border border-primary/20 rounded-2xl px-8 py-4 text-center">
+                <p className="text-sm text-primary font-semibold">📢 Results are published by administrators after exams are marked and approved.</p>
+              </div>
             </div>
           )}
 

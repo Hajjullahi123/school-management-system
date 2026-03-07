@@ -32,9 +32,13 @@ export const useSchoolSettings = () => {
         const urlParams = new URLSearchParams(window.location.search);
 
         // Priority: 1. Path slug (e.g. /amana-academy/), 2. Query param (?school=), 3. localStorage
-        const slug = pathParts[0] && !['login', 'news-events', 'contact', 'gallery', 'alumni', 'demo', 'verify', 'dashboard', 'superadmin', 'school-home', 'verify-dashboard'].includes(pathParts[0])
+        let slug = pathParts[0] && !['login', 'news-events', 'contact', 'gallery', 'alumni', 'demo', 'verify', 'dashboard', 'superadmin', 'school-home', 'verify-dashboard'].includes(pathParts[0])
           ? pathParts[0]
           : urlParams.get('school') || localStorage.getItem('schoolSlug');
+
+        if (slug === 'null' || slug === 'undefined') {
+          slug = null;
+        }
 
         const endpoint = slug ? `/api/settings?schoolSlug=${slug}` : '/api/settings';
         const response = await api.get(endpoint);
@@ -74,7 +78,8 @@ export const useSchoolSettings = () => {
             test2Weight: data.test2Weight || 10,
             examWeight: data.examWeight || 70,
             currentSession: data.currentSession || null,
-            isSetupComplete: data.isSetupComplete ?? true
+            isSetupComplete: data.isSetupComplete ?? true,
+            principalSignatureUrl: data.principalSignatureUrl || null
           });
         }
 

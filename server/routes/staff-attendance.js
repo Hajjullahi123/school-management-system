@@ -3,6 +3,7 @@ const router = express.Router();
 const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
+const ExcelJS = require('exceljs');
 
 // Helper to get current session and term
 async function getCurrentSessionAndTerm(schoolId) {
@@ -69,9 +70,31 @@ router.post('/check-in', authenticate, authorize(['teacher', 'admin', 'principal
       select: {
         name: true,
         staffExpectedArrivalTime: true,
-        staffClockInDeadline: true
+        staffClockInDeadline: true,
+        staffClockInMode: true,
+        authorizedIP: true
       }
     });
+
+    // 1. Clock-in Mode Validation (Restricting teachers if scan_only)
+    if (schoolSettings?.staffClockInMode === 'scan_only' && req.user.role === 'teacher') {
+      return res.status(403).json({
+        error: 'Direct clock-in disabled',
+        message: 'Your school requires attendance to be marked via the Arrival Scanner at the gate. Please proceed to the scanner point.'
+      });
+    }
+
+    // 2. IP Restriction Validation
+    if (schoolSettings?.staffClockInMode === 'ip_locked' && schoolSettings.authorizedIP) {
+      const clientIp = req.ip.replace('::ffff:', '');
+      // Allow localhost/loopback for development, otherwise must match authorizedIP
+      if (clientIp !== schoolSettings.authorizedIP && clientIp !== '::1' && clientIp !== '127.0.0.1') {
+        return res.status(403).json({
+          error: 'Network restriction',
+          message: 'Clock-in is restricted to the school\'s internal network. Please ensure you are connected to the school Wi-Fi.'
+        });
+      }
+    }
 
     // Check if after deadline
     if (schoolSettings?.staffClockInDeadline) {
@@ -231,11 +254,17 @@ router.get('/my-status', authenticate, authorize(['teacher', 'admin', 'principal
       }
     });
 
+    const schoolSettings = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { staffClockInMode: true }
+    });
+
     if (!record) {
       return res.json({
         hasCheckedIn: false,
         hasCheckedOut: false,
-        status: 'not_checked_in'
+        status: 'not_checked_in',
+        staffClockInMode: schoolSettings?.staffClockInMode || 'anywhere'
       });
     }
 
@@ -251,7 +280,8 @@ router.get('/my-status', authenticate, authorize(['teacher', 'admin', 'principal
       status: record.status,
       lateMinutes: record.lateMinutes,
       isLate: record.status === 'late',
-      hoursWorked: hoursWorked ? parseFloat(hoursWorked) : null
+      hoursWorked: hoursWorked ? parseFloat(hoursWorked) : null,
+      staffClockInMode: schoolSettings?.staffClockInMode || 'anywhere'
     });
 
   } catch (error) {
@@ -652,6 +682,120 @@ router.post('/mark-bulk', authenticate, authorize(['admin', 'principal']), async
   } catch (error) {
     console.error('Bulk mark staff attendance error:', error);
     res.status(500).json({ error: 'Failed to bulk mark attendance' });
+  }
+});
+
+// 9. Download Excel Report (Admin/Principal)
+router.get('/download', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const schoolId = parseInt(req.schoolId);
+    const { startDate, endDate, role, status } = req.query;
+
+    const start = startDate ? new Date(startDate) : new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = endDate ? new Date(endDate) : new Date();
+    end.setHours(23, 59, 59, 999);
+
+    // 1. Fetch Records
+    const records = await prisma.staffAttendance.findMany({
+      where: {
+        schoolId,
+        date: { gte: start, lte: end },
+        status: status || undefined,
+        user: {
+          role: role || { in: ['teacher', 'admin', 'principal', 'accountant', 'staff'] }
+        }
+      },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            role: true,
+            email: true
+          }
+        },
+        verifier: {
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        }
+      },
+      orderBy: [
+        { date: 'desc' },
+        { user: { lastName: 'asc' } }
+      ]
+    });
+
+    // 2. Setup Excel
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Staff Attendance');
+
+    worksheet.columns = [
+      { header: 'Date', key: 'date', width: 15 },
+      { header: 'Name', key: 'name', width: 25 },
+      { header: 'Role', key: 'role', width: 15 },
+      { header: 'Check-In', key: 'checkIn', width: 15 },
+      { header: 'Check-Out', key: 'checkOut', width: 15 },
+      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Late (min)', key: 'late', width: 10 },
+      { header: 'Hours', key: 'hours', width: 10 },
+      { header: 'Notes', key: 'notes', width: 30 },
+      { header: 'Verified By', key: 'verifiedBy', width: 20 }
+    ];
+
+    // Style Header
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    // 3. Add Data
+    records.forEach(r => {
+      const hoursWorked = r.checkInTime && r.checkOutTime
+        ? ((new Date(r.checkOutTime) - new Date(r.checkInTime)) / (1000 * 60 * 60)).toFixed(2)
+        : null;
+
+      worksheet.addRow({
+        date: r.date.toISOString().split('T')[0],
+        name: `${r.user.firstName} ${r.user.lastName}`,
+        role: r.user.role,
+        checkIn: r.checkInTime ? new Date(r.checkInTime).toLocaleTimeString() : '-',
+        checkOut: r.checkOutTime ? new Date(r.checkOutTime).toLocaleTimeString() : '-',
+        status: r.status,
+        late: r.lateMinutes || 0,
+        hours: hoursWorked ? parseFloat(hoursWorked) : '-',
+        notes: r.notes || '-',
+        verifiedBy: r.verifier ? `${r.verifier.firstName} ${r.verifier.lastName}` : '-'
+      });
+    });
+
+    // 4. Send Response
+    const filename = `Staff_Attendance_${start.toISOString().split('T')[0]}_to_${end.toISOString().split('T')[0]}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+    // Log Action
+    logAction({
+      schoolId,
+      userId: req.user.id,
+      action: 'DOWNLOAD_STAFF_ATTENDANCE',
+      resource: 'STAFF_ATTENDANCE',
+      details: { startDate, endDate, recordCount: records.length },
+      ipAddress: req.ip
+    });
+
+  } catch (error) {
+    console.error('Download staff attendance error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to generate Excel report' });
+    }
   }
 });
 

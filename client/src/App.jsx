@@ -49,6 +49,7 @@ import FeeStructureSetup from './pages/admin/FeeStructureSetup';
 import MiscellaneousFees from './pages/admin/MiscellaneousFees';
 import MiscFeePayments from './pages/admin/MiscFeePayments';
 import ExamCardGenerator from './pages/student/ExamCardGenerator';
+import ExamCardManagement from './pages/admin/ExamCardManagement';
 import IDCardGenerator from './pages/IDCardGenerator';
 import TeacherProfile from './pages/teacher/TeacherProfile';
 import Settings from './pages/admin/Settings';
@@ -60,6 +61,7 @@ import ChangePassword from './pages/ChangePassword';
 import PasswordReset from './pages/admin/PasswordReset';
 
 import Attendance from './pages/teacher/Attendance';
+import HolidayManager from './pages/admin/HolidayManager';
 import Timetable from './pages/Timetable';
 import NoticeBoard from './pages/admin/NoticeBoard';
 import NewsEventsManagement from './pages/admin/NewsEventsManagement';
@@ -68,7 +70,9 @@ import Homework from './pages/Homework';
 import LearningResources from './pages/LearningResources';
 import ParentManagement from './pages/admin/ParentManagement';
 import StudentProfile from './pages/student/StudentProfile';
+import ParentDashboard from './pages/parent/ParentDashboard';
 import ParentAttendanceView from './pages/parent/ParentAttendanceView';
+
 import ParentMessages from './pages/parent/ParentMessages';
 import TeacherMessages from './pages/teacher/TeacherMessages';
 import CBTManagement from './pages/cbt/CBTManagement';
@@ -92,10 +96,27 @@ import CertificateView from './pages/admin/CertificateView';
 import TestimonialView from './pages/admin/TestimonialView';
 import BulkCertificateView from './pages/admin/BulkCertificateView';
 import BulkTestimonialView from './pages/admin/BulkTestimonialView';
+import HistoryBulkCertificateView from './pages/admin/HistoryBulkCertificateView';
+import HistoryBulkTestimonialView from './pages/admin/HistoryBulkTestimonialView';
 
 import TranscriptVerification from './pages/TranscriptVerification';
 import CertificateVerification from './pages/CertificateVerification';
 import TestimonialVerification from './pages/TestimonialVerification';
+
+// Route switch: admin/exam officer get the management page, students get the generator
+function ExamCardSwitch() {
+  // Access user role from localStorage token to decide which component
+  try {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (['admin', 'examination_officer', 'accountant'].includes(payload.role)) {
+        return <ExamCardManagement />;
+      }
+    }
+  } catch (e) { }
+  return <ExamCardGenerator />;
+}
 
 function App() {
   return (
@@ -148,23 +169,28 @@ function App() {
             <Route path="students" element={<StudentList />} />
             <Route path="results" element={<ResultManager />} />
             <Route path="report-card" element={<ReportCard />} />
+            <Route path="parent-view" element={
+              <ProtectedRoute roles={['admin', 'parent', 'principal']}>
+                <ParentDashboard />
+              </ProtectedRoute>
+            } />
             <Route path="analytics" element={<Analytics />} />
             <Route path="advanced-analytics" element={<AdvancedAnalytics />} />
             <Route path="class-analytics" element={<AdvancedAnalytics />} />
             <Route path="attendance-tracker" element={
-              <ProtectedRoute roles={['admin', 'principal']}>
+              <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
                 <AttendanceTracker />
               </ProtectedRoute>
             } />
             <Route path="exam-tracker" element={
-              <ProtectedRoute roles={['admin', 'principal']}>
+              <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
                 <ExamSubmissionTracker />
               </ProtectedRoute>
             } />
 
             {/* Teacher Routes */}
             <Route path="result-entry" element={
-              <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
+              <ProtectedRoute roles={['admin', 'teacher', 'principal', 'examination_officer']}>
                 <ResultEntry />
               </ProtectedRoute>
             } />
@@ -174,7 +200,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="timetable" element={
-              <ProtectedRoute roles={['admin', 'teacher', 'student', 'parent', 'principal']}>
+              <ProtectedRoute roles={['admin', 'teacher', 'student', 'parent', 'principal', 'examination_officer']}>
                 <Timetable />
               </ProtectedRoute>
             } />
@@ -189,27 +215,27 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="bulk-result-upload" element={
-              <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
+              <ProtectedRoute roles={['admin', 'teacher', 'principal', 'examination_officer']}>
                 <BulkResultUpload />
               </ProtectedRoute>
             } />
             <Route path="bulk-report-download" element={
-              <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
+              <ProtectedRoute roles={['admin', 'teacher', 'principal', 'examination_officer']}>
                 <BulkReportDownload />
               </ProtectedRoute>
             } />
             <Route path="cbt-management" element={
-              <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
+              <ProtectedRoute roles={['admin', 'teacher', 'principal', 'examination_officer']}>
                 <CBTManagement />
               </ProtectedRoute>
             } />
             <Route path="cbt-bank" element={
-              <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
+              <ProtectedRoute roles={['admin', 'teacher', 'principal', 'examination_officer']}>
                 <CBTQuestionBank />
               </ProtectedRoute>
             } />
             <Route path="gate-scan" element={
-              <ProtectedRoute roles={['admin', 'principal', 'teacher']}>
+              <ProtectedRoute roles={['admin', 'principal', 'teacher', 'examination_officer']}>
                 <ArrivalScanner />
               </ProtectedRoute>
             } />
@@ -224,12 +250,12 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="staff-attendance" element={
-              <ProtectedRoute roles={['admin', 'principal']}>
+              <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
                 <StaffAttendanceReport />
               </ProtectedRoute>
             } />
             <Route path="teacher/messages" element={
-              <ProtectedRoute roles={['teacher']}>
+              <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
                 <TeacherMessages />
               </ProtectedRoute>
             } />
@@ -241,23 +267,23 @@ function App() {
 
             {/* Student Routes */}
             <Route path="term-report" element={
-              <ProtectedRoute roles={['admin', 'student', 'teacher', 'parent']}>
+              <ProtectedRoute roles={['admin', 'student', 'teacher', 'parent', 'principal', 'examination_officer']}>
                 <TermReportCard />
               </ProtectedRoute>
             } />
             <Route path="cumulative-report" element={
-              <ProtectedRoute roles={['admin', 'student', 'teacher', 'parent']}>
+              <ProtectedRoute roles={['admin', 'student', 'teacher', 'parent', 'principal', 'examination_officer']}>
                 <CumulativeReport />
               </ProtectedRoute>
             } />
             <Route path="progressive-report" element={
-              <ProtectedRoute roles={['admin', 'student', 'teacher', 'parent']}>
+              <ProtectedRoute roles={['admin', 'student', 'teacher', 'parent', 'principal', 'examination_officer']}>
                 <ProgressiveReport />
               </ProtectedRoute>
             } />
             <Route path="exam-card" element={
-              <ProtectedRoute roles={['student', 'admin', 'accountant', 'teacher']}>
-                <ExamCardGenerator />
+              <ProtectedRoute roles={['student', 'admin', 'accountant', 'teacher', 'examination_officer']}>
+                <ExamCardSwitch />
               </ProtectedRoute>
             } />
             <Route path="quran-progress" element={
@@ -266,27 +292,27 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="id-card" element={
-              <ProtectedRoute roles={['admin', 'teacher', 'student']}>
+              <ProtectedRoute roles={['admin', 'teacher', 'student', 'examination_officer']}>
                 <IDCardGenerator />
               </ProtectedRoute>
             } />
             <Route path="profile" element={
-              <ProtectedRoute roles={['teacher']}>
+              <ProtectedRoute roles={['admin', 'teacher', 'principal', 'examination_officer']}>
                 <TeacherProfile />
               </ProtectedRoute>
             } />
             <Route path="student/profile" element={
-              <ProtectedRoute roles={['student']}>
+              <ProtectedRoute roles={['student', 'parent', 'principal']}>
                 <StudentProfile />
               </ProtectedRoute>
             } />
             <Route path="my-class" element={
-              <ProtectedRoute roles={['teacher']}>
+              <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
                 <MyClass />
               </ProtectedRoute>
             } />
             <Route path="student/fees" element={
-              <ProtectedRoute roles={['student']}>
+              <ProtectedRoute roles={['student', 'parent', 'principal']}>
                 <StudentFees />
               </ProtectedRoute>
             } />
@@ -308,39 +334,39 @@ function App() {
 
             {/* Parent Routes */}
             <Route path="parent/attendance" element={
-              <ProtectedRoute roles={['parent']}>
+              <ProtectedRoute roles={['admin', 'parent', 'principal']}>
                 <ParentAttendanceView />
               </ProtectedRoute>
             } />
             <Route path="parent/messages" element={
-              <ProtectedRoute roles={['parent']}>
+              <ProtectedRoute roles={['admin', 'parent', 'principal']}>
                 <ParentMessages />
               </ProtectedRoute>
             } />
             <Route path="parent/quran" element={
-              <ProtectedRoute roles={['parent']}>
+              <ProtectedRoute roles={['admin', 'parent', 'principal']}>
                 <ParentQuranView />
               </ProtectedRoute>
             } />
 
             {/* Accountant Routes */}
             <Route path="fees" element={
-              <ProtectedRoute roles={['admin', 'accountant']}>
+              <ProtectedRoute roles={['admin', 'accountant', 'principal']}>
                 <FeeManagement />
               </ProtectedRoute>
             } />
             <Route path="fee-structure" element={
-              <ProtectedRoute roles={['admin', 'accountant']}>
+              <ProtectedRoute roles={['admin', 'accountant', 'principal']}>
                 <FeeStructureSetup />
               </ProtectedRoute>
             } />
             <Route path="misc-fees" element={
-              <ProtectedRoute roles={['admin', 'accountant']}>
+              <ProtectedRoute roles={['admin', 'accountant', 'principal']}>
                 <MiscellaneousFees />
               </ProtectedRoute>
             } />
             <Route path="misc-fee-payments" element={
-              <ProtectedRoute roles={['admin', 'accountant']}>
+              <ProtectedRoute roles={['admin', 'accountant', 'principal']}>
                 <MiscFeePayments />
               </ProtectedRoute>
             } />
@@ -357,12 +383,17 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="promotions" element={
-              <ProtectedRoute roles={['admin', 'principal']}>
+              <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
                 <PromotionManager />
               </ProtectedRoute>
             } />
+            <Route path="holidays" element={
+              <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
+                <HolidayManager />
+              </ProtectedRoute>
+            } />
             <Route path="promotion-history" element={
-              <ProtectedRoute roles={['admin', 'principal']}>
+              <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
                 <PromotionHistory />
               </ProtectedRoute>
             } />
@@ -403,7 +434,7 @@ function App() {
             } />
 
             <Route path="manage-notices" element={
-              <ProtectedRoute roles={['admin', 'principal']}>
+              <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
                 <NoticeBoard />
               </ProtectedRoute>
             } />
@@ -413,7 +444,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="alumni-management" element={
-              <ProtectedRoute roles={['admin', 'principal']}>
+              <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
                 <AlumniManagement />
               </ProtectedRoute>
             } />
@@ -442,8 +473,18 @@ function App() {
                 <BulkTestimonialView />
               </ProtectedRoute>
             } />
+            <Route path="history-bulk-certificates/:classId/:sessionId" element={
+              <ProtectedRoute roles={['admin', 'principal']}>
+                <HistoryBulkCertificateView />
+              </ProtectedRoute>
+            } />
+            <Route path="history-bulk-testimonials/:classId/:sessionId" element={
+              <ProtectedRoute roles={['admin', 'principal']}>
+                <HistoryBulkTestimonialView />
+              </ProtectedRoute>
+            } />
             <Route path="advanced-analytics" element={
-              <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
+              <ProtectedRoute roles={['admin', 'teacher', 'principal', 'examination_officer']}>
                 <AdvancedAnalytics />
               </ProtectedRoute>
             } />
@@ -463,12 +504,12 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="news-events-management" element={
-              <ProtectedRoute roles={['admin', 'principal']}>
+              <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
                 <NewsEventsManagement />
               </ProtectedRoute>
             } />
             <Route path="gallery-management" element={
-              <ProtectedRoute roles={['admin', 'principal']}>
+              <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
                 <GalleryManagement />
               </ProtectedRoute>
             } />
@@ -478,12 +519,12 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="exam-tracker" element={
-              <ProtectedRoute roles={['admin', 'principal']}>
+              <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
                 <ExamSubmissionTracker />
               </ProtectedRoute>
             } />
             <Route path="exam-config" element={
-              <ProtectedRoute roles={['admin', 'principal']}>
+              <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
                 <ExamConfig />
               </ProtectedRoute>
             } />

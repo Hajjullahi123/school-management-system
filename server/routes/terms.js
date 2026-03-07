@@ -83,7 +83,7 @@ router.get('/current', authenticate, async (req, res) => {
 // Create term (Admin/Principal only)
 router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
-    const { academicSessionId, name, startDate, endDate, isCurrent } = req.body;
+    const { academicSessionId, name, startDate, endDate, nextTermBeginsDate, isCurrent } = req.body;
 
     if (!academicSessionId || !name || !startDate || !endDate) {
       return res.status(400).json({ error: 'All fields are required' });
@@ -107,6 +107,7 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
         name,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
+        nextTermBeginsDate: nextTermBeginsDate ? new Date(nextTermBeginsDate) : null,
         isCurrent: isCurrent || false
       },
       include: {
@@ -140,7 +141,7 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
 router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, startDate, endDate, isCurrent } = req.body;
+    const { name, startDate, endDate, nextTermBeginsDate, isCurrent } = req.body;
 
     // If setting as current, unset other current terms in THIS school
     if (isCurrent) {
@@ -163,6 +164,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
         name,
         startDate: startDate ? new Date(startDate) : undefined,
         endDate: endDate ? new Date(endDate) : undefined,
+        nextTermBeginsDate: nextTermBeginsDate ? new Date(nextTermBeginsDate) : null,
         isCurrent
       },
       include: {

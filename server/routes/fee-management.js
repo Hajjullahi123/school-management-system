@@ -7,7 +7,7 @@ const { logAction } = require('../utils/audit');
 const { getStudentFeeSummary, calculatePreviousOutstanding, createOrUpdateFeeRecordWithOpening } = require('../utils/feeCalculations');
 
 // Get all students with fee status (Accountant/Admin)
-router.get('/students', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
+router.get('/students', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
   try {
     const { termId, academicSessionId, classId } = req.query;
 
@@ -173,7 +173,7 @@ router.get('/student/:studentId/summary', authenticate, async (req, res) => {
 });
 
 // Create or update fee record (Accountant/Admin)
-router.post('/record', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
+router.post('/record', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
   try {
     const {
       studentId,
@@ -255,7 +255,7 @@ router.post('/record', authenticate, authorize(['admin', 'accountant']), async (
 });
 
 // Record payment (Accountant/Admin)
-router.post('/payment', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
+router.post('/payment', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
   try {
     const { studentId, termId, academicSessionId, amount, paymentMethod, reference, notes } = req.body;
 
@@ -308,8 +308,7 @@ router.post('/payment', authenticate, authorize(['admin', 'accountant']), async 
     const result = await prisma.$transaction(async (tx) => {
       // Re-fetch record inside transaction to get latest balance
       const currentRecord = await tx.feeRecord.findUnique({
-        where: { id: feeRecord.id },
-        lock: { mode: 'update' } // Lock for update to prevent concurrent modification
+        where: { id: feeRecord.id }
       });
 
       if (!currentRecord) throw new Error('Fee record not found');
@@ -372,7 +371,7 @@ router.post('/payment', authenticate, authorize(['admin', 'accountant']), async 
         paymentMethod: paymentMethod || 'Cash',
         date: new Date(),
         receiptNumber: result.payment.id,
-        balance: newBalance,
+        balance: result.feeRecord.balance,
         termName: result.feeRecord.term?.name || 'Current Term',
         sessionName: result.feeRecord.academicSession?.name || 'Current Session',
         schoolName: process.env.SCHOOL_NAME || 'School Management System',
@@ -395,7 +394,7 @@ router.post('/payment', authenticate, authorize(['admin', 'accountant']), async 
         phone: result.feeRecord.student.parent.phoneNumber,
         studentName: `${result.feeRecord.student.user.firstName} ${result.feeRecord.student.user.lastName}`,
         amount: parseFloat(amount),
-        balance: newBalance,
+        balance: result.feeRecord.balance,
         schoolName
       }).catch(e => console.error('Payment SMS error:', e));
     }
@@ -430,7 +429,7 @@ router.post('/payment', authenticate, authorize(['admin', 'accountant']), async 
 });
 
 // Edit payment (Accountant/Admin)
-router.put('/payment/:paymentId', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
+router.put('/payment/:paymentId', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
   try {
     const paymentId = parseInt(req.params.paymentId);
     const { amount, paymentMethod, reference, notes } = req.body;
@@ -476,8 +475,7 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'accountant'
       }
 
       const feeRecord = await tx.feeRecord.findUnique({
-        where: { id: currentPayment.feeRecordId },
-        lock: { mode: 'update' }
+        where: { id: currentPayment.feeRecordId }
       });
 
       const updatedPaidAmount = (feeRecord.paidAmount - currentPayment.amount) + newAmount;
@@ -552,7 +550,7 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'accountant'
 });
 
 // Get payment history for a student
-router.get('/payments/:studentId', authenticate, authorize(['admin', 'accountant', 'student']), async (req, res) => {
+router.get('/payments/:studentId', authenticate, authorize(['admin', 'principal', 'accountant', 'student']), async (req, res) => {
   try {
     const studentId = parseInt(req.params.studentId);
     const { termId, academicSessionId } = req.query;
@@ -619,7 +617,7 @@ router.get('/payments/:studentId', authenticate, authorize(['admin', 'accountant
 
 
 // Consolidate clearance logic into a single toggle for easier management
-router.post('/toggle-clearance/:studentId', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
+router.post('/toggle-clearance/:studentId', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
   try {
     const studentId = parseInt(req.params.studentId);
     const { termId, academicSessionId } = req.body;
@@ -716,7 +714,7 @@ router.post('/toggle-clearance/:studentId', authenticate, authorize(['admin', 'a
 // Consolidated clearance logic into toggle-clearance above. 
 // Clear/Revoke routes have been simplified below for compatibility.
 
-router.post('/clear/:studentId', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
+router.post('/clear/:studentId', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
   try {
     const studentId = parseInt(req.params.studentId);
     const { termId, academicSessionId } = req.body;
@@ -772,7 +770,7 @@ router.post('/clear/:studentId', authenticate, authorize(['admin', 'accountant']
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.post('/revoke-clearance/:studentId', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
+router.post('/revoke-clearance/:studentId', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
   try {
     const studentId = parseInt(req.params.studentId);
     const { termId, academicSessionId } = req.body;
@@ -827,7 +825,7 @@ router.post('/revoke-clearance/:studentId', authenticate, authorize(['admin', 'a
 });
 
 // Get fee summary/statistics (Accountant/Admin)
-router.get('/summary', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
+router.get('/summary', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
   try {
     const { termId, academicSessionId } = req.query;
 
@@ -926,7 +924,7 @@ router.get('/summary', authenticate, authorize(['admin', 'accountant']), async (
 });
 
 // Bulk send fee reminders
-router.post('/bulk-reminder', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
+router.post('/bulk-reminder', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
   try {
     const { termId, academicSessionId, classId } = req.body;
 
@@ -1000,7 +998,7 @@ router.post('/bulk-reminder', authenticate, authorize(['admin', 'accountant']), 
 });
 
 // Sync missing fee records for all active students (Admin/Accountant)
-router.post('/sync-records', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
+router.post('/sync-records', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
   try {
     const { termId, academicSessionId } = req.body;
     if (!termId || !academicSessionId) {

@@ -6,9 +6,8 @@ const bcrypt = require('bcryptjs');
 const { logAction } = require('../utils/audit');
 
 // 1. Get My Children (Parent Dashboard)
-router.get('/my-wards', authenticate, authorize('parent'), async (req, res) => {
+router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']), async (req, res) => {
   try {
-    console.log('Parent wards request from user:', req.user.id, req.user.username);
 
     // Find parent profile
     const parent = await prisma.parent.findFirst({
@@ -61,50 +60,6 @@ router.get('/my-wards', authenticate, authorize('parent'), async (req, res) => {
   }
 });
 
-// DIAGNOSTIC: Check parent account status (NO AUTH REQUIRED - FOR TESTING ONLY)
-router.get('/check-parent/:username', async (req, res) => {
-  try {
-    const { username } = req.params;
-    const { schoolId } = req.query; // Need schoolId for uniqueness now
-
-    const user = await prisma.user.findFirst({
-      where: {
-        username,
-        schoolId: schoolId ? parseInt(schoolId) : undefined
-      },
-      include: {
-        parent: {
-          include: {
-            students: {
-              include: {
-                user: true,
-                classModel: true
-              }
-            }
-          }
-        }
-      }
-    });
-
-    if (!user) {
-      return res.json({ error: 'User not found', username });
-    }
-
-    res.json({
-      userId: user.id,
-      username: user.username,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      hasParentProfile: !!user.parent,
-      parentId: user.parent?.id,
-      linkedStudentsCount: user.parent?.students?.length || 0,
-      students: user.parent?.students || []
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // 2. Register Parent (Admin/Principal only)
 router.post('/register', authenticate, authorize(['admin', 'principal']), async (req, res) => {
@@ -520,8 +475,9 @@ router.post('/unlink-student', authenticate, authorize(['admin', 'principal']), 
   }
 });
 
+
 // 8. Get Student Attendance (Parent view their ward's attendance)
-router.get('/student-attendance', authenticate, authorize('parent'), async (req, res) => {
+router.get('/student-attendance', authenticate, authorize(['parent', 'admin', 'principal']), async (req, res) => {
   try {
     const { studentId, sessionId, termId, startDate, endDate } = req.query;
 
@@ -592,7 +548,7 @@ router.get('/student-attendance', authenticate, authorize('parent'), async (req,
 });
 
 // 9. Get Recent In-App Alerts for Parent Dashboard
-router.get('/recent-alerts', authenticate, authorize('parent'), async (req, res) => {
+router.get('/recent-alerts', authenticate, authorize(['parent', 'admin', 'principal']), async (req, res) => {
   try {
     const alerts = await prisma.parentTeacherMessage.findMany({
       where: {

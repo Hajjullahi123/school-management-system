@@ -15,7 +15,7 @@ const AcademicSetup = () => {
 
   // Terms State
   const [terms, setTerms] = useState([]);
-  const [termForm, setTermForm] = useState({ name: '', academicSessionId: '', startDate: '', endDate: '', isCurrent: false });
+  const [termForm, setTermForm] = useState({ name: '', academicSessionId: '', startDate: '', endDate: '', nextTermBeginsDate: '', isCurrent: false });
   const [editingTerm, setEditingTerm] = useState(null);
 
   // School Settings (for weights)
@@ -166,7 +166,7 @@ const AcademicSetup = () => {
 
       if (response.ok) {
         alert(editingTerm ? 'Term updated!' : 'Term created!');
-        setTermForm({ name: '', academicSessionId: '', startDate: '', endDate: '', isCurrent: false });
+        setTermForm({ name: '', academicSessionId: '', startDate: '', endDate: '', nextTermBeginsDate: '', isCurrent: false });
         setEditingTerm(null);
         fetchTerms();
       }
@@ -493,6 +493,15 @@ const AcademicSetup = () => {
                         required
                       />
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Next Term Begins (Optional)</label>
+                      <input
+                        type="date"
+                        value={termForm.nextTermBeginsDate || ''}
+                        onChange={(e) => setTermForm({ ...termForm, nextTermBeginsDate: e.target.value })}
+                        className="w-full border rounded-md px-3 py-2"
+                      />
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -506,7 +515,7 @@ const AcademicSetup = () => {
                         type="button"
                         onClick={() => {
                           setEditingTerm(null);
-                          setTermForm({ name: '', academicSessionId: '', startDate: '', endDate: '', isCurrent: false });
+                          setTermForm({ name: '', academicSessionId: '', startDate: '', endDate: '', nextTermBeginsDate: '', isCurrent: false });
                         }}
                         className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600"
                       >
@@ -559,6 +568,7 @@ const AcademicSetup = () => {
                                 academicSessionId: term.academicSessionId,
                                 startDate: term.startDate.split('T')[0],
                                 endDate: term.endDate.split('T')[0],
+                                nextTermBeginsDate: term.nextTermBeginsDate ? term.nextTermBeginsDate.split('T')[0] : '',
                                 isCurrent: term.isCurrent
                               });
                               // Scroll to form

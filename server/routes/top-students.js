@@ -2,165 +2,157 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
 
-// Get top students from each class
+// Helper: ordinal suffix
+function getOrdinalSuffix(num) {
+  const j = num % 10, k = num % 100;
+  if (j === 1 && k !== 11) return 'st';
+  if (j === 2 && k !== 12) return 'nd';
+  if (j === 3 && k !== 13) return 'rd';
+  return 'th';
+}
+
+// Helper: check if results are published for a class in a given term
+async function isPublished(schoolId, classId, termId, classItem) {
+  const publication = await prisma.resultPublication.findUnique({
+    where: { schoolId_classId_termId: { schoolId, classId, termId } }
+  });
+  return !!publication?.isPublished;
+}
+
+// Helper: get top student for a given class + term + session
+async function getTopStudentForClass(schoolId, classItem, termId, sessionId) {
+  const students = await prisma.student.findMany({
+    where: { classId: classItem.id, schoolId, user: { isActive: true, schoolId } },
+    include: {
+      user: { select: { firstName: true, lastName: true } },
+      classModel: true,
+      results: {
+        where: { termId, academicSessionId: sessionId, schoolId },
+        include: { subject: true }
+      }
+    }
+  });
+
+  const withAverages = students
+    .map(s => {
+      if (s.results.length === 0) return null;
+      const total = s.results.reduce((sum, r) => sum + r.totalScore, 0);
+      return { ...s, average: total / s.results.length };
+    })
+    .filter(Boolean);
+
+  if (withAverages.length === 0) return null;
+
+  withAverages.sort((a, b) => b.average - a.average);
+  const top = withAverages[0];
+
+  const bestSubjects = top.results
+    .slice().sort((a, b) => b.totalScore - a.totalScore)
+    .slice(0, 3)
+    .map(r => r.subject?.name)
+    .filter(Boolean);
+
+  let achievement = 'Top Performer';
+  if (top.average >= 90) achievement = 'Outstanding Excellence';
+  else if (top.average >= 85) achievement = 'Excellent Performance';
+  else if (top.average >= 80) achievement = 'Very Good Performance';
+
+  return {
+    id: top.id,
+    name: `${top.user.firstName} ${top.user.lastName}`,
+    class: `${classItem.name}${classItem.arm ? ' ' + classItem.arm : ''}`,
+    average: top.average.toFixed(1) + '%',
+    averageNumeric: top.average,
+    position: '1st',
+    subjects: bestSubjects.join(', ') || 'Multiple Subjects',
+    photo: top.photoUrl || null,
+    achievement,
+    admissionNumber: top.admissionNumber
+  };
+}
+
+// GET /top-students/top-students
+// Returns top student per class — current term if published, fallbacks to latest published prior term.
 router.get('/top-students', async (req, res) => {
   try {
-    const { academicSessionId, termId, limit = 6, schoolId } = req.query;
-
-    if (!schoolId) {
-      return res.status(400).json({ error: 'School ID is required' });
-    }
-
+    const { limit = 6, schoolId } = req.query;
+    if (!schoolId) return res.status(400).json({ error: 'School ID is required' });
     const finalSchoolId = parseInt(schoolId);
 
-    // Get current term and session if not provided
-    let currentTerm, currentSession;
+    // Find current term
+    const currentTerm = await prisma.term.findFirst({
+      where: { isCurrent: true, schoolId: finalSchoolId }
+    });
 
-    if (!termId || !academicSessionId) {
-      [currentTerm, currentSession] = await Promise.all([
-        prisma.term.findFirst({ where: { isCurrent: true, schoolId: finalSchoolId } }),
-        prisma.academicSession.findFirst({ where: { isCurrent: true, schoolId: finalSchoolId } })
-      ]);
-    }
-
-    const finalTermId = termId ? parseInt(termId) : currentTerm?.id;
-    const finalSessionId = academicSessionId ? parseInt(academicSessionId) : currentSession?.id;
-
-    if (!finalTermId || !finalSessionId) {
-      return res.json([]); // Return empty array if no current term/session
-    }
-
-    // Get all classes for this school
-    const classes = await prisma.class.findMany({
+    // All terms ordered newest first for fallback lookup
+    const allTerms = await prisma.term.findMany({
       where: { schoolId: finalSchoolId },
+      orderBy: [{ academicSession: { startDate: 'desc' } }, { startDate: 'desc' }],
+      include: { academicSession: true }
+    });
+
+    // Get all active classes
+    const classes = await prisma.class.findMany({
+      where: { schoolId: finalSchoolId, isActive: true },
       orderBy: { name: 'asc' }
     });
 
     const topStudents = [];
 
-    // For each class, find the top student
     for (const classItem of classes) {
-      // Check if results are published for this class and term
-      const publication = await prisma.resultPublication.findUnique({
-        where: {
-          schoolId_classId_termId: {
-            schoolId: finalSchoolId,
-            classId: classItem.id,
-            termId: finalTermId
-          }
-        }
-      });
+      let found = false;
 
-      // If not published via new model, check legacy flag (only for current term)
-      if (!publication || !publication.isPublished) {
-        if (!(classItem.isResultPublished && (!currentTerm || finalTermId === currentTerm.id))) {
-          continue; // Skip this class if not published
+      // 1. Try current term (if published)
+      if (currentTerm) {
+        const published = await isPublished(finalSchoolId, classItem.id, currentTerm.id, classItem);
+        if (published) {
+          const entry = await getTopStudentForClass(
+            finalSchoolId, classItem, currentTerm.id, currentTerm.academicSessionId
+          );
+          if (entry) { topStudents.push(entry); found = true; }
         }
       }
 
-      // Get all students in this class with their results
-      const students = await prisma.student.findMany({
-        where: {
-          classId: classItem.id,
-          schoolId: finalSchoolId,
-          user: {
-            isActive: true,
-            schoolId: finalSchoolId
-          }
-        },
-        include: {
-          user: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true
-            }
-          },
-          classModel: true,
-          results: {
-            where: {
-              termId: finalTermId,
-              academicSessionId: finalSessionId,
-              schoolId: finalSchoolId
+      // 2. Fallback: walk back through prior terms
+      if (!found) {
+        for (const term of allTerms) {
+          if (currentTerm && term.id === currentTerm.id) continue; // skip current
+          const published = await isPublished(finalSchoolId, classItem.id, term.id, classItem);
+          if (published) {
+            const entry = await getTopStudentForClass(
+              finalSchoolId, classItem, term.id, term.academicSessionId
+            );
+            if (entry) {
+              topStudents.push({
+                ...entry,
+                isFallback: true,
+                fallbackTerm: `${term.name} (${term.academicSession?.name || ''})`
+              });
+              found = true;
+              break;
             }
           }
         }
-      });
-
-      // Calculate average for each student
-      const studentsWithAverage = students.map(student => {
-        if (student.results.length === 0) {
-          return { ...student, average: 0, totalSubjects: 0 };
-        }
-
-        const totalScore = student.results.reduce((sum, result) => sum + result.totalScore, 0);
-        const average = totalScore / student.results.length;
-
-        return {
-          ...student,
-          average: average,
-          totalSubjects: student.results.length
-        };
-      }).filter(s => s.totalSubjects > 0); // Only students with results
-
-      // Sort by average (descending) and get top student
-      studentsWithAverage.sort((a, b) => b.average - a.average);
-
-      if (studentsWithAverage.length > 0) {
-        const topStudent = studentsWithAverage[0];
-
-        // Get best subjects (top 3 subjects by score)
-        const sortedResults = topStudent.results
-          .sort((a, b) => b.totalScore - a.totalScore)
-          .slice(0, 3);
-
-        const bestSubjects = sortedResults.map(r => r.subject?.name).filter(Boolean);
-
-        // Determine achievement based on average
-        let achievement = 'Top Performer';
-        if (topStudent.average >= 90) achievement = 'Outstanding Excellence';
-        else if (topStudent.average >= 85) achievement = 'Excellent Performance';
-        else if (topStudent.average >= 80) achievement = 'Very Good Performance';
-
-        topStudents.push({
-          id: topStudent.id,
-          name: `${topStudent.user.firstName} ${topStudent.user.lastName}`,
-          class: `${classItem.name}${classItem.arm ? ' ' + classItem.arm : ''}`,
-          average: topStudent.average.toFixed(1) + '%',
-          position: '1st',
-          subjects: bestSubjects.join(', ') || 'Multiple Subjects',
-          photo: topStudent.photoUrl || null,
-          achievement: achievement,
-          admissionNumber: topStudent.admissionNumber
-        });
       }
+      // 3. Nothing found for this class — skip entirely (no fake data)
     }
 
-    // Sort by average (descending) and limit results
-    topStudents.sort((a, b) => parseFloat(b.average) - parseFloat(a.average));
-    const limitedTopStudents = topStudents.slice(0, parseInt(limit));
-
-    res.json(limitedTopStudents);
+    topStudents.sort((a, b) => b.averageNumeric - a.averageNumeric);
+    res.json(topStudents.slice(0, parseInt(limit)));
   } catch (error) {
     console.error('Error fetching top students:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get overall top performers (across all classes)
+// GET /top-students/top-performers (across all classes)
 router.get('/top-performers', async (req, res) => {
   try {
     const { academicSessionId, termId, limit = 10, schoolId } = req.query;
-
-    if (!schoolId) {
-      return res.status(400).json({ error: 'School ID is required' });
-    }
-
+    if (!schoolId) return res.status(400).json({ error: 'School ID is required' });
     const finalSchoolId = parseInt(schoolId);
 
-    // Get current term and session if not provided
     let currentTerm, currentSession;
-
     if (!termId || !academicSessionId) {
       [currentTerm, currentSession] = await Promise.all([
         prisma.term.findFirst({ where: { isCurrent: true, schoolId: finalSchoolId } }),
@@ -171,77 +163,37 @@ router.get('/top-performers', async (req, res) => {
     const finalTermId = termId ? parseInt(termId) : currentTerm?.id;
     const finalSessionId = academicSessionId ? parseInt(academicSessionId) : currentSession?.id;
 
-    if (!finalTermId || !finalSessionId) {
-      return res.json([]);
-    }
+    if (!finalTermId || !finalSessionId) return res.json([]);
 
-    // Get all students with their results
     const students = await prisma.student.findMany({
-      where: {
-        schoolId: finalSchoolId,
-        user: {
-          isActive: true,
-          schoolId: finalSchoolId
-        }
-      },
+      where: { schoolId: finalSchoolId, user: { isActive: true, schoolId: finalSchoolId } },
       include: {
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        },
+        user: { select: { firstName: true, lastName: true, email: true } },
         classModel: true,
         results: {
-          where: {
-            termId: finalTermId,
-            academicSessionId: finalSessionId,
-            schoolId: finalSchoolId
-          },
-          include: {
-            subject: true
-          }
+          where: { termId: finalTermId, academicSessionId: finalSessionId, schoolId: finalSchoolId },
+          include: { subject: true }
         }
       }
     });
 
-    // Filter students by publication status
     const studentsWithAveragePromises = students.map(async student => {
-      // Check if results are published for this student's class and term
       if (student.classModel) {
         const publication = await prisma.resultPublication.findUnique({
-          where: {
-            schoolId_classId_termId: {
-              schoolId: finalSchoolId,
-              classId: student.classModel.id,
-              termId: finalTermId
-            }
-          }
+          where: { schoolId_classId_termId: { schoolId: finalSchoolId, classId: student.classModel.id, termId: finalTermId } }
         });
-
         if (!publication || !publication.isPublished) {
-          if (!(student.classModel.isResultPublished && (!currentTerm || finalTermId === currentTerm.id))) {
-            return null; // Skip this student if class results are not published
-          }
+          return null;
         }
       }
+      if (student.results.length === 0) return null;
 
-      if (student.results.length === 0) {
-        return null;
-      }
-
-      const totalScore = student.results.reduce((sum, result) => sum + result.totalScore, 0);
+      const totalScore = student.results.reduce((sum, r) => sum + r.totalScore, 0);
       const average = totalScore / student.results.length;
+      const bestSubjects = student.results
+        .slice().sort((a, b) => b.totalScore - a.totalScore)
+        .slice(0, 3).map(r => r.subject.name).join(', ');
 
-      // Get best subjects
-      const sortedResults = student.results
-        .sort((a, b) => b.totalScore - a.totalScore)
-        .slice(0, 3);
-
-      const bestSubjects = sortedResults.map(r => r.subject.name).join(', ');
-
-      // Determine achievement
       let achievement = 'Top Performer';
       if (average >= 95) achievement = 'Outstanding Excellence';
       else if (average >= 90) achievement = 'Exceptional Performance';
@@ -256,20 +208,18 @@ router.get('/top-performers', async (req, res) => {
         averageNumeric: average,
         subjects: bestSubjects || 'Multiple Subjects',
         photo: student.photoUrl || null,
-        achievement: achievement,
+        achievement,
         admissionNumber: student.admissionNumber,
         totalSubjects: student.results.length
       };
-    }).filter(Boolean); // Remove nulls
+    });
 
     const studentsWithAverage = (await Promise.all(studentsWithAveragePromises)).filter(Boolean);
-
-    // Sort by average (descending) and assign positions
     studentsWithAverage.sort((a, b) => b.averageNumeric - a.averageNumeric);
 
-    const topPerformers = studentsWithAverage.slice(0, parseInt(limit)).map((student, index) => ({
-      ...student,
-      position: `${index + 1}${getOrdinalSuffix(index + 1)}`
+    const topPerformers = studentsWithAverage.slice(0, parseInt(limit)).map((s, i) => ({
+      ...s,
+      position: `${i + 1}${getOrdinalSuffix(i + 1)}`
     }));
 
     res.json(topPerformers);
@@ -278,15 +228,5 @@ router.get('/top-performers', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-// Helper function to get ordinal suffix (1st, 2nd, 3rd, etc.)
-function getOrdinalSuffix(num) {
-  const j = num % 10;
-  const k = num % 100;
-  if (j === 1 && k !== 11) return 'st';
-  if (j === 2 && k !== 12) return 'nd';
-  if (j === 3 && k !== 13) return 'rd';
-  return 'th';
-}
 
 module.exports = router;

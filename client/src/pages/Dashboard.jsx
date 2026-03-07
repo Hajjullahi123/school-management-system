@@ -42,6 +42,10 @@ const Dashboard = () => {
   const [currentSession, setCurrentSession] = useState(null);
   const [currentTerm, setCurrentTerm] = useState(null);
   const [alumniCount, setAlumniCount] = useState(0);
+  const [allTerms, setAllTerms] = useState([]);
+  const [allSessions, setAllSessions] = useState([]);
+  const [selectedDashboardTerm, setSelectedDashboardTerm] = useState(null);
+  const [selectedDashboardSession, setSelectedDashboardSession] = useState(null);
 
 
   useEffect(() => {
@@ -76,41 +80,81 @@ const Dashboard = () => {
     }
   };
 
-  const fetchTeacherStats = async () => {
+  const fetchTeacherStats = async (termId = null, sessionId = null) => {
     try {
+      setLoading(true);
       // Fetch students count
-      const [studentsRes, classesRes] = await Promise.all([
+      const [studentsRes, classesRes, termsRes, sessionsRes] = await Promise.all([
         api.get('/api/students'),
-        api.get('/api/classes')
+        api.get('/api/classes'),
+        api.get('/api/terms'),
+        api.get('/api/academic-sessions')
       ]);
 
       const studentsResData = await studentsRes.json();
       const classesResData = await classesRes.json();
+      const termsData = await termsRes.json();
+      const sessionsData = await sessionsRes.json();
 
       const students = Array.isArray(studentsResData) ? studentsResData : [];
       const classes = Array.isArray(classesResData) ? classesResData : [];
+      const terms = Array.isArray(termsData) ? termsData : [];
+      const sessions = Array.isArray(sessionsData) ? sessionsData : [];
 
-      setTeacherStats({
-        totalStudents: students.length,
-        activeClasses: classes.length
-      });
+      setAllTerms(terms);
+      setAllSessions(sessions);
 
-      // Fetch current session and term
-      const [sessionsRes, termsRes] = await Promise.all([
-        api.get('/api/academic-sessions'),
-        api.get('/api/terms')
-      ]);
+      const activeTerm = termId ? terms.find(t => t.id === parseInt(termId)) : (terms.find(t => t.isCurrent) || terms[0]);
+      const activeSession = sessionId ? sessions.find(s => s.id === parseInt(sessionId)) : (sessions.find(s => s.isCurrent) || sessions[0]);
 
-      if (sessionsRes.ok) {
-        const sessionsData = await sessionsRes.json();
-        const sessions = Array.isArray(sessionsData) ? sessionsData : [];
-        setCurrentSession(sessions.find(s => s.isCurrent));
+      setCurrentTerm(activeTerm);
+      setCurrentSession(activeSession);
+      setSelectedDashboardTerm(activeTerm);
+      setSelectedDashboardSession(activeSession);
+
+      let totalStudentsCount = 0;
+      let activeClassesCount = 0;
+
+      if (user?.role === 'teacher') {
+        const myClasses = classes.filter(c => c.classTeacherId == user.id);
+        if (myClasses.length > 0) {
+          const myClassIds = myClasses.map(c => c.id);
+          const myStudents = students.filter(s => myClassIds.includes(s.classId));
+          totalStudentsCount = myStudents.length;
+          activeClassesCount = myClasses.length;
+        } else {
+          totalStudentsCount = null;
+          activeClassesCount = null;
+        }
+      } else {
+        totalStudentsCount = students.length;
+        activeClassesCount = classes.length;
       }
 
-      if (termsRes.ok) {
-        const termsData = await termsRes.json();
-        const terms = Array.isArray(termsData) ? termsData : [];
-        setCurrentTerm(terms.find(t => t.isCurrent));
+      setTeacherStats({
+        totalStudents: totalStudentsCount,
+        activeClasses: activeClassesCount
+      });
+
+      // Fetch financial summary for Admin ONLY (principal restricted)
+      if (user?.role === 'admin') {
+        try {
+          const alumniRes = await api.get('/api/alumni/stats');
+          if (alumniRes.ok) {
+            const alumniData = await alumniRes.json();
+            setAlumniCount(alumniData.count || 0);
+          }
+
+          if (activeTerm && activeSession) {
+            const summaryRes = await api.get(`/api/fees/summary?termId=${activeTerm.id}&academicSessionId=${activeSession.id}`);
+            if (summaryRes.ok) {
+              const summaryData = await summaryRes.json();
+              setFeeStats(summaryData);
+            }
+          }
+        } catch (e) {
+          console.error('Error fetching admin extra stats:', e);
+        }
       }
 
       // Fetch Teacher Assignments with tracking data if user is a teacher
@@ -118,7 +162,6 @@ const Dashboard = () => {
         const trackingRes = await api.get(`/api/analytics/submission-tracking?teacherId=${user.id}`);
         if (trackingRes.ok) {
           const data = await trackingRes.json();
-          // Transform tracking data to match the component's expectations
           const trackingData = Array.isArray(data?.tracking) ? data.tracking : [];
           const assignmentsWithStatus = trackingData.map(item => ({
             ...item,
@@ -130,24 +173,10 @@ const Dashboard = () => {
           setAssignedClassCount(uniqueClasses.size);
         }
 
-        // Fetch Teacher CBT Exams
         const cbtRes = await api.get(`/api/analytics/cbt-tracking?teacherId=${user.id}`);
         if (cbtRes.ok) {
           const cbtData = await cbtRes.json();
           setTeacherCBTExams(Array.isArray(cbtData) ? cbtData : []);
-        }
-      }
-
-      // Fetch Alumni Stats for Admin/Principal
-      if (user?.role === 'admin' || user?.role === 'principal') {
-        try {
-          const alumniRes = await api.get('/api/alumni/stats');
-          if (alumniRes.ok) {
-            const alumniData = await alumniRes.json();
-            setAlumniCount(alumniData.count || 0);
-          }
-        } catch (e) {
-          console.error('Error fetching alumni stats:', e);
         }
       }
 
@@ -162,11 +191,9 @@ const Dashboard = () => {
     }
   };
 
-  const fetchAccountantData = async () => {
+  const fetchAccountantData = async (termId = null, sessionId = null) => {
     try {
-      const token = localStorage.getItem('token');
-
-      // Get current term and session
+      setLoading(true);
       const [termsRes, sessionsRes] = await Promise.all([
         api.get('/api/terms'),
         api.get('/api/academic-sessions')
@@ -178,15 +205,20 @@ const Dashboard = () => {
       const terms = Array.isArray(termsData) ? termsData : [];
       const sessions = Array.isArray(sessionsData) ? sessionsData : [];
 
-      const currentTerm = terms.find(t => t.isCurrent);
-      const currentSession = sessions.find(s => s.isCurrent);
+      setAllTerms(terms);
+      setAllSessions(sessions);
 
-      setCurrentTerm(currentTerm);
-      setCurrentSession(currentSession);
+      const activeTerm = termId ? terms.find(t => t.id === parseInt(termId)) : (terms.find(t => t.isCurrent) || terms[0]);
+      const activeSession = sessionId ? sessions.find(s => s.id === parseInt(sessionId)) : (sessions.find(s => s.isCurrent) || sessions[0]);
 
-      if (currentTerm && currentSession) {
+      setCurrentTerm(activeTerm);
+      setCurrentSession(activeSession);
+      setSelectedDashboardTerm(activeTerm);
+      setSelectedDashboardSession(activeSession);
+
+      if (activeTerm && activeSession) {
         const response = await api.get(
-          `/api/fees/summary?termId=${currentTerm.id}&academicSessionId=${currentSession.id}`
+          `/api/fees/summary?termId=${activeTerm.id}&academicSessionId=${activeSession.id}`
         );
         const data = await response.json();
         setFeeStats(data);
@@ -375,6 +407,53 @@ const Dashboard = () => {
           <p className="text-white/90 text-[10px] sm:text-sm font-bold uppercase tracking-widest mt-1.5 opacity-80">School Accountant Dashboard</p>
         </div>
 
+        {/* Term/Session Selector */}
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-100">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-lg font-black italic tracking-tight uppercase text-gray-900">Financial Period Control</h2>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Switch between terms to view archived records</p>
+            </div>
+            <div className="flex flex-wrap gap-3 w-full sm:w-auto">
+              <div className="flex-1 sm:flex-none">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Academic Session</label>
+                <select
+                  value={selectedDashboardSession?.id || ''}
+                  onChange={(e) => {
+                    const sessionId = e.target.value;
+                    setSelectedDashboardSession(allSessions.find(s => s.id === parseInt(sessionId)));
+                    fetchAccountantData(selectedDashboardTerm?.id, sessionId);
+                  }}
+                  className="w-full sm:w-48 bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-xs font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                >
+                  {allSessions.map(s => (
+                    <option key={s.id} value={s.id}>{s.name} {s.isCurrent ? '(Current)' : ''}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1 sm:flex-none">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Term</label>
+                <select
+                  value={selectedDashboardTerm?.id || ''}
+                  onChange={(e) => {
+                    const termId = e.target.value;
+                    setSelectedDashboardTerm(allTerms.find(t => t.id === parseInt(termId)));
+                    fetchAccountantData(termId, selectedDashboardSession?.id);
+                  }}
+                  className="w-full sm:w-48 bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-xs font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                >
+                  {allTerms
+                    .filter(t => t.academicSessionId === (selectedDashboardSession?.id))
+                    .map(t => (
+                      <option key={t.id} value={t.id}>{t.name} {t.isCurrent ? '(Current)' : ''}</option>
+                    ))
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Notices Section */}
         {notices.length > 0 && (
           <div className="bg-white rounded-lg shadow-md overflow-hidden border-l-4 border-orange-500">
@@ -557,321 +636,432 @@ const Dashboard = () => {
 
   // Admin/Principal/Teacher Dashboard
   if (['admin', 'principal', 'teacher'].includes(user?.role)) {
-    const isProfileIncomplete = user?.role === 'teacher' && (!user?.teacher?.photoUrl || !user?.teacher?.specialization);
+    const isProfileIncomplete = user?.role === 'teacher' && (!user?.teacher?.photoUrl);
 
     return (
       <div className="space-y-3 sm:space-y-6">
-        {/* Welcome Message Section - FIRST */}
-        <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-4 sm:p-6 lg:p-8 rounded-lg shadow-lg">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">Welcome back, {user?.firstName} {user?.lastName}!</h1>
-          <p className="text-white/90 text-sm sm:text-base lg:text-lg">{schoolSettings?.schoolName || user?.school?.name || "School Management"} System</p>
-          <p className="text-white/80 text-xs sm:text-sm mt-1">Use the sidebar to navigate to different sections of the system.</p>
+        {/* Welcome Message Section - Moved to Top & Resized */}
+        <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-3 sm:p-4 rounded-xl shadow-md">
+          <h1 className="text-lg sm:text-xl font-bold">Welcome back, {user?.firstName} {user?.lastName}!</h1>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-1">
+            <p className="text-white/90 text-xs sm:text-sm font-medium">{schoolSettings?.schoolName || user?.school?.name || "School Management"} System</p>
+            <span className="hidden sm:block text-white/30">|</span>
+            <p className="text-white/80 text-[10px] sm:text-xs italic">Use the sidebar to navigate the system.</p>
+          </div>
         </div>
 
-        {/* Profile Completion Reminder */}
-        {isProfileIncomplete && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        {/* Compact Info Bar */}
+        <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-100 flex flex-wrap items-center justify-between gap-y-4 gap-x-2 sm:gap-6">
+          {/* My Students */}
+          {teacherStats?.totalStudents !== null && (
+            <div className="flex items-center gap-3 min-w-[120px]">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               </div>
-              <div className="ml-3">
-                <p className="text-sm text-yellow-700">
-                  <strong>Profile Incomplete!</strong> Please complete your profile by uploading a profile picture and adding your specialization.
-                  <Link to="/profile" className="font-medium underline ml-2">Complete Profile →</Link>
-                </p>
+              <div>
+                <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest leading-none mb-1">Students</p>
+                <p className="text-lg font-black text-gray-900 leading-none">{teacherStats?.totalStudents || 0}</p>
               </div>
             </div>
+          )}
+
+          <div className="hidden lg:block w-px h-8 bg-gray-100"></div>
+
+          {/* My Classes */}
+          {teacherStats?.activeClasses !== null && (
+            <div className="flex items-center gap-3 min-w-[120px]">
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest leading-none mb-1">Classes</p>
+                <p className="text-lg font-black text-gray-900 leading-none">{teacherStats?.activeClasses || 0}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="hidden lg:block w-px h-8 bg-gray-100"></div>
+
+          {/* Current Session */}
+          <div className="flex items-center gap-3 min-w-[140px]">
+            <div className="p-2 bg-green-50 rounded-lg">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest leading-none mb-1">Session</p>
+              <p className="text-sm font-black text-gray-900 leading-none">{currentSession?.name || '...'}</p>
+            </div>
+          </div>
+
+          <div className="hidden lg:block w-px h-8 bg-gray-100"></div>
+
+          {/* Current Term */}
+          <div className="flex items-center gap-3 min-w-[140px]">
+            <div className="p-2 bg-indigo-50 rounded-lg">
+              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest leading-none mb-1">Current Term</p>
+              <p className="text-sm font-black text-gray-900 leading-none uppercase">{currentTerm?.name || '...'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Financial Overview for Admin ONLY */}
+        {user?.role === 'admin' && (
+          <div className="bg-white p-4 sm:p-6 rounded-[32px] shadow-2xl border border-gray-100 mb-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/10 transition-colors"></div>
+
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 relative z-10">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Financial Overview</p>
+                </div>
+                <h2 className="text-xl font-black italic tracking-tighter text-gray-900 uppercase">Revenue Intelligence</h2>
+              </div>
+
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                <select
+                  value={selectedDashboardSession?.id || ''}
+                  onChange={(e) => {
+                    const sessionId = e.target.value;
+                    setSelectedDashboardSession(allSessions.find(s => s.id === parseInt(sessionId)));
+                    fetchTeacherStats(selectedDashboardTerm?.id, sessionId);
+                  }}
+                  className="flex-1 sm:flex-none bg-gray-50 border border-gray-100 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                >
+                  {allSessions.map(s => (
+                    <option key={s.id} value={s.id}>{s.name} {s.isCurrent ? '(Current)' : ''}</option>
+                  ))}
+                </select>
+                <select
+                  value={selectedDashboardTerm?.id || ''}
+                  onChange={(e) => {
+                    const termId = e.target.value;
+                    setSelectedDashboardTerm(allTerms.find(t => t.id === parseInt(termId)));
+                    fetchTeacherStats(termId, selectedDashboardSession?.id);
+                  }}
+                  className="flex-1 sm:flex-none bg-gray-50 border border-gray-100 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                >
+                  {allTerms
+                    .filter(t => t.academicSessionId === (selectedDashboardSession?.id))
+                    .map(t => (
+                      <option key={t.id} value={t.id}>{t.name} {t.isCurrent ? '(Current)' : ''}</option>
+                    ))
+                  }
+                </select>
+                <Link to="/dashboard/fees" className="bg-gray-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-200">
+                  Full Audit
+                </Link>
+              </div>
+            </div>
+
+            {feeStats ? (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 relative z-10">
+                <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-2xl group/card hover:bg-emerald-50 transition-all">
+                  <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1.5">Collected</p>
+                  <p className="text-xl font-black text-emerald-900">₦{formatNumber(feeStats.totalPaid)}</p>
+                </div>
+                <div className="bg-red-50/50 border border-red-100 p-4 rounded-2xl group/card hover:bg-red-50 transition-all">
+                  <p className="text-[9px] font-black text-red-600 uppercase tracking-widest mb-1.5">Outstanding</p>
+                  <p className="text-xl font-black text-red-900">₦{formatNumber(feeStats.totalBalance)}</p>
+                </div>
+                <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-2xl group/card hover:bg-indigo-50 transition-all">
+                  <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-1.5">Collection %</p>
+                  <p className="text-xl font-black text-indigo-900">
+                    {feeStats.totalExpected > 0 ? ((feeStats.totalPaid / feeStats.totalExpected) * 100).toFixed(1) : 0}%
+                  </p>
+                </div>
+                <div className="bg-amber-50/50 border border-amber-100 p-4 rounded-2xl group/card hover:bg-amber-50 transition-all">
+                  <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-1.5">Clearance Rate</p>
+                  <p className="text-xl font-black text-amber-900">
+                    {feeStats.totalStudents > 0 ? ((feeStats.clearedStudents / feeStats.totalStudents) * 100).toFixed(0) : 0}%
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="py-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No financial data for this period</p>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Notices Section */}
-        {notices.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden border-l-4 border-orange-500 mb-6">
-            <div className="p-4 bg-orange-50 border-b border-orange-100">
-              <h3 className="font-bold text-orange-800 flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
-                School News
-              </h3>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {notices?.map(notice => (
-                <div key={notice.id} className="p-4 hover:bg-gray-50">
-                  <h4 className="font-semibold text-gray-900">{notice.title}</h4>
-                  <p className="text-sm text-gray-600 mt-1">{notice.content}</p>
-                  <div className="mt-2 text-xs text-gray-400 flex justify-between">
-                    <span>{new Date(notice.createdAt).toLocaleDateString()}</span>
-                    <span>From: {notice.author?.firstName} {notice.author?.lastName}</span>
-                  </div>
+
+        {/* Profile Completion Reminder */}
+        {
+          isProfileIncomplete && (
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
                 </div>
-              ))}
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-700">
+                    <strong>Profile Incomplete!</strong> Please complete your profile by uploading a profile picture.
+                    <Link to="/dashboard/profile" className="font-medium underline ml-2">Complete Profile →</Link>
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          )
+        }
+
+        {/* Notices Section */}
+        {
+          notices.length > 0 && (
+            <div className="bg-white rounded-lg shadow-md overflow-hidden border-l-4 border-orange-500 mb-6">
+              <div className="p-4 bg-orange-50 border-b border-orange-100">
+                <h3 className="font-bold text-orange-800 flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+                  School News
+                </h3>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {notices?.map(notice => (
+                  <div key={notice.id} className="p-4 hover:bg-gray-50">
+                    <h4 className="font-semibold text-gray-900">{notice.title}</h4>
+                    <p className="text-sm text-gray-600 mt-1">{notice.content}</p>
+                    <div className="mt-2 text-xs text-gray-400 flex justify-between">
+                      <span>{new Date(notice.createdAt).toLocaleDateString()}</span>
+                      <span>From: {notice.author?.firstName} {notice.author?.lastName}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        }
 
         {/* Teacher Attendance Widget */}
         {user?.role === 'teacher' && <StaffAttendanceWidget />}
 
         {/* Teacher Assignments Section */}
-        {user?.role === 'teacher' && (
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-t-4 border-primary">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-3 sm:mb-4">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-800">My Assigned Classes</h2>
-              <span className="bg-primary/10 text-primary py-1 px-3 rounded-full text-xs sm:text-sm font-semibold">
-                {assignedClassCount} Classes Assigned
-              </span>
-            </div>
+        {
+          user?.role === 'teacher' && (
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-t-4 border-primary">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-3 sm:mb-4">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800">My Assigned Classes</h2>
+                <span className="bg-primary/10 text-primary py-1 px-3 rounded-full text-xs sm:text-sm font-semibold">
+                  {assignedClassCount} Classes Assigned
+                </span>
+              </div>
 
-            {teacherAssignments.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {teacherAssignments?.map((assignment) => (
-                  <Link
-                    key={assignment.id}
-                    to={`/dashboard/result-entry?classId=${assignment.classId}&subjectId=${assignment.subjectId}`}
-                    className="block p-4 border border-gray-200 rounded-lg hover:shadow-md hover:border-primary/50 transition-all group relative"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-gray-900 group-hover:text-primary pr-12">
-                          {assignment.class.name}
-                        </h3>
-                        <p className="text-sm text-gray-600 mt-1">
-                          {assignment.subject.name}
-                        </p>
+              {teacherAssignments.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  {teacherAssignments?.map((assignment) => (
+                    <Link
+                      key={assignment.id}
+                      to={`/dashboard/result-entry?classId=${assignment.classId}&subjectId=${assignment.subjectId}`}
+                      className="block p-4 border border-gray-200 rounded-lg hover:shadow-md hover:border-primary/50 transition-all group relative"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-gray-900 group-hover:text-primary pr-12">
+                            {assignment.class.name}
+                          </h3>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {assignment.subject.name}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1.5 sm:gap-2">
+                          <div className={`px-2 py-1 rounded-md text-[8px] sm:text-[9px] font-black uppercase tracking-wider border shadow-sm ${assignment.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                            assignment.status === 'Partial' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                              'bg-slate-50 text-slate-400 border-slate-100'
+                            }`}>
+                            {assignment.status}
+                          </div>
+                          <div className="bg-primary/5 p-1.5 sm:p-2 rounded-full group-hover:bg-primary/10 transition-colors">
+                            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1.5 sm:gap-2">
-                        <div className={`px-2 py-1 rounded-md text-[8px] sm:text-[9px] font-black uppercase tracking-wider border shadow-sm ${assignment.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                          assignment.status === 'Partial' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                            'bg-slate-50 text-slate-400 border-slate-100'
-                          }`}>
-                          {assignment.status}
+
+                      {/* Progress Bar Mini */}
+                      <div className="mt-4">
+                        <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">
+                          <span>Progress</span>
+                          <span>{Math.round((assignment.protocolCount / assignment.totalStudents) * 100 || 0)}%</span>
                         </div>
-                        <div className="bg-primary/5 p-1.5 sm:p-2 rounded-full group-hover:bg-primary/10 transition-colors">
-                          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                          </svg>
+                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-700 ${assignment.status === 'Completed' ? 'bg-emerald-500' :
+                              assignment.status === 'Partial' ? 'bg-amber-500' : 'bg-slate-300'
+                              }`}
+                            style={{ width: `${(assignment.protocolCount / assignment.totalStudents) * 100 || 0}%` }}
+                          ></div>
                         </div>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-gray-50 text-[10px] font-bold text-gray-400 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
+                          {assignment.gradedCount} / {assignment.totalStudents} Scored
+                        </span>
+                        <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform text-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                      </div>
+                    </Link >
+                  ))}
+                </div >
+              ) : (
+                <div className="text-center py-8 bg-gray-50 rounded-lg">
+                  <p className="text-gray-500">You haven't been assigned to any classes yet.</p>
+                  <p className="text-sm text-gray-400 mt-1">Contact the administrator to get assigned.</p>
+                </div>
+              )}
+            </div >
+          )
+        }
+
+        {/* Teacher CBT Monitoring */}
+        {
+          user?.role === 'teacher' && teacherCBTExams.length > 0 && (
+            <div className="bg-slate-900 p-4 sm:p-6 rounded-[32px] shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6 relative z-10">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full animate-pulse"></span>
+                    <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-primary-light">Live CBT Operations</p>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-black italic tracking-tighter text-white uppercase leading-tight">Active Examinations</h2>
+                </div>
+                <Link to="/dashboard/cbt-management" className="w-full sm:w-auto text-center bg-white/5 hover:bg-white/10 text-white px-4 py-2 sm:py-2.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all">
+                  Manage Center
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
+                {teacherCBTExams?.map(exam => (
+                  <div key={exam.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5 hover:bg-white/[0.08] transition-all">
+                    <div className="flex justify-between items-start mb-3 sm:mb-4">
+                      <div className="flex-1 min-w-0 pr-2">
+                        <h4 className="text-white font-black italic tracking-tight truncate text-sm sm:text-base">{exam.title}</h4>
+                        <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">{exam.className} • {exam.subjectName}</p>
+                      </div>
+                      <div className="bg-primary/20 text-primary-light px-2 py-1 rounded-md text-[8px] sm:text-[9px] font-black uppercase tracking-widest flex-shrink-0">
+                        {exam.participationRate}%
                       </div>
                     </div>
 
-                    {/* Progress Bar Mini */}
-                    <div className="mt-4">
-                      <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">
-                        <span>Progress</span>
-                        <span>{Math.round((assignment.protocolCount / assignment.totalStudents) * 100 || 0)}%</span>
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <div className="flex justify-between text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                        <span>Participation</span>
+                        <span>{exam.completedCount}/{exam.totalStudents}</span>
                       </div>
-                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
                         <div
-                          className={`h-full transition-all duration-700 ${assignment.status === 'Completed' ? 'bg-emerald-500' :
-                            assignment.status === 'Partial' ? 'bg-amber-500' : 'bg-slate-300'
-                            }`}
-                          style={{ width: `${(assignment.protocolCount / assignment.totalStudents) * 100 || 0}%` }}
+                          className="h-full bg-primary transition-all duration-1000"
+                          style={{ width: `${exam.participationRate}%` }}
                         ></div>
                       </div>
                     </div>
-
-                    <div className="mt-4 pt-3 border-t border-gray-50 text-[10px] font-bold text-gray-400 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
-                        {assignment.gradedCount} / {assignment.totalStudents} Scored
-                      </span>
-                      <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform text-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                      </svg>
-                    </div>
-                  </Link >
+                  </div>
                 ))}
-              </div >
-            ) : (
-              <div className="text-center py-8 bg-gray-50 rounded-lg">
-                <p className="text-gray-500">You haven't been assigned to any classes yet.</p>
-                <p className="text-sm text-gray-400 mt-1">Contact the administrator to get assigned.</p>
-              </div>
-            )}
-          </div >
-        )}
-
-        {/* Teacher CBT Monitoring */}
-        {user?.role === 'teacher' && teacherCBTExams.length > 0 && (
-          <div className="bg-slate-900 p-4 sm:p-6 rounded-[32px] shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6 relative z-10">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full animate-pulse"></span>
-                  <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-primary-light">Live CBT Operations</p>
-                </div>
-                <h2 className="text-lg sm:text-xl font-black italic tracking-tighter text-white uppercase leading-tight">Active Examinations</h2>
-              </div>
-              <Link to="/dashboard/cbt-management" className="w-full sm:w-auto text-center bg-white/5 hover:bg-white/10 text-white px-4 py-2 sm:py-2.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all">
-                Manage Center
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
-              {teacherCBTExams?.map(exam => (
-                <div key={exam.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5 hover:bg-white/[0.08] transition-all">
-                  <div className="flex justify-between items-start mb-3 sm:mb-4">
-                    <div className="flex-1 min-w-0 pr-2">
-                      <h4 className="text-white font-black italic tracking-tight truncate text-sm sm:text-base">{exam.title}</h4>
-                      <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">{exam.className} • {exam.subjectName}</p>
-                    </div>
-                    <div className="bg-primary/20 text-primary-light px-2 py-1 rounded-md text-[8px] sm:text-[9px] font-black uppercase tracking-widest flex-shrink-0">
-                      {exam.participationRate}%
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 sm:space-y-2">
-                    <div className="flex justify-between text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                      <span>Participation</span>
-                      <span>{exam.completedCount}/{exam.totalStudents}</span>
-                    </div>
-                    <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary transition-all duration-1000"
-                        style={{ width: `${exam.participationRate}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-          {/* Quick Stats */}
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-primary">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600">Total Students</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900">{teacherStats?.totalStudents || 0}</p>
-              </div>
-              <svg className="w-10 h-10 sm:w-12 sm:h-12 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            </div>
-          </div>
-
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-blue-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-600">Active Classes</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900">{teacherStats?.activeClasses || 0}</p>
-              </div>
-              <svg className="w-10 h-10 sm:w-12 sm:h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-          </div>
-
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-green-600">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1 pr-2">
-                <p className="text-xs sm:text-sm text-gray-600">Current Session</p>
-                <p className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 truncate">{currentSession?.name || '...'}</p>
-              </div>
-              <svg className="w-10 h-10 sm:w-12 sm:h-12 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-          </div>
-
-          {(user?.role === 'admin' || user?.role === 'principal') && (
-            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-l-4 border-amber-600">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600">Total Alumni</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">{alumniCount || 0}</p>
-                </div>
-                <svg className="w-10 h-10 sm:w-12 sm:h-12 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
-                </svg>
               </div>
             </div>
-          )}
-        </div>
+          )
+        }
+
+
 
         {/* Academic Oversight Hub - For Admin and Principal */}
-        {(user?.role === 'admin' || user?.role === 'principal') && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-6">
-            <Link to="/dashboard/attendance-tracker" className="bg-emerald-900 text-white p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] shadow-2xl relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between group gap-4">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-              <div className="relative z-10 w-full sm:w-auto">
-                <div className="flex items-center gap-2 mb-1.5 sm:mb-2 text-emerald-300">
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                  <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em]">Daily Control</p>
+        {
+          (user?.role === 'admin' || user?.role === 'principal') && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-6">
+              <Link to="/dashboard/attendance-tracker" className="bg-emerald-900 text-white p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] shadow-2xl relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between group gap-4">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                <div className="relative z-10 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 mb-1.5 sm:mb-2 text-emerald-300">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                    <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em]">Daily Control</p>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black italic tracking-tighter mb-0.5 sm:mb-1 uppercase leading-tight">Attendance</h3>
+                  <p className="text-[10px] sm:text-xs font-bold text-emerald-200">Compliance Monitoring</p>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-black italic tracking-tighter mb-0.5 sm:mb-1 uppercase leading-tight">Attendance</h3>
-                <p className="text-[10px] sm:text-xs font-bold text-emerald-200">Compliance Monitoring</p>
-              </div>
-              <div className="relative z-10 w-full sm:w-auto text-center bg-white text-emerald-900 px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
-                Launch
-              </div>
-            </Link>
+                <div className="relative z-10 w-full sm:w-auto text-center bg-white text-emerald-900 px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
+                  Launch
+                </div>
+              </Link>
 
-            <Link to="/dashboard/exam-tracker" className="bg-indigo-900 text-white p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] shadow-2xl relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between group gap-4">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-              <div className="relative z-10 w-full sm:w-auto">
-                <div className="flex items-center gap-2 mb-1.5 sm:mb-2 text-indigo-300">
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-indigo-400 rounded-full animate-pulse"></span>
-                  <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em]">Live Intelligence</p>
+              <Link to="/dashboard/exam-tracker" className="bg-indigo-900 text-white p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] shadow-2xl relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between group gap-4">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                <div className="relative z-10 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 mb-1.5 sm:mb-2 text-indigo-300">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-indigo-400 rounded-full animate-pulse"></span>
+                    <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em]">Live Intelligence</p>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black italic tracking-tighter mb-0.5 sm:mb-1 uppercase leading-tight">Submissions</h3>
+                  <p className="text-[10px] sm:text-xs font-bold text-indigo-200">Assessment Trends</p>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-black italic tracking-tighter mb-0.5 sm:mb-1 uppercase leading-tight">Submissions</h3>
-                <p className="text-[10px] sm:text-xs font-bold text-indigo-200">Assessment Trends</p>
-              </div>
-              <div className="relative z-10 w-full sm:w-auto text-center bg-white text-indigo-900 px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
-                Enter
-              </div>
-            </Link>
-          </div>
-        )}
+                <div className="relative z-10 w-full sm:w-auto text-center bg-white text-indigo-900 px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
+                  Enter
+                </div>
+              </Link>
+            </div>
+          )
+        }
 
 
 
         {/* Quick Actions for Admin & Principal - More visible */}
-        {(user?.role === 'admin' || user?.role === 'principal') && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-            <Link to="/dashboard/timetable" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all border-l-8 border-indigo-600 flex items-center gap-4">
-              <div className="bg-indigo-100 p-3 rounded-full">
-                <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Timetable Management</h3>
-                <p className="text-sm text-gray-600">Generate, view, and manage class schedules</p>
-              </div>
-            </Link>
+        {
+          (user?.role === 'admin' || user?.role === 'principal') && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+              <Link to="/dashboard/timetable" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all border-l-8 border-indigo-600 flex items-center gap-4">
+                <div className="bg-indigo-100 p-3 rounded-full">
+                  <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Timetable Management</h3>
+                  <p className="text-sm text-gray-600">Generate, view, and manage class schedules</p>
+                </div>
+              </Link>
 
-            <Link to="/dashboard/alumni-management" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all border-l-8 border-amber-600 flex items-center gap-4">
-              <div className="bg-amber-100 p-3 rounded-full">
-                <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Alumni Management</h3>
-                <p className="text-sm text-gray-600">Manage graduated students and their academic history</p>
-              </div>
-            </Link>
+              <Link to="/dashboard/alumni-management" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all border-l-8 border-amber-600 flex items-center gap-4">
+                <div className="bg-amber-100 p-3 rounded-full">
+                  <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Alumni Management</h3>
+                  <p className="text-sm text-gray-600">Manage graduated students and their academic history</p>
+                </div>
+              </Link>
 
-            <Link to="/dashboard/settings" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all border-l-8 border-slate-600 flex items-center gap-4">
-              <div className="bg-slate-100 p-3 rounded-full">
-                <svg className="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">System Configuration</h3>
-                <p className="text-sm text-gray-600">Configure school terms, sessions and preferences</p>
-              </div>
-            </Link>
-          </div>
-        )}
-      </div>
+              <Link to="/dashboard/settings" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all border-l-8 border-slate-600 flex items-center gap-4">
+                <div className="bg-slate-100 p-3 rounded-full">
+                  <svg className="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">System Configuration</h3>
+                  <p className="text-sm text-gray-600">Configure school terms, sessions and preferences</p>
+                </div>
+              </Link>
+            </div>
+          )
+        }
+      </div >
     );
   }
 
@@ -897,9 +1087,16 @@ const Dashboard = () => {
               Welcome, {user?.firstName}!
             </h1>
             <div className="flex flex-col mt-2 space-y-2">
-              <span className="text-white/90 text-xs sm:text-base font-bold uppercase tracking-widest opacity-80 truncate">
-                {studentData?.classModel?.name} {studentData?.classModel?.arm || ''}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-white/90 text-xs sm:text-base font-bold uppercase tracking-widest opacity-80 truncate">
+                  {studentData?.classModel?.name} {studentData?.classModel?.arm || ''}
+                </span>
+                {currentTerm && (
+                  <span className="bg-white/10 text-white text-[10px] sm:text-xs px-2 py-0.5 rounded border border-white/20 font-black uppercase tracking-tighter italic">
+                    {currentTerm.name}
+                  </span>
+                )}
+              </div>
               <span className="text-white font-black bg-white/20 px-3 py-1.5 rounded-full text-[10px] sm:text-xs w-fit mx-auto sm:mx-0 uppercase tracking-widest border border-white/20">
                 ADM: {studentData?.admissionNumber || 'N/A'}
               </span>

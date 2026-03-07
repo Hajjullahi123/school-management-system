@@ -139,15 +139,15 @@ const BulkCertificateView = () => {
                       )}
                     </div>
 
-                    <h1 className="text-2xl font-bold mb-1 pt-2" style={{ color: cert.school?.primaryColor || '#1e40af' }}>
+                    <h1 className="text-2xl font-bold mb-1 pt-2 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" style={{ color: cert.school?.primaryColor || '#1e40af' }} contentEditable suppressContentEditableWarning>
                       {cert.school?.name}
                     </h1>
-                    <p className="text-gray-600 text-xs">{cert.school?.address}</p>
+                    <p className="text-gray-600 text-xs outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>{cert.school?.address}</p>
 
                     <div className="mt-4 mb-2">
                       <div className="inline-block border-t-2 border-b-2 border-yellow-600 py-1 px-8">
-                        <h2 className="text-2xl font-serif text-yellow-700 uppercase tracking-tight">
-                          Certificate of {cert.programType?.toUpperCase() || 'GRADUATION'}
+                        <h2 className="text-2xl font-serif text-yellow-700 uppercase tracking-tight outline-none focus:ring-2 focus:ring-yellow-500/50 rounded" contentEditable suppressContentEditableWarning>
+                          CERTIFICATE
                         </h2>
                       </div>
                     </div>
@@ -155,18 +155,18 @@ const BulkCertificateView = () => {
 
                   {/* Body */}
                   <div className="flex-1 flex flex-col justify-center text-center px-6">
-                    <p className="text-lg mb-2 text-gray-700">This is to certify that</p>
-                    <h3 className="text-3xl font-bold mb-2 text-gray-900 border-b-2 border-gray-200 pb-1 inline-block mx-auto px-4">
+                    <p className="text-lg mb-2 text-gray-700 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>This is to certify that</p>
+                    <h3 className="text-3xl font-bold mb-2 text-gray-900 border-b-2 border-gray-200 pb-1 inline-block mx-auto px-4 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>
                       {studentName.toUpperCase()}
                     </h3>
-                    <p className="text-lg mb-2 text-gray-700 max-w-3xl mx-auto leading-tight">
+                    <p className="text-lg mb-2 text-gray-700 max-w-3xl mx-auto leading-tight outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>
                       {cert.content || 'has successfully completed the academic program and is hereby awarded this'}
                     </p>
-                    <p className="text-xl font-semibold mb-2" style={{ color: cert.school?.primaryColor || '#1e40af' }}>
+                    <p className="text-xl font-semibold mb-2 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" style={{ color: cert.school?.primaryColor || '#1e40af' }} contentEditable suppressContentEditableWarning>
                       {cert.programType || 'Certificate of Graduation'}
                     </p>
                     <div className="text-base text-gray-700">
-                      in recognition of achievement from <span className="font-semibold">{cert.commencementYear || '____'}</span> to <span className="font-semibold">{cert.graduationYear}</span>
+                      <span className="outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>in recognition of achievement from</span> <span className="font-semibold outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>{cert.commencementYear || '____'}</span> <span className="outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>to</span> <span className="font-semibold outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>{cert.graduationYear}</span>
                     </div>
                   </div>
 

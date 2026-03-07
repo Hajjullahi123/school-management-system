@@ -6,8 +6,14 @@ const { authenticate, authorize } = require('../middleware/auth');
 // Get all miscellaneous fees
 router.get('/', authenticate, async (req, res) => {
   try {
+    const { sessionId, termId } = req.query;
+
+    const where = { schoolId: req.schoolId };
+    if (sessionId) where.academicSessionId = parseInt(sessionId);
+    if (termId) where.termId = parseInt(termId);
+
     const fees = await prisma.miscellaneousFee.findMany({
-      where: { schoolId: req.schoolId },
+      where,
       orderBy: { createdAt: 'desc' }
     });
 
@@ -26,7 +32,7 @@ router.get('/', authenticate, async (req, res) => {
 // Create new miscellaneous fee
 router.post('/', authenticate, authorize(['admin', 'superadmin']), async (req, res) => {
   try {
-    const { title, description, amount, isCompulsory, classIds } = req.body;
+    const { title, description, amount, isCompulsory, classIds, academicSessionId, termId } = req.body;
 
     const fee = await prisma.miscellaneousFee.create({
       data: {
@@ -35,7 +41,9 @@ router.post('/', authenticate, authorize(['admin', 'superadmin']), async (req, r
         description,
         amount: parseFloat(amount),
         isCompulsory: !!isCompulsory,
-        classIds: JSON.stringify(classIds || [])
+        classIds: JSON.stringify(classIds || []),
+        academicSessionId: academicSessionId ? parseInt(academicSessionId) : null,
+        termId: termId ? parseInt(termId) : null
       }
     });
 
@@ -52,7 +60,7 @@ router.post('/', authenticate, authorize(['admin', 'superadmin']), async (req, r
 router.put('/:id', authenticate, authorize(['admin', 'superadmin']), async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, amount, isCompulsory, classIds } = req.body;
+    const { title, description, amount, isCompulsory, classIds, academicSessionId, termId } = req.body;
 
     const fee = await prisma.miscellaneousFee.update({
       where: {
@@ -64,7 +72,9 @@ router.put('/:id', authenticate, authorize(['admin', 'superadmin']), async (req,
         description,
         amount: parseFloat(amount),
         isCompulsory: !!isCompulsory,
-        classIds: JSON.stringify(classIds || [])
+        classIds: JSON.stringify(classIds || []),
+        academicSessionId: academicSessionId ? parseInt(academicSessionId) : null,
+        termId: termId ? parseInt(termId) : null
       }
     });
 
@@ -98,8 +108,14 @@ router.delete('/:id', authenticate, authorize(['admin', 'superadmin']), async (r
 // Get detailed analytics (per fee, per class, per student)
 router.get('/detailed-analytics', authenticate, async (req, res) => {
   try {
+    const { sessionId, termId } = req.query;
+
+    const where = { schoolId: req.schoolId };
+    if (sessionId) where.academicSessionId = parseInt(sessionId);
+    if (termId) where.termId = parseInt(termId);
+
     const fees = await prisma.miscellaneousFee.findMany({
-      where: { schoolId: req.schoolId },
+      where,
       include: {
         payments: {
           include: {

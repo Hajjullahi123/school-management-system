@@ -2,7 +2,7 @@ const prisma = require('./db');
 
 async function testApiUsers() {
   const schoolId = 3;
-  const role = 'student';
+  const role = undefined;
   const search = undefined;
 
   const where = { schoolId: schoolId };

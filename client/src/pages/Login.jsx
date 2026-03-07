@@ -30,7 +30,7 @@ const Login = () => {
     } else {
       // 2. Otherwise check if schoolSlug already exists in localStorage
       const savedSlug = localStorage.getItem('schoolSlug');
-      if (savedSlug && savedSlug !== 'undefined') {
+      if (savedSlug && savedSlug !== 'undefined' && savedSlug !== 'null') {
         setSchoolSlug(savedSlug);
       }
     }

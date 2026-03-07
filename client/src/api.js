@@ -85,18 +85,32 @@ export const api = {
     const url = `${baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
     const token = localStorage.getItem('token');
     console.log(`[API POST] ${url} - Token: ${token ? 'Yes' : 'No'}`);
-    const headers = { 'Content-Type': 'application/json', ...options.headers };
+
+    const isFormData = data instanceof FormData;
+    const headers = { ...options.headers };
+    if (!isFormData) {
+      headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+    }
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(url, { ...options, method: 'POST', headers, credentials: 'include', body: JSON.stringify(data) });
+
+    const body = isFormData ? data : JSON.stringify(data);
+    return fetch(url, { ...options, method: 'POST', headers, credentials: 'include', body });
   },
 
   put: async (endpoint, data, options = {}) => {
     const baseURL = API_BASE_URL || window.location.origin;
     const url = `${baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
     const token = localStorage.getItem('token');
-    const headers = { 'Content-Type': 'application/json', ...options.headers };
+
+    const isFormData = data instanceof FormData;
+    const headers = { ...options.headers };
+    if (!isFormData) {
+      headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+    }
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(url, { ...options, method: 'PUT', headers, credentials: 'include', body: JSON.stringify(data) });
+
+    const body = isFormData ? data : JSON.stringify(data);
+    return fetch(url, { ...options, method: 'PUT', headers, credentials: 'include', body });
   },
 
   delete: async (endpoint, options = {}) => {

@@ -128,7 +128,6 @@ router.put('/my-profile', authenticate, async (req, res) => {
     }
 
     const {
-      middleName,
       address,
       parentGuardianPhone,
       parentEmail,
@@ -156,13 +155,6 @@ router.put('/my-profile', authenticate, async (req, res) => {
 
     // Filter out undefined values and update allowed fields
     const dataToUpdate = {};
-    if (middleName !== undefined) {
-      dataToUpdate.middleName = middleName;
-      // Also update the full name field in Student model
-      const firstName = existingStudent.user?.firstName || '';
-      const lastName = existingStudent.user?.lastName || '';
-      dataToUpdate.name = middleName ? `${firstName} ${middleName} ${lastName}` : `${firstName} ${lastName}`;
-    }
     if (address !== undefined) dataToUpdate.address = address;
     if (parentGuardianPhone !== undefined) dataToUpdate.parentGuardianPhone = parentGuardianPhone;
     if (parentEmail !== undefined) dataToUpdate.parentEmail = parentEmail;

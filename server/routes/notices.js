@@ -7,31 +7,40 @@ const { logAction } = require('../utils/audit');
 // Get Notices
 router.get('/', authenticate, async (req, res) => {
   try {
-    const { role } = req.user;
+    const { role, id: userId } = req.user;
 
-    // Filter notices based on audience
-    const notices = await prisma.notice.findMany({
+    // Fetch all active, non-expired notices for this school
+    const allNotices = await prisma.notice.findMany({
       where: {
         schoolId: req.schoolId,
         isActive: true,
         OR: [
-          { audience: 'all' },
-          { audience: role },
-          { audience: `user:${req.user.id}` }
-        ],
-        AND: [
-          {
-            OR: [
-              { expiresAt: null },
-              { expiresAt: { gt: new Date() } }
-            ]
-          }
+          { expiresAt: null },
+          { expiresAt: { gt: new Date() } }
         ]
       },
       orderBy: { createdAt: 'desc' },
       include: {
         author: { select: { firstName: true, lastName: true } }
       }
+    });
+
+    // Filter by audience in JS so we have precise control:
+    // - 'all'           → everyone
+    // - 'teacher'       → only teachers
+    // - 'student'       → only students
+    // - 'parent'        → only parents
+    // - 'admin'         → only admins
+    // - 'principal'     → only principals
+    // - 'accountant'    → only accountants
+    // - 'user:123'      → only the specific user with id 123
+    const notices = allNotices.filter(notice => {
+      const aud = notice.audience;
+      if (!aud || aud === 'all') return true;
+      if (aud.startsWith('user:')) {
+        return aud === `user:${userId}`; // Strict match — only this user
+      }
+      return aud === role; // Role-based audience
     });
 
     res.json(notices);

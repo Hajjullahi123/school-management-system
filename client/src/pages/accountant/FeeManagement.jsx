@@ -3,6 +3,7 @@ import { saveAs } from 'file-saver';
 import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import PrintReceiptModal from '../../components/PrintReceiptModal';
+import PrintScholarshipModal from '../../components/PrintScholarshipModal';
 import { formatCurrency, formatNumber, formatDate } from '../../utils/formatters';
 import { toast } from 'react-hot-toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
@@ -37,6 +38,10 @@ export default function FeeManagement() {
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [receiptPayment, setReceiptPayment] = useState(null);
   const [receiptStudent, setReceiptStudent] = useState(null);
+
+  // Scholarship Print State
+  const [scholarshipModalOpen, setScholarshipModalOpen] = useState(false);
+  const [scholarshipStudent, setScholarshipStudent] = useState(null);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,6 +79,8 @@ export default function FeeManagement() {
   const [loadingMisc, setLoadingMisc] = useState(false);
   const [expandedFee, setExpandedFee] = useState(null);
   const [expandedClass, setExpandedClass] = useState(null);
+  const [selectedMiscTerm, setSelectedMiscTerm] = useState(null);
+  const [selectedMiscSession, setSelectedMiscSession] = useState(null);
 
   // Misc Payment States
   const [selectedMiscPayment, setSelectedMiscPayment] = useState(null);
@@ -177,6 +184,7 @@ export default function FeeManagement() {
   const [selectedViewTerm, setSelectedViewTerm] = useState(null);
   const [selectedViewSession, setSelectedViewSession] = useState(null);
   const [viewAllTerms, setViewAllTerms] = useState(false);
+  const [viewAllSessions, setViewAllSessions] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -186,12 +194,21 @@ export default function FeeManagement() {
     if (activeTab === 'misc') {
       fetchDetailedAnalytics();
     }
-  }, [activeTab]);
+  }, [activeTab, selectedMiscTerm, selectedMiscSession]);
 
   const fetchDetailedAnalytics = async () => {
     try {
       setLoadingMisc(true);
-      const response = await api.get('/api/misc-fees/detailed-analytics');
+      let url = '/api/misc-fees/detailed-analytics';
+      const params = new URLSearchParams();
+      if (selectedMiscSession) params.append('sessionId', selectedMiscSession);
+      if (selectedMiscTerm) params.append('termId', selectedMiscTerm);
+
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
+      const response = await api.get(url);
       if (response.ok) {
         const data = await response.json();
         setDetailedAnalytics(data);
@@ -244,13 +261,14 @@ export default function FeeManagement() {
       const payment = await response.json();
 
       const primaryColor = schoolSettings.primaryColor || '#0f766e';
-      const logoUrl = schoolSettings.logoUrl;
+      const logoUrl = schoolSettings.logoUrl
+        ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl}`)
+        : null;
 
       // Generate security markers
       const securityHash = btoa(`MISC-${payment.id}-${payment.student.id}`).substring(0, 12).toUpperCase();
-      const verificationUrl = `${window.location.origin}/verify/payment/${securityHash}`;
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}&bgcolor=ffffff`;
-      const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=MISC-${payment.id}&scale=2&rotate=N&includetext=true&backgroundcolor=ffffff`;
+      const barcodeText = `MISC-${payment.id}`;
+      const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&rotate=N&includetext=true&backgroundcolor=ffffff&height=12`;
 
       const printWindow = window.open('', '_blank');
       printWindow.document.write(`
@@ -507,12 +525,8 @@ export default function FeeManagement() {
               <div class="amount-value">₦${payment.amount.toLocaleString()}</div>
             </div>
 
-            <div class="qr-section" style="margin-bottom: 10px;">
-              <img src="${qrCodeUrl}" alt="QR" class="qr-code" width="60" height="60" />
-              <div style="font-size: 7px; color: #94a3b8; font-weight: 600;">VERIFIED</div>
-              <div class="barcode-wrapper">
-                <img src="${barcodeUrl}" alt="Barcode" class="barcode-img" />
-              </div>
+            <div style="margin: 10px 0; text-align: center;">
+              <img src="${barcodeUrl}" alt="Barcode" style="max-width: 160px; height: auto;" onerror="this.style.display='none'" />
             </div>
 
             <div class="signatures">
@@ -581,7 +595,13 @@ export default function FeeManagement() {
 
       setCurrentTerm(activeTerm);
       setCurrentSession(activeSession);
+      setAllTerms(terms);
+      setAllSessions(sessions);
       setClasses(classesArr);
+
+      // Initialize misc filters
+      if (activeTerm) setSelectedMiscTerm(activeTerm.id);
+      if (activeSession) setSelectedMiscSession(activeSession.id);
 
       setAllTerms(terms);
       setAllSessions(sessions);
@@ -606,10 +626,17 @@ export default function FeeManagement() {
     }
   };
 
-  const handleViewFilterChange = async (termId, sessionId, viewAll = false) => {
-    setViewAllTerms(viewAll);
+  const handleViewFilterChange = async (termId, sessionId, viewAllTerms = false, viewAllSessions = false) => {
+    setViewAllTerms(viewAllTerms);
+    setViewAllSessions(viewAllSessions);
 
-    if (viewAll) {
+    if (viewAllSessions) {
+      setSelectedViewSession(null);
+      setSelectedViewTerm(null);
+      await loadStudentsAllSessions();
+    } else if (viewAllTerms) {
+      const session = allSessions.find(s => s.id === sessionId);
+      setSelectedViewSession(session);
       setSelectedViewTerm(null);
       await loadStudentsAllTerms(sessionId);
     } else {
@@ -619,6 +646,88 @@ export default function FeeManagement() {
       setSelectedViewSession(session);
       await loadStudents(termId, sessionId);
       await loadSummary(termId, sessionId);
+    }
+  };
+
+  const loadStudentsAllSessions = async () => {
+    try {
+      setLoading(true);
+      let allStudentsData = [];
+
+      for (const session of allSessions) {
+        const sessionTerms = allTerms.filter(t => t.academicSessionId === session.id);
+        for (const term of sessionTerms) {
+          const response = await api.get(
+            `/api/fees/students?termId=${term.id}&academicSessionId=${session.id}`
+          );
+
+          if (!response.ok) continue;
+
+          const data = await response.json();
+          if (Array.isArray(data)) {
+            data.forEach(student => {
+              if (student.feeRecords && student.feeRecords.length > 0) {
+                student.feeRecords.forEach(record => {
+                  record.termName = term.name;
+                  record.sessionName = session.name;
+                });
+              }
+            });
+            allStudentsData = [...allStudentsData, ...data];
+          }
+        }
+      }
+
+      const studentMap = new Map();
+      allStudentsData.forEach(student => {
+        if (!studentMap.has(student.id)) {
+          studentMap.set(student.id, {
+            ...student,
+            feeRecords: []
+          });
+        }
+        const existingStudent = studentMap.get(student.id);
+        if (student.feeRecords && student.feeRecords.length > 0) {
+          existingStudent.feeRecords.push(...student.feeRecords);
+        }
+      });
+
+      const studentsArray = Array.from(studentMap.values()).map(student => {
+        const aggregatedRecord = student.feeRecords.reduce((acc, curr) => ({
+          expectedAmount: acc.expectedAmount + curr.expectedAmount,
+          paidAmount: acc.paidAmount + curr.paidAmount,
+          balance: acc.balance + curr.balance,
+          isClearedForExam: curr.isClearedForExam // Use most recent
+        }), { expectedAmount: 0, paidAmount: 0, balance: 0, isClearedForExam: true });
+
+        return {
+          ...student,
+          feeRecords: [aggregatedRecord, ...student.feeRecords]
+        };
+      });
+
+      setStudents(studentsArray);
+      calculateClassSummaries(studentsArray);
+
+      const totalExpected = studentsArray.reduce((sum, s) => sum + (s.feeRecords[0]?.expectedAmount || 0), 0);
+      const totalPaid = studentsArray.reduce((sum, s) => sum + (s.feeRecords[0]?.paidAmount || 0), 0);
+      const totalBalance = studentsArray.reduce((sum, s) => sum + (s.feeRecords[0]?.balance || 0), 0);
+      const clearedStudents = studentsArray.filter(s => s.feeRecords[0]?.isClearedForExam).length;
+
+      setSummary({
+        totalStudents: studentsArray.length,
+        totalExpected,
+        totalPaid,
+        totalBalance,
+        clearedStudents,
+        restrictedStudents: studentsArray.length - clearedStudents
+      });
+
+    } catch (error) {
+      console.error('Error loading all sessions data:', error);
+      alert('Failed to load cumulative session data');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -635,12 +744,11 @@ export default function FeeManagement() {
 
         if (!response.ok) {
           console.error(`Failed to load students for term ${term.name}`);
-          continue; // Skip this term and continue with others
+          continue;
         }
 
         const data = await response.json();
 
-        // Only process if data is an array
         if (Array.isArray(data)) {
           data.forEach(student => {
             if (student.feeRecords && student.feeRecords.length > 0) {
@@ -649,7 +757,6 @@ export default function FeeManagement() {
               });
             }
           });
-
           allStudentsData = [...allStudentsData, ...data];
         }
       }
@@ -668,9 +775,41 @@ export default function FeeManagement() {
         }
       });
 
-      const studentsArray = Array.from(studentMap.values());
+      const studentsArray = Array.from(studentMap.values()).map(student => {
+        // Aggregate fee records for the student
+        const aggregatedRecord = student.feeRecords.reduce((acc, curr) => ({
+          expectedAmount: acc.expectedAmount + curr.expectedAmount,
+          paidAmount: acc.paidAmount + curr.paidAmount,
+          balance: acc.balance + curr.balance,
+          // A student is cleared cumulatively only if cleared in the most recent term record
+          isClearedForExam: curr.isClearedForExam // Last record in the array should be the most recent term fetched
+        }), { expectedAmount: 0, paidAmount: 0, balance: 0, isClearedForExam: true });
+
+        return {
+          ...student,
+          // We'll keep the actual records but put an aggregated summary at index 0 for UI components
+          feeRecords: [aggregatedRecord, ...student.feeRecords]
+        };
+      });
+
       setStudents(studentsArray);
       calculateClassSummaries(studentsArray);
+
+      // Calculate overall session summary for Cumulative View
+      const totalExpected = studentsArray.reduce((sum, s) => sum + (s.feeRecords[0]?.expectedAmount || 0), 0);
+      const totalPaid = studentsArray.reduce((sum, s) => sum + (s.feeRecords[0]?.paidAmount || 0), 0);
+      const totalBalance = studentsArray.reduce((sum, s) => sum + (s.feeRecords[0]?.balance || 0), 0);
+      const clearedStudents = studentsArray.filter(s => s.feeRecords[0]?.isClearedForExam).length;
+
+      setSummary({
+        totalStudents: studentsArray.length,
+        totalExpected,
+        totalPaid,
+        totalBalance,
+        clearedStudents,
+        restrictedStudents: studentsArray.length - clearedStudents
+      });
+
     } catch (error) {
       console.error('Error loading all terms data:', error);
       alert('Failed to load cumulative data');
@@ -1024,26 +1163,113 @@ export default function FeeManagement() {
     }
   };
 
-  const exportToCSV = () => {
-    const csvData = (Array.isArray(filteredStudents) ? filteredStudents : []).map(student => {
-      const feeRecord = student.feeRecords?.[0];
-      return {
-        'Admission Number': student.admissionNumber || 'N/A',
-        'Student Name': `${student.user?.firstName || ''} ${student.user?.lastName || ''}`,
-        'Class': student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'N/A',
-        'Expected Amount': feeRecord?.expectedAmount || 0,
-        'Paid Amount': feeRecord?.paidAmount || 0,
-        'Balance': feeRecord?.balance || 0,
-        'Exam Access': feeRecord?.isClearedForExam ? 'Allowed' : 'Restricted'
-      };
-    });
+  const exportToCSV = (mode = 'cumulative') => {
+    const allStudents = Array.isArray(filteredStudents) ? filteredStudents : [];
+    if (allStudents.length === 0) {
+      toast.error('No students to export');
+      return;
+    }
 
-    const headers = Object.keys(csvData[0]).join(',');
-    const rows = csvData.map(row => Object.values(row).join(','));
-    const csv = [headers, ...rows].join('\n');
+    const schoolName = schoolSettings?.schoolName || 'School';
+    const schoolAddr = schoolSettings?.schoolAddress || '';
+    const termName = selectedViewTerm?.name || currentTerm?.name || '';
+    const sessionName = selectedViewSession?.name || currentSession?.name || '';
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    saveAs(blob, `fee-records-${currentTerm?.name}-${currentSession?.name}.csv`);
+    // School header rows
+    const headerRows = [
+      [schoolName],
+      [schoolAddr],
+      [`Term: ${termName}`, `Session: ${sessionName}`],
+      [`Downloaded: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`],
+      [] // blank row
+    ];
+
+    const colHeaders = ['S/N', 'Admission Number', 'Student Name', 'Class', 'Previous Balance', 'Current Expected', 'Paid', 'Total Balance'];
+
+    if (mode === 'class') {
+      // Group students by class
+      const classGroups = {};
+      allStudents.forEach(student => {
+        const className = student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'Unassigned';
+        if (!classGroups[className]) classGroups[className] = [];
+        classGroups[className].push(student);
+      });
+
+      const dataRows = [];
+      let grandPrev = 0, grandExpected = 0, grandPaid = 0, grandBalance = 0;
+
+      Object.keys(classGroups).sort().forEach(className => {
+        const classStudents = classGroups[className];
+        dataRows.push([]); // blank row before class
+        dataRows.push([`CLASS: ${className}`, '', '', '', '', '', '', '']);
+        dataRows.push(colHeaders);
+
+        let classPrev = 0, classExpected = 0, classPaid = 0, classBalance = 0;
+
+        classStudents.forEach((student, idx) => {
+          const fr = student.feeRecords?.[0];
+          const prev = fr?.openingBalance || 0;
+          const expected = fr?.expectedAmount || 0;
+          const paid = fr?.paidAmount || 0;
+          const balance = fr?.balance || 0;
+          classPrev += prev; classExpected += expected; classPaid += paid; classBalance += balance;
+
+          dataRows.push([
+            idx + 1,
+            student.admissionNumber || 'N/A',
+            `${student.user?.firstName || ''} ${student.user?.lastName || ''}`,
+            className,
+            prev, expected, paid, balance
+          ]);
+        });
+
+        dataRows.push(['', '', '', `${className} SUBTOTAL:`, classPrev, classExpected, classPaid, classBalance]);
+        grandPrev += classPrev; grandExpected += classExpected; grandPaid += classPaid; grandBalance += classBalance;
+      });
+
+      dataRows.push([]);
+      dataRows.push(['', '', '', 'GRAND TOTAL:', grandPrev, grandExpected, grandPaid, grandBalance]);
+
+      const csvContent = [
+        ...headerRows.map(r => r.join(',')),
+        ...dataRows.map(r => r.map(v => typeof v === 'string' && v.includes(',') ? `"${v}"` : v).join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      saveAs(blob, `fee-records-by-class-${termName}-${sessionName}.csv`);
+    } else {
+      // Cumulative - all students in one table
+      const dataRows = [colHeaders];
+      let totalPrev = 0, totalExpected = 0, totalPaid = 0, totalBalance = 0;
+
+      allStudents.forEach((student, idx) => {
+        const fr = student.feeRecords?.[0];
+        const prev = fr?.openingBalance || 0;
+        const expected = fr?.expectedAmount || 0;
+        const paid = fr?.paidAmount || 0;
+        const balance = fr?.balance || 0;
+        totalPrev += prev; totalExpected += expected; totalPaid += paid; totalBalance += balance;
+
+        dataRows.push([
+          idx + 1,
+          student.admissionNumber || 'N/A',
+          `${student.user?.firstName || ''} ${student.user?.lastName || ''}`,
+          student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'N/A',
+          prev, expected, paid, balance
+        ]);
+      });
+
+      dataRows.push([]);
+      dataRows.push(['', '', '', 'TOTAL:', totalPrev, totalExpected, totalPaid, totalBalance]);
+
+      const csvContent = [
+        ...headerRows.map(r => r.join(',')),
+        ...dataRows.map(r => r.map(v => typeof v === 'string' && v.includes(',') ? `"${v}"` : v).join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      saveAs(blob, `fee-records-cumulative-${termName}-${sessionName}.csv`);
+    }
   };
 
   const printReceipt = (payment, student) => {
@@ -1152,18 +1378,22 @@ export default function FeeManagement() {
                     Academic Session
                   </label>
                   <select
-                    value={selectedViewSession?.id || ''}
+                    value={viewAllSessions ? 'all' : (selectedViewSession?.id || '')}
                     onChange={(e) => {
-                      const sessionId = parseInt(e.target.value);
-                      const session = allSessions.find(s => s.id === sessionId);
-                      setSelectedViewSession(session);
-
-                      if (viewAllTerms) {
-                        handleViewFilterChange(null, sessionId, true);
+                      if (e.target.value === 'all') {
+                        handleViewFilterChange(null, null, true, true);
                       } else {
-                        const firstTerm = allTerms.find(t => t.academicSessionId === sessionId);
-                        if (firstTerm) {
-                          handleViewFilterChange(firstTerm.id, sessionId, false);
+                        const sessionId = parseInt(e.target.value);
+                        const session = allSessions.find(s => s.id === sessionId);
+                        setSelectedViewSession(session);
+
+                        if (viewAllTerms) {
+                          handleViewFilterChange(null, sessionId, true, false);
+                        } else {
+                          const firstTerm = allTerms.find(t => t.academicSessionId === sessionId);
+                          if (firstTerm) {
+                            handleViewFilterChange(firstTerm.id, sessionId, false, false);
+                          }
                         }
                       }
                     }}
@@ -1177,6 +1407,7 @@ export default function FeeManagement() {
                       cursor: 'pointer'
                     }}
                   >
+                    <option value="all">📊 All Sessions (Cumulative)</option>
                     {(Array.isArray(allSessions) ? allSessions : []).map(s => (
                       <option key={s.id} value={s.id}>
                         {s.name} {s.isCurrent ? '(Current)' : ''}
@@ -1193,12 +1424,13 @@ export default function FeeManagement() {
                     value={viewAllTerms ? 'all' : (selectedViewTerm?.id || '')}
                     onChange={(e) => {
                       if (e.target.value === 'all') {
-                        handleViewFilterChange(null, selectedViewSession.id, true);
+                        handleViewFilterChange(null, selectedViewSession.id, true, false);
                       } else {
                         const termId = parseInt(e.target.value);
-                        handleViewFilterChange(termId, selectedViewSession.id, false);
+                        handleViewFilterChange(termId, selectedViewSession.id, false, false);
                       }
                     }}
+                    disabled={viewAllSessions}
                     style={{
                       width: '100%',
                       padding: '10px',
@@ -1522,13 +1754,22 @@ export default function FeeManagement() {
 
             <div className="flex flex-wrap gap-2 sm:gap-3">
               <button
-                onClick={exportToCSV}
+                onClick={() => exportToCSV('class')}
                 className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold"
               >
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Export
+                By Class
+              </button>
+              <button
+                onClick={() => exportToCSV('cumulative')}
+                className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold"
+              >
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Cumulative
               </button>
               <button
                 onClick={handleSyncRecords}
@@ -1539,6 +1780,54 @@ export default function FeeManagement() {
                 </svg>
                 Sync
               </button>
+
+              <div className="flex gap-4 items-center mt-4">
+                <div className="flex-1 bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-center gap-4">
+                  <div className="p-3 bg-blue-600 text-white rounded-lg shadow-lg">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-blue-600 uppercase tracking-widest mb-0.5">Currently Viewing</p>
+                    <p className="text-sm font-bold text-blue-900">
+                      {viewAllSessions ? 'GLOBAL ACADEMIC HISTORY - ALL SESSIONS' : `${selectedViewSession?.name || 'Loading...'} - ${viewAllTerms ? 'All Terms (Cumulative)' : (selectedViewTerm?.name || 'Term')}`}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => viewAllSessions ? loadStudentsAllSessions() : (viewAllTerms ? loadStudentsAllTerms(selectedViewSession.id) : handleViewFilterChange(selectedViewTerm.id, selectedViewSession.id, false, false))}
+                  className="bg-primary text-white p-4 rounded-xl shadow-lg hover:brightness-95 transition-all active:scale-95 flex items-center gap-2 font-black uppercase text-xs tracking-widest"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refresh
+                </button>
+              </div>
+
+              {viewAllSessions && (
+                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
+                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <p className="text-xs font-bold text-amber-800">
+                    Showing aggregated fee records from every academic session in history. Each student shows their total expected, paid, and balance across all years.
+                  </p>
+                </div>
+              )}
+
+              {viewAllTerms && !viewAllSessions && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <p className="text-xs font-bold text-blue-800">
+                    Showing cumulative fee records for all terms within the selected academic session. Each student shows their total expected, paid, and balance across all terms.
+                  </p>
+                </div>
+              )}
 
               <div className="w-full sm:w-auto flex flex-wrap gap-2">
                 {selectedStudents.length > 0 && (
@@ -1595,17 +1884,17 @@ export default function FeeManagement() {
                       <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
                         Class
                       </th>
-                      <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                        Expected
+                      <th className="px-3 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Prev. Balance
                       </th>
-                      <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      <th className="px-3 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Current Expected
+                      </th>
+                      <th className="px-3 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
                         Paid
                       </th>
-                      <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                        Balance
-                      </th>
-                      <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                        Status
+                      <th className="px-3 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Total Balance
                       </th>
                       <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
                         Actions
@@ -1615,9 +1904,13 @@ export default function FeeManagement() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredStudents.map((student) => {
                       const feeRecord = student.feeRecords[0];
+                      const prevBalance = feeRecord?.openingBalance || 0;
+                      const currentExpected = feeRecord?.expectedAmount || 0;
+                      const paid = feeRecord?.paidAmount || 0;
+                      const totalBalance = feeRecord?.balance || 0;
                       return (
-                        <tr key={student.id} className="hover:bg-gray-50">
-                          <td className="px-3 py-4">
+                        <tr key={student.id} className={`hover:bg-gray-50 ${student.isScholarship ? 'bg-emerald-50/30' : ''}`}>
+                          <td className="px-3 py-4 border-b border-gray-100">
                             <input
                               type="checkbox"
                               checked={selectedStudents.includes(student.id)}
@@ -1625,7 +1918,7 @@ export default function FeeManagement() {
                               className="rounded border-gray-300 text-primary focus:ring-primary"
                             />
                           </td>
-                          <td className="px-3 py-4">
+                          <td className="px-3 py-4 border-b border-gray-100">
                             <div className="min-w-[140px]">
                               <div className="font-bold text-gray-900 leading-tight">
                                 {student.user.firstName} {student.user.lastName}
@@ -1635,75 +1928,131 @@ export default function FeeManagement() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-3 py-4 text-xs font-semibold text-gray-700">
+                          <td className="px-3 py-4 text-xs font-semibold text-gray-700 border-b border-gray-100">
                             {student.classModel ?
                               `${student.classModel.name}${student.classModel.arm || ''}` :
                               'N/A'}
                           </td>
-                          <td className="px-3 py-4 text-xs font-bold text-gray-900">
-                            ₦{formatNumber(feeRecord?.expectedAmount || 0)}
-                          </td>
-                          <td className="px-3 py-4 text-xs font-black text-green-600">
-                            ₦{formatNumber(feeRecord?.paidAmount || 0)}
-                          </td>
-                          <td className="px-3 py-4 text-xs font-black text-red-600">
-                            ₦{formatNumber(feeRecord?.balance || 0)}
-                          </td>
-                          <td className="px-3 py-4">
-                            {feeRecord?.isClearedForExam ? (
-                              <span className="px-2 py-1 text-[9px] font-black uppercase tracking-widest rounded bg-indigo-50 text-indigo-600 border border-indigo-100">
-                                ✓ Allowed
-                              </span>
-                            ) : (
-                              <span className="px-2 py-1 text-[9px] font-black uppercase tracking-widest rounded bg-amber-50 text-amber-600 border border-amber-100">
-                                🚫 Restricted
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-3 py-4">
-                            <div className="flex flex-wrap gap-1.5 min-w-[200px]">
-                              <button
-                                onClick={() => setSelectedStudent(student)}
-                                className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
-                              >
-                                💰 Pay
-                              </button>
-                              <button
-                                onClick={() => viewPaymentHistory(student)}
-                                className="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
-                              >
-                                🕒 History
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setReceiptStudent(student);
-                                  setReceiptPayment(null);
-                                  setReceiptModalOpen(true);
-                                }}
-                                className="bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
-                              >
-                                🖨️ Receipt
-                              </button>
-                              <button
-                                onClick={() => handleEditFee(student)}
-                                className="bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
-                              >
-                                ⚙️ Adjust
-                              </button>
-                              <button
-                                onClick={() => toggleClearance(student.id, !feeRecord?.isClearedForExam)}
-                                className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all ${feeRecord?.isClearedForExam ? 'bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'}`}
-                              >
-                                {feeRecord?.isClearedForExam ? '🚫 Revoke' : '✅ Grant'}
-                              </button>
-                              <button
-                                onClick={() => handleRestrictClick(student)}
-                                className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all ${student.isExamRestricted ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white'}`}
-                              >
-                                {student.isExamRestricted ? '🔒 BLOCKED' : '🛡️ Block'}
-                              </button>
-                            </div>
-                          </td>
+
+                          {student.isScholarship ? (
+                            <td colSpan="5" className="p-3 border-b border-gray-100">
+                              <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 p-4 text-white shadow-lg border border-emerald-400">
+                                {/* Decorative background elements */}
+                                <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white opacity-10 blur-2xl"></div>
+                                <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 rounded-full bg-white opacity-10 blur-xl"></div>
+
+                                <div className="relative flex items-center justify-between gap-4">
+                                  {/* Logo Section */}
+                                  <div className="hidden sm:flex shrink-0 w-16 h-16 bg-white/20 rounded-full p-2 backdrop-blur-sm border border-white/30 items-center justify-center">
+                                    {schoolSettings?.logoUrl ? (
+                                      <img src={schoolSettings.logoUrl} alt="Logo" className="w-full h-full object-contain drop-shadow-md" />
+                                    ) : (
+                                      <span className="text-2xl">🎓</span>
+                                    )}
+                                  </div>
+
+                                  {/* Main Content Section */}
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="px-2 py-0.5 bg-yellow-400 text-yellow-900 text-[10px] font-black uppercase tracking-widest rounded-sm shadow-sm">
+                                        Scholarship Awardee
+                                      </span>
+                                      <span className="text-emerald-100 text-[10px] font-bold uppercase tracking-wider">
+                                        {viewAllSessions ? 'All Sessions' : (viewAllTerms ? `${selectedViewSession?.name} (All Terms)` : `${selectedViewTerm?.name || currentTerm?.name} - ${selectedViewSession?.name || currentSession?.name}`)}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs sm:text-sm font-medium leading-relaxed max-w-2xl text-white drop-shadow-sm">
+                                      This serves as official confirmation that <strong className="text-yellow-300 mx-1">{student.user.firstName} {student.user.lastName}</strong>
+                                      of <strong className="text-yellow-300 mx-1">{student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : ''}</strong>
+                                      is exempted from paying school fees. Kindly take note and grant all necessary clearances.
+                                    </p>
+                                  </div>
+
+                                  {/* Signature & Actions Section */}
+                                  <div className="shrink-0 flex flex-col items-center justify-center gap-2 border-l border-white/20 pl-4 ml-2">
+                                    {schoolSettings?.principalSignatureUrl ? (
+                                      <div className="h-10 w-24 bg-white/10 rounded backdrop-blur-sm flex items-center justify-center p-1 border border-white/20">
+                                        <img src={schoolSettings.principalSignatureUrl} alt="Signature" className="h-full w-full object-contain opacity-90" style={{ filter: 'brightness(0) invert(1)' }} />
+                                      </div>
+                                    ) : (
+                                      <div className="h-10 w-24 bg-white/10 rounded flex items-center justify-center border border-white/10 text-[8px] text-white/50 uppercase tracking-widest text-center leading-tight">
+                                        Authorized<br />Signature
+                                      </div>
+                                    )}
+                                    <div className="flex gap-1.5 w-full mt-1">
+                                      <button
+                                        onClick={() => {
+                                          setScholarshipStudent(student);
+                                          setScholarshipModalOpen(true);
+                                        }}
+                                        className="flex-1 bg-yellow-400 text-yellow-900 hover:bg-yellow-500 px-2 py-1.5 rounded-[4px] text-[10px] font-black uppercase tracking-tighter shadow-sm transition-all shadow-yellow-500/20"
+                                      >
+                                        🖨️ Print Card
+                                      </button>
+                                      <button
+                                        onClick={() => handleEditFee(student)}
+                                        className="bg-emerald-800 text-white hover:bg-emerald-900 border border-emerald-600 px-2 py-1.5 rounded-[4px] text-[10px] font-black uppercase tracking-tighter shadow-sm transition-all flex-none aspect-square w-8"
+                                        title="Adjust settings"
+                                      >
+                                        ⚙️
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          ) : (
+                            <>
+                              <td className="px-3 py-4 text-xs font-bold text-right border-b border-gray-100">
+                                <span className={prevBalance > 0 ? 'text-red-500' : 'text-gray-400'}>
+                                  ₦{formatNumber(prevBalance)}
+                                </span>
+                              </td>
+                              <td className="px-3 py-4 text-xs font-bold text-gray-900 text-right border-b border-gray-100">
+                                ₦{formatNumber(currentExpected)}
+                              </td>
+                              <td className="px-3 py-4 text-xs font-black text-green-600 text-right border-b border-gray-100">
+                                ₦{formatNumber(paid)}
+                              </td>
+                              <td className="px-3 py-4 text-xs font-black text-right border-b border-gray-100">
+                                <span className={totalBalance > 0 ? 'text-red-600' : 'text-green-600'}>
+                                  ₦{formatNumber(totalBalance)}
+                                </span>
+                              </td>
+                              <td className="px-3 py-4 border-b border-gray-100">
+                                <div className="flex flex-wrap gap-1.5 min-w-[160px]">
+                                  <button
+                                    onClick={() => setSelectedStudent(student)}
+                                    className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
+                                  >
+                                    💰 Pay
+                                  </button>
+                                  <button
+                                    onClick={() => viewPaymentHistory(student)}
+                                    className="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
+                                  >
+                                    🕒 History
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setReceiptStudent(student);
+                                      setReceiptPayment(null);
+                                      setReceiptModalOpen(true);
+                                    }}
+                                    className="bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
+                                  >
+                                    🖨️ Receipt
+                                  </button>
+                                  <button
+                                    onClick={() => handleEditFee(student)}
+                                    className="bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
+                                  >
+                                    ⚙️ Adjust
+                                  </button>
+                                </div>
+                              </td>
+                            </>
+                          )}
                         </tr>
                       );
                     })}
@@ -1715,6 +2064,47 @@ export default function FeeManagement() {
         </>
       ) : (
         <div className="space-y-6">
+          {/* Period Selectors for Misc Fees */}
+          <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Academic Session</label>
+              <select
+                value={selectedMiscSession || ''}
+                onChange={(e) => setSelectedMiscSession(e.target.value || null)}
+                className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+              >
+                <option value="">All Sessions</option>
+                {allSessions?.map(session => (
+                  <option key={session.id} value={session.id}>{session.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Term</label>
+              <select
+                value={selectedMiscTerm || ''}
+                onChange={(e) => setSelectedMiscTerm(e.target.value || null)}
+                className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+              >
+                <option value="">All Terms</option>
+                {allTerms?.map(term => (
+                  <option key={term.id} value={term.id}>{term.name}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={() => {
+                // This would open a modal to create a new fee
+                // For now, I'll just add the button for UI completeness
+                // and later check if a creation modal exists or needs to be added
+                toast.error('Fee creation modal coming soon');
+              }}
+              className="px-6 py-2.5 bg-primary text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-95 active:scale-95 transition-all"
+            >
+              + Create New Fee
+            </button>
+          </div>
+
           {/* Misc Fees Summary */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500">
@@ -2385,6 +2775,20 @@ export default function FeeManagement() {
           currentSession={currentSession}
           allTerms={allTerms}
           allSessions={allSessions}
+        />
+      )}
+
+      {/* Scholarship Print Modal */}
+      {scholarshipModalOpen && scholarshipStudent && (
+        <PrintScholarshipModal
+          isOpen={scholarshipModalOpen}
+          onClose={() => {
+            setScholarshipModalOpen(false);
+            setScholarshipStudent(null);
+          }}
+          student={scholarshipStudent}
+          currentTerm={currentTerm}
+          currentSession={currentSession}
         />
       )}
     </div>

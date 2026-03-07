@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { toast } from '../utils/toast';
+import useTermContext from '../hooks/useTermContext';
 
 const LearningResources = () => {
   const { user } = useAuth();
@@ -27,6 +28,8 @@ const LearningResources = () => {
     externalUrl: ''
   });
 
+  const { currentTerm, currentSession, loading: termLoading } = useTermContext();
+
   const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
 
   useEffect(() => {
@@ -42,9 +45,10 @@ const LearningResources = () => {
     }
   }, [user]);
 
+
   useEffect(() => {
-    if (selectedClassId) fetchResources();
-  }, [selectedClassId]);
+    if (selectedClassId && !termLoading && currentTerm) fetchResources();
+  }, [selectedClassId, termLoading, currentTerm]);
 
   const fetchClasses = async () => {
     try {
@@ -72,7 +76,7 @@ const LearningResources = () => {
   const fetchResources = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/api/lms/resources/class/${selectedClassId}`);
+      const response = await api.get(`/api/lms/resources/class/${selectedClassId}?termId=${currentTerm?.id || ''}`);
       if (response.ok) setResources(await response.json());
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -89,6 +93,8 @@ const LearningResources = () => {
     data.append('description', formData.description);
     data.append('type', formData.type);
     data.append('externalUrl', formData.externalUrl);
+    if (currentTerm) data.append('termId', currentTerm.id);
+    if (currentSession) data.append('sessionId', currentSession.id);
     if (formData.file) data.append('file', formData.file);
 
     try {
@@ -161,7 +167,7 @@ const LearningResources = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">E-Learning Resources</h1>
-          <p className="text-gray-500 font-medium">Download lecture notes and study materials</p>
+          <p className="text-gray-500 font-medium">Shared materials for <span className="text-primary uppercase font-bold">{currentTerm?.name || '...'}</span></p>
         </div>
 
         {isTeacher && selectedClassId && (

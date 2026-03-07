@@ -65,6 +65,8 @@ router.get('/my-class', authenticate, async (req, res) => {
     const userId = parseInt(req.user.id);
     const schoolId = parseInt(req.schoolId);
 
+    console.log(`[MY-CLASS] Looking for class with classTeacherId=${userId}, schoolId=${schoolId}, user=${req.user.firstName} ${req.user.lastName}`);
+
     const classData = await prisma.class.findFirst({
       where: {
         classTeacherId: userId,
@@ -103,9 +105,19 @@ router.get('/my-class', authenticate, async (req, res) => {
     });
 
     if (!classData) {
-      return res.status(404).json({ message: 'No class assigned to this teacher' });
+      // Debug: log all classes and their classTeacherIds to find the mismatch
+      const allClasses = await prisma.class.findMany({
+        where: { schoolId, isActive: true },
+        select: { id: true, name: true, arm: true, classTeacherId: true }
+      });
+      console.log(`[MY-CLASS] No class found for userId=${userId}. All classes:`, JSON.stringify(allClasses));
+      return res.status(404).json({
+        message: 'No class assigned to this teacher',
+        debug: { userId, schoolId, classCount: allClasses.length }
+      });
     }
 
+    console.log(`[MY-CLASS] Found class: ${classData.name} ${classData.arm || ''} for userId=${userId}`);
     res.json(classData);
   } catch (error) {
     console.error('Get my class error:', error);

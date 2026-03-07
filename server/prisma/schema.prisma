@@ -47,6 +47,7 @@ model School {
   email                 String?
   motto                 String?
   logoUrl               String?
+  principalSignatureUrl String?
   openingHours          String?             @default("Mon - Fri: 8:00 AM - 4:00 PM")
   welcomeTitle          String?             @default("Building a Brighter Future Together")
   welcomeMessage        String?             @default("Providing a supportive and innovative environment where every student can achieve their full potential and prepare for success in an ever-changing world.")
@@ -114,6 +115,8 @@ model School {
   staffExpectedArrivalTime String?           @default("07:00")
   staffClockInDeadline     String?           @default("10:00")
   enableStaffAttendanceReport Boolean        @default(true)
+  staffClockInMode         String?           @default("anywhere") // anywhere, ip_locked, scan_only
+  authorizedIP             String?           // The school's public IP address
   
   // Grading & Promotion
   gradingSystem         String?             @default("[{\"grade\":\"A\",\"min\":70,\"max\":100,\"remark\":\"Excellent\"},{\"grade\":\"B\",\"min\":60,\"max\":69.9,\"remark\":\"Very Good\"},{\"grade\":\"C\",\"min\":50,\"max\":59.9,\"remark\":\"Good\"},{\"grade\":\"D\",\"min\":40,\"max\":49.9,\"remark\":\"Pass\"},{\"grade\":\"E\",\"min\":30,\"max\":39.9,\"remark\":\"Weak Pass\"},{\"grade\":\"F\",\"min\":0,\"max\":29.9,\"remark\":\"Fail\"}]")
@@ -171,6 +174,7 @@ model School {
   resultPublications    ResultPublication[]
   certificates          Certificate[]
   testimonials          Testimonial[]
+  schoolHolidays        SchoolHoliday[]
 }
 
 model AuditLog {
@@ -192,9 +196,11 @@ model User {
   username           String
   passwordHash       String
   email              String?
+  phone              String?
   role               String
   firstName          String
   lastName           String
+  signatureUrl       String?
   isActive           Boolean             @default(true)
   mustChangePassword Boolean             @default(false)
   createdAt          DateTime            @default(now())
@@ -350,6 +356,9 @@ model AcademicSession {
   terms             Term[]
   promotionHistory  PromotionHistory[]
   interventions     Intervention[]
+  homeworks         Homework[]
+  learningResources LearningResource[]
+  miscellaneousFees MiscellaneousFee[]
 
   @@unique([schoolId, name])
 }
@@ -361,6 +370,7 @@ model Term {
   name              String
   startDate         DateTime
   endDate           DateTime
+  nextTermBeginsDate DateTime?
   isCurrent         Boolean             @default(false)
   createdAt         DateTime            @default(now())
   
@@ -373,6 +383,9 @@ model Term {
   results           Result[]
   reportCards       StudentReportCard[]
   quranTargets      QuranTarget[]
+  homeworks         Homework[]
+  learningResources LearningResource[]
+  miscellaneousFees MiscellaneousFee[]
   academicSession   AcademicSession     @relation(fields: [academicSessionId], references: [id])
   interventions     Intervention[]
   resultPublications ResultPublication[]
@@ -413,13 +426,14 @@ model Class {
 }
 
 model ResultPublication {
-  id          Int      @id @default(autoincrement())
-  schoolId    Int
-  classId     Int
-  termId      Int
-  isPublished Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                     Int      @id @default(autoincrement())
+  schoolId               Int
+  classId                Int
+  termId                 Int
+  isPublished            Boolean  @default(false)
+  isProgressivePublished Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   school School @relation(fields: [schoolId], references: [id])
   class  Class  @relation(fields: [classId], references: [id])
@@ -557,6 +571,20 @@ model StaffAttendance {
   @@index([userId, date])
 }
 
+model SchoolHoliday {
+  id          Int      @id @default(autoincrement())
+  schoolId    Int
+  date        DateTime
+  name        String
+  type        String   @default("holiday") // "holiday" | "weekend"
+  description String?
+  createdAt   DateTime @default(now())
+
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, date])
+  @@index([schoolId, date])
+}
 
 model Timetable {
   id          Int      @id @default(autoincrement())
@@ -600,6 +628,8 @@ model Homework {
   classId     Int
   subjectId   Int
   teacherId   Int
+  termId      Int?
+  sessionId   Int?
   title       String
   description String?
   fileUrl     String?
@@ -612,6 +642,8 @@ model Homework {
   teacher     User      @relation(fields: [teacherId], references: [id])
   subject     Subject   @relation(fields: [subjectId], references: [id])
   class       Class     @relation(fields: [classId], references: [id])
+  term        Term?     @relation(fields: [termId], references: [id])
+  session     AcademicSession? @relation(fields: [sessionId], references: [id])
   submissions HomeworkSubmission[]
 }
 
@@ -641,6 +673,8 @@ model LearningResource {
   classId     Int
   subjectId   Int
   teacherId   Int
+  termId      Int?
+  sessionId   Int?
   title       String
   description String?
   fileUrl     String?
@@ -653,6 +687,8 @@ model LearningResource {
   teacher     User     @relation(fields: [teacherId], references: [id])
   subject     Subject  @relation(fields: [subjectId], references: [id])
   class       Class    @relation(fields: [classId], references: [id])
+  term        Term?    @relation(fields: [termId], references: [id])
+  session     AcademicSession? @relation(fields: [sessionId], references: [id])
 }
 
 model FeeRecord {
@@ -1203,11 +1239,15 @@ model MiscellaneousFee {
   amount        Float
   isCompulsory  Boolean  @default(false)
   classIds      String   // JSON array of class IDs ["1", "2", "3"]
+  academicSessionId Int?
+  termId            Int?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
-  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  payments      MiscellaneousFeePayment[]
+  school            School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicSession   AcademicSession? @relation(fields: [academicSessionId], references: [id])
+  term              Term?            @relation(fields: [termId], references: [id])
+  payments          MiscellaneousFeePayment[]
 }
 
 model MiscellaneousFeePayment {

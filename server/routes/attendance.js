@@ -103,9 +103,37 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
       };
     });
 
+    // Check if the requested date is a holiday or weekend
+    const dayOfWeek = queryDate.getDay();
+    let isHoliday = false;
+    let holidayInfo = null;
+
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      isHoliday = true;
+      holidayInfo = {
+        name: dayOfWeek === 0 ? 'Sunday' : 'Saturday',
+        type: 'weekend'
+      };
+    }
+
+    const holidayRecord = await prisma.schoolHoliday.findFirst({
+      where: { schoolId: req.schoolId, date: queryDate }
+    });
+
+    if (holidayRecord) {
+      isHoliday = true;
+      holidayInfo = {
+        name: holidayRecord.name,
+        type: holidayRecord.type,
+        description: holidayRecord.description
+      };
+    }
+
     res.json({
       date: queryDate,
-      students: result
+      students: result,
+      isHoliday,
+      holidayInfo
     });
 
   } catch (error) {
@@ -121,11 +149,35 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal']),
     // records: [{ studentId: 1, status: 'present', notes: '' }, ...]
 
     // SERVER-SIDE LOCK CHECK
-    const targetDate = new Date(date);
+    let targetDate;
+    if (date) {
+      const [year, month, day] = date.split('-');
+      targetDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0);
+    } else {
+      targetDate = new Date();
+      targetDate.setHours(0, 0, 0, 0);
+    }
+
     const dateDiff = (new Date() - targetDate) / (1000 * 60 * 60);
 
     if (req.user.role === 'teacher' && dateDiff > 48) {
       return res.status(403).json({ error: 'Marking window closed. Attendance for this date is locked (48h limit).' });
+    }
+
+    // HOLIDAY / WEEKEND CHECK FOR TEACHERS
+    if (req.user.role === 'teacher') {
+      const dayOfWeek = targetDate.getDay();
+      let isHoliday = (dayOfWeek === 0 || dayOfWeek === 6);
+
+      const holidayRecord = await prisma.schoolHoliday.findFirst({
+        where: { schoolId: req.schoolId, date: targetDate }
+      });
+
+      if (holidayRecord || isHoliday) {
+        return res.status(403).json({
+          error: 'Cannot mark attendance on holidays or weekends.'
+        });
+      }
     }
 
     // TEACHER SCOPE CHECK
@@ -489,10 +541,15 @@ router.get('/download', authenticate, authorize(['admin', 'principal']), async (
 // 4. Student Scan (Safe-Arrival Notification)
 router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', 'staff']), async (req, res) => {
   try {
-    const { admissionNumber } = req.body;
+    let { admissionNumber } = req.body;
+    console.log(`[SCAN DEBUG] Received Scan Request: "${admissionNumber}" for School ID: ${req.schoolId}`);
+
     if (!admissionNumber) {
       return res.status(400).json({ error: 'Admission number is required' });
     }
+
+    // Normalize for case-insensitive matching (SQLite is case-sensitive)
+    const normalizedId = admissionNumber.trim().toUpperCase();
 
     const { session, term } = await getCurrentSessionAndTerm(req.schoolId);
     if (!session || !term) {
@@ -504,7 +561,13 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
     today.setHours(0, 0, 0, 0);
 
     const student = await prisma.student.findFirst({
-      where: { admissionNumber, schoolId: req.schoolId },
+      where: {
+        schoolId: req.schoolId,
+        OR: [
+          { admissionNumber: normalizedId },
+          { admissionNumber: admissionNumber.trim() }
+        ]
+      },
       include: {
         user: { select: { firstName: true, lastName: true } },
         classModel: true,
@@ -512,19 +575,47 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
       }
     });
 
+    console.log(`[SCAN DEBUG] Student Found: ${student ? student.user.firstName : 'NO'}`);
+
     // 4. Handle Scan (Student or Staff)
     if (!student) {
-      // Logic for staff scanning
-      const staffUser = await prisma.user.findFirst({
+      const lowerId = admissionNumber.trim().toLowerCase();
+      console.log(`[SCAN DEBUG] Searching for Staff with normalized: "${normalizedId}" or lower: "${lowerId}"`);
+
+      // Step 1: Check Teacher.staffId
+      const teacherByStaffId = await prisma.teacher.findFirst({
         where: {
           schoolId: req.schoolId,
-          role: { in: ['teacher', 'admin', 'principal', 'accountant', 'staff'] },
           OR: [
-            { username: admissionNumber },
-            { email: admissionNumber }
+            { staffId: normalizedId },
+            { staffId: lowerId },
+            { staffId: admissionNumber.trim() }
           ]
-        }
+        },
+        include: { user: true }
       });
+
+      let staffUser = teacherByStaffId?.user;
+
+      if (!staffUser) {
+        // Step 2: Fallback to User.username or User.email
+        staffUser = await prisma.user.findFirst({
+          where: {
+            schoolId: req.schoolId,
+            role: { in: ['teacher', 'admin', 'principal', 'accountant', 'staff'] },
+            OR: [
+              { username: normalizedId },
+              { email: normalizedId },
+              { username: lowerId },
+              { email: lowerId },
+              { username: admissionNumber.trim() },
+              { email: admissionNumber.trim() }
+            ]
+          }
+        });
+      }
+
+      console.log(`[SCAN DEBUG] Staff Found: ${staffUser ? staffUser.firstName : 'NO'}`);
 
       if (staffUser) {
         const staffSettings = await prisma.school.findUnique({

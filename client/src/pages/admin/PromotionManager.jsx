@@ -14,6 +14,7 @@ const PromotionManager = () => {
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [generateDocuments, setGenerateDocuments] = useState(false);
 
   // Check if selected class is a graduation class (Final year of JSS or SS)
   const selectedClassObj = classes.find(c => c.id === parseInt(selectedClass));
@@ -111,7 +112,10 @@ const PromotionManager = () => {
     try {
       const response = await api.post('/api/promotion/promote', {
         studentIds: selectedStudents,
-        targetClassId: targetClass
+        targetClassId: targetClass,
+        generateDocuments,
+        graduationYear,
+        programType
       });
       const data = await response.json();
       if (!response.ok) {
@@ -219,7 +223,7 @@ const PromotionManager = () => {
               onChange={(e) => setProgramType(e.target.value)}
               placeholder="e.g. Primary School"
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-              disabled={targetClass !== 'alumni'}
+              disabled={targetClass !== 'alumni' && !generateDocuments}
             />
             <datalist id="graduation-levels">
               <option value="Kindergarten" />
@@ -240,7 +244,22 @@ const PromotionManager = () => {
               value={graduationYear}
               onChange={(e) => setGraduationYear(e.target.value)}
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+              disabled={targetClass !== 'alumni' && !generateDocuments}
             />
+          </div>
+
+          <div className="flex items-center space-x-2 pt-8">
+            <input
+              type="checkbox"
+              id="generateDocs"
+              checked={generateDocuments}
+              onChange={(e) => setGenerateDocuments(e.target.checked)}
+              disabled={targetClass === 'alumni'}
+              className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary transition-all cursor-pointer"
+            />
+            <label htmlFor="generateDocs" className="text-sm font-bold text-gray-700 cursor-pointer">
+              Generate Completion Certs/Testimonials
+            </label>
           </div>
         </div>
 

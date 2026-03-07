@@ -80,13 +80,10 @@ const TeacherMessages = () => {
         setThread(data);
         setShowThread(true);
 
-        // Mark as read if current user is receiver
-        const mainMsg = data[0];
-        if (mainMsg.receiverId === user.id && !mainMsg.isRead) {
-          await api.put(`/api/messages/${messageId}/read`);
-          fetchUnreadCount();
-          fetchAllMessages();
-        }
+        // Refresh unread count and messages since viewing the thread 
+        // now automatically marks them as read in the backend
+        fetchUnreadCount();
+        fetchAllMessages();
       }
     } catch (error) {
       console.error('Error fetching thread:', error);

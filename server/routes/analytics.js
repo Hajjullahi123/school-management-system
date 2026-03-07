@@ -341,7 +341,7 @@ router.get('/attendance-by-class', authenticate, async (req, res) => {
 });
 
 // GET /api/analytics/submission-tracking
-router.get('/submission-tracking', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.get('/submission-tracking', authenticate, authorize(['admin', 'principal', 'teacher', 'examination_officer']), async (req, res) => {
   try {
     const school = await prisma.school.findUnique({
       where: { id: req.schoolId },
@@ -356,6 +356,13 @@ router.get('/submission-tracking', authenticate, authorize(['admin', 'principal'
     }
 
     const { teacherId } = req.query;
+
+    // Enforce role constraints for teachers
+    if (req.user.role === 'teacher') {
+      if (!teacherId || parseInt(teacherId) !== req.user.id) {
+        return res.status(403).json({ error: 'Unauthorized access to other teacher data' });
+      }
+    }
 
     // 1. Get teacher assignments
     const assignments = await prisma.teacherAssignment.findMany({
@@ -534,7 +541,7 @@ router.get('/cbt-tracking', authenticate, async (req, res) => {
 });
 
 // GET /api/analytics/attendance-tracking
-router.get('/attendance-tracking', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.get('/attendance-tracking', authenticate, authorize(['admin', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -573,7 +580,7 @@ router.get('/attendance-tracking', authenticate, authorize(['admin', 'principal'
 });
 
 // POST /api/analytics/nudge
-router.post('/nudge', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.post('/nudge', authenticate, authorize(['admin', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const { teacherId, className, subjectName, targetType } = req.body;
     const { logAction } = require('../utils/audit');
@@ -624,7 +631,7 @@ router.post('/nudge', authenticate, authorize(['admin', 'principal']), async (re
 });
 
 // POST /api/analytics/nudge-attendance
-router.post('/nudge-attendance', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.post('/nudge-attendance', authenticate, authorize(['admin', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const { teacherId, className } = req.body;
     const { logAction } = require('../utils/audit');

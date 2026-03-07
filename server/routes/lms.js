@@ -34,8 +34,15 @@ const upload = multer({
 router.get('/homework/class/:classId', authenticate, async (req, res) => {
   try {
     const { classId } = req.params;
+    const { termId } = req.query;
+
+    const whereClause = { classId: parseInt(classId), schoolId: req.schoolId };
+    if (termId) {
+      whereClause.termId = parseInt(termId);
+    }
+
     const homeworks = await prisma.homework.findMany({
-      where: { classId: parseInt(classId), schoolId: req.schoolId },
+      where: whereClause,
       include: {
         subject: { select: { name: true } },
         teacher: { select: { firstName: true, lastName: true } },
@@ -68,7 +75,7 @@ router.get('/homework/class/:classId', authenticate, async (req, res) => {
 // Create Homework (Teacher)
 router.post('/homework', authenticate, authorize(['teacher', 'admin']), upload.single('file'), async (req, res) => {
   try {
-    const { classId, subjectId, title, description, dueDate, externalUrl } = req.body;
+    const { classId, subjectId, title, description, dueDate, externalUrl, termId, sessionId } = req.body;
 
     let fileUrl = externalUrl || null;
     let fileName = null;
@@ -95,12 +102,29 @@ router.post('/homework', authenticate, authorize(['teacher', 'admin']), upload.s
       }
     }
 
+    // If termId or sessionId is missing, try to get current active ones
+    let finalTermId = termId ? parseInt(termId) : null;
+    let finalSessionId = sessionId ? parseInt(sessionId) : null;
+
+    if (!finalTermId || !finalSessionId) {
+      const currentTerm = await prisma.term.findFirst({
+        where: { schoolId: req.schoolId, isCurrent: true },
+        include: { academicSession: true }
+      });
+      if (currentTerm) {
+        if (!finalTermId) finalTermId = currentTerm.id;
+        if (!finalSessionId) finalSessionId = currentTerm.academicSessionId;
+      }
+    }
+
     const homework = await prisma.homework.create({
       data: {
         schoolId: req.schoolId,
         classId: parseInt(classId),
         subjectId: parseInt(subjectId),
         teacherId: req.user.id,
+        termId: finalTermId,
+        sessionId: finalSessionId,
         title,
         description,
         fileUrl,
@@ -217,8 +241,15 @@ router.delete('/homework/:id', authenticate, authorize(['teacher', 'admin']), as
 router.get('/resources/class/:classId', authenticate, async (req, res) => {
   try {
     const { classId } = req.params;
+    const { termId } = req.query;
+
+    const whereClause = { classId: parseInt(classId), schoolId: req.schoolId };
+    if (termId) {
+      whereClause.termId = parseInt(termId);
+    }
+
     const resources = await prisma.learningResource.findMany({
-      where: { classId: parseInt(classId), schoolId: req.schoolId },
+      where: whereClause,
       include: {
         subject: { select: { name: true } },
         teacher: { select: { firstName: true, lastName: true } }
@@ -234,7 +265,7 @@ router.get('/resources/class/:classId', authenticate, async (req, res) => {
 // Create Resource (Teacher)
 router.post('/resources', authenticate, authorize(['teacher', 'admin']), upload.single('file'), async (req, res) => {
   try {
-    const { classId, subjectId, title, description, type, externalUrl } = req.body;
+    const { classId, subjectId, title, description, type, externalUrl, termId, sessionId } = req.body;
 
     let fileUrl = externalUrl || null;
     let fileName = null;
@@ -261,12 +292,29 @@ router.post('/resources', authenticate, authorize(['teacher', 'admin']), upload.
       }
     }
 
+    // Current Term/Session fallback
+    let finalTermId = termId ? parseInt(termId) : null;
+    let finalSessionId = sessionId ? parseInt(sessionId) : null;
+
+    if (!finalTermId || !finalSessionId) {
+      const currentTerm = await prisma.term.findFirst({
+        where: { schoolId: req.schoolId, isCurrent: true },
+        include: { academicSession: true }
+      });
+      if (currentTerm) {
+        if (!finalTermId) finalTermId = currentTerm.id;
+        if (!finalSessionId) finalSessionId = currentTerm.academicSessionId;
+      }
+    }
+
     const resource = await prisma.learningResource.create({
       data: {
         schoolId: req.schoolId,
         classId: parseInt(classId),
         subjectId: parseInt(subjectId),
         teacherId: req.user.id,
+        termId: finalTermId,
+        sessionId: finalSessionId,
         title,
         description,
         fileUrl,
