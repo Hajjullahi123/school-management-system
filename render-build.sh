@@ -5,9 +5,10 @@ set -o errexit
 echo ">>> Build started..."
 
 # 1. Install Client Dependencies & Build
-echo ">>> Installing client dependencies..."
+echo ">>> Installing client dependencies (memory-optimized)..."
 cd client
-npm install
+# Using --no-audit and --no-fund to save memory on free tier
+npm install --no-audit --no-fund
 echo ">>> Building client..."
 npm run build
 cd ..
@@ -15,11 +16,10 @@ cd ..
 # 2. Install Server Dependencies
 echo ">>> Installing server dependencies..."
 cd server
-npm install
+npm install --no-audit --no-fund
 
 # 3. Update Prisma Schema for PostgreSQL
 echo ">>> Updating Prisma schema for PostgreSQL..."
-# Using a more robust sed pattern
 sed -i 's/provider = "sqlite"/provider = "postgresql"/g' prisma/schema.prisma
 
 # 4. Generate Prisma Client
