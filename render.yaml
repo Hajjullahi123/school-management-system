@@ -16,6 +16,8 @@ services:
         generateValue: true
       - key: PORT
         value: 10000
+      - key: CLIENT_URL
+        value: https://your-app-name.onrender.com
 
 databases:
   - name: school-db
