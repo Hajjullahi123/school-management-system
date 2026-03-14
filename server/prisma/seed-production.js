@@ -56,6 +56,7 @@ async function seedProduction() {
       superadmin = await prisma.user.update({
         where: { id: superadmin.id },
         data: {
+          schoolId: null, // Ensure global access
           passwordHash: superadminPassword,
           isActive: true,
           role: 'superadmin'

@@ -24,21 +24,23 @@ router.post('/identify', async (req, res) => {
 
     // 1. Search by Username
     const usersByUsername = await prisma.user.findMany({
-      where: { username: identifier },
+      where: { username: { equals: identifier, mode: 'insensitive' } },
       include: { school: true }
     });
 
     // 2. Search by Email
     const usersByEmail = await prisma.user.findMany({
-      where: { email: identifier },
+      where: { email: { equals: identifier, mode: 'insensitive' } },
       include: { school: true }
     });
 
     // 3. Search by Admission Number
     const studentsByAdmission = await prisma.student.findMany({
-      where: { admissionNumber: identifier },
+      where: { admissionNumber: { equals: identifier, mode: 'insensitive' } },
       include: { school: true }
     });
+
+    console.log(`[AUTH DEBUG] Found ${usersByUsername.length} users by username, ${usersByEmail.length} by email, ${studentsByAdmission.length} students`);
 
     // Collect distinct schools found
     const schoolsMap = new Map();
