@@ -107,7 +107,7 @@ router.post('/generate/:schoolId', authenticate, authorize(['superadmin']), asyn
 
     // Log generation
     logAction({
-      schoolId: null,  // Superadmin global action
+      schoolId: 1,  // System level action
       userId: req.user.id,
       action: 'GENERATE_LICENSE',
       resource: 'LICENSE',
@@ -121,7 +121,7 @@ router.post('/generate/:schoolId', authenticate, authorize(['superadmin']), asyn
     });
   } catch (error) {
     console.error('License generation error:', error);
-    res.status(500).json({ error: 'Failed to generate license' });
+    res.status(500).json({ error: `Generation failed: ${error.message}` });
   }
 });
 

@@ -205,7 +205,7 @@ const SuperAdminDashboard = () => {
       fetchData();
     } catch (error) {
       console.error('License Generation Error:', error);
-      toast.error('Failed to generate license');
+      toast.error(error.response?.data?.error || 'Failed to generate license');
     } finally {
       setGeneratingLicense(false);
     }
