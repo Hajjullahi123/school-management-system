@@ -125,6 +125,44 @@ router.post('/generate/:schoolId', authenticate, authorize(['superadmin']), asyn
   }
 });
 
+// Generate a general license (not linked to a specific school record yet)
+router.post('/generate', authenticate, authorize(['superadmin']), async (req, res) => {
+  const { schoolName, packageType, maxStudents, expiresAt } = req.body;
+
+  if (!packageType || !schoolName) {
+    return res.status(400).json({ error: 'Package type and School Name are required' });
+  }
+
+  try {
+    // Generate a license key
+    const key = generateLicenseKey({
+      schoolName,
+      packageType,
+      maxStudents,
+      expiresAt
+    });
+
+    res.json({ success: true, license: { licenseKey: key, schoolName, packageType, maxStudents, expiresAt } });
+
+    // Log generation
+    logAction({
+      schoolId: 1, 
+      userId: req.user.id,
+      action: 'GENERATE_LICENSE_GENERAL',
+      resource: 'LICENSE',
+      details: {
+        schoolName,
+        packageType,
+        licenseKey: key
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('General license generation error:', error);
+    res.status(500).json({ error: `Generation failed: ${error.message}` });
+  }
+});
+
 // Upgrade a school's package (SuperAdmin only)
 router.post('/upgrade/:schoolId', authenticate, authorize(['superadmin']), async (req, res) => {
   const schoolId = parseInt(req.params.schoolId);
