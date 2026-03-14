@@ -19,6 +19,22 @@ process.on('uncaughtException', (error) => {
   console.error('===========================================================');
   process.exit(1);
 });
+
+// DEBUG ROUTE - Remove before delivery
+app.get('/api/debug/inspect-users', async (req, res) => {
+  try {
+    const prisma = require('./db');
+    const users = await prisma.user.findMany({
+      select: { id: true, username: true, role: true, schoolId: true }
+    });
+    const schools = await prisma.school.findMany({
+      select: { id: true, slug: true, name: true }
+    });
+    res.json({ users, schools });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // ... (keep middle lines hidden/implicit if not changing) ...
 
 // Serve uploaded files statically
