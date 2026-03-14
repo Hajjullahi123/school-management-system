@@ -99,14 +99,16 @@ const BulkStudentUpload = () => {
     if (file) {
       setSelectedFile(file);
       // Also read as text for preview if it's small enough
-      if (file.size < 1024 * 1024) {
+      if (file.size < 1024 * 1024 && file.name.toLowerCase().endsWith('.csv')) {
         const reader = new FileReader();
         reader.onload = (event) => {
           setCsvData(event.target.result);
         };
         reader.readAsText(file);
+      } else if (file.name.toLowerCase().endsWith('.xlsx')) {
+        setCsvData("Excel file detected. Click Upload to process students.");
       } else {
-        setCsvData("File too large for preview, but ready for upload.");
+        setCsvData("File ready for upload.");
       }
     }
   };
@@ -136,29 +138,34 @@ const BulkStudentUpload = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const downloadTemplate = () => {
-    // Standardize to use the backend template for consistency
+  const downloadTemplate = async () => {
+    const url = `${API_BASE_URL}/api/bulk-upload/template/students`;
     const token = localStorage.getItem('token');
-    fetch(`${API_BASE_URL}/api/bulk-upload/template/students`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-      .then(response => response.blob())
-      .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Student_Import_Template.csv`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        a.remove();
-      })
-      .catch(error => {
-        console.error('Download error:', error);
-        alert('Failed to download template. Please try the PDF Guide.');
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to download template');
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `Student_Bulk_Upload_Template.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      a.remove();
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download template. Please try downloading it from the Student Management page.');
+    }
   };
 
   const downloadGuidancePDF = () => {
@@ -194,8 +201,8 @@ const BulkStudentUpload = () => {
 
     autoTable(doc, {
       startY: 95,
-      head: [['ID (Value for CSV)', 'Class Name', 'Class Arm']],
-      body: classes.map(c => [c.id, c.name, c.arm || 'N/A']),
+      head: [['Local ID (Value for Template)', 'Class Name', 'Class Arm']],
+      body: classes.map((c, index) => [index + 1, c.name, c.arm || 'N/A']),
       headStyles: { fillColor: [43, 108, 176] },
       margin: { top: 10 }
     });
@@ -227,10 +234,10 @@ const BulkStudentUpload = () => {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
         <h3 className="font-semibold text-blue-900 mb-3">📋 Upload Instructions</h3>
         <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800">
-          <li>Download the CSV template below</li>
+          <li>Download the Excel (.xlsx) template below</li>
           <li>Fill in student information (firstName, lastName, and classId are required)</li>
-          <li>Save the file as CSV format</li>
-          <li>Upload the file using the form below</li>
+          <li>For the "Class ID" column, use the Numeric ID from the Guidance PDF or Reference Sheet</li>
+          <li>Upload the file (.xlsx or .csv) using the form below</li>
           <li>Review the results and fix any errors if needed</li>
         </ol>
         <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
@@ -249,7 +256,7 @@ const BulkStudentUpload = () => {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Download CSV Template
+            Download Excel Template
           </button>
         </div>
         <div>
@@ -268,11 +275,11 @@ const BulkStudentUpload = () => {
 
       {/* File Upload */}
       <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-4">Step 2: Upload Filled CSV</h3>
+        <h3 className="text-lg font-semibold mb-4">Step 2: Upload Filled Template</h3>
         <div className="space-y-4">
           <input
             type="file"
-            accept=".csv"
+            accept=".csv, .xlsx"
             onChange={handleFileChange}
             className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/5 file:text-primary hover:file:bg-primary/10"
           />

@@ -12,11 +12,11 @@ const ExcelJS = require('exceljs');
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Download Bulk Student Template (CSV)
+// Download Bulk Student Template (XLSX)
 router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Students');
+    const worksheet = workbook.addWorksheet('Students Template');
 
     // Get classes for ID reference - Using school-specific indexing
     const classes = await prisma.class.findMany({
@@ -29,16 +29,24 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       { header: 'First Name*', key: 'firstName', width: 20 },
       { header: 'Last Name*', key: 'lastName', width: 20 },
       { header: 'Middle Name', key: 'middleName', width: 20 },
-      { header: 'Class ID*', key: 'classId', width: 10 },
-      { header: 'Class Name (Info)', key: 'className', width: 20 },
-      { header: 'Gender (Male/Female)', key: 'gender', width: 15 },
+      { header: 'Class ID*', key: 'classId', width: 12 },
+      { header: 'Class Name (Reference)', key: 'className', width: 25 },
+      { header: 'Gender (Male/Female)', key: 'gender', width: 20 },
       { header: 'Email', key: 'email', width: 25 },
       { header: 'Parent Name*', key: 'parentName', width: 25 },
       { header: 'Parent Phone*', key: 'parentPhone', width: 20 },
       { header: 'Address', key: 'address', width: 40 },
-      { header: 'Date of Birth (YYYY-MM-DD)', key: 'dob', width: 20 },
+      { header: 'Date of Birth (YYYY-MM-DD)', key: 'dob', width: 25 },
       { header: 'Scholarship (Yes/No)', key: 'isScholarship', width: 20 }
     ];
+
+    // Styling the header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
 
     // Add example row
     if (classes.length > 0) {
@@ -47,7 +55,7 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
         lastName: 'Doe',
         middleName: 'Junior',
         classId: 1, // First class in this school (Local ID)
-        className: `${classes[0].name} ${classes[0].arm || ''}`,
+        className: `${classes[0].name} ${classes[0].arm || ''} (ID: 1)`,
         gender: 'Male',
         email: 'john.doe@example.com',
         parentName: 'Jane Doe',
@@ -59,19 +67,39 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
     }
 
     // Add a second sheet with Class IDs for reference
-    const refSheet = workbook.addWorksheet('Class Reference');
+    const refSheet = workbook.addWorksheet('Class IDs Reference');
     refSheet.columns = [
-      { header: 'Class ID', key: 'id', width: 10 },
-      { header: 'Class Name', key: 'name', width: 30 }
+      { header: 'Local ID (USE THIS)', key: 'localId', width: 20 },
+      { header: 'Class Name', key: 'name', width: 30 },
+      { header: 'Class Arm', key: 'arm', width: 15 }
     ];
+    refSheet.getRow(1).font = { bold: true };
+    
     classes.forEach((c, index) => {
-      refSheet.addRow({ id: index + 1, name: `${c.name} ${c.arm || ''}` });
+      refSheet.addRow({ 
+        localId: index + 1, 
+        name: c.name,
+        arm: c.arm || 'N/A'
+      });
     });
 
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=Student_Import_Template.csv');
-    await workbook.csv.write(res);
+    // Add instructions sheet
+    const helpSheet = workbook.addWorksheet('Instructions');
+    helpSheet.columns = [{ header: 'Step', key: 'step', width: 80 }];
+    [
+      '1. Use the "Students Template" sheet to fill in student information.',
+      '2. In the "Class ID" column, use the Numeric ID from the "Class IDs Reference" sheet.',
+      '3. Fields marked with * are required.',
+      '4. Date of Birth must follow the format YYYY-MM-DD (e.g., 2012-10-25).',
+      '5. Save this file as .xlsx or .csv before uploading.'
+    ].forEach(text => helpSheet.addRow({ step: text }));
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=Student_Bulk_Upload_Template.xlsx');
+    
+    await workbook.xlsx.write(res);
   } catch (error) {
+    console.error('Template generation error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -108,6 +136,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
           else if (header === 'email' || header.includes('student email')) headers.email = colNumber;
           else if (header.includes('parent name')) headers.parentGuardianName = colNumber;
           else if (header.includes('parent phone')) headers.parentGuardianPhone = colNumber;
+          else if (header.includes('parent email')) headers.parentEmail = colNumber;
           else if (header.includes('address')) headers.address = colNumber;
           else if (header.includes('date of birth') || header.includes('dob')) headers.dateOfBirth = colNumber;
           else if (header.includes('scholarship')) headers.isScholarship = colNumber;
@@ -130,6 +159,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
         email: getVal('email', 7),
         parentGuardianName: getVal('parentGuardianName', 8),
         parentGuardianPhone: getVal('parentGuardianPhone', 9),
+        parentEmail: getVal('parentEmail', 0), // Default to 0 if not found, we handle null later
         address: getVal('address', 10),
         dateOfBirth: getVal('dateOfBirth', 11),
         isScholarship: getVal('isScholarship', 12)
@@ -267,6 +297,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
             address: studentData.address,
             parentGuardianName: studentData.parentGuardianName,
             parentGuardianPhone: studentData.parentGuardianPhone,
+            parentEmail: studentData.parentEmail || null,
             nationality: 'Nigerian',
             isScholarship: studentData.isScholarship?.toLowerCase() === 'yes' || studentData.isScholarship?.toLowerCase() === 'true'
           }

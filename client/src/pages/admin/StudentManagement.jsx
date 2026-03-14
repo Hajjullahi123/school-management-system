@@ -486,30 +486,36 @@ Note: Password must be changed on first login.
     return `${classA.name} ${classA.arm}`.localeCompare(`${classB.name} ${classB.arm}`);
   });
 
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
     const url = `${API_BASE_URL}/api/bulk-upload/template/students`;
     const token = localStorage.getItem('token');
 
-    fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-      .then(response => response.blob())
-      .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Student_Import_Template.csv`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        a.remove();
-      })
-      .catch(error => {
-        console.error('Download error:', error);
-        alert('Failed to download template');
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to download template');
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `Student_Bulk_Upload_Template.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      a.remove();
+      toast.success('Template downloaded successfully');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error(error.message || 'Failed to download template');
+    }
   };
 
   const handleDownloadGuidancePDF = () => {
@@ -528,12 +534,12 @@ Note: Password must be changed on first login.
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
     const instructions = [
-      '1. Download the CSV template from the Student Management header.',
-      '2. Open the template in Excel, Google Sheets, or a text editor.',
-      '3. Fill in the student data. Ensure firstName, lastName, and classId are provided.',
-      '4. The "classId" MUST be numeric. Refer to the table below for correct IDs.',
+      '1. Download the Excel (.xlsx) template from the Student Management header.',
+      '2. Open the template in Excel or Google Sheets.',
+      '3. Fill in the student data. First Name, Last Name, and Class ID are REQUIRED.',
+      '4. The "Class ID" column MUST use the Numeric ID from the table below.',
       '5. For the "Scholarship" column, use "Yes" for scholarship students and "No" for others.',
-      '6. Save your file as "Comma Separated Values (.csv)".',
+      '6. Save your file as Excel (.xlsx) or Comma Separated Values (.csv).',
       '7. Click "Bulk Import" on the dashboard to upload your file.'
     ];
     doc.text(instructions, 20, 45);
@@ -545,8 +551,8 @@ Note: Password must be changed on first login.
 
     autoTable(doc, {
       startY: 95,
-      head: [['ID (Value for CSV)', 'Class Name', 'Class Arm']],
-      body: classes.map(c => [c.id, c.name, c.arm || 'N/A']),
+      head: [['ID (Value for Template)', 'Class Name', 'Class Arm']],
+      body: classes.map((c, index) => [index + 1, c.name, c.arm || 'N/A']),
       headStyles: { fillColor: [43, 108, 176] },
       margin: { top: 10 }
     });
