@@ -18,9 +18,10 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Students');
 
-    // Get classes for ID reference
+    // Get classes for ID reference - Using school-specific indexing
     const classes = await prisma.class.findMany({
       where: { schoolId: req.schoolId, isActive: true },
+      orderBy: { id: 'asc' }, // Stable sort by creation order
       select: { id: true, name: true, arm: true }
     });
 
@@ -45,7 +46,7 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
         firstName: 'John',
         lastName: 'Doe',
         middleName: 'Junior',
-        classId: classes[0].id,
+        classId: 1, // First class in this school (Local ID)
         className: `${classes[0].name} ${classes[0].arm || ''}`,
         gender: 'Male',
         email: 'john.doe@example.com',
@@ -63,8 +64,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       { header: 'Class ID', key: 'id', width: 10 },
       { header: 'Class Name', key: 'name', width: 30 }
     ];
-    classes.forEach(c => {
-      refSheet.addRow({ id: c.id, name: `${c.name} ${c.arm || ''}` });
+    classes.forEach((c, index) => {
+      refSheet.addRow({ id: index + 1, name: `${c.name} ${c.arm || ''}` });
     });
 
     res.setHeader('Content-Type', 'text/csv');
@@ -152,7 +153,13 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
     const school = await prisma.school.findUnique({ where: { id: schoolIdInt } });
     const schoolCode = school?.code || 'SCH';
 
-    // If user is a teacher, get their assigned classes
+    // Fetch available classes once for mapping
+    const availableClasses = await prisma.class.findMany({
+      where: { schoolId: schoolIdInt, isActive: true },
+      orderBy: { id: 'asc' }
+    });
+
+    // Determine allowed class IDs if user is a teacher
     let allowedClassIds = null;
     if (req.user.role === 'teacher') {
       const assignedClasses = await prisma.class.findMany({
@@ -173,54 +180,46 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
           continue;
         }
 
-        let classIdInt = parseInt(studentData.classId);
+        let classIdVal = studentData.classId.toString().trim();
+        let classIdInt = parseInt(classIdVal);
         let classInfo = null;
 
-        if (!isNaN(classIdInt)) {
+        // 1. Try mapping from Local ID (1, 2, 3...) first
+        if (!isNaN(classIdInt) && classIdInt > 0 && classIdInt <= availableClasses.length) {
+          classInfo = availableClasses[classIdInt - 1];
+        }
+
+        // 2. Fallback to Database ID (for compatibility with existing files)
+        if (!classInfo && !isNaN(classIdInt)) {
           classInfo = await prisma.class.findFirst({
             where: { id: classIdInt, schoolId: schoolIdInt }
           });
         }
 
+        // 3. Fallback to Class Name matching
         if (!classInfo && studentData.classId) {
           const classNameStr = studentData.classId.toString().trim().toLowerCase();
-
-          // Try to match by Arm exactly if it's "JSS 2 B" or "JSS 2B"
-          // We can't easily parse all formats, so we'll try some common ones
-          classInfo = await prisma.class.findFirst({
-            where: {
-              schoolId: schoolIdInt,
-              isActive: true,
-              OR: [
-                { name: { contains: classNameStr } },
-                {
-                  AND: [
-                    { name: { contains: classNameStr.split(' ')[0] } },
-                    { arm: { contains: classNameStr.split(' ').pop() } }
-                  ]
-                }
-              ]
-            }
-          });
-
-          if (classInfo) {
-            classIdInt = classInfo.id;
-          }
+          classInfo = availableClasses.find(c => 
+            c.name.toLowerCase().includes(classNameStr) || 
+            `${c.name} ${c.arm || ''}`.toLowerCase().includes(classNameStr)
+          );
         }
 
         if (!classInfo) {
           results.failed.push({
             data: studentData,
-            error: `Invalid Class reference: "${studentData.classId}". Please use the numeric ID from the reference sheet.`
+            error: `Invalid Class reference: "${studentData.classId}". Please use the Local ID (e.g. 1) from the reference sheet.`
           });
           continue;
         }
 
+        const classIdIntToUse = classInfo.id;
+
         // Check permission for teacher
-        if (allowedClassIds && !allowedClassIds.has(classIdInt)) {
+        if (allowedClassIds && !allowedClassIds.has(classIdIntToUse)) {
           results.failed.push({
             data: studentData,
-            error: `Unauthorized access to class ID ${classIdInt}`
+            error: `Unauthorized access to class: ${classInfo.name} ${classInfo.arm || ''}`
           });
           continue;
         }
@@ -259,7 +258,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
             schoolId: schoolIdInt,
             userId: user.id,
             admissionNumber,
-            classId: classIdInt,
+            classId: classIdIntToUse,
             middleName: studentData.middleName,
             dateOfBirth: (studentData.dateOfBirth && !isNaN(new Date(studentData.dateOfBirth).getTime()))
               ? new Date(studentData.dateOfBirth)
@@ -279,7 +278,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
             where: {
               schoolId_classId_termId_academicSessionId: {
                 schoolId: schoolIdInt,
-                classId: classIdInt,
+                classId: classIdIntToUse,
                 termId: currentTerm.id,
                 academicSessionId: currentTerm.academicSessionId
               }
@@ -359,14 +358,17 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'princi
     let allowedClassIds = null;
     if (req.user.role === 'teacher') {
       const assignedClasses = await prisma.class.findMany({
-        where: {
-          classTeacherId: req.user.id,
-          schoolId: req.schoolId
-        },
+        where: { classTeacherId: req.user.id, schoolId: req.schoolId },
         select: { id: true }
       });
       allowedClassIds = new Set(assignedClasses.map(c => c.id));
     }
+
+    // Fetch classes for mapping
+    const availableClasses = await prisma.class.findMany({
+      where: { schoolId: schoolIdInt, isActive: true },
+      orderBy: { id: 'asc' }
+    });
 
     for (const studentData of students) {
       try {
@@ -392,21 +394,31 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'princi
         const school = await prisma.school.findUnique({ where: { id: schoolIdInt } });
         const schoolCode = school?.code || 'SCH';
 
-        // Generate admission number
-        const classInfo = await prisma.class.findFirst({
-          where: {
-            id: parseInt(studentData.classId),
-            schoolId: req.schoolId
-          }
-        });
+        let classIdVal = studentData.classId.toString().trim();
+        let classIdInt = parseInt(classIdVal);
+        let classInfo = null;
+
+        // 1. Try Local ID mapping
+        if (!isNaN(classIdInt) && classIdInt > 0 && classIdInt <= availableClasses.length) {
+          classInfo = availableClasses[classIdInt - 1];
+        }
+
+        // 2. Fallback to Database ID
+        if (!classInfo && !isNaN(classIdInt)) {
+          classInfo = await prisma.class.findFirst({
+            where: { id: classIdInt, schoolId: schoolIdInt }
+          });
+        }
 
         if (!classInfo) {
           results.failed.push({
             data: studentData,
-            error: 'Invalid class ID'
+            error: `Invalid class reference: ${studentData.classId}`
           });
           continue;
         }
+
+        const classIdIntToUse = classInfo.id;
 
         const admissionYear = studentData.admissionYear || new Date().getFullYear();
         const className = classInfo.name;
@@ -447,7 +459,7 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'princi
             schoolId: req.schoolId,
             userId: user.id,
             admissionNumber,
-            classId: parseInt(studentData.classId),
+            classId: classIdIntToUse,
             dateOfBirth: (studentData.dateOfBirth && !isNaN(new Date(studentData.dateOfBirth).getTime()))
               ? new Date(studentData.dateOfBirth)
               : null,
@@ -470,7 +482,7 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'princi
         // Actually, let's fetch it inside to be safe with the existing structure
         if (currentTerm) {
           const sId = Number(req.schoolId);
-          const cId = Number(studentData.classId);
+          const cId = classIdIntToUse;
 
           const feeStructure = await prisma.classFeeStructure.findUnique({
             where: {
