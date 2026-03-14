@@ -1075,8 +1075,8 @@ const SuperAdminDashboard = () => {
                   <p className="text-lg font-mono font-bold text-indigo-600 truncate">{window.location.origin}/dashboard</p>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 print:bg-white print:border-gray-200">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">School URL Slug</p>
-                  <p className="text-lg font-mono font-bold text-gray-800">{resetCreds.schoolSlug}</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Direct School Login URL</p>
+                  <p className="text-sm font-mono font-bold text-indigo-600 break-all">{window.location.origin}/s/{resetCreds.schoolSlug}</p>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 print:bg-white print:border-gray-200">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Administrator Username</p>
