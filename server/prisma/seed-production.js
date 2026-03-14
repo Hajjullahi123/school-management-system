@@ -30,21 +30,30 @@ async function seedProduction() {
 
     console.log(`✅ School: ${school.name} (slug: ${school.slug})`);
 
-    // 2. Create Superadmin User
-    const superadminPassword = await bcrypt.hash('superadmin123', 12);
+    // 2. Create/Update Superadmin User
+    // User requested new credentials: topuser / topuser2026
+    const newSuperUsername = 'topuser';
+    const newSuperPassword = 'topuser2026';
+    const superadminPasswordHash = await bcrypt.hash(newSuperPassword, 12);
 
-    // Create/update superadmin with global access (schoolId: null)
+    // Find any existing superadmin to update (or look for the new name)
     let superadmin = await prisma.user.findFirst({
-      where: { username: 'superadmin', role: 'superadmin' }
+      where: { 
+        OR: [
+          { role: 'superadmin', schoolId: null },
+          { username: 'superadmin', role: 'superadmin' },
+          { username: newSuperUsername, role: 'superadmin' }
+        ]
+      }
     });
 
     if (!superadmin) {
       superadmin = await prisma.user.create({
         data: {
-          schoolId: null, // Global access, not tied to any school
-          username: 'superadmin',
-          passwordHash: superadminPassword,
-          email: 'superadmin@system.local',
+          schoolId: null, 
+          username: newSuperUsername,
+          passwordHash: superadminPasswordHash,
+          email: 'topuser@system.local',
           role: 'superadmin',
           firstName: 'Global',
           lastName: 'Superadmin',
@@ -56,15 +65,16 @@ async function seedProduction() {
       superadmin = await prisma.user.update({
         where: { id: superadmin.id },
         data: {
-          schoolId: null, // Ensure global access
-          passwordHash: superadminPassword,
+          username: newSuperUsername, // Update to new username
+          schoolId: null, 
+          passwordHash: superadminPasswordHash,
           isActive: true,
           role: 'superadmin'
         }
       });
     }
 
-    console.log(`✅ Superadmin: ${superadmin.username}`);
+    console.log(`✅ Superadmin Updated: ${superadmin.username}`);
 
     // 3. Create Admin User
     const adminPassword = await bcrypt.hash('admin123', 12);
@@ -96,14 +106,10 @@ async function seedProduction() {
 
     console.log(`✅ Admin: ${admin.username}`);
 
+    // ... (rest of the file stays same)
     // 4. Create Academic Session
     const session = await prisma.academicSession.upsert({
-      where: {
-        schoolId_name: {
-          schoolId: school.id,
-          name: '2024/2025'
-        }
-      },
+      where: { schoolId_name: { schoolId: school.id, name: '2024/2025' } },
       update: {},
       create: {
         schoolId: school.id,
@@ -113,8 +119,6 @@ async function seedProduction() {
         isCurrent: true
       }
     });
-
-    console.log(`✅ Session: ${session.name}`);
 
     // 5. Create Terms
     const terms = [
@@ -139,13 +143,10 @@ async function seedProduction() {
           academicSessionId: session.id
         }
       });
-      console.log(`✅ Term: ${termData.name}`);
     }
 
-    // 6. Create Demo Academy (Added for persistent demo access)
-    console.log('\n🌟 Seeding Demo Academy...');
+    // 6. Demo Academy
     const demoPassword = await bcrypt.hash('password123', 12);
-
     const demoSchool = await prisma.school.upsert({
       where: { slug: 'demo-academy' },
       update: { isActivated: true, isSetupComplete: true },
@@ -163,16 +164,9 @@ async function seedProduction() {
         isSetupComplete: true
       }
     });
-    console.log(`✅ Demo School: ${demoSchool.name}`);
 
-    // Create Demo Admin
-    const demoAdmin = await prisma.user.upsert({
-      where: {
-        schoolId_username: {
-          schoolId: demoSchool.id,
-          username: 'demo.admin'
-        }
-      },
+    await prisma.user.upsert({
+      where: { schoolId_username: { schoolId: demoSchool.id, username: 'demo.admin' } },
       update: { passwordHash: demoPassword, isActive: true },
       create: {
         schoolId: demoSchool.id,
@@ -186,19 +180,14 @@ async function seedProduction() {
         mustChangePassword: false
       }
     });
-    console.log(`✅ Demo Admin: ${demoAdmin.username}`);
 
     console.log('\n═══════════════════════════════════════');
     console.log('✅ Production database seeded successfully!');
     console.log('═══════════════════════════════════════');
     console.log('📋 LATEST CREDENTIALS:');
     console.log('═══════════════════════════════════════');
-    console.log(`School Domain: ${school.slug}`);
-    console.log(`Superadmin:    superadmin / superadmin123`);
+    console.log(`Superadmin:    ${newSuperUsername} / ${newSuperPassword}`);
     console.log(`Admin:         admin / admin123`);
-    console.log('---------------------------------------');
-    console.log(`DEMO SCHOOL PATH: /s/demo-academy`);
-    console.log(`Demo Admin:    demo.admin / password123`);
     console.log('═══════════════════════════════════════\n');
 
   } catch (error) {
