@@ -176,7 +176,7 @@ router.get('/bulk-history/:classId/:sessionId', authenticate, authorize(['admin'
     const sessionId = parseInt(req.params.sessionId);
 
     // Get all students who have a promotion history from this class
-    const transitions = await prisma.studentTransition.findMany({
+    const transitions = await prisma.promotionHistory.findMany({
       where: {
         fromClassId: classId,
         academicSessionId: sessionId,

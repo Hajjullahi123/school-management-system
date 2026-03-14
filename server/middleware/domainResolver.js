@@ -1,4 +1,7 @@
+// Simple memory cache for domain resolution
 const prisma = require('../db');
+const domainCache = new Map();
+const CACHE_TTL = 60000; // 1 minute
 
 /**
  * Middleware to resolve schoolId based on the request domain.
@@ -8,11 +11,27 @@ const prisma = require('../db');
 const resolveDomain = async (req, res, next) => {
   const host = req.get('host'); // e.g., 'portal.kingscollege.com'
 
-  // Ignore local development hosts and platform's main domain (optional)
+  // Ignore local development hosts and platform's main domain
   const platformDomain = process.env.PLATFORM_DOMAIN || 'localhost';
 
-  if (host.includes(platformDomain)) {
-    // Standard path-based or slug-based resolution will handle this
+  // Skip for standard library/asset paths or common file extensions
+  if (!host || host.includes(platformDomain) || 
+      host.includes('127.0.0.1') ||
+      req.path.startsWith('/api/public') ||
+      req.path.startsWith('/api/auth') ||
+      req.path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/) ||
+      req.path === '/favicon.ico') {
+    return next();
+  }
+
+  // Check Cache First
+  const cached = domainCache.get(host);
+  if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+    if (cached.school) {
+        req.resolvedSchoolId = cached.school.id;
+        req.resolvedSlug = cached.school.slug;
+        req.viaCustomDomain = true;
+    }
     return next();
   }
 
@@ -24,14 +43,13 @@ const resolveDomain = async (req, res, next) => {
     });
 
     if (school) {
-      // Injected school info - this can be used by auth/controllers
       req.resolvedSchoolId = school.id;
       req.resolvedSlug = school.slug;
-
-      // We can also set a flag that the request came via a custom domain
       req.viaCustomDomain = true;
     }
 
+    // Cache the result even if null (to avoid re-querying non-custom domains)
+    domainCache.set(host, { school, timestamp: Date.now() });
     next();
   } catch (error) {
     console.error('Domain resolution error:', error);

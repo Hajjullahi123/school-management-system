@@ -1,17 +1,15 @@
-console.log('[DEBUG] Server starting index.js...'); // Trigger restart
+// Stability Overhaul v2 - Active PORT: 5115
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 require('dotenv').config();
-
-console.log('[DEBUG] Environment loaded. PORT:', process.env.PORT);
-
 const app = express();
 
 // Global error handlers to catch unhandled errors
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });
 
 process.on('uncaughtException', (error) => {
@@ -19,8 +17,7 @@ process.on('uncaughtException', (error) => {
   console.error('Error:', error);
   console.error('Stack:', error.stack);
   console.error('===========================================================');
-  // Don't exit immediately - let's see what's happening
-  // process.exit(1);
+  process.exit(1);
 });
 // ... (keep middle lines hidden/implicit if not changing) ...
 
@@ -33,14 +30,7 @@ app.use((req, res, next) => {
   next();
 });
 
-const fs = require('fs');
 
-app.post('/api/log-client-error', (req, res) => {
-  const errorHtml = `[${new Date().toISOString()}] CLIENT ERROR: ${JSON.stringify(req.body)}\n`;
-  fs.appendFileSync('client-errors.log', errorHtml);
-  console.log('LOGGED CLIENT ERROR:', req.body.message);
-  res.status(200).send('Logged');
-});
 
 // Middleware
 // CORS configuration for local network hosting
@@ -73,6 +63,15 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser());
 
+const fs = require('fs');
+app.post('/api/log-client-error', (req, res) => {
+  const body = req.body || {};
+  const errorHtml = `[${new Date().toISOString()}] CLIENT ERROR: ${JSON.stringify(body)}\n`;
+  fs.appendFileSync('logs/client-errors.log', errorHtml);
+  console.log('LOGGED CLIENT ERROR:', body.message || 'Unknown error message');
+  res.status(200).send('Logged');
+});
+
 // File upload middleware
 // app.use(fileUpload({
 //   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max
@@ -86,319 +85,120 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const { authenticate, authorize, optionalAuth } = require('./middleware/auth');
 
-// DEBUG: Modular Seeder
+// Modular Seeder
 require('./seeder')(app);
-
-// Old seeder (Disabled)
-app.get('/api/debug/seed-disabled', async (req, res) => {
-  const prisma = require('./db');
-  const bcrypt = require('bcryptjs');
-  try {
-    const results = [];
-    results.push('🚀 Starting ROBUST Master Demo Data Seeding...');
-
-    const passwordHash = await bcrypt.hash('password123', 12);
-
-    // 1. School
-    const school = await prisma.school.upsert({
-      where: { slug: 'demo-academy' },
-      update: { isActivated: true, isSetupComplete: true },
-      create: {
-        slug: 'demo-academy',
-        name: 'Demo Excellence Academy',
-        address: '123 Demo Street, Innovation Hub',
-        phone: '0800-DEMO-ACADEMY',
-        email: 'info@demoacademy.com',
-        primaryColor: '#0f172a',
-        secondaryColor: '#3b82f6',
-        isActivated: true,
-        packageType: 'premium',
-        maxStudents: 1000,
-        isSetupComplete: true
-      }
-    });
-
-    results.push(`✅ School: ${school.name}`);
-
-    // 2. Admin User
-    await prisma.user.upsert({
-      where: { schoolId_username: { schoolId: school.id, username: 'demo.admin' } },
-      update: { passwordHash, isActive: true },
-      create: {
-        schoolId: school.id,
-        username: 'demo.admin',
-        passwordHash,
-        email: 'admin@demo.com',
-        role: 'admin',
-        firstName: 'System',
-        lastName: 'Admin',
-        isActive: true
-      }
-    });
-
-    // 3. Academic Session & Term
-    const session = await prisma.academicSession.upsert({
-      where: { schoolId_name: { schoolId: school.id, name: '2025/2026 Academic Session' } },
-      update: { isCurrent: true },
-      create: {
-        schoolId: school.id,
-        name: '2025/2026 Academic Session',
-        startDate: new Date('2025-09-01'),
-        endDate: new Date('2026-07-31'),
-        isCurrent: true
-      }
-    });
-    const term = await prisma.term.upsert({
-      where: { schoolId_academicSessionId_name: { schoolId: school.id, academicSessionId: session.id, name: 'First Term' } },
-      update: { isCurrent: true },
-      create: {
-        schoolId: school.id,
-        academicSessionId: session.id,
-        name: 'First Term',
-        startDate: new Date('2025-09-01'),
-        endDate: new Date('2025-12-15'),
-        isCurrent: true
-      }
-    });
-    results.push(`✅ Session and Term created`);
-
-    // 4. Classes (6 Classes)
-    const classNames = ['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'];
-    const classes = [];
-    for (const name of classNames) {
-      const cls = await prisma.class.upsert({
-        where: { schoolId_name_arm: { schoolId: school.id, name, arm: 'A' } },
-        update: { isActive: true },
-        create: { schoolId: school.id, name, arm: 'A', isActive: true }
-      });
-      classes.push(cls);
-    }
-    results.push(`✅ ${classes.length} Classes created`);
-
-    // 5. Subjects (10 Subjects)
-    const subData = [
-      { n: 'Mathematics', c: 'MTH' }, { n: 'English Language', c: 'ENG' },
-      { n: 'Basic Science', c: 'SCI' }, { n: 'Social Studies', c: 'SOS' },
-      { n: 'ICT', c: 'ICT' }, { n: 'Agric Science', c: 'AGR' },
-      { n: 'Civic Education', c: 'CIV' }, { n: 'Business Studies', c: 'BUS' },
-      { n: 'P.H.E', c: 'PHE' }, { n: 'Fine Arts', c: 'ART' }
-    ];
-    const subjects = [];
-    for (const s of subData) {
-      const sub = await prisma.subject.upsert({
-        where: { schoolId_code: { schoolId: school.id, code: s.c } },
-        update: { name: s.n },
-        create: { schoolId: school.id, name: s.n, code: s.c }
-      });
-      subjects.push(sub);
-
-      // Link to each class
-      for (const cls of classes) {
-        await prisma.classSubject.upsert({
-          where: { schoolId_classId_subjectId: { schoolId: school.id, classId: cls.id, subjectId: sub.id } },
-          update: {},
-          create: { schoolId: school.id, classId: cls.id, subjectId: sub.id }
-        });
-      }
-    }
-    results.push(`✅ ${subjects.length} Subjects created and linked to classes`);
-
-    // 6. Teachers (4 Teachers)
-    const tData = [
-      { u: 't.maths', f: 'Isaac', l: 'Newton' }, { u: 't.english', f: 'Jane', l: 'Austen' },
-      { u: 't.science', f: 'Marie', l: 'Curie' }, { u: 't.ict', f: 'Alan', l: 'Turing' }
-    ];
-    for (const t of tData) {
-      await prisma.user.upsert({
-        where: { schoolId_username: { schoolId: school.id, username: t.u } },
-        update: { isActive: true },
-        create: {
-          schoolId: school.id,
-          username: t.u,
-          passwordHash,
-          role: 'teacher',
-          firstName: t.f,
-          lastName: t.l,
-          isActive: true,
-          teacher: { create: { schoolId: school.id, staffId: t.u.toUpperCase(), specialization: 'General' } }
-        }
-      });
-    }
-
-    // 7. Students (2 students per class = 12 total)
-    const firstNames = ['James', 'Mary', 'Robert', 'Patricia', 'John', 'Jennifer', 'Michael', 'Linda', 'William', 'Elizabeth', 'David', 'Barbara'];
-    const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez'];
-
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    for (let i = 0; i < classes.length; i++) {
-      const cls = classes[i];
-      for (let j = 0; j < 2; j++) {
-        const idx = (i * 2) + j;
-        const adm = `STUD/2025/${String(idx + 1).padStart(3, '0')}`;
-        const uname = adm.toLowerCase().replace(/\//g, '');
-
-        try {
-          // 7a. Upsert User
-          const user = await prisma.user.upsert({
-            where: { schoolId_username: { schoolId: school.id, username: uname } },
-            update: { isActive: true },
-            create: {
-              schoolId: school.id,
-              username: uname,
-              passwordHash,
-              role: 'student',
-              firstName: firstNames[idx],
-              lastName: lastNames[idx],
-              isActive: true
-            }
-          });
-
-          // 7b. Upsert Student
-          const student = await prisma.student.upsert({
-            where: { schoolId_admissionNumber: { schoolId: school.id, admissionNumber: adm } },
-            update: { classId: cls.id, rollNo: adm },
-            create: {
-              schoolId: school.id,
-              userId: user.id,
-              admissionNumber: adm,
-              classId: cls.id,
-              rollNo: adm,
-              parentGuardianName: `Parent of ${firstNames[idx]}`,
-              parentPhone: '0800-DEMO-PARENT'
-            }
-          });
-
-          // 7c. Results for each subject
-          for (const sub of subjects) {
-            await prisma.result.upsert({
-              where: {
-                studentId_academicSessionId_termId_subjectId: {
-                  studentId: student.id,
-                  academicSessionId: session.id,
-                  termId: term.id,
-                  subjectId: sub.id
-                }
-              },
-              update: {
-                assignment1Score: 10 + Math.floor(Math.random() * 5),
-                test1Score: 10 + Math.floor(Math.random() * 5),
-                examScore: 40 + Math.floor(Math.random() * 20),
-                totalScore: 60 + Math.floor(Math.random() * 10),
-                isSubmitted: true
-              },
-              create: {
-                schoolId: school.id,
-                studentId: student.id,
-                academicSessionId: session.id,
-                termId: term.id,
-                classId: cls.id,
-                subjectId: sub.id,
-                assignment1Score: 10 + Math.floor(Math.random() * 5),
-                test1Score: 10 + Math.floor(Math.random() * 5),
-                examScore: 40 + Math.floor(Math.random() * 20),
-                totalScore: 60 + Math.floor(Math.random() * 10),
-                isSubmitted: true,
-                grade: 'B',
-                remark: 'Good'
-              }
-            });
-
-            // 7d. Attendance (one record for today)
-            try {
-              await prisma.attendanceRecord.upsert({
-                where: {
-                  schoolId_studentId_date: {
-                    schoolId: school.id,
-                    studentId: student.id,
-                    date: todayStart
-                  }
-                },
-                update: { status: 'present' },
-                create: {
-                  schoolId: school.id,
-                  studentId: student.id,
-                  classId: cls.id,
-                  academicSessionId: session.id,
-                  termId: term.id,
-                  date: todayStart,
-                  status: 'present'
-                }
-              });
-            } catch (attErr) {
-              // Silently handle attendance errors (e.g. duplicate if constraint is tricky)
-            }
-          }
-        } catch (studentErr) {
-          results.push(`⚠️ Error on student index ${idx} (${adm}): ${studentErr.message}`);
-        }
-      }
-    }
-    results.push('✅ Master seeding process completed (checked users, students, results, and attendance)');
-
-    res.json({ success: true, results });
-  } catch (err) {
-    console.error('Seeding Error:', err);
-    res.status(500).json({ success: false, error: err.message, stack: err.stack });
-  }
-});
+const authRoutes = require('./routes/auth');
 const { checkSubscription, requirePackage } = require('./middleware/subscription');
+console.log('[Server] Domain resolver loaded.');
 const { resolveDomain } = require('./middleware/domainResolver');
+console.log('[Server] Domain resolver initialized.');
+
+console.log('[Server] Starting route imports...');
 
 // Import Route Modules
-const authRoutes = require('./routes/auth');
+console.log('[Server] Importing userRoutes...');
 const userRoutes = require('./routes/users');
+console.log('[Server] Importing studentRoutes...');
 const studentRoutes = require('./routes/students');
+console.log('[Server] Importing subjectRoutes...');
 const subjectRoutes = require('./routes/subjects');
+console.log('[Server] Importing examRoutes...');
 const examRoutes = require('./routes/exams');
+console.log('[Server] Importing resultsRoutes...');
 const resultsRoutes = require('./routes/results-enhanced');
+console.log('[Server] Importing reportRoutes...');
 const reportRoutes = require('./routes/reports');
+console.log('[Server] Importing analyticsRoutes...');
 const analyticsRoutes = require('./routes/analytics');
+console.log('[Server] Importing advancedAnalyticsRoutes...');
 const advancedAnalyticsRoutes = require('./routes/advanced-analytics');
+console.log('[Server] Importing academicSessionRoutes...');
 const academicSessionRoutes = require('./routes/academic-sessions');
+console.log('[Server] Importing termRoutes...');
 const termRoutes = require('./routes/terms');
+console.log('[Server] Importing classRoutes...');
 const classRoutes = require('./routes/classes');
+console.log('[Server] Importing classSubjectRoutes...');
 const classSubjectRoutes = require('./routes/class-subjects');
+console.log('[Server] Importing assignmentRoutes...');
 const assignmentRoutes = require('./routes/assignments');
+console.log('[Server] Importing bulkResultRoutes...');
 const bulkResultRoutes = require('./routes/bulk-results');
+console.log('[Server] Importing emailRoutes...');
 const emailRoutes = require('./routes/email');
+console.log('[Server] Importing uploadRoutes...');
 const uploadRoutes = require('./routes/upload');
+console.log('[Server] Importing teacherAssignmentRoutes...');
 const teacherAssignmentRoutes = require('./routes/teacher-assignments');
+console.log('[Server] Importing bulkUploadRoutes...');
 const bulkUploadRoutes = require('./routes/bulk-upload');
+console.log('[Server] Importing scoresheetRoutes...');
 const scoresheetRoutes = require('./routes/generate-scoresheet');
+console.log('[Server] Importing feeRoutes...');
 const feeRoutes = require('./routes/fee-management');
+console.log('[Server] Importing feeStructureRoutes...');
 const feeStructureRoutes = require('./routes/fee-structure');
+console.log('[Server] Importing examCardRoutes...');
 const examCardRoutes = require('./routes/exam-cards');
+console.log('[Server] Importing teacherProfileRoutes...');
 const teacherProfileRoutes = require('./routes/teachers');
+console.log('[Server] Importing topStudentsRoutes...');
 const topStudentsRoutes = require('./routes/top-students');
+console.log('[Server] Importing licenseRoutes...');
 const licenseRoutes = require('./routes/license');
+console.log('[Server] Importing settingsRoutes...');
 const settingsRoutes = require('./routes/settings');
+console.log('[Server] Importing paymentRoutes...');
 const paymentRoutes = require('./routes/payments');
+console.log('[Server] Importing attendanceRoutes...');
 const attendanceRoutes = require('./routes/attendance');
+console.log('[Server] Importing staffAttendanceRoutes...');
 const staffAttendanceRoutes = require('./routes/staff-attendance');
+console.log('[Server] Importing messageRoutes...');
 const messageRoutes = require('./routes/messages');
+console.log('[Server] Importing timetableRoutes...');
 const timetableRoutes = require('./routes/timetable');
+console.log('[Server] Importing noticeRoutes...');
 const noticeRoutes = require('./routes/notices');
+console.log('[Server] Importing lmsRoutes...');
 const lmsRoutes = require('./routes/lms');
+console.log('[Server] Importing parentRoutes...');
 const parentRoutes = require('./routes/parents');
+console.log('[Server] Importing statusRoutes...');
 const statusRoutes = require('./routes/system-settings');
+console.log('[Server] Importing cbtRoutes...');
 const cbtRoutes = require('./routes/cbt');
+console.log('[Server] Importing reportExtraRoutes...');
 const reportExtraRoutes = require('./routes/report-extras');
+console.log('[Server] Importing quranTrackerRoutes...');
 const quranTrackerRoutes = require('./routes/quran-tracker');
+console.log('[Server] Importing galleryRoutes...');
 const galleryRoutes = require('./routes/gallery');
+console.log('[Server] Importing newsEventsRoutes...');
 const newsEventsRoutes = require('./routes/news-events');
+console.log('[Server] Importing promotionRoutes...');
 const promotionRoutes = require('./routes/promotion');
+console.log('[Server] Importing alumniRoutes...');
 const alumniRoutes = require('./routes/alumni');
+console.log('[Server] Importing auditRoutes...');
 const auditRoutes = require('./routes/audit');
+console.log('[Server] Importing teacherAvailabilityRoutes...');
 const teacherAvailabilityRoutes = require('./routes/teacher-availability');
+console.log('[Server] Importing superadminRoutes...');
 const superadminRoutes = require('./routes/superadmin');
+console.log('[Server] All route modules imported.');
 const interventionRoutes = require('./routes/interventions');
+console.log('[Server] Interventions route loaded.');
 const platformBillingRoutes = require('./routes/platform-billing');
+console.log('[Server] Platform billing route loaded.');
 const backupRoutes = require('./routes/backup');
+console.log('[Server] Backup route loaded.');
 const whatsappRoutes = require('./routes/whatsapp');
+console.log('[Server] Whatsapp route loaded.');
 const miscFeesRoutes = require('./routes/misc-fees');
+console.log('[Server] Misc fees route loaded.');
 const holidayRoutes = require('./routes/holidays');
+console.log('[Server] Holidays route loaded.');
 
 // Resolve Custom Domains (White-Label)
 app.use(resolveDomain);
@@ -415,7 +215,6 @@ app.get('/api/public/global-settings', async (req, res) => {
 });
 
 // Use Routes
-console.log('[DEBUG] Registering routes...');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', authenticate, checkSubscription, userRoutes);
 app.use('/api/students', authenticate, checkSubscription, studentRoutes);
@@ -470,7 +269,6 @@ app.use('/api/backup', backupRoutes);
 app.use('/api/whatsapp', whatsappRoutes); // Public webhook endpoint for Twilio
 app.use('/api/misc-fees', authenticate, checkSubscription, miscFeesRoutes);
 app.use('/api/holidays', authenticate, checkSubscription, holidayRoutes);
-app.use('/api/upload', require('./routes/upload'));
 
 
 // Serve frontend in production
@@ -500,21 +298,119 @@ if (process.env.NODE_ENV === 'production') {
     console.error(`[404] ${errorMsg}`);
     try {
       const fs = require('fs');
-      fs.appendFileSync('server-debug.log', `[${new Date().toISOString()}] 404 ERROR: ${errorMsg}\n`);
+      fs.appendFileSync('logs/server-debug.log', `[${new Date().toISOString()}] 404 ERROR: ${errorMsg}\n`);
     } catch (e) { }
     res.status(404).json({ error: errorMsg });
   });
 }
 
-const PORT = process.env.PORT || 3000;
-console.log('[DEBUG] Attempting to listen on port:', PORT);
-app.listen(PORT, () => {
-  console.log(`[DEBUG] Server successfully running on port ${PORT}`);
 
-  // Initialize Automated Offsite Backups (Optional/Background)
-  require('./services/backupService').performFullBackup().catch(err => console.error('Backup Error:', err));
-});
+// Graceful shutdown handlers
+let activeServer = null;
 
-// Trigger nodemon restart
+const gracefulShutdown = async (signal) => {
+  console.log(`[${signal}] Shutting down gracefully...`);
+  
+  // Set a timeout to force exit if shutdown hangs
+  const forceExit = setTimeout(() => {
+    console.error(`[${signal}] Forced exit after timeout.`);
+    process.exit(1);
+  }, 5000);
 
-// nodemon restart again - trigger fix
+  try {
+    if (activeServer) {
+      await new Promise((resolve) => {
+        activeServer.close(() => {
+          console.log('HTTP server closed.');
+          resolve();
+        });
+      });
+    }
+
+    const prisma = require('./db');
+    await prisma.$disconnect();
+    console.log('Prisma disconnected.');
+    
+    clearTimeout(forceExit);
+    process.exit(0);
+  } catch (err) {
+    console.error('Error during graceful shutdown:', err);
+    process.exit(1);
+  }
+};
+
+// Handle nodemon-specific restart signal (SIGUSR2)
+// Also standard signals for termination
+process.once('SIGUSR2', () => gracefulShutdown('SIGUSR2'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+const forceKillPort = (port) => {
+  if (process.platform !== 'win32') return false;
+  const { execSync } = require('child_process');
+  try {
+    const output = execSync(`netstat -ano | findstr :${port}`).toString();
+    const lines = output.split('\n');
+    const pids = new Set();
+    lines.forEach(line => {
+      const match = line.match(/\s+LISTENING\s+(\d+)/);
+      if (match) pids.add(match[1]);
+    });
+    let killed = false;
+    pids.forEach(pid => {
+      if (parseInt(pid) === process.pid) return; // Don't kill self
+      console.warn(`[Server] Found zombie process ${pid} on port ${port}. Clearing...`);
+      try {
+        execSync(`taskkill /F /PID ${pid}`);
+        killed = true;
+      } catch (e) {}
+    });
+    return killed;
+  } catch (e) {
+    return false;
+  }
+};
+
+const startServer = (portToTry, retryCount = 0) => {
+  const MAX_RETRIES = 5;
+  
+  if (retryCount === 0) {
+    console.log(`[Server] Initializing on port ${portToTry}...`);
+    forceKillPort(portToTry);
+  } else {
+    console.log(`[Server] Retrying listener on port ${portToTry} (Attempt ${retryCount + 1})...`);
+  }
+
+  // Explicitly reset activeServer if it exists from a previous failed attempt
+  if (activeServer) {
+    try { activeServer.close(); } catch (e) {} 
+    activeServer = null;
+  }
+
+  activeServer = app.listen(portToTry, () => {
+    console.log(`[Server] SUCCESSFULLY RUNNING ON PORT ${portToTry}`);
+  }).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`[Server] Port ${portToTry} is in use.`);
+      if (retryCount < MAX_RETRIES) {
+        const backoff = (retryCount + 1) * 1000;
+        console.log(`[Server] Retrying in ${backoff}ms... (${retryCount + 1}/${MAX_RETRIES})`);
+        setTimeout(() => {
+          // If backoff fails, try one last force kill before the next attempt
+          if (retryCount === 1) forceKillPort(portToTry); 
+          startServer(portToTry, retryCount + 1);
+        }, backoff);
+      } else {
+        console.error(`[Server] Port ${portToTry} is PERMANENTLY busy.`);
+        console.error(`[Server] TIP: Restart your machine if this persists.`);
+        process.exit(1);
+      }
+    } else {
+      console.error('[Server] Fatal startup error:', err);
+      process.exit(1);
+    }
+  });
+};
+
+const INITIAL_PORT = process.env.PORT || 3000;
+startServer(parseInt(INITIAL_PORT));

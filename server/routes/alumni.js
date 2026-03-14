@@ -334,7 +334,7 @@ router.post('/upload-photo', authenticate, upload.single('photo'), async (req, r
 });
 
 // Admin create story
-router.post('/stories', authenticate, checkSubscription, authorize(['admin', 'superadmin']), async (req, res) => {
+router.post('/stories', authenticate, checkSubscription, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const schoolId = await resolveSchoolId(req);
     if (!schoolId) return res.status(400).json({ error: 'School identifier is required' });
@@ -366,7 +366,7 @@ router.post('/stories', authenticate, checkSubscription, authorize(['admin', 'su
 });
 
 // 5. Create Alumni Record from Existing Student (Admin Only - Promotion)
-router.post('/admin/create', authenticate, checkSubscription, authorize(['admin', 'superadmin']), async (req, res) => {
+router.post('/admin/create', authenticate, checkSubscription, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const { studentId, graduationYear, alumniId } = req.body;
 
@@ -442,7 +442,7 @@ router.post('/admin/create', authenticate, checkSubscription, authorize(['admin'
 });
 
 // 5B. Direct Alumni Registration (Admin Only - for alumni not previously in system)
-router.post('/admin/register-direct', authenticate, checkSubscription, authorize(['admin', 'superadmin']), async (req, res) => {
+router.post('/admin/register-direct', authenticate, checkSubscription, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const {
       // Personal Information
@@ -623,7 +623,7 @@ router.post('/admin/register-direct', authenticate, checkSubscription, authorize
 });
 
 // 6. Generate/Reset Alumni Credentials (Admin Only)
-router.post('/admin/generate-credentials', authenticate, checkSubscription, authorize(['admin', 'superadmin']), async (req, res) => {
+router.post('/admin/generate-credentials', authenticate, checkSubscription, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const { studentId } = req.body;
     const bcrypt = require('bcryptjs');
@@ -804,7 +804,7 @@ router.get('/my-donations', authenticate, async (req, res) => {
 });
 
 // 9. Delete Donation (Admin Only)
-router.post('/donation/:id', authenticate, checkSubscription, authorize(['admin', 'superadmin']), async (req, res) => {
+router.post('/donation/:id', authenticate, checkSubscription, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     await prisma.alumniDonation.delete({
@@ -830,7 +830,7 @@ router.post('/donation/:id', authenticate, checkSubscription, authorize(['admin'
 });
 
 // 10. Update Donation (Admin Only)
-router.put('/donation/:id', authenticate, checkSubscription, authorize(['admin', 'superadmin']), async (req, res) => {
+router.put('/donation/:id', authenticate, checkSubscription, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { donorName, amount, message, isAnonymous, alumniId } = req.body;
@@ -866,7 +866,7 @@ router.put('/donation/:id', authenticate, checkSubscription, authorize(['admin',
 });
 
 // 11. Update Alumni Profile (Admin Only)
-router.put('/:id', authenticate, checkSubscription, authorize(['admin', 'superadmin']), async (req, res) => {
+router.put('/:id', authenticate, checkSubscription, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const schoolId = await resolveSchoolId(req);
     if (!schoolId) return res.status(400).json({ error: 'School identifier is required' });
@@ -898,7 +898,7 @@ router.put('/:id', authenticate, checkSubscription, authorize(['admin', 'superad
 });
 
 // 12. Upload Alumni Photo (Admin Only)
-router.post('/:id/photo', authenticate, checkSubscription, authorize(['admin', 'superadmin']), upload.single('photo'), async (req, res) => {
+router.post('/:id/photo', authenticate, checkSubscription, authorize(['admin', 'principal', 'superadmin']), upload.single('photo'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });

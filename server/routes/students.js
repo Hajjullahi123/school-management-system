@@ -1022,6 +1022,8 @@ router.post('/:id/create-parent', authenticate, authorize(['admin']), async (req
     });
 
     let isNew = false;
+    let parent = null;
+
     if (user) {
       // User exists, find associated parent
       parent = await prisma.parent.findUnique({

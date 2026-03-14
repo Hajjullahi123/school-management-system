@@ -23,27 +23,31 @@ const authenticate = (req, res, next) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    req.schoolId = decoded.schoolId;
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      req.user = decoded;
+      req.schoolId = decoded.schoolId;
 
-    // DEMO PROTECTION: Prevent modifications by demo_admin
-    if (decoded.username === 'demo_admin') {
-      const isWriteOperation = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method.toUpperCase());
-      const isWhitelisted = ['/api/auth/logout', '/api/platform-billing/initialize-subscription'].some(path => req.path.startsWith(path));
+      // DEMO PROTECTION: Prevent modifications by demo_admin
+      if (decoded.username === 'demo_admin') {
+        const isWriteOperation = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method.toUpperCase());
+        const isWhitelisted = ['/api/auth/logout', '/api/platform-billing/initialize-subscription'].some(path => req.path.startsWith(path));
 
-      if (isWriteOperation && !isWhitelisted) {
-        return res.status(403).json({
-          error: 'Action restricted in Demo Mode',
-          isDemoRestriction: true,
-          message: 'To protect the shared demo environment, editing and deleting are disabled. Purchase a license to unlock full features!'
-        });
+        if (isWriteOperation && !isWhitelisted) {
+          return res.status(403).json({
+            error: 'Action restricted in Demo Mode',
+            isDemoRestriction: true,
+            message: 'To protect the shared demo environment, editing and deleting are disabled. Purchase a license to unlock full features!'
+          });
+        }
       }
+    } catch (jwtError) {
+      log(`INVALID TOKEN for ${req.method} ${req.url}: ${jwtError.message}`);
+      return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
     next();
   } catch (error) {
-    log(`INVALID TOKEN for ${req.method} ${req.url}: ${error.message}`);
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 };

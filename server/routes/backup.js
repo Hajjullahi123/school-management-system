@@ -18,51 +18,28 @@ router.get('/export', authenticate, checkSubscription, authorize(['admin']), asy
     const schoolId = req.schoolId;
 
     // Fetch all related data in parallel
-    const [
-      school,
-      users,
-      students,
-      teachers,
-      classes,
-      subjects,
-      academicSessions,
-      terms,
-      feeRecords,
-      feePayments,
-      results,
-      attendance,
-      homework,
-      learningResources,
-      messages,
-      notices,
-      newsEvents,
-      gallery,
-      cbtExams,
-      alumni,
-      auditLogs
-    ] = await Promise.all([
-      prisma.school.findUnique({ where: { id: schoolId } }),
-      prisma.user.findMany({ where: { schoolId } }),
-      prisma.student.findMany({ where: { schoolId } }),
-      prisma.teacher.findMany({ where: { schoolId } }),
-      prisma.class.findMany({ where: { schoolId } }),
-      prisma.subject.findMany({ where: { schoolId } }),
-      prisma.academicSession.findMany({ where: { schoolId } }),
-      prisma.term.findMany({ where: { schoolId } }),
-      prisma.feeRecord.findMany({ where: { schoolId } }),
-      prisma.feePayment.findMany({ where: { schoolId } }),
-      prisma.result.findMany({ where: { schoolId } }),
-      prisma.attendanceRecord.findMany({ where: { schoolId } }),
-      prisma.homework.findMany({ where: { schoolId } }),
-      prisma.learningResource.findMany({ where: { schoolId } }),
-      prisma.parentTeacherMessage.findMany({ where: { schoolId } }),
-      prisma.notice.findMany({ where: { schoolId } }),
-      prisma.newsEvent.findMany({ where: { schoolId } }),
-      prisma.galleryImage.findMany({ where: { schoolId } }),
-      prisma.cBTExam.findMany({ where: { schoolId } }),
-      prisma.alumni.findMany({ where: { schoolId } }),
-      prisma.auditLog.findMany({ where: { schoolId }, take: 500 }) // Last 500 logs
-    ]);
+    // Fetch all related data sequentially to minimize concurrent database connections on limited tiers
+    const school = await prisma.school.findUnique({ where: { id: schoolId } });
+    const users = await prisma.user.findMany({ where: { schoolId } });
+    const students = await prisma.student.findMany({ where: { schoolId } });
+    const teachers = await prisma.teacher.findMany({ where: { schoolId } });
+    const classes = await prisma.class.findMany({ where: { schoolId } });
+    const subjects = await prisma.subject.findMany({ where: { schoolId } });
+    const academicSessions = await prisma.academicSession.findMany({ where: { schoolId } });
+    const terms = await prisma.term.findMany({ where: { schoolId } });
+    const feeRecords = await prisma.feeRecord.findMany({ where: { schoolId } });
+    const feePayments = await prisma.feePayment.findMany({ where: { schoolId } });
+    const results = await prisma.result.findMany({ where: { schoolId } });
+    const attendance = await prisma.attendanceRecord.findMany({ where: { schoolId } });
+    const homework = await prisma.homework.findMany({ where: { schoolId } });
+    const learningResources = await prisma.learningResource.findMany({ where: { schoolId } });
+    const messages = await prisma.parentTeacherMessage.findMany({ where: { schoolId } });
+    const notices = await prisma.notice.findMany({ where: { schoolId } });
+    const newsEvents = await prisma.newsEvent.findMany({ where: { schoolId } });
+    const gallery = await prisma.galleryImage.findMany({ where: { schoolId } });
+    const cbtExams = await prisma.cBTExam.findMany({ where: { schoolId } });
+    const alumni = await prisma.alumni.findMany({ where: { schoolId } });
+    const auditLogs = await prisma.auditLog.findMany({ where: { schoolId }, take: 500 });
 
     const backupData = {
       exportDate: new Date().toISOString(),

@@ -315,17 +315,19 @@ router.get('/form-master/:studentId', authenticate, authorize(['parent', 'admin'
   try {
     const { studentId } = req.params;
 
-    // Verify parent owns student
-    const parent = await prisma.parent.findFirst({
-      where: {
-        userId: req.user.id,
-        schoolId: req.schoolId
-      },
-      include: { students: { where: { schoolId: req.schoolId } } }
-    });
+    // Verify parent owns student if not admin/principal
+    if (!['admin', 'principal'].includes(req.user.role)) {
+      const parent = await prisma.parent.findFirst({
+        where: {
+          userId: req.user.id,
+          schoolId: req.schoolId
+        },
+        include: { students: { where: { schoolId: req.schoolId } } }
+      });
 
-    if (!parent || !parent.students.some(s => s.id === parseInt(studentId))) {
-      return res.status(403).json({ error: 'Unauthorized' });
+      if (!parent || !parent.students.some(s => s.id === parseInt(studentId))) {
+        return res.status(403).json({ error: 'Unauthorized' });
+      }
     }
 
     const student = await prisma.student.findFirst({

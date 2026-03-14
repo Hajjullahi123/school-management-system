@@ -31,6 +31,7 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       { header: 'Class ID*', key: 'classId', width: 10 },
       { header: 'Class Name (Info)', key: 'className', width: 20 },
       { header: 'Gender (Male/Female)', key: 'gender', width: 15 },
+      { header: 'Email', key: 'email', width: 25 },
       { header: 'Parent Name*', key: 'parentName', width: 25 },
       { header: 'Parent Phone*', key: 'parentPhone', width: 20 },
       { header: 'Address', key: 'address', width: 40 },
@@ -47,6 +48,7 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
         classId: classes[0].id,
         className: `${classes[0].name} ${classes[0].arm || ''}`,
         gender: 'Male',
+        email: 'john.doe@example.com',
         parentName: 'Jane Doe',
         parentPhone: '08012345678',
         address: '123 School Road',
@@ -90,21 +92,46 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
 
     const worksheet = workbook.worksheets[0];
     const studentsRaw = [];
+    const headers = {};
 
     worksheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return; // Skip header
+      if (rowNumber === 1) {
+        // Map headers to column indices
+        row.eachCell((cell, colNumber) => {
+          const header = cell.value?.toString()?.toLowerCase()?.trim() || '';
+          if (header.includes('first name')) headers.firstName = colNumber;
+          else if (header.includes('last name')) headers.lastName = colNumber;
+          else if (header.includes('middle name')) headers.middleName = colNumber;
+          else if (header.includes('class id')) headers.classId = colNumber;
+          else if (header.includes('gender')) headers.gender = colNumber;
+          else if (header === 'email' || header.includes('student email')) headers.email = colNumber;
+          else if (header.includes('parent name')) headers.parentGuardianName = colNumber;
+          else if (header.includes('parent phone')) headers.parentGuardianPhone = colNumber;
+          else if (header.includes('address')) headers.address = colNumber;
+          else if (header.includes('date of birth') || header.includes('dob')) headers.dateOfBirth = colNumber;
+          else if (header.includes('scholarship')) headers.isScholarship = colNumber;
+        });
+        return;
+      }
+
+      // Check if we found headers, otherwise fallback to default indices
+      const getVal = (key, defaultIdx) => {
+        const idx = headers[key] || defaultIdx;
+        return row.getCell(idx).value?.toString()?.trim();
+      };
 
       studentsRaw.push({
-        firstName: row.getCell(1).value?.toString()?.trim(),
-        lastName: row.getCell(2).value?.toString()?.trim(),
-        middleName: row.getCell(3).value?.toString()?.trim(),
-        classId: row.getCell(4).value?.toString()?.trim(),
-        gender: row.getCell(6).value?.toString()?.trim(),
-        parentGuardianName: row.getCell(7).value?.toString()?.trim(),
-        parentGuardianPhone: row.getCell(8).value?.toString()?.trim(),
-        address: row.getCell(9).value?.toString()?.trim(),
-        dateOfBirth: row.getCell(10).value?.toString()?.trim(),
-        isScholarship: row.getCell(11).value?.toString()?.trim()
+        firstName: getVal('firstName', 1),
+        lastName: getVal('lastName', 2),
+        middleName: getVal('middleName', 3),
+        classId: getVal('classId', 4),
+        gender: getVal('gender', 6),
+        email: getVal('email', 7),
+        parentGuardianName: getVal('parentGuardianName', 8),
+        parentGuardianPhone: getVal('parentGuardianPhone', 9),
+        address: getVal('address', 10),
+        dateOfBirth: getVal('dateOfBirth', 11),
+        isScholarship: getVal('isScholarship', 12)
       });
     });
 
@@ -218,6 +245,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
             schoolId: schoolIdInt,
             username,
             passwordHash: hashedPassword,
+            email: studentData.email || null,
             role: 'student',
             firstName: studentData.firstName,
             lastName: studentData.lastName,

@@ -12,15 +12,13 @@ const { generateAdminUsername } = require('../utils/usernameGenerator');
  */
 router.get('/stats', authenticate, authorize(['superadmin']), async (req, res) => {
   try {
-    const [schoolCount, userCount, studentCount, teacherCount, auditCount] = await Promise.all([
-      prisma.school.count(),
-      prisma.user.count(),
-      prisma.student.count(),
-      prisma.teacher.count(),
-      prisma.auditLog.count()
-    ]);
-
-    // Growth Analysis
+    // Fetch counts sequentially to minimize concurrent database connections
+    // (Crucial for limited-connection tiers like Supabase Free)
+    const schoolCount = await prisma.school.count();
+    const userCount = await prisma.user.count();
+    const studentCount = await prisma.student.count();
+    const teacherCount = await prisma.teacher.count();
+    const auditCount = await prisma.auditLog.count();
 
     // 1. School with most active users
     const schoolActivity = await prisma.school.findMany({
@@ -170,8 +168,7 @@ router.get('/schools', authenticate, authorize(['superadmin']), async (req, res)
             students: true,
             teachers: true
           }
-        },
-        // 'license' is no longer a separate model, it's fields are on School directly
+        }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -531,17 +528,16 @@ router.get('/audit', authenticate, authorize(['superadmin']), async (req, res) =
   try {
     const { limit = 100, offset = 0 } = req.query;
 
-    const [logs, total] = await Promise.all([
-      prisma.auditLog.findMany({
-        include: {
-          school: { select: { name: true, slug: true } }
-        },
-        orderBy: { createdAt: 'desc' },
-        take: parseInt(limit),
-        skip: parseInt(offset)
-      }),
-      prisma.auditLog.count()
-    ]);
+    const logs = await prisma.auditLog.findMany({
+      include: {
+        school: { select: { name: true, slug: true } }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: parseInt(limit),
+      skip: parseInt(offset)
+    });
+
+    const total = await prisma.auditLog.count();
 
     // Fetch user details manually
     const userIds = [...new Set(logs.map(log => log.userId).filter(Boolean))];

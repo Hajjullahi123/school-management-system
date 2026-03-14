@@ -14,6 +14,8 @@ router.post('/identify', async (req, res) => {
     }
 
     console.log(`[AUTH DEBUG] Identification attempt for: [${identifier}]`);
+    const fs = require('fs');
+    fs.appendFileSync('logs/auth-debug.log', `[${new Date().toISOString()}] IDENTIFY ATTEMPT: [${identifier}]\n`);
 
     identifier = identifier.trim();
 
@@ -83,6 +85,8 @@ router.post('/identify', async (req, res) => {
     });
   } catch (error) {
     console.error('Identify error:', error);
+    const fs = require('fs');
+    fs.appendFileSync('logs/auth-debug.log', `[${new Date().toISOString()}] IDENTIFY ERROR: ${error.message}\n${error.stack}\n`);
     res.status(500).json({ error: 'Identification failed' });
   }
 });
@@ -110,20 +114,6 @@ router.post('/login', async (req, res) => {
           username,
           schoolId: null,
           role: 'superadmin'
-        },
-        include: {
-          student: true,
-          teacher: true,
-          parent: {
-            include: {
-              students: {
-                include: {
-                  classModel: true
-                }
-              }
-            }
-          },
-          school: true
         }
       });
 
@@ -225,24 +215,6 @@ router.post('/login', async (req, res) => {
           schoolId: school.id,
           username
         }
-      },
-      include: {
-        student: true,
-        teacher: true,
-        parent: {
-          include: {
-            students: {
-              include: {
-                classModel: true
-              }
-            }
-          }
-        },
-        school: true,
-        classesAsTeacher: {
-          where: { isActive: true },
-          select: { id: true, name: true, arm: true }
-        }
       }
     });
 
@@ -254,26 +226,7 @@ router.post('/login', async (req, res) => {
           admissionNumber: username
         },
         include: {
-          user: {
-            include: {
-              student: true,
-              teacher: true,
-              parent: {
-                include: {
-                  students: {
-                    include: {
-                      classModel: true
-                    }
-                  }
-                }
-              },
-              school: true,
-              classesAsTeacher: {
-                where: { isActive: true },
-                select: { id: true, name: true, arm: true }
-              }
-            }
-          }
+          user: true
         }
       });
       if (studentProfile) user = studentProfile.user;
@@ -286,24 +239,6 @@ router.post('/login', async (req, res) => {
           schoolId_email: {
             schoolId: school.id,
             email: username
-          }
-        },
-        include: {
-          student: true,
-          teacher: true,
-          parent: {
-            include: {
-              students: {
-                include: {
-                  classModel: true
-                }
-              }
-            }
-          },
-          school: true,
-          classesAsTeacher: {
-            where: { isActive: true },
-            select: { id: true, name: true, arm: true }
           }
         }
       });

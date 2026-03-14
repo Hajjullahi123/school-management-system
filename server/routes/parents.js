@@ -9,43 +9,64 @@ const { logAction } = require('../utils/audit');
 router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']), async (req, res) => {
   try {
 
+    const includeQuery = {
+      students: {
+        include: {
+          classModel: true,
+          user: { select: { firstName: true, lastName: true, email: true } },
+          results: {
+            where: { schoolId: req.schoolId },
+            orderBy: { createdAt: 'desc' },
+            take: 1
+          },
+          attendanceRecords: {
+            where: { schoolId: req.schoolId },
+            orderBy: { date: 'desc' },
+            take: 10
+          },
+          miscFeePayments: {
+            where: { schoolId: req.schoolId },
+            include: { fee: true },
+            orderBy: { paymentDate: 'desc' }
+          },
+          feeRecords: {
+            where: { schoolId: req.schoolId },
+            include: {
+              academicSession: true,
+              term: true,
+              payments: {
+                where: { schoolId: req.schoolId },
+                orderBy: { paymentDate: 'desc' }
+              }
+            },
+            orderBy: { createdAt: 'desc' }
+          }
+        }
+      }
+    };
+
     // Find parent profile
-    const parent = await prisma.parent.findFirst({
+    let parent = await prisma.parent.findFirst({
       where: {
         userId: req.user.id,
         schoolId: req.schoolId
       },
-      include: {
-        students: {
-          include: {
-            classModel: true,
-            user: { select: { firstName: true, lastName: true, email: true } },
-            results: {
-              where: { schoolId: req.schoolId },
-              orderBy: { createdAt: 'desc' },
-              take: 1 // Latest result for quick view
-            },
-            attendanceRecords: {
-              where: { schoolId: req.schoolId },
-              orderBy: { date: 'desc' },
-              take: 5 // Recent attendance
-            },
-            feeRecords: {
-              where: { schoolId: req.schoolId },
-              include: {
-                academicSession: true,
-                term: true,
-                payments: {
-                  where: { schoolId: req.schoolId },
-                  orderBy: { paymentDate: 'desc' }
-                }
-              },
-              orderBy: { createdAt: 'desc' }
-            }
-          }
-        }
-      }
+      include: includeQuery
     });
+
+    // If no parent profile but user is admin/principal, fetch a sample parent for preview
+    if (!parent && ['admin', 'principal'].includes(req.user.role)) {
+      parent = await prisma.parent.findFirst({
+        where: {
+          schoolId: req.schoolId,
+          students: { some: {} } // Parent must have at least one student
+        },
+        include: includeQuery
+      });
+      if (parent) {
+        console.log('Previewing parent dashboard with sample parent:', parent.id);
+      }
+    }
 
     if (!parent) {
       console.log('No parent profile found for user:', req.user.id);
@@ -481,27 +502,29 @@ router.get('/student-attendance', authenticate, authorize(['parent', 'admin', 'p
   try {
     const { studentId, sessionId, termId, startDate, endDate } = req.query;
 
-    // Verify parent owns this student
-    const parent = await prisma.parent.findFirst({
-      where: {
-        userId: req.user.id,
-        schoolId: req.schoolId
-      },
-      include: {
-        students: {
-          where: { schoolId: req.schoolId },
-          select: { id: true }
+    // Verify parent owns this student if not admin/principal
+    if (!['admin', 'principal'].includes(req.user.role)) {
+      const parent = await prisma.parent.findFirst({
+        where: {
+          userId: req.user.id,
+          schoolId: req.schoolId
+        },
+        include: {
+          students: {
+            where: { schoolId: req.schoolId },
+            select: { id: true }
+          }
         }
+      });
+
+      if (!parent) {
+        return res.status(404).json({ error: 'Parent profile not found' });
       }
-    });
 
-    if (!parent) {
-      return res.status(404).json({ error: 'Parent profile not found' });
-    }
-
-    const studentIds = parent.students.map(s => s.id);
-    if (!studentIds.includes(parseInt(studentId))) {
-      return res.status(403).json({ error: 'You can only view attendance for your own children' });
+      const studentIds = parent.students.map(s => s.id);
+      if (!studentIds.includes(parseInt(studentId))) {
+        return res.status(403).json({ error: 'You can only view attendance for your own children' });
+      }
     }
 
     // Build where clause

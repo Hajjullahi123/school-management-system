@@ -38,9 +38,11 @@ router.get('/', async (req, res) => {
           const JWT_SECRET = process.env.JWT_SECRET || 'darul-quran-secret-key-change-in-production';
           // console.log('Settings token verification with secret length:', JWT_SECRET.length);
           const decoded = jwt.verify(token, JWT_SECRET);
-          settings = await prisma.school.findUnique({
-            where: { id: decoded.schoolId }
-          });
+          if (decoded && decoded.schoolId) {
+            settings = await prisma.school.findUnique({
+              where: { id: decoded.schoolId }
+            });
+          }
         } catch (e) {
           console.error('Invalid token in settings fetch:', e.message);
         }

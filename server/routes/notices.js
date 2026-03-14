@@ -9,6 +9,11 @@ router.get('/', authenticate, async (req, res) => {
   try {
     const { role, id: userId } = req.user;
 
+    if (!req.schoolId) {
+      console.error('[Notices] No schoolId found in request');
+      return res.json([]); // Return empty list instead of failing
+    }
+
     // Fetch all active, non-expired notices for this school
     const allNotices = await prisma.notice.findMany({
       where: {

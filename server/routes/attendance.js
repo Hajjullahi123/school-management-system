@@ -240,7 +240,7 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal']),
       });
       const schoolName = settings?.name || settings?.schoolName || 'School System';
 
-      markedRecords.forEach(async (record) => {
+      for (const record of markedRecords) {
         try {
           const student = await prisma.student.findFirst({
             where: { id: record.studentId, schoolId: req.schoolId },
@@ -251,14 +251,14 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal']),
             }
           });
 
-          if (!student) return;
+          if (!student) continue;
 
           // ABSENCE ALERT
           if (record.status === 'absent') {
             // Email Alert
             if (student.parent?.user?.email) {
               const { sendAbsenceAlert } = require('../services/emailService');
-              sendAbsenceAlert({
+              await sendAbsenceAlert({
                 parentEmail: student.parent.user.email,
                 studentName: `${student.user.firstName} ${student.user.lastName}`,
                 date: targetDate.toLocaleDateString(),
@@ -270,7 +270,7 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal']),
             // SMS Alert
             if (student.parent?.phone) {
               const { sendAbsenceSMS } = require('../services/smsService');
-              sendAbsenceSMS({
+              await sendAbsenceSMS({
                 phone: student.parent.phone,
                 studentName: student.user.firstName,
                 date: targetDate.toLocaleDateString(),
@@ -329,7 +329,7 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal']),
               // SMS Alert
               if (settings?.enableSMS && student.parent.phone) {
                 const { sendArrivalSMS } = require('../services/smsService');
-                sendArrivalSMS({
+                await sendArrivalSMS({
                   phone: student.parent.phone,
                   studentName: student.user.firstName,
                   time: arrivalTime,
@@ -340,7 +340,7 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal']),
               // Email Alert
               if (student.parent.user?.email) {
                 const { sendArrivalAlert } = require('../services/emailService');
-                sendArrivalAlert({
+                await sendArrivalAlert({
                   parentEmail: student.parent.user.email,
                   studentName: student.user.firstName,
                   time: arrivalTime,
@@ -353,7 +353,7 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal']),
         } catch (err) {
           console.error('Error in alert processing:', err);
         }
-      });
+      }
     }
 
     res.json({ message: 'Attendance marked successfully' });

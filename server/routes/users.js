@@ -31,7 +31,15 @@ router.get('/', authenticate, authorize(['admin', 'principal']), async (req, res
           }
         },
         teacher: true,
-        parent: true
+        parent: {
+          include: {
+            students: {
+              include: {
+                user: { select: { firstName: true, lastName: true } }
+              }
+            }
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });
