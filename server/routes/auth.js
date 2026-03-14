@@ -15,32 +15,45 @@ router.post('/identify', async (req, res) => {
 
     console.log(`[AUTH DEBUG] Identification attempt for: [${identifier}]`);
     const fs = require('fs');
+    if (!fs.existsSync('logs')) fs.mkdirSync('logs');
     fs.appendFileSync('logs/auth-debug.log', `[${new Date().toISOString()}] IDENTIFY ATTEMPT: [${identifier}]\n`);
 
     identifier = identifier.trim();
 
-    // Search for the user across all schools
-    // We check three things: username, email, and admission number
-
-    // 1. Search by Username
+    // 1. Search by Username (Standard & Case-Insensitive)
     const usersByUsername = await prisma.user.findMany({
-      where: { username: { equals: identifier, mode: 'insensitive' } },
+      where: {
+        OR: [
+          { username: identifier },
+          { username: { equals: identifier, mode: 'insensitive' } }
+        ]
+      },
       include: { school: true }
     });
 
     // 2. Search by Email
     const usersByEmail = await prisma.user.findMany({
-      where: { email: { equals: identifier, mode: 'insensitive' } },
+      where: {
+        OR: [
+          { email: identifier },
+          { email: { equals: identifier, mode: 'insensitive' } }
+        ]
+      },
       include: { school: true }
     });
 
     // 3. Search by Admission Number
     const studentsByAdmission = await prisma.student.findMany({
-      where: { admissionNumber: { equals: identifier, mode: 'insensitive' } },
+      where: {
+        OR: [
+          { admissionNumber: identifier },
+          { admissionNumber: { equals: identifier, mode: 'insensitive' } }
+        ]
+      },
       include: { school: true }
     });
 
-    console.log(`[AUTH DEBUG] Found ${usersByUsername.length} users by username, ${usersByEmail.length} by email, ${studentsByAdmission.length} students`);
+    console.log(`[AUTH DEBUG] Found: ${usersByUsername.length} usernames, ${usersByEmail.length} emails, ${studentsByAdmission.length} admission#`);
 
     // Collect distinct schools found
     const schoolsMap = new Map();
@@ -61,7 +74,6 @@ router.post('/identify', async (req, res) => {
     const globalUsers = [...usersByUsername, ...usersByEmail].filter(u => !u.schoolId && u.role === 'superadmin');
 
     if (globalUsers.length > 0) {
-      // Superadmin with global access - allow direct login without school selection
       return res.json({
         schools: [],
         count: 0,
@@ -88,7 +100,8 @@ router.post('/identify', async (req, res) => {
   } catch (error) {
     console.error('Identify error:', error);
     const fs = require('fs');
-    fs.appendFileSync('logs/auth-debug.log', `[${new Date().toISOString()}] IDENTIFY ERROR: ${error.message}\n${error.stack}\n`);
+    if (!fs.existsSync('logs')) fs.mkdirSync('logs');
+    fs.appendFileSync('logs/auth-debug.log', `[${new Date().toISOString()}] IDENTIFY ERROR: ${error.message}\n`);
     res.status(500).json({ error: 'Identification failed' });
   }
 });
@@ -102,185 +115,62 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
-    username = username.trim();
-    password = password.trim();
-    const fs = require('fs');
-    const path = require('path');
-    const logPath = path.join(__dirname, '../auth-debug.log');
+    console.log(`[AUTH DEBUG] Login attempt: user=[${username}], school=[${schoolSlug || 'GLOBAL'}]`);
 
-    // Check if this is a global admin login (no schoolSlug provided)
+    let user;
     if (!schoolSlug) {
-      // Attempt global admin login
-      const globalUser = await prisma.user.findFirst({
+      // Global login (superadmin)
+      user = await prisma.user.findFirst({
         where: {
-          username,
+          username: { equals: username, mode: 'insensitive' },
           schoolId: null,
           role: 'superadmin'
-        }
-      });
-
-      if (!globalUser) {
-        return res.status(401).json({ error: 'Invalid credentials or no global access' });
-      }
-
-      // Verify password
-      const passwordValid = await bcrypt.compare(password, globalUser.passwordHash);
-      if (!passwordValid) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-      }
-
-      // Generate JWT token
-      const token = jwt.sign(
-        { id: globalUser.id, role: globalUser.role, schoolId: null },
-        process.env.JWT_SECRET,
-        { expiresIn: '24h' }
-      );
-
-      return res.json({
-        token,
-        user: {
-          id: globalUser.id,
-          username: globalUser.username,
-          email: globalUser.email,
-          role: globalUser.role,
-          firstName: globalUser.firstName,
-          lastName: globalUser.lastName,
-          schoolId: null,
-          school: null,
-          globalAccess: true
-        }
-      });
-    }
-
-    // Normal school-based login
-    schoolSlug = schoolSlug.trim().toLowerCase();
-
-    try {
-      fs.appendFileSync(logPath, `[${new Date().toISOString()}] Login attempt - username: [${username}], schoolSlug: [${schoolSlug}], origin: ${req.headers.origin}\n`);
-    } catch (err) {
-      console.error('Logging failed:', err.message);
-    }
-
-    if (schoolSlug === 'null' || schoolSlug === 'undefined') {
-      return res.status(400).json({ error: 'Invalid school domain' });
-    }
-
-    // 1. Find school by slug
-    // Normalize slug: lowercase and handle spaces (common user error)
-    let school = await prisma.school.findFirst({
-      where: { slug: schoolSlug }
-    });
-
-    // Fallback 1: If not found, try replacing spaces with hyphens (e.g. "demo academy" -> "demo-academy")
-    if (!school && schoolSlug.includes(' ')) {
-      const normalizedSlug = schoolSlug.replace(/\s+/g, '-');
-      school = await prisma.school.findFirst({
-        where: { slug: normalizedSlug }
-      });
-      if (school) {
-        fs.appendFileSync(logPath, `[${new Date().toISOString()}] School FOUND via space normalization: ID: ${school.id}, Slug: ${school.slug}\n`);
-      }
-    }
-
-    // Fallback 2: Try searching by school name if slug lookup still fails
-    if (!school) {
-      const originalInput = (req.body.schoolSlug || '').trim();
-      // Try exact name match first
-      school = await prisma.school.findFirst({
-        where: { name: originalInput }
-      });
-
-      // If still not found, try a "contains" match for the name
-      if (!school && originalInput.length > 3) {
-        school = await prisma.school.findFirst({
-          where: { name: { contains: originalInput } }
-        });
-      }
-
-      if (school) {
-        fs.appendFileSync(logPath, `[${new Date().toISOString()}] School FOUND via Name lookup ("${originalInput}"): ID: ${school.id}, Name: ${school.name}\n`);
-      }
-    }
-
-    if (!school) {
-      fs.appendFileSync(logPath, `[${new Date().toISOString()}] School NOT FOUND for slug/name: [${schoolSlug}]\n`);
-      console.log(`School not found for slug/name: [${schoolSlug}]`);
-      return res.status(404).json({ error: `School domain '${schoolSlug}' not found` });
-    }
-    fs.appendFileSync(logPath, `[${new Date().toISOString()}] School FOUND: ID: ${school.id}, Slug: ${school.slug}\n`);
-
-
-    // 2. Find user by username OR admissionNumber (for students) OR email
-    let user = await prisma.user.findUnique({
-      where: {
-        schoolId_username: {
-          schoolId: school.id,
-          username
-        }
-      }
-    });
-
-    // Fallback: If not found by username, try searching by admissionNumber (for students)
-    if (!user) {
-      const studentProfile = await prisma.student.findFirst({
-        where: {
-          schoolId: school.id,
-          admissionNumber: username
         },
-        include: {
-          user: true
-        }
+        include: { school: true }
       });
-      if (studentProfile) user = studentProfile.user;
-    }
+    } else {
+      // School-specific login
+      const school = await prisma.school.findUnique({ where: { slug: schoolSlug } });
+      if (!school) return res.status(404).json({ error: 'Invalid school domain' });
 
-    // Fallback: Try searching by email
-    if (!user) {
-      user = await prisma.user.findUnique({
+      user = await prisma.user.findFirst({
         where: {
-          schoolId_email: {
-            schoolId: school.id,
-            email: username
-          }
-        }
+          username: { equals: username, mode: 'insensitive' },
+          schoolId: school.id
+        },
+        include: { school: true }
       });
+
+      // Special case: check student record if user not found (login by admission number)
+      if (!user) {
+        const student = await prisma.student.findFirst({
+          where: {
+            admissionNumber: { equals: username, mode: 'insensitive' },
+            schoolId: school.id
+          },
+          include: { user: { include: { school: true } } }
+        });
+        if (student) user = student.user;
+      }
     }
 
-    console.log(`Login attempt for: ${username}`);
+    if (!user || user.isActive === false) {
+      return res.status(401).json({ error: 'Invalid credentials or inactive account' });
+    }
 
-    if (!user) {
-      console.log('Login failed: User not found');
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Check if school is activated (Exempt SuperAdmins)
-    if (user.role !== 'superadmin' && !school.isActivated) {
-      return res.status(403).json({ error: 'This school portal is currently deactivated. Please contact the system administrator.' });
-    }
-
-    if (!user.isActive) {
-      console.log('Login failed: User inactive');
-      return res.status(403).json({ error: 'Account is deactivated' });
-    }
-
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
-    console.log(`Password valid: ${isValidPassword}`);
-
-    if (!isValidPassword) {
-      console.log('Login failed: Invalid password');
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    // Generate JWT token
+    // Generate JWT
     const token = jwt.sign(
       {
         id: user.id,
-        schoolId: user.schoolId, // IMPORTANT
         username: user.username,
         role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName
+        schoolId: user.schoolId,
+        schoolSlug: user.school?.slug
       },
       JWT_SECRET,
       { expiresIn: '24h' }
@@ -290,27 +180,25 @@ router.post('/login', async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
 
-    // Return user data (without password)
     res.json({
+      success: true,
+      token,
       user: {
         id: user.id,
-        schoolId: user.schoolId,
         username: user.username,
-        email: user.email,
         role: user.role,
         firstName: user.firstName,
         lastName: user.lastName,
-        student: user.student,
-        teacher: user.teacher,
-        parent: user.parent,
-        school: user.school,
-        classesAsTeacher: user.classesAsTeacher,
-        mustChangePassword: false // Never force password change on login
-      },
-      token
+        schoolId: user.schoolId,
+        schoolSlug: user.school?.slug,
+        schoolLogo: user.school?.logoUrl,
+        schoolName: user.school?.name,
+        mustChangePassword: user.mustChangePassword
+      }
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -321,183 +209,34 @@ router.post('/login', async (req, res) => {
 // Logout endpoint
 router.post('/logout', (req, res) => {
   res.clearCookie('token');
-  res.json({ message: 'Logged out successfully' });
+  res.json({ success: true, message: 'Logged out successfully' });
 });
 
-// Get current user
+// GET /api/auth/me - Get current user data
 router.get('/me', authenticate, async (req, res) => {
   try {
-    const userId = req.user.id || req.user.userId;
-    if (!userId) {
-      return res.status(401).json({ error: 'Invalid token payload: missing user ID' });
-    }
-
     const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        school: true,
-        student: {
-          include: {
-            classModel: true
-          }
-        },
-        teacher: {
-          include: {
-            school: true
-          }
-        },
-        classesAsTeacher: {
-          where: { isActive: true },
-          select: { id: true, name: true, arm: true }
-        },
-        parent: {
-          include: {
-            students: {
-              include: {
-                classModel: true
-              }
-            }
-          }
-        }
-      }
+      where: { id: req.user.id },
+      include: { school: true }
     });
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Block access if school is deactivated (SuperAdmins always allowed)
-    if (user.role !== 'superadmin' && !user.school?.isActivated) {
-      return res.status(403).json({ error: 'This school portal is currently deactivated.' });
-    }
-
-    res.json(user);
-  } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({ error: 'Failed to get user data' });
-  }
-});
-
-// Change password
-router.post('/change-password', authenticate, async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: 'Current and new passwords are required' });
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters' });
-    }
-
-    // Get user with password
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id }
-    });
-
-    // Verify current password
-    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
-
-    if (!isValid) {
-      return res.status(401).json({ error: 'Current password is incorrect' });
-    }
-
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
-
-    // Update password
-    await prisma.user.update({
-      where: { id: req.user.id },
-      data: {
-        passwordHash: hashedPassword,
-        mustChangePassword: false
-      }
-    });
-
-    res.json({ message: 'Password changed successfully' });
-
-    // Log the action
-    logAction({
-      schoolId: req.schoolId,
-      userId: req.user.id,
-      action: 'CHANGE_PASSWORD',
-      resource: 'USER_ACCOUNT',
-      details: {
-        userId: req.user.id
-      },
-      ipAddress: req.ip
-    });
-  } catch (error) {
-    console.error('Change password error:', error);
-    res.status(500).json({ error: 'Failed to change password' });
-  }
-});
-
-// Admin: Reset user password
-router.post('/reset-password', authenticate, async (req, res) => {
-  try {
-    const { userId, newPassword } = req.body;
-    const trimmedPassword = newPassword.trim();
-
-    // Only admins can reset passwords
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Only administrators can reset passwords' });
-    }
-
-    if (!userId || !trimmedPassword) {
-      return res.status(400).json({ error: 'User ID and new password are required' });
-    }
-
-    if (trimmedPassword.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters' });
-    }
-
-    // Check if user exists and belongs to the SAME school
-    const user = await prisma.user.findFirst({
-      where: {
-        id: parseInt(userId),
-        schoolId: req.schoolId
-      }
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found in your school' });
-    }
-
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(trimmedPassword, 12);
-
-    // Update password
-    await prisma.user.update({
-      where: { id: parseInt(userId) },
-      data: {
-        passwordHash: hashedPassword,
-        mustChangePassword: false
-      }
-    });
-
     res.json({
-      message: 'Password reset successfully',
+      id: user.id,
       username: user.username,
-      temporaryPassword: trimmedPassword
-    });
-
-    // Log the action
-    logAction({
-      schoolId: req.schoolId,
-      userId: req.user.id,
-      action: 'RESET_USER_PASSWORD',
-      resource: 'USER_ACCOUNT',
-      details: {
-        targetUserId: user.id,
-        targetUsername: user.username
-      },
-      ipAddress: req.ip
+      role: user.role,
+      schoolId: user.schoolId,
+      schoolSlug: user.school?.slug,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      mustChangePassword: user.mustChangePassword
     });
   } catch (error) {
-    console.error('Reset password error:', error);
-    res.status(500).json({ error: 'Failed to reset password' });
+    res.status(500).json({ error: 'Failed to fetch user data' });
   }
 });
 
