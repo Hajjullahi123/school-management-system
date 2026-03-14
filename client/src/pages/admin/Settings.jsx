@@ -619,10 +619,40 @@ const Settings = () => {
                 </div>
               )}
 
+              {/* Intermediate Save Button */}
+              <div className="flex justify-end py-4 border-y border-gray-100 mb-8 bg-gray-50/50 px-4 rounded-xl">
+                <div className="flex items-center gap-4 mr-auto">
+                  <div className="p-2 bg-amber-100 text-amber-700 rounded-lg">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">You can save your basic branding here before configuring footer links</p>
+                </div>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-8 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:bg-gray-400 transition-all shadow-lg flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
+                  {saving ? 'Saving...' : 'Save Branding Now'}
+                </button>
+              </div>
+
               {/* Footer Links & Documents */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Footer Links & Documents</h3>
-                <p className="text-sm text-gray-600 mb-4">Manage footer links that appear on the landing page</p>
+              <div className="pt-4">
+                <div className="mb-6 p-5 bg-red-50 rounded-2xl border border-red-100">
+                  <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tighter">Footer Links & Documents (Optional)</h3>
+                  <p className="text-sm font-bold text-red-600 leading-relaxed">
+                    IMPORTANT: This section is entirely optional. You can provide these links now or come back to them later. 
+                    Footer links are displayed at the bottom of your school's landing page to provide quick access to resources 
+                    like the Academic Calendar, E-Library, and Alumni Network. If you don't have these URLs ready yet, feel free to skip them.
+                  </p>
+                </div>
+                
+                <p className="text-sm text-gray-600 mb-6 font-medium">Manage the links and digital documents that appear on your landing page footer:</p>
 
                 <div className="space-y-4">
                   {/* Academic Calendar */}
