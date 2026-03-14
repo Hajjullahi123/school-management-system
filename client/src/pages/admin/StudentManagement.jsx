@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import PhotoUpload from '../../components/PhotoUpload';
@@ -555,7 +555,7 @@ Note: Password must be changed on first login.
     const finalY = (doc).lastAutoTable.finalY + 15;
     doc.setFontSize(10);
     doc.setTextColor(150, 0, 0);
-    doc.text('IMPORTANT: Dates must be in YYYY-MM-DD format (e.g., 2015-05-15).', 20, finalY);
+    doc.text('IMPORTANT: Date of Birth must be in YYYY-MM-DD format (e.g., 2015-05-15).', 20, finalY);
 
     doc.save('Student_Bulk_Upload_Guide.pdf');
   };

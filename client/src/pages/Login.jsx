@@ -25,7 +25,7 @@ const Login = () => {
     // 1. Check if schoolSlug is in the URL
     if (urlSlug) {
       setSchoolSlug(urlSlug);
-      setStep(3); // Go straight to password if school is identified via URL
+      // Removed setStep(3) - We need to collect the username first!
       localStorage.setItem('schoolSlug', urlSlug);
     } else {
       // 2. Otherwise check if schoolSlug already exists in localStorage
@@ -141,7 +141,7 @@ const Login = () => {
             <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-2xl font-black text-white">EA</span>
             </div>
-            <h1 className="text-3xl font-black tracking-tighter">EduTechAI</h1>
+            <h1 className="text-3xl font-black tracking-tighter">EduTechAI PORTAL</h1>
           </div>
 
           <div className="max-w-xl">

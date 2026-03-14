@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api } from '../../api';
+import { api, API_BASE_URL } from '../../api';
 import { useReactToPrint } from 'react-to-print';
 import { Printer, Shield, ChevronLeft } from 'lucide-react';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
@@ -16,6 +16,26 @@ const TestimonialView = () => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
+  const handleGenerate = async () => {
+    try {
+      setGenerating(true);
+      const response = await api.post(`/api/testimonials/generate/${studentId}`, {});
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to generate testimonial');
+      }
+      toast.success('Testimonial generated successfully');
+      fetchTestimonialData();
+    } catch (err) {
+      console.error('Generation error:', err);
+      toast.error(err.message);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const [formData, setFormData] = useState({
     conduct: '',
     character: '',
@@ -105,6 +125,16 @@ const TestimonialView = () => {
           >
             Go Back
           </button>
+          
+          {error.includes('not found') && (
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="mt-4 ml-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 inline-flex items-center gap-2"
+            >
+              {generating ? 'Generating...' : 'Generate Testimonial Now'}
+            </button>
+          )}
         </div>
       </div>
     );

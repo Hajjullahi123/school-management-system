@@ -542,15 +542,6 @@ const Layout = () => {
       label: 'Performance Analytics'
     });
     menuItems.push({
-      path: '/dashboard/exam-card',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0c0 .884-.896 1.75-2.129 2.25M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      ),
-      label: 'Exam Card'
-    });
-    menuItems.push({
       path: '/dashboard/student/fees',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -35,6 +35,9 @@ const UserManagement = () => {
     parentGuardianName: ''
   });
 
+  const { user: currentUser } = useAuth();
+  const [classes, setClasses] = useState([]);
+  const [expandedRoles, setExpandedRoles] = useState({});
   const [filter, setFilter] = useState('all'); // all, student, teacher, admin
   const [searchTerm, setSearchTerm] = useState('');
   const [generatedCredentials, setGeneratedCredentials] = useState(null);
@@ -396,7 +399,21 @@ const UserManagement = () => {
                                   </div>
                                 )}
                                 {role === 'admin' && <div className="text-indigo-700 font-bold text-xs bg-indigo-50 px-3 py-1 rounded-full w-fit border border-indigo-100 tracking-tight">SYSTEM ADMIN</div>}
-                                {role === 'parent' && <div className="text-rose-700 font-bold text-xs bg-rose-50 px-3 py-1 rounded-full w-fit border border-rose-100 tracking-tight">GUARDIAN ACCOUNT</div>}
+                                {role === 'parent' && (
+                                  <div className="space-y-1">
+                                    <div className="text-rose-700 font-bold text-xs bg-rose-50 px-3 py-1 rounded-full w-fit border border-rose-100 tracking-tight">GUARDIAN ACCOUNT</div>
+                                    {user.parent?.students?.length > 0 && (
+                                      <div className="flex flex-col gap-1 mt-1">
+                                        {user.parent.students.map(student => (
+                                          <div key={student.id} className="flex items-center gap-1.5" title="Linked Ward">
+                                            <span className="text-[10px] font-black bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">WARD</span>
+                                            <span className="text-xs text-gray-600 truncate max-w-[150px]">{student.user?.firstName} {student.user?.lastName}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-center">
                                 <span className={`px-3 py-1 inline-flex text-[10px] leading-5 font-black rounded-full border ${user.isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'

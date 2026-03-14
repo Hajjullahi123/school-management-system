@@ -68,7 +68,11 @@ const TermReportCard = () => {
     try {
       const response = await api.get('/api/parents/my-wards');
       const data = await response.json();
-      setClassStudents(Array.isArray(data) ? data : []);
+      const wards = Array.isArray(data) ? data : [];
+      setClassStudents(wards);
+      if (wards.length === 1) {
+        setSelectedStudentId(wards[0].id.toString());
+      }
     } catch (error) {
       console.error('Error fetching wards:', error);
     }
@@ -341,17 +345,23 @@ const TermReportCard = () => {
               <div className="flex md:col-span-2 items-end gap-4">
                 {isParentView && (
                   <div className="flex-1">
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Select Student</label>
-                    <select
-                      value={selectedStudentId}
-                      onChange={(e) => setSelectedStudentId(e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    >
-                      <option value="">Select Ward</option>
-                      {classStudents.map(s => (
-                        <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName}</option>
-                      ))}
-                    </select>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Student</label>
+                    {classStudents.length === 1 ? (
+                      <div className="w-full border border-gray-300 bg-gray-50 rounded-md px-3 py-2 text-gray-700 font-medium">
+                        {classStudents[0].user.firstName} {classStudents[0].user.lastName}
+                      </div>
+                    ) : (
+                      <select
+                        value={selectedStudentId}
+                        onChange={(e) => setSelectedStudentId(e.target.value)}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      >
+                        <option value="">Select Ward</option>
+                        {classStudents.map(s => (
+                          <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName}</option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 )}
                 <button

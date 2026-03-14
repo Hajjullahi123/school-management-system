@@ -54,24 +54,60 @@ const BulkStudentUpload = () => {
   };
 
   const handleUpload = async () => {
-    if (!csvData) {
+    if (!csvData && !selectedFile) {
       alert('Please select a CSV file first');
       return;
     }
 
     setLoading(true);
     try {
-      const students = parseCSV(csvData);
+      if (selectedFile) {
+        // Use multipart upload if a file was selected directly
+        const formData = new FormData();
+        formData.append('file', selectedFile);
 
-      const response = await api.post('/api/bulk-upload/bulk-upload', { students });
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE_URL}/api/bulk-upload/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
 
-      const result = await response.json();
-      setResults(result);
+        const result = await response.json();
+        setResults(result);
+      } else {
+        // Fallback for legacy text area paste
+        const students = parseCSV(csvData);
+        const response = await api.post('/api/bulk-upload/bulk-upload', { students });
+        const result = await response.json();
+        setResults(result);
+      }
     } catch (error) {
       console.error('Upload error:', error);
       alert('Failed to upload students');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      // Also read as text for preview if it's small enough
+      if (file.size < 1024 * 1024) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setCsvData(event.target.result);
+        };
+        reader.readAsText(file);
+      } else {
+        setCsvData("File too large for preview, but ready for upload.");
+      }
     }
   };
 
@@ -83,7 +119,7 @@ const BulkStudentUpload = () => {
       s.name,
       s.admissionNumber,
       s.username,
-      '123456' // Default password used in bulk upload
+      'student123' // Updated default password to match backend
     ]);
 
     const csvContent = [
@@ -101,17 +137,28 @@ const BulkStudentUpload = () => {
   };
 
   const downloadTemplate = () => {
-    const template =
-      `firstName,lastName,classId,dateOfBirth,gender,email,parentGuardianName,parentGuardianPhone,parentEmail,bloodGroup,genotype,stateOfOrigin,nationality,address,disability,isScholarship
-John,Doe,${classes[0]?.id || 1},2010-01-15,Male,john@example.com,Mr. Doe,08012345678,parent@example.com,O+,AA,Lagos,Nigerian,123 Street,None,No
-Jane,Smith,${classes[0]?.id || 1},2010-03-20,Female,jane@example.com,Mrs. Smith,08087654321,parent2@example.com,A+,AS,Abuja,Nigerian,456 Avenue,None,Yes`;
-
-    const blob = new Blob([template], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'student_upload_template.csv';
-    a.click();
+    // Standardize to use the backend template for consistency
+    const token = localStorage.getItem('token');
+    fetch(`${API_BASE_URL}/api/bulk-upload/template/students`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then(response => response.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Student_Import_Template.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+      })
+      .catch(error => {
+        console.error('Download error:', error);
+        alert('Failed to download template. Please try the PDF Guide.');
+      });
   };
 
   const downloadGuidancePDF = () => {
@@ -226,7 +273,7 @@ Jane,Smith,${classes[0]?.id || 1},2010-03-20,Female,jane@example.com,Mrs. Smith,
           <input
             type="file"
             accept=".csv"
-            onChange={handleFileUpload}
+            onChange={handleFileChange}
             className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/5 file:text-primary hover:file:bg-primary/10"
           />
 

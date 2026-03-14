@@ -67,7 +67,11 @@ const ProgressiveReport = () => {
     try {
       const response = await api.get('/api/parents/my-wards');
       const data = await response.json();
-      setClassStudents(Array.isArray(data) ? data : []);
+      const wards = Array.isArray(data) ? data : [];
+      setClassStudents(wards);
+      if (wards.length === 1) {
+        setSelectedStudentId(wards[0].id.toString());
+      }
     } catch (error) {
       console.error('Error fetching wards:', error);
     }
@@ -234,13 +238,19 @@ const ProgressiveReport = () => {
             ) : isParentView ? (
               <div className="flex gap-4 items-end">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Ward</label>
-                  <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} className="w-full border rounded-md px-3 py-2">
-                    <option value="">Select Ward</option>
-                    {classStudents.map(student => (
-                      <option key={student.id} value={student.id}>{student.user.firstName} {student.user.lastName}</option>
-                    ))}
-                  </select>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
+                  {classStudents.length === 1 ? (
+                    <div className="w-full border rounded-md px-3 py-2 bg-gray-50 text-gray-700 font-medium">
+                      {classStudents[0].user.firstName} {classStudents[0].user.lastName}
+                    </div>
+                  ) : (
+                    <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} className="w-full border rounded-md px-3 py-2">
+                      <option value="">Select Ward</option>
+                      {classStudents.map(student => (
+                        <option key={student.id} value={student.id}>{student.user.firstName} {student.user.lastName}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <button
                   onClick={fetchReport} disabled={loading}

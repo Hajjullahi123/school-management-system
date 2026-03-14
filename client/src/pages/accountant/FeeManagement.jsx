@@ -1219,7 +1219,10 @@ export default function FeeManagement() {
             student.admissionNumber || 'N/A',
             `${student.user?.firstName || ''} ${student.user?.lastName || ''}`,
             className,
-            prev, expected, paid, balance
+            student.isScholarship ? 'scholarship' : prev,
+            student.isScholarship ? 'scholarship' : expected,
+            student.isScholarship ? 'scholarship' : paid,
+            student.isScholarship ? 'scholarship' : balance
           ]);
         });
 
@@ -1255,7 +1258,10 @@ export default function FeeManagement() {
           student.admissionNumber || 'N/A',
           `${student.user?.firstName || ''} ${student.user?.lastName || ''}`,
           student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'N/A',
-          prev, expected, paid, balance
+          student.isScholarship ? 'scholarship' : prev,
+          student.isScholarship ? 'scholarship' : expected,
+          student.isScholarship ? 'scholarship' : paid,
+          student.isScholarship ? 'scholarship' : balance
         ]);
       });
 

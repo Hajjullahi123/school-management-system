@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    include: ['react-icons/fi']
+    include: ['react-icons/fi', 'qrcode.react']
   },
   build: {
     outDir: 'dist',
@@ -26,12 +26,12 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5115',
         changeOrigin: true,
         secure: false,
       },
       '/uploads': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5115',
         changeOrigin: true,
         secure: false,
       }

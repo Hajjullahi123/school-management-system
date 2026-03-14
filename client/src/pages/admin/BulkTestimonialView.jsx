@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api } from '../../api';
+import { api, API_BASE_URL } from '../../api';
 import { useReactToPrint } from 'react-to-print';
 import { Printer, Shield, ChevronLeft } from 'lucide-react';
 import { QRCodeSVG as QRCode } from 'qrcode.react';

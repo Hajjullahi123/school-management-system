@@ -21,6 +21,25 @@ const CertificateView = () => {
     programType: ''
   });
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
+  const handleGenerate = async () => {
+    try {
+      setGenerating(true);
+      const response = await api.post(`/api/certificates/generate/${studentId}`, {});
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to generate certificate');
+      }
+      toast.success('Certificate generated successfully');
+      fetchCertificateData();
+    } catch (err) {
+      console.error('Generation error:', err);
+      toast.error(err.message);
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   useEffect(() => {
     fetchCertificateData();
@@ -178,6 +197,16 @@ const CertificateView = () => {
           >
             Go Back
           </button>
+          
+          {error.includes('not found') && (
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="mt-4 ml-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-2 inline-flex"
+            >
+              {generating ? 'Generating...' : 'Generate Certificate Now'}
+            </button>
+          )}
         </div>
       </div>
     );
