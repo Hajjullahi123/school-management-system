@@ -1,0 +1,20 @@
+{
+  "delay": 10000,
+  "signal": "SIGINT",
+  "ignore": [
+    "**/uploads/**",
+    "**/node_modules/**",
+    "**/.git/**",
+    "**/logs/**",
+    "**/client/**",
+    "**/brain/**",
+    "**/*.log",
+    "**/*.md",
+    "**/*.txt",
+    "**/verify-*.js",
+    "**/final-check.js",
+    "**/check-*.js",
+    "**/debug-*.js",
+    "**/temp-*.js"
+  ]
+}

@@ -1,0 +1,1 @@
+﻿const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function main() { const user = await prisma.user.findUnique({ where: { username: 'AAM/FY/2026/022' }, include: { teacher: true }}); console.log(user); } main();

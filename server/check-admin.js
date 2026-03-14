@@ -1,24 +1,23 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-
-async function checkAdmin() {
+async function check() {
   try {
-    const admin = await prisma.user.findUnique({
-      where: { username: 'admin' }
+    const user = await prisma.user.findFirst({
+      where: {
+        username: 'admin',
+        school: { slug: 'amana-academy' }
+      }
     });
-
-    if (admin) {
-      console.log('Admin user FOUND:', admin.username);
-      console.log('Role:', admin.role);
-      console.log('Is Active:', admin.isActive);
-    } else {
-      console.log('Admin user NOT FOUND');
-    }
-  } catch (error) {
-    console.error('Error querying database:', error);
+    console.log('CHECK_RESULT:' + JSON.stringify({
+      found: !!user,
+      id: user?.id,
+      hashPrefix: user?.passwordHash?.substring(0, 10),
+      isActive: user?.isActive
+    }));
+  } catch (e) {
+    console.error('CHECK_ERROR:', e.message);
   } finally {
     await prisma.$disconnect();
   }
 }
-
-checkAdmin();
+check();
