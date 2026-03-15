@@ -13,16 +13,16 @@ router.post('/identify', async (req, res) => {
       return res.status(400).json({ error: 'Username or Email is required' });
     }
 
-    const searchId = identifier.trim().toLowerCase();
+    const searchId = identifier.trim();
 
     // Perform lookups in parallel to save time
-    // We use exact matches on lowercased fields to ensure INDEX usage
+    // We use 'insensitive' mode to handle mixed-case IDs on SQLite
     const [users, students] = await Promise.all([
       prisma.user.findMany({
         where: {
           OR: [
-            { username: searchId },
-            { email: searchId }
+            { username: { equals: searchId, mode: 'insensitive' } },
+            { email: { equals: searchId, mode: 'insensitive' } }
           ]
         },
         select: { 
@@ -34,7 +34,7 @@ router.post('/identify', async (req, res) => {
         }
       }),
       prisma.student.findMany({
-        where: { admissionNumber: searchId },
+        where: { admissionNumber: { equals: searchId, mode: 'insensitive' } },
         select: {
           school: {
             select: { id: true, name: true, slug: true, logoUrl: true }
@@ -88,14 +88,14 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
-    const searchId = username.trim().toLowerCase();
+    const searchId = username.trim();
 
     let user;
     if (!schoolSlug) {
       // Global login (superadmin)
       user = await prisma.user.findFirst({
         where: {
-          username: searchId,
+          username: { equals: searchId, mode: 'insensitive' },
           schoolId: null,
           role: 'superadmin'
         },
@@ -109,10 +109,10 @@ router.post('/login', async (req, res) => {
       });
       if (!school) return res.status(404).json({ error: 'Invalid school domain' });
 
-      // Search by username first (exact match for index speed)
+      // Search by username first
       user = await prisma.user.findFirst({
         where: {
-          username: searchId,
+          username: { equals: searchId, mode: 'insensitive' },
           schoolId: school.id
         },
         include: { school: true }
@@ -122,7 +122,7 @@ router.post('/login', async (req, res) => {
       if (!user) {
         const student = await prisma.student.findFirst({
           where: {
-            admissionNumber: searchId,
+            admissionNumber: { equals: searchId, mode: 'insensitive' },
             schoolId: school.id
           },
           select: { 
