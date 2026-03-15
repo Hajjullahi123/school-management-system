@@ -16,8 +16,8 @@ router.post('/identify', async (req, res) => {
     const searchId = identifier.trim();
 
     // Perform lookups in parallel to save time
-    // We use 'insensitive' mode to handle mixed-case IDs on SQLite
-    const [users, students] = await Promise.all([
+    // We use 'insensitive' mode to handle mixed-case IDs
+    const [users, students, teachers] = await Promise.all([
       prisma.user.findMany({
         where: {
           OR: [
@@ -35,6 +35,14 @@ router.post('/identify', async (req, res) => {
       }),
       prisma.student.findMany({
         where: { admissionNumber: { equals: searchId, mode: 'insensitive' } },
+        select: {
+          school: {
+            select: { id: true, name: true, slug: true, logoUrl: true }
+          }
+        }
+      }),
+      prisma.teacher.findMany({
+        where: { staffId: { equals: searchId, mode: 'insensitive' } },
         select: {
           school: {
             select: { id: true, name: true, slug: true, logoUrl: true }
@@ -61,6 +69,9 @@ router.post('/identify', async (req, res) => {
     });
     students.forEach(s => {
       if (s.school) schoolsMap.set(s.school.id, s.school);
+    });
+    teachers.forEach(t => {
+      if (t.school) schoolsMap.set(t.school.id, t.school);
     });
 
     const matchedSchools = Array.from(schoolsMap.values());
@@ -132,6 +143,22 @@ router.post('/login', async (req, res) => {
           }
         });
         if (student) user = student.user;
+      }
+
+      // If still not found, check staff ID (for teachers)
+      if (!user) {
+        const teacher = await prisma.teacher.findFirst({
+          where: {
+            staffId: { equals: searchId, mode: 'insensitive' },
+            schoolId: school.id
+          },
+          select: { 
+            user: { 
+              include: { school: true } 
+            } 
+          }
+        });
+        if (teacher) user = teacher.user;
       }
     }
 
