@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+package-lock.json
+# Keep package-lock if you want lock consistency, but usually ignored in some workflows. 
+# However, standard practice is to keeping package-lock.json. 
+# Re-thinking: node_modules is the big one.
+# I will NOT ignore package-lock.json as it's good practice to keep it.
+
+# Production
+dist/
+build/
+out/
+
+# Environment
+.env
+.env.local
+.env.*
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+server/prisma/dev.db
+server/prisma/dev.db-journal
+server/uploads/*
+!server/uploads/.gitkeep
+
+# Temporary
+tmp/
+temp/
