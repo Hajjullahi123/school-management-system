@@ -84,6 +84,17 @@ export default function FeeManagement() {
 
   // Misc Payment States
   const [selectedMiscPayment, setSelectedMiscPayment] = useState(null);
+  const [showMiscFeeModal, setShowMiscFeeModal] = useState(false);
+  const [miscFeeLoading, setMiscFeeLoading] = useState(false);
+  const [miscFeeFormData, setMiscFeeFormData] = useState({
+    title: '',
+    description: '',
+    amount: '',
+    isCompulsory: false,
+    classIds: [],
+    sessionId: '',
+    termId: ''
+  });
   const [miscFormData, setMiscFormData] = useState({
     amount: '',
     paymentMethod: 'cash',
@@ -218,6 +229,61 @@ export default function FeeManagement() {
     } finally {
       setLoadingMisc(false);
     }
+  };
+
+  const handleCreateMiscFee = async (e) => {
+    e.preventDefault();
+    if (!miscFeeFormData.title || !miscFeeFormData.amount) {
+      toast.error('Title and Amount are required');
+      return;
+    }
+    if (miscFeeFormData.classIds.length === 0) {
+      toast.error('Please select at least one class');
+      return;
+    }
+
+    try {
+      setMiscFeeLoading(true);
+      const response = await api.post('/api/misc-fees', {
+        ...miscFeeFormData,
+        academicSessionId: miscFeeFormData.sessionId || selectedMiscSession,
+        termId: miscFeeFormData.termId || selectedMiscTerm,
+        amount: parseFloat(miscFeeFormData.amount)
+      });
+
+      if (response.ok) {
+        toast.success('Miscellaneous fee created successfully');
+        setShowMiscFeeModal(false);
+        setMiscFeeFormData({
+          title: '',
+          description: '',
+          amount: '',
+          isCompulsory: false,
+          classIds: [],
+          sessionId: '',
+          termId: ''
+        });
+        fetchDetailedAnalytics();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to create fee');
+      }
+    } catch (error) {
+      console.error('Error creating misc fee:', error);
+      toast.error('An error occurred while creating the fee');
+    } finally {
+      setMiscFeeLoading(false);
+    }
+  };
+
+  const handleMiscClassToggle = (classId) => {
+    const idStr = classId.toString();
+    setMiscFeeFormData(prev => ({
+      ...prev,
+      classIds: prev.classIds.includes(idStr)
+        ? prev.classIds.filter(id => id !== idStr)
+        : [...prev.classIds, idStr]
+    }));
   };
 
   const handleMiscPaymentSubmit = async (e) => {
@@ -2100,10 +2166,12 @@ export default function FeeManagement() {
             </div>
             <button
               onClick={() => {
-                // This would open a modal to create a new fee
-                // For now, I'll just add the button for UI completeness
-                // and later check if a creation modal exists or needs to be added
-                toast.error('Fee creation modal coming soon');
+                setMiscFeeFormData(prev => ({
+                  ...prev,
+                  sessionId: selectedMiscSession || '',
+                  termId: selectedMiscTerm || ''
+                }));
+                setShowMiscFeeModal(true);
               }}
               className="px-6 py-2.5 bg-primary text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-95 active:scale-95 transition-all"
             >
@@ -2796,6 +2864,125 @@ export default function FeeManagement() {
           currentTerm={currentTerm}
           currentSession={currentSession}
         />
+      )}
+
+      {/* Create Misc Fee Modal */}
+      {showMiscFeeModal && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-60 backdrop-blur-sm overflow-y-auto h-full w-full flex justify-center items-center z-[100] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <div>
+                <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Create Miscellaneous Fee</h2>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Configure new custom charge</p>
+              </div>
+              <button
+                onClick={() => setShowMiscFeeModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateMiscFee} className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Fee Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={miscFeeFormData.title}
+                    onChange={(e) => setMiscFeeFormData({ ...miscFeeFormData, title: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                    placeholder="e.g., Computer Lab Maintenance, Anniversary Cloth"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Amount (₦)</label>
+                  <input
+                    type="number"
+                    required
+                    value={miscFeeFormData.amount}
+                    onChange={(e) => setMiscFeeFormData({ ...miscFeeFormData, amount: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all font-mono"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Fee Type</label>
+                  <div className="flex gap-4 items-center h-[52px]">
+                    <label className="inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={miscFeeFormData.isCompulsory}
+                        onChange={(e) => setMiscFeeFormData({ ...miscFeeFormData, isCompulsory: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                      <span className="ms-3 text-xs font-bold text-gray-700 uppercase tracking-tighter">Compulsory Fee</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Description (Optional)</label>
+                  <textarea
+                    value={miscFeeFormData.description}
+                    onChange={(e) => setMiscFeeFormData({ ...miscFeeFormData, description: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all resize-none"
+                    rows="2"
+                    placeholder="Briefly describe what this fee covers..."
+                  ></textarea>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Applicable Classes</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-100 max-h-60 overflow-y-auto">
+                    {classes.map(cls => (
+                      <div
+                        key={cls.id}
+                        onClick={() => handleMiscClassToggle(cls.id)}
+                        className={`flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${miscFeeFormData.classIds.includes(cls.id.toString())
+                            ? 'bg-primary border-primary text-white shadow-md shadow-primary/20 scale-[1.02]'
+                            : 'bg-white border-gray-100 text-gray-600 hover:border-primary/30'
+                          }`}
+                      >
+                        <div className={`w-4 h-4 rounded flex items-center justify-center border ${miscFeeFormData.classIds.includes(cls.id.toString()) ? 'bg-white border-white' : 'border-gray-300'}`}>
+                          {miscFeeFormData.classIds.includes(cls.id.toString()) && (
+                            <svg className="w-3 h-3 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-[11px] font-black uppercase tracking-tighter">{cls.name} {cls.arm}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-8">
+                <button
+                  type="button"
+                  onClick={() => setShowMiscFeeModal(false)}
+                  className="px-6 py-3 bg-gray-100 text-gray-900 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-gray-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={miscFeeLoading}
+                  className="px-8 py-3 bg-primary text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-95 active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {miscFeeLoading ? 'Processing...' : 'Create Basic Fee'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
