@@ -566,6 +566,128 @@ Note: Password must be changed on first login.
     doc.save('Student_Bulk_Upload_Guide.pdf');
   };
 
+  const handleDownloadPrintableForm = () => {
+    const doc = new jsPDF();
+    const primaryColor = schoolSettings?.primaryColor || '#1e40af';
+    
+    // Header Section
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.setTextColor(primaryColor);
+    doc.text(schoolSettings?.schoolName || 'SCHOOL NAME', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100);
+    doc.text(schoolSettings?.schoolMotto || 'Motto goes here', 105, 26, { align: 'center' });
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(schoolSettings?.schoolAddress || 'Address, City, State', 105, 32, { align: 'center' });
+    doc.text(`Phone: ${schoolSettings?.schoolPhone || ''} | Email: ${schoolSettings?.schoolEmail || ''}`, 105, 36, { align: 'center' });
+
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(primaryColor);
+    doc.line(20, 42, 190, 42);
+
+    // Form Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text('STUDENT ADMISSION / ENROLLMENT FORM', 105, 52, { align: 'center' });
+    
+    // Instruction
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Instructions: Please fill this form in BLOCK LETTERS. Return to the School Admin upon completion.', 105, 58, { align: 'center' });
+
+    let y = 70;
+    const drawSectionHeader = (title, currentY) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setFillColor(240, 240, 240);
+      doc.rect(20, currentY - 5, 170, 7, 'F');
+      doc.setTextColor(primaryColor);
+      doc.text(title, 25, currentY);
+      return currentY + 12;
+    };
+
+    const drawField = (label, currentY, width = 170) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(50);
+      doc.text(label, 20, currentY);
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.1);
+      doc.line(20, currentY + 2, 20 + width, currentY + 2);
+      return currentY + 10;
+    };
+
+    // Personal Information
+    y = drawSectionHeader('PERSONAL INFORMATION', y);
+    y = drawField('First Name:', y, 170);
+    y = drawField('Last Name:', y, 170);
+    y = drawField('Middle Name:', y, 170);
+    
+    // Row 1: Gender & DOB
+    doc.setFont('helvetica', 'bold');
+    doc.text('Gender (Male/Female):', 20, y);
+    doc.line(20, y+2, 90, y+2);
+    doc.text('Date of Birth (YYYY-MM-DD):', 100, y);
+    doc.line(100, y+2, 190, y+2);
+    y += 12;
+
+    // Row 2: Genotype & Disability
+    doc.text('Genotype (AA, AS, SS, etc):', 20, y);
+    doc.line(20, y+2, 90, y+2);
+    doc.text('Disability (if any):', 100, y);
+    doc.line(100, y+2, 190, y+2);
+    y += 12;
+
+    y = drawField('Student Email (Optional):', y, 170);
+    y = drawField('Home Address:', y, 170);
+    y = drawField('Home Address (Contd):', y, 170);
+
+    // Parent Information
+    y += 5;
+    y = drawSectionHeader('PARENT / GUARDIAN INFORMATION', y);
+    y = drawField("Full Name:", y, 170);
+    y = drawField("Phone Number:", y, 170);
+    y = drawField("Email Address:", y, 170);
+
+    // Academic Information
+    y += 5;
+    y = drawSectionHeader('ACADEMIC INFORMATION', y);
+    y = drawField("Intended Class:", y, 170);
+    
+    doc.text('Scholarship Eligibility (Yes/No):', 20, y);
+    doc.line(20, y+2, 90, y+2);
+    y += 20;
+
+    // Consent section
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Declaration: I hereby certify that the information provided above is true and correct to the best of my knowledge.', 20, y);
+    y += 15;
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('Parent/Guardian Signature: ___________________________', 20, y);
+    doc.text('Date: _______________', 140, y);
+    
+    y += 25;
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.rect(20, y, 170, 30);
+    doc.setFontSize(9);
+    doc.text('OFFICIAL USE ONLY', 105, y + 6, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.text('Admission No: ____________________', 25, y + 14);
+    doc.text('Class Assigned: ___________________', 25, y + 22);
+    doc.text('Admin Signature: __________________', 110, y + 22);
+
+    doc.save(`Admission_Form_${schoolSettings?.schoolName?.replace(/\s+/g, '_') || 'Student'}.pdf`);
+  };
+
   const handleBulkUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -633,6 +755,16 @@ Note: Password must be changed on first login.
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             Guide
+          </button>
+          <button
+            onClick={handleDownloadPrintableForm}
+            className="bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-2 rounded-md hover:bg-indigo-100 transition-colors flex items-center gap-2 text-sm font-bold shadow-sm"
+            title="Download Printable Admission Form"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Admission Form
           </button>
           <label className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm cursor-pointer">
             <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
