@@ -13,67 +13,39 @@ router.post('/identify', async (req, res) => {
       return res.status(400).json({ error: 'Username or Email is required' });
     }
 
-    console.log(`[AUTH DEBUG] Identification attempt for: [${identifier}]`);
-    const fs = require('fs');
-    if (!fs.existsSync('logs')) fs.mkdirSync('logs');
-    fs.appendFileSync('logs/auth-debug.log', `[${new Date().toISOString()}] IDENTIFY ATTEMPT: [${identifier}]\n`);
+    const searchId = identifier.trim().toLowerCase();
 
-    identifier = identifier.trim();
+    // Perform lookups in parallel to save time
+    // We use exact matches on lowercased fields to ensure INDEX usage
+    const [users, students] = await Promise.all([
+      prisma.user.findMany({
+        where: {
+          OR: [
+            { username: searchId },
+            { email: searchId }
+          ]
+        },
+        select: { 
+          school: {
+            select: { id: true, name: true, slug: true, logoUrl: true }
+          },
+          role: true,
+          schoolId: true
+        }
+      }),
+      prisma.student.findMany({
+        where: { admissionNumber: searchId },
+        select: {
+          school: {
+            select: { id: true, name: true, slug: true, logoUrl: true }
+          }
+        }
+      })
+    ]);
 
-    // 1. Search by Username (Standard & Case-Insensitive)
-    const usersByUsername = await prisma.user.findMany({
-      where: {
-        OR: [
-          { username: identifier },
-          { username: { equals: identifier, mode: 'insensitive' } }
-        ]
-      },
-      include: { school: true }
-    });
-
-    // 2. Search by Email
-    const usersByEmail = await prisma.user.findMany({
-      where: {
-        OR: [
-          { email: identifier },
-          { email: { equals: identifier, mode: 'insensitive' } }
-        ]
-      },
-      include: { school: true }
-    });
-
-    // 3. Search by Admission Number
-    const studentsByAdmission = await prisma.student.findMany({
-      where: {
-        OR: [
-          { admissionNumber: identifier },
-          { admissionNumber: { equals: identifier, mode: 'insensitive' } }
-        ]
-      },
-      include: { school: true }
-    });
-
-    console.log(`[AUTH DEBUG] Found: ${usersByUsername.length} usernames, ${usersByEmail.length} emails, ${studentsByAdmission.length} admission#`);
-
-    // Collect distinct schools found
-    const schoolsMap = new Map();
-
-    usersByUsername.forEach(u => {
-      if (u.school) schoolsMap.set(u.school.id, u.school);
-    });
-
-    usersByEmail.forEach(u => {
-      if (u.school) schoolsMap.set(u.school.id, u.school);
-    });
-
-    studentsByAdmission.forEach(s => {
-      if (s.school) schoolsMap.set(s.school.id, s.school);
-    });
-
-    // Check if any user has global access (superadmin with null schoolId)
-    const globalUsers = [...usersByUsername, ...usersByEmail].filter(u => !u.schoolId && u.role === 'superadmin');
-
-    if (globalUsers.length > 0) {
+    // Check for superadmin (global access)
+    const hasGlobalAccess = users.some(u => !u.schoolId && u.role === 'superadmin');
+    if (hasGlobalAccess) {
       return res.json({
         schools: [],
         count: 0,
@@ -82,15 +54,19 @@ router.post('/identify', async (req, res) => {
       });
     }
 
-    const matchedSchools = Array.from(schoolsMap.values()).map(s => ({
-      id: s.id,
-      name: s.name,
-      slug: s.slug,
-      logoUrl: s.logoUrl
-    }));
+    // Collect distinct schools
+    const schoolsMap = new Map();
+    users.forEach(u => {
+      if (u.school) schoolsMap.set(u.school.id, u.school);
+    });
+    students.forEach(s => {
+      if (s.school) schoolsMap.set(s.school.id, s.school);
+    });
+
+    const matchedSchools = Array.from(schoolsMap.values());
 
     if (matchedSchools.length === 0) {
-      return res.status(404).json({ error: 'We couldn\'t find an account with that information. Please check and try again.' });
+      return res.status(404).json({ error: 'Account not found. Please check your credentials.' });
     }
 
     res.json({
@@ -99,9 +75,6 @@ router.post('/identify', async (req, res) => {
     });
   } catch (error) {
     console.error('Identify error:', error);
-    const fs = require('fs');
-    if (!fs.existsSync('logs')) fs.mkdirSync('logs');
-    fs.appendFileSync('logs/auth-debug.log', `[${new Date().toISOString()}] IDENTIFY ERROR: ${error.message}\n`);
     res.status(500).json({ error: 'Identification failed' });
   }
 });
@@ -115,14 +88,14 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
-    console.log(`[AUTH DEBUG] Login attempt: user=[${username}], school=[${schoolSlug || 'GLOBAL'}]`);
+    const searchId = username.trim().toLowerCase();
 
     let user;
     if (!schoolSlug) {
       // Global login (superadmin)
       user = await prisma.user.findFirst({
         where: {
-          username: { equals: username, mode: 'insensitive' },
+          username: searchId,
           schoolId: null,
           role: 'superadmin'
         },
@@ -130,25 +103,33 @@ router.post('/login', async (req, res) => {
       });
     } else {
       // School-specific login
-      const school = await prisma.school.findUnique({ where: { slug: schoolSlug } });
+      const school = await prisma.school.findUnique({ 
+        where: { slug: schoolSlug },
+        select: { id: true } 
+      });
       if (!school) return res.status(404).json({ error: 'Invalid school domain' });
 
+      // Search by username first (exact match for index speed)
       user = await prisma.user.findFirst({
         where: {
-          username: { equals: username, mode: 'insensitive' },
+          username: searchId,
           schoolId: school.id
         },
         include: { school: true }
       });
 
-      // Special case: check student record if user not found (login by admission number)
+      // If not found, check admission number (for students)
       if (!user) {
         const student = await prisma.student.findFirst({
           where: {
-            admissionNumber: { equals: username, mode: 'insensitive' },
+            admissionNumber: searchId,
             schoolId: school.id
           },
-          include: { user: { include: { school: true } } }
+          select: { 
+            user: { 
+              include: { school: true } 
+            } 
+          }
         });
         if (student) user = student.user;
       }

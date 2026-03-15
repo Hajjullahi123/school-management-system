@@ -232,6 +232,8 @@ model User {
 
   @@unique([schoolId, username]) // Username unique PER school
   @@unique([schoolId, email])    // Email unique PER school
+  @@index([username])            // Global index for fast identification
+  @@index([email])               // Global index for fast identification
 }
 
 model Parent {
@@ -302,6 +304,7 @@ model Student {
 
   @@unique([schoolId, admissionNumber])
   @@unique([schoolId, rollNo])
+  @@index([admissionNumber])     // Global index for fast identification
 }
 
 model Teacher {
