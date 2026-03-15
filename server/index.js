@@ -236,7 +236,7 @@ if (process.env.NODE_ENV === 'production') {
   app.use('/assets', express.static(path.join(clientDistPath, 'assets')));
   app.use(express.static(clientDistPath));
   app.get('*', (req, res) => {
-    if (req.url.startsWith('/uploads/') || req.url.startsWith('/api/')) {
+    if (req.url.startsWith('/uploads/') || req.url.startsWith('/api/') || req.url.startsWith('/assets/')) {
       return res.status(404).send('File or route not found');
     }
     res.sendFile(path.join(clientDistPath, 'index.html'));
