@@ -318,6 +318,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
             <div class="amount-section">
               <div class="amount-label">Amount Paid</div>
               <div class="amount-value">₦${formatNumber(payment.amount)}</div>
+              ${payment.fee?.title ? `<div style="font-size: 9px; color: #64748b; margin-top: 4px; font-weight: 700; text-transform: uppercase;">FOR: ${payment.fee.title}</div>` : ''}
             </div>
 
             <div style="margin: 10px 0; text-align: center;">

@@ -10,6 +10,7 @@ const StudentFees = () => {
   const [loading, setLoading] = useState(true);
   const [feeData, setFeeData] = useState(null);
   const [paymentHistory, setPaymentHistory] = useState([]);
+  const [miscFees, setMiscFees] = useState([]);
   const [settings, setSettings] = useState(null);
   const [paying, setPaying] = useState(false);
   const [amountToPay, setAmountToPay] = useState('');
@@ -84,10 +85,14 @@ const StudentFees = () => {
       const feeRes = await api.get(`/api/fees/student/${studentId}?termId=${termId}&academicSessionId=${sessionId}`);
       const feeRecord = await feeRes.json();
 
-      // 4. Get payment history
       const historyRes = await api.get(`/api/fees/payments/${studentId}?termId=${termId}&academicSessionId=${sessionId}`);
       const paymentHistoryData = await historyRes.json();
       setPaymentHistory(Array.isArray(paymentHistoryData) ? paymentHistoryData : []);
+
+      // 4.5. Get misc fees
+      const miscFeesRes = await api.get(`/api/misc-fees/student/${studentId}`);
+      const miscFeesData = await miscFeesRes.json();
+      setMiscFees(Array.isArray(miscFeesData) ? miscFeesData : []);
 
       // 5. Get school settings for payment
       const settingsRes = await api.get('/api/settings');
@@ -395,6 +400,102 @@ const StudentFees = () => {
                   </tbody>
                 </table>
               </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Miscellaneous Fees & Obligations */}
+      <div className="mt-8">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-gray-900">Miscellaneous Fees & Obligations</h2>
+            <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-bold uppercase tracking-wider">Session-Wide</span>
+          </div>
+
+          <div className="p-0 overflow-x-auto">
+            {miscFees.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">
+                No miscellaneous fees assigned to you.
+              </div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee Amount</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {miscFees.map((fee) => {
+                    const isPaid = fee.payments && fee.payments.length > 0;
+                    const paidAmount = fee.payments ? fee.payments.reduce((sum, p) => sum + p.amount, 0) : 0;
+                    const isFullyPaid = paidAmount >= fee.amount;
+                    
+                    return (
+                      <React.Fragment key={fee.id}>
+                        <tr className="hover:bg-gray-50 transition-colors border-l-4 border-transparent hover:border-primary">
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-bold text-gray-900">{fee.title}</div>
+                            {fee.description && (
+                              <div className="text-xs text-gray-500 mt-1">{fee.description}</div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-black text-gray-900">₦{formatNumber(fee.amount)}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {isFullyPaid ? (
+                              <span className="px-2 py-1 text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 rounded">Fully Paid</span>
+                            ) : paidAmount > 0 ? (
+                              <span className="px-2 py-1 text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 rounded">Partially Paid (₦{formatNumber(paidAmount)})</span>
+                            ) : (
+                              <span className="px-2 py-1 text-[10px] font-black uppercase tracking-widest bg-red-100 text-red-700 rounded">Outstanding</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            {!isFullyPaid && (
+                              <p className="text-[10px] text-gray-400 font-bold uppercase italic">Contact Bursar to pay</p>
+                            )}
+                          </td>
+                        </tr>
+                        {/* Render payments for this fee if any */}
+                        {fee.payments && fee.payments.map((p) => (
+                          <tr key={p.id} className="bg-slate-50/50">
+                            <td colSpan="2" className="px-6 py-2 text-xs text-gray-500 pl-12">
+                              <span className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 bg-slate-300 rounded-full"></div>
+                                Payment on {formatDate(p.paymentDate)} via {p.paymentMethod}
+                              </span>
+                            </td>
+                            <td className="px-6 py-2 text-xs font-bold text-emerald-600">
+                              + ₦{formatNumber(p.amount)}
+                            </td>
+                            <td className="px-6 py-2 text-right">
+                              <button
+                                onClick={() => {
+                                  // Pass necessary fee info for the receipt
+                                  const paymentWithFee = { ...p, fee: { title: fee.title } };
+                                  setReceiptPayment(paymentWithFee);
+                                  setReceiptModalOpen(true);
+                                }}
+                                className="text-primary hover:text-primary-dark font-black text-[10px] uppercase tracking-wider flex items-center gap-1 ml-auto"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                </svg>
+                                Receipt
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
             )}
           </div>
         </div>

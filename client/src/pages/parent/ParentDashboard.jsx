@@ -500,6 +500,40 @@ const ParentDashboard = () => {
                       <p className="text-xs sm:text-sm text-gray-400 font-bold uppercase tracking-widest">No Records Found</p>
                     </div>
                   )}
+                  {/* Miscellaneous Fees Summary */}
+                  {(() => {
+                    const studentMiscFees = getStudentMiscFees(student);
+                    if (studentMiscFees.length === 0) return null;
+                    
+                    const totalExpected = studentMiscFees.reduce((sum, f) => sum + f.amount, 0);
+                    const totalPaid = studentMiscFees.reduce((sum, f) => sum + (f.paid || 0), 0);
+                    const balance = totalExpected - totalPaid;
+                    
+                    if (totalExpected === 0) return null;
+
+                    return (
+                      <div className="mt-4 pt-4 border-t border-dashed border-gray-100">
+                        <h4 className="text-[10px] font-black text-slate-400 mb-2 flex items-center gap-2 uppercase tracking-[0.2em]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                          Misc Obligations
+                        </h4>
+                        <div className="flex gap-2">
+                          <div className="flex-1 bg-orange-50/50 p-2 rounded-lg border border-orange-100/50">
+                            <p className="text-[8px] font-black text-orange-400 uppercase tracking-widest">Expected</p>
+                            <p className="text-xs font-bold text-gray-900">{formatCurrency(totalExpected)}</p>
+                          </div>
+                          <div className="flex-1 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100/50">
+                            <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Paid</p>
+                            <p className="text-xs font-bold text-emerald-700">{formatCurrency(totalPaid)}</p>
+                          </div>
+                          <div className={`flex-1 p-2 rounded-lg border ${balance > 0 ? 'bg-orange-50 border-orange-200' : 'bg-slate-50 border-slate-100'}`}>
+                            <p className={`text-[8px] font-black uppercase tracking-widest ${balance > 0 ? 'text-orange-500' : 'text-slate-400'}`}>Balance</p>
+                            <p className={`text-xs font-bold ${balance > 0 ? 'text-orange-700' : 'text-gray-900'}`}>{formatCurrency(balance)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="p-3 sm:p-4 bg-white border-t border-gray-100 flex flex-col gap-2">
@@ -725,7 +759,8 @@ const ParentDashboard = () => {
                                             onClick={() => {
                                               setReceiptPayment({
                                                 ...p,
-                                                receiptNumber: p.receiptNumber || 'N/A'
+                                                receiptNumber: p.receiptNumber || 'N/A',
+                                                fee: { title: fee.title }
                                               });
                                               setReceiptModalOpen(true);
                                             }}
