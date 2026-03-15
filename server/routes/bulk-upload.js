@@ -32,6 +32,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       { header: 'Class ID*', key: 'classId', width: 12 },
       { header: 'Class Name (Reference)', key: 'className', width: 25 },
       { header: 'Gender (Male/Female)', key: 'gender', width: 20 },
+      { header: 'Genotype (Drop-down)', key: 'genotype', width: 20 },
+      { header: 'Disability (Drop-down)', key: 'disability', width: 25 },
       { header: 'Email', key: 'email', width: 25 },
       { header: 'Parent Name*', key: 'parentName', width: 25 },
       { header: 'Parent Phone*', key: 'parentPhone', width: 20 },
@@ -57,6 +59,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
         classId: 1, // First class in this school (Local ID)
         className: `${classes[0].name} ${classes[0].arm || ''} (ID: 1)`,
         gender: 'Male',
+        genotype: 'AA',
+        disability: 'None',
         email: 'john.doe@example.com',
         parentName: 'Jane Doe',
         parentPhone: '08012345678',
@@ -64,6 +68,34 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
         dob: '2015-05-15',
         isScholarship: 'No'
       });
+    }
+
+    // Add Data Validation (Dropdowns) - Processing from row 2 up to 500
+    for (let i = 2; i <= 500; i++) {
+      // Gender (Column F)
+      worksheet.getCell(`F${i}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: ['"Male,Female"']
+      };
+      // Genotype (Column G)
+      worksheet.getCell(`G${i}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: ['"AA,AS,AC,SS,SC,CC"']
+      };
+      // Disability (Column H)
+      worksheet.getCell(`H${i}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: ['"None,Visual,Hearing,Physical,Intellectual,Other"']
+      };
+      // Scholarship (Column L) - Note: Shifted because of new columns
+      worksheet.getCell(`N${i}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: ['"Yes,No"']
+      };
     }
 
     // Add a second sheet with Class IDs for reference
@@ -91,7 +123,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       '2. In the "Class ID" column, use the Numeric ID from the "Class IDs Reference" sheet.',
       '3. Fields marked with * are required.',
       '4. Date of Birth must follow the format YYYY-MM-DD (e.g., 2012-10-25).',
-      '5. Save this file as .xlsx or .csv before uploading.'
+      '5. Use the drop-down menus for columns with selections (Gender, Genotype, Disability, Scholarship).',
+      '6. Save this file as .xlsx or .csv before uploading.'
     ].forEach(text => helpSheet.addRow({ step: text }));
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -133,6 +166,8 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
           else if (header.includes('middle name')) headers.middleName = colNumber;
           else if (header.includes('class id')) headers.classId = colNumber;
           else if (header.includes('gender')) headers.gender = colNumber;
+          else if (header.includes('genotype')) headers.genotype = colNumber;
+          else if (header.includes('disability')) headers.disability = colNumber;
           else if (header === 'email' || header.includes('student email')) headers.email = colNumber;
           else if (header.includes('parent name')) headers.parentGuardianName = colNumber;
           else if (header.includes('parent phone')) headers.parentGuardianPhone = colNumber;
@@ -156,6 +191,8 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
         middleName: getVal('middleName', 3),
         classId: getVal('classId', 4),
         gender: getVal('gender', 6),
+        genotype: getVal('genotype', 0),
+        disability: getVal('disability', 0),
         email: getVal('email', 7),
         parentGuardianName: getVal('parentGuardianName', 8),
         parentGuardianPhone: getVal('parentGuardianPhone', 9),
@@ -294,6 +331,8 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
               ? new Date(studentData.dateOfBirth)
               : null,
             gender: studentData.gender,
+            genotype: studentData.genotype || null,
+            disability: studentData.disability || 'None',
             address: studentData.address,
             parentGuardianName: studentData.parentGuardianName,
             parentGuardianPhone: studentData.parentGuardianPhone,
