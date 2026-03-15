@@ -38,6 +38,51 @@ process.on('uncaughtException', (error) => {
 // Ping route for health checks
 app.get('/ping', (req, res) => res.status(200).send('pong'));
 
+// Public Privacy Policy for App Stores
+app.get('/privacy-policy', (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>Privacy Policy - Darul Qur'an Academy</title>
+        <style>
+          body { font-family: sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 20px; color: #333; }
+          h1 { color: #1a56db; }
+          h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 30px; }
+        </style>
+      </head>
+      <body>
+        <h1>Privacy Policy</h1>
+        <p><strong>Effective Date: March 15, 2026</strong></p>
+        <p>Darul Qur'an Academy ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our mobile application and web portal.</p>
+        
+        <h2>1. Information We Collect</h2>
+        <ul>
+          <li><strong>Personal Information</strong>: Names, email addresses, phone numbers, and profile photos of students, parents, and staff.</li>
+          <li><strong>Academic Data</strong>: Student grades, results, transcripts, and attendance records.</li>
+          <li><strong>Financial Data</strong>: Records of school fee payments (we do not store credit card details; those are handled by secure third-party payment processors).</li>
+          <li><strong>Device Info</strong>: Usage data and device identifiers to improve app performance and security.</li>
+        </ul>
+
+        <h2>2. How We Use Your Information</h2>
+        <ul>
+          <li>To provide and maintain the School Management System services.</li>
+          <li>To notify you about changes to our services or school events.</li>
+          <li>To facilitate academic reporting and communication between school stakeholders.</li>
+          <li>To process payments and manage financial records.</li>
+        </ul>
+
+        <h2>3. Data Storage and Security</h2>
+        <p>Your data is stored securely using industry-standard encryption. Access is restricted to authorized users based on their specific roles (e.g., Teachers can only see their classes, Parents can only see their own children).</p>
+
+        <h2>4. Your Rights</h2>
+        <p>Users have the right to request access to their personal data or request corrections. Staff and administrators may contact the school's IT department to manage data deletion requests.</p>
+        
+        <p style="margin-top: 50px; font-size: 0.8em; color: #777;">&copy; 2026 Darul Qur'an Academy. All rights reserved.</p>
+      </body>
+    </html>
+  `);
+});
+
 // DEBUG ROUTE - Remove before delivery
 app.get('/api/debug/inspect-users', async (req, res) => {
   try {
