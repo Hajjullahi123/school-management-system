@@ -590,6 +590,17 @@ Note: Password must be changed on first login.
     doc.setDrawColor(primaryColor);
     doc.line(20, 42, 190, 42);
 
+    // Passport Photo Box
+    doc.setDrawColor(180);
+    doc.setLineWidth(0.2);
+    doc.rect(160, 7, 30, 32); 
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(150);
+    doc.text('AFFIX', 175, 20, { align: 'center' });
+    doc.text('PASSPORT', 175, 23, { align: 'center' });
+    doc.text('HERE', 175, 26, { align: 'center' });
+
     // Form Title
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
