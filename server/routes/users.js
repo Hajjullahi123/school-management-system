@@ -195,7 +195,7 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
     }
 
     // Hash password
-    const passwordHash = await bcrypt.hash(finalPassword, 12);
+    const passwordHash = await bcrypt.hash(finalPassword, 10);
 
     // Create user with profile
     const userData = {
@@ -305,11 +305,11 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
 
       // Auto-generate random password
       const generatedPassword = Math.random().toString(36).slice(-8).toUpperCase();
-      const autoPasswordHash = await bcrypt.hash(generatedPassword, 12);
+      const autoPasswordHash = await bcrypt.hash(generatedPassword, 10);
 
       // Use auto-generated credentials
       const finalStaffId = staffId || generatedStaffId;
-      const finalPasswordHash = password ? await bcrypt.hash(password, 12) : autoPasswordHash;
+      const finalPasswordHash = password ? await bcrypt.hash(password, 10) : autoPasswordHash;
 
       user = await prisma.user.create({
         data: {
@@ -338,7 +338,7 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
     } else if (role === 'accountant') {
       // Auto-generate password for accountant
       const generatedPassword = Math.random().toString(36).slice(-8).toUpperCase();
-      const finalPasswordHash = password ? await bcrypt.hash(password, 12) : await bcrypt.hash(generatedPassword, 12);
+      const finalPasswordHash = password ? await bcrypt.hash(password, 10) : await bcrypt.hash(generatedPassword, 10);
 
       user = await prisma.user.create({
         data: {
@@ -356,7 +356,7 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
     } else {
       // Admin or other roles
       const generatedPassword = Math.random().toString(36).slice(-8).toUpperCase();
-      const finalPasswordHash = password ? await bcrypt.hash(password, 12) : await bcrypt.hash(generatedPassword, 12);
+      const finalPasswordHash = password ? await bcrypt.hash(password, 10) : await bcrypt.hash(generatedPassword, 10);
 
       user = await prisma.user.create({
         data: {
@@ -481,7 +481,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
 
     if (password && password.trim().length >= 6) {
       const trimmedPassword = password.trim();
-      updateData.passwordHash = await bcrypt.hash(trimmedPassword, 12);
+      updateData.passwordHash = await bcrypt.hash(trimmedPassword, 10);
       updateData.mustChangePassword = false;
     }
 
@@ -686,7 +686,7 @@ router.post('/bulk-students', authenticate, authorize(['admin', 'principal']), a
       const student = students[i];
 
       try {
-        const passwordHash = await bcrypt.hash(student.password || student.admissionNumber, 12);
+        const passwordHash = await bcrypt.hash(student.password || student.admissionNumber, 10);
 
         await prisma.user.create({
           data: {

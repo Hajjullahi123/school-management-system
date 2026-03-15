@@ -171,6 +171,20 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Performance Optimization: If the hash uses 12 rounds (slow in JS), re-hash to 10
+    if (user.passwordHash.startsWith('$2a$12$') || user.passwordHash.startsWith('$2b$12$')) {
+      try {
+        const newHash = await bcrypt.hash(password, 10);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { passwordHash: newHash }
+        });
+        console.log(`[Auth] Migrated user ${user.username} to faster password hash (10 rounds)`);
+      } catch (err) {
+        console.error('[Auth] Failed to migrate password hash:', err);
+      }
+    }
+
     // Generate JWT
     const token = jwt.sign(
       {

@@ -248,7 +248,7 @@ router.post('/schools', authenticate, authorize(['superadmin']), async (req, res
 
       // Create default admin user for this school with prefixed username
       const bcrypt = require('bcryptjs');
-      const hashedPassword = await bcrypt.hash(tempPassword, 12);
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
       const adminUsername = await generateAdminUsername(newSchool.id, code, new Date().getFullYear());
 
       const adminUser = await tx.user.create({
@@ -312,7 +312,7 @@ router.post('/schools/:id/reset-admin', authenticate, authorize(['superadmin']),
     }
 
     const bcrypt = require('bcryptjs');
-    const hashedPassword = await bcrypt.hash(tempPassword, 12);
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
     const school = await prisma.school.findUnique({ where: { id: schoolId } });
     if (!school) return res.status(404).json({ error: 'School not found' });
