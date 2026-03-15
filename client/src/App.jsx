@@ -5,6 +5,7 @@ import ThemeController from './components/ThemeController';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import AppUpdateNotifier from './components/AppUpdateNotifier';
 
 // Standard imports for base/immediate routes to prevent flickering
 import MarketingHome from './pages/MarketingHome';
@@ -135,6 +136,7 @@ function App() {
     <AuthProvider>
       <Toaster position="top-right" reverseOrder={false} />
       <ThemeController />
+      <AppUpdateNotifier />
       <BrowserRouter>
         <Suspense fallback={<LoadingFallback />}>
           <Routes>

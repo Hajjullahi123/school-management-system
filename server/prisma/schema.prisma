@@ -34,6 +34,9 @@ model GlobalSettings {
   standardPrice         Float    @default(120000)
   premiumPrice          Float    @default(250000)
   
+  latestAppVersion      String?  @default("1.0.0")
+  apkDownloadUrl        String?
+  
   updatedAt             DateTime @updatedAt
 }
 

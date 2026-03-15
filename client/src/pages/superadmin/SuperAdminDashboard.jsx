@@ -33,7 +33,9 @@ const SuperAdminDashboard = () => {
     whatsappUrl: '',
     websiteUrl: '',
     contactPhone: '',
-    contactEmail: ''
+    contactEmail: '',
+    latestAppVersion: '',
+    apkDownloadUrl: ''
   });
   const [updatingSettings, setUpdatingSettings] = useState(false);
 
@@ -812,6 +814,35 @@ const SuperAdminDashboard = () => {
                           />
                           <span className="text-sm font-bold text-gray-700 uppercase tracking-tight">Enable Daily Auto-Backups</span>
                         </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Android App Management Section */}
+                  <div className="pt-6 border-t border-gray-100">
+                    <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <FiArrowUpCircle className="text-indigo-600" /> Android App Management (Direct APK)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Latest App Version (e.g., 1.0.1)</label>
+                        <input
+                          type="text"
+                          value={globalSettings.latestAppVersion || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, latestAppVersion: e.target.value })}
+                          placeholder="1.0.0"
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">APK Download URL (Drive/Dropbox)</label>
+                        <input
+                          type="url"
+                          value={globalSettings.apkDownloadUrl || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, apkDownloadUrl: e.target.value })}
+                          placeholder="https://drive.google.com/..."
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                        />
                       </div>
                     </div>
                   </div>
