@@ -10,8 +10,12 @@ const isProduction = import.meta.env.PROD;
 // detect Port
 const currentPort = window.location.port;
 
+const PRODUCTION_URL = 'https://school-management-system-bkat.onrender.com';
+
 export const API_BASE_URL = isProduction
-  ? window.location.origin
+  ? (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.origin.includes('capacitor://')
+    ? PRODUCTION_URL
+    : window.location.origin)
   : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^(\d{1,3}\.){3}\d{1,3}$/.test(window.location.hostname)
     ? (currentPort !== '5115' ? `http://${window.location.hostname}:5115` : window.location.origin)
     : window.location.origin);
