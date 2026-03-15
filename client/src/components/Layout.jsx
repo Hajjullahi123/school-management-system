@@ -1253,7 +1253,7 @@ const Layout = () => {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-x-auto overflow-y-auto bg-gray-50 p-3 sm:p-6 lg:p-8 print:p-0 print:bg-white print:overflow-visible">
+        <main className="flex-1 overflow-x-auto overflow-y-auto bg-gray-50 p-3 sm:p-6 lg:p-8 print:p-0 print:bg-white print:overflow-visible pb-20 lg:pb-8">
           <Outlet />
         </main>
 
@@ -1269,6 +1269,131 @@ const Layout = () => {
         </footer>
       </div>
       <DemoTour isDemo={isDemo} />
+
+      {/* Mobile Bottom Navigation */}
+      {user?.role !== 'superadmin' && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-gray-200 px-2 py-2 flex items-center justify-around z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] pb-[safe-area-inset-bottom] print:hidden">
+          {(() => {
+            const bottomItems = [
+              {
+                path: '/dashboard', label: 'Home', icon: (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                )
+              }
+            ];
+
+            if (user?.role === 'parent' || user?.parent) {
+              bottomItems.push(
+                {
+                  path: '/dashboard/parent/attendance?view=parent', label: 'Attendance', icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                  )
+                },
+                {
+                  path: '/dashboard/term-report?view=parent', label: 'Results', icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  )
+                },
+                {
+                  path: '/dashboard/parent/messages?view=parent', label: 'Messages', icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  ), badge: unreadCount
+                }
+              );
+            } else if (user?.role === 'student' || user?.student) {
+              bottomItems.push(
+                {
+                  path: '/dashboard/analytics', label: 'Analytics', icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  )
+                },
+                {
+                  path: '/dashboard/homework', label: 'Tasks', icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  )
+                },
+                {
+                  path: '/dashboard/student/profile', label: 'Profile', icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  )
+                }
+              );
+            } else if (user?.role === 'teacher' || user?.teacher) {
+              bottomItems.push(
+                {
+                  path: '/dashboard/attendance', label: 'Roll Call', icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                  )
+                },
+                {
+                  path: '/dashboard/result-entry', label: 'Grades', icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  )
+                },
+                {
+                  path: '/dashboard/profile', label: 'Profile', icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  )
+                }
+              );
+            } else {
+              bottomItems.push(
+                {
+                  path: '/dashboard/profile', label: 'Profile', icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  )
+                }
+              );
+            }
+
+            return bottomItems.map((item, idx) => {
+              const isActive = location.pathname === item.path.split('?')[0];
+              return (
+                <Link
+                  key={idx}
+                  to={item.path}
+                  className={`flex flex-col items-center justify-center space-y-1 relative transition-all duration-300 ${isActive ? 'text-secondary scale-110' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  <div className="relative">
+                    {item.icon}
+                    {item.badge > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold border-2 border-white">
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-medium leading-none">{item.label}</span>
+                  {isActive && (
+                    <div className="absolute -bottom-1 w-1 h-1 bg-secondary rounded-full" />
+                  )}
+                </Link>
+              );
+            });
+          })()}
+        </div>
+      )}
     </div>
   );
 };
