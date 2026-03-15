@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { api } from '../../api';
+import { api, API_BASE_URL } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
+import useSchoolSettings from '../../hooks/useSchoolSettings';
 
 const MiscFeePayments = () => {
   const { user } = useAuth();
+  const { settings: schoolSettings } = useSchoolSettings();
   const [students, setStudents] = useState([]);
   const [fees, setFees] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -131,42 +132,340 @@ const MiscFeePayments = () => {
       }
       const payment = await response.json();
 
+      const primaryColor = schoolSettings?.primaryColor || '#0f766e';
+      const logoUrl = schoolSettings?.logoUrl
+        ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl}`)
+        : null;
+
+      // Generate security markers
+      const securityHash = btoa(`MISC-${payment.id}-${payment.student.id}`).substring(0, 12).toUpperCase();
+      const barcodeText = `MISC-${payment.id}`;
+      const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&rotate=N&includetext=true&backgroundcolor=ffffff&height=12`;
+
       const printWindow = window.open('', '_blank');
       printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Payment Receipt</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 40px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .details { margin: 20px 0; }
-            .row { display: flex; justify-content: space-between; margin: 10px 0; }
-            .footer { margin-top: 50px; text-align: center; font-size: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h2>${payment.school.name}</h2>
-            <h3>Payment Receipt</h3>
-            <p>Receipt No: ${payment.receiptNumber || payment.id}</p>
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>Receipt - ${payment.student.admissionNumber}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+        <style>
+          @page {
+            size: 74mm 105mm;
+            margin: 0;
+          }
+          @media print {
+            body { margin: 0; padding: 0; background: white !important; }
+            .no-print { display: none !important; }
+            .receipt-card { box-shadow: none !important; border: 1px solid #eee !important; margin: 0 !important; width: 74mm !important; height: 105mm !important; }
+          }
+          * { box-sizing: border-box; }
+          body {
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 4mm;
+            background: #f1f5f9;
+            color: #1e293b;
+            line-height: 1.2;
+            font-size: 10px;
+          }
+          .receipt-card {
+            background: white;
+            width: 74mm;
+            height: 105mm;
+            margin: 0 auto;
+            border-radius: 4mm;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+            border: 0.5mm solid rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+          }
+          .security-bg {
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(${primaryColor}05 1px, transparent 1px);
+            background-size: 3mm 3mm;
+            pointer-events: none;
+            z-index: 0;
+          }
+          .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 50px;
+            font-weight: 800;
+            color: rgba(0, 0, 0, 0.03);
+            pointer-events: none;
+            text-transform: uppercase;
+            white-space: nowrap;
+            z-index: 0;
+            letter-spacing: 2mm;
+          }
+          .receipt-header {
+            background: linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd);
+            padding: 3mm 4mm;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1mm solid rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 1;
+          }
+          .school-info h1 {
+            margin: 0;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: -0.2mm;
+            line-height: 1;
+          }
+          .school-info p {
+            margin: 1mm 0 0;
+            opacity: 0.9;
+            font-size: 7px;
+            font-weight: 600;
+          }
+          .receipt-badge {
+            background: white;
+            color: ${primaryColor};
+            padding: 1mm 2mm;
+            border-radius: 1mm;
+            font-size: 8px;
+            font-weight: 800;
+            text-transform: uppercase;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          .receipt-body {
+            padding: 3mm 4mm;
+            position: relative;
+            z-index: 1;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+          }
+          .id-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2mm;
+            font-size: 8px;
+            font-weight: 700;
+            color: #64748b;
+          }
+          .section-title {
+            font-size: 8px;
+            font-weight: 800;
+            color: ${primaryColor};
+            text-transform: uppercase;
+            letter-spacing: 0.5mm;
+            margin-bottom: 2mm;
+            display: flex;
+            align-items: center;
+          }
+          .section-title::after {
+            content: '';
+            flex: 1;
+            height: 0.2mm;
+            background: ${primaryColor}20;
+            margin-left: 2mm;
+          }
+          .info-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2mm;
+            margin-bottom: 2mm;
+          }
+          .info-group {
+            margin-bottom: 1.5mm;
+          }
+          .info-label {
+            font-size: 7px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-weight: 800;
+            margin-bottom: 0.2mm;
+          }
+          .info-value {
+            font-size: 9px;
+            font-weight: 700;
+            color: #0f172a;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .amount-section {
+            background: #f8fafc;
+            border-radius: 2mm;
+            padding: 3mm;
+            text-align: center;
+            border: 0.5mm dashed #e2e8f0;
+            margin: 2mm 0;
+            position: relative;
+          }
+          .amount-label {
+            font-size: 8px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 1mm;
+          }
+          .amount-value {
+            font-size: 18px;
+            font-weight: 800;
+            color: ${primaryColor};
+            font-family: 'JetBrains Mono', monospace;
+          }
+          .security-footer {
+            margin-top: auto;
+            padding-top: 2mm;
+            border-top: 0.2mm solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .security-hash-box {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 7px;
+            color: #64748b;
+            background: #f1f5f9;
+            padding: 0.5mm 1.5mm;
+            border-radius: 0.5mm;
+          }
+          .signatures {
+            margin-top: 2mm;
+            display: flex;
+            justify-content: center;
+          }
+          .sig-box {
+            width: 30mm;
+            text-align: center;
+          }
+          .sig-line {
+            border-top: 0.3mm solid #cbd5e1;
+            margin-bottom: 1mm;
+          }
+          .sig-label {
+            font-size: 7px;
+            color: #94a3b8;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+          .digital-seal {
+            position: absolute;
+            bottom: 15mm;
+            right: 2mm;
+            width: 20mm;
+            height: 20mm;
+            opacity: 0.6;
+            pointer-events: none;
+            z-index: 5;
+            transform: rotate(-10deg);
+          }
+        </style>
+      </head>
+      <body>
+        <div class="receipt-card">
+          <div class="security-bg"></div>
+          <div class="watermark">PAID</div>
+          
+          <div class="receipt-header">
+            <div class="school-info">
+              <h1>${schoolSettings?.schoolName || 'SMS'}</h1>
+              <p>${schoolSettings?.schoolAddress?.substring(0, 30) || 'Official Receipt'}</p>
+            </div>
+            <div class="receipt-badge">MISC</div>
           </div>
-          <div class="details">
-            <div class="row"><strong>Student:</strong> ${payment.student.user.firstName} ${payment.student.user.lastName}</div>
-            <div class="row"><strong>Class:</strong> ${payment.student.classModel?.name || 'N/A'}</div>
-            <div class="row"><strong>Fee:</strong> ${payment.fee.title}</div>
-            <div class="row"><strong>Amount Paid:</strong> ₦${payment.amount.toLocaleString()}</div>
-            <div class="row"><strong>Payment Method:</strong> ${payment.paymentMethod || 'Cash'}</div>
-            <div class="row"><strong>Date:</strong> ${new Date(payment.paymentDate).toLocaleDateString()}</div>
+
+          <div class="receipt-body">
+            <div class="id-line">
+              <span>NO: ${payment.receiptNumber || payment.id}</span>
+              <span>${new Date(payment.paymentDate).toLocaleDateString()}</span>
+            </div>
+
+            <div class="section-title">Student Details</div>
+            <div class="info-group">
+              <div class="info-label">Student Name</div>
+              <div class="info-value">${payment.student.user.firstName} ${payment.student.user.lastName}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-group">
+                <div class="info-label">Student ID</div>
+                <div class="info-value">${payment.student.admissionNumber}</div>
+              </div>
+              <div class="info-group">
+                <div class="info-label">Class</div>
+                <div class="info-value">${payment.student.classModel?.name || 'N/A'}</div>
+              </div>
+            </div>
+
+            <div class="section-title" style="margin-top: 1mm;">Payment Info</div>
+            <div class="info-group" style="margin-bottom: 1mm;">
+              <div class="info-label">Fee Title</div>
+              <div class="info-value">${payment.fee.title}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-group">
+                <div class="info-label">Method</div>
+                <div class="info-value" style="text-transform: uppercase;">${payment.paymentMethod || 'CASH'}</div>
+              </div>
+              <div class="info-group">
+                <div class="info-label">Recorded By</div>
+                <div class="info-value">STAFF</div>
+              </div>
+            </div>
+
+            <div class="amount-section">
+              <div class="amount-label">Verified Payment</div>
+              <div class="amount-value">₦${payment.amount.toLocaleString()}</div>
+            </div>
+
+            <div style="text-align: center; margin-top: 1mm;">
+              <img src="${barcodeUrl}" alt="Barcode" style="max-width: 40mm; height: auto;" />
+            </div>
+
+            <div class="signatures">
+              <div class="sig-box">
+                <div class="sig-line"></div>
+                <div class="sig-label">Authorized Signature</div>
+              </div>
+            </div>
+
+            <div class="security-footer">
+              <div class="security-hash-box">${securityHash}</div>
+              <div style="font-size: 6px; color: #94a3b8; font-weight: 700;">
+                SECURE PRINT • ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+
+            <div class="digital-seal">
+              <svg width="100%" height="100%" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="55" fill="none" stroke="${primaryColor}" stroke-width="2" stroke-dasharray="3,2" />
+                <path id="sealPath" d="M 60,60 m -40,0 a 40,40 0 1,1 80,0 a 40,40 0 1,1 -80,0" fill="none"/>
+                <text font-size="8" font-weight="800" fill="${primaryColor}">
+                  <textPath href="#sealPath">AUTHENTIC RECEIPT • ${schoolSettings?.schoolName?.split(' ')[0] || 'SMS'} • </textPath>
+                </text>
+                <text x="60" y="65" text-anchor="middle" font-size="14" font-weight="900" fill="${primaryColor}">VALID</text>
+              </svg>
+            </div>
           </div>
-          <div class="footer">
-            <p>Thank you for your payment!</p>
-          </div>
-        </body>
-        </html>
-      `);
+        </div>
+
+        <div class="no-print" style="margin-top: 10px; display: flex; gap: 8px; justify-content: center;">
+          <button onclick="window.print()" style="padding: 6px 12px; background: ${primaryColor}; color: white; border: none; border-radius: 4px; font-weight: 800; font-size: 10px; cursor: pointer; text-transform: uppercase;">Print</button>
+          <button onclick="window.close()" style="padding: 6px 12px; background: white; color: #475569; border: 1px solid #e2e8f0; border-radius: 4px; font-weight: 800; font-size: 10px; cursor: pointer; text-transform: uppercase;">Close</button>
+        </div>
+      </body>
+      </html>
+    `);
       printWindow.document.close();
-      printWindow.print();
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
     } catch (error) {
       toast.error('Error generating receipt: ' + error.message);
     }
