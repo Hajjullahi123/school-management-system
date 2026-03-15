@@ -9,6 +9,7 @@ const {
   getGrade,
   getRemark
 } = require('../utils/grading');
+const { getStudentFeeSummary } = require('../utils/feeCalculations');
 
 // Get term report for a student
 router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
@@ -234,6 +235,14 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       orderBy: { name: 'asc' }
     });
 
+    // Fetch fee summary for the financial section of the report
+    const feeSummary = await getStudentFeeSummary(
+      req.schoolId,
+      parseInt(studentId),
+      term.academicSessionId,
+      parseInt(termId)
+    );
+
     let ratings = [];
     try {
       ratings = reportExtras?.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : [];
@@ -367,7 +376,8 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
           score: rating ? rating.score : null,
           maxScore: d.maxScore || 5
         };
-      })
+      }),
+      feeSummary: feeSummary
     };
 
     res.json(reportData);

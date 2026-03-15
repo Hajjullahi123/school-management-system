@@ -663,6 +663,44 @@ const TermReportCard = () => {
                     </div>
                   </div>
 
+                  {/* FINANCIAL STANDING SECTION */}
+                  {data.feeSummary && (
+                    <div className="border-2 border-black bg-emerald-50/30 rounded-lg overflow-hidden mt-4" style={{ backgroundColor: `${schoolSettings?.primaryColor}05` }}>
+                      <div className="bg-emerald-800 text-white text-[10px] font-bold text-center py-1 uppercase tracking-widest" style={{ backgroundColor: schoolSettings?.primaryColor }}>
+                        Financial Standing & Fee Status
+                      </div>
+                      <div className="p-3 grid grid-cols-4 gap-4 text-center divide-x divide-black/10">
+                        <div className="space-y-1">
+                          <p className="text-[8px] font-black text-gray-500 uppercase">Arrears (Opening)</p>
+                          <p className={`text-sm font-black ${data.feeSummary.openingBalance > 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                            ₦{data.feeSummary.openingBalance?.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[8px] font-black text-gray-500 uppercase">Current Term Fee</p>
+                          <p className="text-sm font-black text-gray-900">
+                            ₦{data.feeSummary.currentTermFee?.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[8px] font-black text-gray-500 uppercase">Total Paid</p>
+                          <p className="text-sm font-black text-emerald-700">
+                            ₦{data.feeSummary.totalPaid?.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[8px] font-black text-gray-500 uppercase">Outstanding Balance</p>
+                          <p className={`text-lg font-black leading-none ${data.feeSummary.grandTotal > 0 ? 'text-red-700' : 'text-emerald-700'}`}>
+                            ₦{data.feeSummary.grandTotal?.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="px-3 pb-2 text-[8px] text-center italic text-gray-500 border-t border-black/5 pt-1">
+                        Note: Full payment of all outstanding balances is required for continued access to student portal and future term results.
+                      </div>
+                    </div>
+                  )}
+
                   {/* REMARKS SECTION */}
                   <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-4">
                     <div className="grid grid-cols-2 divide-x-2 divide-black">
