@@ -1098,11 +1098,12 @@ const Layout = () => {
         `}
       >
         {/* Mobile Close Button */}
-        <div className="lg:hidden absolute top-4 right-4">
+        <div className="lg:hidden absolute top-4 right-4 group">
           <button
             onClick={() => setSidebarOpen(false)}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all flex items-center gap-2 group-active:scale-95"
           >
+            <span className="text-xs font-black uppercase tracking-widest hidden group-hover:block">Close</span>
             <FiX className="w-6 h-6" />
           </button>
         </div>
@@ -1220,9 +1221,12 @@ const Layout = () => {
                 {/* Mobile Hamburger Menu */}
                 <button
                   onClick={() => setSidebarOpen(true)}
-                  className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-all flex items-center gap-1.5 active:scale-95 group"
                 >
-                  <FiMenu className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
+                  <div className="p-1 bg-gray-50 rounded group-hover:bg-primary/10 transition-colors">
+                    <FiMenu className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700 group-hover:text-primary transition-colors" />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.1em] text-gray-500 group-hover:text-primary">Menu</span>
                 </button>
 
                 <div className="min-w-0 flex-1">
@@ -1368,7 +1372,34 @@ const Layout = () => {
               );
             }
 
+            // Always add a "More/Menu" button at the end to help users uncover the sidebar
+            bottomItems.push({
+              isAction: true,
+              onClick: () => setSidebarOpen(true),
+              label: 'Full Menu',
+              icon: (
+                <div className="p-1.5 bg-secondary/10 rounded-lg">
+                  <svg className="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                  </svg>
+                </div>
+              )
+            });
+
             return bottomItems.map((item, idx) => {
+              if (item.isAction) {
+                return (
+                  <button
+                    key={idx}
+                    onClick={item.onClick}
+                    className="flex flex-col items-center justify-center space-y-1 text-gray-400 hover:text-secondary transition-all active:scale-95"
+                  >
+                    {item.icon}
+                    <span className="text-[10px] font-black uppercase tracking-tighter leading-none">{item.label}</span>
+                  </button>
+                );
+              }
+
               const isActive = location.pathname === item.path.split('?')[0];
               return (
                 <Link
