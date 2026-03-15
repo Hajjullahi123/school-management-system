@@ -15,7 +15,9 @@ const resolveDomain = async (req, res, next) => {
   const platformDomain = process.env.PLATFORM_DOMAIN || 'localhost';
 
   // Skip for standard library/asset paths or common file extensions
-  if (!host || host.includes(platformDomain) || 
+  if (!host || 
+      host.includes(platformDomain) || 
+      host.includes('onrender.com') ||
       host.includes('127.0.0.1') ||
       req.path.startsWith('/api/public') ||
       req.path.startsWith('/api/auth') ||

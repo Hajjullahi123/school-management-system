@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { api, API_BASE_URL } from '../../api';
+import { api, apiCall, API_BASE_URL } from '../../api';
 
 const TeacherProfile = () => {
   const { user } = useAuth();
@@ -92,19 +92,14 @@ const TeacherProfile = () => {
       }
 
       console.log('Sending update request...');
-      const response = await api.put('/api/teachers/profile', formDataToSend, {
-        headers: {
-          // Note: When sending FormData, let the browser set the Content-Type
-          // with the correct boundary. api.put handles this if headers doesn't
-          // explicitly set Content-Type: application/json
-        }
+      const { data, ok } = await apiCall('/api/teachers/profile', {
+        method: 'PUT',
+        body: formDataToSend
       });
-
-      const data = await response.json();
       console.log('Server response:', data);
 
       // Upload Signature if changed
-      if (response.ok && signatureFile) {
+      if (ok && signatureFile) {
         const reader = new FileReader();
         const base64Data = await new Promise((resolve, reject) => {
           reader.onload = () => resolve(reader.result);
@@ -112,13 +107,16 @@ const TeacherProfile = () => {
           reader.readAsDataURL(signatureFile);
         });
 
-        await api.post('/api/teachers/signature-base64', {
-          imageData: base64Data,
-          fileName: signatureFile.name
+        await apiCall('/api/teachers/signature-base64', {
+          method: 'POST',
+          body: JSON.stringify({
+            imageData: base64Data,
+            fileName: signatureFile.name
+          })
         });
       }
 
-      if (response.ok) {
+      if (ok) {
         setMessage({ type: 'success', text: 'Profile updated successfully! Redirecting to dashboard...' });
 
         // Force a hard redirect to the dashboard so AuthContext completely refreshes the new user photo state

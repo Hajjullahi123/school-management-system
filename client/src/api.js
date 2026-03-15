@@ -16,9 +16,11 @@ export const apiCall = async (endpoint, options = {}) => {
     console.warn(`[API WARNING] Request to ${endpoint} is being sent WITHOUT a token.`);
   }
 
+  const isFormData = options.body instanceof FormData;
+  
   const defaultOptions = {
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...options.headers
     },
     credentials: 'include', // Important for cookies/sessions
@@ -34,17 +36,30 @@ export const apiCall = async (endpoint, options = {}) => {
   try {
     const response = await fetch(url, defaultOptions);
 
-    // Parse JSON if possible
     let data;
     const contentType = response.headers.get('content-type');
+    
+    // Check if the response is actually JSON before trying to parse it
     if (contentType && contentType.includes('application/json')) {
-      data = await response.json();
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        data = await response.text();
+        console.error('[API JSON Error] Failed to parse JSON even though Content-Type was set:', data.substring(0, 100));
+      }
     } else {
       data = await response.text();
     }
 
     if (!response.ok) {
-      const error = new Error(data?.error || data?.message || 'API call failed');
+      // If we got an HTML response instead of JSON (common with 404s or server errors hitting fallbacks)
+      if (typeof data === 'string' && (data.trim().startsWith('<') || data.trim().includes('<!DOCTYPE'))) {
+        const error = new Error(`Server returned HTML instead of JSON (${response.status} ${response.statusText}). This usually happens if the API route is incorrect or the server is down.`);
+        error.response = { status: response.status, statusText: response.statusText, data: 'HTML Content HIDDEN' };
+        throw error;
+      }
+
+      const error = new Error(data?.error || data?.message || typeof data === 'string' ? data : 'API call failed');
       error.response = {
         data,
         status: response.status,
