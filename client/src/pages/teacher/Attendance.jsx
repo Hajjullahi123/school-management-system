@@ -3,6 +3,8 @@ import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from '../../utils/toast';
 import { API_BASE_URL } from '../../config';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
+import Papa from 'papaparse';
 
 const Attendance = () => {
   const { user } = useAuth();
@@ -222,46 +224,68 @@ const Attendance = () => {
     }
   };
 
-  const handleDownload = async () => {
+  const handleDownload = async (format = 'csv') => {
     setDownloading(true);
     try {
-      // Build query string from filters
       const params = new URLSearchParams();
-
       if (downloadFilters.classId) params.append('classId', downloadFilters.classId);
       if (downloadFilters.startDate) params.append('startDate', downloadFilters.startDate);
       if (downloadFilters.endDate) params.append('endDate', downloadFilters.endDate);
       if (downloadFilters.termId) params.append('termId', downloadFilters.termId);
       if (downloadFilters.sessionId) params.append('sessionId', downloadFilters.sessionId);
 
-      // Make download request
       const token = localStorage.getItem('token');
       const response = await fetch(`${window.location.origin.replace('5173', '3000')}/api/attendance/download?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (!response.ok) {
-        throw new Error('Download failed');
+      if (!response.ok) throw new Error('Download failed');
+
+      const csvData = await response.text();
+      const parsed = Papa.parse(csvData, { header: true, skipEmptyLines: true });
+      const records = parsed.data;
+
+      const fileName = `Attendance_Report_${new Date().toISOString().split('T')[0]}`;
+
+      if (format === 'excel') {
+        exportToExcel(records, fileName, 'Attendance');
+        toast.success('Excel report generated');
+      } else if (format === 'pdf') {
+        const headers = ['Date', 'Student Name', 'Admission No', 'Class', 'Status', 'Notes'];
+        const data = records.map(r => [
+          r['Date'],
+          r['Student Name'],
+          r['Admission Number'],
+          r['Class'],
+          r['Status'],
+          r['Notes']
+        ]);
+        exportToPDF({
+          title: 'Attendance Report',
+          headers,
+          data,
+          fileName,
+          orientation: 'landscape'
+        });
+        toast.success('PDF report generated');
+      } else {
+        // Fallback to original CSV download
+        const blob = new Blob([csvData], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${fileName}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success('CSV report generated');
       }
 
-      // Convert response to blob and download
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `attendance_records_${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast.success('Report downloaded successfully');
       setShowDownloadDialog(false);
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('CSV Generation failed');
+      toast.error('Report generation failed');
     } finally {
       setDownloading(false);
     }
@@ -651,25 +675,22 @@ const Attendance = () => {
                   Cancel
                 </button>
                 <button
-                  onClick={handleDownload}
+                  onClick={() => handleDownload('csv')}
                   disabled={downloading}
-                  className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center gap-2">
-                  {downloading ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Downloading...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Download CSV
-                    </>
-                  )}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 flex items-center gap-2">
+                  CSV
+                </button>
+                <button
+                  onClick={() => handleDownload('excel')}
+                  disabled={downloading}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center gap-2">
+                  {downloading ? '...' : 'Excel'}
+                </button>
+                <button
+                  onClick={() => handleDownload('pdf')}
+                  disabled={downloading}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center gap-2">
+                  {downloading ? '...' : 'PDF'}
                 </button>
               </div>
             </div>

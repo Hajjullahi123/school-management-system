@@ -13,190 +13,182 @@ const IDCard = ({ data, type, schoolSettings }) => {
   const idNumber = isStudent ? data.admissionNumber : (data.teacher?.staffId || data.username);
   const roleTitle = isStudent ? 'STUDENT' : (data.role === 'teacher' ? 'STAFF' : data.role.toUpperCase());
 
-  // Calculate expiry for students
-  const calculateExpiryDate = (className) => {
-    if (!className) return null;
-    const currentYear = new Date().getFullYear();
-    let yearsToAdd = 1;
-
-    if (className.includes('JSS')) {
-      if (className.includes('1')) yearsToAdd = 6;
-      else if (className.includes('2')) yearsToAdd = 5;
-      else if (className.includes('3')) yearsToAdd = 4;
-    } else if (className.includes('SS')) {
-      if (className.includes('1')) yearsToAdd = 3;
-      else if (className.includes('2')) yearsToAdd = 2;
-      else if (className.includes('3')) yearsToAdd = 1;
-    }
-
-    const expiryDate = new Date();
-    expiryDate.setFullYear(currentYear + yearsToAdd);
-    return expiryDate;
-  };
-
-  const expiryDate = isStudent ? calculateExpiryDate(data.classModel?.name) : null;
+  // Status Badge Color
+  const statusColor = isStudent ? 'bg-green-500' : 'bg-blue-500';
 
   return (
-    <div className="id-card-container break-inside-avoid mb-8 mx-auto">
-      <div className="flex gap-4 print:gap-8 justify-center items-start">
+    <div className="id-card-container break-inside-avoid mb-12 mx-auto transition-transform hover:scale-[1.02] duration-300">
+      <div className="flex flex-col md:flex-row gap-8 justify-center items-start print:flex-row print:gap-12">
         {/* FRONT SIDE */}
-        <div className="w-[350px] h-[550px] bg-gradient-to-br from-primary via-primary/90 to-primary/80 rounded-2xl shadow-2xl overflow-hidden relative print:shadow-none print:border print:border-gray-300">
-          <div className="bg-white px-6 py-4 text-center flex items-center justify-center gap-3">
-            {schoolSettings?.logoUrl && (
-              <img
-                src={schoolSettings.logoUrl}
-                alt="School Logo"
-                className="h-12 w-12 object-contain"
-              />
-            )}
-            <div>
-              <h2 className="text-lg font-bold text-primary">{schoolSettings?.schoolName || 'School Name'}</h2>
-              <p className="text-xs text-gray-600">{schoolSettings?.schoolMotto || 'Excellence in Education'}</p>
-              <p className="text-xs font-semibold text-primary mt-1">
-                {roleTitle} ID CARD
-              </p>
+        <div className="w-[360px] h-[580px] rounded-[2.5rem] overflow-hidden relative shadow-[0_20px_50px_rgba(0,0,0,0.2)] bg-slate-50 border border-gray-200 print:shadow-none">
+          {/* Top Decorative Header */}
+          <div className="h-48 bg-primary relative overflow-hidden">
+            {/* Abstract Background Patterns */}
+            <div className="absolute inset-0 opacity-20">
+              <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="absolute -top-10 -right-10 w-48 h-48 text-white fill-current">
+                <path d="M44.7,-76.4C58.1,-69.2,69.5,-57.4,77.4,-44C85.3,-30.6,89.7,-15.3,89.5,-0.1C89.3,15.1,84.5,30.2,76.3,43.3C68.1,56.4,56.5,67.5,43,75.4C29.5,83.3,14.7,88.1,-0.1,88.3C-15,88.5,-30,84.1,-43.5,76.1C-57.1,68.2,-69.2,56.7,-77.2,43.1C-85.2,29.5,-89,13.8,-88.7,-1.8C-88.4,-17.4,-84,-32.8,-75.4,-45.9C-66.8,-59,-54,-69.8,-40.1,-76.6C-26.2,-83.4,-13.1,-86.2,0.8,-87.6C14.7,-89,29.3,-89,44.7,-76.4Z" transform="translate(100 100)" />
+              </svg>
+              <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="absolute -bottom-10 -left-10 w-32 h-32 text-white fill-current">
+                <path d="M41.5,-73.4C54.1,-67.2,64.8,-56.3,72.4,-43.5C80,-30.7,84.5,-16.1,84.1,-1.5C83.7,13.1,78.4,27.7,70,40C61.6,52.3,50,62.3,37,69.3C24,76.3,11.6,80.3,-0.6,81.4C-12.8,82.5,-25.6,80.7,-37.8,74.5C-50,68.3,-61.6,57.7,-69.6,44.9C-77.5,32.1,-81.9,17.1,-81.6,2.1C-81.2,-12.9,-76.2,-27.9,-67.5,-40.4C-58.8,-52.9,-46.4,-62.9,-33.2,-69.1C-20,-75.3,-6,-77.7,8.3,-79.1C22.6,-80.5,35.2,-79.6,41.5,-73.4Z" transform="translate(100 100)" />
+              </svg>
             </div>
-          </div>
-
-          <div className="flex justify-center mt-4">
-            {photoUrl ? (
-              <img
-                src={`${API_BASE_URL}${photoUrl}`}
-                alt="Photo"
-                className="w-32 h-32 rounded-lg object-cover border-4 border-white shadow-lg"
-              />
-            ) : (
-              <div className="w-32 h-32 rounded-lg bg-white border-4 border-white shadow-lg flex items-center justify-center">
-                <span className="text-4xl font-bold text-primary">
-                  {firstName?.[0]}{lastName?.[0]}
+            
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent"></div>
+            
+            <div className="relative z-10 p-6 flex flex-col items-center">
+              <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+                {schoolSettings?.logoUrl && (
+                  <img src={schoolSettings.logoUrl} alt="" className="h-6 w-6 object-contain brightness-110" />
+                )}
+                <span className="text-white text-[10px] font-bold tracking-widest uppercase">
+                  {schoolSettings?.schoolName || 'ACADEMY PORTAL'}
                 </span>
               </div>
-            )}
+            </div>
           </div>
 
-          <div className="px-6 mt-4 text-white space-y-2">
-            <div>
-              <p className="text-xs text-white/90">Full Name</p>
-              <p className="font-bold text-sm">
-                {firstName} {lastName}
-              </p>
-            </div>
-
-            {isStudent ? (
-              <>
-                <div>
-                  <p className="text-xs text-white/90">Admission Number</p>
-                  <p className="font-bold text-sm">{idNumber}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-white/90">Class</p>
-                  <p className="font-bold text-sm">{data.classModel?.name} {data.classModel?.arm || ''}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-white/90">Blood Group</p>
-                  <p className="font-bold text-sm">{data.bloodGroup || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-white/90">Valid Until</p>
-                  <p className="font-bold text-sm text-yellow-300">
-                    {expiryDate ? expiryDate.toLocaleDateString() : 'N/A'}
-                  </p>
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <p className="text-xs text-white/90">Staff ID</p>
-                  <p className="font-bold text-sm">{idNumber}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-white/90">Role</p>
-                  <p className="font-bold text-sm capitalize">{data.role}</p>
-                </div>
-                {data.teacher?.specialization && (
-                  <div>
-                    <p className="text-xs text-white/90">Specialization</p>
-                    <p className="font-bold text-sm">{data.teacher.specialization}</p>
+          {/* Photo Section */}
+          <div className="flex justify-center -mt-20 relative z-20">
+            <div className="relative">
+              <div className="w-40 h-40 rounded-full border-[6px] border-white shadow-xl overflow-hidden bg-gray-100">
+                {photoUrl ? (
+                  <img src={`${API_BASE_URL}${photoUrl}`} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                    <span className="text-4xl font-black text-gray-400">{firstName?.[0]}{lastName?.[0]}</span>
                   </div>
                 )}
-              </>
-            )}
-          </div>
-
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center">
-            <div className="bg-white p-2 rounded">
-              <QRCodeCanvas value={idNumber || 'UNKNOWN'} size={80} />
+              </div>
+              {/* Verified Badge */}
+              <div className={`absolute bottom-2 right-2 ${statusColor} text-white p-1.5 rounded-full border-4 border-white shadow-lg`}>
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
             </div>
           </div>
 
-          {isStudent && data.parentGuardianPhone && (
-            <div className="absolute bottom-2 left-4 right-4 text-center">
-              <p className="text-[10px] text-white">Emergency: {data.parentGuardianPhone}</p>
+          {/* Identity Section */}
+          <div className="p-6 text-center">
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight leading-tight">
+              {firstName} <br /> {lastName}
+            </h1>
+            <div className="mt-2 inline-block px-4 py-1 bg-primary/10 rounded-full">
+              <span className="text-xs font-black text-primary uppercase tracking-widest">{roleTitle}</span>
             </div>
-          )}
+          </div>
+
+          {/* Details Table */}
+          <div className="px-8 mt-2 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">ID NUMBER</p>
+                <p className="text-sm font-bold text-gray-800">{idNumber}</p>
+              </div>
+              {isStudent ? (
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">CLASS</p>
+                  <p className="text-sm font-bold text-gray-800">{data.classModel?.name} {data.classModel?.arm || ''}</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">BLOOD GROUP</p>
+                  <p className="text-sm font-bold text-red-600">{data.bloodGroup || 'O+'}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl p-4 flex items-center justify-between border border-gray-100">
+              <div className="flex flex-col">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">EXPIRES ON</p>
+                <p className="text-sm font-black text-primary">
+                  {isStudent ? 'SEPT 2026' : 'PERMANENT'}
+                </p>
+              </div>
+              <div className="bg-white p-1 rounded-lg border border-gray-100 shadow-sm">
+                <QRCodeCanvas value={idNumber || 'UNKNOWN'} size={50} bgAlpha={0} />
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Bar */}
+          <div className="absolute bottom-0 left-0 right-0 h-2 bg-primary"></div>
         </div>
 
         {/* BACK SIDE */}
-        <div className="w-[350px] h-[550px] bg-white rounded-2xl shadow-2xl overflow-hidden relative border-4 border-primary print:shadow-none">
-          <div className="bg-yellow-400 px-6 py-3 text-center">
-            <h3 className="text-sm font-bold text-gray-900">⚠️ IMPORTANT NOTICE</h3>
+        <div className="w-[360px] h-[580px] rounded-[2.5rem] bg-white border-2 border-primary/20 overflow-hidden relative shadow-2xl print:shadow-none">
+          {/* Top Branding Section */}
+          <div className="bg-slate-50 p-8 border-b border-gray-100">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center p-2">
+                {schoolSettings?.logoUrl ? (
+                  <img src={schoolSettings.logoUrl} alt="" className="object-contain" />
+                ) : (
+                  <svg className="text-primary" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.394 2.827a1 1 0 00-.788 0l-7 3a1 1 0 000 1.848l7 3a1 1 0 00.788 0l7-3a1 1 0 000-1.848l-7-3zM14 9.528v2.708l-3.147 1.35a1 1 0 01-.853 0L6.714 12.031l-.224-.096a1 1 0 11.758-1.848L10 11.512l2.224-.953 1.776-.731z" />
+                  </svg>
+                )}
+              </div>
+              <div>
+                <h3 className="text-xs font-black text-primary leading-tight uppercase tracking-tight">
+                  {schoolSettings?.schoolName || 'INSTITUTION IDENTITY'}
+                </h3>
+              </div>
+            </div>
+            <p className="text-[11px] text-gray-500 font-medium italic">
+              "Excellence in faith and academics"
+            </p>
           </div>
 
-          <div className="px-6 py-8 text-gray-800 space-y-6">
-            <div className="bg-primary/5 rounded-lg p-4 border-2 border-primary/20">
-              <p className="text-center font-semibold text-sm mb-2 text-gray-900">
-                This ID card belongs to the {isStudent ? 'student' : 'staff member'} whose name and photograph appear on the reverse side.
+          <div className="p-8 space-y-6">
+            <div className="bg-red-50/50 rounded-2xl p-5 border border-red-100">
+              <h4 className="text-red-700 font-black text-xs uppercase mb-2 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                Legal Terms
+              </h4>
+              <p className="text-[10px] text-gray-600 leading-relaxed font-medium">
+                This identity card is strictly for identification. If lost, please return it to the nearest Police Station or contact the school office immediately. Unauthorized use is punishable by law.
               </p>
             </div>
 
-            <div className="space-y-3">
-              <h4 className="font-bold text-red-600 text-center text-base">IF FOUND</h4>
-              <p className="text-sm text-center leading-relaxed text-gray-700">
-                Please return this card to:
-              </p>
-
-              <div className="bg-primary/5 rounded-lg p-4 space-y-2 border border-primary/20">
-                <p className="font-bold text-sm text-primary">{schoolSettings?.schoolName || 'School Name'}</p>
-                {schoolSettings?.schoolMotto && (
-                  <p className="text-xs text-gray-700">{schoolSettings.schoolMotto}</p>
-                )}
-                {schoolSettings?.schoolAddress && (
-                  <p className="text-xs text-gray-700">{schoolSettings.schoolAddress}</p>
-                )}
-                {schoolSettings?.schoolPhone && (
-                  <p className="text-xs text-gray-700">📞 {schoolSettings.schoolPhone}</p>
-                )}
-              </div>
-
-              <div className="text-center">
-                <p className="text-xs italic text-gray-600">OR</p>
-              </div>
-
-              <div className="bg-gray-100 rounded-lg p-3 border border-gray-300">
-                <p className="text-sm font-semibold text-gray-800 text-center">Nearest Police Station</p>
-              </div>
-            </div>
-
-            <div className="absolute bottom-8 left-6 right-6">
-              <div className="border-t-2 border-primary/30 pt-3">
-                <div className="flex justify-between items-end">
-                  <div className="text-xs">
-                    <p className="text-gray-600">Authorized Signature</p>
-                    <div className="h-8 flex items-end">
-                      <p className="font-cursive text-sm text-gray-800">Principal</p>
-                    </div>
-                  </div>
-                  <div className="text-xs text-right">
-                    <p className="text-gray-600">Issue Date</p>
-                    <p className="font-semibold text-gray-800">{new Date().toLocaleDateString()}</p>
-                  </div>
+            <div className="space-y-4">
+              <h4 className="text-gray-900 font-bold text-xs uppercase letter-widest">Office Location</h4>
+              <div className="space-y-3">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-gray-50 rounded-lg shrink-0">📍</div>
+                  <p className="text-[10px] text-gray-600 font-bold leading-tight">
+                    {schoolSettings?.schoolAddress || 'School Headquarters, Nigeria'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-gray-50 rounded-lg shrink-0">📞</div>
+                  <p className="text-[10px] text-gray-600 font-bold">{schoolSettings?.schoolPhone || '+234 XXX XXX XXXX'}</p>
                 </div>
               </div>
             </div>
 
-            <div className="absolute bottom-2 left-0 right-0 text-center">
-              <p className="text-[10px] text-gray-500">This card is non-transferable</p>
+            {/* Signature Area */}
+            <div className="pt-8 border-t border-dashed border-gray-200 mt-12">
+               <div className="flex justify-between items-end">
+                  <div className="text-center">
+                    <div className="h-12 flex items-center justify-center italic text-primary font-black text-sm">
+                      Admin
+                    </div>
+                    <div className="w-32 border-t border-gray-900 mx-auto mt-1"></div>
+                    <p className="text-[8px] font-bold text-gray-400 mt-1 uppercase">Principal Sign</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[8px] font-bold text-gray-400 uppercase">Registered Date</p>
+                    <p className="text-[10px] font-black text-gray-900">{new Date().toLocaleDateString()}</p>
+                  </div>
+               </div>
             </div>
+          </div>
+          
+          <div className="absolute bottom-4 left-0 right-0 text-center">
+            <p className="text-[10px] font-bold text-gray-300">Property of {schoolSettings?.schoolName || 'Institution'}</p>
           </div>
         </div>
       </div>
@@ -617,9 +609,9 @@ const IDCardGenerator = () => {
                 <button
                   onClick={handleFetchClass}
                   disabled={!selectedClassId}
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+                  className="bg-primary text-white px-8 py-2 rounded-xl font-bold shadow-lg hover:brightness-90 disabled:opacity-50 transition-all active:scale-95"
                 >
-                  Load Class
+                  Generate for Class
                 </button>
               </div>
             )}
@@ -637,9 +629,9 @@ const IDCardGenerator = () => {
                 </select>
                 <button
                   onClick={handleFetchStaff}
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                  className="bg-primary text-white px-8 py-2 rounded-xl font-bold shadow-lg hover:brightness-90 transition-all active:scale-95"
                 >
-                  Load Staff
+                  Generate for Staff
                 </button>
               </div>
             )}
