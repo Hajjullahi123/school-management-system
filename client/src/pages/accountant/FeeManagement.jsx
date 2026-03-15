@@ -1608,7 +1608,7 @@ export default function FeeManagement() {
 
           {/* Summary Cards */}
           {summary && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
               <div className="bg-gradient-to-br from-primary to-primary/90 text-white p-6 rounded-lg shadow-md">
                 <h3 className="text-lg font-semibold mb-4">Quick Info</h3>
                 <div className="space-y-3 text-sm">
@@ -1630,18 +1630,6 @@ export default function FeeManagement() {
                 <p className="text-xs opacity-75 mt-2">
                   {summary.totalExpected > 0 ? ((summary.totalBalance / summary.totalExpected) * 100).toFixed(1) : 0}% pending
                 </p>
-              </div>
-              <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg shadow-lg p-6 text-white">
-                <p className="text-sm opacity-90 mb-1">Exam Access: Allowed</p>
-                <p className="text-3xl font-bold">{summary.clearedStudents}</p>
-                <p className="text-xs opacity-75 mt-2">
-                  {summary.totalStudents > 0 ? ((summary.clearedStudents / summary.totalStudents) * 100).toFixed(1) : 0}% have cards
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg shadow-lg p-6 text-white">
-                <p className="text-sm opacity-90 mb-1">Exam Access: Restricted</p>
-                <p className="text-3xl font-bold">{summary.totalStudents - summary.clearedStudents}</p>
-                <p className="text-xs opacity-75 mt-2">Students blocked</p>
               </div>
             </div>
           )}
