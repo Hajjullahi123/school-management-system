@@ -500,7 +500,7 @@ const ParentDashboard = () => {
                       <p className="text-xs sm:text-sm text-gray-400 font-bold uppercase tracking-widest">No Records Found</p>
                     </div>
                   )}
-                  {/* Miscellaneous Fees Summary */}
+                  {/* Premium Miscellaneous Summary */}
                   {(() => {
                     const studentMiscFees = getStudentMiscFees(student);
                     if (studentMiscFees.length === 0) return null;
@@ -512,24 +512,35 @@ const ParentDashboard = () => {
                     if (totalExpected === 0) return null;
 
                     return (
-                      <div className="mt-4 pt-4 border-t border-dashed border-gray-100">
-                        <h4 className="text-[10px] font-black text-slate-400 mb-2 flex items-center gap-2 uppercase tracking-[0.2em]">
-                          <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-                          Misc Obligations
-                        </h4>
-                        <div className="flex gap-2">
-                          <div className="flex-1 bg-orange-50/50 p-2 rounded-lg border border-orange-100/50">
-                            <p className="text-[8px] font-black text-orange-400 uppercase tracking-widest">Expected</p>
-                            <p className="text-xs font-bold text-gray-900">{formatCurrency(totalExpected)}</p>
+                      <div className="mt-5 p-5 bg-slate-900 rounded-[28px] shadow-xl relative overflow-hidden group/misc">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl group-hover/misc:bg-orange-500/20 transition-all"></div>
+                        
+                        <div className="relative z-10">
+                          <h4 className="text-[10px] font-black text-orange-400 mb-4 flex items-center gap-2 uppercase tracking-[0.25em]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
+                            Ancillary Services Ledger
+                          </h4>
+                          
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/5 group-hover/misc:border-white/10 transition-all">
+                              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 group-hover/misc:text-slate-400">Assignment</p>
+                              <p className="text-sm font-bold text-white tracking-tighter italic">₦{formatCurrency(totalExpected).replace('NGN', '')}</p>
+                            </div>
+                            <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/5 group-hover/misc:border-white/10 transition-all">
+                              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 group-hover/misc:text-emerald-400">Cleared</p>
+                              <p className="text-sm font-bold text-emerald-400 tracking-tighter italic">₦{formatCurrency(totalPaid).replace('NGN', '')}</p>
+                            </div>
+                            <div className={`p-3 rounded-2xl border transition-all ${balance > 0 ? 'bg-orange-500/10 border-orange-500/20 shadow-lg shadow-orange-500/5' : 'bg-white/5 border-white/5'}`}>
+                              <p className={`text-[8px] font-black uppercase tracking-widest mb-1 ${balance > 0 ? 'text-orange-400' : 'text-slate-500'}`}>Net Due</p>
+                              <p className={`text-sm font-bold tracking-tighter italic ${balance > 0 ? 'text-white' : 'text-slate-400'}`}>{formatCurrency(balance).replace('NGN', '')}</p>
+                            </div>
                           </div>
-                          <div className="flex-1 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100/50">
-                            <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Paid</p>
-                            <p className="text-xs font-bold text-emerald-700">{formatCurrency(totalPaid)}</p>
-                          </div>
-                          <div className={`flex-1 p-2 rounded-lg border ${balance > 0 ? 'bg-orange-50 border-orange-200' : 'bg-slate-50 border-slate-100'}`}>
-                            <p className={`text-[8px] font-black uppercase tracking-widest ${balance > 0 ? 'text-orange-500' : 'text-slate-400'}`}>Balance</p>
-                            <p className={`text-xs font-bold ${balance > 0 ? 'text-orange-700' : 'text-gray-900'}`}>{formatCurrency(balance)}</p>
-                          </div>
+                          
+                          {balance > 0 && (
+                            <div className="mt-4 flex items-center gap-2 justify-center py-2 bg-orange-500/5 rounded-xl border border-orange-500/10">
+                              <span className="text-[9px] font-black text-orange-400 uppercase tracking-widest italic animate-pulse">Awaiting Remediation</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

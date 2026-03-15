@@ -1179,81 +1179,95 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Fee Status */}
-      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mb-3 sm:mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Fee Status</h2>
-          <Link to="/dashboard/student/fees" className="text-xs font-black text-primary uppercase tracking-widest hover:underline">View Invoices →</Link>
-        </div>
+      <div className="bg-slate-900 p-5 sm:p-8 rounded-[32px] shadow-2xl relative overflow-hidden mb-6 border border-white/5">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-orange-500/5 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2"></div>
         
-        {/* School Fees Summary */}
-        <div className="mb-6">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-            School Fees (Current Term)
-          </h3>
-          {studentFeeRecord ? (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col items-center sm:items-start">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Expected</p>
-                <p className="text-xl font-black text-slate-900 leading-tight">₦{formatNumber(studentFeeRecord.expectedAmount || 0)}</p>
+        <div className="relative z-10">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-400">Financial Integrity Ledger</p>
               </div>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col items-center sm:items-start">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Paid</p>
-                <p className="text-xl font-black text-emerald-600 leading-tight">₦{formatNumber(studentFeeRecord.paidAmount || 0)}</p>
-              </div>
-              <div className={`p-4 rounded-xl border flex flex-col items-center sm:items-start ${studentFeeRecord.balance > 0 ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
-                <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${studentFeeRecord.balance > 0 ? 'text-red-400' : 'text-slate-400'}`}>Balance</p>
-                <p className={`text-xl font-black leading-tight ${studentFeeRecord.balance > 0 ? 'text-red-600' : 'text-slate-900'}`}>
-                  ₦{formatNumber(studentFeeRecord.balance || 0)}
-                </p>
-              </div>
+              <h2 className="text-xl sm:text-2xl font-black italic tracking-tighter text-white uppercase leading-tight">Financial Overview</h2>
             </div>
-          ) : (
-            <div className="text-center py-4 text-gray-500 bg-gray-50 rounded-lg">
-              <p className="text-sm">No school fee records found.</p>
+            <Link to="/dashboard/student/fees" className="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-white/10 hover:border-white/20">
+              Detailed Ledger
+            </Link>
+          </div>
+          
+          {/* Main Tuition Dashboard */}
+          <div className="mb-10">
+            <h3 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+              <span className="w-1 h-3 bg-blue-500 rounded-full"></span>
+              Term Tuition Obligations
+            </h3>
+            {studentFeeRecord ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl hover:bg-white/[0.08] transition-all group">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-blue-400 transition-colors">Gross Expected</p>
+                  <p className="text-2xl font-black text-white leading-tight">₦{formatNumber(studentFeeRecord.expectedAmount || 0)}</p>
+                </div>
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl hover:bg-white/[0.08] transition-all group relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-12 h-12 bg-emerald-500/10 rounded-full blur-xl"></div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-emerald-400 transition-colors">Cumulative Paid</p>
+                  <p className="text-2xl font-black text-emerald-400 leading-tight">₦{formatNumber(studentFeeRecord.paidAmount || 0)}</p>
+                </div>
+                <div className={`p-5 rounded-2xl backdrop-blur-md border transition-all ${studentFeeRecord.balance > 0 ? 'bg-red-500/10 border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]' : 'bg-white/5 border-white/10'}`}>
+                  <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${studentFeeRecord.balance > 0 ? 'text-red-400' : 'text-slate-400'}`}>Outstanding Balance</p>
+                  <p className={`text-2xl font-black leading-tight ${studentFeeRecord.balance > 0 ? 'text-white' : 'text-slate-300'}`}>
+                    ₦{formatNumber(studentFeeRecord.balance || 0)}
+                  </p>
+                  {studentFeeRecord.balance > 0 && <div className="mt-2 h-0.5 w-full bg-red-500/20 rounded-full overflow-hidden"><div className="h-full bg-red-500 animate-pulse" style={{width: '100%'}}></div></div>}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 bg-white/5 border border-white/10 rounded-2xl italic text-slate-500 text-sm">
+                No active tuition record found for the selected term.
+              </div>
+            )}
+          </div>
+
+          {/* Premium Miscellaneous Section */}
+          {miscFeeSummary.length > 0 && (
+            <div className="pt-8 border-t border-white/5">
+              <h3 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                <span className="w-1 h-3 bg-orange-500 rounded-full"></span>
+                Miscellaneous Services & Provisions
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {(() => {
+                  const totalExpected = miscFeeSummary.reduce((sum, f) => sum + f.amount, 0);
+                  const totalPaid = miscFeeSummary.reduce((sum, f) => {
+                    const paid = f.payments ? f.payments.reduce((pSum, p) => pSum + p.amount, 0) : 0;
+                    return sum + paid;
+                  }, 0);
+                  const balance = totalExpected - totalPaid;
+                  
+                  return (
+                    <>
+                      <div className="bg-white/5 border border-white/10 p-5 rounded-2xl">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Provision Value</p>
+                        <p className="text-xl font-black text-white">₦{formatNumber(totalExpected)}</p>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 p-5 rounded-2xl">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Remitted Total</p>
+                        <p className="text-xl font-black text-emerald-400">₦{formatNumber(totalPaid)}</p>
+                      </div>
+                      <div className={`p-5 rounded-2xl border ${balance > 0 ? 'bg-orange-500/10 border-orange-500/20' : 'bg-white/5 border-white/10'}`}>
+                        <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${balance > 0 ? 'text-orange-400' : 'text-slate-400'}`}>Net Arrears</p>
+                        <p className={`text-xl font-black ${balance > 0 ? 'text-white' : 'text-slate-300'}`}>
+                          ₦{formatNumber(balance)}
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
             </div>
           )}
         </div>
-
-        {/* Miscellaneous Fees Summary */}
-        {miscFeeSummary.length > 0 && (
-          <div className="pt-6 border-t border-slate-100">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-              Miscellaneous Fees & Obligations
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {(() => {
-                const totalExpected = miscFeeSummary.reduce((sum, f) => sum + f.amount, 0);
-                const totalPaid = miscFeeSummary.reduce((sum, f) => {
-                  const paid = f.payments ? f.payments.reduce((pSum, p) => pSum + p.amount, 0) : 0;
-                  return sum + paid;
-                }, 0);
-                const balance = totalExpected - totalPaid;
-                
-                return (
-                  <>
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col items-center sm:items-start">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Expected</p>
-                      <p className="text-xl font-black text-slate-900 leading-tight">₦{formatNumber(totalExpected)}</p>
-                    </div>
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col items-center sm:items-start">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Paid</p>
-                      <p className="text-xl font-black text-emerald-600 leading-tight">₦{formatNumber(totalPaid)}</p>
-                    </div>
-                    <div className={`p-4 rounded-xl border flex flex-col items-center sm:items-start ${balance > 0 ? 'bg-orange-50 border-orange-100' : 'bg-slate-50 border-slate-100'}`}>
-                      <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${balance > 0 ? 'text-orange-400' : 'text-slate-400'}`}>Balance</p>
-                      <p className={`text-xl font-black leading-tight ${balance > 0 ? 'text-orange-600' : 'text-slate-900'}`}>
-                        ₦{formatNumber(balance)}
-                      </p>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        )}
       </div>
 
 
