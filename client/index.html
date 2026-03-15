@@ -24,20 +24,37 @@
     </div>
   </div>
   <script>
+    // Handle dynamic import failures (common after new deployments)
     window.addEventListener('error', function (e) {
-      // Ignore image/resource load errors (common and not critical)
-      if (e.target && (e.target.tagName === 'IMG' || e.target.tagName === 'LINK')) {
-        console.warn('Resource failed to load:', e.target.src || e.target.href);
-        return; // Don't show error message for images/links
+      if (e.message && e.message.includes('Failed to fetch dynamically imported module')) {
+        console.warn('Dynamic import failed. Potential new deployment. Refreshing...');
+        window.location.reload();
+        return;
       }
 
-      // Only show critical JavaScript errors
+      // Ignore image/resource load errors
+      if (e.target && (e.target.tagName === 'IMG' || e.target.tagName === 'LINK')) {
+        return;
+      }
+
+      // Show critical JavaScript errors
       if (e.target && e.target.tagName === 'SCRIPT') {
-        var msg = 'Critical Script Failed to Load: ' + (e.target.src || 'inline script');
-        document.body.innerHTML += '<div style="color:white; background:red; padding:20px; border:2px solid black; margin:20px; z-index:9999; position:relative;">' + msg + '</div>';
-        console.error('Critical Error:', e);
+        var msg = 'Critical Script Failed to Load. Please refresh your browser.';
+        document.body.innerHTML += '<div style="color:white; background:red; padding:20px; border:2px solid black; margin:20px; z-index:9999; position:relative; font-family:sans-serif;">' + msg + '</div>';
       }
     }, true);
+
+    // Also catch unhandled promise rejections (where dynamic imports often fail)
+    window.addEventListener('unhandledrejection', function (event) {
+      if (event.reason && (
+        event.reason.message && event.reason.message.includes('Failed to fetch dynamically imported module') ||
+        event.reason.name === 'ChunkLoadError' ||
+        event.reason.toString().includes('Loading chunk')
+      )) {
+        console.warn('Chunk load failed. Refreshing to get latest version...');
+        window.location.reload();
+      }
+    });
   </script>
   <script type="module" src="/src/main.jsx"></script>
 </body>
