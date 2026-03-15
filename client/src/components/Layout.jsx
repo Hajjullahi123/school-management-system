@@ -1089,7 +1089,7 @@ const Layout = () => {
       {/* Sidebar */}
       <div
         className={`
-          fixed lg:static inset-y-0 left-0 z-50
+          fixed lg:static inset-y-0 left-0 z-[60]
           w-64 text-white shadow-xl flex flex-col transition-all duration-300
           ${user?.role === 'superadmin' ? 'bg-gradient-to-b from-slate-800 to-slate-900 border-r border-slate-700' : 'bg-gradient-to-b from-secondary to-primary'} 
           print:hidden
@@ -1167,7 +1167,7 @@ const Layout = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-white/20 space-y-2">
+        <div className="p-4 border-t border-white/20 space-y-2 pb-24 lg:pb-4">
           {/* Change Password - Available to ALL users */}
           <Link
             to="/dashboard/change-password"
