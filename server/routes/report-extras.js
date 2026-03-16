@@ -9,7 +9,6 @@ router.get('/domains', authenticate, async (req, res) => {
   try {
     const domains = await prisma.psychomotorDomain.findMany({
       where: {
-        isActive: true,
         schoolId: req.schoolId
       },
       orderBy: { name: 'asc' }
@@ -19,6 +18,68 @@ router.get('/domains', authenticate, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch domains' });
   }
 });
+
+// Create a new psychomotor domain
+router.post('/domains', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const { name, description, maxScore } = req.body;
+    if (!name) return res.status(400).json({ error: 'Domain name is required' });
+
+    const domain = await prisma.psychomotorDomain.create({
+      data: {
+        schoolId: req.schoolId,
+        name: name.trim(),
+        description: description?.trim() || null,
+        maxScore: maxScore ? parseInt(maxScore) : 5,
+        isActive: true
+      }
+    });
+    res.status(201).json(domain);
+  } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'A domain with this name already exists' });
+    }
+    res.status(500).json({ error: 'Failed to create domain' });
+  }
+});
+
+// Update a psychomotor domain
+router.put('/domains/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, maxScore, isActive } = req.body;
+
+    const domain = await prisma.psychomotorDomain.update({
+      where: { id: parseInt(id), schoolId: req.schoolId },
+      data: {
+        name: name?.trim(),
+        description: description?.trim() || null,
+        maxScore: maxScore ? parseInt(maxScore) : undefined,
+        isActive: isActive !== undefined ? !!isActive : undefined
+      }
+    });
+    res.json(domain);
+  } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'A domain with this name already exists' });
+    }
+    res.status(500).json({ error: 'Failed to update domain' });
+  }
+});
+
+// Delete a psychomotor domain
+router.delete('/domains/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.psychomotorDomain.delete({
+      where: { id: parseInt(id), schoolId: req.schoolId }
+    });
+    res.json({ message: 'Domain deleted' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete domain' });
+  }
+});
+
 
 // Get remarks/psychomotor for a student in a term
 router.get('/:studentId/:termId', authenticate, async (req, res) => {

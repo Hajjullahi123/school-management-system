@@ -95,6 +95,8 @@ const DashboardLogin = lazyRetry(() => import('./pages/DashboardLogin'));
 const Billing = lazyRetry(() => import('./pages/admin/Billing'));
 const ExamConfig = lazyRetry(() => import('./pages/admin/ExamConfig'));
 const DemoRedirect = lazyRetry(() => import('./pages/DemoRedirect'));
+const PsychomotorDomains = lazyRetry(() => import('./pages/admin/PsychomotorDomains'));
+
 
 const TranscriptView = lazyRetry(() => import('./pages/admin/TranscriptView'));
 const CertificateView = lazyRetry(() => import('./pages/admin/CertificateView'));
@@ -440,6 +442,11 @@ function App() {
               <Route path="class-subjects" element={
                 <ProtectedRoute roles={['admin', 'principal']}>
                   <ClassSubjects />
+                </ProtectedRoute>
+              } />
+              <Route path="psychomotor-domains" element={
+                <ProtectedRoute roles={['admin', 'principal']}>
+                  <PsychomotorDomains />
                 </ProtectedRoute>
               } />
 
