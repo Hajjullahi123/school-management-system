@@ -487,16 +487,29 @@ const ProgressiveReport = () => {
 
           <style>{`
           @media print {
+            @page { 
+              size: A4; 
+              margin: 0; 
+            }
             body { background: white !important; margin: 0; padding: 0; }
             .print-safe-area { background: white !important; padding: 0 !important; }
             .print-container { width: 100% !important; margin: 0 !important; background: white !important; }
             .report-card-page {
-              width: 100% !important; height: auto !important; min-height: 297mm;
-              padding: 5mm !important; margin: 0 !important;
-              box-shadow: none !important; break-after: page;
+              width: 210mm !important; 
+              height: 297mm !important;
+              max-height: 297mm !important;
+              overflow: hidden !important;
+              padding: 8mm !important; 
+              margin: 0 auto !important;
+              box-sizing: border-box !important;
+              box-shadow: none !important; 
+              page-break-after: always !important;
+              break-after: page !important;
+              background: white !important;
             }
             .print-safe-content {
               border: 3px solid black !important;
+              height: 100% !important;
             }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           }

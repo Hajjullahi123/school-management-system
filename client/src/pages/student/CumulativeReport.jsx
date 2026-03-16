@@ -509,12 +509,26 @@ const CumulativeReport = () => {
 
       <style>{`
         @media print {
-          @page { size: A4; margin: 5mm; }
+          @page { 
+            size: A4; 
+            margin: 0; 
+          }
           .no-print { display: none !important; }
           body { background: white !important; margin: 0; padding: 0; }
           .min-h-screen { background: white !important; padding: 0 !important; }
-          .max-w-\\[210mm\\] { max-width: 100% !important; margin: 0 !important; width: 100% !important; }
-          .emerald-border-A4 { border: 8px solid #065f46 !important; -webkit-print-color-adjust: exact; }
+          
+          .emerald-border-A4 { 
+            width: 210mm !important;
+            height: 297mm !important;
+            max-height: 297mm !important;
+            overflow: hidden !important;
+            margin: 0 auto !important;
+            padding: 8mm !important;
+            box-sizing: border-box !important;
+            border: 6px solid #065f46 !important; 
+            -webkit-print-color-adjust: exact; 
+          }
+
           table { border-collapse: collapse !important; width: 100% !important; }
           td, th { border: 1px solid black !important; padding: 4px !important; }
           * { box-sizing: border-box !important; }
