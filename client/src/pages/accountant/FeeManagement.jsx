@@ -1734,6 +1734,7 @@ export default function FeeManagement() {
                   <p className="text-white/90">📊 Total Students: <span className="font-bold text-white">{summary.totalStudents}</span></p>
                   <p className="text-white/90">💰 Avg. Payment: <span className="font-bold text-white">₦{summary.totalStudents > 0 ? formatNumber(summary.totalPaid / summary.totalStudents, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 0}</span></p>
                   <p className="text-white/90">✅ Allowance Rate: <span className="font-bold text-white">{summary.totalStudents > 0 ? ((summary.clearedStudents / summary.totalStudents) * 100).toFixed(1) : 0}%</span></p>
+                  <p className="text-red-500 font-bold">🎓 Total number of students on scholarship: {students.filter(s => s.isScholarship).length}</p>
                 </div>
               </div>
               <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
