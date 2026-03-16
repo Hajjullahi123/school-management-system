@@ -23,6 +23,8 @@ const Attendance = () => {
   const [stats, setStats] = useState({ present: 0, absent: 0, late: 0, excused: 0 });
   const [holidayCheck, setHolidayCheck] = useState({ isHoliday: false, info: null });
   const [isPastDate, setIsPastDate] = useState(false);
+  const [noActiveSession, setNoActiveSession] = useState(false);
+
 
   // Download functionality
   const [showDownloadDialog, setShowDownloadDialog] = useState(false);
@@ -125,6 +127,14 @@ const Attendance = () => {
 
       setStudents(initializedStudents);
       calculateStats(initializedStudents);
+
+      // Detect missing session/term and show warning
+      if (!data?.session || !data?.term) {
+        setNoActiveSession(true);
+      } else {
+        setNoActiveSession(false);
+      }
+
 
       // Lock check: If the date is more than 48 hours ago, teachers cannot edit
       const dateDiff = (new Date() - new Date(selectedDate)) / (1000 * 60 * 60);
@@ -342,6 +352,23 @@ const Attendance = () => {
         </div>
       )}
 
+      {noActiveSession && !error && (
+        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-md">
+          <div className="flex items-start gap-3">
+            <svg className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <p className="text-sm font-bold text-amber-800">No Active Academic Session or Term</p>
+              <p className="text-sm text-amber-700 mt-1">
+                You can view the class list, but <strong>saving attendance is disabled</strong> until an active session and term are configured.
+                Please contact the Administrator to go to <strong>Academic Setup → Sessions & Terms</strong> and set the current session/term.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {initialLoading ? (
         <div className="flex flex-col items-center justify-center p-20 bg-white rounded-lg shadow-sm border border-gray-100">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -546,8 +573,9 @@ const Attendance = () => {
                 {!isPastDate && (
                   <button
                     onClick={handleSave}
-                    disabled={saving || (user?.role === 'teacher' && holidayCheck.isHoliday) || (user?.role === 'teacher' && (new Date() - new Date(selectedDate)) / (1000 * 60 * 60) > 48)}
-                    className="bg-indigo-600 text-white px-8 py-3 rounded-lg shadow-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:shadow-none flex items-center gap-2 font-black uppercase text-xs tracking-widest transition-all"
+                    disabled={saving || noActiveSession || (user?.role === 'teacher' && holidayCheck.isHoliday) || (user?.role === 'teacher' && (new Date() - new Date(selectedDate)) / (1000 * 60 * 60) > 48)}
+                    title={noActiveSession ? 'Cannot save: No active academic session/term. Contact admin.' : ''}
+                    className="bg-indigo-600 text-white px-8 py-3 rounded-lg shadow-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed flex items-center gap-2 font-black uppercase text-xs tracking-widest transition-all"
                   >
                     {saving ? (
                       <>
