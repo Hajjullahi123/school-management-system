@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { FiMenu, FiX } from 'react-icons/fi';
+import { FiMenu, FiX, FiLogOut } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import { API_BASE_URL } from '../config';
@@ -1250,6 +1250,15 @@ const Layout = () => {
                   >
                     {user?.firstName?.[0]}{user?.lastName?.[0]}
                   </div>
+
+                  {/* Mobile Logout Button (Visible only on small screens) */}
+                  <button
+                    onClick={handleLogout}
+                    className="lg:hidden p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center active:scale-90 shadow-sm border border-red-100"
+                    title="Sign Out"
+                  >
+                    <FiLogOut className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
             </div>
