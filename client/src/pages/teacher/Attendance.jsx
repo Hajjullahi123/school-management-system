@@ -100,9 +100,14 @@ const Attendance = () => {
       const response = await api.get(`/api/attendance/class/${selectedClassId}?date=${selectedDate}`);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || errorData.error || 'Failed to load attendance list');
+        let errorMsg = 'Failed to load attendance list';
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.message || errorData.error || errorMsg;
+        } catch (e) {}
+        throw new Error(errorMsg);
       }
+
 
       const data = await response.json();
       const studentsData = Array.isArray(data?.students) ? data.students : [];
@@ -140,7 +145,10 @@ const Attendance = () => {
     } catch (error) {
       console.error('Error fetching attendance:', error);
       setError(error.message);
-      toast.error(error.message || 'Failed to load attendance list');
+      // Don't toast if it's the session error we handle in the banner
+      if (!error.message.includes('academic session')) {
+        toast.error(error.message || 'Failed to load attendance list');
+      }
     } finally {
       setLoading(false);
     }
@@ -235,12 +243,12 @@ const Attendance = () => {
       if (downloadFilters.termId) params.append('termId', downloadFilters.termId);
       if (downloadFilters.sessionId) params.append('sessionId', downloadFilters.sessionId);
 
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${window.location.origin.replace('5173', '3000')}/api/attendance/download?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await api.get(`/api/attendance/download?${params.toString()}`);
 
-      if (!response.ok) throw new Error('Download failed');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || 'Download failed');
+      }
 
       const csvData = await response.text();
       const parsed = Papa.parse(csvData, { header: true, skipEmptyLines: true });

@@ -146,7 +146,8 @@ router.post('/login', async (req, res) => {
               include: { 
                 school: true,
                 teacher: true,
-                student: { include: { classModel: true } }
+                student: { include: { classModel: true } },
+                classesAsTeacher: true
               } 
             } 
           }
@@ -166,7 +167,8 @@ router.post('/login', async (req, res) => {
               include: { 
                 school: true,
                 teacher: true,
-                student: { include: { classModel: true } }
+                student: { include: { classModel: true } },
+                classesAsTeacher: true
               } 
             } 
           }

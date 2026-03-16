@@ -60,6 +60,14 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
     const queryDate = date ? new Date(date) : new Date();
     queryDate.setHours(0, 0, 0, 0);
 
+    // Ensure session and term exist (optional check for sheet, mandatory for marking)
+    const { session, term } = await getCurrentSessionAndTerm(req.schoolId);
+    if (!session || !term) {
+      console.warn(`[ATTENDANCE WARNING] Fetch attempt for class ${classId} without active session.`);
+      // We don't block FETCHing the sheet, but we return the info so frontend can warn
+    }
+
+
     // Get all students in this class for THIS school
     const students = await prisma.student.findMany({
       where: {
@@ -133,7 +141,9 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
       date: queryDate,
       students: result,
       isHoliday,
-      holidayInfo
+      holidayInfo,
+      session: session ? { id: session.id, name: session.name } : null,
+      term: term ? { id: term.id, name: term.name } : null
     });
 
   } catch (error) {
@@ -431,7 +441,7 @@ router.get('/student/:studentId/summary', authenticate, async (req, res) => {
 });
 
 // Download attendance report (Admin/Principal only)
-router.get('/download', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.get('/download', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const { classId, startDate, endDate, termId, sessionId } = req.query;
 
