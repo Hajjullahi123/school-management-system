@@ -4,6 +4,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const fs = require('fs');
 const path = require('path');
+const compression = require('compression');
 require('dotenv').config();
 
 // Ensure required directories exist
@@ -29,6 +30,7 @@ require('dotenv').config();
 });
 
 const app = express();
+app.use(compression()); // Enable Gzip compression for all responses
 let activeServer = null;
 
 // Global error handlers
@@ -109,8 +111,11 @@ app.get('/api/debug/inspect-users', async (req, res) => {
   }
 });
 
-// Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve uploaded files statically with caching
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  maxAge: '7d', // Cache for 7 days
+  immutable: true
+}));
 
 // Debug middleware to log all requests
 app.use((req, res, next) => {
@@ -288,8 +293,13 @@ app.use('/api/holidays', authenticate, checkSubscription, holidayRoutes);
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
   const clientDistPath = path.join(__dirname, '../client/dist');
-  app.use('/assets', express.static(path.join(clientDistPath, 'assets')));
-  app.use(express.static(clientDistPath));
+  app.use('/assets', express.static(path.join(clientDistPath, 'assets'), {
+    maxAge: '1y', // Assets are hashed, so cache for 1 year
+    immutable: true
+  }));
+  app.use(express.static(clientDistPath, {
+    maxAge: '1h' // Cache index.html for 1 hour
+  }));
 
   // 1. API 404 Handler (JSON)
   app.use('/api/*', (req, res) => {

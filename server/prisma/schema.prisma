@@ -308,6 +308,7 @@ model Student {
   @@unique([schoolId, admissionNumber])
   @@unique([schoolId, rollNo])
   @@index([admissionNumber])     // Global index for fast identification
+  @@index([schoolId, classId])
 }
 
 model Teacher {
@@ -530,6 +531,8 @@ model Result {
   student           Student         @relation(fields: [studentId], references: [id])
 
   @@unique([schoolId, studentId, subjectId, termId, academicSessionId])
+  @@index([schoolId, classId, subjectId])
+  @@index([schoolId, studentId, termId])
 }
 
 model AttendanceRecord {
@@ -552,6 +555,7 @@ model AttendanceRecord {
   student           Student         @relation(fields: [studentId], references: [id])
 
   @@unique([schoolId, studentId, date])
+  @@index([schoolId, classId, date])
 }
 
 model StaffAttendance {
@@ -604,13 +608,12 @@ model Timetable {
   type        String
   isPublished Boolean  @default(false)
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
   
   school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  subject     Subject? @relation(fields: [subjectId], references: [id])
   class       Class    @relation(fields: [classId], references: [id])
+  subject     Subject? @relation(fields: [subjectId], references: [id])
 
-  @@index([schoolId, classId, dayOfWeek])
+  @@index([schoolId, classId])
 }
 
 model Notice {
