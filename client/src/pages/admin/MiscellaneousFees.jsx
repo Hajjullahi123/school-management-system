@@ -7,6 +7,8 @@ const MiscellaneousFees = () => {
   const { user } = useAuth();
   const [fees, setFees] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [terms, setTerms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingFee, setEditingFee] = useState(null);
@@ -15,12 +17,16 @@ const MiscellaneousFees = () => {
     description: '',
     amount: '',
     isCompulsory: false,
-    classIds: []
+    classIds: [],
+    academicSessionId: '',
+    termId: ''
   });
 
   useEffect(() => {
     fetchFees();
     fetchClasses();
+    fetchSessions();
+    fetchTerms();
   }, []);
 
   const fetchFees = async () => {
@@ -49,16 +55,58 @@ const MiscellaneousFees = () => {
     }
   };
 
+  const fetchSessions = async () => {
+    try {
+      const response = await api.get('/api/academic-sessions');
+      if (response.ok) {
+        const data = await response.json();
+        const sessionsArr = Array.isArray(data) ? data : [];
+        setSessions(sessionsArr);
+        // Auto-select current session
+        const current = sessionsArr.find(s => s.isCurrent);
+        if (current) {
+          setFormData(prev => ({ ...prev, academicSessionId: current.id.toString() }));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+    }
+  };
+
+  const fetchTerms = async () => {
+    try {
+      const response = await api.get('/api/terms');
+      if (response.ok) {
+        const data = await response.json();
+        const termsArr = Array.isArray(data) ? data : [];
+        setTerms(termsArr);
+        // Auto-select current term
+        const current = termsArr.find(t => t.isCurrent);
+        if (current) {
+          setFormData(prev => ({ ...prev, termId: current.id.toString() }));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching terms:', error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       let response;
+      const payload = {
+        ...formData,
+        academicSessionId: formData.academicSessionId || null,
+        termId: formData.termId || null
+      };
+
       if (editingFee) {
-        response = await api.put(`/api/misc-fees/${editingFee.id}`, formData);
+        response = await api.put(`/api/misc-fees/${editingFee.id}`, payload);
       } else {
-        response = await api.post('/api/misc-fees', formData);
+        response = await api.post('/api/misc-fees', payload);
       }
 
       if (response.ok) {
@@ -84,7 +132,9 @@ const MiscellaneousFees = () => {
       description: fee.description || '',
       amount: fee.amount,
       isCompulsory: fee.isCompulsory,
-      classIds: fee.classIds
+      classIds: fee.classIds,
+      academicSessionId: fee.academicSessionId?.toString() || '',
+      termId: fee.termId?.toString() || ''
     });
     setShowForm(true);
   };
@@ -108,12 +158,16 @@ const MiscellaneousFees = () => {
   };
 
   const resetForm = () => {
+    const currentSession = sessions.find(s => s.isCurrent);
+    const currentTerm = terms.find(t => t.isCurrent);
     setFormData({
       title: '',
       description: '',
       amount: '',
       isCompulsory: false,
-      classIds: []
+      classIds: [],
+      academicSessionId: currentSession?.id.toString() || '',
+      termId: currentTerm?.id.toString() || ''
     });
     setEditingFee(null);
     setShowForm(false);
@@ -129,12 +183,22 @@ const MiscellaneousFees = () => {
     }));
   };
 
+  const getSessionName = (sessionId) => {
+    const s = sessions.find(s => s.id === sessionId);
+    return s ? s.name : '—';
+  };
+
+  const getTermName = (termId) => {
+    const t = terms.find(t => t.id === termId);
+    return t ? t.name : '—';
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Miscellaneous Fees</h1>
-          <p className="text-gray-600">Manage custom fees separate from school tuition</p>
+          <p className="text-gray-600">Manage custom fees separate from <span className="text-primary font-medium">school tuition</span></p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -150,6 +214,7 @@ const MiscellaneousFees = () => {
             {editingFee ? 'Edit Fee' : 'Create New Fee'}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Row 1: Title + Amount */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -182,6 +247,49 @@ const MiscellaneousFees = () => {
               </div>
             </div>
 
+            {/* Row 2: Session + Term */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Academic Session
+                  <span className="text-gray-400 font-normal ml-1">(Optional)</span>
+                </label>
+                <select
+                  value={formData.academicSessionId}
+                  onChange={(e) => setFormData({ ...formData, academicSessionId: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
+                >
+                  <option value="">All Sessions (No restriction)</option>
+                  {sessions.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}{s.isCurrent ? ' ✓ (Current)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Term
+                  <span className="text-gray-400 font-normal ml-1">(Optional)</span>
+                </label>
+                <select
+                  value={formData.termId}
+                  onChange={(e) => setFormData({ ...formData, termId: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
+                >
+                  <option value="">All Terms (No restriction)</option>
+                  {terms.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}{t.isCurrent ? ' ✓ (Current)' : ''}
+                      {t.academicSession ? ` — ${t.academicSession.name}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Description (Optional)
@@ -195,6 +303,7 @@ const MiscellaneousFees = () => {
               />
             </div>
 
+            {/* Compulsory toggle */}
             <div className="flex items-center">
               <input
                 type="checkbox"
@@ -204,24 +313,25 @@ const MiscellaneousFees = () => {
                 className="h-4 w-4 text-primary rounded"
               />
               <label htmlFor="isCompulsory" className="ml-2 text-sm text-gray-700">
-                Mark as Compulsory (all students in selected classes must pay)
+                Mark as <span className="font-semibold text-red-600">Compulsory</span> (all students in selected classes must pay)
               </label>
             </div>
 
+            {/* Applicable Classes */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Applicable Classes *
               </label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {classes.map(cls => (
-                  <label key={cls.id} className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50">
+                  <label key={cls.id} className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={formData.classIds.includes(cls.id.toString())}
                       onChange={() => handleClassToggle(cls.id)}
                       className="h-4 w-4 text-primary rounded"
                     />
-                    <span className="text-sm">{cls.name}</span>
+                    <span className="text-sm">{cls.name} {cls.arm || ''}</span>
                   </label>
                 ))}
               </div>
@@ -230,7 +340,7 @@ const MiscellaneousFees = () => {
               )}
             </div>
 
-            <div className="flex justify-end space-x-3 pt-4">
+            <div className="flex justify-end space-x-3 pt-4 border-t">
               <button
                 type="button"
                 onClick={resetForm}
@@ -257,6 +367,7 @@ const MiscellaneousFees = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Session / Term</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Classes</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
             </tr>
@@ -264,7 +375,7 @@ const MiscellaneousFees = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {fees.length === 0 ? (
               <tr>
-                <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
                   No fees created yet. Click "Create Fee" to get started.
                 </td>
               </tr>
@@ -285,6 +396,16 @@ const MiscellaneousFees = () => {
                       }`}>
                       {fee.isCompulsory ? 'Compulsory' : 'Optional'}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {fee.academicSessionId ? (
+                      <div>
+                        <div className="font-medium text-gray-700">{getSessionName(fee.academicSessionId)}</div>
+                        {fee.termId && <div className="text-xs text-gray-400">{getTermName(fee.termId)}</div>}
+                      </div>
+                    ) : (
+                      <span className="text-gray-300 text-xs italic">All</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
                     {fee.classIds.length} class{fee.classIds.length !== 1 ? 'es' : ''}
