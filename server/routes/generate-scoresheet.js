@@ -148,7 +148,19 @@ async function generateExcel(res, titleData, studentData, filename, weights) {
     });
   }
 
-  // 6. Protect Sheet
+  // 6. Add Instructions Sheet
+  const helpSheet = workbook.addWorksheet('Instructions');
+  helpSheet.columns = [{ header: 'Step', key: 'step', width: 80 }];
+  [
+    '1. Use the "Scoresheet" sheet to fill in student scores.',
+    `2. Maximum scores for this subject are: Assign 1 (${w.assignment1Weight}), Assign 2 (${w.assignment2Weight}), Test 1 (${w.test1Weight}), Test 2 (${w.test2Weight}), Exam (${w.examWeight}).`,
+    '3. Do not modify the "Admission No" or "Student Name" columns.',
+    '4. The "Total" column uses a formula to calculate automatically.',
+    '5. Once filled, save this file and upload it back to the Bulk Result Upload page.'
+  ].forEach(text => helpSheet.addRow({ step: text }));
+  helpSheet.getRow(1).font = boldFont;
+
+  // 7. Protect Sheet
   await worksheet.protect('school123', {
     selectLockedCells: true,
     selectUnlockedCells: true,

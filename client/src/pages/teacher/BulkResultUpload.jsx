@@ -203,11 +203,11 @@ export default function BulkResultUpload() {
       };
 
       const scores = {
-        assignment1: getScoreValue(row, ['1st Assignment', 'Assignment 1', 'Assign 1', 'Ass 1', '1st CA']),
-        assignment2: getScoreValue(row, ['2nd Assignment', 'Assignment 2', 'Assign 2', 'Ass 2', '2nd CA']),
-        test1: getScoreValue(row, ['1st Test', 'Test 1', 'CA 1']),
-        test2: getScoreValue(row, ['2nd Test', 'Test 2', 'CA 2']),
-        exam: getScoreValue(row, ['Exam', 'Examination'])
+        assignment1: getScoreValue(row, ['1st Assignment', 'Assignment 1', 'Assign 1', 'Ass 1', '1st CA', 'CA 1', 'CA1', 'Project 1']),
+        assignment2: getScoreValue(row, ['2nd Assignment', 'Assignment 2', 'Assign 2', 'Ass 2', '2nd CA', 'CA 2', 'CA2', 'Project 2']),
+        test1: getScoreValue(row, ['1st Test', 'Test 1', 'CT 1', 'Check 1']),
+        test2: getScoreValue(row, ['2nd Test', 'Test 2', 'CT 2', 'Check 2']),
+        exam: getScoreValue(row, ['Exam', 'Examination', 'Final Score', 'End Term'])
       };
 
       const total = Object.values(scores).reduce((a, b) => a + (b || 0), 0);
@@ -255,6 +255,7 @@ export default function BulkResultUpload() {
         setPreviewData(null);
         toast.success(`Successfully processed ${result.successful.length + result.updated.length} records!`);
         fetchData(); // Refresh counts
+        // Selected assignment stays so user can see result summary
       } else {
         toast.error(`Upload failed: ${result.error}`);
       }
@@ -651,17 +652,46 @@ export default function BulkResultUpload() {
 
                     {uploadResult.failed.length > 0 && (
                       <div className="p-4 bg-red-50/50 rounded-lg border border-red-100">
-                        <h4 className="text-xs font-bold text-red-500 mb-3 uppercase tracking-widest">Error Log</h4>
+                        <div className="flex justify-between items-center mb-3">
+                          <h4 className="text-xs font-bold text-red-500 uppercase tracking-widest">Error Log ({uploadResult.failed.length})</h4>
+                          <button
+                            onClick={() => {
+                              const headers = ['Admission Number', 'Error'];
+                              const rows = uploadResult.failed.map(f => [f.data.admissionNumber, f.error]);
+                              const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+                              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                              saveAs(blob, `Errors_${selectedAssignment.subjectName}_${selectedAssignment.className}.csv`);
+                            }}
+                            className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded font-black hover:bg-red-200 transition-colors uppercase"
+                          >
+                            Download Errors CSV
+                          </button>
+                        </div>
                         <div className="max-h-40 overflow-y-auto text-sm space-y-2">
                           {uploadResult.failed.map((item, idx) => (
                             <div key={idx} className="bg-white p-2 rounded shadow-sm border border-red-200 flex flex-col">
-                              <span className="font-black text-gray-800 text-xs">{item.data.admissionNumber}</span>
+                              <span className="font-black text-gray-800 text-xs">{item.data.admissionNumber || 'Invalid Student'}</span>
                               <span className="text-red-600 font-bold text-[11px] mt-0.5">{item.error}</span>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
+                  </div>
+
+                  <div className="mt-8 flex justify-center gap-4">
+                    <button
+                      onClick={() => { setUploadResult(null); setSelectedAssignment(null); }}
+                      className="px-6 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold text-sm hover:bg-gray-200 transition-colors"
+                    >
+                      Back to Subjects
+                    </button>
+                    <button
+                      onClick={() => setUploadResult(null)}
+                      className="px-6 py-3 bg-primary text-white rounded-xl font-bold text-sm hover:brightness-90 transition-all shadow-lg shadow-primary/20"
+                    >
+                      Process Another File
+                    </button>
                   </div>
                 </div>
               )}
