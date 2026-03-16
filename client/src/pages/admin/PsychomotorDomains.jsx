@@ -236,57 +236,59 @@ const PsychomotorDomains = () => {
             <p className="text-sm mt-1">Click <strong>"Load Default Domains"</strong> to get started quickly, or add them manually.</p>
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Domain</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Max Score</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
-              {domains.map(domain => (
-                <tr key={domain.id} className={`hover:bg-gray-50 transition-colors ${!domain.isActive ? 'opacity-50' : ''}`}>
-                  <td className="px-6 py-4 font-medium text-gray-900">{domain.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{domain.description || <span className="italic text-gray-300">—</span>}</td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-bold text-sm">
-                      {domain.maxScore}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <button
-                      onClick={() => handleToggleActive(domain)}
-                      className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${domain.isActive
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                      }`}
-                    >
-                      {domain.isActive ? '✓ Active' : '✗ Inactive'}
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-3">
-                      <button
-                        onClick={() => handleEdit(domain)}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(domain.id)}
-                        className="text-red-500 hover:text-red-700 text-sm font-medium"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Domain</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">Description</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Max Score</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-100">
+                {domains.map(domain => (
+                  <tr key={domain.id} className={`hover:bg-gray-50 transition-colors ${!domain.isActive ? 'opacity-50' : ''}`}>
+                    <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">{domain.name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{domain.description || <span className="italic text-gray-300">—</span>}</td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-bold text-sm">
+                        {domain.maxScore}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <button
+                        onClick={() => handleToggleActive(domain)}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ${domain.isActive
+                          ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                      >
+                        {domain.isActive ? '✓ Active' : '✗ Inactive'}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-4">
+                        <button
+                          onClick={() => handleEdit(domain)}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-bold uppercase tracking-tight"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(domain.id)}
+                          className="text-red-500 hover:text-red-700 text-sm font-bold uppercase tracking-tight"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
