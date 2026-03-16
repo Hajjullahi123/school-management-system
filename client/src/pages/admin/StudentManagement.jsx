@@ -7,6 +7,16 @@ import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
+const loadImage = (url) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = (e) => reject(e);
+    img.src = url;
+  });
+};
+
 const StudentManagement = () => {
   const { settings: schoolSettings } = useSchoolSettings();
   const { isDemo } = useAuth();
@@ -566,10 +576,20 @@ Note: Password must be changed on first login.
     doc.save('Student_Bulk_Upload_Guide.pdf');
   };
 
-  const handleDownloadPrintableForm = () => {
+  const handleDownloadPrintableForm = async () => {
     const doc = new jsPDF();
     const primaryColor = schoolSettings?.primaryColor || '#1e40af';
     
+    // Add Logo if available
+    if (schoolSettings?.logoUrl) {
+      try {
+        const logoImg = await loadImage(schoolSettings.logoUrl);
+        doc.addImage(logoImg, 'PNG', 20, 10, 25, 25);
+      } catch (error) {
+        console.error('Error adding logo to PDF:', error);
+      }
+    }
+
     // Header Section
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(20);
