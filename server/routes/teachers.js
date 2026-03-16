@@ -6,10 +6,15 @@ const { logAction } = require('../utils/audit');
 const multer = require('multer');
 const path = require('path');
 
+const teachersUploadsDir = path.join(__dirname, '../uploads/teacher-photos');
+if (!require('fs').existsSync(teachersUploadsDir)) {
+  require('fs').mkdirSync(teachersUploadsDir, { recursive: true });
+}
+
 // Configure multer for photo upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/teacher-photos/');
+    cb(null, teachersUploadsDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -112,7 +117,7 @@ router.put('/profile', authenticate, authorize(['teacher', 'examination_officer'
       action: 'UPDATE',
       resource: 'TEACHER_PROFILE',
       details: {
-        teacherId: updatedTeacher.id,
+        teacherId: updatedTeacher ? updatedTeacher.id : 'N/A',
         updates: [...Object.keys(req.body), ...(req.file ? ['photo'] : [])]
       },
       ipAddress: req.ip

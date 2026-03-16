@@ -7,7 +7,17 @@ const path = require('path');
 require('dotenv').config();
 
 // Ensure required directories exist
-['logs', 'uploads'].forEach(dir => {
+[
+  'logs',
+  'uploads',
+  'uploads/students',
+  'uploads/teachers',
+  'uploads/teacher-photos',
+  'uploads/documents',
+  'uploads/certificates',
+  'uploads/gallery',
+  'uploads/news'
+].forEach(dir => {
   if (!fs.existsSync(dir)) {
     try {
       fs.mkdirSync(dir, { recursive: true });
@@ -280,9 +290,32 @@ if (process.env.NODE_ENV === 'production') {
   const clientDistPath = path.join(__dirname, '../client/dist');
   app.use('/assets', express.static(path.join(clientDistPath, 'assets')));
   app.use(express.static(clientDistPath));
+
+  // 1. API 404 Handler (JSON)
+  app.use('/api/*', (req, res) => {
+    console.warn(`[404] API Route not found: ${req.method} ${req.originalUrl}`);
+    res.status(404).json({ 
+      error: 'Not Found', 
+      message: `The API endpoint ${req.originalUrl} does not exist on this server.` 
+    });
+  });
+
+  // 2. Global Error Handler (JSON for API)
+  app.use((err, req, res, next) => {
+    if (req.url.startsWith('/api/')) {
+      console.error(`[API ERROR] ${req.method} ${req.url}:`, err);
+      return res.status(err.status || 500).json({
+        error: 'Server Error',
+        message: err.message || 'An unexpected error occurred on the server.'
+      });
+    }
+    next(err);
+  });
+
+  // 3. Frontend Fallback (HTML) - ONLY for non-API, non-Upload GET requests
   app.get('*', (req, res) => {
     if (req.url.startsWith('/uploads/') || req.url.startsWith('/api/') || req.url.startsWith('/assets/')) {
-      return res.status(404).send('File or route not found');
+      return res.status(404).json({ error: 'File or route not found' });
     }
     res.sendFile(path.join(clientDistPath, 'index.html'));
   });
