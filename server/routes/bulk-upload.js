@@ -9,6 +9,7 @@ const { generateStudentUsername } = require('../utils/usernameGenerator');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const ExcelJS = require('exceljs');
+const xlsx = require('xlsx');
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
@@ -142,25 +143,21 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    const workbook = new ExcelJS.Workbook();
-    if (req.file.originalname.endsWith('.csv')) {
-      const stream = require('stream');
-      const bufferStream = new stream.PassThrough();
-      bufferStream.end(req.file.buffer);
-      await workbook.csv.read(bufferStream);
-    } else {
-      await workbook.xlsx.load(req.file.buffer);
-    }
-
-    const worksheet = workbook.worksheets[0];
     const studentsRaw = [];
     const headers = {};
 
-    worksheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) {
-        // Map headers to column indices
-        row.eachCell((cell, colNumber) => {
-          const header = cell.value?.toString()?.toLowerCase()?.trim() || '';
+    try {
+      const workbook = xlsx.read(req.file.buffer, { type: 'buffer', cellDates: true });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      // Use raw: false so we get strings, but cellDates: true and raw: false formats dates
+      const data = xlsx.utils.sheet_to_json(worksheet, { header: 1, raw: false, dateNF: 'yyyy-mm-dd' });
+
+      if (data.length > 0) {
+        // Map headers
+        const headerRow = data[0].map(h => (h !== undefined && h !== null) ? h.toString().toLowerCase().trim() : '');
+        
+        headerRow.forEach((header, colNumber) => {
           if (header.includes('first name')) headers.firstName = colNumber;
           else if (header.includes('last name')) headers.lastName = colNumber;
           else if (header.includes('middle name')) headers.middleName = colNumber;
@@ -169,39 +166,55 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
           else if (header.includes('genotype')) headers.genotype = colNumber;
           else if (header.includes('disability')) headers.disability = colNumber;
           else if (header === 'email' || header.includes('student email')) headers.email = colNumber;
-          else if (header.includes('parent name')) headers.parentGuardianName = colNumber;
-          else if (header.includes('parent phone')) headers.parentGuardianPhone = colNumber;
-          else if (header.includes('parent email')) headers.parentEmail = colNumber;
+          else if (header.includes('parent name') || header.includes('guardian name')) headers.parentGuardianName = colNumber;
+          else if (header.includes('parent phone') || header.includes('guardian phone')) headers.parentGuardianPhone = colNumber;
+          else if (header.includes('parent email') || header.includes('guardian email')) headers.parentEmail = colNumber;
           else if (header.includes('address')) headers.address = colNumber;
           else if (header.includes('date of birth') || header.includes('dob')) headers.dateOfBirth = colNumber;
           else if (header.includes('scholarship')) headers.isScholarship = colNumber;
         });
-        return;
+
+        // Parse rows
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          if (!row || row.length === 0) continue;
+
+          const getVal = (key) => {
+            const idx = headers[key];
+            if (idx !== undefined && row[idx] !== undefined && row[idx] !== null) {
+              return row[idx].toString().trim();
+            }
+            return '';
+          };
+
+          const firstName = getVal('firstName');
+          const lastName = getVal('lastName');
+
+          // Skip empty or purely decorative rows
+          if (!firstName && !lastName) continue;
+
+          studentsRaw.push({
+            firstName,
+            lastName,
+            middleName: getVal('middleName'),
+            classId: getVal('classId'),
+            gender: getVal('gender'),
+            genotype: getVal('genotype'),
+            disability: getVal('disability'),
+            email: getVal('email'),
+            parentGuardianName: getVal('parentGuardianName'),
+            parentGuardianPhone: getVal('parentGuardianPhone'),
+            parentEmail: getVal('parentEmail'),
+            address: getVal('address'),
+            dateOfBirth: getVal('dateOfBirth'),
+            isScholarship: getVal('isScholarship')
+          });
+        }
       }
-
-      // Check if we found headers, otherwise fallback to default indices
-      const getVal = (key, defaultIdx) => {
-        const idx = headers[key] || defaultIdx;
-        return row.getCell(idx).value?.toString()?.trim();
-      };
-
-      studentsRaw.push({
-        firstName: getVal('firstName', 1),
-        lastName: getVal('lastName', 2),
-        middleName: getVal('middleName', 3),
-        classId: getVal('classId', 4),
-        gender: getVal('gender', 6),
-        genotype: getVal('genotype', 0),
-        disability: getVal('disability', 0),
-        email: getVal('email', 7),
-        parentGuardianName: getVal('parentGuardianName', 8),
-        parentGuardianPhone: getVal('parentGuardianPhone', 9),
-        parentEmail: getVal('parentEmail', 0), // Default to 0 if not found, we handle null later
-        address: getVal('address', 10),
-        dateOfBirth: getVal('dateOfBirth', 11),
-        isScholarship: getVal('isScholarship', 12)
-      });
-    });
+    } catch (parseError) {
+      console.error('File parsing error:', parseError);
+      return res.status(400).json({ error: 'Failed to parse file. Please make sure you are using a valid Excel (.xlsx) or CSV file.' });
+    }
 
     if (studentsRaw.length === 0) {
       return res.status(400).json({ error: 'No student data found in file' });
