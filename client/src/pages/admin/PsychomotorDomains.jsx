@@ -136,21 +136,19 @@ const PsychomotorDomains = () => {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {domains.length === 0 && (
-            <button
-              onClick={handleSeedDefaults}
-              disabled={seeding}
-              className="px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 disabled:opacity-50 text-sm flex items-center gap-2"
-            >
-              {seeding ? (
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : '⚡'}
-              Load Default Domains
-            </button>
-          )}
+          <button
+            onClick={handleSeedDefaults}
+            disabled={seeding}
+            className="px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 disabled:opacity-50 text-sm flex items-center gap-2"
+          >
+            {seeding ? (
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : '⚡'}
+            Load Default Domains
+          </button>
           <button
             onClick={() => { resetForm(); setShowForm(true); }}
             className="px-4 py-2 bg-primary text-white rounded-md hover:brightness-90 text-sm"
