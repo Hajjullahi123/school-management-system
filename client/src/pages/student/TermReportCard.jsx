@@ -348,7 +348,7 @@ const TermReportCard = () => {
                     <label className="block text-sm font-bold text-gray-700 mb-2">Student</label>
                     {classStudents.length === 1 ? (
                       <div className="w-full border border-gray-300 bg-gray-50 rounded-md px-3 py-2 text-gray-700 font-medium">
-                        {classStudents[0].user.firstName} {classStudents[0].user.lastName}
+                        {classStudents[0].user.firstName} {classStudents[0].user.lastName} {classStudents[0].middleName || ''}
                       </div>
                     ) : (
                       <select
@@ -358,7 +358,7 @@ const TermReportCard = () => {
                       >
                         <option value="">Select Ward</option>
                         {classStudents.map(s => (
-                          <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName}</option>
+                          <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName} {s.middleName || ''}</option>
                         ))}
                       </select>
                     )}
@@ -410,7 +410,7 @@ const TermReportCard = () => {
                       <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} className="flex-1 border border-gray-300 rounded-md px-3 py-2" disabled={!selectedClassId}>
                         <option value="">Select Student</option>
                         <option value="all">-- ALL STUDENTS --</option>
-                        {classStudents.map(s => <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName}</option>)}
+                        {classStudents.map(s => <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName} {s.middleName || ''}</option>)}
                       </select>
                       <button onClick={fetchReport} disabled={loading || !selectedStudentId} className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 font-bold">
                         Fetch

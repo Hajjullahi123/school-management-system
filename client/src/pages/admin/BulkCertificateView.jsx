@@ -110,7 +110,7 @@ const BulkCertificateView = () => {
       {/* Print Container */}
       <div ref={componentRef} className="print-container">
         {certificates.map((cert) => {
-          const studentName = `${cert.student?.user?.firstName || ''} ${cert.student?.user?.lastName || ''}`.trim();
+          const studentName = `${cert.student?.user?.firstName || ''} ${cert.student?.user?.lastName || ''} ${cert.student?.middleName || ''}`.trim();
           const verificationUrl = `${window.location.origin}/verify/certificate/${cert.certificateNumber}`;
           const displayPhotoUrl = cert.passportUrl || cert.student?.photoUrl;
 

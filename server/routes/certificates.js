@@ -26,7 +26,7 @@ router.get('/verify/:certificateNumber', async (req, res) => {
 
     res.json({
       verified: true,
-      studentName: `${certificate.student.user.firstName} ${certificate.student.user.lastName}`,
+      studentName: certificate.student.middleName ? `${certificate.student.user.firstName} ${certificate.student.user.lastName} ${certificate.student.middleName}` : `${certificate.student.user.firstName} ${certificate.student.user.lastName}`,
       schoolName: certificate.school.name,
       graduationYear: certificate.graduationYear,
       dateIssued: certificate.dateIssued,

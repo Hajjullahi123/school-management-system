@@ -10,6 +10,7 @@ const IDCard = ({ data, type, schoolSettings }) => {
   const photoUrl = isStudent ? data.photoUrl : data.teacher?.photoUrl;
   const firstName = isStudent ? data.user?.firstName : data.firstName;
   const lastName = isStudent ? data.user?.lastName : data.lastName;
+  const middleName = isStudent ? data.middleName : data.middleName;
   const idNumber = isStudent ? data.admissionNumber : (data.teacher?.staffId || data.username);
   const roleTitle = isStudent ? 'STUDENT' : (data.role === 'teacher' ? 'STAFF' : data.role.toUpperCase());
 
@@ -71,7 +72,7 @@ const IDCard = ({ data, type, schoolSettings }) => {
           {/* Identity Section */}
           <div className="p-6 text-center">
             <h1 className="text-2xl font-black text-gray-900 tracking-tight leading-tight">
-              {firstName} <br /> {lastName}
+              {firstName} {middleName || ''} <br /> {lastName}
             </h1>
             <div className="mt-2 inline-block px-4 py-1 bg-primary/10 rounded-full">
               <span className="text-xs font-black text-primary uppercase tracking-widest">{roleTitle}</span>

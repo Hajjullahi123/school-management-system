@@ -203,7 +203,7 @@ const ParentDashboard = () => {
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold">Welcome, {user.firstName}!</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold">Welcome, {user.firstName} {user.lastName}!</h2>
                   <p className="text-xs sm:text-sm text-white/90">{schoolSettings?.schoolName || 'School Management System'} - Parent Portal</p>
                 </div>
               </div>
@@ -391,7 +391,7 @@ const ParentDashboard = () => {
       <div className="bg-gradient-to-r from-primary to-primary/90 p-4 sm:p-8 rounded-lg text-white shadow-lg">
         <div className="flex items-center justify-between">
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-3xl font-bold truncate">Welcome, {user.firstName}!</h1>
+            <h1 className="text-xl sm:text-3xl font-bold truncate">Welcome, {user.firstName} {user.lastName}!</h1>
             <div className="flex flex-wrap items-center gap-2 mt-1 sm:mt-2">
               <p className="text-xs sm:text-sm text-white/90 truncate">Portal Access • {schoolSettings?.schoolName || 'School System'}</p>
               {currentTerm && (

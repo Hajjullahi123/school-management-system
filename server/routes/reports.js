@@ -288,7 +288,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
     const reportData = {
       student: {
         id: student.id,
-        name: `${student.user.firstName} ${student.user.lastName}`,
+        name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
         admissionNumber: student.admissionNumber,
         class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
         dateOfBirth: student.dateOfBirth,
@@ -594,7 +594,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       return {
         student: {
           id: student.id,
-          name: `${student.user.firstName} ${student.user.lastName}`,
+          name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
           admissionNumber: student.admissionNumber,
           class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
           dateOfBirth: student.dateOfBirth,
@@ -884,7 +884,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
     res.json({
       student: {
         id: student.id,
-        name: `${student.user.firstName} ${student.user.lastName}`,
+        name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
         admissionNumber: student.admissionNumber,
         class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
         dateOfBirth: student.dateOfBirth,
@@ -1031,7 +1031,7 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
         schoolSettings,
         student: {
           id: student.id,
-          name: `${student.user.firstName} ${student.user.lastName}`,
+          name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
           admissionNumber: student.admissionNumber,
           class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
           dateOfBirth: student.dateOfBirth,
@@ -1192,7 +1192,7 @@ router.get('/progressive/:studentId/:termId/:assessmentType', authenticate, asyn
 
     res.json({
       student: {
-        name: `${student.user.firstName} ${student.user.lastName}`,
+        name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
         admissionNumber: student.admissionNumber,
         class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
         gender: student.gender,
@@ -1451,7 +1451,7 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
       schoolSettings,
       student: {
         id: student.id,
-        name: `${student.user.firstName} ${student.user.lastName}`,
+        name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
         admissionNumber: student.admissionNumber,
         class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
         dateOfBirth: student.dateOfBirth,
@@ -1658,7 +1658,7 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
         schoolSettings,
         student: {
           id: student.id,
-          name: `${student.user.firstName} ${student.user.lastName}`,
+          name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
           admissionNumber: student.admissionNumber,
           class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
           dateOfBirth: student.dateOfBirth,
@@ -1960,7 +1960,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       reports.push({
         student: {
           id: student.id,
-          name: `${student.user.firstName} ${student.user.lastName}`,
+          name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
           admissionNumber: student.admissionNumber,
           class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
           dateOfBirth: student.dateOfBirth,

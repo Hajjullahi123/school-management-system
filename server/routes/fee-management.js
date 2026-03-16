@@ -366,7 +366,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
     if (result.feeRecord.student.parent?.user?.email) {
       const emailData = {
         parentEmail: result.feeRecord.student.parent.user.email,
-        studentName: `${result.feeRecord.student.user.firstName} ${result.feeRecord.student.user.lastName}`,
+        studentName: result.feeRecord.student.middleName ? `${result.feeRecord.student.user.firstName} ${result.feeRecord.student.user.lastName} ${result.feeRecord.student.middleName}` : `${result.feeRecord.student.user.firstName} ${result.feeRecord.student.user.lastName}`,
         amount: parseFloat(amount),
         paymentMethod: paymentMethod || 'Cash',
         date: new Date(),
@@ -392,7 +392,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
 
       sendPaymentSMS({
         phone: result.feeRecord.student.parent.phoneNumber,
-        studentName: `${result.feeRecord.student.user.firstName} ${result.feeRecord.student.user.lastName}`,
+        studentName: result.feeRecord.student.middleName ? `${result.feeRecord.student.user.firstName} ${result.feeRecord.student.user.lastName} ${result.feeRecord.student.middleName}` : `${result.feeRecord.student.user.firstName} ${result.feeRecord.student.user.lastName}`,
         amount: parseFloat(amount),
         balance: result.feeRecord.balance,
         schoolName

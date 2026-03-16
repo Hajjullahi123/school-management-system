@@ -389,13 +389,13 @@ const CumulativeReport = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
                     {classStudents.length === 1 ? (
                       <div className="w-full border rounded-md px-3 py-2 bg-gray-50 text-gray-700 font-medium">
-                        {classStudents[0].user.firstName} {classStudents[0].user.lastName} ({classStudents[0].admissionNumber})
+                        {classStudents[0].user.firstName} {classStudents[0].user.lastName} {classStudents[0].middleName || ''} ({classStudents[0].admissionNumber})
                       </div>
                     ) : (
                       <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} className="w-full border rounded-md px-3 py-2">
                         <option value="">Choose your child</option>
                         {classStudents.map((ward) => (
-                          <option key={ward.id} value={ward.id}>{ward.user.firstName} {ward.user.lastName} ({ward.admissionNumber})</option>
+                          <option key={ward.id} value={ward.id}>{ward.user.firstName} {ward.user.lastName} {ward.middleName || ''} ({ward.admissionNumber})</option>
                         ))}
                       </select>
                     )}

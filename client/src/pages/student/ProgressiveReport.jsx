@@ -241,13 +241,13 @@ const ProgressiveReport = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
                   {classStudents.length === 1 ? (
                     <div className="w-full border rounded-md px-3 py-2 bg-gray-50 text-gray-700 font-medium">
-                      {classStudents[0].user.firstName} {classStudents[0].user.lastName}
+                      {classStudents[0].user.firstName} {classStudents[0].user.lastName} {classStudents[0].middleName || ''}
                     </div>
                   ) : (
                     <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} className="w-full border rounded-md px-3 py-2">
                       <option value="">Select Ward</option>
                       {classStudents.map(student => (
-                        <option key={student.id} value={student.id}>{student.user.firstName} {student.user.lastName}</option>
+                        <option key={student.id} value={student.id}>{student.user.firstName} {student.user.lastName} {student.middleName || ''}</option>
                       ))}
                     </select>
                   )}
@@ -312,7 +312,7 @@ const ProgressiveReport = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
                         <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} className="w-full border rounded-md px-3 py-2" disabled={!selectedClassId}>
                           <option value="">Select Student</option>
-                          {classStudents.map(student => (<option key={student.id} value={student.id}>{student.user.firstName} {student.user.lastName}</option>))}
+                          {classStudents.map(student => (<option key={student.id} value={student.id}>{student.user.firstName} {student.user.lastName} {student.middleName || ''}</option>))}
                         </select>
                       </div>
                     )}

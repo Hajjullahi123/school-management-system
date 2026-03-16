@@ -285,7 +285,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
               <div class="info-group">
                 <div class="info-label">Name</div>
-                <div class="info-value" style="font-size: 10px;">${student.user.firstName} ${student.user.lastName}</div>
+                <div class="info-value" style="font-size: 10px;">${student.user.firstName} ${student.user.lastName} ${student.middleName || ''}</div>
               </div>
               <div class="info-group">
                 <div class="info-label">ID No.</div>
@@ -464,7 +464,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
             <div class="meta-grid">
               <div class="meta-item">
                 <label>Student Name</label>
-                <span>${student.user.firstName} ${student.user.lastName}</span>
+                <span>${student.user.firstName} ${student.user.lastName} ${student.middleName || ''}</span>
               </div>
               <div class="meta-item">
                 <label>Admission No.</label>
@@ -658,7 +658,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
               <p>Academic Session: <strong>${selectedSession.name}</strong></p>
             </div>
             <div style="text-align: right">
-              <div style="font-weight: 600; font-size: 16px;">${student.user.firstName} ${student.user.lastName}</div>
+              <div style="font-weight: 600; font-size: 16px;">${student.user.firstName} ${student.user.lastName} ${student.middleName || ''}</div>
               <div style="font-size: 12px; color: #64748b;">ID: ${student.admissionNumber}</div>
             </div>
           </div>
@@ -795,7 +795,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
           </div>
           {student && (
             <div className="mt-4 text-sm text-gray-600">
-              <p><strong>Student:</strong> {student.user.firstName} {student.user.lastName}</p>
+              <p><strong>Student:</strong> {student.user.firstName} {student.user.lastName} {student.middleName || ''}</p>
               <p><strong>Admission No:</strong> {student.admissionNumber}</p>
               <p><strong>Class:</strong> {student.classModel?.name || 'N/A'} {student.classModel?.arm || ''}</p>
             </div>

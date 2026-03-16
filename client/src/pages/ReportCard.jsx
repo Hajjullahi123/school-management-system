@@ -273,7 +273,7 @@ const ReportCard = () => {
                     className="w-full rounded-xl border-gray-200 bg-gray-50/50 p-2.5 focus:ring-primary transition-all border disabled:opacity-50 outline-none"
                   >
                     <option value="">-- Choose Student --</option>
-                    {classStudents.map(s => <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName} ({s.admissionNumber})</option>)}
+                    {classStudents.map(s => <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName} {s.middleName || ''} ({s.admissionNumber})</option>)}
                   </select>
                   <button
                     onClick={fetchReportCard}

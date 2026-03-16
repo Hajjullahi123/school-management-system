@@ -54,9 +54,11 @@ router.get('/lookup', authenticate, async (req, res) => {
           select: {
             firstName: true,
             lastName: true,
+            middleName: true,
             email: true
           }
         },
+        middleName: true,
         classModel: true
       }
     });
