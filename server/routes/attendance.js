@@ -231,132 +231,139 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal']),
       })
     );
 
-    // 4. Send alerts (non-blocking)
+    // 4. Send alerts (non-blocking / background)
+    res.json({ message: 'Attendance marked successfully' });
+
     const markedRecords = records.filter(r => r.status === 'absent' || r.status === 'present');
     if (markedRecords.length > 0) {
-      // Get school settings once
-      const settings = await prisma.school.findUnique({
-        where: { id: req.schoolId }
-      });
-      const schoolName = settings?.name || settings?.schoolName || 'School System';
-
-      for (const record of markedRecords) {
+      // Process in background using an async IIFE or setImmediate
+      (async () => {
         try {
-          const student = await prisma.student.findFirst({
-            where: { id: record.studentId, schoolId: req.schoolId },
-            include: {
-              user: { select: { firstName: true, lastName: true } },
-              parent: { include: { user: { select: { email: true } } } },
-              classModel: { select: { name: true, arm: true } }
-            }
+          // Get school settings once
+          const settings = await prisma.school.findUnique({
+            where: { id: req.schoolId }
           });
+          const schoolName = settings?.name || settings?.schoolName || 'School System';
 
-          if (!student) continue;
-
-          // ABSENCE ALERT
-          if (record.status === 'absent') {
-            // Email Alert
-            if (student.parent?.user?.email) {
-              const { sendAbsenceAlert } = require('../services/emailService');
-              await sendAbsenceAlert({
-                parentEmail: student.parent.user.email,
-                studentName: `${student.user.firstName} ${student.user.lastName}`,
-                date: targetDate.toLocaleDateString(),
-                className: `${student.classModel?.name} ${student.classModel?.arm || ''}`.trim(),
-                schoolName
-              }).catch(e => console.error('Absence email error:', e));
-            }
-
-            // SMS Alert
-            if (student.parent?.phone) {
-              const { sendAbsenceSMS } = require('../services/smsService');
-              await sendAbsenceSMS({
-                phone: student.parent.phone,
-                studentName: student.user.firstName,
-                date: targetDate.toLocaleDateString(),
-                schoolName
-              }).catch(e => console.error('Absence SMS error:', e));
-            }
-
-            // In-App Alert
-            if (student.parent?.userId) {
-              await prisma.parentTeacherMessage.create({
-                data: {
-                  schoolId: req.schoolId,
-                  senderId: req.user.id,
-                  receiverId: student.parent.userId,
-                  senderRole: req.user.role,
-                  studentId: student.id,
-                  subject: 'Absence Notification',
-                  message: `Automatic Alert: ${student.user.firstName} ${student.user.lastName} was marked ABSENT today (${targetDate.toLocaleDateString()}).`,
-                  messageType: 'attendance',
-                  isRead: false
+          for (const record of markedRecords) {
+            try {
+              const student = await prisma.student.findFirst({
+                where: { id: record.studentId, schoolId: req.schoolId },
+                include: {
+                  user: { select: { firstName: true, lastName: true } },
+                  parent: { include: { user: { select: { email: true } } } },
+                  classModel: { select: { name: true, arm: true } }
                 }
-              }).catch(e => console.error('In-app notification error:', e));
+              });
+
+              if (!student) continue;
+
+              // ABSENCE ALERT
+              if (record.status === 'absent') {
+                // Email Alert
+                if (student.parent?.user?.email) {
+                  const { sendAbsenceAlert } = require('../services/emailService');
+                  await sendAbsenceAlert({
+                    parentEmail: student.parent.user.email,
+                    studentName: `${student.user.firstName} ${student.user.lastName}`,
+                    date: targetDate.toLocaleDateString(),
+                    className: `${student.classModel?.name} ${student.classModel?.arm || ''}`.trim(),
+                    schoolName
+                  }).catch(e => console.error('Absence email error:', e));
+                }
+
+                // SMS Alert
+                if (student.parent?.phone) {
+                  const { sendAbsenceSMS } = require('../services/smsService');
+                  await sendAbsenceSMS({
+                    phone: student.parent.phone,
+                    studentName: student.user.firstName,
+                    date: targetDate.toLocaleDateString(),
+                    schoolName
+                  }).catch(e => console.error('Absence SMS error:', e));
+                }
+
+                // In-App Alert
+                if (student.parent?.userId) {
+                  await prisma.parentTeacherMessage.create({
+                    data: {
+                      schoolId: req.schoolId,
+                      senderId: req.user.id,
+                      receiverId: student.parent.userId,
+                      senderRole: req.user.role,
+                      studentId: student.id,
+                      subject: 'Absence Notification',
+                      message: `Automatic Alert: ${student.user.firstName} ${student.user.lastName} was marked ABSENT today (${targetDate.toLocaleDateString()}).`,
+                      messageType: 'attendance',
+                      isRead: false
+                    }
+                  }).catch(e => console.error('In-app notification error:', e));
+                }
+              }
+
+              // SAFE ARRIVAL ALERT
+              if (record.status === 'present') {
+                // Check if already notified today for arrival
+                const existingArrivalMsg = await prisma.parentTeacherMessage.findFirst({
+                  where: {
+                    receiverId: student.parent?.userId,
+                    studentId: student.id,
+                    subject: 'Safe Arrival Alert',
+                    createdAt: { gte: targetDate }
+                  }
+                });
+
+                if (!existingArrivalMsg && student.parent?.userId) {
+                  const arrivalTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                  // In-App Notification
+                  await prisma.parentTeacherMessage.create({
+                    data: {
+                      schoolId: req.schoolId,
+                      senderId: req.user.id,
+                      receiverId: student.parent.userId,
+                      senderRole: req.user.role,
+                      studentId: student.id,
+                      subject: 'Safe Arrival Alert',
+                      message: `${student.user.firstName} has arrived safely at school (${arrivalTime}).`,
+                      messageType: 'attendance',
+                      isRead: false
+                    }
+                  }).catch(e => console.error('In-app arrival notification error:', e));
+
+                  // SMS Alert
+                  if (settings?.enableSMS && student.parent.phone) {
+                    const { sendArrivalSMS } = require('../services/smsService');
+                    await sendArrivalSMS({
+                      phone: student.parent.phone,
+                      studentName: student.user.firstName,
+                      time: arrivalTime,
+                      schoolName
+                    }).catch(e => console.error('Arrival SMS error:', e));
+                  }
+
+                  // Email Alert
+                  if (student.parent.user?.email) {
+                    const { sendArrivalAlert } = require('../services/emailService');
+                    await sendArrivalAlert({
+                      parentEmail: student.parent.user.email,
+                      studentName: student.user.firstName,
+                      time: arrivalTime,
+                      className: `${student.classModel?.name} ${student.classModel?.arm || ''}`.trim(),
+                      schoolName
+                    }).catch(e => console.error('Arrival email error:', e));
+                  }
+                }
+              }
+            } catch (err) {
+              console.error('Error in alert processing individual student:', err);
             }
           }
-
-          // SAFE ARRIVAL ALERT
-          if (record.status === 'present') {
-            // Check if already notified today for arrival
-            const existingArrivalMsg = await prisma.parentTeacherMessage.findFirst({
-              where: {
-                receiverId: student.parent?.userId,
-                studentId: student.id,
-                subject: 'Safe Arrival Alert',
-                createdAt: { gte: targetDate }
-              }
-            });
-
-            if (!existingArrivalMsg && student.parent?.userId) {
-              const arrivalTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-              // In-App Notification
-              await prisma.parentTeacherMessage.create({
-                data: {
-                  schoolId: req.schoolId,
-                  senderId: req.user.id,
-                  receiverId: student.parent.userId,
-                  senderRole: req.user.role,
-                  studentId: student.id,
-                  subject: 'Safe Arrival Alert',
-                  message: `${student.user.firstName} has arrived safely at school (${arrivalTime}).`,
-                  messageType: 'attendance',
-                  isRead: false
-                }
-              }).catch(e => console.error('In-app arrival notification error:', e));
-
-              // SMS Alert
-              if (settings?.enableSMS && student.parent.phone) {
-                const { sendArrivalSMS } = require('../services/smsService');
-                await sendArrivalSMS({
-                  phone: student.parent.phone,
-                  studentName: student.user.firstName,
-                  time: arrivalTime,
-                  schoolName
-                }).catch(e => console.error('Arrival SMS error:', e));
-              }
-
-              // Email Alert
-              if (student.parent.user?.email) {
-                const { sendArrivalAlert } = require('../services/emailService');
-                await sendArrivalAlert({
-                  parentEmail: student.parent.user.email,
-                  studentName: student.user.firstName,
-                  time: arrivalTime,
-                  className: `${student.classModel?.name} ${student.classModel?.arm || ''}`.trim(),
-                  schoolName
-                }).catch(e => console.error('Arrival email error:', e));
-              }
-            }
-          }
-        } catch (err) {
-          console.error('Error in alert processing:', err);
+        } catch (error) {
+          console.error('Background alert processing major failure:', error);
         }
-      }
+      })();
     }
-
-    res.json({ message: 'Attendance marked successfully' });
 
     // Log the action
     logAction({

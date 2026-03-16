@@ -184,7 +184,8 @@ const Attendance = () => {
         toast.success(`✅ Attendance saved for ${students.length} students`);
         fetchAttendanceSheet(); // Refresh to ensure sync
       } else {
-        toast.error('Cloud synchronization failed');
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || errorData.message || 'Cloud synchronization failed');
       }
     } catch (error) {
       console.error('Error saving:', error);
