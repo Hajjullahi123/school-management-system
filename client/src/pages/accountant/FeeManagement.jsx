@@ -1368,6 +1368,125 @@ export default function FeeManagement() {
     }
   };
 
+  const exportMiscToCSV = () => {
+    if (!detailedAnalytics.length) {
+      toast.error('No analytics data to export');
+      return;
+    }
+
+    const schoolName = schoolSettings?.schoolName || 'School';
+    const termName = allTerms.find(t => t.id === parseInt(selectedMiscTerm))?.name || 'All Terms';
+    const sessionName = allSessions.find(s => s.id === parseInt(selectedMiscSession))?.name || 'All Sessions';
+
+    let csvContent = `${schoolName} - Miscellaneous Fees Report\n`;
+    csvContent += `Period: ${sessionName} / ${termName}\n`;
+    csvContent += `Generated: ${new Date().toLocaleString()}\n\n`;
+
+    detailedAnalytics.forEach(fee => {
+      csvContent += `FEE: ${fee.title.toUpperCase()} (₦${fee.amount})\n`;
+      csvContent += `Class,Student Name,Admission No,Paid,Balance,Status\n`;
+
+      fee.classes.forEach(cls => {
+        cls.students.forEach(student => {
+          const status = student.balance === 0 ? 'Fully Paid' : (student.totalPaid > 0 ? 'Partially Paid' : 'Pending');
+          csvContent += `"${cls.name}${cls.arm || ''}","${student.name}","${student.admissionNumber}",${student.totalPaid},${student.balance},${status}\n`;
+        });
+      });
+      csvContent += `,,SUBTOTALS: Received: ₦${fee.totalReceived},Outstanding: ₦${fee.outstanding}\n\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, `miscellaneous-fees-report-${sessionName}-${termName}.csv`);
+  };
+
+  const printDetailedMiscReport = (fee) => {
+    const printWindow = window.open('', '_blank');
+    const primaryColor = schoolSettings?.primaryColor || '#0f766e';
+    const schoolName = schoolSettings?.schoolName || 'School';
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${fee.title} - Status Report</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; }
+            .header { text-align: center; border-bottom: 2px solid ${primaryColor}; padding-bottom: 20px; margin-bottom: 30px; }
+            .school-name { font-size: 24px; font-weight: 900; color: ${primaryColor}; margin: 0; }
+            .report-title { font-size: 18px; font-weight: 700; margin: 10px 0; text-transform: uppercase; }
+            .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+            .stat-card { padding: 15px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; }
+            .stat-label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+            .stat-value { font-size: 16px; font-weight: 900; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { text-align: left; padding: 12px; background: #f1f5f9; font-size: 11px; text-transform: uppercase; border: 1px solid #e2e8f0; }
+            td { padding: 10px; font-size: 12px; border: 1px solid #e2e8f0; }
+            .class-header { background: #f8fafc; font-weight: 700; }
+            .status-paid { color: #059669; font-weight: 700; }
+            .status-pending { color: #dc2626; font-weight: 700; }
+            @media print { .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="school-name">${schoolName}</h1>
+            <div class="report-title">Miscellaneous Fee Status: ${fee.title}</div>
+            <div style="font-size: 12px; color: #64748b;">Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Total Expected</div>
+              <div class="stat-value">₦${formatNumber(fee.totalExpected || 0)}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Total Collected</div>
+              <div class="stat-value" style="color: #059669;">₦${formatNumber(fee.totalReceived || 0)}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Total Outstanding</div>
+              <div class="stat-value" style="color: #dc2626;">₦${formatNumber(fee.outstanding || 0)}</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Student Details</th>
+                <th>Class</th>
+                <th>Admission No</th>
+                <th>Amount Paid</th>
+                <th>Balance</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${fee.classes.map(cls => `
+                <tr class="class-header">
+                  <td colspan="6">${cls.name} ${cls.arm || ''} (${cls.students.length} students)</td>
+                </tr>
+                ${cls.students.map(s => `
+                  <tr>
+                    <td>${s.name}</td>
+                    <td>${cls.name}</td>
+                    <td>${s.admissionNumber}</td>
+                    <td>₦${formatNumber(s.totalPaid)}</td>
+                    <td>₦${formatNumber(s.balance)}</td>
+                    <td class="${s.balance === 0 ? 'status-paid' : 'status-pending'}">
+                      ${s.balance === 0 ? 'FULLY PAID' : (s.totalPaid > 0 ? 'PARTIAL' : 'PENDING')}
+                    </td>
+                  </tr>
+                `).join('')}
+              `).join('')}
+            </tbody>
+          </table>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const printReceipt = (payment, student) => {
     setReceiptPayment(payment);
     setReceiptStudent(student);
@@ -2176,19 +2295,31 @@ export default function FeeManagement() {
                 ))}
               </select>
             </div>
-            <button
-              onClick={() => {
-                setMiscFeeFormData(prev => ({
-                  ...prev,
-                  sessionId: selectedMiscSession || '',
-                  termId: selectedMiscTerm || ''
-                }));
-                setShowMiscFeeModal(true);
-              }}
-              className="px-6 py-2.5 bg-primary text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-95 active:scale-95 transition-all"
-            >
-              + Create New Fee
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={exportMiscToCSV}
+                className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-indigo-700 transition-all"
+                title="Export to Excel/CSV"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export
+              </button>
+              <button
+                onClick={() => {
+                  setMiscFeeFormData(prev => ({
+                    ...prev,
+                    sessionId: selectedMiscSession || '',
+                    termId: selectedMiscTerm || ''
+                  }));
+                  setShowMiscFeeModal(true);
+                }}
+                className="px-6 py-2.5 bg-primary text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-95 active:scale-95 transition-all"
+              >
+                + Create New Fee
+              </button>
+            </div>
           </div>
 
           {/* Misc Fees Summary */}
@@ -2241,6 +2372,18 @@ export default function FeeManagement() {
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Outstanding</p>
                         <p className="text-lg font-black text-red-600">₦{formatNumber(fee.outstanding)}</p>
                       </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          printDetailedMiscReport(fee);
+                        }}
+                        className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors"
+                        title="Print Fee Report"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2-2h10a2 2 0 002 2v4" />
+                        </svg>
+                      </button>
                       <svg className={`w-6 h-6 transform transition-transform ${expandedFee === fee.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
@@ -2308,14 +2451,34 @@ export default function FeeManagement() {
                                             Update
                                           </button>
                                           {student.payments.length > 0 && (
-                                            <button
-                                              onClick={() => {
-                                                handlePrintMiscReceipt(student.payments[0].id);
-                                              }}
-                                              className="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-black uppercase rounded-lg hover:bg-gray-200"
-                                            >
-                                              Receipt
-                                            </button>
+                                            <div className="relative group">
+                                              <button
+                                                className="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-black uppercase rounded-lg hover:bg-gray-200 flex items-center gap-1"
+                                              >
+                                                Receipts ({student.payments.length})
+                                                <span>▼</span>
+                                              </button>
+                                              <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-50 hidden group-hover:block animate-in fade-in slide-in-from-top-1 duration-200">
+                                                <div className="p-2 border-b border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">
+                                                  Select Payment
+                                                </div>
+                                                <div className="max-h-48 overflow-y-auto">
+                                                  {student.payments.map((p, idx) => (
+                                                    <button
+                                                      key={p.id}
+                                                      onClick={() => handlePrintMiscReceipt(p.id)}
+                                                      className="w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors border-b border-gray-50 flex flex-col gap-0.5"
+                                                    >
+                                                      <span className="text-[10px] font-black text-primary uppercase">Payment #{student.payments.length - idx}</span>
+                                                      <div className="flex justify-between items-center text-xs">
+                                                        <span className="font-bold text-gray-900">₦{formatNumber(p.amount)}</span>
+                                                        <span className="text-gray-400 font-medium">{new Date(p.paymentDate).toLocaleDateString()}</span>
+                                                      </div>
+                                                    </button>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            </div>
                                           )}
                                         </div>
                                       </td>
