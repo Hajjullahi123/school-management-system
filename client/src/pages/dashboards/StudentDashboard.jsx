@@ -142,7 +142,7 @@ const StudentDashboard = ({ user, currentTerm, currentSession }) => {
           )}
           <div className="text-center sm:text-left flex-1 min-w-0">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-black italic tracking-tighter uppercase leading-tight">
-              Welcome, {user?.firstName}!
+              Welcome, {user?.firstName} {user?.lastName}!
             </h1>
             <div className="flex flex-col mt-2 space-y-2">
               <div className="flex flex-wrap items-center gap-2">

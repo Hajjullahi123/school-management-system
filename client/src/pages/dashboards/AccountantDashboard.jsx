@@ -67,7 +67,7 @@ const AccountantDashboard = ({ user }) => {
     <div className="space-y-4">
       <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-5 rounded-xl shadow-lg">
         <h1 className="text-xl font-black italic tracking-tighter uppercase">Treasury Control</h1>
-        <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-1">Authorized User: {user?.firstName}</p>
+        <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-1">Authorized User: {user?.firstName} {user?.lastName}</p>
       </div>
 
       {/* Selectors */}

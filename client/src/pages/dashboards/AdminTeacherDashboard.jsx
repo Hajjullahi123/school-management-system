@@ -113,7 +113,7 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
       <div className="bg-slate-900 p-5 rounded-2xl shadow-xl border border-white/5 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
         <div className="relative z-10">
-          <h1 className="text-xl font-black italic tracking-tighter text-white uppercase">Personnel: {user?.firstName}</h1>
+          <h1 className="text-xl font-black italic tracking-tighter text-white uppercase">Personnel: {user?.firstName} {user?.lastName}</h1>
           <p className="text-primary-light text-[10px] font-black uppercase tracking-[0.2em] mt-1">{user?.role} Access Authorized</p>
         </div>
       </div>
