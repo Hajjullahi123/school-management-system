@@ -126,7 +126,11 @@ router.post('/login', async (req, res) => {
           username: { equals: searchId, mode: 'insensitive' },
           schoolId: school.id
         },
-        include: { school: true }
+        include: { 
+          school: true,
+          teacher: true,
+          student: { include: { classModel: true } }
+        }
       });
 
       // If not found, check admission number (for students)
@@ -138,7 +142,11 @@ router.post('/login', async (req, res) => {
           },
           select: { 
             user: { 
-              include: { school: true } 
+              include: { 
+                school: true,
+                teacher: true,
+                student: { include: { classModel: true } }
+              } 
             } 
           }
         });
@@ -154,7 +162,11 @@ router.post('/login', async (req, res) => {
           },
           select: { 
             user: { 
-              include: { school: true } 
+              include: { 
+                school: true,
+                teacher: true,
+                student: { include: { classModel: true } }
+              } 
             } 
           }
         });
@@ -219,7 +231,10 @@ router.post('/login', async (req, res) => {
         schoolSlug: user.school?.slug,
         schoolLogo: user.school?.logoUrl,
         schoolName: user.school?.name,
-        mustChangePassword: user.mustChangePassword
+        signatureUrl: user.signatureUrl,
+        mustChangePassword: user.mustChangePassword,
+        teacher: user.teacher,
+        student: user.student
       }
     });
   } catch (error) {
@@ -239,7 +254,15 @@ router.get('/me', authenticate, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      include: { school: true }
+      include: { 
+        school: true,
+        teacher: true,
+        student: {
+          include: {
+            class: true
+          }
+        }
+      }
     });
 
     if (!user) {
@@ -252,12 +275,18 @@ router.get('/me', authenticate, async (req, res) => {
       role: user.role,
       schoolId: user.schoolId,
       schoolSlug: user.school?.slug,
+      schoolLogo: user.school?.logoUrl,
+      schoolName: user.school?.name,
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      mustChangePassword: user.mustChangePassword
+      signatureUrl: user.signatureUrl,
+      mustChangePassword: user.mustChangePassword,
+      teacher: user.teacher,
+      student: user.student
     });
   } catch (error) {
+    console.error('Me error:', error);
     res.status(500).json({ error: 'Failed to fetch user data' });
   }
 });

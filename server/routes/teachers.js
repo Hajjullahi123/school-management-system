@@ -95,12 +95,18 @@ router.put('/profile', authenticate, authorize(['teacher', 'examination_officer'
         teacherUpdateData[key] === undefined && delete teacherUpdateData[key]
       );
 
-      updatedTeacher = await prisma.teacher.update({
+      // Use upsert instead of update to handle cases where teacher record might be missing
+      updatedTeacher = await prisma.teacher.upsert({
         where: {
-          userId: userId,
-          schoolId: req.schoolId
+          userId: userId
         },
-        data: teacherUpdateData
+        update: teacherUpdateData,
+        create: {
+          ...teacherUpdateData,
+          userId: userId,
+          schoolId: req.schoolId,
+          staffId: staffId || req.user.username // Fallback staffId
+        }
       });
     }
 
