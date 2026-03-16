@@ -318,13 +318,24 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
 
         const hashedPassword = await bcrypt.hash('student123', 10);
 
+        // Check if email already exists
+        let userEmailToUse = studentData.email || null;
+        if (userEmailToUse) {
+          const existingEmailUser = await prisma.user.findUnique({
+            where: { schoolId_email: { schoolId: schoolIdInt, email: userEmailToUse } }
+          });
+          if (existingEmailUser) {
+            userEmailToUse = null; // Prevent unique constraint violation
+          }
+        }
+
         // Database writes
         const user = await prisma.user.create({
           data: {
             schoolId: schoolIdInt,
             username,
             passwordHash: hashedPassword,
-            email: studentData.email || null,
+            email: userEmailToUse,
             role: 'student',
             firstName: studentData.firstName,
             lastName: studentData.lastName,
@@ -522,12 +533,23 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'princi
         // Create user account
         const hashedPassword = await bcrypt.hash(studentData.password || 'student123', 10);
 
+        // Check if email already exists
+        let userEmailToUse = studentData.email || null;
+        if (userEmailToUse) {
+          const existingEmailUser = await prisma.user.findUnique({
+             where: { schoolId_email: { schoolId: schoolIdInt, email: userEmailToUse } }
+          });
+          if (existingEmailUser) {
+            userEmailToUse = null; // Prevent unique constraint violation
+          }
+        }
+
         const user = await prisma.user.create({
           data: {
             schoolId: req.schoolId,
             username,
             passwordHash: hashedPassword,
-            email: studentData.email || null,
+            email: userEmailToUse,
             role: 'student',
             firstName: studentData.firstName,
             lastName: studentData.lastName,
