@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
+import { useAuth } from '../context/AuthContext';
 
 const StaffAttendanceWidget = () => {
+  const { user } = useAuth();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -97,22 +99,21 @@ const StaffAttendanceWidget = () => {
 
       {!status?.hasCheckedIn ? (
         <div>
-          <p className="text-gray-600 mb-4 text-sm">
-            {status?.staffClockInMode === 'scan_only'
+          <p className="text-gray-600 mb-4 text-sm font-medium">
+            {user?.role === 'teacher'
+              ? '🔒 Attendance marking is managed by school administration.'
+              : status?.staffClockInMode === 'scan_only'
               ? '⚠️ Your school requires attendance to be marked at the gate scanner.'
               : "You haven't checked in yet today"}
           </p>
           <button
             onClick={handleCheckIn}
-            disabled={actionLoading || status?.staffClockInMode === 'scan_only'}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            disabled={actionLoading || status?.staffClockInMode === 'scan_only' || user?.role === 'teacher'}
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg active:scale-95"
           >
             {actionLoading ? (
               <>
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+                <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
                 <span>Processing...</span>
               </>
             ) : (
@@ -120,7 +121,9 @@ const StaffAttendanceWidget = () => {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Clock In/Commence lesson</span>
+                <span>
+                  {user?.role === 'teacher' ? 'Scanning Required' : 'Clock In / Commence lesson'}
+                </span>
               </>
             )}
           </button>

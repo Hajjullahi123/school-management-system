@@ -645,6 +645,24 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
         const lateMinutes = calculateLateMinutes(checkInTime, expectedArrivalTime);
         const status = determineStaffStatus(checkInTime, lateMinutes);
 
+        // Check if already scanned today
+        const existingStaffRecord = await prisma.staffAttendance.findUnique({
+          where: {
+            schoolId_userId_date: {
+              schoolId: req.schoolId,
+              userId: staffUser.id,
+              date: today
+            }
+          }
+        });
+
+        if (existingStaffRecord && existingStaffRecord.checkInTime) {
+          return res.status(400).json({
+            error: 'User already scanned today',
+            message: `${staffUser.firstName} already arrived at ${new Date(existingStaffRecord.checkInTime).toLocaleTimeString()}`
+          });
+        }
+
         const staffRecord = await prisma.staffAttendance.upsert({
           where: {
             schoolId_userId_date: {
@@ -689,8 +707,25 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
       return res.status(404).json({ error: 'ID not recognized (not a student or staff)' });
     }
 
-    // 2. Mark Attendance (already handled for student in original code logic above, but let's re-align)
-    // Actually, if we reach here, it IS a student.
+    // 2. Mark Attendance
+    // Check if student already scanned today
+    const existingStudentRecord = await prisma.attendanceRecord.findUnique({
+      where: {
+        schoolId_studentId_date: {
+          schoolId: req.schoolId,
+          studentId: student.id,
+          date: today
+        }
+      }
+    });
+
+    if (existingStudentRecord && existingStudentRecord.status === 'present') {
+      return res.status(400).json({
+        error: 'Student already scanned today',
+        message: `${student.user.firstName} already arrived today.`
+      });
+    }
+
     const record = await prisma.attendanceRecord.upsert({
       where: {
         schoolId_studentId_date: {

@@ -76,15 +76,23 @@ router.post('/check-in', authenticate, authorize(['teacher', 'admin', 'principal
       }
     });
 
-    // 1. Clock-in Mode Validation (Restricting teachers if scan_only)
-    if (schoolSettings?.staffClockInMode === 'scan_only' && req.user.role === 'teacher') {
+    // 1. Role-based Restriction (Teachers must be scanned by admin)
+    if (req.user.role === 'teacher') {
+      return res.status(403).json({
+        error: 'Self check-in disabled for teachers',
+        message: 'Your check-in must be handled by an admin using your ID card/code scan at the gate. You can still clock out from your dashboard once your shift is over.'
+      });
+    }
+
+    // 2. Clock-in Mode Validation (For other roles if scan_only is active)
+    if (schoolSettings?.staffClockInMode === 'scan_only' && !['admin', 'principal'].includes(req.user.role)) {
       return res.status(403).json({
         error: 'Direct clock-in disabled',
         message: 'Your school requires attendance to be marked via the Arrival Scanner at the gate. Please proceed to the scanner point.'
       });
     }
 
-    // 2. IP Restriction Validation
+    // 3. IP Restriction Validation
     if (schoolSettings?.staffClockInMode === 'ip_locked' && schoolSettings.authorizedIP) {
       const clientIp = req.ip.replace('::ffff:', '');
       // Allow localhost/loopback for development, otherwise must match authorizedIP
