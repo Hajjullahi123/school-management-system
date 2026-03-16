@@ -129,7 +129,8 @@ router.post('/login', async (req, res) => {
         include: { 
           school: true,
           teacher: true,
-          student: { include: { classModel: true } }
+          student: { include: { classModel: true } },
+          classesAsTeacher: true
         }
       });
 
@@ -234,7 +235,8 @@ router.post('/login', async (req, res) => {
         signatureUrl: user.signatureUrl,
         mustChangePassword: user.mustChangePassword,
         teacher: user.teacher,
-        student: user.student
+        student: user.student,
+        classesAsTeacher: user.classesAsTeacher
       }
     });
   } catch (error) {
@@ -259,9 +261,10 @@ router.get('/me', authenticate, async (req, res) => {
         teacher: true,
         student: {
           include: {
-            class: true
+            classModel: true
           }
-        }
+        },
+        classesAsTeacher: true
       }
     });
 
@@ -283,7 +286,8 @@ router.get('/me', authenticate, async (req, res) => {
       signatureUrl: user.signatureUrl,
       mustChangePassword: user.mustChangePassword,
       teacher: user.teacher,
-      student: user.student
+      student: user.student,
+      classesAsTeacher: user.classesAsTeacher
     });
   } catch (error) {
     console.error('Me error:', error);

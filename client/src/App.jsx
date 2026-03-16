@@ -254,11 +254,6 @@ function App() {
                   <ArrivalScanner />
                 </ProtectedRoute>
               } />
-              <Route path="users" element={
-                <ProtectedRoute roles={['admin', 'principal']}>
-                  <UserManagement />
-                </ProtectedRoute>
-              } />
               <Route path="bulk-student-upload" element={
                 <ProtectedRoute roles={['admin', 'principal']}>
                   <BulkStudentUpload />
@@ -531,11 +526,6 @@ function App() {
               <Route path="password-reset" element={
                 <ProtectedRoute roles={['admin', 'principal']}>
                   <PasswordReset />
-                </ProtectedRoute>
-              } />
-              <Route path="exam-tracker" element={
-                <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
-                  <ExamSubmissionTracker />
                 </ProtectedRoute>
               } />
               <Route path="exam-config" element={

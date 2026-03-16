@@ -22,7 +22,8 @@ export const lazyRetry = (componentImport) => {
         window.sessionStorage.setItem('page-has-been-reloaded', 'true');
         console.warn('Chunk load error detected. Forcing app refresh to fetch latest assets...');
         window.location.reload();
-        return;
+        // Return a dummy component to prevent React.lazy from throwing while waiting for reload
+        return { default: () => null };
       }
 
       // If we already reloaded and it still fails, it's a real coding error

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import useSchoolSettings from '../hooks/useSchoolSettings';
 import { api } from '../api';
+import { lazyRetry } from '../utils/lazyRetry';
 
 // Loading Fallback for heavy dashboard modules
 const DashboardShimmer = () => (
@@ -16,10 +17,10 @@ const DashboardShimmer = () => (
 );
 
 // Lazy-load individual dashboard experiences
-const StudentDashboard = lazy(() => import('./dashboards/StudentDashboard'));
-const AdminTeacherDashboard = lazy(() => import('./dashboards/AdminTeacherDashboard'));
-const AccountantDashboard = lazy(() => import('./dashboards/AccountantDashboard'));
-const ParentDashboardWrapper = lazy(() => import('./dashboards/ParentDashboardWrapper'));
+const StudentDashboard = lazyRetry(() => import('./dashboards/StudentDashboard'));
+const AdminTeacherDashboard = lazyRetry(() => import('./dashboards/AdminTeacherDashboard'));
+const AccountantDashboard = lazyRetry(() => import('./dashboards/AccountantDashboard'));
+const ParentDashboardWrapper = lazyRetry(() => import('./dashboards/ParentDashboardWrapper'));
 
 const Dashboard = () => {
   const { user } = useAuth();
