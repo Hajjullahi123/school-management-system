@@ -191,7 +191,7 @@ const CBTPortal = () => {
             <p className="text-gray-600">You have completed the exam.</p>
           </div>
 
-          <div className="p-6 grid grid-cols-3 gap-4 border-t border-gray-100">
+          <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-gray-100">
             <div className="p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-500">Total Score</p>
               <p className="text-xl font-bold text-gray-800">{submissionResult.score}</p>
@@ -206,10 +206,10 @@ const CBTPortal = () => {
             </div>
           </div>
 
-          <div className="p-6 bg-gray-50">
+          <div className="p-4 sm:p-6 bg-gray-50">
             <button
               onClick={() => setView('list')}
-              className="px-6 py-2 bg-primary text-white rounded-md hover:brightness-90 font-medium w-full md:w-auto"
+              className="px-6 py-3 bg-primary text-white rounded-md hover:brightness-90 font-bold w-full"
             >
               Back to Exam List
             </button>
@@ -224,30 +224,30 @@ const CBTPortal = () => {
     const currentQ = questions[currentQuestionIndex];
 
     return (
-      <div className="flex flex-col h-[calc(100vh-100px)]">
+      <div className="flex flex-col h-screen overflow-hidden fixed inset-0 z-[100] bg-gray-50">
         {/* Top Bar */}
-        <div className="bg-white shadow-sm p-4 flex justify-between items-center z-10">
-          <div className="flex items-center gap-4">
+        <div className="bg-white shadow-sm p-3 sm:p-4 flex justify-between items-center z-10">
+          <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
             {schoolSettings?.logoUrl && (
-              <img src={schoolSettings.logoUrl} alt="Logo" className="h-10 w-10 object-contain" />
+              <img src={schoolSettings.logoUrl} alt="Logo" className="h-8 w-8 sm:h-10 sm:w-10 object-contain hidden sm:block" />
             )}
-            <div>
-              <h1 className="text-lg font-bold text-gray-800">{activeExam.title}</h1>
-              <p className="text-xs text-gray-500">{activeExam.subject.name} - {schoolSettings?.schoolName || 'School Name'}</p>
+            <div className="truncate">
+              <h1 className="text-sm sm:text-lg font-bold text-gray-800 truncate">{activeExam.title}</h1>
+              <p className="text-[10px] sm:text-xs text-gray-500 truncate">{activeExam.subject.name}</p>
             </div>
           </div>
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-3 sm:space-x-6">
             <div className="text-right">
-              <p className="text-xs text-gray-500 uppercase tracking-widest">Time Remaining</p>
-              <p className={`text-xl font-mono font-bold ${timeLeft < 300 ? 'text-red-600 animate-pulse' : 'text-gray-800'}`}>
+              <p className="hidden sm:block text-[10px] text-gray-500 uppercase tracking-widest leading-none mb-1">Time Left</p>
+              <p className={`text-lg sm:text-xl font-mono font-black ${timeLeft < 300 ? 'text-red-600 animate-pulse' : 'text-gray-800'}`}>
                 {formatTime(timeLeft)}
               </p>
             </div>
             <button
               onClick={() => handleSubmitExam(false)}
-              className="bg-red-600 text-white px-4 py-2 rounded shadow hover:bg-red-700 transition"
+              className="bg-red-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold rounded shadow hover:bg-red-700 transition"
             >
-              Submit Exam
+              Submit
             </button>
           </div>
         </div>
@@ -260,28 +260,25 @@ const CBTPortal = () => {
           ></div>
         </div>
 
-        <div className="flex-1 flex overflow-hidden">
-          {/* Sidebar Question Nav */}
-          <div className="w-64 bg-gray-50 border-r border-gray-200 p-4 overflow-y-auto hidden md:block">
-            <h3 className="text-sm font-semibold text-gray-500 mb-4 uppercase">Questions</h3>
+        <div className="flex-1 flex overflow-hidden relative">
+          {/* Sidebar Question Nav - Desktop Only */}
+          <div className="w-64 bg-gray-50 border-r border-gray-200 p-4 overflow-y-auto hidden lg:block">
+            <h3 className="text-xs font-black text-gray-400 mb-4 uppercase tracking-widest">Question Map</h3>
             <div className="grid grid-cols-4 gap-2">
               {questions.map((q, idx) => (
                 <button
                   key={q.id}
                   onClick={() => setCurrentQuestionIndex(idx)}
-                  className={`h-10 w-10 text-sm font-medium rounded-lg flex items-center justify-center transition-colors relative ${currentQuestionIndex === idx
-                    ? 'bg-primary text-white ring-2 ring-primary/30'
+                  className={`h-10 w-10 text-xs font-bold rounded-lg flex items-center justify-center transition-all relative ${currentQuestionIndex === idx
+                    ? 'bg-primary text-white shadow-lg ring-2 ring-primary/30 scale-105'
                     : answers[q.id]
-                      ? 'bg-primary-100 text-primary-700 border border-primary-200'
-                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'
+                      ? 'bg-green-100 text-green-700 border border-green-200'
+                      : 'bg-white text-gray-600 border border-gray-200 hover:border-primary/50'
                     }`}
                 >
                   {idx + 1}
                   {flaggedQuestions[q.id] && (
-                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
-                    </span>
+                    <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-amber-500 border-2 border-white"></span>
                   )}
                 </button>
               ))}
@@ -289,26 +286,23 @@ const CBTPortal = () => {
           </div>
 
           {/* Question Area */}
-          <div className="flex-1 p-6 md:p-10 overflow-y-auto bg-white/50">
-            <div className="max-w-3xl mx-auto">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 min-h-[400px] flex flex-col">
+          <div className="flex-1 p-3 sm:p-6 md:p-10 overflow-y-auto bg-gray-50 pb-24 lg:pb-10">
+            <div className="max-w-3xl mx-auto h-full">
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-200/50 p-4 sm:p-8 min-h-full sm:min-h-[400px] flex flex-col">
                 <div className="flex-1">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-sm font-bold text-primary block">Question {currentQuestionIndex + 1} of {questions.length}</span>
+                  <div className="flex justify-between items-center mb-6">
+                    <span className="text-xs font-black text-primary uppercase tracking-widest">Q. {currentQuestionIndex + 1} / {questions.length}</span>
                     <button
                       onClick={() => handleToggleFlag(currentQ.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${flaggedQuestions[currentQ.id]
-                        ? 'bg-amber-100 text-amber-700 border border-amber-200'
-                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-amber-50 hover:text-amber-600'
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tight transition-all border ${flaggedQuestions[currentQ.id]
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
+                        : 'bg-white text-gray-400 border-gray-200 hover:border-amber-300 hover:text-amber-600'
                         }`}
                     >
-                      <svg className={`w-3.5 h-3.5 ${flaggedQuestions[currentQ.id] ? 'fill-current' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                      </svg>
-                      {flaggedQuestions[currentQ.id] ? 'Flagged for Review' : 'Flag for Review'}
+                      {flaggedQuestions[currentQ.id] ? 'Flagged' : 'Flag it'}
                     </button>
                   </div>
-                  <h2 className="text-xl md:text-2xl font-medium text-gray-900 mb-8 leading-relaxed">
+                  <h2 className="text-lg sm:text-2xl font-semibold text-gray-800 mb-8 leading-snug">
                     {currentQ.questionText}
                   </h2>
 
@@ -316,34 +310,39 @@ const CBTPortal = () => {
                     {currentQ.options.map(opt => (
                       <label
                         key={opt.id}
-                        className={`flex items-center p-4 border rounded-lg cursor-pointer transition-all ${answers[currentQ.id] === opt.id
-                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                          : 'border-gray-200 hover:bg-gray-50'
+                        className={`group flex items-center p-4 sm:p-5 border-2 rounded-xl cursor-pointer transition-all ${answers[currentQ.id] === opt.id
+                          ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
+                          : 'border-gray-100 hover:border-gray-300 hover:bg-gray-50'
                           }`}
                       >
+                        <div className={`w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center rounded-lg border-2 transition-colors ${answers[currentQ.id] === opt.id
+                          ? 'bg-primary border-primary text-white font-black'
+                          : 'border-gray-200 text-gray-400 bg-white group-hover:border-primary/50 text-xs sm:text-sm font-bold'
+                          }`}>
+                          {opt.id.toUpperCase()}
+                        </div>
                         <input
                           type="radio"
                           name={`question-${currentQ.id}`}
                           value={opt.id}
                           checked={answers[currentQ.id] === opt.id}
                           onChange={() => handleOptionSelect(currentQ.id, opt.id)}
-                          className="w-5 h-5 text-primary focus:ring-primary"
+                          className="hidden"
                         />
-                        <div className="ml-4">
-                          <span className="font-bold text-gray-500 mr-2 uppercase">{opt.id}.</span>
-                          <span className="text-gray-800">{opt.text}</span>
+                        <div className="ml-4 flex-1">
+                          <span className="text-sm sm:text-lg text-gray-700 font-medium">{opt.text}</span>
                         </div>
                       </label>
                     ))}
                   </div>
                 </div>
 
-                {/* Navigation Buttons */}
-                <div className="flex justify-between mt-8 pt-6 border-t border-gray-100">
+                {/* Desktop Navigation */}
+                <div className="hidden sm:flex justify-between mt-12 pt-6 border-t border-gray-100">
                   <button
                     onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                     disabled={currentQuestionIndex === 0}
-                    className="px-6 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="px-8 py-2.5 border-2 border-gray-100 rounded-xl text-gray-500 font-bold hover:bg-gray-50 disabled:opacity-30 transition-all"
                   >
                     ← Previous
                   </button>
@@ -351,21 +350,59 @@ const CBTPortal = () => {
                   {currentQuestionIndex < questions.length - 1 ? (
                     <button
                       onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
-                      className="px-6 py-2 bg-primary text-white rounded-lg hover:brightness-90 shadow-sm"
+                      className="px-8 py-2.5 bg-primary text-white rounded-xl font-bold hover:brightness-95 shadow-lg shadow-primary/20 transition-all"
                     >
                       Next Question →
                     </button>
                   ) : (
                     <button
                       onClick={() => handleSubmitExam(false)}
-                      className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-sm"
+                      className="px-8 py-2.5 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg shadow-red-200 transition-all"
                     >
-                      Finish & Submit
+                      Submit Exam
                     </button>
                   )}
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Mobile Navigation Sticky Bar */}
+          <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex justify-between items-center z-[110] shadow-2xl">
+            <button
+              onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+              disabled={currentQuestionIndex === 0}
+              className="p-3 text-gray-400 disabled:opacity-20"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div className="flex gap-1 overflow-x-auto px-2 max-w-[50vw]">
+              {questions.map((q, idx) => (
+                <div
+                  key={q.id}
+                  className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${currentQuestionIndex === idx ? 'bg-primary w-4' : (answers[q.id] ? 'bg-green-400' : 'bg-gray-200')}`}
+                ></div>
+              ))}
+            </div>
+            {currentQuestionIndex < questions.length - 1 ? (
+              <button
+                onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
+                className="bg-primary text-white p-3 rounded-xl shadow-lg shadow-primary/30"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                onClick={() => handleSubmitExam(false)}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-xs"
+              >
+                SUBMIT
+              </button>
+            )}
           </div>
         </div>
       </div>

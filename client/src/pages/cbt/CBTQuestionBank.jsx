@@ -353,13 +353,13 @@ const CBTQuestionBank = () => {
                   {isSubjectExpanded && (
                     <div className="overflow-x-auto bg-white border-t border-gray-200">
                       <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-gray-50 border-b border-gray-100">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Question</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Correct</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Teacher</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Question</th>
+                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Correct</th>
+                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Points</th>
+                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Teacher</th>
+                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -379,7 +379,7 @@ const CBTQuestionBank = () => {
                                   onClick={() => toggleExpand(q.id)}
                                 >
                                   <td className="px-6 py-4">
-                                    <div className="flex items-start gap-3">
+                                    <div className="flex items-start gap-3 min-w-[200px]">
                                       <div className="mt-0.5 text-gray-400">
                                         {isExpanded ? <ChevronUp size={18} className="text-primary" /> : <ChevronDown size={18} />}
                                       </div>
@@ -388,15 +388,15 @@ const CBTQuestionBank = () => {
                                       </div>
                                     </div>
                                   </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 uppercase font-bold text-center">
-                                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">
+                                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-bold uppercase">
                                       {q.correctOption}
                                     </span>
                                   </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center font-bold">
                                     {q.points}
                                   </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 italic">
                                     {q.teacher?.firstName} {q.teacher?.lastName}
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -405,7 +405,7 @@ const CBTQuestionBank = () => {
                                         e.stopPropagation();
                                         handleDelete(q.id);
                                       }}
-                                      className="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-full transition-colors"
+                                      className="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-full transition-colors flex items-center justify-center ml-auto"
                                     >
                                       <Trash2 size={16} />
                                     </button>
