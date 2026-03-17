@@ -394,7 +394,7 @@ const AlumniManagement = () => {
 
       const data = await response.json();
       if (response.ok) {
-        const fullPhotoUrl = data.photoUrl?.startsWith('http')
+        const fullPhotoUrl = (data.photoUrl?.startsWith('http') || data.photoUrl?.startsWith('data:'))
           ? data.photoUrl
           : `${rawBase}${data.photoUrl}`;
         setEditingAlumni({ ...editingAlumni, profilePicture: fullPhotoUrl });
@@ -579,8 +579,15 @@ const AlumniManagement = () => {
                             <tr key={alumni.id} className="hover:bg-gray-50">
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
-                                  <div className="h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center text-primary font-bold">
-                                    {alumni.student.user.firstName[0]}{alumni.student.user.lastName[0]}
+                                  <div className="h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center text-primary font-bold overflow-hidden shadow-sm flex-shrink-0">
+                                    {(() => {
+                                      const photo = alumni.student?.user?.photoUrl || alumni.profilePicture;
+                                      return photo ? (
+                                        <img src={photo.startsWith('data:') || photo.startsWith('http') ? photo : `${API_BASE_URL}${photo}`} alt="" className="w-full h-full object-cover" />
+                                      ) : (
+                                        <span>{alumni.student?.user?.firstName?.[0]}{alumni.student?.user?.lastName?.[0]}</span>
+                                      );
+                                    })()}
                                   </div>
                                   <div className="ml-4">
                                     <div className="text-sm font-medium text-gray-900">
@@ -1495,7 +1502,7 @@ const AlumniManagement = () => {
                   {editingAlumni.profilePicture && (
                     <div className="mb-2">
                       <img
-                        src={editingAlumni.profilePicture}
+                        src={(editingAlumni.profilePicture.startsWith('data:') || editingAlumni.profilePicture.startsWith('http')) ? editingAlumni.profilePicture : `${API_BASE_URL}${editingAlumni.profilePicture}`}
                         alt="Current profile"
                         className="w-24 h-24 object-cover rounded border"
                       />

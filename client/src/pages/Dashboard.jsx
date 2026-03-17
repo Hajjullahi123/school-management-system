@@ -80,7 +80,7 @@ const Dashboard = () => {
           <StudentDashboard user={user} currentTerm={currentTerm} currentSession={currentSession} />
         )}
         
-        {['admin', 'principal', 'teacher'].includes(user?.role) && (
+        {['admin', 'principal', 'teacher', 'attendance_admin', 'examination_officer'].includes(user?.role) && (
           <AdminTeacherDashboard user={user} schoolSettings={schoolSettings} />
         )}
 

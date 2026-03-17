@@ -500,7 +500,7 @@ const Attendance = () => {
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border-2 border-white shadow-sm shrink-0">
                               {student.photoUrl ? (
-                                <img src={`${API_BASE_URL}${student.photoUrl}`} alt="" className="w-full h-full object-cover" />
+                                <img src={student.photoUrl.startsWith('data:') || student.photoUrl.startsWith('http') ? student.photoUrl : `${API_BASE_URL}${student.photoUrl}`} alt="" className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-gray-300">
                                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>

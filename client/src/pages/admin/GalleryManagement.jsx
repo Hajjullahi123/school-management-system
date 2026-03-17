@@ -165,7 +165,7 @@ const GalleryManagement = () => {
   };
 
   const getImageSrc = (imageUrl) => {
-    if (imageUrl.startsWith('http')) {
+    if (imageUrl.startsWith('http') || imageUrl.startsWith('data:')) {
       return imageUrl;
     }
     return `${API_BASE_URL}${imageUrl}`;

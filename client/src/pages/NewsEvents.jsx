@@ -117,11 +117,11 @@ const NewsEvents = () => {
                 className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300"
               >
                 {item.imageUrl && (
-                  <img
-                    src={`${API_BASE_URL}${item.imageUrl}`}
-                    alt={item.title}
-                    className="w-full h-48 object-cover"
-                  />
+                    <img
+                      src={item.imageUrl.startsWith('data:') || item.imageUrl.startsWith('http') ? item.imageUrl : `${API_BASE_URL}${item.imageUrl}`}
+                      alt={item.title}
+                      className="w-full h-48 object-cover"
+                    />
                 )}
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-3">

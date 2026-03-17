@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../api';
+import { api, API_BASE_URL } from '../api';
 import useSchoolSettings from '../hooks/useSchoolSettings';
 
 const AlumniDirectory = () => {
@@ -111,11 +111,18 @@ const AlumniDirectory = () => {
                 <div className="p-8 flex-1">
                   <div className="flex items-start justify-between mb-6">
                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center text-primary text-3xl font-bold border border-gray-100 overflow-hidden shadow-inner">
-                      {person.profilePicture ? (
-                        <img src={person.profilePicture} alt={person.student.user.firstName} className="w-full h-full object-cover" />
-                      ) : (
-                        <span>{person.student.user.firstName[0]}{person.student.user.lastName[0]}</span>
-                      )}
+                      {(() => {
+                        const photoUrl = person.student?.user?.photoUrl || person.profilePicture;
+                        return photoUrl ? (
+                          <img
+                            src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`}
+                            alt={person.student.user.firstName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span>{person.student.user.firstName[0]}{person.student.user.lastName[0]}</span>
+                        );
+                      })()}
                     </div>
                     <span className="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest">
                       Class of {person.graduationYear}

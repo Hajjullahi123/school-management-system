@@ -372,11 +372,14 @@ const ReportCard = () => {
                 </div>
 
                 <div className="w-24 h-28 border-2 border-black bg-gray-50 flex-shrink-0 relative overflow-hidden">
-                  {reportData.student?.photoUrl ? (
-                    <img src={reportData.student.photoUrl.startsWith('http') ? reportData.student.photoUrl : `${API_BASE_URL}${reportData.student.photoUrl}`} alt="Student" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 font-bold text-gray-300">PHOTO</div>
-                  )}
+                  {(() => {
+                    const photo = reportData.student?.user?.photoUrl || reportData.student?.photoUrl;
+                    return photo ? (
+                      <img src={photo.startsWith('data:') || photo.startsWith('http') ? photo : `${API_BASE_URL}${photo}`} alt="Student" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 font-bold text-gray-300">PHOTO</div>
+                    );
+                  })()}
                 </div>
               </div>
 

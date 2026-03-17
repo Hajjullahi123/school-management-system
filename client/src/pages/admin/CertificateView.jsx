@@ -219,7 +219,7 @@ const CertificateView = () => {
   const studentName = `${certificate.student?.user?.firstName || ''} ${certificate.student?.user?.lastName || ''} ${certificate.student?.middleName || ''}`.trim();
   const verificationUrl = `${window.location.origin}/verify/certificate/${certificate.certificateNumber}`;
   // Prefer certificate-specific photo, then student photo
-  const displayPhotoUrl = certificate.passportUrl || certificate.student?.photoUrl;
+  const displayPhotoUrl = certificate.passportUrl || certificate.student?.user?.photoUrl || certificate.student?.photoUrl;
 
   return (
     <div className="container mx-auto px-4 py-8">

@@ -401,7 +401,7 @@ const BulkReportDownload = () => {
 
                       <div className="w-24 h-28 border-2 border-black bg-gray-50 flex-shrink-0 relative overflow-hidden">
                         {data.student?.photoUrl ? (
-                          <img src={data.student.photoUrl.startsWith('http') ? data.student.photoUrl : `${API_BASE_URL}${data.student.photoUrl}`} alt="Student" className="w-full h-full object-cover" />
+                          <img src={data.student.photoUrl.startsWith('data:') || data.student.photoUrl.startsWith('http') ? data.student.photoUrl : `${API_BASE_URL}${data.student.photoUrl}`} alt="Student" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 font-bold text-gray-300">PHOTO</div>
                         )}

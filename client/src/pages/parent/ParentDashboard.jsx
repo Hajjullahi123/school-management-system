@@ -425,8 +425,19 @@ const ParentDashboard = () => {
               <div key={student.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow flex flex-col">
                 <div className="bg-gradient-to-r from-primary/5 to-blue-50 p-4 sm:p-6">
                   <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-lg sm:text-2xl font-bold shadow-lg flex-shrink-0">
-                      {student.user?.firstName?.[0]}{student.user?.lastName?.[0]}
+                    <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-lg sm:text-2xl font-bold shadow-lg flex-shrink-0 overflow-hidden">
+                      {(() => {
+                        const photoUrl = student.user?.photoUrl || student.photoUrl;
+                        return photoUrl ? (
+                          <img
+                            src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span>{student.user?.firstName?.[0]}{student.user?.lastName?.[0]}</span>
+                        );
+                      })()}
                     </div>
                     <div className="min-w-0 flex-1">
                       <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">

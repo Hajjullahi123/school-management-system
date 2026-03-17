@@ -11,25 +11,17 @@ const { generateAdmissionNumber, getUniqueAdmissionNumber, isValidBloodGroup, is
 const { generateStudentUsername } = require('../utils/usernameGenerator');
 const { createOrUpdateFeeRecordWithOpening } = require('../utils/feeCalculations');
 
-// Configure multer for student photo upload
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '../uploads/students');
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'student-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
+// Use memory storage for Base64 DB persistence (survives Render's ephemeral filesystem)
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }
 });
+
+// Helper: convert buffer to data URI
+function fileToBase64(file) {
+  const base64 = file.buffer.toString('base64');
+  return `data:${file.mimetype};base64,${base64}`;
+}
 
 // ==========================================
 // SPECIFIC ROUTES (Must come before /:id)
@@ -55,7 +47,8 @@ router.get('/lookup', authenticate, async (req, res) => {
             firstName: true,
             lastName: true,
             middleName: true,
-            email: true
+            email: true,
+            photoUrl: true
           }
         },
         middleName: true,
@@ -97,7 +90,8 @@ router.get('/my-profile', authenticate, async (req, res) => {
             firstName: true,
             lastName: true,
             email: true,
-            username: true
+            username: true,
+            photoUrl: true
           }
         },
         classModel: {
@@ -203,7 +197,7 @@ router.put('/my-profile', authenticate, async (req, res) => {
   }
 });
 
-// Upload my photo (for logged-in student)
+// Upload my photo (for logged-in student) — Base64 DB storage
 router.post('/my-photo', authenticate, (req, res, next) => {
   upload.single('photo')(req, res, (err) => {
     if (err instanceof multer.MulterError) {
@@ -217,13 +211,6 @@ router.post('/my-photo', authenticate, (req, res, next) => {
   });
 }, async (req, res) => {
   try {
-    console.log('--- PHOTO UPLOAD DEBUG ---');
-    console.log('User Role:', req.user.role);
-    console.log('User ID:', req.user.id);
-    console.log('File:', req.file ? req.file.filename : 'MISSING');
-    console.log('Body:', req.body);
-    console.log('Headers:', req.headers['content-type']);
-
     // Ensure user is a student
     if (req.user.role !== 'student') {
       return res.status(403).json({ error: 'Access denied. Students only.' });
@@ -239,14 +226,7 @@ router.post('/my-photo', authenticate, (req, res, next) => {
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
     if (!allowedTypes.includes(photo.mimetype)) {
-      if (req.file.path) fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'Invalid file type. Only JPG and PNG are allowed.' });
-    }
-
-    // Validate file size (max 5MB)
-    if (photo.size > 5 * 1024 * 1024) {
-      if (req.file.path) fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: 'File size must be less than 5MB' });
     }
 
     // Find student
@@ -258,38 +238,20 @@ router.post('/my-photo', authenticate, (req, res, next) => {
       return res.status(404).json({ error: 'Student profile not found' });
     }
 
-    // Generate unique filename
-    const filename = photo.filename;
-
-    // Delete old photo if exists
-    if (student.photoUrl) {
-      try {
-        // Construct absolute path to the old file
-        // student.photoUrl is like "/uploads/students/file.jpg"
-        // We need to remove the leading slash to join correctly if valid
-        const relativePath = student.photoUrl.startsWith('/') ? student.photoUrl.substring(1) : student.photoUrl;
-        const oldPhotoPath = path.join(__dirname, '..', relativePath);
-
-        console.log('Attempting to delete old photo:', oldPhotoPath);
-        if (fs.existsSync(oldPhotoPath)) {
-          fs.unlinkSync(oldPhotoPath);
-        } else {
-          console.log('Old photo file not found:', oldPhotoPath);
-        }
-      } catch (deleteError) {
-        console.warn('Failed to delete old photo (proceeding with upload):', deleteError);
-      }
-    }
-
-    // Update database
-    // FORCE forward slashes for URL path, even on Windows
-    const photoUrl = `/uploads/students/${filename}`;
+    // Convert to base64 data URI and store in DB
+    const photoUrl = fileToBase64(photo);
 
     await prisma.student.update({
       where: {
         id: student.id,
         schoolId: req.schoolId
       },
+      data: { photoUrl }
+    });
+
+    // Also update User model for centralized access
+    await prisma.user.update({
+      where: { id: req.user.id },
       data: { photoUrl }
     });
 
@@ -306,7 +268,7 @@ router.post('/my-photo', authenticate, (req, res, next) => {
       resource: 'STUDENT_PHOTO',
       details: {
         studentId: student.id,
-        photoUrl
+        method: 'base64_database_storage'
       },
       ipAddress: req.ip
     });
@@ -337,17 +299,15 @@ router.delete('/my-photo', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'No photo to delete' });
     }
 
-    // Delete photo file
-    const fs = require('fs');
-    const path = require('path');
-    const photoPath = path.join(__dirname, '..', student.photoUrl);
-    if (fs.existsSync(photoPath)) {
-      fs.unlinkSync(photoPath);
-    }
-
-    // Update database
+    // Update database (just set to null)
     await prisma.student.update({
       where: { id: student.id },
+      data: { photoUrl: null }
+    });
+
+    // Also clear from User model
+    await prisma.user.update({
+      where: { id: req.user.id },
       data: { photoUrl: null }
     });
 
@@ -390,7 +350,8 @@ router.get('/', authenticate, async (req, res) => {
             lastName: true,
             email: true,
             role: true,
-            username: true
+            username: true,
+            photoUrl: true
           }
         },
         classModel: {
@@ -423,7 +384,8 @@ router.get('/user/:userId', authenticate, async (req, res) => {
           select: {
             firstName: true,
             lastName: true,
-            email: true
+            email: true,
+            photoUrl: true
           }
         },
         classModel: true
@@ -455,7 +417,8 @@ router.get('/:id', authenticate, async (req, res) => {
           select: {
             firstName: true,
             lastName: true,
-            email: true
+            email: true,
+            photoUrl: true
           }
         },
         classModel: true
@@ -797,7 +760,7 @@ router.put('/:id', authenticate, authorize(['admin', 'accountant', 'principal'])
       return res.status(400).json({ error: 'Invalid genotype' });
     }
 
-    if (firstName || lastName || email) {
+    if (firstName || lastName || email || photoUrl) {
       await prisma.user.update({
         where: {
           id: existingStudent.userId,
@@ -806,7 +769,8 @@ router.put('/:id', authenticate, authorize(['admin', 'accountant', 'principal'])
         data: {
           ...(firstName && { firstName }),
           ...(lastName && { lastName }),
-          ...(email && { email })
+          ...(email && { email }),
+          ...(photoUrl && { photoUrl })
         }
       });
     }

@@ -242,17 +242,20 @@ export default function ExamCardGenerator() {
               <div className="grid grid-cols-12 gap-3 relative z-10">
                 {/* Student Photo */}
                 <div className="col-span-4">
-                  {examCard.student.photoUrl ? (
-                    <img
-                      src={`${API_BASE_URL}${examCard.student.photoUrl}`}
-                      alt="Student"
-                      className="w-full aspect-[3/4] object-cover rounded border border-gray-300 shadow-sm"
-                    />
-                  ) : (
-                    <div className="w-full aspect-[3/4] bg-gray-100 rounded border border-gray-300 flex items-center justify-center">
-                      <span className="text-[8px] text-gray-400">No Photo</span>
-                    </div>
-                  )}
+                  {(() => {
+                    const photo = examCard.student.user?.photoUrl || examCard.student.photoUrl;
+                    return photo ? (
+                      <img
+                        src={photo.startsWith('data:') || photo.startsWith('http') ? photo : `${API_BASE_URL}${photo}`}
+                        alt="Student"
+                        className="w-full aspect-[3/4] object-cover rounded border border-gray-300 shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-full aspect-[3/4] bg-gray-100 rounded border border-gray-300 flex items-center justify-center">
+                        <span className="text-[8px] text-gray-400">No Photo</span>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Student Details */}

@@ -544,8 +544,19 @@ const Homework = () => {
                 {submissions.map(sub => (
                   <div key={sub.id} className="bg-white border-2 border-gray-50 rounded-[30px] p-6 hover:border-primary/20 transition-all flex items-center justify-between group">
                     <div className="flex items-center gap-6">
-                      <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center font-black text-gray-400 group-hover:bg-primary group-hover:text-white transition-all">
-                        {sub.student?.user?.firstName[0]}{sub.student?.user?.lastName[0]}
+                      <div className="w-14 h-14 bg-gray-100 rounded-2xl flex-shrink-0 flex items-center justify-center font-black text-gray-400 group-hover:bg-primary group-hover:text-white transition-all overflow-hidden">
+                        {(() => {
+                          const photoUrl = sub.student?.user?.photoUrl || sub.student?.photoUrl;
+                          return photoUrl ? (
+                            <img
+                              src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span>{sub.student?.user?.firstName?.[0]}{sub.student?.user?.lastName?.[0]}</span>
+                          );
+                        })()}
                       </div>
                       <div>
                         <h4 className="font-black text-gray-900 text-lg">{sub.student?.user?.firstName} {sub.student?.user?.lastName}</h4>

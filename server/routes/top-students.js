@@ -24,7 +24,7 @@ async function getTopStudentForClass(schoolId, classItem, termId, sessionId) {
   const students = await prisma.student.findMany({
     where: { classId: classItem.id, schoolId, user: { isActive: true, schoolId } },
     include: {
-      user: { select: { firstName: true, lastName: true } },
+      user: { select: { firstName: true, lastName: true, photoUrl: true } },
       classModel: true,
       results: {
         where: { termId, academicSessionId: sessionId, schoolId },
@@ -65,7 +65,7 @@ async function getTopStudentForClass(schoolId, classItem, termId, sessionId) {
     averageNumeric: top.average,
     position: '1st',
     subjects: bestSubjects.join(', ') || 'Multiple Subjects',
-    photo: top.photoUrl || null,
+    photo: top.user?.photoUrl || top.photoUrl || null,
     achievement,
     admissionNumber: top.admissionNumber
   };
@@ -168,7 +168,7 @@ router.get('/top-performers', async (req, res) => {
     const students = await prisma.student.findMany({
       where: { schoolId: finalSchoolId, user: { isActive: true, schoolId: finalSchoolId } },
       include: {
-        user: { select: { firstName: true, lastName: true, email: true } },
+        user: { select: { firstName: true, lastName: true, email: true, photoUrl: true } },
         classModel: true,
         results: {
           where: { termId: finalTermId, academicSessionId: finalSessionId, schoolId: finalSchoolId },
@@ -207,7 +207,7 @@ router.get('/top-performers', async (req, res) => {
         average: average.toFixed(1) + '%',
         averageNumeric: average,
         subjects: bestSubjects || 'Multiple Subjects',
-        photo: student.photoUrl || null,
+        photo: student.user?.photoUrl || student.photoUrl || null,
         achievement,
         admissionNumber: student.admissionNumber,
         totalSubjects: student.results.length

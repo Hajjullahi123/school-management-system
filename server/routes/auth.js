@@ -238,7 +238,8 @@ router.post('/login', async (req, res) => {
         mustChangePassword: user.mustChangePassword,
         teacher: user.teacher,
         student: user.student,
-        classesAsTeacher: user.classesAsTeacher
+        classesAsTeacher: user.classesAsTeacher,
+        photoUrl: user.photoUrl
       }
     });
   } catch (error) {
@@ -289,7 +290,8 @@ router.get('/me', authenticate, async (req, res) => {
       mustChangePassword: user.mustChangePassword,
       teacher: user.teacher,
       student: user.student,
-      classesAsTeacher: user.classesAsTeacher
+      classesAsTeacher: user.classesAsTeacher,
+      photoUrl: user.photoUrl
     });
   } catch (error) {
     console.error('Me error:', error);

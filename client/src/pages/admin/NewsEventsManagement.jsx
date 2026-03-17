@@ -12,8 +12,10 @@ const NewsEventsManagement = () => {
     content: '',
     type: 'news',
     eventDate: '',
-    isPublished: false
+    isPublished: false,
+    image: null
   });
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     fetchItems();
@@ -45,23 +47,32 @@ const NewsEventsManagement = () => {
         ? `${API_BASE_URL}/api/news-events/${editing.id}`
         : `${API_BASE_URL}/api/news-events`;
 
+      const data = new FormData();
+      data.append('title', formData.title);
+      data.append('content', formData.content);
+      data.append('type', formData.type);
+      data.append('isPublished', formData.isPublished);
+      if (formData.eventDate) data.append('eventDate', formData.eventDate);
+      if (formData.image) data.append('image', formData.image);
+
       const response = await fetch(url, {
         method: editing ? 'PUT' : 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(formData)
+        body: data
       });
 
       if (response.ok) {
         toast.success(editing ? 'Updated successfully!' : 'Created successfully!');
         setShowForm(false);
         setEditing(null);
-        setFormData({ title: '', content: '', type: 'news', eventDate: '', isPublished: false });
+        setFormData({ title: '', content: '', type: 'news', eventDate: '', isPublished: false, image: null });
+        setImagePreview(null);
         fetchItems();
       } else {
-        toast.error('Operation failed');
+        const err = await response.json();
+        toast.error(err.error || 'Operation failed');
       }
     } catch (error) {
       toast.error('Error occurred');
@@ -115,8 +126,10 @@ const NewsEventsManagement = () => {
       content: item.content,
       type: item.type,
       eventDate: item.eventDate ? item.eventDate.split('T')[0] : '',
-      isPublished: item.isPublished
+      isPublished: item.isPublished,
+      image: null
     });
+    setImagePreview(item.imageUrl ? (item.imageUrl.startsWith('data:') || item.imageUrl.startsWith('http') ? item.imageUrl : `${API_BASE_URL}${item.imageUrl}`) : null);
     setShowForm(true);
   };
 
@@ -128,7 +141,8 @@ const NewsEventsManagement = () => {
           onClick={() => {
             setShowForm(true);
             setEditing(null);
-            setFormData({ title: '', content: '', type: 'news', eventDate: '', isPublished: false });
+            setFormData({ title: '', content: '', type: 'news', eventDate: '', isPublished: false, image: null });
+            setImagePreview(null);
           }}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
@@ -188,6 +202,31 @@ const NewsEventsManagement = () => {
                   />
                 </div>
               )}
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Featured Image</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setFormData({ ...formData, image: file });
+                      setImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
+                  className="w-full border rounded px-3 py-2 text-sm"
+                />
+                {imagePreview && (
+                  <div className="mt-2">
+                    <img 
+                      src={imagePreview.startsWith('data:') || imagePreview.startsWith('http') || imagePreview.startsWith('blob:') ? imagePreview : `${API_BASE_URL}${imagePreview}`} 
+                      alt="Preview" 
+                      className="h-32 rounded object-cover" 
+                    />
+                  </div>
+                )}
+              </div>
 
               <div className="flex items-center">
                 <input

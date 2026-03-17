@@ -189,7 +189,7 @@ const CumulativeReport = () => {
   const renderCard = (data, index, total) => {
     const ss = data.schoolSettings || schoolSettings;
     const logoUri = buildLogoUrl(ss?.logoUrl);
-    const photoUri = buildPhotoUrl(data.student?.photoUrl);
+    const photoUri = buildPhotoUrl(data.student?.user?.photoUrl || data.student?.photoUrl);
     const isLast = index === total - 1;
 
     return (

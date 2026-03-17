@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { api } from '../../api';
+import { api, API_BASE_URL } from '../../api';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -40,6 +40,8 @@ const UserManagement = () => {
   const [expandedRoles, setExpandedRoles] = useState({});
   const [filter, setFilter] = useState('all'); // all, student, teacher, admin
   const [searchTerm, setSearchTerm] = useState('');
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
   const [generatedCredentials, setGeneratedCredentials] = useState(null);
   const handlePrintCredentials = () => {
     const originalTitle = document.title;
@@ -64,6 +66,18 @@ const UserManagement = () => {
       }
     } catch (error) {
       console.error('Failed to fetch classes:', error);
+    }
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -97,14 +111,22 @@ const UserManagement = () => {
       if (editingUser) {
         const dataToSend = { ...formData };
         if (!dataToSend.password) delete dataToSend.password;
+        // Include new photo if selected
+        if (photoFile && photoPreview.startsWith('data:')) {
+          dataToSend.photoUrl = photoPreview;
+        }
         response = await api.put(`/api/users/${editingUser.id}`, dataToSend);
       } else {
-        response = await api.post('/api/users', formData);
+        const dataToSend = { ...formData };
+        if (photoPreview && photoPreview.startsWith('data:')) {
+          dataToSend.photoUrl = photoPreview;
+        }
+        response = await api.post('/api/users', dataToSend);
       }
 
       if (response.ok) {
         const result = await response.json();
-        const isAdminRole = ['admin', 'principal', 'accountant', 'examination_officer', 'teacher'].includes(result.role);
+        const isAdminRole = ['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin', 'teacher'].includes(result.role);
 
         if (result.generatedCredentials && (isAdminRole || !editingUser)) {
           setGeneratedCredentials({
@@ -158,6 +180,11 @@ const UserManagement = () => {
       parentPhone: user.student?.parentPhone || ''
     });
     setShowModal(true);
+    if (user.photoUrl) {
+      setPhotoPreview(user.photoUrl.startsWith('data:') || user.photoUrl.startsWith('http') ? user.photoUrl : `${API_BASE_URL}${user.photoUrl}`);
+    } else {
+      setPhotoPreview(null);
+    }
   };
 
   const handleDelete = async (userId) => {
@@ -180,6 +207,8 @@ const UserManagement = () => {
   const closeModal = () => {
     setShowModal(false);
     setEditingUser(null);
+    setPhotoPreview(null);
+    setPhotoFile(null);
     setFormData({
       username: '',
       password: '',
@@ -268,6 +297,7 @@ const UserManagement = () => {
           <option value="all">All Category Views</option>
           <option value="admin">Administrators</option>
           <option value="examination_officer">Examination Officers</option>
+          <option value="attendance_admin">Attendance & Access Admins</option>
           <option value="teacher">Teachers</option>
           <option value="accountant">Accountants</option>
           <option value="principal">Principals</option>
@@ -282,7 +312,7 @@ const UserManagement = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         ) : (
-          ['admin', 'examination_officer', 'principal', 'teacher', 'accountant', 'parent', 'student'].map(role => {
+          ['admin', 'examination_officer', 'attendance_admin', 'principal', 'teacher', 'accountant', 'parent', 'student'].map(role => {
             const usersInRole = filteredUsers.filter(u => {
               if (role === 'parent') {
                 return u.role === 'parent' || (u.parent && Object.keys(u.parent).length > 0);
@@ -301,11 +331,12 @@ const UserManagement = () => {
                   onClick={() => toggleRole(role)}
                   className={`px-6 py-4 flex justify-between items-center cursor-pointer select-none transition-colors ${role === 'admin' ? 'bg-indigo-600 hover:bg-indigo-700' :
                     role === 'examination_officer' ? 'bg-cyan-600 hover:bg-cyan-700' :
-                      role === 'principal' ? 'bg-purple-600 hover:bg-purple-700' :
-                        role === 'teacher' ? 'bg-blue-600 hover:bg-blue-700' :
-                          role === 'accountant' ? 'bg-amber-600 hover:bg-amber-700' :
-                            role === 'parent' ? 'bg-rose-600 hover:bg-rose-700' :
-                              'bg-emerald-600 hover:bg-emerald-700'
+                      role === 'attendance_admin' ? 'bg-fuchsia-600 hover:bg-fuchsia-700' :
+                        role === 'principal' ? 'bg-purple-600 hover:bg-purple-700' :
+                          role === 'teacher' ? 'bg-blue-600 hover:bg-blue-700' :
+                            role === 'accountant' ? 'bg-amber-600 hover:bg-amber-700' :
+                              role === 'parent' ? 'bg-rose-600 hover:bg-rose-700' :
+                                'bg-emerald-600 hover:bg-emerald-700'
                     } text-white`}
                 >
                   <div className="flex items-center gap-3">
@@ -314,6 +345,8 @@ const UserManagement = () => {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                       ) : role === 'examination_officer' ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      ) : role === 'attendance_admin' ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                       ) : role === 'principal' ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                       ) : role === 'teacher' ? (
@@ -362,15 +395,23 @@ const UserManagement = () => {
                             <tr key={user.id} className="hover:bg-gray-50 transition-colors group">
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
-                                  <div className={`h-11 w-11 rounded-2xl flex items-center justify-center text-white font-black shadow-lg transform transition-transform group-hover:rotate-6 ${role === 'admin' ? 'bg-indigo-500' :
+                                  <div className={`h-11 w-11 rounded-2xl flex items-center justify-center text-white font-black shadow-lg transform transition-transform group-hover:rotate-6 overflow-hidden ${role === 'admin' ? 'bg-indigo-500' :
                                     role === 'examination_officer' ? 'bg-cyan-500' :
-                                      role === 'principal' ? 'bg-purple-500' :
-                                        role === 'teacher' ? 'bg-blue-500' :
-                                          role === 'accountant' ? 'bg-amber-500' :
-                                            role === 'parent' ? 'bg-rose-500' :
-                                              'bg-emerald-500'
+                                      role === 'attendance_admin' ? 'bg-fuchsia-500' :
+                                        role === 'principal' ? 'bg-purple-500' :
+                                          role === 'teacher' ? 'bg-blue-500' :
+                                            role === 'accountant' ? 'bg-amber-500' :
+                                              role === 'parent' ? 'bg-rose-500' :
+                                                'bg-emerald-500'
                                     }`}>
-                                    {user.firstName[0]}{user.lastName[0]}
+                                    {(() => {
+                                      const photoUrl = user.photoUrl || user.student?.photoUrl || user.teacher?.photoUrl;
+                                      return photoUrl ? (
+                                        <img src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`} alt="" className="w-full h-full object-cover" />
+                                      ) : (
+                                        <span>{user.firstName[0]}{user.lastName[0]}</span>
+                                      );
+                                    })()}
                                   </div>
                                   <div className="ml-4">
                                     <div className="text-sm font-black text-gray-900 uppercase tracking-tighter">{user.firstName} {user.lastName}</div>
@@ -399,6 +440,7 @@ const UserManagement = () => {
                                   </div>
                                 )}
                                 {role === 'admin' && <div className="text-indigo-700 font-bold text-xs bg-indigo-50 px-3 py-1 rounded-full w-fit border border-indigo-100 tracking-tight">SYSTEM ADMIN</div>}
+                                {role === 'attendance_admin' && <div className="text-fuchsia-700 font-bold text-xs bg-fuchsia-50 px-3 py-1 rounded-full w-fit border border-fuchsia-100 tracking-tight text-center">ATTENDANCE & ACCESS</div>}
                                 {role === 'parent' && (
                                   <div className="space-y-1">
                                     <div className="text-rose-700 font-bold text-xs bg-rose-50 px-3 py-1 rounded-full w-fit border border-rose-100 tracking-tight">GUARDIAN ACCOUNT</div>
@@ -457,24 +499,41 @@ const UserManagement = () => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
           <div className="relative bg-white shadow-2xl rounded-[2rem] w-full max-w-md p-8 transform transition-all border border-gray-100">
             <div className="flex justify-between items-center mb-8">
-              <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">{editingUser ? 'Profile Config' : 'Access Creation'}</h3>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
+            
             <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
+              <div className="flex items-center space-x-4 mb-4 bg-gray-50/50 p-4 rounded-2xl border-2 border-dashed border-gray-100">
+                <div className="flex-shrink-0">
+                  {photoPreview ? (
+                    <img src={photoPreview} alt="Preview" className="w-16 h-16 rounded-full object-cover border-2 border-primary" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Profile Photo (Optional)</label>
+                  <input type="file" accept="image/*" onChange={handlePhotoChange} className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all" />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Account Category</label>
                 <select name="role" value={formData.role} onChange={handleInputChange} className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 bg-gray-50 font-black focus:ring-4 focus:ring-primary/10 outline-none appearance-none transition-all">
                   <option value="teacher">Instructor / Teacher</option>
                   <option value="examination_officer">Examination Officer</option>
+                  <option value="attendance_admin">Attendance & Access Admin</option>
                   <option value="principal">School Principal</option>
                   <option value="accountant">Financial Accountant</option>
                   <option value="admin">System Admin</option>
                 </select>
                 {/* Singleton role warning */}
-                {!editingUser && ['admin', 'principal', 'accountant', 'examination_officer'].includes(formData.role) && (() => {
-                  const roleLabel = formData.role === 'admin' ? 'System Admin' : formData.role === 'principal' ? 'School Principal' : formData.role === 'examination_officer' ? 'Examination Officer' : 'Financial Accountant';
+                {!editingUser && ['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin'].includes(formData.role) && (() => {
+                  const roleLabel = formData.role === 'admin' ? 'System Admin' : formData.role === 'principal' ? 'School Principal' : formData.role === 'examination_officer' ? 'Examination Officer' : formData.role === 'attendance_admin' ? 'Attendance & Access Admin' : 'Financial Accountant';
                   const already = users.some(u => u.role === formData.role);
                   return already ? (
                     <div className="mt-2 flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
@@ -598,7 +657,7 @@ const UserManagement = () => {
                 <button type="button" onClick={closeModal} className="flex-1 bg-gray-100 text-gray-600 font-black py-4 rounded-2xl hover:bg-gray-200 transition-all uppercase text-xs tracking-widest">Cancel</button>
                 <button
                   type="submit"
-                  disabled={!editingUser && ['admin', 'principal', 'accountant', 'examination_officer'].includes(formData.role) && users.some(u => u.role === formData.role)}
+                  disabled={!editingUser && ['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin'].includes(formData.role) && users.some(u => u.role === formData.role)}
                   className="flex-1 bg-primary text-white font-black py-4 rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20 uppercase text-xs tracking-widest disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100"
                 >Confirm</button>
               </div>

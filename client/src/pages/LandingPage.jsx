@@ -434,7 +434,11 @@ const LandingPage = () => {
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-40 h-40 rounded-full bg-white shadow-2xl flex items-center justify-center overflow-hidden border-4 border-white group-hover:scale-110 transition-transform duration-500">
                         {student.photo ? (
-                          <img src={student.photo} alt={student.name} className="w-full h-full object-cover" />
+                          <img 
+                            src={student.photo.startsWith('data:') || student.photo.startsWith('http') ? student.photo : `${API_BASE_URL}${student.photo}`} 
+                            alt={student.name} 
+                            className="w-full h-full object-cover" 
+                          />
                         ) : (
                           <svg className="w-32 h-32 text-primary" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />

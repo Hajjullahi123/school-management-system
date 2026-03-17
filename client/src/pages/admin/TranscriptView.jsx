@@ -105,7 +105,7 @@ const TranscriptView = () => {
           <div className="flex gap-6 items-center">
             {schoolSettings?.logoUrl && (
               <img
-                src={schoolSettings.logoUrl}
+                src={schoolSettings.logoUrl.startsWith('data:') || schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl}`}
                 alt="Logo"
                 className="w-24 h-24 object-contain"
               />
@@ -124,23 +124,26 @@ const TranscriptView = () => {
             </div>
           </div>
           <div className="flex flex-col items-end gap-4">
-            {student.photoUrl ? (
-              <div className="w-24 h-24 border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
-                <img
-                  src={student.photoUrl.startsWith('http') ? student.photoUrl : `${API_BASE_URL || ''}${student.photoUrl}`}
-                  alt="Student Passport"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ) : (
-              <div className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 flex flex-col items-center justify-center text-gray-400">
-                <div className="bg-gray-200 p-2 rounded-full mb-1">
-                  <Loader2 className="w-6 h-6 opacity-20" /> {/* Reusing an icon for placeholder feel */}
+            {(() => {
+              const photo = student.user?.photoUrl || student.photoUrl;
+              return photo ? (
+                <div className="w-24 h-24 border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                  <img
+                    src={photo.startsWith('http') || photo.startsWith('data:') ? photo : `${API_BASE_URL || ''}${photo}`}
+                    alt="Student Passport"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-                <span className="text-[8px] font-bold uppercase tracking-tighter">Photo</span>
-                <span className="text-[8px] font-bold uppercase tracking-tighter">Required</span>
-              </div>
-            )}
+              ) : (
+                <div className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 flex flex-col items-center justify-center text-gray-400">
+                  <div className="bg-gray-200 p-2 rounded-full mb-1">
+                    <Loader2 className="w-6 h-6 opacity-20" />
+                  </div>
+                  <span className="text-[8px] font-bold uppercase tracking-tighter">Photo</span>
+                  <span className="text-[8px] font-bold uppercase tracking-tighter">Required</span>
+                </div>
+              );
+            })()}
             <div className="text-right max-w-[160px]">
               <div className="bg-primary/10 px-2 py-1 rounded border border-primary/20 mb-1">
                 <p className="text-[8px] font-bold text-primary uppercase tracking-wide">Transcript ID</p>

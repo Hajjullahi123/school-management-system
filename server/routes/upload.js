@@ -7,26 +7,14 @@ const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, '../uploads/students');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Configure multer for file upload
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
-    // Generate unique filename: studentId_timestamp.extension
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'student-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// ===========================================================
+// Use MEMORY storage so we can convert to Base64 for DB storage
+// This ensures images survive Render's ephemeral filesystem
+// ===========================================================
+const memoryStorage = multer.memoryStorage();
 
 // File filter to accept only images
-const fileFilter = (req, file, cb) => {
+const imageFileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
@@ -39,14 +27,22 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({
-  storage: storage,
+  storage: memoryStorage,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
   },
-  fileFilter: fileFilter
+  fileFilter: imageFileFilter
 });
 
-// Upload student photo
+// Helper: convert multer file buffer to a data URI string
+function fileToBase64(file) {
+  const base64 = file.buffer.toString('base64');
+  return `data:${file.mimetype};base64,${base64}`;
+}
+
+// ============ STUDENT PHOTO UPLOAD ============
+
+// Upload student photo (Admin)
 router.post('/:studentId/photo', authenticate, authorize(['admin']), upload.single('photo'), async (req, res) => {
   try {
     const studentId = parseInt(req.params.studentId);
@@ -61,27 +57,19 @@ router.post('/:studentId/photo', authenticate, authorize(['admin']), upload.sing
     });
 
     if (!student) {
-      // Delete uploaded file if student doesn't exist
-      if (req.file.path) fs.unlinkSync(req.file.path);
       return res.status(404).json({ error: 'Student not found' });
     }
 
-    // Delete old photo if exists
-    if (student.photoUrl) {
-      const oldPhotoPath = path.join(__dirname, '..', student.photoUrl);
-      if (fs.existsSync(oldPhotoPath)) {
-        fs.unlinkSync(oldPhotoPath);
-      }
-    }
+    // Convert to base64 data URI and store in DB
+    const photoUrl = fileToBase64(req.file);
 
-    // Update student with new photo URL
-    const photoUrl = `/uploads/students/${req.file.filename}`;
     const updatedStudent = await prisma.student.update({
       where: { id: studentId },
       data: { photoUrl },
       include: {
         user: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
             email: true
@@ -90,6 +78,14 @@ router.post('/:studentId/photo', authenticate, authorize(['admin']), upload.sing
         classModel: true
       }
     });
+
+    // Also update User model for centralized access
+    if (updatedStudent.user?.id) {
+      await prisma.user.update({
+        where: { id: updatedStudent.user.id },
+        data: { photoUrl }
+      });
+    }
 
     res.json({
       message: 'Photo uploaded successfully',
@@ -105,16 +101,12 @@ router.post('/:studentId/photo', authenticate, authorize(['admin']), upload.sing
       resource: 'STUDENT',
       details: {
         studentId: studentId,
-        photoUrl: photoUrl
+        method: 'base64_database_storage'
       },
       ipAddress: req.ip
     });
   } catch (error) {
     console.error('Error uploading photo:', error);
-    // Clean up uploaded file on error
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -136,17 +128,19 @@ router.delete('/:studentId/photo', authenticate, authorize(['admin']), async (re
       return res.status(400).json({ error: 'Student has no photo' });
     }
 
-    // Delete photo file
-    const photoPath = path.join(__dirname, '..', student.photoUrl);
-    if (fs.existsSync(photoPath)) {
-      fs.unlinkSync(photoPath);
-    }
-
-    // Update student record
-    await prisma.student.update({
+    // Update student record (just clear the field)
+    const updatedStudent = await prisma.student.update({
       where: { id: studentId },
       data: { photoUrl: null }
     });
+
+    // Also clear from User model
+    if (updatedStudent.userId) {
+      await prisma.user.update({
+        where: { id: updatedStudent.userId },
+        data: { photoUrl: null }
+      });
+    }
 
     res.json({ message: 'Photo deleted successfully' });
 
@@ -167,33 +161,8 @@ router.delete('/:studentId/photo', authenticate, authorize(['admin']), async (re
 
 // ============ TEACHER PHOTO UPLOAD ============
 
-// Create teachers uploads directory
-const teachersUploadsDir = path.join(__dirname, '../uploads/teachers');
-if (!fs.existsSync(teachersUploadsDir)) {
-  fs.mkdirSync(teachersUploadsDir, { recursive: true });
-}
-
-// Configure multer for teacher photos
-const teacherStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, teachersUploadsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'teacher-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const teacherUpload = multer({
-  storage: teacherStorage,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  },
-  fileFilter: fileFilter
-});
-
-// Upload teacher photo
-router.post('/teacher/:teacherId/photo', authenticate, authorize(['admin']), teacherUpload.single('photo'), async (req, res) => {
+// Upload teacher photo (Admin)
+router.post('/teacher/:teacherId/photo', authenticate, authorize(['admin']), upload.single('photo'), async (req, res) => {
   try {
     const teacherId = parseInt(req.params.teacherId);
 
@@ -207,27 +176,19 @@ router.post('/teacher/:teacherId/photo', authenticate, authorize(['admin']), tea
     });
 
     if (!teacher) {
-      // Delete uploaded file if teacher doesn't exist
-      if (req.file.path) fs.unlinkSync(req.file.path);
       return res.status(404).json({ error: 'Teacher not found' });
     }
 
-    // Delete old photo if exists
-    if (teacher.photoUrl) {
-      const oldPhotoPath = path.join(__dirname, '..', teacher.photoUrl);
-      if (fs.existsSync(oldPhotoPath)) {
-        fs.unlinkSync(oldPhotoPath);
-      }
-    }
+    // Convert to base64 data URI and store in DB
+    const photoUrl = fileToBase64(req.file);
 
-    // Update teacher with new photo URL
-    const photoUrl = `/uploads/teachers/${req.file.filename}`;
     const updatedTeacher = await prisma.teacher.update({
       where: { id: teacherId },
       data: { photoUrl },
       include: {
         user: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
             email: true
@@ -235,6 +196,14 @@ router.post('/teacher/:teacherId/photo', authenticate, authorize(['admin']), tea
         }
       }
     });
+
+    // Also update User model for centralized access
+    if (updatedTeacher.user?.id) {
+      await prisma.user.update({
+        where: { id: updatedTeacher.user.id },
+        data: { photoUrl }
+      });
+    }
 
     res.json({
       message: 'Photo uploaded successfully',
@@ -250,16 +219,12 @@ router.post('/teacher/:teacherId/photo', authenticate, authorize(['admin']), tea
       resource: 'TEACHER',
       details: {
         teacherId: teacherId,
-        photoUrl: photoUrl
+        method: 'base64_database_storage'
       },
       ipAddress: req.ip
     });
   } catch (error) {
     console.error('Error uploading teacher photo:', error);
-    // Clean up uploaded file on error
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -281,17 +246,19 @@ router.delete('/teacher/:teacherId/photo', authenticate, authorize(['admin']), a
       return res.status(400).json({ error: 'Teacher has no photo' });
     }
 
-    // Delete photo file
-    const photoPath = path.join(__dirname, '..', teacher.photoUrl);
-    if (fs.existsSync(photoPath)) {
-      fs.unlinkSync(photoPath);
-    }
-
-    // Update teacher record
-    await prisma.teacher.update({
+    // Clear the field
+    const updatedTeacher = await prisma.teacher.update({
       where: { id: teacherId },
       data: { photoUrl: null }
     });
+
+    // Also clear from User model
+    if (updatedTeacher.userId) {
+      await prisma.user.update({
+        where: { id: updatedTeacher.userId },
+        data: { photoUrl: null }
+      });
+    }
 
     res.json({ message: 'Photo deleted successfully' });
 
@@ -311,12 +278,8 @@ router.delete('/teacher/:teacherId/photo', authenticate, authorize(['admin']), a
 });
 
 // ============ DOCUMENT (PDF) UPLOAD ============
-
-// Create documents uploads directory
-const documentsUploadsDir = path.join(__dirname, '../uploads/documents');
-if (!fs.existsSync(documentsUploadsDir)) {
-  fs.mkdirSync(documentsUploadsDir, { recursive: true });
-}
+// Note: PDFs are stored as base64 in the database too.
+// For large PDFs this may be slow, but it ensures persistence on ephemeral hosts.
 
 // PDF file filter
 const pdfFileFilter = (req, file, cb) => {
@@ -331,20 +294,8 @@ const pdfFileFilter = (req, file, cb) => {
   }
 };
 
-// Configure multer for PDF uploads
-const documentStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, documentsUploadsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now();
-    const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-    cb(null, 'doc-' + uniqueSuffix + '-' + sanitizedName);
-  }
-});
-
 const documentUpload = multer({
-  storage: documentStorage,
+  storage: memoryStorage,
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit for PDFs
   },
@@ -358,12 +309,18 @@ router.post('/brochure', authenticate, authorize(['admin']), documentUpload.sing
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const fileUrl = `/uploads/documents/${req.file.filename}`;
+    const fileData = fileToBase64(req.file);
+
+    // Store in school settings
+    await prisma.school.update({
+      where: { id: req.schoolId },
+      data: { brochureFileUrl: fileData }
+    });
 
     res.json({
       message: 'Brochure uploaded successfully',
-      fileUrl: fileUrl,
-      filename: req.file.filename
+      fileUrl: fileData,
+      filename: req.file.originalname
     });
 
     // Log the upload
@@ -372,14 +329,11 @@ router.post('/brochure', authenticate, authorize(['admin']), documentUpload.sing
       userId: req.user.id,
       action: 'UPLOAD_BROCHURE',
       resource: 'DOCUMENT',
-      details: { filename: req.file.filename },
+      details: { filename: req.file.originalname, method: 'base64_database_storage' },
       ipAddress: req.ip
     });
   } catch (error) {
     console.error('Error uploading brochure:', error);
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -391,12 +345,18 @@ router.post('/admission-guide', authenticate, authorize(['admin']), documentUplo
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const fileUrl = `/uploads/documents/${req.file.filename}`;
+    const fileData = fileToBase64(req.file);
+
+    // Store in school settings
+    await prisma.school.update({
+      where: { id: req.schoolId },
+      data: { admissionGuideFileUrl: fileData }
+    });
 
     res.json({
       message: 'Admission guide uploaded successfully',
-      fileUrl: fileUrl,
-      filename: req.file.filename
+      fileUrl: fileData,
+      filename: req.file.originalname
     });
 
     // Log the upload
@@ -405,47 +365,19 @@ router.post('/admission-guide', authenticate, authorize(['admin']), documentUplo
       userId: req.user.id,
       action: 'UPLOAD_ADMISSION_GUIDE',
       resource: 'DOCUMENT',
-      details: { filename: req.file.filename },
+      details: { filename: req.file.originalname, method: 'base64_database_storage' },
       ipAddress: req.ip
     });
   } catch (error) {
     console.error('Error uploading admission guide:', error);
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
     res.status(500).json({ error: error.message });
   }
 });
 
 // ============ CERTIFICATE PHOTO UPLOAD ============
 
-// Create certificates uploads directory
-const certificatesUploadsDir = path.join(__dirname, '../uploads/certificates');
-if (!fs.existsSync(certificatesUploadsDir)) {
-  fs.mkdirSync(certificatesUploadsDir, { recursive: true });
-}
-
-// Configure multer for certificate photos
-const certificateStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, certificatesUploadsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'cert-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const certificateUpload = multer({
-  storage: certificateStorage,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  },
-  fileFilter: fileFilter
-});
-
 // Upload certificate photo
-router.post('/certificate/:certificateId/photo', authenticate, authorize(['admin']), certificateUpload.single('photo'), async (req, res) => {
+router.post('/certificate/:certificateId/photo', authenticate, authorize(['admin']), upload.single('photo'), async (req, res) => {
   try {
     const certificateId = parseInt(req.params.certificateId);
 
@@ -459,21 +391,12 @@ router.post('/certificate/:certificateId/photo', authenticate, authorize(['admin
     });
 
     if (!certificate) {
-      // Delete uploaded file if certificate doesn't exist
-      if (req.file.path) fs.unlinkSync(req.file.path);
       return res.status(404).json({ error: 'Certificate not found' });
     }
 
-    // Delete old photo if exists
-    if (certificate.passportUrl) {
-      const oldPhotoPath = path.join(__dirname, '..', certificate.passportUrl);
-      if (fs.existsSync(oldPhotoPath)) {
-        fs.unlinkSync(oldPhotoPath);
-      }
-    }
+    // Convert to base64 data URI and store in DB
+    const passportUrl = fileToBase64(req.file);
 
-    // Update certificate with new photo URL
-    const passportUrl = `/uploads/certificates/${req.file.filename}`;
     const updatedCertificate = await prisma.certificate.update({
       where: { id: certificateId },
       data: { passportUrl },
@@ -500,15 +423,12 @@ router.post('/certificate/:certificateId/photo', authenticate, authorize(['admin
       resource: 'CERTIFICATE',
       details: {
         certificateId: certificateId,
-        passportUrl: passportUrl
+        method: 'base64_database_storage'
       },
       ipAddress: req.ip
     });
   } catch (error) {
     console.error('Error uploading certificate photo:', error);
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
     res.status(500).json({ error: error.message });
   }
 });

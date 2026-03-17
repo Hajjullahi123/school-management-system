@@ -13,7 +13,7 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
       students: {
         include: {
           classModel: true,
-          user: { select: { firstName: true, lastName: true, email: true } },
+          user: { select: { firstName: true, lastName: true, email: true, photoUrl: true } },
           results: {
             where: { schoolId: req.schoolId },
             orderBy: { createdAt: 'desc' },
@@ -289,7 +289,7 @@ router.get('/', authenticate, authorize(['admin', 'principal']), async (req, res
         students: {
           where: { schoolId: req.schoolId },
           include: {
-            user: { select: { firstName: true, lastName: true } },
+            user: { select: { firstName: true, lastName: true, photoUrl: true } },
             classModel: { select: { name: true, arm: true } }
           }
         }

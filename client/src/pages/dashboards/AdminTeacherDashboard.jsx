@@ -112,9 +112,24 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
       {/* Welcome Bar */}
       <div className="bg-slate-900 p-5 rounded-2xl shadow-xl border border-white/5 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-        <div className="relative z-10">
-          <h1 className="text-xl font-black italic tracking-tighter text-white uppercase">Personnel: {user?.firstName} {user?.lastName}</h1>
-          <p className="text-primary-light text-[10px] font-black uppercase tracking-[0.2em] mt-1">{user?.role} Access Authorized</p>
+        <div className="relative z-10 flex items-center gap-4">
+          <div className="flex-shrink-0">
+            {user?.photoUrl ? (
+              <img
+                src={user.photoUrl.startsWith('data:') || user.photoUrl.startsWith('http') ? user.photoUrl : `${API_BASE_URL}${user.photoUrl}`}
+                alt="Profile"
+                className="w-12 h-12 rounded-full object-cover border-2 border-primary/50 shadow-lg"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg border-2 border-primary/30">
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </div>
+            )}
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-black italic tracking-tighter text-white uppercase truncate">Personnel: {user?.firstName} {user?.lastName}</h1>
+            <p className="text-primary-light text-[10px] font-black uppercase tracking-[0.2em] mt-0.5">{user?.role} Access Authorized</p>
+          </div>
         </div>
       </div>
 

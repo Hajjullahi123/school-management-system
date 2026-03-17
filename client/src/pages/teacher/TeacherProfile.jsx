@@ -29,8 +29,9 @@ const TeacherProfile = () => {
         firstName: user.firstName || '',
         lastName: user.lastName || ''
       });
-      if (user.teacher?.photoUrl) {
-        setPhotoPreview(`${API_BASE_URL}${user.teacher.photoUrl}`);
+      const photoUrl = user.photoUrl || user.teacher?.photoUrl;
+      if (photoUrl) {
+        setPhotoPreview(photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`);
       }
       if (user.signatureUrl) {
         setSignaturePreview(user.signatureUrl.startsWith('data:') || user.signatureUrl.startsWith('http') ? user.signatureUrl : `${API_BASE_URL}${user.signatureUrl}`);

@@ -176,9 +176,9 @@ const Layout = () => {
   }
 
   // Academic Setup Group
-  if (user?.role === 'admin' || user?.role === 'principal' || user?.role === 'examination_officer') {
-    // Academic Setup Group - NOT for examination officer
-    if (user?.role !== 'examination_officer') {
+  if (user?.role === 'admin' || user?.role === 'principal' || user?.role === 'examination_officer' || user?.role === 'attendance_admin') {
+    // Academic Setup Group - NOT for examination officer or attendance admin
+    if (!['examination_officer', 'attendance_admin'].includes(user?.role)) {
       menuItems.push({
         type: 'group',
         label: 'Academic Setup',
@@ -281,7 +281,7 @@ const Layout = () => {
           }
         ].filter(item => {
           // Examination Officer: skip entire Academic Setup (handled as standalone below)
-          if (user?.role === 'examination_officer') {
+          if (['examination_officer', 'attendance_admin'].includes(user?.role)) {
             return false;
           }
           return true;
@@ -291,8 +291,8 @@ const Layout = () => {
 
 
 
-    // User Management Group - NOT for examination officer
-    if (user?.role !== 'examination_officer') {
+    // User Management Group - NOT for examination officer or attendance admin
+    if (!['examination_officer', 'attendance_admin'].includes(user?.role)) {
       menuItems.push({
         type: 'group',
         label: 'User Management',
@@ -678,8 +678,8 @@ const Layout = () => {
   }
 
   // Add Admin-only items
-  // Add Admin/Principal/ExamOfficer items
-  if (user?.role === 'admin' || user?.role === 'principal' || user?.role === 'examination_officer') {
+  // Add Admin/Principal/ExamOfficer/AttendanceAdmin items
+  if (user?.role === 'admin' || user?.role === 'principal' || user?.role === 'examination_officer' || user?.role === 'attendance_admin') {
 
     // Fee Management Group - ADMIN ONLY
     if (user?.role === 'admin') {
@@ -732,8 +732,8 @@ const Layout = () => {
       });
     }
 
-    // Timetable & Scheduling Group - NOT for examination officer
-    if (user?.role !== 'examination_officer') {
+    // Timetable & Scheduling Group - NOT for examination officer or attendance admin
+    if (!['examination_officer', 'attendance_admin'].includes(user?.role)) {
       menuItems.push({
         type: 'group',
         label: 'Timetable & Scheduling',
@@ -774,9 +774,11 @@ const Layout = () => {
       });
     } // end timetable guard
 
-    menuItems.push({
-      type: 'group',
-      label: 'CBT & Exams',
+    // CBT & Exams (Restricted for attendance admin)
+    if (user?.role !== 'attendance_admin') {
+      menuItems.push({
+        type: 'group',
+        label: 'CBT & Exams',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -803,6 +805,7 @@ const Layout = () => {
         }
       ]
     });
+    } // end CBT guard
 
     // Attendance & Access - NOT for examination officer
     if (user?.role !== 'examination_officer') {
@@ -835,7 +838,7 @@ const Layout = () => {
           }
         ]
       });
-    } // end attendance guard
+    } // end attendance guard (Restricted for exam officer, but open to attendance_admin)
 
     // Exam Officer specific items for result management
     if (user?.role === 'examination_officer') {
@@ -879,8 +882,8 @@ const Layout = () => {
 
 
 
-    // Promotion & Graduation Group - NOT for examination officer
-    if (user?.role !== 'examination_officer') {
+    // Promotion & Graduation Group - NOT for examination officer or attendance admin
+    if (!['examination_officer', 'attendance_admin'].includes(user?.role)) {
       menuItems.push({
         type: 'group',
         label: 'Promotion & Graduation',
@@ -921,8 +924,8 @@ const Layout = () => {
       });
     } // end promotion guard
 
-    // Content Management Group - NOT for examination officer
-    if (user?.role !== 'examination_officer') {
+    // Content Management Group - NOT for examination officer or attendance admin
+    if (!['examination_officer', 'attendance_admin'].includes(user?.role)) {
       menuItems.push({
         type: 'group',
         label: 'Content Management',
@@ -965,10 +968,11 @@ const Layout = () => {
 
 
 
-    // Analytics Group
-    menuItems.push({
-      type: 'group',
-      label: 'Statistical Insights',
+    // Analytics Group (Restricted for attendance admin)
+    if (user?.role !== 'attendance_admin') {
+      menuItems.push({
+        type: 'group',
+        label: 'Statistical Insights',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -996,8 +1000,9 @@ const Layout = () => {
         }
       ]
     });
+    } // end analytics guard
 
-    if (user?.role !== 'examination_officer') {
+    if (!['examination_officer', 'attendance_admin'].includes(user?.role)) {
       menuItems.push({
         path: '/dashboard/id-card', icon: (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1264,9 +1269,17 @@ const Layout = () => {
                     <p className="text-[10px] sm:text-xs text-gray-500 capitalize">{user?.role}</p>
                   </div>
                   <div
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white text-xs sm:text-base font-bold shadow-lg bg-secondary flex-shrink-0"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white text-xs sm:text-base font-bold shadow-lg bg-secondary flex-shrink-0 overflow-hidden"
                   >
-                    {user?.firstName?.[0]}{user?.lastName?.[0]}
+                    {user?.photoUrl ? (
+                      <img
+                        src={user.photoUrl.startsWith('data:') || user.photoUrl.startsWith('http') ? user.photoUrl : `${API_BASE_URL}${user.photoUrl}`}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
+                    )}
                   </div>
 
                   {/* Mobile Logout Button (Visible only on small screens) */}

@@ -44,7 +44,7 @@ const AlumniPortal = () => {
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-primary rounded shadow-sm overflow-hidden flex items-center justify-center">
                   {settings?.logoUrl ? (
-                    <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-contain p-0.5" />
+                    <img src={settings.logoUrl.startsWith('data:') || settings.logoUrl.startsWith('http') ? settings.logoUrl : `${API_BASE_URL}${settings.logoUrl}`} alt="Logo" className="w-full h-full object-contain p-0.5" />
                   ) : (
                     <span className="text-white font-bold text-xs">
                       {settings?.schoolName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'S'}
@@ -129,7 +129,7 @@ const AlumniPortal = () => {
               <div key={story.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
                 <div className="h-64 overflow-hidden relative">
                   <img
-                    src={story.imageUrl || 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'}
+                    src={story.imageUrl ? (story.imageUrl.startsWith('data:') || story.imageUrl.startsWith('http') ? story.imageUrl : `${API_BASE_URL}${story.imageUrl}`) : 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'}
                     alt={story.alumniName}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />

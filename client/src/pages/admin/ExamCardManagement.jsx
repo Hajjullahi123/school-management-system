@@ -261,11 +261,14 @@ export default function ExamCardManagement() {
               {/* Student Info */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '8px', position: 'relative', zIndex: 1 }}>
                 <div>
-                  {card.student?.photoUrl ? (
-                    <img src={`${API_BASE_URL}${card.student.photoUrl}`} alt="Student" style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ccc' }} />
-                  ) : (
-                    <div style={{ width: '100%', aspectRatio: '3/4', background: '#f3f4f6', borderRadius: '4px', border: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', color: '#999' }}>No Photo</div>
-                  )}
+                  {(() => {
+                    const photo = card.student?.user?.photoUrl || card.student?.photoUrl;
+                    return photo ? (
+                      <img src={photo.startsWith('data:') || photo.startsWith('http') ? photo : `${API_BASE_URL}${photo}`} alt="Student" style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ccc' }} />
+                    ) : (
+                      <div style={{ width: '100%', aspectRatio: '3/4', background: '#f3f4f6', borderRadius: '4px', border: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', color: '#999' }}>No Photo</div>
+                    );
+                  })()}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
                   <div>
@@ -487,13 +490,16 @@ export default function ExamCardManagement() {
                       <td className="px-6 py-3 text-gray-500 font-mono text-xs">{idx + 1}</td>
                       <td className="px-6 py-3">
                         <div className="flex items-center gap-3">
-                          {student.photoUrl ? (
-                            <img src={`${API_BASE_URL}${student.photoUrl}`} alt="" className="w-8 h-8 rounded-full object-cover border" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
-                              {(student.user?.firstName?.[0] || '')}{(student.user?.lastName?.[0] || '')}
-                            </div>
-                          )}
+                          {(() => {
+                            const photo = student.user?.photoUrl || student.photoUrl;
+                            return photo ? (
+                              <img src={photo.startsWith('data:') || photo.startsWith('http') ? photo : `${API_BASE_URL}${photo}`} alt="" className="w-8 h-8 rounded-full object-cover border" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                                {(student.user?.firstName?.[0] || '')}{(student.user?.lastName?.[0] || '')}
+                              </div>
+                            );
+                          })()}
                           <span className="font-medium text-gray-900">
                             {student.user?.firstName} {student.user?.lastName}
                           </span>

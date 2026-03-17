@@ -134,7 +134,7 @@ const HistoryBulkTestimonialView = () => {
                 {/* Letterhead */}
                 <div className="mb-8 w-full">
                   {testimonial.school?.logoUrl && (
-                    <img src={testimonial.school.logoUrl} alt="Logo" className="h-20 mx-auto mb-4 object-contain" />
+                    <img src={testimonial.school.logoUrl.startsWith('data:') || testimonial.school.logoUrl.startsWith('http') ? testimonial.school.logoUrl : `${API_BASE_URL}${testimonial.school.logoUrl}`} alt="Logo" className="h-20 mx-auto mb-4 object-contain" />
                   )}
                   <h1 className="text-3xl font-black tracking-tight mb-2 uppercase" style={{ color: testimonial.school?.primaryColor || '#1e40af' }}>
                     {testimonial.school?.name}

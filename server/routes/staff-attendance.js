@@ -38,7 +38,7 @@ function determineStatus(checkInTime, lateMinutes) {
 }
 
 // 1. Check In (Teacher/Staff)
-router.post('/check-in', authenticate, authorize(['teacher', 'admin', 'principal', 'accountant']), async (req, res) => {
+router.post('/check-in', authenticate, authorize(['teacher', 'admin', 'principal', 'accountant', 'attendance_admin']), async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -177,7 +177,7 @@ router.post('/check-in', authenticate, authorize(['teacher', 'admin', 'principal
 });
 
 // 2. Check Out (Teacher/Staff)
-router.post('/check-out', authenticate, authorize(['teacher', 'admin', 'principal', 'accountant']), async (req, res) => {
+router.post('/check-out', authenticate, authorize(['teacher', 'admin', 'principal', 'accountant', 'attendance_admin']), async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -244,7 +244,7 @@ router.post('/check-out', authenticate, authorize(['teacher', 'admin', 'principa
 });
 
 // 3. Get My Status (Teacher/Staff)
-router.get('/my-status', authenticate, authorize(['teacher', 'admin', 'principal', 'accountant']), async (req, res) => {
+router.get('/my-status', authenticate, authorize(['teacher', 'admin', 'principal', 'accountant', 'attendance_admin']), async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -299,7 +299,7 @@ router.get('/my-status', authenticate, authorize(['teacher', 'admin', 'principal
 });
 
 // 4. Daily Report (Admin/Principal)
-router.get('/daily-report', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.get('/daily-report', authenticate, authorize(['admin', 'principal', 'attendance_admin']), async (req, res) => {
   try {
     const { date, days = 1 } = req.query;
     const numDays = parseInt(days);
@@ -406,7 +406,7 @@ router.get('/daily-report', authenticate, authorize(['admin', 'principal']), asy
 });
 
 // 5. Monthly Summary (Admin/Principal)
-router.get('/monthly-summary', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.get('/monthly-summary', authenticate, authorize(['admin', 'principal', 'attendance_admin']), async (req, res) => {
   try {
     const schoolId = parseInt(req.schoolId);
     const { month, year } = req.query;
@@ -483,7 +483,7 @@ router.get('/monthly-summary', authenticate, authorize(['admin', 'principal']), 
 });
 
 // 6. Mark Absent (Admin - manual marking)
-router.post('/mark-absent', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.post('/mark-absent', authenticate, authorize(['admin', 'principal', 'attendance_admin']), async (req, res) => {
   try {
     const schoolId = parseInt(req.schoolId);
     const { userId, date, notes } = req.body;
@@ -533,7 +533,7 @@ router.post('/mark-absent', authenticate, authorize(['admin', 'principal']), asy
 });
 
 // 7. Verify Attendance (Admin manual marking/verification)
-router.post('/verify', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.post('/verify', authenticate, authorize(['admin', 'principal', 'attendance_admin']), async (req, res) => {
   try {
     const schoolId = parseInt(req.schoolId);
     const { userId, date, status, notes, checkInTime, checkOutTime } = req.body;
@@ -620,7 +620,7 @@ router.post('/verify', authenticate, authorize(['admin', 'principal']), async (r
 });
 
 // 8. Bulk Mark Attendance (Admin/Principal)
-router.post('/mark-bulk', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.post('/mark-bulk', authenticate, authorize(['admin', 'principal', 'attendance_admin']), async (req, res) => {
   try {
     const { records, date } = req.body;
     // records: [{ userId: 1, status: 'present', notes: '' }, ...]
@@ -694,7 +694,7 @@ router.post('/mark-bulk', authenticate, authorize(['admin', 'principal']), async
 });
 
 // 9. Download Excel Report (Admin/Principal)
-router.get('/download', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.get('/download', authenticate, authorize(['admin', 'principal', 'attendance_admin']), async (req, res) => {
   try {
     const schoolId = parseInt(req.schoolId);
     const { startDate, endDate, role, status } = req.query;

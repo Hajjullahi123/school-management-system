@@ -204,6 +204,7 @@ model User {
   role               String
   firstName          String
   lastName           String
+  photoUrl           String?
   signatureUrl       String?
   isActive           Boolean             @default(true)
   mustChangePassword Boolean             @default(false)

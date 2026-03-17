@@ -1240,13 +1240,16 @@ Note: Password must be changed on first login.
                               <tr key={student.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="flex items-center">
-                                    {student.photoUrl ? (
-                                      <img className="h-8 w-8 rounded-full object-cover mr-3" src={`${API_BASE_URL}${student.photoUrl}`} alt="" />
-                                    ) : (
-                                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold mr-3">
-                                        {student.user.firstName[0]}
-                                      </div>
-                                    )}
+                                    {(() => {
+                                      const photo = student.user?.photoUrl || student.photoUrl;
+                                      return photo ? (
+                                        <img className="h-8 w-8 rounded-full object-cover mr-3" src={photo.startsWith('data:') || photo.startsWith('http') ? photo : `${API_BASE_URL}${photo}`} alt="" />
+                                      ) : (
+                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold mr-3">
+                                          {student.user?.firstName?.[0]}
+                                        </div>
+                                      );
+                                    })()}
                                     <div className="text-sm font-medium text-gray-900">
                                       {student.user.lastName} {student.user.firstName} {student.middleName}
                                     </div>

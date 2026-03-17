@@ -207,7 +207,7 @@ const TestimonialView = () => {
           <div className="mb-8 w-full">
             {testimonial.school?.logoUrl ? (
               <img
-                src={testimonial.school.logoUrl}
+                src={testimonial.school.logoUrl.startsWith('data:') || testimonial.school.logoUrl.startsWith('http') ? testimonial.school.logoUrl : `${API_BASE_URL}${testimonial.school.logoUrl}`}
                 alt="School Logo"
                 className="h-24 mx-auto mb-6 object-contain"
               />

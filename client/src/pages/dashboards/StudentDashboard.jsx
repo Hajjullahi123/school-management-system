@@ -129,17 +129,20 @@ const StudentDashboard = ({ user, currentTerm, currentSession }) => {
       {/* Welcome Header with Photo */}
       <div className="bg-gradient-to-r from-primary to-primary/80 text-white p-5 sm:p-6 rounded-lg shadow-lg">
         <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-          {studentData?.photoUrl ? (
-            <img
-              src={`${API_BASE_URL}${studentData.photoUrl}`}
-              alt="Student"
-              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white shadow-xl"
-            />
-          ) : (
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white flex items-center justify-center text-primary font-black text-2xl sm:text-3xl border-4 border-white shadow-xl">
-              {user?.firstName?.[0]}{user?.lastName?.[0]}
-            </div>
-          )}
+          {(() => {
+            const photoUrl = user.photoUrl || studentData?.photoUrl;
+            return photoUrl ? (
+              <img
+                src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`}
+                alt="Student"
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white shadow-xl"
+              />
+            ) : (
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white flex items-center justify-center text-primary font-black text-2xl sm:text-3xl border-4 border-white shadow-xl">
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </div>
+            );
+          })()}
           <div className="text-center sm:text-left flex-1 min-w-0">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-black italic tracking-tighter uppercase leading-tight">
               Welcome, {user?.firstName} {user?.lastName}!

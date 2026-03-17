@@ -191,16 +191,30 @@ const ParentAttendanceView = () => {
         </div>
       )}
 
-      {wards.length === 1 && selectedStudent && (
-        <div className="bg-primary/5 border-l-4 border-primary p-4 rounded-lg">
-          <p className="font-semibold text-primary">
-            Viewing attendance for: {selectedStudent.user?.firstName} {selectedStudent.user?.lastName}
-          </p>
-          <p className="text-sm text-primary/80">
-            Class: {selectedStudent.classModel?.name} {selectedStudent.classModel?.arm}
-          </p>
+        <div className="bg-primary/5 border-l-4 border-primary p-4 rounded-lg flex items-center gap-4">
+          <div className="h-12 w-12 rounded-full bg-primary/20 flex-shrink-0 flex items-center justify-center text-primary font-bold overflow-hidden">
+            {(() => {
+              const photoUrl = selectedStudent.user?.photoUrl || selectedStudent.photoUrl;
+              return photoUrl ? (
+                <img
+                  src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span>{selectedStudent.user?.firstName?.[0]}{selectedStudent.user?.lastName?.[0]}</span>
+              );
+            })()}
+          </div>
+          <div>
+            <p className="font-semibold text-primary">
+              Viewing attendance for: {selectedStudent.user?.firstName} {selectedStudent.user?.lastName}
+            </p>
+            <p className="text-sm text-primary/80">
+              Class: {selectedStudent.classModel?.name} {selectedStudent.classModel?.arm}
+            </p>
+          </div>
         </div>
-      )}
 
       <div className="bg-white p-6 rounded-lg shadow">
         <h3 className="font-semibold text-gray-900 mb-4">Filter Records</h3>

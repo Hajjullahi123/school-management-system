@@ -422,17 +422,20 @@ const MyClass = () => {
               {(Array.isArray(classData?.students) ? classData.students : []).map((student) => (
                 <tr key={student.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {student.photoUrl ? (
-                      <img
-                        src={`${API_BASE_URL}${student.photoUrl}`}
-                        alt="Student"
-                        className="h-10 w-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                        {student.user.firstName[0]}
-                      </div>
-                    )}
+                    {(() => {
+                      const photoUrl = student.user?.photoUrl || student.photoUrl;
+                      return photoUrl ? (
+                        <img
+                          src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`}
+                          alt="Student"
+                          className="h-10 w-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                          {student.user.firstName[0]}{student.user.lastName?.[0]}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {student.admissionNumber}

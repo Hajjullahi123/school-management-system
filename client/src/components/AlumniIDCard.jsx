@@ -22,7 +22,7 @@ const AlumniIDCard = forwardRef(({ alumni, schoolSettings }, ref) => {
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center p-1">
               {logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                <img src={logoUrl.startsWith('data:') || logoUrl.startsWith('http') ? logoUrl : `${API_BASE_URL}${logoUrl}`} alt="Logo" className="w-full h-full object-contain" />
               ) : (
                 <span className="text-primary font-bold text-xs">SM</span>
               )}
@@ -39,7 +39,7 @@ const AlumniIDCard = forwardRef(({ alumni, schoolSettings }, ref) => {
           {/* Photo */}
           <div className="w-24 h-28 bg-gray-100 border-2 border-primary/20 rounded-md overflow-hidden flex-shrink-0">
             {profilePicture ? (
-              <img src={profilePicture} alt="Profile" className="w-full h-full object-cover" />
+              <img src={profilePicture.startsWith('data:') || profilePicture.startsWith('http') ? profilePicture : `${API_BASE_URL}${profilePicture}`} alt="Profile" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400">
                 <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,7 +109,7 @@ const AlumniIDCard = forwardRef(({ alumni, schoolSettings }, ref) => {
           {/* Logo Footer */}
           <div className="flex justify-center items-center mt-2">
             {logoUrl && (
-              <img src={logoUrl} alt="Logo" className="h-8 opacity-20" />
+              <img src={logoUrl.startsWith('data:') || logoUrl.startsWith('http') ? logoUrl : `${API_BASE_URL}${logoUrl}`} alt="Logo" className="h-8 opacity-20" />
             )}
           </div>
         </div>

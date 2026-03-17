@@ -369,11 +369,14 @@ const ProgressiveReport = () => {
                           PROGRESSIVE REPORT
                         </div>
                       </div>
-                      {data.student.photoUrl ? (
-                        <img src={data.student.photoUrl.startsWith('http') || data.student.photoUrl.startsWith('data:') ? data.student.photoUrl : `${API_BASE_URL}${data.student.photoUrl}`} alt="Student" className="w-24 h-28 object-cover border-2 border-gray-300 rounded shadow-sm" />
-                      ) : (
-                        <div className="w-24 h-28 bg-gray-100 flex items-center justify-center border-2 border-gray-300 rounded text-xs text-gray-400">Photo</div>
-                      )}
+                      {(() => {
+                        const photo = data.student.user?.photoUrl || data.student.photoUrl;
+                        return photo ? (
+                          <img src={photo.startsWith('http') || photo.startsWith('data:') ? photo : `${API_BASE_URL}${photo}`} alt="Student" className="w-24 h-28 object-cover border-2 border-gray-300 rounded shadow-sm" />
+                        ) : (
+                          <div className="w-24 h-28 bg-gray-100 flex items-center justify-center border-2 border-gray-300 rounded text-xs text-gray-400">Photo</div>
+                        );
+                      })()}
                     </div>
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-0 border-2 border-black mb-6 divide-y divide-black lg:divide-y-0 lg:divide-x bg-gray-50/50">

@@ -252,7 +252,7 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="gate-scan" element={
-                <ProtectedRoute roles={['admin', 'principal', 'teacher', 'examination_officer']}>
+                <ProtectedRoute roles={['admin', 'principal', 'teacher', 'examination_officer', 'attendance_admin']}>
                   <ArrivalScanner />
                 </ProtectedRoute>
               } />
@@ -262,7 +262,7 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="staff-attendance" element={
-                <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
+                <ProtectedRoute roles={['admin', 'principal', 'examination_officer', 'attendance_admin']}>
                   <StaffAttendanceReport />
                 </ProtectedRoute>
               } />

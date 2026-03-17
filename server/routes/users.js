@@ -71,7 +71,8 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
       staffId,
       specialization,
       // General
-      phone
+      phone,
+      photoUrl
     } = req.body;
 
     let finalUsername;
@@ -82,7 +83,7 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
     }
 
     // Enforce singleton roles: only ONE admin, principal, accountant, examination_officer per school
-    if (['admin', 'principal', 'accountant', 'examination_officer'].includes(role)) {
+    if (['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin'].includes(role)) {
       const existing = await prisma.user.findFirst({
         where: { schoolId: req.schoolId, role }
       });
@@ -91,6 +92,7 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
         if (role === 'admin') roleLabel = 'System Admin';
         else if (role === 'principal') roleLabel = 'School Principal';
         else if (role === 'examination_officer') roleLabel = 'Examination Officer';
+        else if (role === 'attendance_admin') roleLabel = 'Attendance & Access Admin';
         else roleLabel = 'School Accountant';
 
         return res.status(400).json({
@@ -115,13 +117,15 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
           lastName,
           new Date().getFullYear()
         );
-      } else if (['admin', 'principal', 'accountant', 'examination_officer'].includes(role)) {
+      } else if (['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin'].includes(role)) {
         const schoolInitials = school?.name
           ? school.name.split(' ').filter(word => word.length > 0).map(word => word[0].toUpperCase()).join('').substring(0, 3)
           : (school?.code || 'SCH');
 
         // e.g., principal/AMA@123 or exam_off/AMA@123
-        const position = role === 'examination_officer' ? 'exam_off' : role.toLowerCase();
+        let position = role.toLowerCase();
+        if (role === 'examination_officer') position = 'exam_off';
+        if (role === 'attendance_admin') position = 'attend_off';
 
         let usernameExists = true;
         while (usernameExists) {
@@ -162,7 +166,7 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
 
     // Password is now optional for all roles - will be auto-generated if not provided
 
-    if (!['admin', 'teacher', 'student', 'accountant', 'principal', 'examination_officer'].includes(role)) {
+    if (!['admin', 'teacher', 'student', 'accountant', 'principal', 'examination_officer', 'attendance_admin'].includes(role)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
 
@@ -206,7 +210,8 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
       phone: phone || null,
       role,
       firstName,
-      lastName
+      lastName,
+      photoUrl: photoUrl || null
     };
 
     let user;
@@ -444,7 +449,8 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
       // Password reset
       password,
       username,
-      role
+      role,
+      photoUrl
     } = req.body;
 
     const user = await prisma.user.findFirst({
@@ -469,7 +475,8 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
       firstName,
       lastName,
       isActive,
-      username
+      username,
+      photoUrl
     };
 
     if (role) {

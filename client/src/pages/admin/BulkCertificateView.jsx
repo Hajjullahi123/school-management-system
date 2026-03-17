@@ -112,7 +112,7 @@ const BulkCertificateView = () => {
         {certificates.map((cert) => {
           const studentName = `${cert.student?.user?.firstName || ''} ${cert.student?.user?.lastName || ''} ${cert.student?.middleName || ''}`.trim();
           const verificationUrl = `${window.location.origin}/verify/certificate/${cert.certificateNumber}`;
-          const displayPhotoUrl = cert.passportUrl || cert.student?.photoUrl;
+          const displayPhotoUrl = cert.passportUrl || cert.student?.user?.photoUrl || cert.student?.photoUrl;
 
           return (
             <div key={cert.id} className="certificate-page bg-white p-0 m-0 relative" style={{ width: '297mm', height: '210mm', overflow: 'hidden' }}>

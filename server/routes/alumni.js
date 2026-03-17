@@ -9,23 +9,9 @@ const path = require('path');
 const fs = require('fs');
 const { generateAlumniUsername } = require('../utils/usernameGenerator');
 
-// Configure multer for photo uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../uploads/alumni');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'alumni-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
+// Use memory storage for Base64 DB persistence (survives Render's ephemeral filesystem)
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif/;
@@ -39,6 +25,12 @@ const upload = multer({
     }
   }
 });
+
+// Helper: convert buffer to data URI
+function fileToBase64(file) {
+  const base64 = file.buffer.toString('base64');
+  return `data:${file.mimetype};base64,${base64}`;
+}
 
 // Helper function to resolve schoolId from query or authenticated request
 async function resolveSchoolId(req) {
@@ -114,7 +106,7 @@ router.get('/directory', optionalAuth, async (req, res) => {
         student: {
           include: {
             user: {
-              select: { firstName: true, lastName: true, email: true, role: true, username: true }
+              select: { firstName: true, lastName: true, email: true, role: true, username: true, photoUrl: true }
             }
           }
         }
@@ -122,7 +114,12 @@ router.get('/directory', optionalAuth, async (req, res) => {
       orderBy: { graduationYear: 'desc' }
     });
 
-    res.json(alumni);
+    const sanitizedAlumni = alumni.map(a => ({
+      ...a,
+      photoUrl: a.profilePicture || a.student.user?.photoUrl || a.student.photoUrl
+    }));
+
+    res.json(sanitizedAlumni);
   } catch (error) {
     console.error('Alumni directory error:', error);
     res.status(500).json({ error: 'Failed to fetch alumni directory' });
@@ -193,7 +190,7 @@ router.get('/profile/current', authenticate, async (req, res) => {
         student: {
           include: {
             user: {
-              select: { firstName: true, lastName: true, email: true, phone: true }
+              select: { firstName: true, lastName: true, email: true, phone: true, photoUrl: true }
             }
           }
         }
@@ -202,7 +199,10 @@ router.get('/profile/current', authenticate, async (req, res) => {
 
     if (!alumni) return res.status(404).json({ error: 'Alumni profile not found' });
 
-    res.json(alumni);
+    res.json({
+      ...alumni,
+      photoUrl: alumni.profilePicture || alumni.student.user?.photoUrl || alumni.student.photoUrl
+    });
   } catch (error) {
     console.error('Fetch current profile error:', error);
     res.status(500).json({ error: 'Failed to fetch profile' });
@@ -303,7 +303,8 @@ router.post('/upload-photo', authenticate, upload.single('photo'), async (req, r
       return res.status(404).json({ error: 'Alumni profile not found' });
     }
 
-    const photoUrl = `/uploads/alumni/${req.file.filename}`;
+    // Convert to Base64
+    const photoUrl = fileToBase64(req.file);
 
     // Update alumni record
     await prisma.alumni.update({
@@ -323,7 +324,7 @@ router.post('/upload-photo', authenticate, upload.single('photo'), async (req, r
       userId: req.user.id,
       action: 'UPDATE',
       resource: 'ALUMNI_PHOTO',
-      details: { url: photoUrl },
+      details: { method: 'base64_database_storage' },
       ipAddress: req.ip
     });
 
@@ -904,12 +905,12 @@ router.post('/:id/photo', authenticate, checkSubscription, authorize(['admin', '
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const alumniId = parseInt(req.params.id);
-    const photoUrl = `/uploads/alumni/${req.file.filename}`;
+    const alumniIdInt = parseInt(req.params.id);
+    const photoUrl = fileToBase64(req.file);
 
     // Update alumni profilePicture
     const updated = await prisma.alumni.update({
-      where: { id: alumniId, schoolId: req.schoolId },
+      where: { id: alumniIdInt, schoolId: req.schoolId },
       data: { profilePicture: photoUrl },
       include: { student: { select: { id: true } } }
     });
@@ -925,14 +926,26 @@ router.post('/:id/photo', authenticate, checkSubscription, authorize(['admin', '
     res.json({
       message: 'Photo uploaded successfully',
       photoUrl: photoUrl,
-      alumni: updated
+      alumni: updated,
+      method: 'base64_database_storage'
+    });
+
+    // Log the upload
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPLOAD_PHOTO',
+      resource: 'ALUMNI',
+      details: {
+        alumniId: alumniIdInt,
+        studentId: updated?.student?.id,
+        method: 'base64_database_storage'
+      },
+      ipAddress: req.ip
     });
   } catch (error) {
     console.error('Photo upload error:', error);
-    if (req.file) {
-      try { fs.unlinkSync(req.file.path); } catch (_) { }
-    }
-    res.status(500).json({ error: 'Failed to upload photo' });
+    res.status(500).json({ error: 'Failed to upload photo: ' + error.message });
   }
 });
 

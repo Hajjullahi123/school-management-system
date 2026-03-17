@@ -132,7 +132,7 @@ router.post('/generate', authenticate, authorize(['student', 'admin', 'accountan
           admissionNumber: student.admissionNumber,
           name: `${student.user.firstName} ${student.user.lastName}`,
           class: student.classModel ? `${student.classModel.name}${student.classModel.arm ? ' ' + student.classModel.arm : ''}` : 'N/A',
-          photoUrl: student.photoUrl
+          photoUrl: student.user?.photoUrl || student.photoUrl
         },
         subjects: classSubjects.map(cs => cs.subject)
       }
@@ -228,7 +228,7 @@ router.get('/my-card', authenticate, authorize(['student']), async (req, res) =>
         admissionNumber: student.admissionNumber,
         name: `${student.user.firstName} ${student.user.lastName}`,
         class: student.classModel ? `${student.classModel.name}${student.classModel.arm ? ' ' + student.classModel.arm : ''}` : 'N/A',
-        photoUrl: student.photoUrl
+        photoUrl: student.user?.photoUrl || student.photoUrl
       },
       subjects: classSubjects.map(cs => cs.subject)
     });
@@ -290,7 +290,7 @@ router.get('/student/:studentId', authenticate, authorize(['admin', 'accountant'
         admissionNumber: examCard.student.admissionNumber,
         name: `${examCard.student.user.firstName} ${examCard.student.user.lastName}`,
         class: examCard.student.classModel ? `${examCard.student.classModel.name}${examCard.student.classModel.arm ? ' ' + examCard.student.classModel.arm : ''}` : 'N/A',
-        photoUrl: examCard.student.photoUrl
+        photoUrl: examCard.student.user?.photoUrl || examCard.student.photoUrl
       },
       subjects: classSubjects.map(cs => cs.subject)
     });
@@ -342,7 +342,7 @@ router.get('/verify/:cardNumber', authenticate, authorize(['admin', 'teacher', '
           class: examCard.student.classModel ?
             `${examCard.student.classModel.name}${examCard.student.classModel.arm ? ' ' + examCard.student.classModel.arm : ''}` :
             'N/A',
-          photoUrl: examCard.student.photoUrl
+          photoUrl: examCard.student.user?.photoUrl || examCard.student.photoUrl
         },
         session: examCard.academicSession.name,
         term: examCard.term.name

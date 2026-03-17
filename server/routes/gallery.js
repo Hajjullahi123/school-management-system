@@ -3,6 +3,33 @@ const router = express.Router();
 const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
+const multer = require('multer');
+const path = require('path');
+
+// Use memory storage for Base64 DB persistence (survives Render's ephemeral filesystem)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files (JPEG, JPG, PNG, GIF) are allowed!'));
+    }
+  }
+});
+
+// Helper: convert buffer to data URI
+function fileToBase64(file) {
+  const base64 = file.buffer.toString('base64');
+  return `data:${file.mimetype};base64,${base64}`;
+}
 
 // GET /api/gallery/images - Get all active gallery images (public)
 router.get('/images', async (req, res) => {
@@ -78,49 +105,6 @@ router.get('/categories', async (req, res) => {
   }
 });
 
-// Setup multer for image uploads
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-
-// Create uploads directory
-const galleryUploadsDir = path.join(__dirname, '../uploads/gallery');
-if (!fs.existsSync(galleryUploadsDir)) {
-  fs.mkdirSync(galleryUploadsDir, { recursive: true });
-}
-
-// Configure storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, galleryUploadsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'gallery-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-// File filter for images
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
-
-  if (mimetype && extname) {
-    return cb(null, true);
-  } else {
-    cb(new Error('Only image files (JPEG, JPG, PNG, GIF) are allowed!'));
-  }
-};
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  },
-  fileFilter: fileFilter
-});
-
 // GET /api/gallery/all - Get all images including inactive (admin/principal only)
 router.get('/all', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
@@ -156,12 +140,11 @@ router.post('/images', authenticate, authorize(['admin', 'principal']), upload.s
     const { title, description, category } = req.body;
 
     if (!title || !category) {
-      // Delete uploaded file if validation fails
-      fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'Title and category are required' });
     }
 
-    const imageUrl = `/uploads/gallery/${req.file.filename}`;
+    // Convert to Base64
+    const imageUrl = fileToBase64(req.file);
 
     const image = await prisma.galleryImage.create({
       data: {
@@ -185,15 +168,11 @@ router.post('/images', authenticate, authorize(['admin', 'principal']), upload.s
     res.status(201).json(image);
   } catch (error) {
     console.error('Error creating gallery image:', error);
-    // Clean up uploaded file on error
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
     res.status(500).json({ error: 'Failed to create gallery image' });
   }
 });
 
-// POST /api/gallery/images - Upload new image (admin/principal only)
+// POST /api/gallery/images-url - Upload new image via URL (admin/principal only)
 router.post('/images-url', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { title, description, imageUrl, category } = req.body;
@@ -321,7 +300,6 @@ router.delete('/images/:id', authenticate, authorize(['admin', 'principal']), as
   }
 });
 
-
 // Simple upload endpoint (admin/principal only)
 router.post('/upload', authenticate, authorize(['admin', 'principal']), upload.single('image'), async (req, res) => {
   try {
@@ -332,11 +310,11 @@ router.post('/upload', authenticate, authorize(['admin', 'principal']), upload.s
     const { title, description, category } = req.body;
 
     if (!title || !category) {
-      fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'Title and category required' });
     }
 
-    const imageUrl = `/uploads/gallery/${req.file.filename}`;
+    // Convert to Base64
+    const imageUrl = fileToBase64(req.file);
 
     const image = await prisma.galleryImage.create({
       data: {
@@ -369,15 +347,12 @@ router.post('/upload', authenticate, authorize(['admin', 'principal']), upload.s
         imageId: image.id,
         title: image.title,
         category: image.category,
-        method: 'direct_upload'
+        method: 'direct_base64_storage'
       },
       ipAddress: req.ip
     });
   } catch (error) {
     console.error('Upload error:', error);
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
     res.status(500).json({ error: 'Upload failed' });
   }
 });

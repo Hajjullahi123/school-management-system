@@ -41,7 +41,8 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         user: {
           select: {
             firstName: true,
-            lastName: true
+            lastName: true,
+            photoUrl: true
           }
         },
         classModel: {
@@ -455,7 +456,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     let students = await prisma.student.findMany({
       where: studentWhere,
       include: {
-        user: { select: { firstName: true, lastName: true } },
+        user: { select: { firstName: true, lastName: true, photoUrl: true } },
         classModel: {
           include: { classTeacher: { select: { firstName: true, lastName: true, signatureUrl: true } } }
         }
@@ -708,7 +709,8 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
         user: {
           select: {
             firstName: true,
-            lastName: true
+            lastName: true,
+            photoUrl: true
           }
         },
         classModel: {
@@ -889,7 +891,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
         class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
         dateOfBirth: student.dateOfBirth,
         gender: student.gender,
-        photoUrl: student.photoUrl,
+        photoUrl: student.user?.photoUrl || student.photoUrl,
         formMaster: student.classModel?.classTeacher
           ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}`
           : 'Not Assigned',
@@ -963,7 +965,7 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
     const students = await prisma.student.findMany({
       where: { classId: parseInt(classId), schoolId: req.schoolId, status: 'active' },
       include: {
-        user: { select: { firstName: true, lastName: true } },
+        user: { select: { firstName: true, lastName: true, photoUrl: true } },
         classModel: {
           include: { classTeacher: { select: { firstName: true, lastName: true, signatureUrl: true } } }
         }
@@ -1036,7 +1038,7 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
           class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
           dateOfBirth: student.dateOfBirth,
           gender: student.gender,
-          photoUrl: student.photoUrl,
+          photoUrl: student.user?.photoUrl || student.photoUrl,
           formMaster: student.classModel?.classTeacher
             ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}`
             : 'Not Assigned',
@@ -1076,7 +1078,8 @@ router.get('/progressive/:studentId/:termId/:assessmentType', authenticate, asyn
         user: {
           select: {
             firstName: true,
-            lastName: true
+            lastName: true,
+            photoUrl: true
           }
         },
         classModel: {
@@ -1196,7 +1199,7 @@ router.get('/progressive/:studentId/:termId/:assessmentType', authenticate, asyn
         admissionNumber: student.admissionNumber,
         class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
         gender: student.gender,
-        photoUrl: student.photoUrl,
+        photoUrl: student.user?.photoUrl || student.photoUrl,
         formMaster: student.classModel?.classTeacher
           ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}`
           : 'Not Assigned'
@@ -1247,7 +1250,7 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
         schoolId: req.schoolId
       },
       include: {
-        user: { select: { firstName: true, lastName: true } },
+        user: { select: { firstName: true, lastName: true, photoUrl: true } },
         classModel: {
           include: {
             classTeacher: { select: { firstName: true, lastName: true, signatureUrl: true } }
@@ -1457,7 +1460,7 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
         dateOfBirth: student.dateOfBirth,
         age: calculateAge(student.dateOfBirth),
         gender: student.gender,
-        photoUrl: student.photoUrl,
+        photoUrl: student.user?.photoUrl || student.photoUrl,
         club: student.club || '-',
         formMaster: student.classModel?.classTeacher
           ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}`
@@ -1554,7 +1557,7 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
     const allStudentsInClass = await prisma.student.findMany({
       where: { classId: parseInt(classId), schoolId: req.schoolId, status: 'active' },
       include: {
-        user: { select: { firstName: true, lastName: true } },
+        user: { select: { firstName: true, lastName: true, photoUrl: true } },
         classModel: { include: { classTeacher: { select: { firstName: true, lastName: true, signatureUrl: true } } } }
       }
     });
@@ -1664,7 +1667,7 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
           dateOfBirth: student.dateOfBirth,
           age: calculateAge(student.dateOfBirth),
           gender: student.gender,
-          photoUrl: student.photoUrl,
+          photoUrl: student.user?.photoUrl || student.photoUrl,
           club: student.club || '-',
           formMaster: student.classModel?.classTeacher ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}` : 'Not Assigned',
           formMasterSignatureUrl: student.classModel?.classTeacher?.signatureUrl
@@ -1819,7 +1822,8 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         user: {
           select: {
             firstName: true,
-            lastName: true
+            lastName: true,
+            photoUrl: true
           }
         },
         classModel: {
@@ -1966,7 +1970,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           dateOfBirth: student.dateOfBirth,
           age: calculateAge(student.dateOfBirth),
           gender: student.gender,
-          photoUrl: student.photoUrl,
+          photoUrl: student.user?.photoUrl || student.photoUrl,
           clubs: student.clubs || 'None Assigned',
           formMaster: student.classModel?.classTeacher
             ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}`

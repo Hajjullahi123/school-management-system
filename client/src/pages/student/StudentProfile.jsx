@@ -226,17 +226,20 @@ const StudentProfile = () => {
         <div className="flex items-center gap-6">
           {/* Photo Display */}
           <div className="flex-shrink-0">
-            {student.photoUrl ? (
-              <img
-                src={`${API_BASE_URL}${student.photoUrl}`}
-                alt="Profile"
-                className="w-32 h-32 rounded-full object-cover border-4 border-primary/30"
-              />
-            ) : (
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/70 to-primary flex items-center justify-center text-white text-4xl font-bold border-4 border-primary/30">
-                {student.user.firstName?.[0]}{student.user.lastName?.[0]}
-              </div>
-            )}
+            {(() => {
+              const photoUrl = student.user?.photoUrl || student.photoUrl;
+              return photoUrl ? (
+                <img
+                  src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`}
+                  alt="Profile"
+                  className="w-32 h-32 rounded-full object-cover border-4 border-primary/30"
+                />
+              ) : (
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/70 to-primary flex items-center justify-center text-white text-4xl font-bold border-4 border-primary/30">
+                  {student.user.firstName?.[0]}{student.user.lastName?.[0]}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Photo Actions */}

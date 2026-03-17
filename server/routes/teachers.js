@@ -6,24 +6,9 @@ const { logAction } = require('../utils/audit');
 const multer = require('multer');
 const path = require('path');
 
-const teachersUploadsDir = path.join(__dirname, '../uploads/teacher-photos');
-if (!require('fs').existsSync(teachersUploadsDir)) {
-  require('fs').mkdirSync(teachersUploadsDir, { recursive: true });
-}
-
-// Configure multer for photo upload
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, teachersUploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'teacher-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
+// Use memory storage for Base64 DB persistence (survives Render's ephemeral filesystem)
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png/;
@@ -37,6 +22,12 @@ const upload = multer({
     }
   }
 });
+
+// Helper: convert buffer to data URI
+function fileToBase64(file) {
+  const base64 = file.buffer.toString('base64');
+  return `data:${file.mimetype};base64,${base64}`;
+}
 
 // Get all teachers (Admin Only)
 router.get('/', authenticate, authorize(['admin']), async (req, res) => {
@@ -69,6 +60,12 @@ router.put('/profile', authenticate, authorize(['teacher', 'examination_officer'
       userUpdateData[key] === undefined && delete userUpdateData[key]
     );
 
+    // If photo uploaded, process here
+    if (req.file) {
+      const photoUrl = fileToBase64(req.file);
+      userUpdateData.photoUrl = photoUrl;
+    }
+
     const updatedUser = await prisma.user.update({
       where: {
         id: userId,
@@ -78,16 +75,18 @@ router.put('/profile', authenticate, authorize(['teacher', 'examination_officer'
     });
 
     let updatedTeacher = null;
-    if (req.user.role === 'teacher' || req.user.teacher) {
+    // Check if user is a teacher (either by role or if they have a teacher profile)
+    const existingTeacher = await prisma.teacher.findUnique({ where: { userId } });
+
+    if (req.user.role === 'teacher' || existingTeacher) {
       // Update teacher specific info
       const teacherUpdateData = {
         specialization: specialization || undefined,
         staffId: staffId || undefined
       };
 
-      // Add photo path if uploaded
-      if (req.file) {
-        teacherUpdateData.photoUrl = `/uploads/teacher-photos/${req.file.filename}`;
+      if (userUpdateData.photoUrl) {
+        teacherUpdateData.photoUrl = userUpdateData.photoUrl;
       }
 
       // Remove undefined values
@@ -124,7 +123,8 @@ router.put('/profile', authenticate, authorize(['teacher', 'examination_officer'
       resource: 'TEACHER_PROFILE',
       details: {
         teacherId: updatedTeacher ? updatedTeacher.id : 'N/A',
-        updates: [...Object.keys(req.body), ...(req.file ? ['photo'] : [])]
+        updates: [...Object.keys(req.body), ...(req.file ? ['photo'] : [])],
+        method: 'base64_database_storage'
       },
       ipAddress: req.ip
     });

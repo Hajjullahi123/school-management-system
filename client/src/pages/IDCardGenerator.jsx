@@ -7,7 +7,9 @@ import useSchoolSettings from '../hooks/useSchoolSettings';
 
 const IDCard = ({ data, type, schoolSettings }) => {
   const isStudent = type === 'student';
-  const photoUrl = isStudent ? data.photoUrl : data.teacher?.photoUrl;
+  const photoUrl = isStudent 
+    ? (data.user?.photoUrl || data.photoUrl) 
+    : (data.photoUrl || data.teacher?.photoUrl);
   const firstName = isStudent ? data.user?.firstName : data.firstName;
   const lastName = isStudent ? data.user?.lastName : data.lastName;
   const middleName = isStudent ? data.middleName : data.middleName;
@@ -53,7 +55,7 @@ const IDCard = ({ data, type, schoolSettings }) => {
             <div className="relative">
               <div className="w-40 h-40 rounded-full border-[6px] border-white shadow-xl overflow-hidden bg-gray-100">
                 {photoUrl ? (
-                  <img src={`${API_BASE_URL}${photoUrl}`} alt="" className="w-full h-full object-cover" />
+                  <img src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gray-200">
                     <span className="text-4xl font-black text-gray-400">{firstName?.[0]}{lastName?.[0]}</span>

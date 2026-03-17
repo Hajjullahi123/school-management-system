@@ -107,8 +107,16 @@ const ChangePassword = () => {
         {/* Header */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/90 rounded-full flex items-center justify-center text-white text-2xl font-bold mr-4">
-              {user?.firstName?.[0]}{user?.lastName?.[0]}
+            <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/90 rounded-full flex items-center justify-center text-white text-2xl font-bold mr-4 overflow-hidden">
+              {user?.photoUrl ? (
+                <img
+                  src={user.photoUrl.startsWith('data:') || user.photoUrl.startsWith('http') ? user.photoUrl : `${API_BASE_URL}${user.photoUrl}`}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span>{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
+              )}
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">

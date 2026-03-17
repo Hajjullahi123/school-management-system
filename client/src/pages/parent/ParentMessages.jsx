@@ -265,9 +265,17 @@ const ParentMessages = () => {
       {formMaster && (
         <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
           <div className="flex items-center gap-3">
-            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
+            <div className="h-10 w-10 rounded-full bg-blue-100 flex-shrink-0 flex items-center justify-center text-blue-600 font-bold overflow-hidden shadow-sm">
+              {formMaster.formMaster.user?.photoUrl ? (
+                <img
+                  src={formMaster.formMaster.user.photoUrl.startsWith('data:') || formMaster.formMaster.user.photoUrl.startsWith('http') ? formMaster.formMaster.user.photoUrl : `${API_BASE_URL}${formMaster.formMaster.user.photoUrl}`}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span>{formMaster.formMaster.user.firstName?.[0]}{formMaster.formMaster.user.lastName?.[0]}</span>
+              )}
+            </div>
             <div>
               <p className="font-semibold text-blue-900">
                 Form Master: {formMaster.formMaster.user.firstName} {formMaster.formMaster.user.lastName}
@@ -384,23 +392,38 @@ const ParentMessages = () => {
                   : 'bg-gray-50 border-l-4 border-gray-300 mr-8'
                   }`}
               >
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      {msg.senderId === user.id ? 'You' : `${msg.sender?.firstName} ${msg.sender?.lastName}`}
-                      <span className="text-sm text-gray-500 ml-2">({msg.sender?.role})</span>
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(msg.createdAt).toLocaleString()}
-                    </p>
+                <div className="flex items-start gap-3">
+                  <div className={`h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold overflow-hidden shadow-sm ${msg.senderId === user.id ? 'bg-primary text-white' : 'bg-gray-200 text-gray-600'}`}>
+                    {msg.sender?.photoUrl ? (
+                      <img
+                        src={msg.sender.photoUrl.startsWith('data:') || msg.sender.photoUrl.startsWith('http') ? msg.sender.photoUrl : `${API_BASE_URL}${msg.sender.photoUrl}`}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{msg.sender?.firstName?.[0]}{msg.sender?.lastName?.[0]}</span>
+                    )}
                   </div>
-                  {msg.messageType === 'complaint' && (
-                    <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-semibold">
-                      Complaint
-                    </span>
-                  )}
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          {msg.senderId === user.id ? 'You' : `${msg.sender?.firstName} ${msg.sender?.lastName}`}
+                          <span className="text-sm text-gray-500 ml-2">({msg.sender?.role})</span>
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(msg.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                      {msg.messageType === 'complaint' && (
+                        <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-semibold">
+                          Complaint
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-gray-700 whitespace-pre-wrap">{msg.message}</p>
+                  </div>
                 </div>
-                <p className="text-gray-700 whitespace-pre-wrap">{msg.message}</p>
               </div>
             ))}
           </div>

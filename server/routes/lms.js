@@ -5,28 +5,18 @@ const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 
-// Configure Uploads
-const lmsUploadsDir = path.join(__dirname, '../uploads/lms');
-if (!fs.existsSync(lmsUploadsDir)) {
-  fs.mkdirSync(lmsUploadsDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, lmsUploadsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'lms-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
+// Use memory storage for Base64 DB persistence (survives Render's ephemeral filesystem)
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 15 * 1024 * 1024 } // 15MB
 });
+
+// Helper: convert buffer to data URI
+function fileToBase64(file) {
+  const base64 = file.buffer.toString('base64');
+  return `data:${file.mimetype};base64,${base64}`;
+}
 
 // ============ HOMEWORK ============
 
@@ -81,7 +71,8 @@ router.post('/homework', authenticate, authorize(['teacher', 'admin']), upload.s
     let fileName = null;
 
     if (req.file) {
-      fileUrl = `/uploads/lms/${req.file.filename}`;
+      // Store as Base64 in DB
+      fileUrl = fileToBase64(req.file);
       fileName = req.file.originalname;
     }
 
@@ -136,7 +127,7 @@ router.post('/homework', authenticate, authorize(['teacher', 'admin']), upload.s
     res.status(201).json(homework);
     logAction({
       schoolId: req.schoolId, userId: req.user.id, action: 'CREATE', resource: 'HOMEWORK',
-      details: { homeworkId: homework.id, title }, ipAddress: req.ip
+      details: { homeworkId: homework.id, title, method: 'base64_database_storage' }, ipAddress: req.ip
     });
   } catch (error) {
     console.error('Create homework error:', error);
@@ -153,19 +144,22 @@ router.post('/homework/:id/submit', authenticate, authorize(['student']), upload
     if (!student) return res.status(404).json({ error: 'Student record not found' });
     if (!req.file) return res.status(400).json({ error: 'Please upload a file' });
 
+    const fileUrl = fileToBase64(req.file);
+    const fileName = req.file.originalname;
+
     const submission = await prisma.homeworkSubmission.upsert({
       where: { homeworkId_studentId: { homeworkId, studentId: student.id } },
       update: {
-        fileUrl: `/uploads/lms/${req.file.filename}`,
-        fileName: req.file.originalname,
+        fileUrl,
+        fileName,
         submittedAt: new Date()
       },
       create: {
         schoolId: req.schoolId,
         homeworkId,
         studentId: student.id,
-        fileUrl: `/uploads/lms/${req.file.filename}`,
-        fileName: req.file.originalname
+        fileUrl,
+        fileName
       }
     });
 
@@ -222,12 +216,6 @@ router.delete('/homework/:id', authenticate, authorize(['teacher', 'admin']), as
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    // Delete file if exists
-    if (hw.fileUrl) {
-      const filePath = path.join(__dirname, '..', hw.fileUrl);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    }
-
     await prisma.homework.delete({ where: { id: parseInt(id) } });
     res.json({ message: 'Deleted' });
   } catch (error) {
@@ -271,7 +259,7 @@ router.post('/resources', authenticate, authorize(['teacher', 'admin']), upload.
     let fileName = null;
 
     if (req.file) {
-      fileUrl = `/uploads/lms/${req.file.filename}`;
+      fileUrl = fileToBase64(req.file);
       fileName = req.file.originalname;
     }
 
@@ -348,19 +336,9 @@ router.put('/resources/:id', authenticate, authorize(['teacher', 'admin']), uplo
     let fileName = existing.fileName;
 
     if (req.file) {
-      // Delete old file if it exists and a new one is uploaded
-      if (existing.fileUrl && existing.fileUrl.startsWith('/uploads/')) {
-        const oldFilePath = path.join(__dirname, '..', existing.fileUrl);
-        if (fs.existsSync(oldFilePath)) fs.unlinkSync(oldFilePath);
-      }
-      fileUrl = `/uploads/lms/${req.file.filename}`;
+      fileUrl = fileToBase64(req.file);
       fileName = req.file.originalname;
     } else if (externalUrl) {
-      // If external URL is provided, and there was a file before, delete it
-      if (existing.fileUrl && existing.fileUrl.startsWith('/uploads/')) {
-        const oldFilePath = path.join(__dirname, '..', existing.fileUrl);
-        if (fs.existsSync(oldFilePath)) fs.unlinkSync(oldFilePath);
-      }
       fileName = null;
     }
 
@@ -393,11 +371,6 @@ router.delete('/resources/:id', authenticate, authorize(['teacher', 'admin']), a
     if (!resource) return res.status(404).json({ error: 'Not found' });
     if (req.user.role === 'teacher' && resource.teacherId !== req.user.id) {
       return res.status(403).json({ error: 'Unauthorized' });
-    }
-
-    if (resource.fileUrl && resource.fileUrl.startsWith('/uploads/')) {
-      const filePath = path.join(__dirname, '..', resource.fileUrl);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
 
     await prisma.learningResource.delete({ where: { id: parseInt(id) } });

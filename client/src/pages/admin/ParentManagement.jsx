@@ -239,8 +239,12 @@ const ParentManagement = () => {
                 <tr key={p.id} className="hover:bg-gray-50">
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                        {p.user?.firstName?.[0]}{p.user?.lastName?.[0]}
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 overflow-hidden">
+                        {p.user?.photoUrl ? (
+                          <img src={p.user.photoUrl.startsWith('data:') || p.user.photoUrl.startsWith('http') ? p.user.photoUrl : `${API_BASE_URL}${p.user.photoUrl}`} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{p.user?.firstName?.[0]}{p.user?.lastName?.[0]}</span>
+                        )}
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-gray-900 truncate">{p.user?.firstName} {p.user?.lastName}</div>
@@ -508,8 +512,16 @@ const ParentManagement = () => {
 
                         <div className="flex items-center gap-3">
                           {/* Student Avatar */}
-                          <div className="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
-                            {s.user?.firstName?.[0]}{s.user?.lastName?.[0]}
+                          <div className="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold flex-shrink-0 overflow-hidden">
+                            {(s.user?.photoUrl || s.photoUrl) ? (
+                              <img
+                                src={(s.user?.photoUrl || s.photoUrl).startsWith('data:') || (s.user?.photoUrl || s.photoUrl).startsWith('http') ? (s.user?.photoUrl || s.photoUrl) : `${API_BASE_URL}${(s.user?.photoUrl || s.photoUrl)}`}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span>{s.user?.firstName?.[0]}{s.user?.lastName?.[0]}</span>
+                            )}
                           </div>
 
                           {/* Student Info */}

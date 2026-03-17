@@ -21,7 +21,7 @@ router.get('/class/:classId/eligibility', authenticate, checkSubscription, autho
       },
       include: {
         user: {
-          select: { firstName: true, lastName: true, username: true }
+          select: { firstName: true, lastName: true, username: true, photoUrl: true }
         },
         reportCards: {
           where: { schoolId: req.schoolId },
@@ -396,7 +396,7 @@ router.get('/history', authenticate, checkSubscription, authorize(['admin', 'pri
       include: {
         student: {
           include: {
-            user: { select: { firstName: true, lastName: true } }
+            user: { select: { firstName: true, lastName: true, photoUrl: true } }
           }
         },
         fromClass: true,
@@ -421,7 +421,7 @@ router.get('/transcript/:studentId', authenticate, checkSubscription, authorize(
     const student = await prisma.student.findFirst({
       where: { id: studentId, schoolId: req.schoolId },
       include: {
-        user: { select: { firstName: true, lastName: true, username: true } },
+        user: { select: { firstName: true, lastName: true, username: true, photoUrl: true } },
         classModel: true,
         school: true,
         alumniProfile: { select: { graduationYear: true, alumniId: true } }

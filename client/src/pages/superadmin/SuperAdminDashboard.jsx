@@ -916,8 +916,16 @@ const SuperAdminDashboard = () => {
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-black text-gray-600 border border-gray-200">
-                                {log.user?.firstName?.[0] || 'S'}
+                              <div className="w-8 h-8 rounded-full bg-gray-100 flex-shrink-0 flex items-center justify-center text-[10px] font-black text-gray-600 border border-gray-200 overflow-hidden">
+                                {log.user?.photoUrl ? (
+                                  <img
+                                    src={log.user.photoUrl.startsWith('data:') || log.user.photoUrl.startsWith('http') ? log.user.photoUrl : `${API_BASE_URL}${log.user.photoUrl}`}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span>{log.user?.firstName?.[0] || 'S'}</span>
+                                )}
                               </div>
                               <div>
                                 <p className="font-bold text-gray-800">{log.user ? `${log.user.firstName} ${log.user.lastName}` : 'System'}</p>
