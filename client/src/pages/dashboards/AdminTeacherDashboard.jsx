@@ -15,6 +15,7 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
   const [allSessions, setAllSessions] = useState([]);
   const [selectedDashboardTerm, setSelectedDashboardTerm] = useState(null);
   const [selectedDashboardSession, setSelectedDashboardSession] = useState(null);
+  const [alumniCount, setAlumniCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -77,8 +78,16 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
 
       // Admin specific financial summary
       if (user?.role === 'admin' && activeTerm && activeSession) {
-        const summaryRes = await api.get(`/api/fees/summary?termId=${activeTerm.id}&academicSessionId=${activeSession.id}`);
+        const [summaryRes, alumniRes] = await Promise.all([
+          api.get(`/api/fees/summary?termId=${activeTerm.id}&academicSessionId=${activeSession.id}`),
+          api.get('/api/alumni/stats')
+        ]);
+        
         if (summaryRes.ok) setFeeStats(await summaryRes.json());
+        if (alumniRes.ok) {
+          const alumniData = await alumniRes.json();
+          setAlumniCount(alumniData.count || 0);
+        }
       }
 
       // Teacher specific assignments
@@ -143,6 +152,12 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
           <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Assigned Classes</p>
           <p className="text-xl font-black text-gray-900">{teacherStats?.activeClasses || 0}</p>
         </div>
+        {user?.role === 'admin' && (
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Registered Alumni</p>
+            <p className="text-xl font-black text-gray-900">{alumniCount || 0}</p>
+          </div>
+        )}
         {user?.role === 'admin' && feeStats && (
           <>
             <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
