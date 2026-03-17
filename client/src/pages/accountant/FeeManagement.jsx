@@ -8,6 +8,7 @@ import { formatCurrency, formatNumber, formatDate } from '../../utils/formatters
 import { toast } from 'react-hot-toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { API_BASE_URL } from '../../api';
+import ExcelJS from 'exceljs';
 
 export default function FeeManagement() {
   const { user: authUser } = useAuth();
@@ -1253,7 +1254,7 @@ export default function FeeManagement() {
     }
   };
 
-  const exportToCSV = (mode = 'cumulative', specificFilter = null) => {
+  const exportToCSV = async (mode = 'cumulative', specificFilter = null) => {
     let allStudents = Array.isArray(filteredStudents) ? filteredStudents : [];
 
     if (specificFilter === 'scholarship') {
@@ -1271,24 +1272,76 @@ export default function FeeManagement() {
       return;
     }
 
-    const schoolName = schoolSettings?.schoolName || 'School';
+    const schoolName = schoolSettings?.schoolName || 'School Name';
     const schoolAddr = schoolSettings?.schoolAddress || '';
     const termName = selectedViewTerm?.name || currentTerm?.name || '';
     const sessionName = selectedViewSession?.name || currentSession?.name || '';
 
-    // School header rows
-    const headerRows = [
-      [schoolName],
-      [schoolAddr],
-      [`Term: ${termName}`, `Session: ${sessionName}`],
-      [`Downloaded: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`],
-      [] // blank row
-    ];
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Fee Records');
+
+    // Title styling
+    worksheet.mergeCells('A1:H1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = schoolName.toUpperCase();
+    titleCell.font = { name: 'Arial', size: 16, bold: true };
+    titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.mergeCells('A2:H2');
+    const addrCell = worksheet.getCell('A2');
+    addrCell.value = schoolAddr;
+    addrCell.font = { name: 'Arial', size: 11, bold: false };
+    addrCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.mergeCells('A3:H3');
+    const termSessionCell = worksheet.getCell('A3');
+    termSessionCell.value = `FEE REPORT - Term: ${termName} | Session: ${sessionName}`;
+    termSessionCell.font = { name: 'Arial', size: 12, bold: true };
+    termSessionCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.mergeCells('A4:H4');
+    const generatedCell = worksheet.getCell('A4');
+    generatedCell.value = `Generated on: ${new Date().toLocaleString()}`;
+    generatedCell.font = { name: 'Arial', size: 10, italic: true };
+    generatedCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.addRow([]); // Blank row
 
     const colHeaders = ['S/N', 'Admission Number', 'Student Name', 'Class', 'Previous Balance', 'Current Expected', 'Paid', 'Total Balance'];
 
+    const getBorder = () => ({
+      top: { style: 'thin' },
+      left: { style: 'thin' },
+      bottom: { style: 'thin' },
+      right: { style: 'thin' }
+    });
+
+    const addStyledRow = (data, isHeader = false, isSubtotal = false, isGrandTotal = false) => {
+      const row = worksheet.addRow(data);
+      row.eachCell((cell, colNumber) => {
+        cell.border = getBorder();
+        if (isHeader) {
+          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        } else if (isGrandTotal) {
+          cell.font = { bold: true, size: 12 };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCD34D' } }; 
+        } else if (isSubtotal) {
+          cell.font = { bold: true };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } }; 
+        }
+
+        // Amount columns formatting
+        if (colNumber >= 5 && !isHeader && cell.value !== 'scholarship' && typeof cell.value === 'number') {
+           cell.numFmt = '#,##0.00';
+           if (!isSubtotal && !isGrandTotal) cell.alignment = { horizontal: 'right' };
+        }
+      });
+      return row;
+    };
+
     if (mode === 'class') {
-      // Group students by class
       const classGroups = {};
       allStudents.forEach(student => {
         const className = student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'Unassigned';
@@ -1296,14 +1349,16 @@ export default function FeeManagement() {
         classGroups[className].push(student);
       });
 
-      const dataRows = [];
       let grandPrev = 0, grandExpected = 0, grandPaid = 0, grandBalance = 0;
 
       Object.keys(classGroups).sort().forEach(className => {
         const classStudents = classGroups[className];
-        dataRows.push([]); // blank row before class
-        dataRows.push([`CLASS: ${className}`, '', '', '', '', '', '', '']);
-        dataRows.push(colHeaders);
+        
+        worksheet.addRow([]);
+        const classTitleRow = worksheet.addRow([`CLASS: ${className}`]);
+        classTitleRow.font = { bold: true, size: 12, color: { argb: 'FF4338CA' } };
+        
+        addStyledRow(colHeaders, true);
 
         let classPrev = 0, classExpected = 0, classPaid = 0, classBalance = 0;
 
@@ -1315,7 +1370,7 @@ export default function FeeManagement() {
           const balance = fr?.balance || 0;
           classPrev += prev; classExpected += expected; classPaid += paid; classBalance += balance;
 
-          dataRows.push([
+          addStyledRow([
             idx + 1,
             student.admissionNumber || 'N/A',
             `${student.user?.firstName || ''} ${student.user?.lastName || ''}`,
@@ -1327,23 +1382,14 @@ export default function FeeManagement() {
           ]);
         });
 
-        dataRows.push(['', '', '', `${className} SUBTOTAL:`, classPrev, classExpected, classPaid, classBalance]);
+        addStyledRow(['', '', '', `${className} SUBTOTAL:`, classPrev, classExpected, classPaid, classBalance], false, true);
         grandPrev += classPrev; grandExpected += classExpected; grandPaid += classPaid; grandBalance += classBalance;
       });
 
-      dataRows.push([]);
-      dataRows.push(['', '', '', 'GRAND TOTAL:', grandPrev, grandExpected, grandPaid, grandBalance]);
-
-      const csvContent = [
-        ...headerRows.map(r => r.join(',')),
-        ...dataRows.map(r => r.map(v => typeof v === 'string' && v.includes(',') ? `"${v}"` : v).join(','))
-      ].join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      saveAs(blob, `fee-records-by-class-${termName}-${sessionName}.csv`);
+      worksheet.addRow([]);
+      addStyledRow(['', '', '', 'GRAND TOTAL:', grandPrev, grandExpected, grandPaid, grandBalance], false, false, true);
     } else {
-      // Cumulative - all students in one table
-      const dataRows = [colHeaders];
+      addStyledRow(colHeaders, true);
       let totalPrev = 0, totalExpected = 0, totalPaid = 0, totalBalance = 0;
 
       allStudents.forEach((student, idx) => {
@@ -1354,7 +1400,7 @@ export default function FeeManagement() {
         const balance = fr?.balance || 0;
         totalPrev += prev; totalExpected += expected; totalPaid += paid; totalBalance += balance;
 
-        dataRows.push([
+        addStyledRow([
           idx + 1,
           student.admissionNumber || 'N/A',
           `${student.user?.firstName || ''} ${student.user?.lastName || ''}`,
@@ -1366,48 +1412,122 @@ export default function FeeManagement() {
         ]);
       });
 
-      dataRows.push([]);
-      dataRows.push(['', '', '', 'TOTAL:', totalPrev, totalExpected, totalPaid, totalBalance]);
-
-      const csvContent = [
-        ...headerRows.map(r => r.join(',')),
-        ...dataRows.map(r => r.map(v => typeof v === 'string' && v.includes(',') ? `"${v}"` : v).join(','))
-      ].join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      saveAs(blob, `fee-records-cumulative-${termName}-${sessionName}.csv`);
+      worksheet.addRow([]);
+      addStyledRow(['', '', '', 'TOTAL:', totalPrev, totalExpected, totalPaid, totalBalance], false, false, true);
     }
+
+    worksheet.columns = [
+      { width: 5 },  // SN
+      { width: 22 }, // Admission
+      { width: 35 }, // Name
+      { width: 15 }, // Class
+      { width: 18 }, // Prev
+      { width: 18 }, // Expected
+      { width: 18 }, // Paid
+      { width: 18 }, // Balance
+    ];
+
+    const buf = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buf]), `fee-records-${mode === 'class' ? 'by-class' : 'cumulative'}-${termName}-${sessionName}.xlsx`);
   };
 
-  const exportMiscToCSV = () => {
+  const exportMiscToCSV = async () => {
     if (!detailedAnalytics.length) {
       toast.error('No analytics data to export');
       return;
     }
 
-    const schoolName = schoolSettings?.schoolName || 'School';
+    const schoolName = schoolSettings?.schoolName || 'School Name';
     const termName = allTerms.find(t => t.id === parseInt(selectedMiscTerm))?.name || 'All Terms';
     const sessionName = allSessions.find(s => s.id === parseInt(selectedMiscSession))?.name || 'All Sessions';
 
-    let csvContent = `${schoolName} - Miscellaneous Fees Report\n`;
-    csvContent += `Period: ${sessionName} / ${termName}\n`;
-    csvContent += `Generated: ${new Date().toLocaleString()}\n\n`;
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Miscellaneous Fees Report');
+
+    // Title styling
+    worksheet.mergeCells('A1:F1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = schoolName.toUpperCase();
+    titleCell.font = { name: 'Arial', size: 16, bold: true };
+    titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.mergeCells('A2:F2');
+    const termSessionCell = worksheet.getCell('A2');
+    termSessionCell.value = `MISCELLANEOUS FEES REPORT - Term: ${termName} | Session: ${sessionName}`;
+    termSessionCell.font = { name: 'Arial', size: 12, bold: true };
+    termSessionCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.mergeCells('A3:F3');
+    const generatedCell = worksheet.getCell('A3');
+    generatedCell.value = `Generated on: ${new Date().toLocaleString()}`;
+    generatedCell.font = { name: 'Arial', size: 10, italic: true };
+    generatedCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.addRow([]); // Blank row
+
+    const getBorder = () => ({
+      top: { style: 'thin' },
+      left: { style: 'thin' },
+      bottom: { style: 'thin' },
+      right: { style: 'thin' }
+    });
+
+    const addStyledRow = (data, isHeader = false, isSubtotal = false) => {
+      const row = worksheet.addRow(data);
+      row.eachCell((cell, colNumber) => {
+        cell.border = getBorder();
+        if (isHeader) {
+          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        } else if (isSubtotal) {
+          cell.font = { bold: true, size: 11 };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCD34D' } }; 
+        }
+
+        // Amount formatting
+        if (!isHeader && (colNumber === 4 || colNumber === 5) && typeof cell.value === 'number') {
+           cell.numFmt = '#,##0.00';
+        }
+      });
+      return row;
+    };
 
     detailedAnalytics.forEach(fee => {
-      csvContent += `FEE: ${fee.title.toUpperCase()} (₦${fee.amount})\n`;
-      csvContent += `Class,Student Name,Admission No,Paid,Balance,Status\n`;
+      worksheet.addRow([]);
+      const feeTitleRow = worksheet.addRow([`FEE: ${fee.title.toUpperCase()} (₦${formatNumber(fee.amount)})`]);
+      feeTitleRow.font = { bold: true, size: 12, color: { argb: 'FF4338CA' } };
+
+      addStyledRow(['Class', 'Student Name', 'Admission No', 'Paid', 'Balance', 'Status'], true);
 
       fee.classes.forEach(cls => {
         cls.students.forEach(student => {
           const status = student.balance === 0 ? 'Fully Paid' : (student.totalPaid > 0 ? 'Partially Paid' : 'Pending');
-          csvContent += `"${cls.name}${cls.arm || ''}","${student.name}","${student.admissionNumber}",${student.totalPaid},${student.balance},${status}\n`;
+          addStyledRow([
+            `${cls.name}${cls.arm || ''}`,
+            student.name,
+            student.admissionNumber,
+            student.totalPaid,
+            student.balance,
+            status
+          ]);
         });
       });
-      csvContent += `,,SUBTOTALS: Received: ₦${fee.totalReceived},Outstanding: ₦${fee.outstanding}\n\n`;
+      
+      addStyledRow(['', '', 'SUBTOTALS:', fee.totalReceived, fee.outstanding, ''], false, true);
     });
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    saveAs(blob, `miscellaneous-fees-report-${sessionName}-${termName}.csv`);
+    worksheet.columns = [
+      { width: 15 }, // Class
+      { width: 35 }, // Name
+      { width: 22 }, // Admission Number
+      { width: 18 }, // Paid
+      { width: 18 }, // Balance
+      { width: 18 }, // Status
+    ];
+
+    const buf = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buf]), `miscellaneous-fees-report-${sessionName}-${termName}.xlsx`);
   };
 
   const printDetailedMiscReport = (fee) => {
