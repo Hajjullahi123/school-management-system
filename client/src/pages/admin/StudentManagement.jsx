@@ -760,48 +760,48 @@ Note: Password must be changed on first login.
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Student Management</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {students.length} {students.length === 1 ? 'student' : 'students'} registered across {Object.keys(grouped).length} {Object.keys(grouped).length === 1 ? 'group' : 'groups'}
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Student Management</h1>
+          <p className="text-[10px] sm:text-xs text-gray-500 mt-1 font-bold uppercase tracking-widest">
+            {students.length} Total Students • {Object.keys(grouped).length} Classes
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <button
             onClick={handleDownloadTemplate}
-            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
+            className="flex-1 sm:flex-none bg-white border border-gray-200 text-gray-600 px-3 py-2 rounded-xl hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
           >
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            <svg className="w-4 h-4 text-gray-400 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             Template
           </button>
           <button
             onClick={handleDownloadGuidancePDF}
-            className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-md hover:bg-amber-100 transition-colors flex items-center gap-2 text-sm font-bold shadow-sm"
+            className="flex-1 sm:flex-none bg-amber-50 border border-amber-100 text-amber-600 px-3 py-2 rounded-xl hover:bg-amber-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
             title="Download Upload Guide & Class IDs"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             Guide
           </button>
           <button
             onClick={handleDownloadPrintableForm}
-            className="bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-2 rounded-md hover:bg-indigo-100 transition-colors flex items-center gap-2 text-sm font-bold shadow-sm"
+            className="flex-1 sm:flex-none bg-indigo-50 border border-indigo-100 text-indigo-600 px-3 py-2 rounded-xl hover:bg-indigo-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
             title="Download Printable Admission Form"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
-            Admission Form
+            Form
           </button>
-          <label className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm cursor-pointer">
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          <label className="flex-1 sm:flex-none bg-white border border-gray-200 text-emerald-600 px-3 py-2 rounded-xl hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm cursor-pointer">
+            <svg className="w-4 h-4 text-emerald-500 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
-            Bulk Import
+            Import
             <input
               type="file"
               className="hidden"
@@ -817,13 +817,13 @@ Note: Password must be changed on first login.
               }
               setShowForm(!showForm);
             }}
-            className={`${isDemo ? 'opacity-75 cursor-not-allowed bg-gray-400' : 'bg-primary'} text-white px-6 py-2 rounded-md hover:brightness-90 transition-colors flex items-center gap-2 shadow-sm font-medium`}
+            className={`w-full sm:w-auto ${isDemo ? 'opacity-75 cursor-not-allowed bg-gray-400' : 'bg-primary'} text-white px-5 py-3 rounded-xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest`}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {showForm ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
               ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
               )}
             </svg>
             {showForm ? 'Cancel' : (isDemo ? 'Add Student (Demo)' : 'Add Student')}
@@ -834,17 +834,17 @@ Note: Password must be changed on first login.
       {/* Search Bar */}
       {
         !showForm && (
-          <div className="bg-white p-4 rounded-lg shadow">
-            <div className="relative">
-              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-white p-3 sm:p-5 rounded-2xl shadow-sm border border-gray-100">
+            <div className="relative group">
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
                 type="text"
-                placeholder="Search students by name or admission number..."
+                placeholder="Search by name or admission number..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-sm font-medium"
               />
               {searchQuery && (
                 <button
@@ -1339,8 +1339,8 @@ Note: Password must be changed on first login.
       {/* Credentials Modal */}
       {
         showCredentialsModal && newStudentCredentials && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 print:bg-white print:p-0">
-            <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl print:shadow-none print:max-w-none print:w-full print:border-none" id="credentials-print-area">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+            <div className="bg-white rounded-2xl max-w-sm w-full p-8 shadow-2xl animate-in zoom-in-95 duration-300" id="credentials-print-area">
               <h3 className="text-xl font-bold mb-4 text-center print:hidden">Registration Successful!</h3>
               <div className="bg-gray-50 p-4 rounded-md mb-6 space-y-2 border border-gray-200">
                 <p className="flex justify-between"><span className="font-semibold text-gray-600">Name:</span> <span className="font-medium">{newStudentCredentials.name}</span></p>
@@ -1402,8 +1402,8 @@ Note: Password must be changed on first login.
       {/* Parent Credentials Modal */}
       {
         showParentCredentialsModal && newParentCredentials && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 print:bg-white print:p-0">
-            <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl print:shadow-none print:max-w-none print:w-full print:border-none" id="credentials-print-area">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+            <div className="bg-white rounded-2xl max-w-sm w-full p-8 shadow-2xl animate-in zoom-in-95 duration-300" id="credentials-print-area">
               <h3 className="text-xl font-bold mb-4 text-center print:hidden">
                 {newParentCredentials.isNewAccount ? 'Parent Account Created!' : 'Parent Account Linked!'}
               </h3>
@@ -1475,9 +1475,9 @@ Note: Password must be changed on first login.
 
       {/* Bulk Upload Results Modal */}
       {showBulkUploadModal && bulkUploadResults && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-            <div className="p-6 border-b flex justify-between items-center bg-gray-50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-6 border-b flex justify-between items-center bg-gray-50/50">
               <h3 className="text-xl font-bold text-gray-900">Import Results</h3>
               <button onClick={() => setShowBulkUploadModal(false)} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

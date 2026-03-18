@@ -252,57 +252,60 @@ const UserManagement = () => {
 
   return (
     <div className="space-y-6 print:m-0 print:p-0">
-      <div className="flex justify-between items-center print:hidden">
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">User Management Dashboard</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2 print:hidden">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight leading-none mb-1">Users Management</h1>
+          <p className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-widest">System Access Control Hub</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Link
             to="/dashboard/bulk-student-upload"
-            className="bg-amber-500 text-white px-6 py-2.5 rounded-xl hover:brightness-90 flex items-center shadow-lg transition-all active:scale-95 font-bold"
+            className="flex-1 sm:flex-none bg-amber-500 text-white px-4 py-3 rounded-2xl hover:brightness-110 flex items-center justify-center shadow-lg transition-all active:scale-95 text-[10px] font-black uppercase tracking-widest"
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            <svg className="w-4 h-4 mr-2 shrink-0 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
-            Bulk Student Upload
+            Import
           </Link>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-primary text-white px-6 py-2.5 rounded-xl hover:brightness-90 flex items-center shadow-lg transition-all active:scale-95 font-bold"
+            className="flex-1 sm:flex-none bg-primary text-white px-4 py-3 rounded-2xl hover:brightness-110 flex items-center justify-center shadow-lg transition-all active:scale-95 text-[10px] font-black uppercase tracking-widest"
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <svg className="w-4 h-4 mr-2 shrink-0 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
             </svg>
-            Add New User
+            Add New
           </button>
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-xl shadow-md flex gap-4 items-center border border-gray-100">
-        <div className="flex-1 relative">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="bg-white p-3 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+        <div className="flex-1 relative group">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
             type="text"
             placeholder="Search users..."
-            className="w-full border rounded-lg pl-10 pr-4 py-2.5 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            className="w-full border-2 border-gray-100 rounded-xl pl-10 pr-4 py-2.5 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all text-sm font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <select
-          className="border rounded-lg px-4 py-2.5 bg-gray-50 font-bold text-gray-700 outline-none"
+          className="border-2 border-gray-100 rounded-xl px-4 py-2.5 bg-gray-50 font-black text-[10px] uppercase tracking-widest text-gray-700 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all cursor-pointer"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         >
-          <option value="all">All Category Views</option>
+          <option value="all">Global Catalog</option>
           <option value="admin">Administrators</option>
-          <option value="examination_officer">Examination Officers</option>
-          <option value="attendance_admin">Attendance & Access Admins</option>
-          <option value="teacher">Teachers</option>
-          <option value="accountant">Accountants</option>
-          <option value="principal">Principals</option>
-          <option value="parent">Parents</option>
-          <option value="student">Students</option>
+          <option value="examination_officer">Exam Officers</option>
+          <option value="attendance_admin">Attendance Hub</option>
+          <option value="teacher">Instructors</option>
+          <option value="accountant">Audit/Account</option>
+          <option value="principal">Head Office</option>
+          <option value="parent">Guardians</option>
+          <option value="student">Academy Pool</option>
         </select>
       </div>
 
@@ -329,7 +332,7 @@ const UserManagement = () => {
                 {/* Category Header - Clickable for toggle */}
                 <div
                   onClick={() => toggleRole(role)}
-                  className={`px-6 py-4 flex justify-between items-center cursor-pointer select-none transition-colors ${role === 'admin' ? 'bg-indigo-600 hover:bg-indigo-700' :
+                  className={`px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between sm:items-center cursor-pointer select-none transition-colors border-b border-white/10 ${role === 'admin' ? 'bg-indigo-600 hover:bg-indigo-700' :
                     role === 'examination_officer' ? 'bg-cyan-600 hover:bg-cyan-700' :
                       role === 'attendance_admin' ? 'bg-fuchsia-600 hover:bg-fuchsia-700' :
                         role === 'principal' ? 'bg-purple-600 hover:bg-purple-700' :
@@ -339,8 +342,8 @@ const UserManagement = () => {
                                 'bg-emerald-600 hover:bg-emerald-700'
                     } text-white`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="p-2 bg-white/20 rounded-lg">
+                  <div className="flex items-center gap-3 mb-3 sm:mb-0">
+                    <span className="p-2 bg-white/20 rounded-lg shrink-0">
                       {role === 'admin' ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                       ) : role === 'examination_officer' ? (
@@ -359,11 +362,11 @@ const UserManagement = () => {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                       )}
                     </span>
-                    <h2 className="text-lg font-black uppercase tracking-widest leading-none">{role}s Catalog</h2>
+                    <h2 className="text-sm sm:text-lg font-black uppercase tracking-widest leading-none">Catalog: {role}s</h2>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="bg-white/20 px-4 py-1.5 rounded-full text-xs font-black">
-                      {usersInRole.length} MEMBERS
+                  <div className="flex items-center justify-between sm:justify-end gap-4">
+                    <div className="bg-white/20 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider">
+                      {usersInRole.length} Members
                     </div>
                     <svg
                       className={`w-6 h-6 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
@@ -496,8 +499,8 @@ const UserManagement = () => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-          <div className="relative bg-white shadow-2xl rounded-[2rem] w-full max-w-md p-8 transform transition-all border border-gray-100">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-[100] flex items-center justify-center p-4">
+          <div className="relative bg-white shadow-2xl rounded-[2.5rem] w-full max-w-sm sm:max-w-md p-6 sm:p-10 transform animate-in zoom-in-95 duration-300 border border-gray-100 my-8">
             <div className="flex justify-between items-center mb-8">
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>

@@ -105,12 +105,13 @@ const Layout = () => {
 
   const handleLogout = async () => {
     // Determine target before logging out clears state
-    const currentSlug = user?.school?.slug || localStorage.getItem('schoolSlug');
+    // Check both nested and flattened structure from backend
+    const currentSlug = user?.schoolSlug || user?.school?.slug || localStorage.getItem('schoolSlug');
     
     await logout();
     
     // Redirect to school home or site root (Landing Page) instead of generic login
-    if (currentSlug && currentSlug !== 'undefined' && currentSlug !== 'null') {
+    if (currentSlug && currentSlug !== 'undefined' && currentSlug !== 'null' && currentSlug !== '') {
       navigate(`/${currentSlug}`);
     } else {
       // Fallback to absolute root (which is usually the LandingPage / MarketingHome)
@@ -1106,8 +1107,8 @@ const Layout = () => {
       ? schoolSettings.logoUrl
       : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${schoolSettings.logoUrl.startsWith('/') ? schoolSettings.logoUrl : '/' + schoolSettings.logoUrl}`)
     : undefined;
-  const schoolName = user?.role === 'superadmin' ? "EduTechAI System" : (schoolSettings?.schoolName || user?.school?.name || "School Management");
-  const schoolMotto = user?.role === 'superadmin' ? "Global Management Console" : (schoolSettings?.schoolMotto || user?.school?.motto || "Management System");
+  const schoolName = user?.role === 'superadmin' ? "EduTechAI System" : (schoolSettings?.schoolName || user?.schoolName || user?.school?.name || "School Management");
+  const schoolMotto = user?.role === 'superadmin' ? "Global Management Console" : (schoolSettings?.schoolMotto || user?.schoolMotto || user?.school?.motto || "Management System");
 
   return (
     <div className="flex h-screen bg-gray-50">

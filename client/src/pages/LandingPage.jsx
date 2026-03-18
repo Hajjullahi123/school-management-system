@@ -10,9 +10,14 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const { schoolSlug } = useParams();
 
-  const handleLogout = () => {
-    logout();
-    navigate(schoolSlug ? `/${schoolSlug}/login` : '/login');
+  const handleLogout = async () => {
+    await logout();
+    // Redirect to school landing page itself after logout
+    if (schoolSlug && schoolSlug !== 'undefined' && schoolSlug !== 'null') {
+      navigate(`/${schoolSlug}`);
+    } else {
+      navigate('/');
+    }
   };
   // Using locally generated images for better aesthetics
   const studentImages = [

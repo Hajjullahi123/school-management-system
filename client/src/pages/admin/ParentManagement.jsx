@@ -185,31 +185,34 @@ const ParentManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Parent Management</h1>
-          <p className="text-gray-600 mt-1">Manage parent accounts and link students</p>
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight leading-none mb-1">Parent Management</h1>
+          <p className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-widest">Home-School Connectivity Hub</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-primary text-white px-4 py-2 rounded-lg hover:brightness-90 flex items-center gap-2 font-semibold"
+          className="w-full sm:w-auto bg-primary text-white px-5 py-3 rounded-2xl hover:brightness-110 flex items-center justify-center gap-2 shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
           Register Parent
         </button>
       </div>
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row gap-4 justify-between items-center z-10 relative">
-        <div className="flex-1 w-full max-w-sm">
+      <div className="bg-white p-3 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 justify-between items-center z-10 relative">
+        <div className="flex-1 w-full max-w-sm relative group">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
           <select
             value={selectedClassId}
             onChange={(e) => setSelectedClassId(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:border-transparent text-gray-700 bg-white"
+            className="w-full border-2 border-gray-100 rounded-xl pl-10 pr-4 py-2.5 bg-gray-50 font-black text-[10px] uppercase tracking-widest text-gray-700 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all cursor-pointer appearance-none"
           >
-            <option value="">All Classes</option>
+            <option value="">Filter by Class Pool</option>
             {classes.map(c => (
               <option key={c.id} value={c.id}>{c.name} {c.arm || ''}</option>
             ))}
@@ -218,8 +221,9 @@ const ParentManagement = () => {
       </div>
 
       {/* Parent List - Responsive with Vertical Scroll */}
-      <div className="bg-white rounded-lg shadow overflow-hidden max-h-[600px] overflow-y-auto">
-        <table className="w-full table-fixed divide-y divide-gray-200">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden max-h-[600px] overflow-y-auto">
+        <div className="overflow-x-auto no-scrollbar">
+          <table className="w-full table-auto min-w-[800px] divide-y divide-gray-100">
           <thead className="bg-gray-50">
             <tr>
               <th className="w-1/5 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Parent</th>
@@ -319,12 +323,13 @@ const ParentManagement = () => {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Create Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 w-full max-w-sm sm:max-w-lg max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-300 border border-gray-100">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
               <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -374,8 +379,8 @@ const ParentManagement = () => {
 
       {/* Edit Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 w-full max-w-sm sm:max-w-lg max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-300 border border-gray-100">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
               <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -421,20 +426,20 @@ const ParentManagement = () => {
 
       {/* Link Student Modal - Improved Searchable Interface */}
       {showLinkModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-100 animate-in zoom-in-95 duration-300">
             {/* Header */}
-            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-primary/5">
+            <div className="p-6 sm:p-8 border-b border-gray-100 bg-gray-50/50">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  <h3 className="text-xl font-black text-gray-900 flex items-center gap-2 uppercase tracking-tighter">
+                    <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                     </svg>
-                    Add Student to Parent
+                    Account Linkage
                   </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Select a student to link to <strong>{parents.find(p => p.id === parseInt(linkData.parentId))?.user?.firstName} {parents.find(p => p.id === parseInt(linkData.parentId))?.user?.lastName}</strong>
+                  <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">
+                    Assigning Student to <strong>{parents.find(p => p.id === parseInt(linkData.parentId))?.user?.firstName} {parents.find(p => p.id === parseInt(linkData.parentId))?.user?.lastName}</strong>
                   </p>
                 </div>
                 <button
@@ -442,10 +447,10 @@ const ParentManagement = () => {
                     setShowLinkModal(false);
                     setLinkData({ parentId: '', studentId: '' });
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
@@ -641,8 +646,8 @@ const ParentManagement = () => {
 
       {/* Parent Credentials Modal */}
       {showCredentialsModal && parentCredentials && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 w-full max-w-sm sm:max-w-md animate-in zoom-in-95 duration-300 border border-gray-100">
             <div className="text-center mb-6">
               <div className="bg-green-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                 <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

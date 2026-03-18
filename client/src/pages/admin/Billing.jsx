@@ -80,34 +80,37 @@ const Billing = () => {
   const { school, pricing } = data;
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-10 animate-in fade-in duration-700">
+    <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-6 sm:space-y-10 animate-in fade-in duration-700">
       {/* Header */}
-      <div className="flex justify-between items-center flex-wrap gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Billing & Ecosystem</h1>
-          <p className="text-gray-500 font-medium text-sm italic underline decoration-primary/20">Manage your institution's license and system-wide economics</p>
+          <h1 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight leading-none">Billing & Ecosystem</h1>
+          <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase tracking-widest italic flex items-center gap-2">
+            <span className="w-4 h-[2px] bg-primary"></span>
+            License & Institution Economics
+          </p>
         </div>
       </div>
 
       {/* Global Pricing Editor (Platform Admin Section) - Only for Super Admins */}
       {user?.role === 'superadmin' && (
-        <div className="bg-indigo-900 text-white rounded-[40px] p-10 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-12 opacity-[0.05] pointer-events-none">
+        <div className="bg-indigo-900 text-white rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-12 opacity-[0.05] pointer-events-none hidden sm:block">
             <FiZap size={300} />
           </div>
 
-          <div className="relative z-10 flex flex-col lg:flex-row gap-12 items-start">
+          <div className="relative z-10 flex flex-col lg:flex-row gap-8 sm:gap-12 items-start">
             <div className="flex-1 space-y-4">
               <div className="inline-flex items-center gap-2 bg-indigo-500/30 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-400/30">
                 <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
                 Platform Economics
               </div>
-              <h2 className="text-3xl font-black tracking-tighter italic uppercase">Market Price Adjustment</h2>
-              <p className="text-indigo-200/80 text-sm leading-relaxed max-w-md">As a platform owner, you can adjust the standard pricing displayed on the public landing page for new schools joining the ecosystem.</p>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tighter italic uppercase">Market Price Adjustment</h2>
+              <p className="text-indigo-200/80 text-xs sm:text-sm leading-relaxed max-w-md">As a platform owner, you can adjust the standard pricing displayed on the public landing page for new schools joining the ecosystem.</p>
             </div>
 
-            <form onSubmit={handleUpdateGlobalPricing} className="bg-white/10 backdrop-blur-xl p-8 rounded-3xl border border-white/10 flex flex-col md:flex-row items-end gap-6 w-full lg:w-auto">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+            <form onSubmit={handleUpdateGlobalPricing} className="bg-white/10 backdrop-blur-xl p-5 sm:p-8 rounded-[2rem] border border-white/10 flex flex-col items-stretch gap-6 w-full lg:w-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 flex-1">
                 {['basic', 'standard', 'premium'].map(type => (
                   <div key={type} className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-indigo-300 ml-1">{type} (₦)</label>
@@ -115,7 +118,7 @@ const Billing = () => {
                       type="number"
                       value={editPricing[type]}
                       onChange={(e) => setEditPricing({ ...editPricing, [type]: e.target.value })}
-                      className="w-full bg-white/10 border border-white/20 rounded-2xl px-5 py-3 text-lg font-black focus:ring-4 focus:ring-white/10 outline-none transition-all"
+                      className="w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-4 py-2.5 sm:px-5 sm:py-3 text-sm sm:text-lg font-black focus:ring-4 focus:ring-white/10 outline-none transition-all"
                     />
                   </div>
                 ))}
@@ -123,7 +126,7 @@ const Billing = () => {
               <button
                 type="submit"
                 disabled={updating}
-                className="bg-white text-indigo-900 px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/20 flex items-center gap-2 whitespace-nowrap"
+                className="bg-white text-indigo-900 px-8 py-4 rounded-xl sm:rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/20 flex items-center justify-center gap-2 whitespace-nowrap"
               >
                 {updating ? 'Applying...' : 'Sync Market Prices'}
               </button>
@@ -133,40 +136,40 @@ const Billing = () => {
       )}
 
       {/* Current Status Card */}
-      <div className="bg-white rounded-[40px] shadow-xl shadow-gray-100 border border-gray-100 p-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
+      <div className="bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-sm border border-gray-100 p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6 sm:gap-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none hidden sm:block">
           <FiShield size={200} />
         </div>
 
-        <div className={`w-24 h-24 rounded-3xl flex items-center justify-center text-white shadow-2xl ${school.packageType === 'premium' ? 'bg-gradient-to-br from-indigo-600 to-blue-700' :
+        <div className={`w-16 h-16 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl flex items-center justify-center text-white shadow-xl ${school.packageType === 'premium' ? 'bg-gradient-to-br from-indigo-600 to-blue-700' :
           school.packageType === 'standard' ? 'bg-gradient-to-br from-purple-600 to-indigo-700' :
             'bg-gradient-to-br from-emerald-500 to-teal-600'
           }`}>
-          <FiBriefcase size={40} />
+          <FiBriefcase className="w-8 h-8 sm:w-10 sm:h-10" />
         </div>
 
-        <div className="flex-1 space-y-4">
-          <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">
+        <div className="flex-1 space-y-4 text-center sm:text-left w-full">
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 uppercase tracking-tighter">
               {school.packageType} PLan
             </h2>
-            <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${school.subscriptionActive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-              {school.subscriptionActive ? 'ACTIVE' : 'EXPIRED'}
+            <span className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${school.subscriptionActive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+              {school.subscriptionActive ? 'Status: ACTIVE' : 'Status: EXPIRED'}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <StatusDetail icon={<FiUsers className="text-primary" />} label="Capacity" value={`${school.maxStudents} Students`} />
-            <StatusDetail icon={<FiCalendar className="text-primary" />} label="Expires" value={school.expiresAt ? new Date(school.expiresAt).toLocaleDateString() : 'N/A'} />
-            <StatusDetail icon={<FiClock className="text-primary" />} label="Last Billing" value={school.lastBillingDate ? new Date(school.lastBillingDate).toLocaleDateString() : 'Never'} />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
+            <StatusDetail icon={<FiUsers className="text-primary" />} label="Pool" value={`${school.maxStudents} Students`} />
+            <StatusDetail icon={<FiCalendar className="text-primary" />} label="Expiry" value={school.expiresAt ? new Date(school.expiresAt).toLocaleDateString() : 'N/A'} />
+            <StatusDetail icon={<FiClock className="text-primary" />} label="Last Bill" value={school.lastBillingDate ? new Date(school.lastBillingDate).toLocaleDateString() : 'Never'} />
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <div className="bg-gray-50/50 p-6 rounded-3xl border border-gray-100 px-8">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status Summary</p>
-            <p className="text-sm font-bold text-gray-700 max-w-[200px]">
-              {school.subscriptionActive ? 'Your account is in good standing with all services accessible.' : 'Subscription required to continue services and unlock full analytics.'}
+        <div className="flex flex-col gap-2 w-full sm:w-auto">
+          <div className="bg-gray-50/50 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-gray-100 sm:px-8">
+            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Status Intelligence</p>
+            <p className="text-[10px] sm:text-xs font-bold text-gray-600 max-w-none sm:max-w-[200px]">
+              {school.subscriptionActive ? 'Your institution is in good regulatory standing with all cloud services accessible.' : 'Mandatory subscription required to restore full educational services.'}
             </p>
           </div>
         </div>

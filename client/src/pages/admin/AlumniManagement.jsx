@@ -6,7 +6,7 @@ import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 import AlumniIDCard from '../../components/AlumniIDCard';
 import { useReactToPrint } from 'react-to-print';
 import { toast } from '../../utils/toast';
-import { FileText, Award, Printer } from 'lucide-react';
+import { FileText, Award, Printer, Plus, Search, ChevronRight } from 'lucide-react';
 
 const AlumniManagement = () => {
   const navigate = useNavigate();
@@ -438,59 +438,63 @@ const AlumniManagement = () => {
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Alumni Management System</h1>
+    <div className="p-3 sm:p-6 max-w-7xl mx-auto">
+      <h1 className="text-xl sm:text-2xl font-black mb-6 text-gray-900 tracking-tight">Alumni Management</h1>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-primary">
-          <h3 className="text-gray-500 text-sm font-medium">Total Alumni</h3>
-          <p className="text-3xl font-bold mt-2">{alumniList.length}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-primary">
+          <h3 className="text-gray-500 text-[10px] sm:text-xs font-black uppercase tracking-widest">Total Alumni</h3>
+          <p className="text-2xl sm:text-3xl font-black mt-2 text-gray-900">{alumniList.length}</p>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
-          <h3 className="text-gray-500 text-sm font-medium">Total Donations</h3>
-          <p className="text-3xl font-bold mt-2">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-emerald-500">
+          <h3 className="text-gray-500 text-[10px] sm:text-xs font-black uppercase tracking-widest text-emerald-600">Total Donations</h3>
+          <p className="text-2xl sm:text-3xl font-black mt-2 text-gray-900">
             ₦{formatNumber(donations.reduce((acc, curr) => acc + curr.amount, 0))}
           </p>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
-          <h3 className="text-gray-500 text-sm font-medium">Recent Activity</h3>
-          <p className="text-lg font-semibold mt-2">{donations.length} new donations</p>
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-amber-500 sm:col-span-2 lg:col-span-1">
+          <h3 className="text-gray-500 text-[10px] sm:text-xs font-black uppercase tracking-widest text-amber-600">Recent Activity</h3>
+          <p className="text-base sm:text-lg font-bold mt-2 text-gray-900">{donations.length} new donations</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-4 border-b mb-6">
+      <div className="flex space-x-1 sm:space-x-4 border-b border-gray-100 mb-6 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab('directory')}
-          className={`pb-2 px-4 ${activeTab === 'directory' ? 'border-b-2 border-primary text-primary font-medium' : 'text-gray-500'}`}
+          className={`pb-3 px-4 text-xs sm:text-sm font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === 'directory' ? 'border-b-2 border-primary text-primary' : 'text-gray-400 hover:text-gray-600'}`}
         >
-          Alumni Directory
+          Directory
         </button>
         <button
           onClick={() => setActiveTab('donations')}
-          className={`pb-2 px-4 ${activeTab === 'donations' ? 'border-b-2 border-primary text-primary font-medium' : 'text-gray-500'}`}
+          className={`pb-3 px-4 text-xs sm:text-sm font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === 'donations' ? 'border-b-2 border-primary text-primary' : 'text-gray-400 hover:text-gray-600'}`}
         >
-          Donations & Funds
+          Donations
         </button>
       </div>
 
       {/* Directory Tab */}
       {activeTab === 'directory' && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-6">
-            <input
-              type="text"
-              placeholder="Search alumni..."
-              className="border rounded-md px-4 py-2 w-64"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 overflow-hidden">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-8">
+            <div className="relative w-full sm:w-64 group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+              <input
+                type="text"
+                placeholder="Search alumni..."
+                className="border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 w-full focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-sm font-medium"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="bg-primary text-white px-4 py-2 rounded-md hover:bg-opacity-90"
+              className="w-full sm:w-auto bg-primary text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
             >
-              + Create Alumni
+              <Plus weight="bold" className="w-4 h-4" />
+              <span>Create Alumni</span>
             </button>
           </div>
 
@@ -505,59 +509,34 @@ const AlumniManagement = () => {
                   {/* Year Header - Clickable */}
                   <button
                     onClick={() => toggleYear(year)}
-                    className="w-full bg-gray-50 hover:bg-gray-100 px-6 py-4 flex items-center justify-between transition-colors"
+                    className="w-full bg-white hover:bg-gray-50 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between transition-colors text-left"
                   >
-                    <div className="flex items-center gap-4">
-                      <svg
-                        className={`w-5 h-5 text-gray-600 transition-transform ${expandedYears[year] ? 'rotate-90' : ''}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                      <h3 className="text-lg font-semibold text-gray-800">
+                    <div className="flex items-center gap-3 mb-3 sm:mb-0">
+                      <div className={`p-1 rounded-md bg-gray-100 text-gray-500 transition-transform ${expandedYears[year] ? 'rotate-90 text-primary bg-primary/10' : ''}`}>
+                        <ChevronRight className="w-5 h-5" />
+                      </div>
+                      <h3 className="text-base sm:text-lg font-black text-gray-900 tracking-tight">
                         Class of {year}
                       </h3>
-                      <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
-                        {alumniByYear[year].length} {alumniByYear[year].length === 1 ? 'Alumni' : 'Alumni'}
+                      <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                        {alumniByYear[year].length} Records
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => navigate(`/dashboard/bulk-certificates/${year}`)}
-                        className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2 font-medium"
+                        className="text-[10px] font-black bg-blue-50 text-blue-600 px-3 py-2 rounded-xl border border-blue-100 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1.5 uppercase tracking-wider shadow-sm"
                       >
-                        <Printer size={14} />
-                        Bulk Certificates
+                        <Printer size={12} />
+                        Certs
                       </button>
                       <button
                         onClick={() => navigate(`/dashboard/bulk-testimonials/${year}`)}
-                        className="text-xs bg-green-50 text-green-600 px-3 py-1.5 rounded-lg border border-green-100 hover:bg-green-600 hover:text-white transition-all flex items-center gap-2 font-medium"
+                        className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-3 py-2 rounded-xl border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-1.5 uppercase tracking-wider shadow-sm"
                       >
-                        <Printer size={14} />
-                        Bulk Testimonials
-                      </button>
-                      <button
-                        onClick={() => {
-                          setBulkConfig({ ...bulkConfig, year, type: 'certificate', programType: '' });
-                          setShowBulkModal(true);
-                        }}
-                        className="flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-md text-sm font-bold border border-amber-200 hover:bg-amber-100 transition-all"
-                      >
-                        <Award size={14} />
-                        Bulk Certificates
-                      </button>
-                      <button
-                        onClick={() => {
-                          setBulkConfig({ ...bulkConfig, year, type: 'testimonial', programType: '', conduct: 'Good', remarks: '' });
-                          setShowBulkModal(true);
-                        }}
-                        className="flex items-center gap-2 bg-purple-50 text-purple-700 px-3 py-1.5 rounded-md text-sm font-bold border border-purple-200 hover:bg-purple-100 transition-all"
-                      >
-                        <FileText size={14} />
-                        Bulk Testimonials
+                        <Printer size={12} />
+                        Testimonials
                       </button>
                     </div>
                   </button>
@@ -597,7 +576,9 @@ const AlumniManagement = () => {
                                   </div>
                                 </div>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">{alumni.alumniId || '-'}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-gray-500 tracking-wider">
+                                {alumni.alumniId || <span className="text-gray-300">N/A</span>}
+                              </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 {alumni.student.user.username && alumni.student.user.username === alumni.alumniId ? (
                                   <button
@@ -750,8 +731,8 @@ const AlumniManagement = () => {
 
       {/* Credentials Modal */}
       {generatedCredentials && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-96 text-center">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white p-8 rounded-2xl w-full max-w-sm text-center shadow-2xl animate-in zoom-in-95">
             <div className="mb-4 text-green-600">
               <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1268,8 +1249,8 @@ const AlumniManagement = () => {
         </div>
       )}
       {showDonationModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-96">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white p-8 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95">
             <h2 className="text-xl font-bold mb-4">{editingDonation ? 'Edit Donation' : 'Record Donation'}</h2>
             <form onSubmit={handleRecordDonation}>
               <div className="mb-4">
@@ -1351,8 +1332,8 @@ const AlumniManagement = () => {
 
       {/* Edit Alumni Modal */}
       {showEditModal && editingAlumni && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white p-6 rounded-lg w-[600px] max-h-[90vh] overflow-y-auto m-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
+          <div className="bg-white p-6 sm:p-8 rounded-2xl w-full max-w-2xl shadow-2xl my-8 animate-in zoom-in-95">
             <h2 className="text-xl font-bold mb-4">Edit Alumni Profile</h2>
             <form onSubmit={handleUpdateAlumni}>
               <div className="grid grid-cols-2 gap-4 mb-4">
