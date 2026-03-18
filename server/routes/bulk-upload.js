@@ -54,17 +54,17 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
     // Add example row
     if (classes.length > 0) {
       worksheet.addRow({
-        firstName: 'John',
-        lastName: 'Doe',
-        middleName: 'Junior',
+        firstName: 'Abdullahi',
+        lastName: 'Lawal',
+        middleName: 'Musa',
         classId: 1, // First class in this school (Local ID)
         className: `${classes[0].name} ${classes[0].arm || ''} (ID: 1)`,
         gender: 'Male',
         genotype: 'AA',
         disability: 'None',
-        email: 'john.doe@example.com',
-        parentName: 'Jane Doe',
-        parentPhone: '08012345678',
+        email: 'abdulllawal@example.com',
+        parentName: 'Lawal Musa',
+        parentPhone: '08000000000',
         address: '123 School Road',
         dob: '2015-05-15',
         isScholarship: 'No'
