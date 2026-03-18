@@ -61,6 +61,14 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const getLogoUrl = (src) => {
+    if (!src) return null;
+    if (src.startsWith('data:image')) return src; // Return base64 as-is
+    const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+    const path = src.startsWith('/') ? src : '/' + src;
+    return `${baseUrl}${path}`;
+  };
+
   const handleIdentify = async (e) => {
     e.preventDefault();
     setError('');
@@ -271,7 +279,7 @@ const Login = () => {
                       >
                         <div className="w-12 h-12 rounded-xl bg-gray-100 flex-shrink-0 flex items-center justify-center overflow-hidden border border-gray-200">
                           {school.logoUrl ? (
-                            <img src={`${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${school.logoUrl.startsWith('/') ? school.logoUrl : '/' + school.logoUrl}`} className="w-full h-full object-contain" />
+                            <img src={getLogoUrl(school.logoUrl)} className="w-full h-full object-contain" />
                           ) : (
                             <span className="text-xl font-black text-gray-300">{school.name.charAt(0)}</span>
                           )}
@@ -296,7 +304,7 @@ const Login = () => {
                     <div className="flex items-center gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 relative group">
                       <div className="w-12 h-12 rounded-xl bg-white flex-shrink-0 flex items-center justify-center overflow-hidden border border-emerald-200">
                         {selectedSchool?.logoUrl ? (
-                          <img src={`${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${selectedSchool.logoUrl.startsWith('/') ? selectedSchool.logoUrl : '/' + selectedSchool.logoUrl}`} className="w-full h-full object-contain" />
+                          <img src={getLogoUrl(selectedSchool.logoUrl)} className="w-full h-full object-contain" />
                         ) : (
                           <span className="text-xl font-black text-emerald-300">{selectedSchool?.name.charAt(0)}</span>
                         )}

@@ -104,8 +104,13 @@ const Layout = () => {
   }, [user?.id, user?.role, user?.student?.classId]);
 
   const handleLogout = async () => {
+    const schoolSlug = localStorage.getItem('schoolSlug');
     await logout();
-    navigate('/login');
+    if (schoolSlug && schoolSlug !== 'undefined' && schoolSlug !== 'null') {
+      navigate(`/${schoolSlug}`);
+    } else {
+      navigate('/login');
+    }
   };
 
   const menuItems = [];
