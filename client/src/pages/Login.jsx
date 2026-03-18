@@ -63,7 +63,7 @@ const Login = () => {
 
   const getLogoUrl = (src) => {
     if (!src) return null;
-    if (src.startsWith('data:image')) return src; // Return base64 as-is
+    if (src.startsWith('data:image') || src.startsWith('http')) return src; // Return base64 or absolute as-is
     const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
     const path = src.startsWith('/') ? src : '/' + src;
     return `${baseUrl}${path}`;
@@ -90,6 +90,7 @@ const Login = () => {
           const school = res.data.schools[0];
           setSelectedSchool(school);
           setSchoolSlug(school.slug);
+          localStorage.setItem('schoolSlug', school.slug);
           setStep(3);
         } else {
           setStep(2);
@@ -105,6 +106,7 @@ const Login = () => {
   const handleSchoolSelect = (school) => {
     setSelectedSchool(school);
     setSchoolSlug(school.slug);
+    localStorage.setItem('schoolSlug', school.slug);
     setStep(3);
   };
 
@@ -117,6 +119,8 @@ const Login = () => {
       const result = await login(username, password, schoolSlug);
 
       if (result.success) {
+        // Ensure slug is set in localStorage on successful login
+        if (schoolSlug) localStorage.setItem('schoolSlug', schoolSlug);
         const redirectPath = result.role === 'superadmin' ? '/dashboard' : '/school-home';
         navigate(redirectPath, { replace: true });
       } else {
@@ -279,10 +283,19 @@ const Login = () => {
                       >
                         <div className="w-12 h-12 rounded-xl bg-gray-100 flex-shrink-0 flex items-center justify-center overflow-hidden border border-gray-200">
                           {school.logoUrl ? (
-                            <img src={getLogoUrl(school.logoUrl)} className="w-full h-full object-contain" />
-                          ) : (
-                            <span className="text-xl font-black text-gray-300">{school.name.charAt(0)}</span>
-                          )}
+                            <img 
+                              src={getLogoUrl(school.logoUrl)} 
+                              alt="" 
+                              className="w-full h-full object-contain"
+                              onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                            />
+                          ) : null}
+                          <span 
+                            className="text-xl font-black text-gray-300"
+                            style={{ display: school.logoUrl ? 'none' : 'flex' }}
+                          >
+                            {school.name.charAt(0)}
+                          </span>
                         </div>
                         <div>
                           <h4 className="font-bold text-gray-900 group-hover:text-primary transition-colors">{school.name}</h4>
@@ -304,10 +317,19 @@ const Login = () => {
                     <div className="flex items-center gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 relative group">
                       <div className="w-12 h-12 rounded-xl bg-white flex-shrink-0 flex items-center justify-center overflow-hidden border border-emerald-200">
                         {selectedSchool?.logoUrl ? (
-                          <img src={getLogoUrl(selectedSchool.logoUrl)} className="w-full h-full object-contain" />
-                        ) : (
-                          <span className="text-xl font-black text-emerald-300">{selectedSchool?.name.charAt(0)}</span>
-                        )}
+                          <img 
+                            src={getLogoUrl(selectedSchool.logoUrl)} 
+                            alt=""
+                            className="w-full h-full object-contain"
+                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                          />
+                        ) : null}
+                        <span 
+                          className="text-xl font-black text-emerald-300"
+                          style={{ display: selectedSchool?.logoUrl ? 'none' : 'flex' }}
+                        >
+                          {selectedSchool?.name.charAt(0)}
+                        </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1">Logging into</p>

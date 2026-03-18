@@ -104,12 +104,17 @@ const Layout = () => {
   }, [user?.id, user?.role, user?.student?.classId]);
 
   const handleLogout = async () => {
-    const schoolSlug = localStorage.getItem('schoolSlug');
+    // Determine target before logging out clears state
+    const currentSlug = user?.school?.slug || localStorage.getItem('schoolSlug');
+    
     await logout();
-    if (schoolSlug && schoolSlug !== 'undefined' && schoolSlug !== 'null') {
-      navigate(`/${schoolSlug}`);
+    
+    // Redirect to school home or site root (Landing Page) instead of generic login
+    if (currentSlug && currentSlug !== 'undefined' && currentSlug !== 'null') {
+      navigate(`/${currentSlug}`);
     } else {
-      navigate('/login');
+      // Fallback to absolute root (which is usually the LandingPage / MarketingHome)
+      navigate('/');
     }
   };
 
