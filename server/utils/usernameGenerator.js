@@ -47,14 +47,15 @@ async function generateAlumniUsername(schoolId, schoolCode, firstName, lastName,
 
 /**
  * Generates a unique admin username in the format:
- * admin-SCHOOL_CODE-YEAR
- * Example: admin-AAM-2025
+ * admin-SCHOOL_CODE-YEAR-RANDOM4
+ * Example: admin-aam-2025-8274
  */
 async function generateAdminUsername(schoolId, schoolCode, registrationYear) {
   const code = schoolCode.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
   const year = registrationYear || new Date().getFullYear();
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
 
-  let baseId = `admin-${code}-${year}`;
+  let baseId = `admin-${code}-${year}-${randomSuffix}`;
   let uniqueId = baseId;
   let counter = 1;
 
