@@ -120,61 +120,43 @@ router.post('/login', async (req, res) => {
       });
       if (!school) return res.status(404).json({ error: 'Invalid school domain' });
 
-      // Search by username first
-      user = await prisma.user.findFirst({
-        where: {
-          username: { equals: searchId, mode: 'insensitive' },
-          schoolId: school.id
-        },
-        include: { 
-          school: true,
-          teacher: true,
-          student: { include: { classModel: true } },
-          classesAsTeacher: true
-        }
-      });
+      // Fire all 3 lookups in parallel — username, admission number, staff ID
+      const userInclude = {
+        school: true,
+        teacher: true,
+        student: { include: { classModel: true } },
+        classesAsTeacher: true
+      };
 
-      // If not found, check admission number (for students)
-      if (!user) {
-        const student = await prisma.student.findFirst({
+      const [userByUsername, studentByAdmission, teacherByStaffId] = await Promise.all([
+        // 1. Lookup by username
+        prisma.user.findFirst({
+          where: {
+            username: { equals: searchId, mode: 'insensitive' },
+            schoolId: school.id
+          },
+          include: userInclude
+        }),
+        // 2. Lookup by admission number (students)
+        prisma.student.findFirst({
           where: {
             admissionNumber: { equals: searchId, mode: 'insensitive' },
             schoolId: school.id
           },
-          select: { 
-            user: { 
-              include: { 
-                school: true,
-                teacher: true,
-                student: { include: { classModel: true } },
-                classesAsTeacher: true
-              } 
-            } 
-          }
-        });
-        if (student) user = student.user;
-      }
-
-      // If still not found, check staff ID (for teachers)
-      if (!user) {
-        const teacher = await prisma.teacher.findFirst({
+          select: { user: { include: userInclude } }
+        }),
+        // 3. Lookup by staff ID (teachers)
+        prisma.teacher.findFirst({
           where: {
             staffId: { equals: searchId, mode: 'insensitive' },
             schoolId: school.id
           },
-          select: { 
-            user: { 
-              include: { 
-                school: true,
-                teacher: true,
-                student: { include: { classModel: true } },
-                classesAsTeacher: true
-              } 
-            } 
-          }
-        });
-        if (teacher) user = teacher.user;
-      }
+          select: { user: { include: userInclude } }
+        })
+      ]);
+
+      // Pick the first match found (username takes priority)
+      user = userByUsername || studentByAdmission?.user || teacherByStaffId?.user || null;
     }
 
     if (!user || user.isActive === false) {

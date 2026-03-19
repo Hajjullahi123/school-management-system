@@ -1,15 +1,14 @@
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'darul-quran-secret-key-change-in-production';
+const logFile = 'logs/auth-debug.log';
 
 // Authentication middleware
 const authenticate = (req, res, next) => {
-  const fs = require('fs');
-  const logFile = 'auth-debug.log';
   const log = (msg) => {
-    try {
-      fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${msg}\n`);
-    } catch (e) { }
+    // Non-blocking async write — does not stall the event loop
+    fs.appendFile(logFile, `[${new Date().toISOString()}] ${msg}\n`, () => {});
   };
 
   try {
