@@ -267,12 +267,13 @@ const CertificateView = () => {
         </div>
       </div>
 
-      {/* Certificate Content */}
+      <div className="overflow-x-auto md:overflow-visible pb-12">
       <div
         ref={componentRef}
-        className="bg-white shadow-2xl mx-auto relative print:shadow-none"
+        className="bg-white shadow-2xl mx-auto relative print:shadow-none certificate-page"
         style={{
           width: '297mm',
+          minWidth: '297mm',
           height: '210mm',
           border: '20px solid',
           borderImage: 'linear-gradient(45deg, #d4af37, #f4d03f) 1',
@@ -444,6 +445,7 @@ const CertificateView = () => {
               <span>Official Document • Verification: {verificationUrl}</span>
             </div>
           </div>
+          </div>
         </div>
       </div>
 
@@ -463,6 +465,14 @@ const CertificateView = () => {
             padding: 0;
             width: 297mm;
             height: 210mm;
+          }
+        }
+
+        @media screen and (max-width: 1024px) {
+          .certificate-page {
+            zoom: 0.4;
+            -moz-transform: scale(0.4);
+            -moz-transform-origin: top center;
           }
         }
       `}</style>

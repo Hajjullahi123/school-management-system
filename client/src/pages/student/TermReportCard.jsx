@@ -437,7 +437,8 @@ const TermReportCard = () => {
             const termNumber = data.term?.number || data.academic?.termNumber;
 
             return (
-              <div key={idx} className="relative bg-white p-8 print:p-4 my-8 print:my-0 shadow-2xl print:shadow-none print:break-after-page text-black font-serif border-[12px] border-emerald-800 print:emerald-border-A4">
+                <div className="report-card-wrapper overflow-x-auto md:overflow-visible pb-4">
+                  <div key={idx} className="relative bg-white p-8 print:p-4 my-8 print:my-0 shadow-2xl print:shadow-none print:break-after-page text-black font-serif border-[12px] border-emerald-800 print:emerald-border-A4 mx-auto w-[210mm] min-w-[210mm] md:min-w-0">
 
                 {/* PROTECTION WATERMARK */}
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
@@ -789,7 +790,8 @@ const TermReportCard = () => {
                   </div>
                 </div>
               </div>
-
+                </div>
+              </div>
             );
           })}
         </>
@@ -830,6 +832,20 @@ const TermReportCard = () => {
         
         * { box-sizing: border-box !important; }
         .border-black { border-color: black !important; }
+
+        @media screen and (max-width: 794px) {
+          .report-card-wrapper {
+            margin: 0 -1rem;
+            padding: 0 1rem;
+            display: flex;
+            justify-content: flex-start;
+          }
+          #result-sheet {
+            zoom: 0.45;
+            -moz-transform: scale(0.45);
+            -moz-transform-origin: top center;
+          }
+        }
       `}</style>
     </div>
   );

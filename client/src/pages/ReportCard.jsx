@@ -333,7 +333,8 @@ const ReportCard = () => {
             </button>
           </div>
 
-          <div id="result-sheet" className="relative bg-white p-8 print:p-4 shadow-2xl print:shadow-none print:break-after-page text-black font-serif border-[12px] border-emerald-800 print:emerald-border-A4">
+          <div className="report-card-wrapper overflow-x-auto md:overflow-visible pb-4">
+            <div id="result-sheet" className="relative bg-white p-8 print:p-4 shadow-2xl print:shadow-none print:break-after-page text-black font-serif border-[12px] border-emerald-800 print:emerald-border-A4 mx-auto w-[210mm] min-w-[210mm] md:min-w-0">
             {/* PROTECTION WATERMARK */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
               <div className="text-[100px] font-black uppercase text-gray-900 leading-[0.8] text-center">
@@ -715,6 +716,33 @@ const ReportCard = () => {
           .bg-gray-50 { background-color: #f9fafb !important; -webkit-print-color-adjust: exact; }
         }
         * { box-sizing: border-box !important; }
+
+        @media screen and (max-width: 794px) {
+          .report-card-wrapper {
+            margin: 0 -1rem;
+            padding: 0 1rem;
+            display: flex;
+            justify-content: flex-start;
+          }
+          #result-sheet {
+            zoom: 0.45;
+            -moz-transform: scale(0.45);
+            -moz-transform-origin: top center;
+          }
+        }
+
+        /* Responsive scaling using container query logic via CSS variables if supported, 
+           otherwise fallback to horizontal scroll */
+        @media screen and (max-width: 210mm) {
+          #result-sheet {
+            zoom: 0.45; /* Quick fix for many mobile browsers */
+            -moz-transform: scale(0.45);
+            -moz-transform-origin: top center;
+          }
+          @viewport {
+            width: device-width;
+          }
+        }
       `}</style>
     </div>
   );

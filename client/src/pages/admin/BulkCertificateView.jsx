@@ -108,14 +108,14 @@ const BulkCertificateView = () => {
       </div>
 
       {/* Print Container */}
-      <div ref={componentRef} className="print-container">
+      <div ref={componentRef} className="print-container overflow-x-auto md:overflow-visible pb-10">
         {certificates.map((cert) => {
           const studentName = `${cert.student?.user?.firstName || ''} ${cert.student?.user?.lastName || ''} ${cert.student?.middleName || ''}`.trim();
           const verificationUrl = `${window.location.origin}/verify/certificate/${cert.certificateNumber}`;
           const displayPhotoUrl = cert.passportUrl || cert.student?.user?.photoUrl || cert.student?.photoUrl;
 
           return (
-            <div key={cert.id} className="certificate-page bg-white p-0 m-0 relative" style={{ width: '297mm', height: '210mm', overflow: 'hidden' }}>
+            <div key={cert.id} className="certificate-page bg-white p-0 m-0 relative mx-auto my-4 shadow-xl md:shadow-none" style={{ width: '297mm', minWidth: '297mm', height: '210mm', overflow: 'hidden' }}>
               <div className="absolute inset-0 m-[10mm]" style={{ border: '15px solid', borderImage: 'linear-gradient(45deg, #d4af37, #f4d03f) 1' }}>
                 {/* Watermark */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none"
@@ -208,6 +208,14 @@ const BulkCertificateView = () => {
                     body { margin: 0; padding: 0; }
                     .no-print { display: none !important; }
                     .print-container { width: 100%; }
+                }
+
+                @media screen and (max-width: 1024px) {
+                  .certificate-page {
+                    zoom: 0.4;
+                    -moz-transform: scale(0.4);
+                    -moz-transform-origin: top center;
+                  }
                 }
             `}</style>
     </div>
