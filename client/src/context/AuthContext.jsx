@@ -101,11 +101,13 @@ export const AuthProvider = ({ children }) => {
 
       localStorage.setItem('token', data.token);
 
-      if (schoolSlug && schoolSlug !== 'null' && schoolSlug !== 'undefined') {
-        localStorage.setItem('schoolSlug', schoolSlug);
-      } else if (data.user.role !== 'superadmin') {
-        // Only clear it if not a superadmin, or handle appropriately
-        // Actually, if it's invalid, it's safer to remove it unless superadmin
+      // Persist schoolSlug — use caller-provided slug first, then fall back to what the server returned
+      const resolvedSlug = (schoolSlug && schoolSlug !== 'null' && schoolSlug !== 'undefined')
+        ? schoolSlug
+        : (data.user?.school?.slug || data.user?.schoolSlug || null);
+
+      if (resolvedSlug) {
+        localStorage.setItem('schoolSlug', resolvedSlug);
       }
 
       setUser(data.user);
@@ -167,24 +169,27 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    // Capture slug BEFORE clearing storage so the caller can redirect
+    const isSuperAdmin = user?.role === 'superadmin';
+    const savedSlug = localStorage.getItem('schoolSlug');
+
     try {
-      const isSuperAdmin = user?.role === 'superadmin';
       await api.post('/api/auth/logout');
-      localStorage.removeItem('token');
-      if (isSuperAdmin) {
-        localStorage.removeItem('schoolSlug');
-      }
-      sessionStorage.removeItem('dashboardUnlocked');
-      setUser(null);
-      setDashboardUnlocked(false);
     } catch (error) {
-      console.error('Logout failed:', error);
-      // Even if API fails, clear local state
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('dashboardUnlocked');
-      setUser(null);
-      setDashboardUnlocked(false);
+      console.error('Logout API call failed (proceeding with local clear):', error);
     }
+
+    // Always clear local auth state regardless of API success
+    localStorage.removeItem('token');
+    if (isSuperAdmin) {
+      localStorage.removeItem('schoolSlug');
+    }
+    sessionStorage.removeItem('dashboardUnlocked');
+    setUser(null);
+    setDashboardUnlocked(false);
+
+    // Return the slug so callers can redirect to the school's landing page
+    return { schoolSlug: isSuperAdmin ? null : savedSlug };
   };
 
   const isDemo = user?.username === 'demo_admin';

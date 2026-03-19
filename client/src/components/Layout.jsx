@@ -104,18 +104,23 @@ const Layout = () => {
   }, [user?.id, user?.role, user?.student?.classId]);
 
   const handleLogout = async () => {
-    // Determine target before logging out clears state
-    // Check both nested and flattened structure from backend
+    // Capture slug BEFORE calling logout() since it clears user state and localStorage
     const currentSlug = user?.schoolSlug || user?.school?.slug || localStorage.getItem('schoolSlug');
-    
-    await logout();
-    
-    // Redirect to school home or site root (Landing Page) instead of generic login
-    if (currentSlug && currentSlug !== 'undefined' && currentSlug !== 'null' && currentSlug !== '') {
-      navigate(`/${currentSlug}`);
+
+    // logout() returns the saved slug as well (belt-and-suspenders)
+    const result = await logout();
+    const finalSlug = (currentSlug && currentSlug !== 'undefined' && currentSlug !== 'null' && currentSlug !== '')
+      ? currentSlug
+      : result?.schoolSlug;
+
+    // Use window.location.href (hard redirect) instead of navigate().
+    // Reason: after logout() sets user=null, ProtectedRoute immediately fires
+    // <Navigate to="/login"> which races against and WINS over React Router's
+    // navigate(). A hard browser redirect bypasses React Router entirely.
+    if (finalSlug) {
+      window.location.href = `/${finalSlug}`;
     } else {
-      // Fallback to absolute root (which is usually the LandingPage / MarketingHome)
-      navigate('/');
+      window.location.href = '/';
     }
   };
 
