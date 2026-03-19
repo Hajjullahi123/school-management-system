@@ -109,7 +109,7 @@ const BulkTestimonialView = () => {
       </div>
 
       {/* Print Container */}
-      <div ref={componentRef} className="print-container flex flex-col items-center gap-0">
+      <div ref={componentRef} className="print-container flex flex-col items-center gap-0 overflow-x-auto md:overflow-visible pb-10">
         {testimonials.map((testimonial) => {
           const studentName = `${testimonial.student?.user?.firstName || ''} ${testimonial.student?.user?.middleName || ''} ${testimonial.student?.user?.lastName || ''}`.trim();
           const verificationUrl = `${window.location.origin}/verify/testimonial/${testimonial.testimonialNumber}`;
@@ -120,7 +120,7 @@ const BulkTestimonialView = () => {
           });
 
           return (
-            <div key={testimonial.id} className="testimonial-page bg-white relative overflow-hidden" style={{ width: '210mm', height: '297mm', padding: '20mm', fontFamily: "'Playfair Display', serif" }}>
+            <div key={testimonial.id} className="testimonial-page bg-white relative overflow-hidden mx-auto my-4 shadow-xl md:shadow-none" style={{ width: '210mm', minWidth: '210mm', height: '297mm', padding: '20mm', fontFamily: "'Playfair Display', serif" }}>
               {/* Ornate Border */}
               <div className="absolute inset-0 border-[16px] border-double pointer-events-none z-20" style={{ borderColor: testimonial.school?.primaryColor || '#1e40af', opacity: 0.15 }}></div>
               <div className="absolute inset-4 border border-gray-200 pointer-events-none z-20"></div>
@@ -221,6 +221,14 @@ const BulkTestimonialView = () => {
                     .no-print { display: none !important; }
                     .testimonial-page { width: 100% !important; margin: 0 !important; }
                     .print-container { width: 100%; }
+                }
+
+                @media screen and (max-width: 794px) {
+                  .testimonial-page {
+                    zoom: 0.45;
+                    -moz-transform: scale(0.45);
+                    -moz-transform-origin: top center;
+                  }
                 }
             `}</style>
     </div>

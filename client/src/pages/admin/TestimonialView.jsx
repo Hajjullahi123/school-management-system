@@ -181,11 +181,13 @@ const TestimonialView = () => {
       </div>
 
       {/* Testimonial Content */}
+      <div className="overflow-x-auto md:overflow-visible pb-12">
       <div
         ref={componentRef}
         className="bg-white relative overflow-hidden testimonial-paper mx-auto shadow-xl print:shadow-none"
         style={{
           width: '210mm',
+          minWidth: '210mm',
           height: '297mm',
           padding: '15mm',
           boxSizing: 'border-box'
@@ -387,6 +389,7 @@ const TestimonialView = () => {
           </div>
         </div>
       </div>
+      </div>
 
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -421,6 +424,14 @@ const TestimonialView = () => {
             height: 100% !important;
             box-shadow: none !important;
             padding: 10mm !important;
+          }
+        }
+
+        @media screen and (max-width: 794px) {
+          .testimonial-paper {
+            zoom: 0.45;
+            -moz-transform: scale(0.45);
+            -moz-transform-origin: top center;
           }
         }
       `}} />

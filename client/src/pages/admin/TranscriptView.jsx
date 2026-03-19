@@ -84,11 +84,13 @@ const TranscriptView = () => {
       </div>
 
       {/* Transcript Preview */}
+      <div className="overflow-x-auto md:overflow-visible pb-12">
       <div
         ref={componentRef}
         className="mx-auto bg-white shadow-2xl rounded-none relative overflow-hidden transcript-container print:shadow-none"
         style={{
           width: '210mm',
+          minWidth: '210mm',
           minHeight: '297mm',
           padding: '20mm'
         }}
@@ -324,6 +326,7 @@ const TranscriptView = () => {
           <p className="mt-1">Any alteration to this document renders it null and void. For verification, scan the QR code above or contact {schoolSettings?.schoolName}.</p>
         </div>
       </div>
+      </div>
 
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -355,6 +358,13 @@ const TranscriptView = () => {
                 }
                 .term-block:last-child {
                     margin-bottom: 0 !important;
+                }
+                @media screen and (max-width: 794px) {
+                  .transcript-container {
+                    zoom: 0.45;
+                    -moz-transform: scale(0.45);
+                    -moz-transform-origin: top center;
+                  }
                 }
             `}} />
     </div>
