@@ -751,7 +751,7 @@ const TermReportCard = () => {
                         ))}
                       </div>
                       <p className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400">
-                        Verification ID: {data.student?.admissionNumber?.toString().replace('/', '-')}-{data.term?.id?.toString().slice(-4)}
+                        Verification ID: {data.student?.admissionNumber?.toString().replace(String.fromCharCode(47), '-')}-{data.term?.id?.toString().slice(-4)}
                       </p>
                     </div>
 
@@ -790,12 +790,14 @@ const TermReportCard = () => {
                   </div>
                 </div>
               </div>
-                </div>
-              </div>
-            );
-          })}
-        </>
-      )}
+            </div>
+          );
+        })}
+      </>
+    )}
+
+
+
 
       <style>{`
         @media print {

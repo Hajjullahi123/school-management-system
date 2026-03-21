@@ -11,7 +11,7 @@ import { toast } from 'react-hot-toast';
 
 const MarketingHome = () => {
   const navigate = useNavigate();
-  const { demoLogin } = useAuth();
+  const { demoLogin, user, logout } = useAuth();
   const [loading, setLoading] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [prices, setPrices] = useState({ basic: 15000, standard: 45000, premium: 0 });
@@ -51,12 +51,14 @@ const MarketingHome = () => {
 
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-6">
-              <Link to="/login" className="text-sm font-black text-gray-700 hover:text-indigo-600 transition-colors uppercase tracking-widest">Login</Link>
+              <Link to={user ? "/dashboard" : "/login"} className="text-sm font-black text-gray-700 hover:text-indigo-600 transition-colors uppercase tracking-widest">
+                {user ? "Dashboard" : "Login"}
+              </Link>
               <button
-                onClick={() => navigate('/demo')}
+                onClick={() => navigate(user ? '/dashboard' : '/demo')}
                 className="bg-indigo-600 text-white px-8 py-3 rounded-full text-sm font-black shadow-xl shadow-indigo-100 transform transition-all hover:scale-105 active:scale-95 hover:bg-indigo-700 uppercase tracking-widest"
               >
-                Demo
+                {user ? "Enter App" : "Demo"}
               </button>
             </div>
 
@@ -112,10 +114,10 @@ const MarketingHome = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <button
-                onClick={() => navigate('/demo')}
+                onClick={() => navigate(user ? '/dashboard' : '/demo')}
                 className="flex items-center justify-center gap-3 bg-gray-900 text-white px-8 py-5 rounded-[24px] font-black text-lg shadow-2xl hover:bg-black transition-all group"
               >
-                Explore Live Demo
+                {user ? "Back to Dashboard" : "Explore Live Demo"}
                 <FiPlayCircle className="group-hover:translate-x-1 transition-transform" />
               </button>
               <Link

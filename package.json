@@ -2,16 +2,41 @@
   "name": "school-mn",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "electron-main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
     "build": "npm install --prefix client && npm run build --prefix client && npm install --prefix server && npx prisma@5.22.0 generate --schema=server/prisma/schema.prisma",
     "start": "npm run start --prefix server",
+    "desktop:dev": "electron .",
+    "desktop:dist": "node build-script.js --desktop && electron-builder",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "IT-LAB",
   "license": "ISC",
+  "build": {
+    "appId": "com.schoolmn.app",
+    "productName": "School Management System",
+    "directories": {
+      "output": "dist-desktop"
+    },
+    "files": [
+      "client/dist/**/*",
+      "server/**/*",
+      "electron-main.js",
+      "electron-preload.js",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "client/public/logo-pwa.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
   "devDependencies": {
     "@flydotio/dockerfile": "^0.7.10",
     "concurrently": "^9.2.1"

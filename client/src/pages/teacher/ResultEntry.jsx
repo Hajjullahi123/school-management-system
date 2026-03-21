@@ -488,7 +488,7 @@ const ResultEntry = () => {
       )}
 
       {/* Excel Download Section */}
-      {selectedClass && selectedSubject && selectedTerm && (
+      {selectedClass && selectedSubject && selectedTerm && selectedSession && (
         <div className="bg-white p-6 rounded-lg shadow border border-gray-100 mb-6">
           <div className="flex justify-between items-center">
             <div>
@@ -509,7 +509,11 @@ const ResultEntry = () => {
                 onClick={async () => {
                   try {
                     const response = await api.get(`/api/scoresheet/class/${selectedClass}/subject/${selectedSubject}?termId=${selectedTerm}&academicSessionId=${selectedSession}`);
-                    if (!response.ok) throw new Error('Download failed');
+
+                    if (!response.ok) {
+                      const errorData = await response.json();
+                      throw new Error(errorData.error || 'Download failed');
+                    }
 
                     const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
@@ -524,7 +528,7 @@ const ResultEntry = () => {
                     setTimeout(() => setNotification(null), 3000);
                   } catch (error) {
                     console.error('Download error:', error);
-                    setNotification({ type: 'error', message: 'Failed to download.' });
+                    setNotification({ type: 'error', message: error.message || 'Failed to download.' });
                   }
                 }}
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow flex items-center gap-2 text-sm font-medium"

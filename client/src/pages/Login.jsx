@@ -61,6 +61,13 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
+
   const getLogoUrl = (src) => {
     if (!src) return null;
     if (src.startsWith('data:image') || src.startsWith('http')) return src; // Return base64 or absolute as-is

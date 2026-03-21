@@ -4,6 +4,7 @@ import { FiMenu, FiX, FiLogOut } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import { API_BASE_URL } from '../config';
+import toast from 'react-hot-toast';
 import { useSchoolSettings } from '../hooks/useSchoolSettings';
 import DemoTour from './DemoTour';
 import CollapsibleMenu from './CollapsibleMenu';
@@ -104,6 +105,8 @@ const Layout = () => {
   }, [user?.id, user?.role, user?.student?.classId]);
 
   const handleLogout = async () => {
+    const loadingToast = toast.loading('Signing you out...');
+    
     // Capture slug BEFORE calling logout() since it clears user state and localStorage
     const currentSlug = user?.schoolSlug || user?.school?.slug || localStorage.getItem('schoolSlug');
 
@@ -112,6 +115,8 @@ const Layout = () => {
     const finalSlug = (currentSlug && currentSlug !== 'undefined' && currentSlug !== 'null' && currentSlug !== '')
       ? currentSlug
       : result?.schoolSlug;
+
+    toast.success('Signed out successfully', { id: loadingToast });
 
     // Use window.location.href (hard redirect) instead of navigate().
     // Reason: after logout() sets user=null, ProtectedRoute immediately fires

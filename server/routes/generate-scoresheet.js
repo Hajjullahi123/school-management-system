@@ -280,13 +280,16 @@ router.get('/teacher/:teacherId', authenticate, authorize(['admin', 'teacher', '
 });
 
 // Route: Generate and Download Excel Scoresheet
-router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin', 'teacher', 'examination_officer']), async (req, res) => {
+router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin', 'teacher', 'examination_officer', 'principal']), async (req, res) => {
   try {
     const classId = parseInt(req.params.classId);
     const subjectId = parseInt(req.params.subjectId);
     const { termId, academicSessionId } = req.query;
 
+    console.log(`[Scoresheet] Download requested by User ${req.user.id} (${req.user.role}) for Class ${classId}, Subject ${subjectId}, Term ${termId}, Session ${academicSessionId}`);
+
     if (!termId || !academicSessionId) {
+      console.warn(`[Scoresheet] Missing parameters: termId=${termId}, academicSessionId=${academicSessionId}`);
       return res.status(400).json({ error: 'Missing termId or academicSessionId' });
     }
 
@@ -299,7 +302,7 @@ router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin
         },
         include: {
           students: {
-            where: { schoolId: req.schoolId },
+            where: { schoolId: req.schoolId, status: 'active' }, // Only active students in template
             include: { user: true },
             orderBy: { admissionNumber: 'asc' }
           }
@@ -328,31 +331,52 @@ router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin
       })
     ]);
 
-    if (!classInfo) return res.status(404).json({ error: 'Class not found' });
-    if (!subject) return res.status(404).json({ error: 'Subject not found' });
+    if (!classInfo) {
+      console.warn(`[Scoresheet] Class ${classId} not found for school ${req.schoolId}`);
+      return res.status(404).json({ error: 'Class not found' });
+    }
+    if (!subject) {
+      console.warn(`[Scoresheet] Subject ${subjectId} not found for school ${req.schoolId}`);
+      return res.status(404).json({ error: 'Subject not found' });
+    }
+    if (!term || !session) {
+      console.warn(`[Scoresheet] Term or Session not found`);
+      return res.status(404).json({ error: 'Term or Academic Session not found' });
+    }
 
-    // 2. Fetch Teacher info (Assignee)
-    const assignment = await prisma.teacherAssignment.findFirst({
-      where: {
-        classSubject: {
-          classId,
-          subjectId
-        },
-        schoolId: req.schoolId
-      },
-      include: { teacher: true }
-    });
+    // 2. Authorization Check (Admin, Exam Officer, Principal or the Assigned Teacher)
+    if (!['admin', 'examination_officer', 'principal'].includes(req.user.role)) {
+      // Check if current user is assigned to this class and subject
+      const userAssignment = await prisma.teacherAssignment.findFirst({
+        where: {
+          classSubject: {
+            classId,
+            subjectId,
+            schoolId: req.schoolId
+          },
+          teacherId: req.user.id,
+          schoolId: req.schoolId
+        }
+      });
 
-    // Check if requester is authorized (Admin, Exam Officer or the Assigned Teacher)
-    if (req.user.role !== 'admin' && req.user.role !== 'examination_officer') {
-      if (!assignment || assignment.teacherId !== req.user.id) {
+      if (!userAssignment) {
+        console.warn(`[Scoresheet] Unauthorized: User ${req.user.id} is not assigned to Class ${classId} Subject ${subjectId}`);
         return res.status(403).json({ error: 'You are not assigned to this subject/class' });
       }
     }
 
     // 3. Prepare Data
-    const teacherName = assignment
-      ? `${assignment.teacher.firstName} ${assignment.teacher.lastName}`
+    // Get assigned teacher(s) name(s) for the header
+    const assignments = await prisma.teacherAssignment.findMany({
+      where: {
+        classSubject: { classId, subjectId },
+        schoolId: req.schoolId
+      },
+      include: { teacher: true }
+    });
+
+    const teacherNames = assignments.length > 0
+      ? assignments.map(a => `${a.teacher.firstName} ${a.teacher.lastName}`).join(', ')
       : 'Unassigned';
 
     const className = `${classInfo.name} ${classInfo.arm || ''}`.trim();
@@ -364,7 +388,7 @@ router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin
       term: term?.name || 'Unknown Term',
       className,
       subjectName: subject.name,
-      teacherName
+      teacherName: teacherNames
     };
 
     // 3.5 Fetch Existing Results to include in sheet
@@ -387,7 +411,7 @@ router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin
       const r = resultsMap[s.id];
       return {
         admissionNumber: s.admissionNumber,
-        name: `${s.user.firstName} ${s.user.lastName}`,
+        name: s.user ? `${s.user.firstName} ${s.user.lastName}` : (s.name || 'Unknown student'),
         ass1: r?.assignment1Score,
         ass2: r?.assignment2Score,
         test1: r?.test1Score,
@@ -396,10 +420,12 @@ router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin
       };
     });
 
+    console.log(`[Scoresheet] Generating Excel for ${studentData.length} students...`);
+
     // 4. Generate
     await generateExcel(res, titleData, studentData, filename, school);
 
-    // 5. Log download
+    // 5. Log download (Non-blocking)
     logAction({
       schoolId: req.schoolId,
       userId: req.user.id,
@@ -414,13 +440,15 @@ router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin
         academicSessionId: parseInt(academicSessionId)
       },
       ipAddress: req.ip
-    });
+    }).catch(e => console.error('[Scoresheet] Audit log failed:', e));
+
+    console.log(`[Scoresheet] Download complete for Class ${classId} Subject ${subjectId}`);
 
   } catch (error) {
     console.error('Download Error:', error);
     // If headers haven't been sent, send JSON error. Otherwise, stream is corrupt.
     if (!res.headersSent) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message || 'An internal server error occurred during scoresheet generation.' });
     }
   }
 });

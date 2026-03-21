@@ -329,10 +329,21 @@ if (process.env.NODE_ENV === 'production') {
     }
     res.sendFile(path.join(clientDistPath, 'index.html'));
   });
-} else {
-  app.use((req, res) => {
-    console.error(`[404] Route ${req.method} ${req.url} not found`);
+  // 4. Development API 404 Handler
+  app.use('/api/*', (req, res) => {
     res.status(404).json({ error: 'Route not found' });
+  });
+
+  // 5. Development Global Error Handler (Crucial for Multer errors)
+  app.use((err, req, res, next) => {
+    if (req.url.startsWith('/api/')) {
+      console.error('[API ERROR]:', err.message);
+      return res.status(err.status || 500).json({
+        error: 'Server Error',
+        message: err.message || 'An unexpected error occurred'
+      });
+    }
+    next(err);
   });
 }
 

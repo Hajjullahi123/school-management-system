@@ -3,15 +3,18 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import useSchoolSettings from '../hooks/useSchoolSettings';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../api';
+import toast from 'react-hot-toast';
 
 const LandingPage = () => {
   const { settings: schoolSettings } = useSchoolSettings();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const { schoolSlug } = useParams();
 
   const handleLogout = async () => {
+    const loadingToast = toast.loading('Signing you out...');
     await logout();
+    toast.success('Signed out successfully', { id: loadingToast });
     // Redirect to school landing page itself after logout
     if (schoolSlug && schoolSlug !== 'undefined' && schoolSlug !== 'null') {
       navigate(`/${schoolSlug}`);
@@ -212,20 +215,26 @@ const LandingPage = () => {
               </div>
             </div>
             <div className="flex items-center space-x-6">
-              <button
-                onClick={handleLogout}
-                className={`font-semibold text-sm transition-colors flex items-center gap-2 ${isScrolled ? 'text-gray-600 hover:text-red-600' : 'text-white hover:text-white/80'}`}
+              {user && (
+                <button
+                  onClick={handleLogout}
+                  className={`font-semibold text-sm transition-colors flex items-center gap-2 ${isScrolled ? 'text-gray-600 hover:text-red-600' : 'text-white hover:text-white/80'}`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                  Logout / Switch
+                </button>
+              )}
+              <Link
+                to={user ? "/dashboard" : (schoolSlug ? `/${schoolSlug}/login` : "/verify-dashboard")}
+                className={`font-semibold text-sm transition-colors ${isScrolled ? 'text-gray-600 hover:text-primary' : 'text-white hover:text-white/80'}`}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                Logout / Switch
-              </button>
-              <Link to={schoolSlug ? `/${schoolSlug}/login` : "/verify-dashboard"} className={`font-semibold text-sm transition-colors ${isScrolled ? 'text-gray-600 hover:text-primary' : 'text-white hover:text-white/80'
-                }`}>
-                Personal Dashboard
+                {user ? `Signed in as ${user.firstName}` : 'Personal Dashboard'}
               </Link>
-              <Link to={schoolSlug ? `/${schoolSlug}/login` : "/verify-dashboard"} className={`px-6 py-3 rounded-full font-bold text-sm shadow-xl transition-all transform hover:-translate-y-1 active:scale-95 ${isScrolled ? 'bg-primary text-white hover:brightness-90' : 'bg-white text-primary hover:bg-gray-100'
-                }`}>
-                Enter Portal
+              <Link
+                to={user ? "/dashboard" : (schoolSlug ? `/${schoolSlug}/login` : "/verify-dashboard")}
+                className={`px-6 py-3 rounded-full font-bold text-sm shadow-xl transition-all transform hover:-translate-y-1 active:scale-95 ${isScrolled ? 'bg-primary text-white hover:brightness-90' : 'bg-white text-primary hover:bg-gray-100'}`}
+              >
+                {user ? "Back to Dashboard" : "Enter Portal"}
               </Link>
             </div>
           </div>
@@ -270,10 +279,10 @@ const LandingPage = () => {
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-6">
               <Link
-                to={schoolSlug ? `/${schoolSlug}/login` : "/verify-dashboard"}
+                to={user ? "/dashboard" : (schoolSlug ? `/${schoolSlug}/login` : "/verify-dashboard")}
                 className="px-10 py-5 bg-primary text-white font-black rounded-2xl shadow-[0_20px_50px_rgba(15,118,110,0.3)] hover:brightness-110 transition-all transform hover:-translate-y-2 text-lg uppercase tracking-wider active:scale-95"
               >
-                Go to My Dashboard
+                {user ? "Go to My Dashboard" : "Enter Portal Now"}
               </Link>
               <Link
                 to="/alumni"

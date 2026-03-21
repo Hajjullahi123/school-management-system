@@ -174,19 +174,28 @@ export const AuthProvider = ({ children }) => {
     const savedSlug = localStorage.getItem('schoolSlug');
 
     try {
-      await api.post('/api/auth/logout');
-    } catch (error) {
-      console.error('Logout API call failed (proceeding with local clear):', error);
-    }
+      // Create a promise that rejects after 3 seconds to avoid hanging the UI
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Logout timed out')), 3000)
+      );
 
-    // Always clear local auth state regardless of API success
-    localStorage.removeItem('token');
-    if (isSuperAdmin) {
-      localStorage.removeItem('schoolSlug');
+      // Race the API call against the timeout
+      await Promise.race([
+        api.post('/api/auth/logout'),
+        timeoutPromise
+      ]);
+    } catch (error) {
+      console.warn('Logout API notification skipped or timed out:', error.message);
+    } finally {
+      // Always clear local auth state regardless of API success or timeout
+      localStorage.removeItem('token');
+      if (isSuperAdmin) {
+        localStorage.removeItem('schoolSlug');
+      }
+      sessionStorage.removeItem('dashboardUnlocked');
+      setUser(null);
+      setDashboardUnlocked(false);
     }
-    sessionStorage.removeItem('dashboardUnlocked');
-    setUser(null);
-    setDashboardUnlocked(false);
 
     // Return the slug so callers can redirect to the school's landing page
     return { schoolSlug: isSuperAdmin ? null : savedSlug };

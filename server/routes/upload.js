@@ -412,7 +412,10 @@ router.post('/certificate/:certificateId/photo', authenticate, authorize(['admin
     res.json({
       message: 'Photo uploaded successfully',
       passportUrl: passportUrl,
-      certificate: updatedCertificate
+      // Avoid sending the full 'certificate' object here. 
+      // It already contains the massive 'passportUrl' string, so sending both
+      // doubles the response size and memory load. 
+      certificateId: updatedCertificate.id 
     });
 
     // Log the upload

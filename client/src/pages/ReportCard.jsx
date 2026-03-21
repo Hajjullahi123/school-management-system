@@ -644,7 +644,10 @@ const ReportCard = () => {
             </div>
           </div>
         </div>
+      </div>
       )}
+
+
 
 
       {showEmailModal && (
@@ -747,5 +750,6 @@ const ReportCard = () => {
     </div>
   );
 };
+
 
 export default ReportCard;
