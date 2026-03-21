@@ -193,6 +193,33 @@ export default function BulkResultUpload() {
   const handleUpload = (data) => {
     if (!selectedAssignment) return;
 
+    // Helper to calculate grade based on total score and system
+    const getGrade = (total) => {
+      // 1. Try school-specific system
+      if (schoolSettings?.gradingSystem) {
+        try {
+          const system = typeof schoolSettings.gradingSystem === 'string' 
+            ? JSON.parse(schoolSettings.gradingSystem) 
+            : schoolSettings.gradingSystem;
+          
+          if (Array.isArray(system)) {
+            const match = system.find(g => total >= g.min && total <= g.max);
+            if (match) return match.grade;
+          }
+        } catch (e) {
+          console.error("Grading system parse error:", e);
+        }
+      }
+
+      // 2. Fallback to standard Nigerian/West African grading
+      if (total >= 70) return 'A';
+      if (total >= 60) return 'B';
+      if (total >= 50) return 'C';
+      if (total >= 45) return 'D';
+      if (total >= 40) return 'E';
+      return 'F';
+    };
+
     // Transform and prepare Preview
     const preparedResults = data.map(row => {
       const getScoreValue = (row, keywords) => {
@@ -202,35 +229,27 @@ export default function BulkResultUpload() {
         return isNaN(num) ? null : num;
       };
 
+      // Robust mapping: Try to capture scores even if column names vary slightly
       const scores = {
-        assignment1: getScoreValue(row, ['1st Assignment', 'Assignment 1', 'Assign 1', 'Ass 1', '1st CA', 'CA 1', 'CA1', 'Project 1']),
-        assignment2: getScoreValue(row, ['2nd Assignment', 'Assignment 2', 'Assign 2', 'Ass 2', '2nd CA', 'CA 2', 'CA2', 'Project 2']),
-        test1: getScoreValue(row, ['1st Test', 'Test 1', 'CT 1', 'Check 1']),
-        test2: getScoreValue(row, ['2nd Test', 'Test 2', 'CT 2', 'Check 2']),
-        exam: getScoreValue(row, ['Exam', 'Examination', 'Final Score', 'End Term'])
+        assignment1: getScoreValue(row, ['1st Assignment', 'Assignment 1', 'Assign 1', 'CA 1', 'CA1', 'A1']),
+        assignment2: getScoreValue(row, ['2nd Assignment', 'Assignment 2', 'Assign 2', 'CA 2', 'CA2', 'A2']),
+        test1: getScoreValue(row, ['1st Test', 'Test 1', 'CT 1', 'T1']),
+        test2: getScoreValue(row, ['2nd Test', 'Test 2', 'CT 2', 'T2']),
+        exam: getScoreValue(row, ['Exam', 'Examination', 'Final', 'E1'])
       };
 
+      // Calculate total
       const total = Object.values(scores).reduce((a, b) => a + (b || 0), 0);
-
-      let grade = '';
-      if (schoolSettings?.gradingSystem) {
-        try {
-          const system = JSON.parse(schoolSettings.gradingSystem);
-          const match = system.find(g => total >= g.min && total <= g.max);
-          grade = match ? match.grade : 'F';
-        } catch (e) {
-          grade = total >= 70 ? 'A' : total >= 60 ? 'B' : total >= 50 ? 'C' : total >= 40 ? 'D' : 'F';
-        }
-      }
+      const grade = getGrade(total);
 
       return {
-        admissionNumber: getValue(row, ['Admission', 'Reg No', 'Reg Number']),
+        admissionNumber: getValue(row, ['Admission', 'Reg No', 'Id Number', 'Student Id']),
         studentName: getValue(row, ['Name', 'Student Name', 'Full Name']),
         ...scores,
         total,
         grade
       };
-    }).filter(r => r.admissionNumber);
+    }).filter(r => r.admissionNumber && (r.total > 0 || r.studentName)); // Keep rows with data
 
     setPreviewData(preparedResults);
   };
