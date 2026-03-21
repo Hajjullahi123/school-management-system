@@ -27,9 +27,9 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
-        // Create a promise that rejects after 5 seconds
+        // Create a promise that rejects after 20 seconds
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Auth check timed out')), 5000)
+          setTimeout(() => reject(new Error('Auth check timed out')), 20000)
         );
 
         // Race the API call against the timeout
@@ -51,23 +51,31 @@ export const AuthProvider = ({ children }) => {
             setDashboardUnlocked(isUnlocked);
           }
         } else {
+          // Explicitly clear token only on 401/403 (unauthorized/forbidden)
           if (isMounted) {
-            console.log('Auth check failed, clearing token');
+            console.log('Auth check failed with status:', response.status);
             setUser(null);
             setDashboardUnlocked(false);
-            localStorage.removeItem('token');
-            sessionStorage.removeItem('dashboardUnlocked');
+            if (response.status === 401 || response.status === 403) {
+              console.log('Clearing invalid token');
+              localStorage.removeItem('token');
+              sessionStorage.removeItem('dashboardUnlocked');
+            }
           }
         }
       } catch (error) {
         if (isMounted) {
           console.error('Auth check error:', error);
-          // If auth check fails (network error, timeout), we should let them try to login again
-          // rather than hanging on loading screen.
           setUser(null);
           setDashboardUnlocked(false);
-          localStorage.removeItem('token');
-          sessionStorage.removeItem('dashboardUnlocked');
+          
+          // DO NOT remove token on timeout or network error (e.g. cold start)
+          // This allows the user to still be logged in once the server wakes up
+          if (error.message !== 'Auth check timed out' && !error.message.includes('FetchError') && !error.message.includes('Network Error')) {
+            console.log('Clearing token due to hard error');
+            localStorage.removeItem('token');
+            sessionStorage.removeItem('dashboardUnlocked');
+          }
         }
       } finally {
         if (isMounted) {

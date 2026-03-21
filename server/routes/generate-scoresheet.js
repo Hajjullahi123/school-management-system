@@ -168,8 +168,9 @@ async function generateExcel(res, titleData, studentData, filename, weights) {
   });
 
   // 7. Write Response
+  const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
 
   await workbook.xlsx.write(res);
   res.end();
