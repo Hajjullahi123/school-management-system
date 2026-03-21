@@ -580,7 +580,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     };
 
     // Generate reports for each student
-    const reports = students.map(student => {
+    const reports = await Promise.all(students.map(async (student) => {
       const studentResults = allResults.filter(r => r.studentId === student.id);
       const reportExtras = extrasMap[student.id];
       const presentDays = attendanceMap[student.id] || 0;
@@ -591,6 +591,14 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       try {
         ratings = reportExtras?.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : [];
       } catch (e) { ratings = []; }
+
+      // Fetch fee summary for the financial section of the report
+      const feeSummary = await getStudentFeeSummary(
+        req.schoolId,
+        student.id,
+        term.academicSessionId,
+        parseInt(termId)
+      );
 
       return {
         student: {
@@ -670,9 +678,10 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         psychomotorRatings: psychomotorDomains.map(d => {
           const rating = ratings.find(r => r.domainId === d.id);
           return { name: d.name, score: rating ? rating.score : null, maxScore: d.maxScore || 5 };
-        })
+        }),
+        feeSummary: feeSummary
       };
-    });
+    }));
 
     res.json({ reports, totalStudents: reports.length });
 
