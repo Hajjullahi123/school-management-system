@@ -20,11 +20,9 @@ const AcademicSetup = () => {
 
   // School Settings (for weights)
   const [schoolSettings, setSchoolSettings] = useState({
-    assignment1Weight: 5,
-    assignment2Weight: 5,
-    test1Weight: 10,
     test2Weight: 10,
-    examWeight: 70
+    examWeight: 70,
+    weekendDays: '0,6'
   });
   const [savingWeights, setSavingWeights] = useState(false);
 
@@ -54,7 +52,8 @@ const AcademicSetup = () => {
             assignment2Weight: settingsData.assignment2Weight || 5,
             test1Weight: settingsData.test1Weight || 10,
             test2Weight: settingsData.test2Weight || 10,
-            examWeight: settingsData.examWeight || 70
+            examWeight: settingsData.examWeight || 70,
+            weekendDays: settingsData.weekendDays || '0,6'
           });
         }
       } catch (error) {
@@ -202,7 +201,8 @@ const AcademicSetup = () => {
         assignment2Weight: data.assignment2Weight || 5,
         test1Weight: data.test1Weight || 10,
         test2Weight: data.test2Weight || 10,
-        examWeight: data.examWeight || 70
+        examWeight: data.examWeight || 70,
+        weekendDays: data.weekendDays || '0,6'
       });
     } catch (error) {
       console.error('Error fetching weights:', error);
@@ -274,6 +274,15 @@ const AcademicSetup = () => {
                 }`}
             >
               Grading Weights
+            </button>
+            <button
+              onClick={() => setActiveTab('weekends')}
+              className={`px-6 py-3 text-sm font-medium ${activeTab === 'weekends'
+                ? 'border-b-2 border-primary text-primary'
+                : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              Weekend Setup
             </button>
           </nav>
         </div>
@@ -696,6 +705,80 @@ const AcademicSetup = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          )}
+
+          {/* WEEKEND SETUP TAB */}
+          {activeTab === 'weekends' && (
+            <div className="space-y-6">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-5">
+                <div className="flex">
+                  <div className="p-2 bg-emerald-100 rounded-full mr-4">
+                    <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-emerald-900 mb-1">Weekly Working Days</h3>
+                    <p className="text-sm text-emerald-800 opacity-80">
+                      Select which days of the week your school is closed (weekends).
+                      Teachers will be blocked from marking attendance on these days, and they will be excluded from academic day counts.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="max-w-2xl bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-8">
+                  {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, index) => {
+                    const isWeekend = schoolSettings.weekendDays.split(',').map(d => d.trim()).includes(index.toString());
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => {
+                          let indices = schoolSettings.weekendDays.split(',').map(d => d.trim()).filter(d => d !== "");
+                          if (isWeekend) {
+                            indices = indices.filter(i => i !== index.toString());
+                          } else {
+                            indices.push(index.toString());
+                          }
+                          setSchoolSettings({ ...schoolSettings, weekendDays: indices.sort().join(',') });
+                        }}
+                        className={`flex flex-col items-center justify-center p-4 rounded-2xl transition-all border-2 ${
+                          isWeekend
+                            ? 'bg-red-50 border-red-200 text-red-700 shadow-inner'
+                            : 'bg-white border-gray-100 text-gray-700 hover:border-emerald-200 hover:bg-emerald-50'
+                        }`}
+                      >
+                        <span className="text-[10px] font-black uppercase tracking-tighter mb-1 opacity-50">{day.substring(0, 3)}</span>
+                        <span className="font-bold text-sm tracking-tight">{day}</span>
+                        <div className={`mt-3 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          isWeekend ? 'bg-red-500 border-red-600' : 'bg-white border-gray-200'
+                        }`}>
+                          {isWeekend && (
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className="flex items-center justify-between pt-6 border-t border-gray-50">
+                  <div className="text-xs text-gray-400 italic">
+                    Current configuration: <span className="font-bold text-gray-600">{schoolSettings.weekendDays || 'None (Full Week)'}</span>
+                  </div>
+                  <button
+                    onClick={handleWeightsSubmit}
+                    disabled={savingWeights}
+                    className="bg-emerald-600 text-white px-10 py-3 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-emerald-100"
+                  >
+                    {savingWeights ? 'Updating Layout...' : 'Confirm School Week'}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

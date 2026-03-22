@@ -5,12 +5,30 @@ import { useAuth } from '../context/AuthContext';
 import { useSchoolSettings } from '../hooks/useSchoolSettings';
 import { toast } from '../utils/toast';
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+// Constant base days
+const ALL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 const Timetable = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { settings } = useSchoolSettings();
+
+  // Dynamic DAYS array based on school settings
+  const DAYS = React.useMemo(() => {
+    // If settings are not loaded yet, default to Mon-Fri for safety
+    if (!settings) return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    
+    const weekendIndices = (settings?.weekendDays || '0,6')
+      .split(',')
+      .map(d => d.trim())
+      .filter(d => d !== "")
+      .map(d => parseInt(d));
+      
+    const activeDays = ALL_DAYS.filter((_, i) => !weekendIndices.includes(i));
+    
+    // Fallback to avoid empty list
+    return activeDays.length > 0 ? activeDays : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  }, [settings?.weekendDays]);
 
   // State
   const [classes, setClasses] = useState([]);
@@ -37,7 +55,7 @@ const Timetable = () => {
   // Modal State
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
-    dayOfWeek: 'Monday',
+    dayOfWeek: DAYS[0] || 'Monday',
     startTime: '08:00',
     endTime: '08:40',
     type: 'lesson', // lesson, break
@@ -308,7 +326,7 @@ const Timetable = () => {
 
       toast.success(editingSlotId ? 'Slot updated' : 'New slot added');
       setFormData({
-        dayOfWeek: 'Monday',
+        dayOfWeek: DAYS[0] || 'Monday',
         startTime: '08:00',
         endTime: '08:40',
         type: 'lesson',

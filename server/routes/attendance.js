@@ -111,15 +111,24 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
       };
     });
 
-    // Check if the requested date is a holiday or weekend
+    // Check if the requested date is a holiday or weekend based on school settings
     const dayOfWeek = queryDate.getDay();
     let isHoliday = false;
     let holidayInfo = null;
 
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
+    // Fetch school settings for weekend configuration
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { name: true, weekendDays: true }
+    });
+
+    const weekendIndices = (school?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+    if (weekendIndices.includes(dayOfWeek)) {
       isHoliday = true;
       holidayInfo = {
-        name: dayOfWeek === 0 ? 'Sunday' : 'Saturday',
+        name: dayNames[dayOfWeek],
         type: 'weekend'
       };
     }
@@ -174,10 +183,17 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal', '
       return res.status(403).json({ error: 'Marking window closed. Attendance for this date is locked (48h limit).' });
     }
 
-    // HOLIDAY / WEEKEND CHECK FOR TEACHERS
+    // HOLIDAY / WEEKEND CHECK FOR TEACHERS (using school settings)
     if (req.user.role === 'teacher') {
       const dayOfWeek = targetDate.getDay();
-      let isHoliday = (dayOfWeek === 0 || dayOfWeek === 6);
+
+      const school = await prisma.school.findUnique({
+        where: { id: req.schoolId },
+        select: { weekendDays: true }
+      });
+      const weekendIndices = (school?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
+
+      let isHoliday = weekendIndices.includes(dayOfWeek);
 
       const holidayRecord = await prisma.schoolHoliday.findFirst({
         where: { schoolId: req.schoolId, date: targetDate }

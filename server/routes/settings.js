@@ -103,7 +103,8 @@ router.put('/', authenticate, async (req, res) => {
     gradingSystem, passThreshold,
     whatsappBotEnabled, whatsappPhoneNumber, twilioAccountSid, twilioAuthToken, geminiApiKey,
     staffExpectedArrivalTime, enableStaffAttendanceReport, staffClockInDeadline,
-    staffClockInMode, authorizedIP
+    staffClockInMode, authorizedIP,
+    weekendDays
   } = req.body;
 
   // Validate weightings if provided
@@ -190,6 +191,7 @@ router.put('/', authenticate, async (req, res) => {
     if (enableStaffAttendanceReport !== undefined) updateData.enableStaffAttendanceReport = !!enableStaffAttendanceReport;
     if (staffClockInMode !== undefined) updateData.staffClockInMode = staffClockInMode;
     if (authorizedIP !== undefined) updateData.authorizedIP = authorizedIP;
+    if (weekendDays !== undefined) updateData.weekendDays = weekendDays;
 
     // Automatically complete setup if basic info is provided
     if (schoolName && schoolAddress && schoolPhone) {
