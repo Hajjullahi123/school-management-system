@@ -17,9 +17,9 @@ const LandingPage = () => {
     toast.success('Signed out successfully', { id: loadingToast });
     // Redirect to school landing page itself after logout
     if (schoolSlug && schoolSlug !== 'undefined' && schoolSlug !== 'null') {
-      navigate(`/${schoolSlug}`);
+      navigate(`/${schoolSlug}/login`);
     } else {
-      navigate('/');
+      navigate('/login');
     }
   };
   // Using locally generated images for better aesthetics

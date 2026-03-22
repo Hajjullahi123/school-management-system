@@ -104,28 +104,13 @@ const Layout = () => {
     };
   }, [user?.id, user?.role, user?.student?.classId]);
 
-  const handleLogout = async () => {
-    const loadingToast = toast.loading('Signing you out...');
-    
-    // Capture slug BEFORE calling logout() since it clears user state and localStorage
-    const currentSlug = user?.schoolSlug || user?.school?.slug || localStorage.getItem('schoolSlug');
-
-    // logout() returns the saved slug as well (belt-and-suspenders)
-    const result = await logout();
-    const finalSlug = (currentSlug && currentSlug !== 'undefined' && currentSlug !== 'null' && currentSlug !== '')
-      ? currentSlug
-      : result?.schoolSlug;
-
-    toast.success('Signed out successfully', { id: loadingToast });
-
-    // Use window.location.href (hard redirect) instead of navigate().
-    // Reason: after logout() sets user=null, ProtectedRoute immediately fires
-    // <Navigate to="/login"> which races against and WINS over React Router's
-    // navigate(). A hard browser redirect bypasses React Router entirely.
-    if (finalSlug) {
-      window.location.href = `/${finalSlug}`;
+  const handleDashboardExit = () => {
+    // Navigate to school home instead of logging out
+    const slug = user?.schoolSlug || user?.school?.slug || localStorage.getItem('schoolSlug');
+    if (slug && slug !== 'undefined' && slug !== 'null' && slug !== '') {
+      navigate('/school-home');
     } else {
-      window.location.href = '/';
+      navigate('/school-home');
     }
   };
 
@@ -1224,15 +1209,15 @@ const Layout = () => {
             <span>Change Password</span>
           </Link>
 
-          {/* Logout Button */}
+          {/* Exit/Logout Button */}
           <button
-            onClick={handleLogout}
+            onClick={handleDashboardExit}
             className="w-full flex items-center justify-center space-x-2 bg-black/20 hover:bg-black/30 text-white py-3 rounded-xl text-base font-semibold transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            <span>Logout</span>
+            <span>Exit Dashboard</span>
           </button>
         </div>
       </div>
@@ -1303,11 +1288,11 @@ const Layout = () => {
                     )}
                   </div>
 
-                  {/* Mobile Logout Button (Visible only on small screens) */}
+                  {/* Mobile Exit Button (Visible only on small screens) */}
                   <button
-                    onClick={handleLogout}
+                    onClick={handleDashboardExit}
                     className="lg:hidden p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center active:scale-90 shadow-sm border border-red-100"
-                    title="Sign Out"
+                    title="Exit to School Home"
                   >
                     <FiLogOut className="w-5 h-5" />
                   </button>
