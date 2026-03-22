@@ -14,6 +14,10 @@ router.get('/', authenticate, async (req, res) => {
 
     const fees = await prisma.miscellaneousFee.findMany({
       where,
+      include: {
+        academicSession: true,
+        term: true
+      },
       orderBy: { createdAt: 'desc' }
     });
 

@@ -527,29 +527,38 @@ const ParentDashboard = () => {
                         <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl group-hover/misc:bg-orange-500/20 transition-all"></div>
                         
                         <div className="relative z-10">
-                          <h4 className="text-[10px] font-black text-orange-400 mb-4 flex items-center gap-2 uppercase tracking-[0.25em]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
-                            Ancillary Services Ledger
-                          </h4>
+                          <div className="flex justify-between items-start mb-4">
+                            <h4 className="text-[10px] font-black text-orange-400 flex items-center gap-2 uppercase tracking-[0.25em]">
+                              <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
+                              Miscellaneous/Extra Fee
+                            </h4>
+                            <div className="flex flex-wrap gap-1 max-w-[50%] justify-end">
+                              {studentMiscFees.map(f => (
+                                <span key={f.id} className="text-[8px] px-1.5 py-0.5 bg-white/10 text-white/60 rounded-md border border-white/5 font-bold truncate">
+                                  {f.title}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
                           
                           <div className="grid grid-cols-3 gap-3">
-                            <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/5 group-hover/misc:border-white/10 transition-all">
-                              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 group-hover/misc:text-slate-400">Assignment</p>
+                            <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/5 group-hover/misc:border-white/10 transition-all text-center">
+                              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 group-hover/misc:text-slate-400">Amount Expected</p>
                               <p className="text-sm font-bold text-white tracking-tighter italic">₦{formatCurrency(totalExpected).replace('NGN', '')}</p>
                             </div>
-                            <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/5 group-hover/misc:border-white/10 transition-all">
-                              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 group-hover/misc:text-emerald-400">Cleared</p>
+                            <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/5 group-hover/misc:border-white/10 transition-all text-center">
+                              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 group-hover/misc:text-emerald-400">Amount Paid</p>
                               <p className="text-sm font-bold text-emerald-400 tracking-tighter italic">₦{formatCurrency(totalPaid).replace('NGN', '')}</p>
                             </div>
-                            <div className={`p-3 rounded-2xl border transition-all ${balance > 0 ? 'bg-orange-500/10 border-orange-500/20 shadow-lg shadow-orange-500/5' : 'bg-white/5 border-white/5'}`}>
-                              <p className={`text-[8px] font-black uppercase tracking-widest mb-1 ${balance > 0 ? 'text-orange-400' : 'text-slate-500'}`}>Net Due</p>
+                            <div className={`p-3 rounded-2xl border transition-all text-center ${balance > 0 ? 'bg-orange-500/10 border-orange-500/20 shadow-lg shadow-orange-500/5' : 'bg-white/5 border-white/5'}`}>
+                              <p className={`text-[8px] font-black uppercase tracking-widest mb-1 ${balance > 0 ? 'text-orange-400' : 'text-slate-500'}`}>Balance</p>
                               <p className={`text-sm font-bold tracking-tighter italic ${balance > 0 ? 'text-white' : 'text-slate-400'}`}>{formatCurrency(balance).replace('NGN', '')}</p>
                             </div>
                           </div>
                           
                           {balance > 0 && (
                             <div className="mt-4 flex items-center gap-2 justify-center py-2 bg-orange-500/5 rounded-xl border border-orange-500/10">
-                              <span className="text-[9px] font-black text-orange-400 uppercase tracking-widest italic animate-pulse">Awaiting Remediation</span>
+                              <span className="text-[9px] font-black text-orange-400 uppercase tracking-widest italic animate-pulse">Awaiting Payment</span>
                             </div>
                           )}
                         </div>
@@ -730,12 +739,21 @@ const ParentDashboard = () => {
                           </svg>
                           Miscellaneous Fees & Obligations
                         </h3>
+
+                        {/* Grouping Fees by Term/Session Logic could go here, but for now just showing term labels */}
                         <div className="space-y-4">
                           {getStudentMiscFees(selectedChild).map((fee) => (
                             <div key={fee.id} className="border border-purple-100 bg-purple-50/30 rounded-lg overflow-hidden">
                               <div className="p-4 bg-purple-50/50 border-b border-purple-100 flex justify-between items-center">
                                 <div>
-                                  <h4 className="font-bold text-gray-900">{fee.title}</h4>
+                                  <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                                    {fee.title}
+                                    {fee.term && (
+                                      <span className="text-[10px] font-black bg-white/60 text-gray-500 px-1.5 py-0.5 rounded tracking-tighter uppercase italic border border-gray-100">
+                                        {fee.term.name}
+                                      </span>
+                                    )}
+                                  </h4>
                                   {fee.description && <p className="text-xs text-gray-500">{fee.description}</p>}
                                 </div>
                                 <div className="flex items-center gap-2">
