@@ -216,7 +216,7 @@ router.post('/', authenticate, authorize(['superadmin', 'admin', 'teacher', 'pri
     const {
       title, description, classId, subjectId,
       durationMinutes, totalMarks, startDate, endDate,
-      examType
+      examType, randomizeQuestions, randomizeOptions
     } = req.body;
 
     // Validation for teachers
@@ -254,11 +254,8 @@ router.post('/', authenticate, authorize(['superadmin', 'admin', 'teacher', 'pri
       return res.status(400).json({ error: 'No active session or term found for this school' });
     }
 
-    const {
-      title, description, classId, subjectId,
-      durationMinutes, totalMarks, startDate, endDate,
-      examType, randomizeQuestions, randomizeOptions
-    } = req.body;
+    // Current session and term check passed
+
 
     // ... validation ...
 
