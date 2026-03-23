@@ -608,13 +608,19 @@ const ParentDashboard = () => {
                     </Link>
                   </div>
 
-                  {/* Row 3: Communication */}
-                  <div className="flex">
+                  {/* Row 3: Communication & More */}
+                  <div className="flex gap-2">
                     <Link
                       to="/dashboard/parent/messages?view=parent"
                       className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-purple-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
                     >
                       Message
+                    </Link>
+                    <Link
+                      to={`/dashboard/analytics?studentId=${student.id}&view=parent`}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all transition-colors hover:bg-orange-700"
+                    >
+                      Analytics
                     </Link>
                   </div>
                 </div>

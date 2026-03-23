@@ -64,7 +64,8 @@ const Login = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate('/dashboard', { replace: true });
+      const redirectPath = user.role === 'superadmin' ? '/dashboard' : '/school-home';
+      navigate(redirectPath, { replace: true });
     }
   }, [user, navigate]);
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import useSchoolSettings from '../hooks/useSchoolSettings';
@@ -38,16 +39,20 @@ const Analytics = () => {
   const [loadingWards, setLoadingWards] = useState(false);
   const isParentView = user?.role === 'parent';
 
+  const location = useLocation();
+
   useEffect(() => {
     if (user?.role === 'student' && user?.student?.id) {
       setStudentId(user.student.id);
       fetchAnalytics(user.student.id);
     } else if (isParentView) {
-      fetchMyWards();
+      const params = new URLSearchParams(location.search);
+      const studentIdParam = params.get('studentId');
+      fetchMyWards(studentIdParam);
     }
-  }, [user]);
+  }, [user, location]);
 
-  const fetchMyWards = async () => {
+  const fetchMyWards = async (studentIdParam) => {
     setLoadingWards(true);
     try {
       const response = await api.get('/api/parents/my-wards');
@@ -55,7 +60,11 @@ const Analytics = () => {
         const data = await response.json();
         const wardsList = Array.isArray(data) ? data : [];
         setWards(wardsList);
-        if (wardsList.length > 0) {
+        
+        if (studentIdParam && wardsList.some(w => w.id === parseInt(studentIdParam))) {
+          setStudentId(studentIdParam);
+          fetchAnalytics(studentIdParam);
+        } else if (wardsList.length > 0) {
           setStudentId(wardsList[0].id.toString());
           fetchAnalytics(wardsList[0].id);
         }
