@@ -168,12 +168,24 @@ router.get('/schools', authenticate, authorize(['superadmin']), async (req, res)
             students: true,
             teachers: true
           }
+        },
+        users: {
+          where: { role: 'admin' },
+          take: 1,
+          orderBy: { createdAt: 'asc' },
+          select: { username: true }
         }
       },
       orderBy: { createdAt: 'desc' }
     });
 
-    res.json(schools);
+    // Flattening for convenience
+    const enrichedSchools = schools.map(s => ({
+      ...s,
+      adminUsername: s.users[0]?.username || 'admin'
+    }));
+
+    res.json(enrichedSchools);
   } catch (error) {
     console.error('List schools error:', error);
     res.status(500).json({ error: 'Failed to fetch schools' });

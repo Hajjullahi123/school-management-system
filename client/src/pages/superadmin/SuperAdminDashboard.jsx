@@ -149,8 +149,8 @@ const SuperAdminDashboard = () => {
       setShowModal(false);
       setNewSchool({ name: '', slug: '', email: '', phone: '', address: '' });
 
-      // Force reload to sync
-      window.location.reload();
+      // Removed reload to keep modal visible
+      fetchData();
     } catch (error) {
       console.error('Create School Crash:', error);
       toast.error(error.response?.data?.error || 'Failed to create school');
@@ -591,8 +591,8 @@ const SuperAdminDashboard = () => {
                               setResetCreds({
                                 schoolName: s.name,
                                 schoolSlug: s.slug,
-                                username: 'admin', // Default admin username
-                                password: '— (Confidential)', // Don't show password on reprint
+                                username: s.adminUsername || 'admin', // Use real admin username
+                                password: '— (Set at Creation)', // Don't show password on reprint
                                 isReprint: true
                               });
                               setShowCredsModal(true);
