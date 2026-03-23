@@ -254,6 +254,14 @@ router.post('/', authenticate, authorize(['superadmin', 'admin', 'teacher', 'pri
       return res.status(400).json({ error: 'No active session or term found for this school' });
     }
 
+    const {
+      title, description, classId, subjectId,
+      durationMinutes, totalMarks, startDate, endDate,
+      examType, randomizeQuestions, randomizeOptions
+    } = req.body;
+
+    // ... validation ...
+
     const exam = await prisma.cBTExam.create({
       data: {
         schoolId: req.schoolId,
@@ -269,11 +277,52 @@ router.post('/', authenticate, authorize(['superadmin', 'admin', 'teacher', 'pri
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
         isPublished: false,
+        randomizeQuestions: randomizeQuestions !== undefined ? !!randomizeQuestions : true,
+        randomizeOptions: randomizeOptions !== undefined ? !!randomizeOptions : true,
         examType: examType || 'examination'
       }
     });
 
     res.json(exam);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update Exam Details
+router.put('/:id', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
+  try {
+    const examId = parseInt(req.params.id);
+    const {
+      title, description, durationMinutes, totalMarks, startDate, endDate,
+      examType, randomizeQuestions, randomizeOptions
+    } = req.body;
+
+    const exam = await prisma.cBTExam.findFirst({
+      where: { id: examId, schoolId: req.schoolId }
+    });
+
+    if (!exam) return res.status(404).json({ error: 'Exam not found' });
+    if (req.user.role === 'teacher' && exam.teacherId !== req.user.id) {
+      return res.status(403).json({ error: 'Unauthorized to update this exam' });
+    }
+
+    const updated = await prisma.cBTExam.update({
+      where: { id: examId },
+      data: {
+        title,
+        description,
+        durationMinutes: parseInt(durationMinutes) || undefined,
+        totalMarks: parseFloat(totalMarks) || undefined,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
+        examType,
+        randomizeQuestions: randomizeQuestions !== undefined ? !!randomizeQuestions : undefined,
+        randomizeOptions: randomizeOptions !== undefined ? !!randomizeOptions : undefined
+      }
+    });
+
+    res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -349,6 +398,42 @@ router.post('/:id/questions', authenticate, authorize(['superadmin', 'admin', 't
       },
       ipAddress: req.ip
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+// Update a question
+router.put('/:id/questions/:questionId', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
+  try {
+    const qId = parseInt(req.params.questionId);
+    const { questionText, questionType, options, correctOption, points } = req.body;
+
+    const updated = await prisma.cBTQuestion.update({
+      where: { id: qId, schoolId: req.schoolId },
+      data: {
+        questionText,
+        questionType,
+        options: JSON.stringify(options),
+        correctOption,
+        points: parseFloat(points) || 1
+      }
+    });
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a single question
+router.delete('/:id/questions/:questionId', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
+  try {
+    const qId = parseInt(req.params.questionId);
+    await prisma.cBTQuestion.delete({
+      where: { id: qId, schoolId: req.schoolId }
+    });
+    res.json({ message: 'Question deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -1069,8 +1154,19 @@ router.post('/:id/submit', authenticate, authorize(['student']), async (req, res
     if (!student) return res.status(404).json({ error: 'Student profile not found' });
 
     // Check if already attempted
-    // const existing = await prisma.cBTResult.findUnique({ where: { examId_studentId: { examId, studentId: student.id } }});
-    // if (existing) return res.status(400).json({ error: 'Already submitted' });
+    const existing = await prisma.cBTResult.findUnique({
+      where: {
+        schoolId_examId_studentId: {
+          schoolId: req.schoolId,
+          examId,
+          studentId: student.id
+        }
+      }
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: 'You have already submitted this exam and cannot retake it.' });
+    }
 
     // load exam and questions
     const exam = await prisma.cBTExam.findFirst({

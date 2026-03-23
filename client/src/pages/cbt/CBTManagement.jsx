@@ -25,7 +25,9 @@ const CBTManagement = () => {
     totalMarks: 100,
     startDate: '',
     endDate: '',
-    examType: 'examination' // assignment1, assignment2, test1, test2, examination
+    examType: 'examination', // assignment1, assignment2, test1, test2, examination
+    randomizeQuestions: true,
+    randomizeOptions: true
   });
 
   // Question Management State
@@ -54,6 +56,7 @@ const CBTManagement = () => {
   const [bankLoading, setBankLoading] = useState(false);
   const [saveToBank, setSaveToBank] = useState(false);
   const [bankSearchTerm, setBankSearchTerm] = useState('');
+  const [editingQuestion, setEditingQuestion] = useState(null);
 
   const { currentTerm, currentSession, loading: termLoading } = useTermContext();
 
@@ -169,38 +172,82 @@ const CBTManagement = () => {
     }
 
     try {
-      // Send as array
-      const payload = {
-        questions: [newQuestion],
-        saveToBank
-      };
-      const response = await api.post(`/api/cbt/${selectedExam.id}/questions`, payload);
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success('Question added');
-        // Add to local list (data is array of created questions)
-        const createdQ = data[0];
-        createdQ.options = JSON.parse(createdQ.options);
-        setQuestions([...questions, createdQ]);
-
-        // Reset new question form partly
-        setNewQuestion({
-          ...newQuestion,
-          questionText: '',
-          options: [
-            { id: 'a', text: '' },
-            { id: 'b', text: '' },
-            { id: 'c', text: '' },
-            { id: 'd', text: '' }
-          ],
-          correctOption: 'a'
-        });
+      if (editingQuestion) {
+        // UPDATE MODE
+        const response = await api.put(`/api/cbt/${selectedExam.id}/questions/${editingQuestion.id}`, newQuestion);
+        const data = await response.json();
+        if (response.ok) {
+          toast.success('Question updated');
+          setQuestions(questions.map(q => q.id === editingQuestion.id ? { ...data, options: JSON.parse(data.options) } : q));
+          setEditingQuestion(null);
+          resetQuestionForm();
+        } else {
+          toast.error(data.error || 'Update failed');
+        }
       } else {
-        toast.error(data.error || 'Failed to add question');
+        // ADD MODE
+        const payload = {
+          questions: [newQuestion],
+          saveToBank
+        };
+        const response = await api.post(`/api/cbt/${selectedExam.id}/questions`, payload);
+        const data = await response.json();
+
+        if (response.ok) {
+          toast.success('Question added');
+          const createdQ = data[0];
+          createdQ.options = JSON.parse(createdQ.options);
+          setQuestions([...questions, createdQ]);
+          resetQuestionForm();
+        } else {
+          toast.error(data.error || 'Failed to add question');
+        }
       }
     } catch (error) {
-      toast.error('Error adding question');
+      toast.error('Error saving question');
+    }
+  };
+
+  const resetQuestionForm = () => {
+    setNewQuestion({
+      questionText: '',
+      questionType: 'multiple_choice',
+      options: [
+        { id: 'a', text: '' },
+        { id: 'b', text: '' },
+        { id: 'c', text: '' },
+        { id: 'd', text: '' }
+      ],
+      correctOption: 'a',
+      points: 1
+    });
+    setEditingQuestion(null);
+  };
+
+  const handleEditIndividualQuestion = (q) => {
+    setEditingQuestion(q);
+    setNewQuestion({
+      questionText: q.questionText,
+      questionType: q.questionType,
+      options: q.options,
+      correctOption: q.correctOption,
+      points: q.points
+    });
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteIndividualQuestion = async (qId) => {
+    if (!confirm('Are you sure you want to delete this specific question?')) return;
+    try {
+      const response = await api.delete(`/api/cbt/${selectedExam.id}/questions/${qId}`);
+      if (response.ok) {
+        toast.success('Question deleted');
+        setQuestions(questions.filter(q => q.id !== qId));
+        if (editingQuestion?.id === qId) resetQuestionForm();
+      }
+    } catch (error) {
+      toast.error('Failed to delete question');
     }
   };
 
@@ -703,8 +750,27 @@ const CBTManagement = () => {
                   <option value="assignment2">2nd Assignment</option>
                 </select>
               </div>
-              <div className="grid grid-cols-1 gap-4">
-                {/* Empty space or additional fields if needed in the same row as Exam Type */}
+              <div className="flex gap-4 items-center bg-gray-50 p-3 rounded mt-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="randomizeQuestions"
+                    className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                    checked={formData.randomizeQuestions !== false}
+                    onChange={(e) => setFormData({ ...formData, randomizeQuestions: e.target.checked })}
+                  />
+                  <label htmlFor="randomizeQuestions" className="text-xs font-semibold text-gray-700">Randomize Questions</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="randomizeOptions"
+                    className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                    checked={formData.randomizeOptions !== false}
+                    onChange={(e) => setFormData({ ...formData, randomizeOptions: e.target.checked })}
+                  />
+                  <label htmlFor="randomizeOptions" className="text-xs font-semibold text-gray-700">Randomize Options</label>
+                </div>
               </div>
             </div>
 
@@ -849,12 +915,22 @@ const CBTManagement = () => {
                 </label>
               </div>
 
-              <button
-                onClick={handleAddQuestion}
-                className="w-full py-2 bg-primary text-white rounded-md hover:brightness-90 font-medium"
-              >
-                Add Question
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAddQuestion}
+                  className={`flex-1 py-2 text-white rounded-md hover:brightness-90 font-medium transition ${editingQuestion ? 'bg-amber-600' : 'bg-primary'}`}
+                >
+                  {editingQuestion ? 'Update Question' : 'Add Question'}
+                </button>
+                {editingQuestion && (
+                  <button
+                    onClick={resetQuestionForm}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -870,7 +946,15 @@ const CBTManagement = () => {
                     }`}>
                     {selectedExam.isPublished ? 'Published' : 'Draft'}
                   </span>
-                  <p className="text-sm text-blue-700">| Total Questions: {questions.length} | Est. Marks: {questions.reduce((sum, q) => sum + q.points, 0)}</p>
+                  <p className="text-sm text-blue-700 font-medium">
+                    | Questions: {questions.length} 
+                    | Total Points: {questions.reduce((sum, q) => sum + q.points, 0)} 
+                    {selectedExam.totalMarks !== questions.reduce((sum, q) => sum + q.points, 0) && (
+                      <span className="ml-2 text-red-600 font-bold bg-red-100 px-2 py-0.5 rounded animate-pulse">
+                        ⚠️ Mismatch with Exam Total ({selectedExam.totalMarks})
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -1063,19 +1147,41 @@ const CBTManagement = () => {
             )}
 
             {questions.map((q, qIndex) => (
-              <div key={q.id} className="bg-white rounded-lg shadow p-4 border border-gray-200">
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-semibold text-gray-800 text-lg">Q{qIndex + 1}. {q.questionText}</h4>
-                  <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">{q.points} Marks</span>
+              <div key={q.id} className={`bg-white rounded-lg shadow p-4 border transition ${editingQuestion?.id === q.id ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-gray-200'}`}>
+                <div className="flex justify-between items-start mb-2 group">
+                  <h4 className="font-semibold text-gray-800 text-lg pr-4">Q{qIndex + 1}. {q.questionText}</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded whitespace-nowrap">{q.points} Marks</span>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => handleEditIndividualQuestion(q)}
+                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                        title="Edit question"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteIndividualQuestion(q.id)}
+                        className="p-1 text-red-600 hover:bg-red-50 rounded"
+                        title="Delete question"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-1 ml-2">
                   {q.options.map(opt => (
-                    <div key={opt.id} className={`flex items-center space-x-2 ${q.correctOption === opt.id ? 'text-green-700 font-medium' : 'text-gray-600'}`}>
+                    <div key={opt.id} className={`flex items-center space-x-2 ${q.correctOption === opt.id ? 'text-green-700 font-bold' : 'text-gray-600'}`}>
                       <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs border ${q.correctOption === opt.id ? 'border-green-600 bg-green-100' : 'border-gray-300'}`}>
                         {opt.id.toUpperCase()}
                       </span>
                       <span>{opt.text}</span>
-                      {q.correctOption === opt.id && <span>(Correct)</span>}
+                      {q.correctOption === opt.id && <span className="text-[10px] bg-green-100 px-1 rounded ml-1">✓</span>}
                     </div>
                   ))}
                 </div>

@@ -860,6 +860,8 @@ model CBTExam {
   startDate         DateTime?
   endDate           DateTime?
   isPublished       Boolean         @default(false)
+  randomizeQuestions Boolean         @default(true)
+  randomizeOptions   Boolean         @default(true)
   examType          String?         @default("examination") // first_test, second_test, examination
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt

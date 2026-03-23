@@ -83,19 +83,75 @@ const CBTPortal = () => {
       // Prepare exam state
       setActiveExam(data);
 
-      // Parse and Randomize questions
-      const shuffledQuestions = data.questions.map(q => {
-        const options = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
-        // Shuffle options
-        const shuffledOptions = [...options].sort(() => Math.random() - 0.5);
-        return { ...q, options: shuffledOptions };
-      }).sort(() => Math.random() - 0.5); // Shuffle questions
+      // --- SHUFFLING LOGIC WITH PERSISTENCE ---
+      const storageKey = `cbt_exam_${examId}_v2`;
+      const savedState = localStorage.getItem(storageKey);
+      
+      let finalQuestions = [];
+      let savedAnswers = {};
+      let savedFlags = {};
+      let savedTime = data.durationMinutes * 60;
+      let savedIndex = 0;
 
-      setQuestions(shuffledQuestions);
-      setAnswers({});
-      setFlaggedQuestions({});
-      setCurrentQuestionIndex(0);
-      setTimeLeft(data.durationMinutes * 60);
+      if (savedState) {
+        try {
+          const parsed = JSON.parse(savedState);
+          // Only use saved state if it belongs to the same exam session (within duration)
+          finalQuestions = parsed.questions || [];
+          savedAnswers = parsed.answers || {};
+          savedFlags = parsed.flags || {};
+          savedTime = parsed.timeLeft || savedTime;
+          savedIndex = parsed.currentIndex || 0;
+          
+          // Basic verify: check if question count matches
+          if (finalQuestions.length !== data.questions.length) {
+            finalQuestions = []; // Reset if mismatch
+          }
+        } catch (e) {
+          console.error("Failed to parse saved CBT state", e);
+        }
+      }
+
+      if (finalQuestions.length === 0) {
+        // Fresh Shuffle
+        const fisherYatesShuffle = (array) => {
+          const arr = [...array];
+          for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+          }
+          return arr;
+        };
+
+        const processOptions = (options) => {
+          if (!data.randomizeOptions) return options;
+          
+          const staticOptions = options.filter(o => 
+            o.text.toLowerCase().includes('all of the above') || 
+            o.text.toLowerCase().includes('none of the above') ||
+            o.text.toLowerCase().includes('neither of the above')
+          );
+          const shuffleableOptions = options.filter(o => !staticOptions.includes(o));
+          
+          return [...fisherYatesShuffle(shuffleableOptions), ...staticOptions];
+        };
+
+        let processedQuestions = data.questions.map(q => {
+          const rawOptions = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+          return { ...q, options: processOptions(rawOptions) };
+        });
+
+        if (data.randomizeQuestions) {
+          processedQuestions = fisherYatesShuffle(processedQuestions);
+        }
+        finalQuestions = processedQuestions;
+      }
+
+      setQuestions(finalQuestions);
+      setAnswers(savedAnswers);
+      setFlaggedQuestions(savedFlags);
+      setCurrentQuestionIndex(savedIndex);
+      setTimeLeft(savedTime);
       setView('taking');
 
       // Start Timer
@@ -106,6 +162,22 @@ const CBTPortal = () => {
       setLoading(false);
     }
   };
+
+  // Helper to save state
+  useEffect(() => {
+    if (view === 'taking' && activeExam) {
+      const storageKey = `cbt_exam_${activeExam.id}_v2`;
+      const stateToSave = {
+        questions,
+        answers,
+        flags: flaggedQuestions,
+        timeLeft,
+        currentIndex: currentQuestionIndex,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(storageKey, JSON.stringify(stateToSave));
+    }
+  }, [view, questions, answers, flaggedQuestions, timeLeft, currentQuestionIndex, activeExam]);
 
   const startTimer = () => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -147,6 +219,7 @@ const CBTPortal = () => {
       const data = await response.json();
 
       if (response.ok) {
+        localStorage.removeItem(`cbt_exam_${activeExam.id}_v2`);
         setSubmissionResult(data);
         setView('result');
         toast.success('Exam submitted successfully');
