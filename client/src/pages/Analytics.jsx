@@ -34,12 +34,38 @@ const Analytics = () => {
   const [error, setError] = useState(null);
   const { settings: schoolSettings } = useSchoolSettings();
 
+  const [wards, setWards] = useState([]);
+  const [loadingWards, setLoadingWards] = useState(false);
+  const isParentView = user?.role === 'parent';
+
   useEffect(() => {
     if (user?.role === 'student' && user?.student?.id) {
       setStudentId(user.student.id);
       fetchAnalytics(user.student.id);
+    } else if (isParentView) {
+      fetchMyWards();
     }
   }, [user]);
+
+  const fetchMyWards = async () => {
+    setLoadingWards(true);
+    try {
+      const response = await api.get('/api/parents/my-wards');
+      if (response.ok) {
+        const data = await response.json();
+        const wardsList = Array.isArray(data) ? data : [];
+        setWards(wardsList);
+        if (wardsList.length > 0) {
+          setStudentId(wardsList[0].id.toString());
+          fetchAnalytics(wardsList[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching wards:', error);
+    } finally {
+      setLoadingWards(false);
+    }
+  };
 
   const fetchAnalytics = async (id) => {
     setLoading(true);
@@ -210,7 +236,7 @@ const Analytics = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">{schoolSettings?.schoolName || 'School'} Analytics</h1>
 
-        {user?.role !== 'student' && (
+        {user?.role !== 'student' && !isParentView && (
           <div className="flex gap-2">
             <input
               type="number"
@@ -234,6 +260,39 @@ const Analytics = () => {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
+              </button>
+            )}
+          </div>
+        )}
+
+        {isParentView && (
+          <div className="flex gap-2 items-center">
+            {wards.length > 1 && (
+              <select
+                value={studentId}
+                onChange={(e) => {
+                  setStudentId(e.target.value);
+                  fetchAnalytics(e.target.value);
+                }}
+                className="border rounded-md px-3 py-2"
+              >
+                <option value="">Select Child</option>
+                {wards.map((ward) => (
+                  <option key={ward.id} value={ward.id}>
+                    {ward.user.firstName} {ward.user.lastName} ({ward.admissionNumber})
+                  </option>
+                ))}
+              </select>
+            )}
+            {analyticsData && (
+              <button
+                onClick={downloadPDF}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                {wards.length > 1 ? 'Download Report' : 'Download PDF'}
               </button>
             )}
           </div>
