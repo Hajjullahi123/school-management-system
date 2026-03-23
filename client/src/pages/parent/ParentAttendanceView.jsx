@@ -306,22 +306,46 @@ const ParentAttendanceView = () => {
           </div>
         ) : attendanceRecords.length === 0 ? (
           <div className="p-12 text-center text-gray-500">
-            {filters.startDate === getTodayString() && filters.endDate === getTodayString() ? (
-              <>
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-gray-300">
-                  <span className="text-gray-400 font-bold text-xs">PENDING</span>
-                </div>
-                <h4 className="text-lg font-bold text-gray-700 mb-2">Today's Attendance is Pending</h4>
-                <p>The class teacher has not yet recorded the attendance for today.</p>
-              </>
-            ) : (
-              <>
-                <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <p>No attendance records found for the selected period.</p>
-              </>
-            )}
+            {(() => {
+              const isToday = filters.startDate === getTodayString() && filters.endDate === getTodayString();
+              const dayOfWeek = isToday ? new Date().getDay() : -1;
+              const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
+
+              if (isToday && isWeekend) {
+                return (
+                  <>
+                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-blue-200">
+                      <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <h4 className="text-lg font-bold text-gray-700 mb-2">School Is Closed (Weekend)</h4>
+                    <p>It's {new Date().toLocaleDateString('en-US', { weekday: 'long' })}. Attendance is only recorded on school days.</p>
+                  </>
+                );
+              }
+
+              if (isToday) {
+                return (
+                  <>
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-gray-300">
+                      <span className="text-gray-400 font-bold text-xs">PENDING</span>
+                    </div>
+                    <h4 className="text-lg font-bold text-gray-700 mb-2">Today's Attendance is Pending</h4>
+                    <p>The class teacher has not yet recorded the attendance for today.</p>
+                  </>
+                );
+              }
+
+              return (
+                <>
+                  <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p>No attendance records found for the selected period.</p>
+                </>
+              );
+            })()}
           </div>
         ) : (
           <div className="overflow-x-auto">
