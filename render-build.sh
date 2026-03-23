@@ -26,4 +26,13 @@ sed -i 's/provider = "sqlite"/provider = "postgresql"/g' prisma/schema.prisma
 echo ">>> Generating Prisma Client..."
 npx prisma generate --schema=prisma/schema.prisma
 
+echo ">>> Generation complete!"
+ 
+# 5. Synchronize Database (Force push for Dev/Stage)
+echo ">>> Synchronizing database schema..."
+npx prisma db push --accept-data-loss --schema=prisma/schema.prisma
+
+# 6. Set Node Memory Options for Build
+export NODE_OPTIONS=--max-old-space-size=4096
+
 echo ">>> Build complete!"
