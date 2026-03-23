@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children, roles = [] }) => {
-  const { user, loading, dashboardUnlocked } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -21,19 +21,8 @@ const ProtectedRoute = ({ children, roles = [] }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Double Auth Check for Dashboard
-  // Exclude /verify-dashboard itself from this check to avoid infinite loop
-  // Also exclude /dashboard/change-password to allow users to change password even if dashboard is locked
-  const isDashboardPath = location.pathname.startsWith('/dashboard');
-  const isVerifyPath = location.pathname === '/verify-dashboard';
-  const isChangePasswordPath = location.pathname === '/dashboard/change-password';
-
-  // Superadmins never get locked out of the dashboard layer
-  const canSkipLock = dashboardUnlocked || user.role === 'superadmin';
-
-  if (isDashboardPath && !isVerifyPath && !isChangePasswordPath && !canSkipLock) {
-    return <Navigate to="/verify-dashboard" state={{ from: location }} replace />;
-  }
+  // No longer use double-auth layer as requested.
+  // One-time login is sufficient.
 
   if (roles.length > 0 && !roles.includes(user.role)) {
     return <Navigate to="/dashboard" replace />; // This might cycle if not careful, but dashboard is protected now.

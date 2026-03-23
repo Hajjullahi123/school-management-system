@@ -84,7 +84,10 @@ const Login = () => {
     try {
       const res = await apiCall('/api/auth/identify', {
         method: 'POST',
-        body: JSON.stringify({ identifier: username })
+        body: JSON.stringify({ 
+          identifier: username,
+          schoolSlug: urlSlug || schoolSlug 
+        })
       });
 
       if (res.data.globalAccess) {

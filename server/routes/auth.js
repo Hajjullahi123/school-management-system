@@ -8,18 +8,32 @@ const { JWT_SECRET, authenticate } = require('../middleware/auth');
 // Identify school based on username/email/admissionNumber
 router.post('/identify', async (req, res) => {
   try {
-    let { identifier } = req.body;
+    let { identifier, schoolSlug } = req.body;
     if (!identifier) {
       return res.status(400).json({ error: 'Username or Email is required' });
     }
 
     const searchId = identifier.trim();
 
+    // PERFORMANCE OPTIMIZATION: If schoolSlug is provided (from URL), narrow the search
+    // This reduces the search space from all schools to just one.
+    let schoolFilter = {};
+    if (schoolSlug && schoolSlug !== 'undefined' && schoolSlug !== 'null' && schoolSlug !== '') {
+      const school = await prisma.school.findUnique({
+        where: { slug: schoolSlug },
+        select: { id: true }
+      });
+      if (school) {
+        schoolFilter = { schoolId: school.id };
+      }
+    }
+
     // Perform lookups in parallel to save time
-    // We use 'insensitive' mode to handle mixed-case IDs
+    // Recommendation: Create indexes on [User.username], [User.email], [Student.admissionNumber], [Teacher.staffId]
     const [users, students, teachers] = await Promise.all([
       prisma.user.findMany({
         where: {
+          ...schoolFilter,
           OR: [
             { username: { equals: searchId, mode: 'insensitive' } },
             { email: { equals: searchId, mode: 'insensitive' } }
@@ -34,7 +48,10 @@ router.post('/identify', async (req, res) => {
         }
       }),
       prisma.student.findMany({
-        where: { admissionNumber: { equals: searchId, mode: 'insensitive' } },
+        where: { 
+          ...schoolFilter,
+          admissionNumber: { equals: searchId, mode: 'insensitive' } 
+        },
         select: {
           school: {
             select: { id: true, name: true, slug: true, logoUrl: true }
@@ -42,7 +59,10 @@ router.post('/identify', async (req, res) => {
         }
       }),
       prisma.teacher.findMany({
-        where: { staffId: { equals: searchId, mode: 'insensitive' } },
+        where: { 
+          ...schoolFilter,
+          staffId: { equals: searchId, mode: 'insensitive' } 
+        },
         select: {
           school: {
             select: { id: true, name: true, slug: true, logoUrl: true }

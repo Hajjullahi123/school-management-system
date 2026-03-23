@@ -91,7 +91,6 @@ const LicenseManagement = lazyRetry(() => import('./pages/superadmin/LicenseMana
 const QuranTracker = lazyRetry(() => import('./pages/teacher/QuranTracker'));
 const QuranProgress = lazyRetry(() => import('./pages/student/QuranProgress'));
 const ParentQuranView = lazyRetry(() => import('./pages/parent/ParentQuranView'));
-const DashboardLogin = lazyRetry(() => import('./pages/DashboardLogin'));
 const Billing = lazyRetry(() => import('./pages/admin/Billing'));
 const ExamConfig = lazyRetry(() => import('./pages/admin/ExamConfig'));
 const DemoRedirect = lazyRetry(() => import('./pages/DemoRedirect'));
@@ -169,12 +168,6 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* New Intermediate Login Page */}
-            <Route path="/verify-dashboard" element={
-              <ProtectedRoute>
-                <DashboardLogin />
-              </ProtectedRoute>
-            } />
 
             {/* Protected Routes - Personal Dashboards */}
             <Route path="/dashboard" element={

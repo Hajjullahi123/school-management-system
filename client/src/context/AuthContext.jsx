@@ -7,7 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const [dashboardUnlocked, setDashboardUnlocked] = useState(false);
+  const [dashboardUnlocked] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -21,7 +21,6 @@ export const AuthProvider = ({ children }) => {
           if (isMounted) {
             console.log('No token found, setting user to null');
             setUser(null);
-            setDashboardUnlocked(false);
             setLoading(false);
           }
           return;
@@ -45,17 +44,12 @@ export const AuthProvider = ({ children }) => {
           if (isMounted) {
             console.log('User authenticated:', userData.role);
             setUser(userData);
-
-            // Restore dashboard unlocked state from session storage
-            const isUnlocked = sessionStorage.getItem('dashboardUnlocked') === 'true';
-            setDashboardUnlocked(isUnlocked);
           }
         } else {
           // Explicitly clear token only on 401/403 (unauthorized/forbidden)
           if (isMounted) {
             console.log('Auth check failed with status:', response.status);
             setUser(null);
-            setDashboardUnlocked(false);
             if (response.status === 401 || response.status === 403) {
               console.log('Clearing invalid token');
               localStorage.removeItem('token');
@@ -67,7 +61,6 @@ export const AuthProvider = ({ children }) => {
         if (isMounted) {
           console.error('Auth check error:', error);
           setUser(null);
-          setDashboardUnlocked(false);
           
           // DO NOT remove token on timeout or network error (e.g. cold start)
           // This allows the user to still be logged in once the server wakes up
@@ -120,15 +113,6 @@ export const AuthProvider = ({ children }) => {
 
       setUser(data.user);
 
-      // Superadmins bypass the second layer
-      if (data.user.role === 'superadmin') {
-        setDashboardUnlocked(true);
-        sessionStorage.setItem('dashboardUnlocked', 'true');
-      } else {
-        setDashboardUnlocked(false);
-        sessionStorage.removeItem('dashboardUnlocked');
-      }
-
       return {
         success: true,
         mustChangePassword: data.user.mustChangePassword,
@@ -139,42 +123,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const unlockDashboard = async (password) => {
-    try {
-      if (!user) throw new Error('No user logged in');
+  const unlockDashboard = async () => ({ success: true });
 
-      // We can re-use the login endpoint, but we need the school slug.
-      // We can get it from localStorage or user settings if available.
-      let schoolSlug = localStorage.getItem('schoolSlug') || '';
-      if (schoolSlug === 'null' || schoolSlug === 'undefined') {
-        schoolSlug = '';
-      }
-
-      const response = await api.post('/api/auth/login', {
-        username: user.username,
-        password,
-        schoolSlug
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Verification failed');
-      }
-
-      // If successful, unlock dashboard
-      setDashboardUnlocked(true);
-      sessionStorage.setItem('dashboardUnlocked', 'true');
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  };
-
-  const lockDashboard = () => {
-    setDashboardUnlocked(false);
-    sessionStorage.removeItem('dashboardUnlocked');
-  };
+  const lockDashboard = () => {};
 
   const logout = async () => {
     // Capture slug BEFORE clearing storage so the caller can redirect
@@ -202,7 +153,6 @@ export const AuthProvider = ({ children }) => {
       }
       sessionStorage.removeItem('dashboardUnlocked');
       setUser(null);
-      setDashboardUnlocked(false);
     }
 
     // Return the slug so callers can redirect to the school's landing page
