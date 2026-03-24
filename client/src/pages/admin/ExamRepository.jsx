@@ -47,13 +47,13 @@ const ExamRepository = () => {
         const data = await resp.json();
         setTeacherAssignments(data);
         
-        // Extract unique classes and subjects from assignments
+        // Extract unique classes from assignments
         const uniqueClasses = [];
-        const classIds = new Set();
+        const classIdsSet = new Set();
         data.forEach(a => {
-            if (a.classSubject?.classModel && !classIds.has(a.classSubject.classId)) {
-                uniqueClasses.push(a.classSubject.classModel);
-                classIds.add(a.classSubject.classId);
+            if (a.class && !classIdsSet.has(a.class.id)) {
+                uniqueClasses.push(a.class);
+                classIdsSet.add(a.class.id);
             }
         });
         setClasses(uniqueClasses);
@@ -77,8 +77,8 @@ const ExamRepository = () => {
       setFormData({...formData, classId, subjectId: ''});
       if (user.role === 'teacher') {
           const relevantSubjects = teacherAssignments
-            .filter(a => a.classSubject.classId === parseInt(classId))
-            .map(a => a.classSubject.subject);
+            .filter(a => a.classId === parseInt(classId))
+            .map(a => a.subject);
           setSubjects(relevantSubjects);
       }
   };
