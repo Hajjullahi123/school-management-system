@@ -95,6 +95,9 @@ const Billing = lazyRetry(() => import('./pages/admin/Billing'));
 const ExamConfig = lazyRetry(() => import('./pages/admin/ExamConfig'));
 const DemoRedirect = lazyRetry(() => import('./pages/DemoRedirect'));
 const PsychomotorDomains = lazyRetry(() => import('./pages/admin/PsychomotorDomains'));
+const ExamRepository = lazyRetry(() => import('./pages/admin/ExamRepository'));
+const LessonWorkspace = lazyRetry(() => import('./pages/teacher/LessonWorkspace'));
+const CurriculumManagement = lazyRetry(() => import('./pages/admin/CurriculumManagement'));
 
 
 const TranscriptView = lazyRetry(() => import('./pages/admin/TranscriptView'));
@@ -267,6 +270,21 @@ function App() {
               <Route path="quran-tracker" element={
                 <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
                   <QuranTracker />
+                </ProtectedRoute>
+              } />
+              <Route path="academic-workspace" element={
+                <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
+                  <LessonWorkspace />
+                </ProtectedRoute>
+              } />
+              <Route path="exam-repository" element={
+                <ProtectedRoute roles={['admin', 'teacher', 'principal', 'examination_officer']}>
+                  <ExamRepository />
+                </ProtectedRoute>
+              } />
+              <Route path="curriculum-management" element={
+                <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
+                  <CurriculumManagement />
                 </ProtectedRoute>
               } />
 
