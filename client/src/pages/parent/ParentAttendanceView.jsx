@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import { API_BASE_URL } from '../../config';
 
 const ParentAttendanceView = () => {
   const { user } = useAuth();
@@ -137,6 +138,23 @@ const ParentAttendanceView = () => {
     const percentage = stats.total > 0 ? ((stats.present + stats.late) / stats.total * 100).toFixed(1) : 0;
     return { ...stats, percentage };
   };
+
+  const [todayStatus, setTodayStatus] = useState(null);
+
+  useEffect(() => {
+    const checkTodayStatus = async () => {
+      try {
+        const response = await api.get(`/api/holidays/check?date=${getTodayString()}`);
+        if (response.ok) {
+          const data = await response.json();
+          setTodayStatus(data);
+        }
+      } catch (error) {
+        console.error('Error checking today status:', error);
+      }
+    };
+    checkTodayStatus();
+  }, []);
 
   if (loading) {
     return (
@@ -308,10 +326,8 @@ const ParentAttendanceView = () => {
           <div className="p-12 text-center text-gray-500">
             {(() => {
               const isToday = filters.startDate === getTodayString() && filters.endDate === getTodayString();
-              const dayOfWeek = isToday ? new Date().getDay() : -1;
-              const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
-
-              if (isToday && isWeekend) {
+              
+              if (isToday && todayStatus?.isHoliday) {
                 return (
                   <>
                     <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-blue-200">
@@ -319,8 +335,10 @@ const ParentAttendanceView = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <h4 className="text-lg font-bold text-gray-700 mb-2">School Is Closed (Weekend)</h4>
-                    <p>It's {new Date().toLocaleDateString('en-US', { weekday: 'long' })}. Attendance is only recorded on school days.</p>
+                    <h4 className="text-lg font-bold text-gray-700 mb-2">
+                       {todayStatus.type === 'weekend' ? 'School Is Closed (Weekend)' : `Public Holiday: ${todayStatus.name}`}
+                    </h4>
+                    <p>It's {todayStatus.isAutoWeekend ? new Date().toLocaleDateString('en-US', { weekday: 'long' }) : todayStatus.name}. Attendance is only recorded on school days.</p>
                   </>
                 );
               }
