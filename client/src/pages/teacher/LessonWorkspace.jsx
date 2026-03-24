@@ -31,6 +31,9 @@ const LessonWorkspace = () => {
         difficulty: 'medium'
     });
     const [generating, setGenerating] = useState(false);
+    const [scaffolding, setScaffolding] = useState(false);
+    const [fetchingResources, setFetchingResources] = useState(false);
+    const [suggestedResources, setSuggestedResources] = useState([]);
 
     useEffect(() => {
         fetchItems();
@@ -134,7 +137,7 @@ const LessonWorkspace = () => {
                 toast.success(`Generated ${questions.length} questions! Content updated.`);
                 // For now, let's append it to the content or show it
                 const formatted = questions.map((q, i) => 
-                   `${i+1}. ${q.questionText}\n   Options: A: ${q.options[0].text}, B: ${q.options[1].text}, C: ${q.options[2].text}, D: ${q.options[3].text}\n   Answer: ${q.correctOption.toUpperCase()}`
+                   `${i+1}. [${q.bloomLevel || 'Knowledge'}] ${q.questionText}\n   Options: A: ${q.options[0].text}, B: ${q.options[1].text}, C: ${q.options[2].text}, D: ${q.options[3].text}\n   Answer: ${q.correctOption.toUpperCase()}\n   Explanation: ${q.explanation || 'N/A'}`
                 ).join('\n\n');
                 setFormData({ ...formData, content: (formData.content ? formData.content + '\n\n--- AI GENERATED QUESTIONS ---\n' : '') + formatted });
                 setShowAiModal(false);
@@ -146,6 +149,58 @@ const LessonWorkspace = () => {
             toast.error('AI generation service error');
         } finally {
             setGenerating(false);
+        }
+    };
+
+    const handleAiScaffold = async () => {
+        if (!formData.classId || !formData.subjectId || !formData.topic) {
+            toast.error('Please select Class, Subject and provide a Topic first');
+            return;
+        }
+        setScaffolding(true);
+        try {
+            const resp = await api.post('/api/academics/ai/generate-lesson-plan', {
+                classId: formData.classId,
+                subjectId: formData.subjectId,
+                topic: formData.topic,
+                type: view // 'plans' or 'notes'
+            });
+
+            if (resp.ok) {
+                const data = await resp.json();
+                toast.success('AI Draft Generated!');
+                setFormData({ ...formData, content: data.content });
+            } else {
+                const err = await resp.json();
+                toast.error(err.error || 'AI scaffolding failed');
+            }
+        } catch (err) {
+            toast.error('AI service error');
+        } finally {
+            setScaffolding(false);
+        }
+    };
+
+    const handleSuggestResources = async () => {
+        if (!formData.topic || !formData.subjectId || !formData.classId) {
+            toast.error('Select Class, Subject and enter a Topic');
+            return;
+        }
+        setFetchingResources(true);
+        try {
+            const resp = await api.post('/api/academics/ai/suggest-resources', {
+                topic: formData.topic,
+                subjectId: formData.subjectId,
+                classId: formData.classId
+            });
+            if (resp.ok) {
+                setSuggestedResources(await resp.json());
+                toast.success('Curated resources found!');
+            }
+        } catch (err) {
+            toast.error('Failed to discover resources');
+        } finally {
+            setFetchingResources(false);
         }
     };
 
@@ -207,10 +262,24 @@ const LessonWorkspace = () => {
                             </div>
                             <div className="flex gap-2">
                                 <button 
+                                    onClick={handleAiScaffold}
+                                    disabled={scaffolding}
+                                    className="bg-indigo-50 border border-indigo-200 text-indigo-600 px-4 py-2 rounded-lg font-bold shadow-sm hover:bg-indigo-100 transform active:scale-95 transition flex items-center gap-2"
+                                >
+                                    <FiCpu className={scaffolding ? 'animate-spin' : 'animate-pulse text-purple-600'} /> {scaffolding ? 'Generating...' : 'AI Draft Assistant'}
+                                </button>
+                                <button 
                                     onClick={() => setShowAiModal(true)}
                                     className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg font-bold shadow-md hover:shadow-lg transform active:scale-95 transition flex items-center gap-2"
                                 >
                                     <FiCpu className="animate-pulse" /> AI Generate CBT
+                                </button>
+                                <button 
+                                    onClick={handleSuggestResources}
+                                    disabled={fetchingResources}
+                                    className="bg-purple-50 border border-purple-200 text-purple-600 px-4 py-2 rounded-lg font-bold shadow-sm hover:bg-purple-100 transform active:scale-95 transition flex items-center gap-2"
+                                >
+                                    <FiFileText className={fetchingResources ? 'animate-spin' : ''} /> {fetchingResources ? 'Searching...' : 'Find Resources'}
                                 </button>
                                 <button 
                                     onClick={() => handleSave('draft')}
@@ -242,6 +311,43 @@ const LessonWorkspace = () => {
                             />
                         </div>
                     </div>
+
+                    {/* Resources Sidebar Suggestions */}
+                    {suggestedResources.length > 0 && (
+                        <div className="mt-8 bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-3xl border border-indigo-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-extrabold text-indigo-900 flex items-center gap-2">
+                                    <FiBook className="text-purple-600" /> AI Suggested Multi-modal Resources
+                                </h3 >
+                                <button onClick={() => setSuggestedResources([])} className="text-gray-400 hover:text-red-500 transition-colors"><FiTrash2 /></button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {suggestedResources.map((res, i) => (
+                                    <div key={i} className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100/50 hover:shadow-md transition-shadow">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-black ${
+                                                res.type === 'video' ? 'bg-red-50 text-red-600' :
+                                                res.type === 'simulation' ? 'bg-green-50 text-green-600' :
+                                                'bg-blue-50 text-blue-600'
+                                            }`}>
+                                                {res.type}
+                                            </span>
+                                            <h4 className="font-bold text-gray-900 text-xs line-clamp-1">{res.title}</h4>
+                                        </div>
+                                        <p className="text-[11px] text-gray-500 line-clamp-2 mb-3 leading-relaxed">{res.description}</p>
+                                        <a 
+                                            href={res.type === 'video' ? `https://www.youtube.com/results?search_query=${encodeURIComponent(res.searchQuery || res.title)}` : `https://www.google.com/search?q=${encodeURIComponent(res.searchQuery || res.title)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-[10px] font-black text-indigo-600 uppercase hover:underline flex items-center gap-1"
+                                        >
+                                            View Resource →
+                                        </a>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* List Section */}

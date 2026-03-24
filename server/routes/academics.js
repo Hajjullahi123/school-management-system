@@ -362,6 +362,8 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
       - questionText: The question string
       - options: An array of exactly 4 objects: [{"id": "a", "text": "..."}, {"id": "b", "text": "..."}, {"id": "c", "text": "..."}, {"id": "d", "text": "..."}]
       - correctOption: Either "a", "b", "c", or "d"
+      - bloomLevel: One of [Remembering, Understanding, Applying, Analyzing, Evaluating, Creating]
+      - explanation: A brief explanation of why the answer is correct
       - points: 1.0
 
       Return ONLY the JSON array. No markdown code blocks, no preamble, no explanation.
@@ -390,6 +392,106 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
   } catch (error) {
     console.error('AI Generation Error:', error);
     res.status(500).json({ error: 'Failed to generate questions using AI' });
+  }
+});
+
+router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'admin', 'principal', 'superadmin']), async (req, res) => {
+  try {
+    const { classId, subjectId, topic, type = 'plans' } = req.body;
+    const schoolId = req.schoolId;
+
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { geminiApiKey: true }
+    });
+
+    if (!school?.geminiApiKey) {
+      return res.status(400).json({ error: 'AI feature not configured' });
+    }
+
+    const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
+    const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
+
+    const genAI = new GoogleGenerativeAI(school.geminiApiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `
+      Act as an expert pedagogical consultant and master teacher. 
+      Generate a comprehensive and engaging ${type === 'plans' ? 'Lesson Plan' : 'Lesson Note'} for:
+      Subject: ${subject.name}
+      Class: ${classModel.name}
+      Topic: ${topic}
+      
+      Structure the response using professional academic standards:
+      1. Learning Objectives (aligned with SMART goals and Bloom's Taxonomy)
+      2. Anticipatory Set (an engaging "hook" to capture student interest)
+      3. Key Vocabulary/Concepts
+      4. Detailed Content Breakdown (Step-by-step introduction and core explanation)
+      5. Practical Illustrations/In-Class Activities
+      6. Assessment Questions (Oral or written to check understanding)
+      7. Summary and Conclusion
+      8. Homework/Follow-up Project
+      9. Differentiated Instruction Tips (Tips for supporting diverse learners)
+
+      Use clean, professional Markdown for formatting. Be thorough but concise.
+      Return ONLY the content of the lesson document.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    res.json({ content: response.text() });
+
+    logAction({
+      schoolId,
+      userId: req.user.id,
+      action: 'AI_GENERATE_LESSON_DRAFT',
+      resource: 'LESSON_ACADEMICS',
+      details: { subject: subject.name, class: classModel.name, topic, type },
+      ipAddress: req.ip
+    });
+
+  } catch (error) {
+    console.error('AI Lesson Scaffolding Error:', error);
+    res.status(500).json({ error: 'Failed to scaffold lesson content' });
+  }
+});
+
+router.post('/ai/suggest-resources', authenticate, authorize(['teacher', 'admin', 'principal', 'superadmin']), async (req, res) => {
+  try {
+    const { topic, subjectId, classId } = req.body;
+    const schoolId = req.schoolId;
+
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { geminiApiKey: true }
+    });
+
+    if (!school?.geminiApiKey) return res.status(400).json({ error: 'AI not configured' });
+
+    const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
+    const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
+
+    const genAI = new GoogleGenerativeAI(school.geminiApiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `
+      As an expert educational curator for ${classModel.name} level students.
+      Suggest 3-5 high-quality, safe, and engaging educational resources for the topic: "${topic}" in the subject "${subject.name}".
+      Include:
+      - YouTube video titles/brief descriptions (and if possible, suggest what to search for)
+      - Interactive simulations (like PhET) if applicable
+      - Academic articles or reliable websites (National Geographic, Britannica, etc.)
+      
+      Return ONLY a JSON array of objects: [{"title": "...", "description": "...", "type": "video|article|simulation", "searchQuery": "..."}]
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let text = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+    res.json(JSON.parse(text));
+
+  } catch (error) {
+    res.status(500).json({ error: 'Failed' });
   }
 });
 
