@@ -44,8 +44,30 @@ process.on('uncaughtException', (error) => {
   console.error('Error:', error);
   console.error('Stack:', error.stack);
   console.error('===========================================================');
-  // process.exit(1); 
+  process.exit(1); // Exit so Render/PM2 can restart the process
 });
+
+/**
+ * CRITICAL SYSTEM INTEGRITY GUARD
+ * Verifies that essential security and auth exports exist before booting.
+ * This prevents "undefined" middleware errors from crashing requests.
+ */
+try {
+  const auth = require('./middleware/auth');
+  const requiredAuthMethods = ['authenticate', 'authorize', 'optionalAuth'];
+  
+  requiredAuthMethods.forEach(method => {
+    if (typeof auth[method] !== 'function') {
+      throw new Error(`[CRITICAL] Auth module is missing required function: ${method}. Check server/middleware/auth.js exports!`);
+    }
+  });
+  console.log('[Server] Security integrity checks passed.');
+} catch (integrityError) {
+  console.error('==================== INTEGRITY FAILURE ====================');
+  console.error(integrityError.message);
+  console.error('===========================================================');
+  process.exit(1);
+}
 
 // Ping route for health checks
 app.get('/ping', (req, res) => res.status(200).send('pong'));
