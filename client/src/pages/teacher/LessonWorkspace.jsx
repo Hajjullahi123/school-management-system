@@ -99,15 +99,27 @@ const LessonWorkspace = () => {
                 console.log('[DEBUG] Unique Teacher Classes:', uniqueClasses);
                 setClasses(uniqueClasses);
                 
-                // If only one class, auto-select and fetch subjects
+                // If only one class, auto-select it
                 if (uniqueClasses.length === 1) {
                     const singleClass = uniqueClasses[0];
-                    setFormData(prev => ({ ...prev, classId: singleClass.id.toString() }));
+                    const classIdStr = singleClass.id.toString();
+                    
                     const relevantSubjects = assignmentsData
                         .filter(a => (a.classId || a.classSubject?.classId) === singleClass.id)
                         .map(a => a.subject || a.classSubject?.subject);
-                    console.log('[DEBUG] Auto-selected subjects:', relevantSubjects);
+                    
                     setSubjects(relevantSubjects);
+                    
+                    // If only one subject for this class, auto-select it too
+                    const subjectIdStr = relevantSubjects.length === 1 ? relevantSubjects[0].id.toString() : '';
+                    
+                    setFormData(prev => ({ 
+                        ...prev, 
+                        classId: classIdStr,
+                        subjectId: subjectIdStr
+                    }));
+                    
+                    console.log('[DEBUG] Auto-selected Class/Subject:', { classIdStr, subjectIdStr });
                 }
             }
         } catch (err) {

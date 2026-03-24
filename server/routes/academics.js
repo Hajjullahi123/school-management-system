@@ -379,11 +379,14 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
     const response = await result.response;
     let text = response.text();
     
-    // Clean up text if AI included markdown blocks
-    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-
-    const questions = JSON.parse(text);
-
+    // Better JSON extraction: Find the first '[' and last ']' to extract array content
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      console.error('AI non-JSON response:', text);
+      throw new Error("AI did not produce a valid JSON array");
+    }
+    
+    const questions = JSON.parse(jsonMatch[0]);
     res.json(questions);
 
     logAction({
@@ -507,8 +510,10 @@ router.post('/ai/suggest-resources', authenticate, authorize(['teacher', 'admin'
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    let text = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
-    res.json(JSON.parse(text));
+    const text = response.text();
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error("Invalid resource format from AI");
+    res.json(JSON.parse(jsonMatch[0]));
 
   } catch (error) {
     res.status(500).json({ error: 'Failed' });
