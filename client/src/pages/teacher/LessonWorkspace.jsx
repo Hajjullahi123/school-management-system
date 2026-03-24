@@ -57,29 +57,63 @@ const LessonWorkspace = () => {
 
     const fetchTeacherData = async () => {
         try {
-            const resp = await api.get(`/api/teacher-assignments/teacher/${user.id}`);
-            if (resp.ok) {
-                const data = await resp.json();
-                setTeacherAssignments(data);
-                const uniqueClasses = [];
-                const classIds = new Set();
-                data.forEach(a => {
-                    if (a.classSubject?.classModel && !classIds.has(a.classSubject.classId)) {
-                        uniqueClasses.push(a.classSubject.classModel);
-                        classIds.add(a.classSubject.classId);
-                    }
-                });
-                setClasses(uniqueClasses);
+            if (user.role === 'admin' || user.role === 'principal' || user.role === 'superadmin') {
+                // Admins see everything
+                const [classesResp, subjectsResp] = await Promise.all([
+                    api.get('/api/classes'),
+                    api.get('/api/subjects')
+                ]);
+                if (classesResp.ok) setClasses(await classesResp.json());
+                if (subjectsResp.ok) {
+                    const allSubjects = await subjectsResp.json();
+                    setSubjects(allSubjects);
+                    // For admins, we don't use teacherAssignments to filter subjects initially
+                }
+            } else {
+                // Teachers see only their assignments
+                const resp = await api.get(`/api/teacher-assignments/teacher/${user.id}`);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    setTeacherAssignments(data);
+                    const uniqueClasses = [];
+                    const classIds = new Set();
+                    data.forEach(a => {
+                        if (a.class && !classIds.has(a.classId)) {
+                            uniqueClasses.push(a.class);
+                            classIds.add(a.classId);
+                        }
+                    });
+                    setClasses(uniqueClasses);
+                }
             }
-        } catch (err) {}
+        } catch (err) {
+            console.error('Data fetch error:', err);
+        }
     };
 
     const handleClassChange = (classId) => {
         setFormData({ ...formData, classId, subjectId: '' });
-        const relevantSubjects = teacherAssignments
-            .filter(a => a.classSubject.classId === parseInt(classId))
-            .map(a => a.classSubject.subject);
-        setSubjects(relevantSubjects);
+        
+        if (user.role === 'admin' || user.role === 'principal' || user.role === 'superadmin') {
+            // Admins don't need to filter subjects by assignment, 
+            // but in a large school, they might want to see subjects for that class
+            fetchSubjectsForClass(classId);
+        } else {
+            const relevantSubjects = teacherAssignments
+                .filter(a => a.classId === parseInt(classId))
+                .map(a => a.subject);
+            setSubjects(relevantSubjects);
+        }
+    };
+
+    const fetchSubjectsForClass = async (classId) => {
+        try {
+            const resp = await api.get(`/api/class-subjects/class/${classId}`);
+            if (resp.ok) {
+                const data = await resp.json();
+                setSubjects(data.map(cs => cs.subject));
+            }
+        } catch (err) {}
     };
 
     const handleSave = async (statusOverride) => {
