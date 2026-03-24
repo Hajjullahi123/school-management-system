@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../api';
+import { api, API_BASE_URL } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
@@ -22,6 +22,23 @@ const ParentDashboard = () => {
   const [receiptPayment, setReceiptPayment] = useState(null);
   const [currentSession, setCurrentSession] = useState(null);
   const [currentTerm, setCurrentTerm] = useState(null);
+  const [todayStatus, setTodayStatus] = useState(null);
+
+  useEffect(() => {
+    const checkTodayStatus = async () => {
+      try {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const response = await api.get(`/api/holidays/check?date=${todayStr}`);
+        if (response.ok) {
+          const data = await response.json();
+          setTodayStatus(data);
+        }
+      } catch (error) {
+        console.error('Error checking today status:', error);
+      }
+    };
+    checkTodayStatus();
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -456,6 +473,11 @@ const ParentDashboard = () => {
                         <div className={`px-2 py-1 rounded-lg border text-[10px] font-black uppercase tracking-tight flex flex-col items-center justify-center ${getStatusBadge(getTodayAttendance(student).status)}`}>
                           <span className="opacity-60 text-[8px] leading-tight">TODAY</span>
                           <span className="leading-tight">{getTodayAttendance(student).status}</span>
+                        </div>
+                      ) : todayStatus?.isHoliday ? (
+                        <div className="px-2 py-1 rounded-lg border border-blue-100 bg-blue-50 text-[10px] font-black uppercase tracking-tight text-blue-600 flex flex-col items-center justify-center">
+                          <span className="opacity-60 text-[8px] leading-tight">TODAY</span>
+                          <span className="leading-tight">{todayStatus.type === 'weekend' ? 'WEEKEND' : 'HOLIDAY'}</span>
                         </div>
                       ) : (
                         <div className="px-2 py-1 rounded-lg border border-gray-100 bg-gray-50 text-[10px] font-black uppercase tracking-tight text-gray-400 flex flex-col items-center justify-center">
