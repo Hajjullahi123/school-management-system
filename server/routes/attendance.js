@@ -780,9 +780,6 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
     });
 
     // 3. Trigger Notification (Non-blocking)
-    const schoolSettings = await prisma.school.findUnique({
-      where: { id: req.schoolId }
-    });
     const schoolName = schoolSettings?.name || schoolSettings?.schoolName || 'Your School';
 
     if (student.parent?.userId) {
