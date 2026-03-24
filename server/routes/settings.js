@@ -6,7 +6,7 @@ const fs = require('fs');
 const { authenticate } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 
-const { optionalAuthenticate } = require('../middleware/auth');
+const { optionalAuth } = require('../middleware/auth');
 
 // Get school settings
 // Can be accessed via schoolSlug (public) or via auth token (private)
