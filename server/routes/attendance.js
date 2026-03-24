@@ -868,6 +868,11 @@ router.get('/arrival-stats', authenticate, authorize(['admin', 'principal', 'sta
       }
     });
 
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { weekendDays: true }
+    });
+
     for (let i = 0; i < numDays; i++) {
       const date = new Date();
       date.setDate(date.getDate() - i);
@@ -916,11 +921,27 @@ router.get('/arrival-stats', authenticate, authorize(['admin', 'principal', 'sta
         unscanned: Math.max(0, staffTotal - staffArrivals)
       };
 
+      // Check for holiday/weekend
+      const holidayRecord = await prisma.schoolHoliday.findUnique({
+        where: {
+          schoolId_date: {
+            schoolId: req.schoolId,
+            date: date
+          }
+        }
+      });
+      const weekendDays = (school.weekendDays || '0,6').split(',').map(d => parseInt(d.trim()));
+      const isWeekend = weekendDays.includes(date.getDay());
+      const isHoliday = !!holidayRecord || isWeekend;
+      const holidayName = holidayRecord?.name || (isWeekend ? 'Weekend' : null);
+
       // Only add to dailyStats if there was any scanning activity (staff or students) 
       // OR if it's today
       if (staffArrivals > 0 || studentArrivals.length > 0 || i === 0) {
         dailyStats.push({
           date: date.toISOString(),
+          isHoliday,
+          holidayName,
           studentStats,
           staffStats
         });

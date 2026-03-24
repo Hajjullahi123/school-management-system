@@ -134,10 +134,16 @@ const ArrivalScanner = () => {
               />
               {loading && (
                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
               )}
             </form>
+            {dailyStats[0]?.isHoliday && (
+              <div className="mt-4 inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-bold border border-blue-100 animate-pulse">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                TODAY IS A {dailyStats[0].holidayName?.toUpperCase() || 'HOLIDAY'} - SCHOOL CLOSED
+              </div>
+            )}
             <p className="text-sm text-gray-500 mt-4 italic font-medium">Auto-focus enabled for barcode scanners.</p>
           </div>
 
@@ -228,14 +234,21 @@ const ArrivalScanner = () => {
                     <div className="hidden md:block text-right">
                       <p className="text-[10px] text-gray-400 font-black uppercase mb-0.5">Quick Stat</p>
                       <p className="text-sm font-bold text-primary">
-                        {Math.round(((day.staffStats?.scanned || 0) + (day.studentStats?.reduce((acc, curr) => acc + (curr.scanned || 0), 0) || 0)) /
-                          Math.max(1, (day.staffStats?.total || 0) + (day.studentStats?.reduce((acc, curr) => acc + (curr.total || 0), 0) || 0)) * 100)}% Arrival
+                        {day.isHoliday ? 'SCHOOL CLOSED' : `${Math.round(((day.staffStats?.scanned || 0) + (day.studentStats?.reduce((acc, curr) => acc + (curr.scanned || 0), 0) || 0)) /
+                          Math.max(1, (day.staffStats?.total || 0) + (day.studentStats?.reduce((acc, curr) => acc + (curr.total || 0), 0) || 0)) * 100)}% Arrival`}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {expandedDays.includes(dayIdx) && (
+                {day.isHoliday && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 mb-12 text-center animate-fadeIn">
+                    <h4 className="text-lg font-black text-blue-900 uppercase mb-1">NO SCANNING EXPECTED: {day.holidayName || 'Holiday'}</h4>
+                    <p className="text-blue-600 font-medium">All students and staff were officially excused for this day.</p>
+                  </div>
+                )}
+
+                {expandedDays.includes(dayIdx) && !day.isHoliday && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fadeIn">
                     {/* Overall Staff Card */}
                     <div className="bg-purple-50 border-2 border-purple-100 rounded-2xl p-6 shadow-sm">

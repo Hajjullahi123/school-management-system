@@ -308,6 +308,11 @@ router.get('/daily-report', authenticate, authorize(['admin', 'principal', 'atte
     const baseDate = date ? new Date(date) : new Date();
     baseDate.setHours(0, 0, 0, 0);
 
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { weekendDays: true }
+    });
+
     const reports = [];
 
     // Get all active staff once to avoid redundant queries
@@ -378,6 +383,20 @@ router.get('/daily-report', authenticate, authorize(['admin', 'principal', 'atte
         };
       });
 
+      // Check for holiday/weekend
+      const holidayRecord = await prisma.schoolHoliday.findUnique({
+        where: {
+          schoolId_date: {
+            schoolId,
+            date: queryDate
+          }
+        }
+      });
+      const weekendDays = (school.weekendDays || '0,6').split(',').map(d => parseInt(d.trim()));
+      const isWeekend = weekendDays.includes(queryDate.getDay());
+      const isHoliday = !!holidayRecord || isWeekend;
+      const holidayName = holidayRecord?.name || (isWeekend ? 'Weekend' : null);
+
       // Calculate summary stats
       const stats = {
         total: staffMembers.length,
@@ -388,8 +407,10 @@ router.get('/daily-report', authenticate, authorize(['admin', 'principal', 'atte
 
       reports.push({
         date: queryDate,
+        isHoliday,
+        holidayName,
         stats,
-        staff: dailyStaffData
+        staff: isHoliday ? [] : dailyStaffData
       });
     }
 

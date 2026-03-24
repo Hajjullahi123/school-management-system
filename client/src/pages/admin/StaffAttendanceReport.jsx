@@ -460,8 +460,23 @@ const StaffAttendanceReport = () => {
                 </div>
               </div>
 
+              {/* Holiday Notification */}
+              {report.isHoliday && (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-8 mb-8 text-center animate-fadeIn">
+                  <div className="flex justify-center mb-4">
+                    <div className="bg-blue-600/10 p-3 rounded-full">
+                      <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <h4 className="text-xl font-black text-blue-900 uppercase tracking-tight mb-2">SCHOOL CLOSED: {report.holidayName || 'Official Holiday'}</h4>
+                  <p className="text-blue-700 font-medium tracking-tight">No staff attendance expected or recorded for this day.</p>
+                </div>
+              )}
+
               {/* Expanded Content */}
-              {expandedDays.includes(reportIdx) && (
+              {expandedDays.includes(reportIdx) && !report.isHoliday && (
                 <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 mb-8 animate-fadeIn">
                   <div className="overflow-x-auto">
                     <table className="w-full">
