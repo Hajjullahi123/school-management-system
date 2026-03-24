@@ -50,24 +50,38 @@ router.get('/', authenticate, async (req, res) => {
         return res.status(403).json({ error: 'Unauthorized Access' });
       }
 
-      // Check if results are published for the student's class and the requested term
+      // Check if results are published for the student's class
       if (student.classModel) {
-        // Find if a per-term publication exists
-        const publication = await prisma.resultPublication.findUnique({
+        // Find all published terms for this class
+        const publishedTerms = await prisma.resultPublication.findMany({
           where: {
-            schoolId_classId_termId: {
-              schoolId: req.schoolId,
-              classId: student.classModel.id,
-              termId: parseInt(termId || 0) // Fallback to 0 if not provided to avoid crash, though usually termId should be there
-            }
-          }
+            schoolId: req.schoolId,
+            classId: student.classModel.id,
+            isPublished: true
+          },
+          select: { termId: true }
         });
 
-        if (!publication || !publication.isPublished) {
-          return res.status(403).json({
-            error: 'Result Not Published',
-            message: 'The result for this class and term has not been published.'
-          });
+        const publishedTermIds = publishedTerms.map(p => p.termId);
+
+        // If a specific term was requested, check if it's in the published list
+        if (termId) {
+          if (!publishedTermIds.includes(parseInt(termId))) {
+            return res.status(403).json({
+              error: 'Result Not Published',
+              message: 'The result for this class and term has not been published.'
+            });
+          }
+        } else {
+          // If no specific term requested (e.g., Analytics), ensure at least SOMETHING is published
+          if (publishedTermIds.length === 0) {
+            return res.status(403).json({
+              error: 'Result Not Published',
+              message: 'No results have been published for this class yet.'
+            });
+          }
+          // Store the published term IDs in req for the final query filter
+          req.publishedTermIds = publishedTermIds;
         }
       }
     }
@@ -77,7 +91,13 @@ router.get('/', authenticate, async (req, res) => {
       studentId: parseInt(studentId)
     };
 
-    if (termId) where.termId = parseInt(termId);
+    if (termId) {
+      where.termId = parseInt(termId);
+    } else if (req.publishedTermIds) {
+      // If no term requested, only show results for PUBLISHED terms
+      where.termId = { in: req.publishedTermIds };
+    }
+
     if (academicSessionId) where.academicSessionId = parseInt(academicSessionId);
 
     const results = await prisma.result.findMany({
