@@ -33,10 +33,22 @@ router.post('/identify', async (req, res) => {
     const [users, students, teachers] = await Promise.all([
       prisma.user.findMany({
         where: {
-          ...schoolFilter,
           OR: [
-            { username: { equals: searchId, mode: 'insensitive' } },
-            { email: { equals: searchId, mode: 'insensitive' } }
+            {
+              ...schoolFilter,
+              OR: [
+                { username: { equals: searchId, mode: 'insensitive' } },
+                { email: { equals: searchId, mode: 'insensitive' } }
+              ]
+            },
+            {
+              schoolId: null,
+              role: 'superadmin',
+              OR: [
+                { username: { equals: searchId, mode: 'insensitive' } },
+                { email: { equals: searchId, mode: 'insensitive' } }
+              ]
+            }
           ]
         },
         select: { 
