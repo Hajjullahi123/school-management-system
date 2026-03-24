@@ -97,13 +97,28 @@ export const useSchoolSettings = () => {
     };
 
     fetchSettings();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
-  return { settings, loading, error };
+  const refreshSettings = async () => {
+    try {
+      const response = await api.get('/api/settings');
+      if (response.ok) {
+        const data = await response.json();
+        setSettings(prev => ({
+          ...prev,
+          ...data,
+          schoolName: data.schoolName || data.name,
+          logoUrl: data.logoUrl ? (data.logoUrl.startsWith('data:') || data.logoUrl.startsWith('http') ? data.logoUrl : `${API_BASE_URL}${data.logoUrl}`) : null,
+          weekendDays: data.weekendDays || "0,6"
+        }));
+      }
+    } catch (err) {
+      console.error('Error refreshing settings:', err);
+    }
+  };
+
+  return { settings, loading, error, refreshSettings };
 };
 
 export default useSchoolSettings;

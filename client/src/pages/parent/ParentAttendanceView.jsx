@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { api } from '../../api';
+import { api, API_BASE_URL } from '../../api';
 import { useAuth } from '../../context/AuthContext';
-import { API_BASE_URL } from '../../config';
 
 const ParentAttendanceView = () => {
   const { user } = useAuth();
@@ -13,12 +12,11 @@ const ParentAttendanceView = () => {
   const [fetchingAttendance, setFetchingAttendance] = useState(false);
   const [sessions, setSessions] = useState([]);
   const [terms, setTerms] = useState([]);
+  const [holidays, setHolidays] = useState([]);
+  const [todayStatus, setTodayStatus] = useState(null);
+
   const getTodayString = () => {
-    const today = new Date();
-    // Use local time, not UTC, to prevent timezone offset issues
-    const offset = today.getTimezoneOffset();
-    const localDate = new Date(today.getTime() - (offset * 60 * 1000));
-    return localDate.toISOString().split('T')[0];
+    return new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
   };
 
   const [filters, setFilters] = useState({
@@ -31,9 +29,18 @@ const ParentAttendanceView = () => {
   const location = useLocation();
 
   useEffect(() => {
-    fetchWards();
-    fetchSessions();
-    fetchTerms();
+    const init = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchWards(),
+        fetchSessions(),
+        fetchTerms(),
+        fetchHolidays(),
+        checkTodayStatus()
+      ]);
+      setLoading(false);
+    };
+    init();
   }, []);
 
   useEffect(() => {
@@ -42,6 +49,24 @@ const ParentAttendanceView = () => {
     }
   }, [selectedStudent, filters]);
 
+  const checkTodayStatus = async () => {
+    try {
+      const response = await api.get(`/api/holidays/check?date=${getTodayString()}`);
+      if (response.ok) {
+        setTodayStatus(await response.json());
+      }
+    } catch (error) { console.error(error); }
+  };
+
+  const fetchHolidays = async () => {
+    try {
+      const response = await api.get('/api/holidays');
+      if (response.ok) {
+        setHolidays(await response.json());
+      }
+    } catch (e) { console.error(e); }
+  };
+
   const fetchWards = async () => {
     try {
       const response = await api.get('/api/parents/my-wards');
@@ -49,56 +74,39 @@ const ParentAttendanceView = () => {
         const data = await response.json();
         setWards(data);
 
-        // Handle studentId from query params
         const params = new URLSearchParams(location.search);
         const studentIdParam = params.get('studentId');
 
         if (studentIdParam && data.length > 0) {
           const student = data.find(w => w.id === parseInt(studentIdParam));
-          if (student) {
-            setSelectedStudent(student);
-          } else {
-            setSelectedStudent(data[0]);
-          }
+          setSelectedStudent(student || data[0]);
         } else if (data.length > 0) {
           setSelectedStudent(data[0]);
         }
       }
-    } catch (error) {
-      console.error('Error fetching wards:', error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { console.error(error); }
   };
 
   const fetchSessions = async () => {
     try {
       const response = await api.get('/api/academic-sessions');
-      const data = await response.json();
-      setSessions(data);
-    } catch (error) {
-      console.error('Error fetching sessions:', error);
-    }
+      if (response.ok) setSessions(await response.json());
+    } catch (error) { console.error(error); }
   };
 
   const fetchTerms = async () => {
     try {
       const response = await api.get('/api/terms');
-      const data = await response.json();
-      setTerms(data);
-    } catch (error) {
-      console.error('Error fetching terms:', error);
-    }
+      if (response.ok) setTerms(await response.json());
+    } catch (error) { console.error(error); }
   };
 
   const fetchAttendance = async () => {
     if (!selectedStudent) return;
-
     setFetchingAttendance(true);
     try {
       const params = new URLSearchParams();
       params.append('studentId', selectedStudent.id);
-
       if (filters.sessionId) params.append('sessionId', filters.sessionId);
       if (filters.termId) params.append('termId', filters.termId);
       if (filters.startDate) params.append('startDate', filters.startDate);
@@ -106,14 +114,10 @@ const ParentAttendanceView = () => {
 
       const response = await api.get(`/api/parents/student-attendance?${params.toString()}`);
       if (response.ok) {
-        const data = await response.json();
-        setAttendanceRecords(data);
+        setAttendanceRecords(await response.json());
       }
-    } catch (error) {
-      console.error('Error fetching attendance:', error);
-    } finally {
-      setFetchingAttendance(false);
-    }
+    } catch (error) { console.error(error); }
+    finally { setFetchingAttendance(false); }
   };
 
   const getStatusColor = (status) => {
@@ -128,300 +132,178 @@ const ParentAttendanceView = () => {
 
   const calculateStats = () => {
     const stats = { present: 0, absent: 0, late: 0, excused: 0, total: 0 };
+    const holidayDates = new Set(holidays.map(h => {
+      const d = new Date(h.date);
+      d.setHours(0,0,0,0);
+      return d.getTime();
+    }));
+
     attendanceRecords.forEach(record => {
-      if (stats[record.status] !== undefined) {
-        stats[record.status]++;
+      const recordDate = new Date(record.date);
+      recordDate.setHours(0,0,0,0);
+      if (!holidayDates.has(recordDate.getTime())) {
+        if (record.status === 'present') stats.present++;
+        else if (record.status === 'absent') stats.absent++;
+        else if (record.status === 'late') { stats.present++; stats.late++; }
+        else if (record.status === 'excused') stats.excused++;
+        stats.total++;
       }
-      stats.total++;
     });
 
-    const percentage = stats.total > 0 ? ((stats.present + stats.late) / stats.total * 100).toFixed(1) : 0;
+    const percentage = stats.total > 0 ? ((stats.present / stats.total) * 100).toFixed(1) : 0;
     return { ...stats, percentage };
   };
 
-  const [todayStatus, setTodayStatus] = useState(null);
-
-  useEffect(() => {
-    const checkTodayStatus = async () => {
-      try {
-        const response = await api.get(`/api/holidays/check?date=${getTodayString()}`);
-        if (response.ok) {
-          const data = await response.json();
-          setTodayStatus(data);
-        }
-      } catch (error) {
-        console.error('Error checking today status:', error);
-      }
-    };
-    checkTodayStatus();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (wards.length === 0) {
-    return (
-      <div className="max-w-2xl mx-auto mt-8">
-        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-lg">
-          <h3 className="font-bold text-yellow-900 mb-2">No Children Linked</h3>
-          <p className="text-yellow-700">
-            You don't have any children linked to your account yet. Please contact the school admin.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="p-8 text-center text-gray-500 font-bold italic animate-pulse">Initializing Dashboard...</div>;
+  if (wards.length === 0) return <div className="p-8 text-center text-red-500 font-bold">No students linked to your account.</div>;
 
   const stats = calculateStats();
+  const isTodayFiltered = filters.startDate === getTodayString() && filters.endDate === getTodayString();
 
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-primary to-primary/90 p-6 rounded-lg text-white shadow-lg">
-        <h1 className="text-3xl font-bold">Attendance Records</h1>
-        <p className="text-white/90 mt-2">View your child's attendance history</p>
+        <h1 className="text-3xl font-bold">Attendance History</h1>
+        <p className="text-white/90 mt-2">Personalized tracker for your child's records.</p>
       </div>
 
       {wards.length > 1 && (
-        <div className="bg-white p-6 rounded-lg shadow">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Select Child</label>
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <label className="block text-sm font-bold text-gray-700 mb-2">Select Child</label>
           <select
             value={selectedStudent?.id || ''}
-            onChange={(e) => {
-              const student = wards.find(w => w.id === parseInt(e.target.value));
-              setSelectedStudent(student);
-            }}
-            className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-primary"
+            onChange={(e) => setSelectedStudent(wards.find(w => w.id === parseInt(e.target.value)))}
+            className="w-full border border-gray-300 rounded-md px-4 py-2"
           >
             {wards.map(ward => (
               <option key={ward.id} value={ward.id}>
-                {ward.user?.firstName} {ward.user?.lastName} - {ward.classModel?.name} {ward.classModel?.arm}
+                {ward.user?.firstName} {ward.user?.lastName} ({ward.classModel?.name})
               </option>
             ))}
           </select>
         </div>
       )}
 
-        <div className="bg-primary/5 border-l-4 border-primary p-4 rounded-lg flex items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-primary/20 flex-shrink-0 flex items-center justify-center text-primary font-bold overflow-hidden">
-            {(() => {
-              const photoUrl = selectedStudent.user?.photoUrl || selectedStudent.photoUrl;
-              return photoUrl ? (
-                <img
-                  src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span>{selectedStudent.user?.firstName?.[0]}{selectedStudent.user?.lastName?.[0]}</span>
-              );
-            })()}
-          </div>
-          <div>
-            <p className="font-semibold text-primary">
-              Viewing attendance for: {selectedStudent.user?.firstName} {selectedStudent.user?.lastName}
-            </p>
-            <p className="text-sm text-primary/80">
-              Class: {selectedStudent.classModel?.name} {selectedStudent.classModel?.arm}
-            </p>
-          </div>
-        </div>
-
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="font-semibold text-gray-900 mb-4">Filter Records</h3>
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+        <h3 className="font-bold text-gray-900 mb-4">Date & Academic Period Filters</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Academic Session</label>
-            <select
-              value={filters.sessionId}
-              onChange={(e) => setFilters({ ...filters, sessionId: e.target.value })}
-              className="w-full border rounded-md px-3 py-2"
-            >
+            <label className="block text-xs font-black text-gray-500 uppercase mb-2">Academic Session</label>
+            <select value={filters.sessionId} onChange={(e) => setFilters({ ...filters, sessionId: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm">
               <option value="">All Sessions</option>
-              {sessions.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
+              {sessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Term</label>
-            <select
-              value={filters.termId}
-              onChange={(e) => setFilters({ ...filters, termId: e.target.value })}
-              className="w-full border rounded-md px-3 py-2"
-            >
+            <label className="block text-xs font-black text-gray-500 uppercase mb-2">Term</label>
+            <select value={filters.termId} onChange={(e) => setFilters({ ...filters, termId: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm">
               <option value="">All Terms</option>
-              {terms.map(t => (
-                <option key={t.id} value={t.id}>{t.name} ({t.academicSession?.name})</option>
-              ))}
+              {terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-            <input
-              type="date"
-              value={filters.startDate}
-              onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-              className="w-full border rounded-md px-3 py-2"
-            />
+            <label className="block text-xs font-black text-gray-500 uppercase mb-2">Start Date</label>
+            <input type="date" value={filters.startDate} onChange={(e) => setFilters({ ...filters, startDate: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-            <input
-              type="date"
-              value={filters.endDate}
-              onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-              className="w-full border rounded-md px-3 py-2"
-            />
+            <label className="block text-xs font-black text-gray-500 uppercase mb-2">End Date</label>
+            <input type="date" value={filters.endDate} onChange={(e) => setFilters({ ...filters, endDate: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" />
           </div>
         </div>
       </div>
 
-      {attendanceRecords.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-white p-4 rounded-lg shadow text-center">
-            <p className="text-sm text-gray-600 mb-1">Total Days</p>
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 text-center">
+            <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Total Days</p>
             <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-          </div>
-          <div className="bg-green-50 p-4 rounded-lg shadow text-center">
-            <p className="text-sm text-green-600 mb-1">Present</p>
+         </div>
+         <div className="bg-green-50 p-4 rounded-lg border border-green-100 text-center">
+            <p className="text-[10px] font-black uppercase text-green-600 mb-1">Present</p>
             <p className="text-2xl font-bold text-green-700">{stats.present}</p>
-          </div>
-          <div className="bg-red-50 p-4 rounded-lg shadow text-center">
-            <p className="text-sm text-red-600 mb-1">Absent</p>
+         </div>
+         <div className="bg-red-50 p-4 rounded-lg border border-red-100 text-center">
+            <p className="text-[10px] font-black uppercase text-red-600 mb-1">Absent</p>
             <p className="text-2xl font-bold text-red-700">{stats.absent}</p>
-          </div>
-          <div className="bg-yellow-50 p-4 rounded-lg shadow text-center">
-            <p className="text-sm text-yellow-600 mb-1">Late</p>
+         </div>
+         <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100 text-center">
+            <p className="text-[10px] font-black uppercase text-yellow-600 mb-1">Late</p>
             <p className="text-2xl font-bold text-yellow-700">{stats.late}</p>
-          </div>
-          <div className="bg-primary/5 p-4 rounded-lg shadow text-center">
-            <p className="text-sm text-primary mb-1">Attendance</p>
+         </div>
+         <div className="bg-primary/5 p-4 rounded-lg border border-primary/20 text-center">
+            <p className="text-[10px] font-black uppercase text-primary mb-1">Attendance</p>
             <p className="text-2xl font-bold text-primary">{stats.percentage}%</p>
-          </div>
-        </div>
-      )}
+         </div>
+      </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">Attendance History</h3>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-4 border-b border-gray-100 bg-gray-50">
+          <h3 className="font-bold text-gray-900">Attendance Log</h3>
         </div>
 
         {fetchingAttendance ? (
-          <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading attendance records...</p>
-          </div>
-        ) : attendanceRecords.length === 0 ? (
-          <div className="p-12 text-center text-gray-500">
-            {(() => {
-              const isToday = filters.startDate === getTodayString() && filters.endDate === getTodayString();
-              
-              if (isToday && todayStatus?.isHoliday) {
-                return (
-                  <>
-                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-blue-200">
-                      <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <h4 className="text-lg font-bold text-gray-700 mb-2">
-                       {todayStatus.type === 'weekend' ? 'School Is Closed (Weekend)' : `Public Holiday: ${todayStatus.name}`}
-                    </h4>
-                    <p>It's {todayStatus.isAutoWeekend ? new Date().toLocaleDateString('en-US', { weekday: 'long' }) : todayStatus.name}. Attendance is only recorded on school days.</p>
-                  </>
-                );
-              }
-
-              if (isToday) {
-                return (
-                  <>
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-gray-300">
-                      <span className="text-gray-400 font-bold text-xs">PENDING</span>
-                    </div>
-                    <h4 className="text-lg font-bold text-gray-700 mb-2">Today's Attendance is Pending</h4>
-                    <p>The class teacher has not yet recorded the attendance for today.</p>
-                  </>
-                );
-              }
-
-              return (
-                <>
-                  <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <p>No attendance records found for the selected period.</p>
-                </>
-              );
-            })()}
-          </div>
+          <div className="p-12 text-center text-primary font-bold animate-pulse">Syncing records...</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Session</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Term</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {attendanceRecords.map((record) => (
-                  <tr key={record.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {new Date(record.date).toLocaleDateString('en-US', {
-                          weekday: 'short',
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {record.academicSession?.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {record.term?.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(record.status)}`}>
-                        {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {record.notes || '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="divide-y divide-gray-100">
+            {isTodayFiltered && todayStatus?.isHoliday && (
+              <div className="p-8 text-center">
+                <div className="bg-blue-50 border-2 border-dashed border-blue-200 rounded-2xl p-8 max-w-lg mx-auto">
+                    <div className="text-5xl mb-4">🏠</div>
+                    <h3 className="text-xl font-black text-blue-900 mb-2 uppercase tracking-tight">Today is a {todayStatus.type === 'weekend' ? 'Weekend' : 'Holiday'}</h3>
+                    <p className="text-blue-700 font-medium">No school activities are scheduled for today. {todayStatus.name ? `(${todayStatus.name})` : ''}</p>
+                </div>
+              </div>
+            )}
+            
+            {attendanceRecords.length === 0 ? (
+              !isTodayFiltered || !todayStatus?.isHoliday ? (
+                <div className="p-12 text-center text-gray-400 italic">No attendance records found for this period.</div>
+              ) : null
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-100">
+                  <thead className="bg-gray-50/50">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</th>
+                      <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {attendanceRecords.map((record) => (
+                      <tr key={record.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-bold text-gray-900">
+                            {new Date(record.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${getStatusColor(record.status)}`}>
+                            {record.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 italic">
+                          {record.notes || '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+      <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg shadow-sm">
         <div className="flex">
-          <svg className="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-          </svg>
-          <div className="text-sm text-blue-700">
-            <p className="font-medium">Attendance Information</p>
-            <p className="mt-1">
-              This shows your child's attendance records for the selected period. You can filter by session, term, or specific date range to view historical attendance data.
-            </p>
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-bold text-blue-800">Attendance Policy</h3>
+            <p className="text-xs text-blue-700 mt-1">Attendance is calculated based on working school days. Weekends and official holidays are automatically excluded from the totals to ensure accuracy.</p>
           </div>
         </div>
       </div>
