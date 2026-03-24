@@ -129,8 +129,8 @@ const ArrivalScanner = () => {
                 onChange={(e) => setAdmissionNumber(e.target.value)}
                 autoFocus
                 placeholder="Scan Card or Type ID"
-                className="w-full px-6 py-4 text-center text-2xl font-mono tracking-widest border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none uppercase"
-                disabled={loading}
+                className={`w-full px-6 py-4 text-center text-2xl font-mono tracking-widest border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none uppercase ${dailyStats[0]?.isHoliday ? 'bg-gray-100 cursor-not-allowed opacity-50' : ''}`}
+                disabled={loading || dailyStats[0]?.isHoliday}
               />
               {loading && (
                 <div className="absolute right-4 top-1/2 -translate-y-1/2">

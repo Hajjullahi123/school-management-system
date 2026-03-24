@@ -183,27 +183,23 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal', '
       return res.status(403).json({ error: 'Marking window closed. Attendance for this date is locked (48h limit).' });
     }
 
-    // HOLIDAY / WEEKEND CHECK FOR TEACHERS (using school settings)
-    if (req.user.role === 'teacher') {
-      const dayOfWeek = targetDate.getDay();
+    // HOLIDAY / WEEKEND CHECK (Global check for all users)
+    const dayOfWeek = targetDate.getDay();
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { weekendDays: true }
+    });
+    const weekendIndices = (school?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
 
-      const school = await prisma.school.findUnique({
-        where: { id: req.schoolId },
-        select: { weekendDays: true }
+    const holidayRecord = await prisma.schoolHoliday.findFirst({
+      where: { schoolId: req.schoolId, date: targetDate }
+    });
+
+    if ((holidayRecord || weekendIndices.includes(dayOfWeek)) && !adminOverride) {
+      const reason = holidayRecord ? `Holiday: ${holidayRecord.name}` : "Weekend";
+      return res.status(403).json({
+        error: `Cannot mark attendance on ${reason}.`
       });
-      const weekendIndices = (school?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
-
-      let isHoliday = weekendIndices.includes(dayOfWeek);
-
-      const holidayRecord = await prisma.schoolHoliday.findFirst({
-        where: { schoolId: req.schoolId, date: targetDate }
-      });
-
-      if (holidayRecord || isHoliday) {
-        return res.status(403).json({
-          error: 'Cannot mark attendance on holidays or weekends.'
-        });
-      }
     }
 
     // TEACHER SCOPE CHECK
@@ -577,12 +573,32 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
     let { admissionNumber } = req.body;
     console.log(`[SCAN DEBUG] Received Scan Request: "${admissionNumber}" for School ID: ${req.schoolId}`);
 
-    if (!admissionNumber) {
-      return res.status(400).json({ error: 'Admission number is required' });
-    }
-
     // Normalize for case-insensitive matching (SQLite is case-sensitive)
     const normalizedId = admissionNumber.trim().toUpperCase();
+
+    // 0. HOLIDAY / WEEKEND CHECK
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dayOfWeek = today.getDay();
+
+    const schoolSettings = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { weekendDays: true, name: true, schoolName: true, staffExpectedArrivalTime: true, enableSMS: true, staffClockInMode: true, authorizedIP: true }
+    });
+    const weekendIndices = (schoolSettings?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
+
+    const holidayRecord = await prisma.schoolHoliday.findFirst({
+      where: { schoolId: req.schoolId, date: today }
+    });
+
+    if (holidayRecord || weekendIndices.includes(dayOfWeek)) {
+      const reason = holidayRecord ? `Holiday: ${holidayRecord.name}` : "Weekend";
+      console.warn(`[SCAN WARNING] Scan attempt blocked: School is closed today (${reason}).`);
+      return res.status(403).json({
+        error: 'School is closed',
+        message: `Attendance is not recorded on ${reason}.`
+      });
+    }
 
     const { session, term } = await getCurrentSessionAndTerm(req.schoolId);
     if (!session || !term) {
@@ -590,9 +606,6 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
     }
 
     // 1. Find the student
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     const student = await prisma.student.findFirst({
       where: {
         schoolId: req.schoolId,

@@ -64,17 +64,32 @@ router.post('/check-in', authenticate, authorize(['teacher', 'admin', 'principal
       });
     }
 
-    // Get school settings for expected arrival time and deadline
+    // 0. HOLIDAY / WEEKEND CHECK
+    const dayOfWeek = today.getDay();
     const schoolSettings = await prisma.school.findUnique({
       where: { id: schoolId },
       select: {
         name: true,
+        weekendDays: true,
         staffExpectedArrivalTime: true,
         staffClockInDeadline: true,
         staffClockInMode: true,
         authorizedIP: true
       }
     });
+
+    const weekendIndices = (schoolSettings?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
+    const holidayRecord = await prisma.schoolHoliday.findFirst({
+      where: { schoolId, date: today }
+    });
+
+    if (holidayRecord || weekendIndices.includes(dayOfWeek)) {
+      const reason = holidayRecord ? `Holiday: ${holidayRecord.name}` : "Weekend";
+      return res.status(403).json({
+        error: 'School is closed',
+        message: `Clock-in is not permitted on ${reason}.`
+      });
+    }
 
     // 1. Role-based Restriction (Teachers must be scanned by admin)
     if (req.user.role === 'teacher') {
@@ -398,7 +413,12 @@ router.get('/daily-report', authenticate, authorize(['admin', 'principal', 'atte
       const holidayName = holidayRecord?.name || (isWeekend ? 'Weekend' : null);
 
       // Calculate summary stats
-      const stats = {
+      const stats = isHoliday ? {
+        total: 0,
+        present: 0,
+        late: 0,
+        absent: 0
+      } : {
         total: staffMembers.length,
         present: dailyStaffData.filter(r => r.status === 'present' || r.status === 'late').length,
         late: dailyStaffData.filter(r => r.status === 'late').length,
@@ -511,6 +531,22 @@ router.post('/mark-absent', authenticate, authorize(['admin', 'principal', 'atte
 
     const targetDate = new Date(date);
     targetDate.setHours(0, 0, 0, 0);
+
+    // Holiday Check
+    const dayOfWeek = targetDate.getDay();
+    const schoolSettings = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { weekendDays: true }
+    });
+    const weekendIndices = (schoolSettings?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
+    const holidayRecord = await prisma.schoolHoliday.findFirst({
+      where: { schoolId, date: targetDate }
+    });
+
+    if (holidayRecord || weekendIndices.includes(dayOfWeek)) {
+      const reason = holidayRecord ? `Holiday: ${holidayRecord.name}` : "Weekend";
+      return res.status(400).json({ error: `Cannot mark attendance on ${reason}.` });
+    }
 
     await prisma.staffAttendance.upsert({
       where: {
@@ -654,11 +690,23 @@ router.post('/mark-bulk', authenticate, authorize(['admin', 'principal', 'attend
     targetDate.setHours(0, 0, 0, 0);
 
     const schoolId = parseInt(req.schoolId);
-    // Get school settings for arrival time fallbacks
+
+    // Holiday Check
+    const dayOfWeek = targetDate.getDay();
     const schoolSettings = await prisma.school.findUnique({
       where: { id: schoolId },
-      select: { staffExpectedArrivalTime: true }
+      select: { weekendDays: true, staffExpectedArrivalTime: true }
     });
+    const weekendIndices = (schoolSettings?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
+    const holidayRecord = await prisma.schoolHoliday.findFirst({
+      where: { schoolId, date: targetDate }
+    });
+
+    if (holidayRecord || weekendIndices.includes(dayOfWeek)) {
+      const reason = holidayRecord ? `Holiday: ${holidayRecord.name}` : "Weekend";
+      return res.status(400).json({ error: `Cannot mark bulk attendance on ${reason}.` });
+    }
+
     const arrivalTimeStr = schoolSettings?.staffExpectedArrivalTime || '07:00';
     const [hours, minutes] = arrivalTimeStr.split(':');
 
