@@ -62,18 +62,28 @@ const LessonWorkspace = () => {
             const assignResp = await api.get(`/api/teacher-assignments/teacher/${user.id}`);
             if (assignResp.ok) {
                 assignmentsData = await assignResp.json();
+                console.log('[DEBUG] Teacher Assignments:', assignmentsData);
                 setTeacherAssignments(assignmentsData);
             }
 
             // 2. Fetch Classes/Subjects Based on Role
             if (user.role === 'admin' || user.role === 'principal' || user.role === 'superadmin') {
-                // Admins see everything
+                console.log('[DEBUG] Fetching all for role:', user.role);
                 const [classesResp, subjectsResp] = await Promise.all([
                     api.get('/api/classes'),
                     api.get('/api/subjects')
                 ]);
-                if (classesResp.ok) setClasses(await classesResp.json());
-                if (subjectsResp.ok) setSubjects(await subjectsResp.json());
+                
+                if (classesResp.ok) {
+                    const classesData = await classesResp.json();
+                    console.log('[DEBUG] All Classes:', classesData);
+                    setClasses(classesData);
+                }
+                if (subjectsResp.ok) {
+                    const subjectsData = await subjectsResp.json();
+                    console.log('[DEBUG] All Subjects:', subjectsData);
+                    setSubjects(subjectsData);
+                }
             } else {
                 // Regular Teachers see only their assignments
                 const uniqueClasses = [];
@@ -86,6 +96,7 @@ const LessonWorkspace = () => {
                         classIds.add(cid);
                     }
                 });
+                console.log('[DEBUG] Unique Teacher Classes:', uniqueClasses);
                 setClasses(uniqueClasses);
                 
                 // If only one class, auto-select and fetch subjects
@@ -95,6 +106,7 @@ const LessonWorkspace = () => {
                     const relevantSubjects = assignmentsData
                         .filter(a => (a.classId || a.classSubject?.classId) === singleClass.id)
                         .map(a => a.subject || a.classSubject?.subject);
+                    console.log('[DEBUG] Auto-selected subjects:', relevantSubjects);
                     setSubjects(relevantSubjects);
                 }
             }
@@ -105,6 +117,7 @@ const LessonWorkspace = () => {
 
     const handleClassChange = (classId) => {
         const cid = parseInt(classId);
+        console.log('[DEBUG] Class Selected:', cid);
         setFormData({ ...formData, classId, subjectId: '' });
         
         if (user.role === 'admin' || user.role === 'principal' || user.role === 'superadmin') {
@@ -113,15 +126,18 @@ const LessonWorkspace = () => {
             const relevantSubjects = teacherAssignments
                 .filter(a => (a.classId || a.classSubject?.classId) === cid)
                 .map(a => a.subject || a.classSubject?.subject);
+            console.log('[DEBUG] Subjects for selected class:', relevantSubjects);
             setSubjects(relevantSubjects);
         }
     };
 
     const fetchSubjectsForClass = async (classId) => {
         try {
+            console.log('[DEBUG] Fetching subjects for class:', classId);
             const resp = await api.get(`/api/class-subjects/class/${classId}`);
             if (resp.ok) {
                 const data = await resp.json();
+                console.log('[DEBUG] Class-Subjects mapped:', data);
                 setSubjects(data.map(cs => cs.subject));
             }
         } catch (err) {}
