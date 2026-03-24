@@ -47,10 +47,18 @@ router.get('/check', authenticate, async (req, res) => {
       checkDate.setHours(0, 0, 0, 0);
     }
 
-    // Check if Saturday or Sunday (auto weekend detection)
+    // Fetch school settings for custom weekends
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { weekendDays: true }
+    });
+
+    const weekendDays = (school.weekendDays || '0,6').split(',').map(d => parseInt(d.trim()));
     const dayOfWeek = checkDate.getDay();
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      const dayName = dayOfWeek === 0 ? 'Sunday' : 'Saturday';
+
+    if (weekendDays.includes(dayOfWeek)) {
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayName = days[dayOfWeek];
       // Also check if there's a DB record overriding/confirming this
       const record = await prisma.schoolHoliday.findFirst({
         where: { schoolId: req.schoolId, date: checkDate }
@@ -102,11 +110,20 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'superadmin']), 
   }
 });
 
-// POST /api/holidays/bulk-weekends — bulk-add all Sat/Sun in a date range
+// POST /api/holidays/bulk-weekends — bulk-add all weekend days in a date range
 router.post('/bulk-weekends', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const { startDate, endDate } = req.body;
     if (!startDate || !endDate) return res.status(400).json({ error: 'startDate and endDate are required' });
+
+    // Fetch school settings for custom weekends
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { weekendDays: true }
+    });
+
+    const weekendDays = (school.weekendDays || '0,6').split(',').map(d => parseInt(d.trim()));
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     const [startYear, startMonth, startDay] = startDate.split('-');
     const start = new Date(parseInt(startYear), parseInt(startMonth) - 1, parseInt(startDay), 0, 0, 0);
@@ -117,8 +134,9 @@ router.post('/bulk-weekends', authenticate, authorize(['admin', 'principal', 'su
     const weekends = [];
 
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      if (d.getDay() === 0 || d.getDay() === 6) {
-        const dayName = d.getDay() === 0 ? 'Sunday' : 'Saturday';
+      const dayOfWeek = d.getDay();
+      if (weekendDays.includes(dayOfWeek)) {
+        const dayName = days[dayOfWeek];
         weekends.push({
           schoolId: req.schoolId,
           date: new Date(d.setHours(0, 0, 0, 0)),

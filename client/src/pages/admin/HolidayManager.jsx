@@ -22,8 +22,12 @@ const HolidayManager = () => {
     endDate: ''
   });
 
+  const [settings, setSettings] = useState(null);
+  const [updatingSettings, setUpdatingSettings] = useState(false);
+
   useEffect(() => {
     fetchHolidays();
+    fetchSettings();
   }, []);
 
   const fetchHolidays = async () => {
@@ -36,6 +40,43 @@ const HolidayManager = () => {
       toast.error('Failed to load holidays');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const res = await api.get('/api/settings');
+      if (res.ok) {
+        setSettings(await res.json());
+      }
+    } catch (err) {
+      console.error('Failed to load settings');
+    }
+  };
+
+  const handleUpdateWeekends = async (dayIndex) => {
+    setUpdatingSettings(true);
+    try {
+      const currentWeekends = (settings.weekendDays || '0,6').split(',').map(d => d.trim()).filter(d => d !== '');
+      let newWeekends;
+      
+      if (currentWeekends.includes(String(dayIndex))) {
+        newWeekends = currentWeekends.filter(d => d !== String(dayIndex));
+      } else {
+        newWeekends = [...currentWeekends, String(dayIndex)];
+      }
+
+      const res = await api.put('/api/settings', { weekendDays: newWeekends.join(',') });
+      if (res.ok) {
+        toast.success('Weekend settings updated');
+        fetchSettings();
+      } else {
+        toast.error('Failed to update weekend settings');
+      }
+    } catch (err) {
+      toast.error('Error updating settings');
+    } finally {
+      setUpdatingSettings(false);
     }
   };
 
@@ -89,6 +130,19 @@ const HolidayManager = () => {
     }
   };
 
+  const daysOfWeek = [
+    { id: 0, name: 'Sunday' },
+    { id: 1, name: 'Monday' },
+    { id: 2, name: 'Tuesday' },
+    { id: 3, name: 'Wednesday' },
+    { id: 4, name: 'Thursday' },
+    { id: 5, name: 'Friday' },
+    { id: 6, name: 'Saturday' }
+  ];
+
+  const currentWeekendIndices = (settings?.weekendDays || '0,6').split(',').map(d => d.trim());
+  const currentWeekendNames = daysOfWeek.filter(d => currentWeekendIndices.includes(String(d.id))).map(d => d.name + 's').join(' & ');
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -106,6 +160,37 @@ const HolidayManager = () => {
           >
             + Add Holiday
           </button>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <h2 className="text-lg font-bold mb-4 flex items-center">
+          <svg className="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+          </svg>
+          Weekend Configuration
+        </h2>
+        <p className="text-sm text-gray-500 mb-6 font-medium">Select which days of the week are considered weekends for your school. This affects attendance marking and auto-filling.</p>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
+          {daysOfWeek.map((day) => {
+            const isSelected = currentWeekendIndices.includes(String(day.id));
+            return (
+              <button
+                key={day.id}
+                disabled={updatingSettings || !settings}
+                onClick={() => handleUpdateWeekends(day.id)}
+                className={`px-3 py-3 rounded-lg border-2 text-center transition-all ${
+                  isSelected 
+                    ? 'bg-primary/10 border-primary text-primary font-bold shadow-sm' 
+                    : 'bg-gray-50 border-gray-100 text-gray-400 hover:border-gray-300'
+                } ${updatingSettings ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <div className="text-[10px] uppercase font-black tracking-widest mb-1">{isSelected ? 'Weekend' : 'Weekday'}</div>
+                <div className="text-sm">{day.name}</div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -144,8 +229,8 @@ const HolidayManager = () => {
 
       {showBulkForm && (
         <div className="bg-blue-50 p-6 rounded-lg shadow-sm border border-blue-200">
-          <h2 className="text-lg font-bold mb-4 text-blue-900">Auto-fill Weekends (Saturdays & Sundays)</h2>
-          <p className="text-sm text-blue-700 mb-4 font-medium">This will mark all Saturdays and Sundays within the selected date range as "Rest Days" so attendance cannot be marked.</p>
+          <h2 className="text-lg font-bold mb-4 text-blue-900">Auto-fill Weekends ({currentWeekendNames})</h2>
+          <p className="text-sm text-blue-700 mb-4 font-medium">This will mark all {currentWeekendNames} within the selected date range as "Rest Days" so attendance cannot be marked.</p>
           <form onSubmit={handleBulkWeekends} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
