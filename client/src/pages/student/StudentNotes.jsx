@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { FiBook, FiCpu, FiLanguages, FiMessageCircle, FiSend, FiX, FiCheckCircle, FiChevronRight, FiTrash2 } from 'react-icons/fi';
+import { FiBook, FiCpu, FiGlobe, FiMessageCircle, FiSend, FiX, FiCheckCircle, FiChevronRight, FiTrash2 } from 'react-icons/fi';
 import ReactMarkdown from 'react-markdown';
 
 const StudentNotes = () => {
@@ -193,7 +193,7 @@ const StudentNotes = () => {
                                 <div className="flex flex-wrap gap-3">
                                     <div className="flex items-center gap-2 mr-2">
                                         <div className="bg-purple-600 p-1.5 rounded-lg">
-                                            <FiLanguages className="text-white text-sm" />
+                                            <FiGlobe className="text-white text-sm" />
                                         </div>
                                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Translate</span>
                                     </div>
@@ -202,21 +202,21 @@ const StudentNotes = () => {
                                         disabled={translating}
                                         className={`px-4 py-2 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm ${translation?.lang === 'Yoruba' ? 'bg-indigo-600 text-white shadow-indigo-100' : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-600'}`}
                                     >
-                                        {translating && translation?.lang === 'Yoruba' ? <div className="w-3 h-3 border-2 border-white border-t-transparent animate-spin rounded-full"></div> : 'Yoruba'}
+                                        {translating && translation?.lang === 'Yoruba' ? <div className="w-3 h-3 border-2 border-white border-t-transparent animate-spin rounded-full"></div> : <><FiGlobe /> Yoruba</>}
                                     </button>
                                     <button 
                                         onClick={() => handleTranslate('Hausa')}
                                         disabled={translating}
                                         className={`px-4 py-2 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm ${translation?.lang === 'Hausa' ? 'bg-indigo-600 text-white shadow-indigo-100' : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-600'}`}
                                     >
-                                        {translating && translation?.lang === 'Hausa' ? <div className="w-3 h-3 border-2 border-white border-t-transparent animate-spin rounded-full"></div> : 'Hausa'}
+                                        {translating && translation?.lang === 'Hausa' ? <div className="w-3 h-3 border-2 border-white border-t-transparent animate-spin rounded-full"></div> : <><FiGlobe /> Hausa</>}
                                     </button>
                                     <button 
                                         onClick={() => handleTranslate('Igbo')}
                                         disabled={translating}
                                         className={`px-4 py-2 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm ${translation?.lang === 'Igbo' ? 'bg-indigo-600 text-white shadow-indigo-100' : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-600'}`}
                                     >
-                                        {translating && translation?.lang === 'Igbo' ? <div className="w-3 h-3 border-2 border-white border-t-transparent animate-spin rounded-full"></div> : 'Igbo'}
+                                        {translating && translation?.lang === 'Igbo' ? <div className="w-3 h-3 border-2 border-white border-t-transparent animate-spin rounded-full"></div> : <><FiGlobe /> Igbo</>}
                                     </button>
                                 </div>
                                 <button 
