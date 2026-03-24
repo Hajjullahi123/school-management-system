@@ -39,12 +39,11 @@ router.get('/check', authenticate, async (req, res) => {
 
     let checkDate;
     if (date.includes('-')) {
-      // if date comes in as YYYY-MM-DD
       const [year, month, day] = date.split('-');
-      checkDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0);
+      checkDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day)));
     } else {
-      checkDate = new Date(date);
-      checkDate.setHours(0, 0, 0, 0);
+      const d = new Date(date);
+      checkDate = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
     }
 
     // Fetch school settings for custom weekends
@@ -95,7 +94,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'superadmin']), 
     if (!date || !name) return res.status(400).json({ error: 'Date and name are required' });
 
     const [year, month, day] = date.split('-');
-    const holidayDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0);
+    const holidayDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day)));
 
     const holiday = await prisma.schoolHoliday.upsert({
       where: { schoolId_date: { schoolId: req.schoolId, date: holidayDate } },
@@ -126,10 +125,10 @@ router.post('/bulk-weekends', authenticate, authorize(['admin', 'principal', 'su
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     const [startYear, startMonth, startDay] = startDate.split('-');
-    const start = new Date(parseInt(startYear), parseInt(startMonth) - 1, parseInt(startDay), 0, 0, 0);
+    const start = new Date(Date.UTC(parseInt(startYear), parseInt(startMonth) - 1, parseInt(startDay)));
 
     const [endYear, endMonth, endDay] = endDate.split('-');
-    const end = new Date(parseInt(endYear), parseInt(endMonth) - 1, parseInt(endDay), 0, 0, 0);
+    const end = new Date(Date.UTC(parseInt(endYear), parseInt(endMonth) - 1, parseInt(endDay)));
 
     const weekends = [];
 
@@ -139,7 +138,7 @@ router.post('/bulk-weekends', authenticate, authorize(['admin', 'principal', 'su
         const dayName = days[dayOfWeek];
         weekends.push({
           schoolId: req.schoolId,
-          date: new Date(d.setHours(0, 0, 0, 0)),
+          date: new Date(d.toISOString().split('T')[0] + 'T00:00:00.000Z'),
           name: dayName,
           type: 'weekend',
           description: null
