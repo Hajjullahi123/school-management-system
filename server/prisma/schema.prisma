@@ -37,6 +37,9 @@ model GlobalSettings {
   latestAppVersion String? @default("1.0.0")
   apkDownloadUrl   String?
 
+  // AI Configuration (Platform Level Fallback)
+  geminiApiKey     String?
+
   updatedAt DateTime @updatedAt
 }
 

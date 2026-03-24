@@ -3,13 +3,24 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 class AIQueryHandler {
   constructor(apiKey) {
     if (!apiKey) {
-      console.warn('[AI] Gemini API key not provided');
-      this.genAI = null;
-      return;
+      console.warn('[AI] Gemini API key not provided, will check global fallback');
+      this.initAsync();
+    } else {
+      this.genAI = new GoogleGenerativeAI(apiKey);
+      this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     }
+  }
 
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  async initAsync() {
+    try {
+      const prisma = require('../db');
+      const settings = await prisma.globalSettings.findFirst();
+      if (settings?.geminiApiKey) {
+        this.genAI = new GoogleGenerativeAI(settings.geminiApiKey);
+        this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        console.log('[AI] Initialized with Global Gemini API Key');
+      }
+    } catch (e) { }
   }
 
   /**

@@ -318,20 +318,27 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
     const { classId, subjectId, topic, count = 10, difficulty = 'medium' } = req.body;
     const schoolId = req.schoolId;
 
-    // 1. Get School Gemini API Key
+    // 1. Get Gemini API Key (School specific or Global Fallback)
     const school = await prisma.school.findUnique({
       where: { id: schoolId },
       select: { geminiApiKey: true }
     });
 
-    if (!school?.geminiApiKey) {
+    let apiKey = school?.geminiApiKey;
+    if (!apiKey) {
+      const global = await prisma.globalSettings.findFirst();
+      apiKey = global?.geminiApiKey;
+    }
+
+    if (!apiKey) {
       return res.status(400).json({ 
         error: 'AI feature not configured', 
-        message: 'Please provide a Gemini API Key in School Settings to use AI Generation.' 
+        message: 'No Gemini API Key found. Please configure a key in School Settings or System Settings.' 
       });
     }
 
-    // 2. Get Curriculum for context (optional but recommended)
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(apiKey);
     const curriculum = await prisma.curriculum.findUnique({
       where: {
         schoolId_subjectId_classId: {
@@ -346,7 +353,6 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
     const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
 
     // 3. Prompt Engineering
-    const genAI = new GoogleGenerativeAI(school.geminiApiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
@@ -405,14 +411,21 @@ router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'adm
       select: { geminiApiKey: true }
     });
 
-    if (!school?.geminiApiKey) {
+    let apiKey = school?.geminiApiKey;
+    if (!apiKey) {
+      const global = await prisma.globalSettings.findFirst();
+      apiKey = global?.geminiApiKey;
+    }
+
+    if (!apiKey) {
       return res.status(400).json({ error: 'AI feature not configured' });
     }
 
     const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
     const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
 
-    const genAI = new GoogleGenerativeAI(school.geminiApiKey);
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
@@ -466,12 +479,19 @@ router.post('/ai/suggest-resources', authenticate, authorize(['teacher', 'admin'
       select: { geminiApiKey: true }
     });
 
-    if (!school?.geminiApiKey) return res.status(400).json({ error: 'AI not configured' });
+    let apiKey = school?.geminiApiKey;
+    if (!apiKey) {
+      const global = await prisma.globalSettings.findFirst();
+      apiKey = global?.geminiApiKey;
+    }
+
+    if (!apiKey) return res.status(400).json({ error: 'AI not configured' });
 
     const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
     const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
 
-    const genAI = new GoogleGenerativeAI(school.geminiApiKey);
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `

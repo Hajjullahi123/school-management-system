@@ -612,7 +612,7 @@ router.post('/global-settings', authenticate, authorize(['superadmin']), async (
       platformPaystackKey, platformFlutterwaveKey, platformSecretKey,
       basicPrice, standardPrice, premiumPrice,
       s3AccessKey, s3SecretKey, s3BucketName, s3Region, enableAutoBackup, backupRetentionDays,
-      latestAppVersion, apkDownloadUrl
+      latestAppVersion, apkDownloadUrl, geminiApiKey
     } = req.body;
 
     const settings = await prisma.globalSettings.upsert({
@@ -637,7 +637,8 @@ router.post('/global-settings', authenticate, authorize(['superadmin']), async (
         enableAutoBackup: enableAutoBackup === true || enableAutoBackup === 'true',
         backupRetentionDays: parseInt(backupRetentionDays) || undefined,
         latestAppVersion: latestAppVersion || undefined,
-        apkDownloadUrl: apkDownloadUrl || undefined
+        apkDownloadUrl: apkDownloadUrl || undefined,
+        geminiApiKey: geminiApiKey || undefined
       },
       create: {
         id: 1,
@@ -660,7 +661,8 @@ router.post('/global-settings', authenticate, authorize(['superadmin']), async (
         enableAutoBackup: enableAutoBackup === true || enableAutoBackup === 'true',
         backupRetentionDays: parseInt(backupRetentionDays) || 30,
         latestAppVersion: latestAppVersion || "1.0.0",
-        apkDownloadUrl
+        apkDownloadUrl,
+        geminiApiKey: geminiApiKey || undefined
       }
     });
 
