@@ -14,6 +14,7 @@ const ParentAttendanceView = () => {
   const [terms, setTerms] = useState([]);
   const [holidays, setHolidays] = useState([]);
   const [todayStatus, setTodayStatus] = useState(null);
+  const [schoolSettings, setSchoolSettings] = useState(null);
 
   const getTodayString = () => {
     return new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
@@ -36,6 +37,7 @@ const ParentAttendanceView = () => {
         fetchSessions(),
         fetchTerms(),
         fetchHolidays(),
+        fetchSchoolSettings(),
         checkTodayStatus()
       ]);
       setLoading(false);
@@ -56,6 +58,15 @@ const ParentAttendanceView = () => {
         setTodayStatus(await response.json());
       }
     } catch (error) { console.error(error); }
+  };
+
+  const fetchSchoolSettings = async () => {
+    try {
+      const response = await api.get('/api/settings');
+      if (response.ok) {
+        setSchoolSettings(await response.json());
+      }
+    } catch (e) { console.error(e); }
   };
 
   const fetchHolidays = async () => {
@@ -138,10 +149,15 @@ const ParentAttendanceView = () => {
       return d.getTime();
     }));
 
+    const weekendDays = (schoolSettings?.weekendDays || '0,6').split(',').map(d => parseInt(d.trim()));
+
     attendanceRecords.forEach(record => {
       const recordDate = new Date(record.date);
       recordDate.setHours(0,0,0,0);
-      if (!holidayDates.has(recordDate.getTime())) {
+      const isWeekend = weekendDays.includes(recordDate.getDay());
+      const isHoliday = holidayDates.has(recordDate.getTime());
+
+      if (!isHoliday && !isWeekend) {
         if (record.status === 'present') stats.present++;
         else if (record.status === 'absent') stats.absent++;
         else if (record.status === 'late') { stats.present++; stats.late++; }
@@ -269,7 +285,18 @@ const ParentAttendanceView = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
-                    {attendanceRecords.map((record) => (
+                    {attendanceRecords.filter(r => {
+                      const rd = new Date(r.date);
+                      rd.setHours(0,0,0,0);
+                      const isHoliday = holidays.some(h => {
+                        const d = new Date(h.date);
+                        d.setHours(0,0,0,0);
+                        return d.getTime() === rd.getTime();
+                      });
+                      const weekendDays = (schoolSettings?.weekendDays || '0,6').split(',').map(d => parseInt(d.trim()));
+                      const isWeekend = weekendDays.includes(rd.getDay());
+                      return !isHoliday && !isWeekend;
+                    }).map((record) => (
                       <tr key={record.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-bold text-gray-900">
