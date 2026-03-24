@@ -57,6 +57,15 @@ const LessonWorkspace = () => {
 
     const fetchTeacherData = async () => {
         try {
+            // 1. Fetch Teacher's specific assignments ALWAYS if role is teacher-like
+            let assignmentsData = [];
+            const assignResp = await api.get(`/api/teacher-assignments/teacher/${user.id}`);
+            if (assignResp.ok) {
+                assignmentsData = await assignResp.json();
+                setTeacherAssignments(assignmentsData);
+            }
+
+            // 2. Fetch Classes/Subjects Based on Role
             if (user.role === 'admin' || user.role === 'principal' || user.role === 'superadmin') {
                 // Admins see everything
                 const [classesResp, subjectsResp] = await Promise.all([
@@ -64,26 +73,29 @@ const LessonWorkspace = () => {
                     api.get('/api/subjects')
                 ]);
                 if (classesResp.ok) setClasses(await classesResp.json());
-                if (subjectsResp.ok) {
-                    const allSubjects = await subjectsResp.json();
-                    setSubjects(allSubjects);
-                    // For admins, we don't use teacherAssignments to filter subjects initially
-                }
+                if (subjectsResp.ok) setSubjects(await subjectsResp.json());
             } else {
-                // Teachers see only their assignments
-                const resp = await api.get(`/api/teacher-assignments/teacher/${user.id}`);
-                if (resp.ok) {
-                    const data = await resp.json();
-                    setTeacherAssignments(data);
-                    const uniqueClasses = [];
-                    const classIds = new Set();
-                    data.forEach(a => {
-                        if (a.class && !classIds.has(a.classId)) {
-                            uniqueClasses.push(a.class);
-                            classIds.add(a.classId);
-                        }
-                    });
-                    setClasses(uniqueClasses);
+                // Regular Teachers see only their assignments
+                const uniqueClasses = [];
+                const classIds = new Set();
+                assignmentsData.forEach(a => {
+                    const cls = a.class || a.classSubject?.class;
+                    const cid = a.classId || a.classSubject?.classId;
+                    if (cls && !classIds.has(cid)) {
+                        uniqueClasses.push(cls);
+                        classIds.add(cid);
+                    }
+                });
+                setClasses(uniqueClasses);
+                
+                // If only one class, auto-select and fetch subjects
+                if (uniqueClasses.length === 1) {
+                    const singleClass = uniqueClasses[0];
+                    setFormData(prev => ({ ...prev, classId: singleClass.id.toString() }));
+                    const relevantSubjects = assignmentsData
+                        .filter(a => (a.classId || a.classSubject?.classId) === singleClass.id)
+                        .map(a => a.subject || a.classSubject?.subject);
+                    setSubjects(relevantSubjects);
                 }
             }
         } catch (err) {
@@ -92,16 +104,15 @@ const LessonWorkspace = () => {
     };
 
     const handleClassChange = (classId) => {
+        const cid = parseInt(classId);
         setFormData({ ...formData, classId, subjectId: '' });
         
         if (user.role === 'admin' || user.role === 'principal' || user.role === 'superadmin') {
-            // Admins don't need to filter subjects by assignment, 
-            // but in a large school, they might want to see subjects for that class
-            fetchSubjectsForClass(classId);
+            fetchSubjectsForClass(cid);
         } else {
             const relevantSubjects = teacherAssignments
-                .filter(a => a.classId === parseInt(classId))
-                .map(a => a.subject);
+                .filter(a => (a.classId || a.classSubject?.classId) === cid)
+                .map(a => a.subject || a.classSubject?.subject);
             setSubjects(relevantSubjects);
         }
     };
