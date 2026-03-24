@@ -6,10 +6,7 @@ const logFile = 'logs/auth-debug.log';
 
 // Authentication middleware
 const authenticate = (req, res, next) => {
-  const log = (msg) => {
-    // Non-blocking async write — does not stall the event loop
-    fs.appendFile(logFile, `[${new Date().toISOString()}] ${msg}\n`, () => {});
-  };
+  // Debug logging removed for performance in production
 
   try {
     // Check token in: cookies, authorization header, OR query params (for file uploads)
@@ -18,7 +15,6 @@ const authenticate = (req, res, next) => {
       req.query.token;
 
     if (!token) {
-      log(`MISSING TOKEN for ${req.method} ${req.url}. Origin: ${req.headers.origin}. Referer: ${req.headers.referer}`);
       return res.status(401).json({ error: 'Authentication required' });
     }
 
@@ -41,7 +37,6 @@ const authenticate = (req, res, next) => {
         }
       }
     } catch (jwtError) {
-      log(`INVALID TOKEN for ${req.method} ${req.url}: ${jwtError.message}`);
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
 

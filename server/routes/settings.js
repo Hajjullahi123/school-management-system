@@ -17,18 +17,9 @@ router.get('/', async (req, res) => {
     let settings;
 
     if (schoolSlug && schoolSlug !== 'null' && schoolSlug !== 'undefined') {
-      const fs = require('fs');
-      fs.appendFileSync('server-debug.log', `[${new Date().toISOString()}] Settings request for slug: [${schoolSlug}]\n`);
-
       settings = await prisma.school.findFirst({
         where: { slug: schoolSlug }
       });
-
-      if (!settings) {
-        fs.appendFileSync('server-debug.log', `[${new Date().toISOString()}] Settings - School NOT FOUND for slug: [${schoolSlug}]\n`);
-      } else {
-        fs.appendFileSync('server-debug.log', `[${new Date().toISOString()}] Settings - School FOUND: ID: ${settings.id}\n`);
-      }
     } else {
       // Try to get from token if no slug (for logged in users)
       const token = req.headers.authorization?.split(' ')[1];
@@ -36,7 +27,6 @@ router.get('/', async (req, res) => {
         try {
           const jwt = require('jsonwebtoken');
           const JWT_SECRET = process.env.JWT_SECRET || 'darul-quran-secret-key-change-in-production';
-          // console.log('Settings token verification with secret length:', JWT_SECRET.length);
           const decoded = jwt.verify(token, JWT_SECRET);
           if (decoded && decoded.schoolId) {
             settings = await prisma.school.findUnique({

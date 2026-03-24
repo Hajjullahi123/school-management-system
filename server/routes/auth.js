@@ -272,18 +272,22 @@ router.post('/logout', (req, res) => {
 // GET /api/auth/me - Get current user data
 router.get('/me', authenticate, async (req, res) => {
   try {
+    const include = { school: true };
+    const role = req.user.role;
+
+    // Only include relevant data to speed up the query
+    if (role === 'teacher') {
+      include.teacher = true;
+      include.classesAsTeacher = true;
+    } else if (role === 'student') {
+      include.student = { include: { classModel: true } };
+    } else if (role === 'parent') {
+      include.parent = true;
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      include: { 
-        school: true,
-        teacher: true,
-        student: {
-          include: {
-            classModel: true
-          }
-        },
-        classesAsTeacher: true
-      }
+      include
     });
 
     if (!user) {
