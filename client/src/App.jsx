@@ -98,6 +98,7 @@ const PsychomotorDomains = lazyRetry(() => import('./pages/admin/PsychomotorDoma
 const ExamRepository = lazyRetry(() => import('./pages/admin/ExamRepository'));
 const LessonWorkspace = lazyRetry(() => import('./pages/teacher/LessonWorkspace'));
 const CurriculumManagement = lazyRetry(() => import('./pages/admin/CurriculumManagement'));
+const StudentNotes = lazyRetry(() => import('./pages/student/StudentNotes'));
 
 
 const TranscriptView = lazyRetry(() => import('./pages/admin/TranscriptView'));
@@ -342,6 +343,11 @@ function App() {
               <Route path="student/fees/verify" element={
                 <ProtectedRoute roles={['student']}>
                   <PaymentVerify />
+                </ProtectedRoute>
+              } />
+              <Route path="student/notes" element={
+                <ProtectedRoute roles={['student']}>
+                  <StudentNotes />
                 </ProtectedRoute>
               } />
               <Route path="cbt-portal" element={

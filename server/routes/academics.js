@@ -495,4 +495,84 @@ router.post('/ai/suggest-resources', authenticate, authorize(['teacher', 'admin'
   }
 });
 
+router.post('/ai/lesson-chat', authenticate, async (req, res) => {
+  try {
+    const { lessonNoteId, message, history = [] } = req.body;
+    const schoolId = req.schoolId;
+
+    const lesson = await prisma.lessonNote.findUnique({
+      where: { id: parseInt(lessonNoteId), schoolId }
+    });
+
+    if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
+
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { geminiApiKey: true }
+    });
+
+    if (!school?.geminiApiKey) return res.status(400).json({ error: 'AI not configured' });
+
+    const genAI = new GoogleGenerativeAI(school.geminiApiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // RAG: Inject lesson content as system instructions
+    const chat = model.startChat({
+      history: [
+        {
+          role: "user",
+          parts: [{ text: `You are an AI Tutor for the following school lesson:
+            Topic: ${lesson.topic}
+            Content: ${lesson.content}
+            Your goal is to answer student questions STRICTLY based on this content. If they ask something unrelated, politely steer them back to the lesson. Be encouraging and use simple language.` }]
+        },
+        {
+          role: "model",
+          parts: [{ text: "Understood. I am now your dedicated tutor for this lesson. How can I help you understand the material better today?" }]
+        },
+        ...history
+      ]
+    });
+
+    const result = await chat.sendMessage(message);
+    const response = await result.response;
+    res.json({ reply: response.text() });
+
+  } catch (error) {
+    console.error('AI Tutor Error:', error);
+    res.status(500).json({ error: 'AI Tutor is currently unavailable' });
+  }
+});
+
+router.post('/ai/translate-lesson', authenticate, async (req, res) => {
+  try {
+    const { content, targetLang } = req.body;
+    const schoolId = req.schoolId;
+
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { geminiApiKey: true }
+    });
+
+    if (!school?.geminiApiKey) return res.status(400).json({ error: 'AI not configured' });
+
+    const genAI = new GoogleGenerativeAI(school.geminiApiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `
+      Translate the following educational content into professional and grammatically correct ${targetLang}. 
+      Ensure educational terms are translated accurately or explained in context.
+      Maintain the original formatting.
+      Content: ${content}
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    res.json({ translated: response.text() });
+
+  } catch (error) {
+    res.status(500).json({ error: 'Translation failed' });
+  }
+});
+
 module.exports = router;
