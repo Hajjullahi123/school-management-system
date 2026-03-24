@@ -16,11 +16,13 @@ export default defineConfig({
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'chart-vendor': ['chart.js', 'react-chartjs-2'],
+          'doc-vendor': ['jspdf', 'jspdf-autotable', 'html2canvas'],
+          'excel-vendor': ['xlsx'],
           'icons': ['react-icons/fi', 'lucide-react']
         }
       }
     },
-    chunkSizeWarningLimit: 1000
+    chunkSizeWarningLimit: 1500
   },
   server: {
     port: 5173,
