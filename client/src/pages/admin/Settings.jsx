@@ -1335,7 +1335,7 @@ const Settings = () => {
                   </svg>
                   <p>
                     Get your free or paid API key from the <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold">Google AI Studio</a>.
-                    Ensure you have the <strong>gemini-1.5-flash</strong> model enabled.
+                    Ensure you have the <strong>gemini-2.0-flash</strong> model enabled.
                   </p>
                 </div>
               </div>

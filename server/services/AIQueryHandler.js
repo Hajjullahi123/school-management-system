@@ -13,8 +13,8 @@ class AIQueryHandler {
   setupClient(key) {
     try {
       this.genAI = new GoogleGenerativeAI(key);
-      this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      console.log(`[AI SERVICE] Initialized with Google Gemini (gemini-1.5-flash)`);
+      this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      console.log(`[AI SERVICE] Initialized with Google Gemini (gemini-2.0-flash)`);
     } catch (error) {
       console.error(`[AI SERVICE] Initialization failed:`, error.message);
       this.genAI = null;
