@@ -4,6 +4,31 @@ const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 const AIQueryHandler = require('../services/AIQueryHandler');
+const WhatsAppService = require('../services/WhatsAppService');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Configure Multer for PDF Uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'uploads/exams';
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, `exam-${uniqueSuffix}${path.extname(file.originalname)}`);
+  }
+});
+const upload = multer({ 
+  storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') cb(null, true);
+    else cb(new Error('Only PDF files are allowed'), false);
+  },
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 // Helper to get AI Handler for a school (supports Gemini + Groq failover with Platform Fallback)
 async function getAIHandler(schoolId) {
@@ -42,7 +67,8 @@ async function getCurrentSessionAndTerm(schoolId) {
 
 // ================= EXAM REPOSITORY =================
 
-router.post('/exam-repository', authenticate, authorize(['teacher', 'admin', 'principal', 'examination_officer', 'superadmin']), async (req, res) => {
+// Updated POST to handle Multiparts (File + Fields)
+router.post('/exam-repository', authenticate, authorize(['teacher', 'admin', 'principal', 'examination_officer', 'superadmin']), upload.single('examFile'), async (req, res) => {
   try {
     const { title, driveLink, subjectId, classId } = req.body;
     const schoolId = req.schoolId;
@@ -51,22 +77,27 @@ router.post('/exam-repository', authenticate, authorize(['teacher', 'admin', 'pr
     const { session, term } = await getCurrentSessionAndTerm(schoolId);
     if (!session || !term) return res.status(400).json({ error: 'No active academic session or term found' });
 
+    const fileUrl = req.file ? `/uploads/exams/${req.file.filename}` : null;
+
     const examEntry = await prisma.examRepository.create({
       data: {
         schoolId, teacherId,
         subjectId: parseInt(subjectId),
         classId: parseInt(classId),
-        title, driveLink,
+        title, 
+        driveLink: driveLink || null,
+        fileUrl,
         termId: term.id,
         academicSessionId: session.id,
         status: 'submitted'
       }
     });
 
-    logAction({ schoolId, userId: teacherId, action: 'SUBMIT_EXAM_LINK', resource: 'EXAM_REPOSITORY', details: { examEntryId: examEntry.id, title }, ipAddress: req.ip });
+    logAction({ schoolId, userId: teacherId, action: 'SUBMIT_EXAM', resource: 'EXAM_REPOSITORY', details: { examEntryId: examEntry.id, title, hasFile: !!fileUrl }, ipAddress: req.ip });
     res.json(examEntry);
   } catch (error) {
-    res.status(500).json({ error: 'Failed' });
+    console.error('[ExamRepo] Error:', error);
+    res.status(500).json({ error: error.message || 'Failed' });
   }
 });
 
@@ -94,6 +125,104 @@ router.get('/exam-repository', authenticate, authorize(['admin', 'principal', 'e
     res.json(exams);
   } catch (error) {
     res.status(500).json({ error: 'Failed' });
+  }
+});
+
+// GET Monitoring Data: Teachers vs Assigned Subjects Status
+router.get('/exam-monitoring', authenticate, authorize(['admin', 'principal', 'examination_officer', 'superadmin']), async (req, res) => {
+  try {
+    const schoolId = req.schoolId;
+    const { session, term } = await getCurrentSessionAndTerm(schoolId);
+    if (!session || !term) return res.status(400).json({ error: 'No active session/term' });
+
+    // 1. Get all teachers
+    const teachers = await prisma.user.findMany({
+      where: { schoolId, role: 'teacher', isActive: true },
+      select: { id: true, firstName: true, lastName: true, phone: true }
+    });
+
+    // 2. Get all assignments for these teachers
+    const assignments = await prisma.teacherAssignment.findMany({
+      where: { schoolId },
+      include: {
+        classSubject: {
+          include: {
+            class: { select: { name: true, arm: true } },
+            subject: { select: { id: true, name: true } }
+          }
+        }
+      }
+    });
+
+    // 3. Get all submissions for current term/session
+    const submissions = await prisma.examRepository.findMany({
+      where: { schoolId, termId: term.id, academicSessionId: session.id }
+    });
+
+    // 4. Group by teacher
+    const monitoringData = teachers.map(teacher => {
+      const teacherAssignments = assignments.filter(a => a.teacherId === teacher.id);
+      
+      const statusList = teacherAssignments.map(a => {
+        const isSubmitted = submissions.some(s => 
+          s.teacherId === teacher.id && 
+          s.subjectId === a.classSubject.subjectId && 
+          s.classId === a.classSubject.classId
+        );
+        return {
+          class: `${a.classSubject.class.name} ${a.classSubject.class.arm}`,
+          subject: a.classSubject.subject.name,
+          subjectId: a.classSubject.subjectId,
+          classId: a.classSubject.classId,
+          isSubmitted
+        };
+      });
+
+      return {
+        id: teacher.id,
+        name: `${teacher.firstName} ${teacher.lastName}`,
+        phone: teacher.phone,
+        assignments: statusList,
+        total: statusList.length,
+        submitted: statusList.filter(s => s.isSubmitted).length
+      };
+    });
+
+    res.json(monitoringData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch monitoring data' });
+  }
+});
+
+// POST Nudge Teacher
+router.post('/nudge-teacher', authenticate, authorize(['admin', 'principal', 'examination_officer', 'superadmin']), async (req, res) => {
+  try {
+    const { teacherId, message } = req.body;
+    const schoolId = req.schoolId;
+
+    const teacher = await prisma.user.findUnique({ where: { id: teacherId } });
+    if (!teacher || !teacher.phone) return res.status(404).json({ error: 'Teacher not found or missing phone number' });
+
+    const school = await prisma.school.findUnique({ where: { id: schoolId } });
+    
+    // Initialize WhatsApp Service
+    const whatsapp = new WhatsAppService(
+      school.twilioSid || process.env.TWILIO_ACCOUNT_SID,
+      school.twilioAuthToken || process.env.TWILIO_AUTH_TOKEN,
+      school.twilioPhoneNumber || process.env.TWILIO_PHONE_NUMBER
+    );
+
+    const nudgeMessage = message || `Hello ${teacher.firstName}, this is a reminder to upload your examination questions to the portal for the current term. Thank you.`;
+    
+    await whatsapp.send(teacher.phone, nudgeMessage);
+    
+    logAction({ schoolId, userId: req.user.id, action: 'NUDGE_TEACHER', resource: 'EXAM_REPOSITORY', details: { teacherId, teacherName: teacher.firstName }, ipAddress: req.ip });
+    
+    res.json({ success: true, message: 'Nudge sent successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message || 'Failed to send nudge' });
   }
 });
 

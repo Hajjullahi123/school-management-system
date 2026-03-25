@@ -1305,7 +1305,8 @@ model ExamRepository {
   subjectId         Int
   classId           Int
   title             String
-  driveLink         String
+  driveLink         String?
+  fileUrl           String?
   termId            Int
   academicSessionId Int
   status            String   @default("submitted") // submitted, reviewed, approved
