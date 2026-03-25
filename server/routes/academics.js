@@ -3,10 +3,10 @@ const router = express.Router();
 const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { OpenAI } = require('openai');
 
-// Helper to get authenticated Gemini AI Instance
-async function getGeminiAI(schoolId) {
+// Helper to get authenticated OpenAI/DeepSeek/Grok Instance
+async function getOpenAIClient(schoolId) {
   const school = await prisma.school.findUnique({
     where: { id: schoolId },
     select: { geminiApiKey: true }
@@ -18,50 +18,48 @@ async function getGeminiAI(schoolId) {
     apiKey = (global?.geminiApiKey && global?.geminiApiKey !== 'NONE') ? global.geminiApiKey : null;
   }
   
-  // Fallback to Env for Render environments
-  if (!apiKey) apiKey = process.env.GEMINI_API_KEY;
+  // Fallback to Env for dynamic switching
+  if (!apiKey) apiKey = process.env.DEEPSEEK_API_KEY || process.env.GROK_API_KEY || process.env.OPENAI_API_KEY;
 
   if (!apiKey || apiKey === 'undefined') return null;
 
-  // Trim to prevent empty character 404s
-  const cleanedKey = apiKey.trim();
-
-  return new GoogleGenerativeAI(cleanedKey);
-}
-
-// Fallback logic to cycle through stable models
-async function generateWithFallback(genAI, prompt) {
-  // Ordered from fastest/cheapest/best to older stable models to prevent 404s in restricted regions
-  const modelsToTry = [
-    "gemini-1.5-flash", 
-    "gemini-1.5-flash-latest",
-    "gemini-1.0-pro",
-    "gemini-pro"
-  ];
-
-  let lastError;
-
-  for (const modelName of modelsToTry) {
-    try {
-      console.log(`[AI ACADEMICS] Attempting generation with model: ${modelName}`);
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(prompt);
-      return result; // Success, return result immediately
-    } catch (error) {
-      console.error(`[AI ACADEMICS] Model ${modelName} failed:`, error.message);
-      lastError = error;
-      // If the error isn't a 404 (Not Found) or 403 (Permission), it might be a prompt safety block 
-      // or syntax error which shouldn't be retried across models.
-      // But for 404/400 (model not found/supported), we definitely want to continue to the next model.
-      if (!error.message.includes('404') && !error.message.includes('not found') && !error.message.includes('not supported')) {
-         // Optionally, break here if it's a hard error like quota exceeded (429)
-         if(error.message.includes('429')) throw error; 
-      }
-    }
+  const key = apiKey.trim();
+  let baseURL = undefined;
+  let model = 'gpt-4o-mini';
+  
+  if (process.env.DEEPSEEK_API_KEY && key === process.env.DEEPSEEK_API_KEY) {
+      baseURL = 'https://api.deepseek.com';
+      model = 'deepseek-chat';
+  } else if (process.env.GROK_API_KEY && key === process.env.GROK_API_KEY) {
+      baseURL = 'https://api.x.ai/v1';
+      model = 'grok-beta';
   }
 
-  // If we exhaust all models, throw the last error
-  throw new Error(`All fallback models failed. Last error: ${lastError?.message}`);
+  return {
+      client: new OpenAI({ apiKey: key, baseURL }),
+      model
+  };
+}
+
+// Universal Chat Completion Wrapper
+async function generateOpenAIResponse(ai, prompt, expectsJson = false) {
+    try {
+        console.log(`[AI ACADEMICS] Attempting generation with model: ${ai.model}`);
+        const payload = {
+            model: ai.model,
+            messages: [{ role: 'system', content: prompt }]
+        };
+        
+        if (expectsJson && ai.model !== 'grok-beta') {
+             payload.response_format = { type: 'json_object' };
+        }
+
+        const response = await ai.client.chat.completions.create(payload);
+        return response.choices[0].message.content;
+    } catch (error) {
+        console.error(`[AI ACADEMICS] Generation failed:`, error.message);
+        throw error;
+    }
 }
 
 // Helper to get current session and term
@@ -303,8 +301,8 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
     const { classId, subjectId, topic, count = 10, difficulty = 'medium' } = req.body;
     const schoolId = req.schoolId;
 
-    const genAI = await getGeminiAI(schoolId);
-    if (!genAI) return res.status(400).json({ error: 'AI not configured', message: 'No Gemini API Key found.' });
+    const aiClient = await getOpenAIClient(schoolId);
+    if (!aiClient) return res.status(400).json({ error: 'AI not configured', message: 'No valid API Key found.' });
 
     const curriculum = await prisma.curriculum.findUnique({ where: { schoolId_subjectId_classId: { schoolId, subjectId: parseInt(subjectId), classId: parseInt(classId) } } });
     const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
@@ -322,8 +320,7 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
       Return ONLY the JSON.
     `;
 
-    const result = await generateWithFallback(genAI, prompt);
-    const text = (await result.response).text();
+    const text = await generateOpenAIResponse(aiClient, prompt, true);
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error("AI did not produce valid JSON block");
     
@@ -347,8 +344,8 @@ router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'adm
     const { classId, subjectId, topic, type = 'plans' } = req.body;
     const schoolId = req.schoolId;
 
-    const genAI = await getGeminiAI(schoolId);
-    if (!genAI) return res.status(400).json({ error: 'AI not configured' });
+    const aiClient = await getOpenAIClient(schoolId);
+    if (!aiClient) return res.status(400).json({ error: 'AI not configured' });
 
     const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
     const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
@@ -359,8 +356,8 @@ router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'adm
 
     const prompt = `Generate a ${type === 'plans' ? 'Lesson Plan' : 'Lesson Note'} for ${subject.name} (Class: ${classModel.name}) on Topic: ${topic}. Use professional Markdown. Headers: Objectives, Hook, Vocabulary, Content, Activities, Assessment, Summary, Homework.`;
 
-    const result = await generateWithFallback(genAI, prompt);
-    res.json({ content: (await result.response).text() });
+    const text = await generateOpenAIResponse(aiClient, prompt);
+    res.json({ content: text });
     logAction({ schoolId, userId: req.user.id, action: 'AI_GENERATE_LESSON_DRAFT', resource: 'LESSON_ACADEMICS', details: { topic, type }, ipAddress: req.ip });
   } catch (error) {
     console.error('[AI ACADEMICS DEBUG]:', error);
@@ -371,15 +368,15 @@ router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'adm
 router.post('/ai/suggest-resources', authenticate, authorize(['teacher', 'admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const { topic, subjectId, classId } = req.body;
-    const genAI = await getGeminiAI(req.schoolId);
-    if (!genAI) return res.status(400).json({ error: 'AI not configured' });
+    const aiClient = await getOpenAIClient(req.schoolId);
+    if (!aiClient) return res.status(400).json({ error: 'AI not configured' });
 
     const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
     const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
 
     const prompt = `Suggest 3-5 high-quality educational resources for ${topic} in ${subject.name} for ${classModel.name}. Return JSON array: [{"title": "...", "description": "...", "type": "video|article", "searchQuery": "..."}].`;
-    const result = await generateWithFallback(genAI, prompt);
-    const jsonMatch = (await result.response).text().match(/\[[\s\S]*\]/);
+    const text = await generateOpenAIResponse(aiClient, prompt, true);
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error("Invalid format");
     res.json(JSON.parse(jsonMatch[0]));
   } catch (error) {
@@ -393,19 +390,19 @@ router.post('/ai/lesson-chat', authenticate, async (req, res) => {
     const lesson = await prisma.lessonNote.findUnique({ where: { id: parseInt(lessonNoteId), schoolId: req.schoolId } });
     if (!lesson) return res.status(404).json({ error: 'Not found' });
 
-    const genAI = await getGeminiAI(req.schoolId);
-    if (!genAI) return res.status(400).json({ error: 'AI unconfigured' });
+    const aiClient = await getOpenAIClient(req.schoolId);
+    if (!aiClient) return res.status(400).json({ error: 'AI unconfigured' });
 
-    const result = await genAI.getGenerativeModel({ model: "gemini-1.5-flash" }).startChat({
-      history: [
-        { role: "user", parts: [{ text: `Tutor for: ${lesson.topic}. Content: ${lesson.content}` }] },
-        { role: "model", parts: [{ text: "Hello! I am your AI Tutor." }] },
-        ...history
+    const response = await aiClient.client.chat.completions.create({
+      model: aiClient.model,
+      messages: [
+        { role: "system", content: `You are a helpful AI Tutor for the topic: ${lesson.topic}. Lesson Content: ${lesson.content}` },
+        ...history,
+        { role: "user", content: message }
       ]
     });
 
-    const reply = await result.sendMessage(message);
-    res.json({ reply: (await reply.response).text() });
+    res.json({ reply: response.choices[0].message.content });
   } catch (error) {
     res.status(500).json({ error: 'AI Tutor unavailable' });
   }
@@ -414,12 +411,12 @@ router.post('/ai/lesson-chat', authenticate, async (req, res) => {
 router.post('/ai/translate-lesson', authenticate, async (req, res) => {
   try {
     const { content, targetLang } = req.body;
-    const genAI = await getGeminiAI(req.schoolId);
-    if (!genAI) return res.status(400).json({ error: 'AI unconfigured' });
+    const aiClient = await getOpenAIClient(req.schoolId);
+    if (!aiClient) return res.status(400).json({ error: 'AI unconfigured' });
 
     const prompt = `Translate to ${targetLang}, maintain formatting: ${content}`;
-    const result = await generateWithFallback(genAI, prompt);
-    res.json({ translated: (await result.response).text() });
+    const text = await generateOpenAIResponse(aiClient, prompt);
+    res.json({ translated: text });
   } catch (error) {
     res.status(500).json({ error: 'Translation failed' });
   }

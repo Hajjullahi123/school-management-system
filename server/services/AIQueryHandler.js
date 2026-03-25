@@ -1,54 +1,66 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { OpenAI } = require('openai');
 
 class AIQueryHandler {
   constructor(apiKey) {
     if (!apiKey) {
-      console.warn('[AI] Gemini API key not provided, will check global fallback');
+      console.warn('[AI] API key not provided, will check ENV or DB fallback');
       this.initAsync();
     } else {
-      this.genAI = new GoogleGenerativeAI(apiKey.trim());
+      this.setupClient(apiKey.trim());
     }
+  }
+
+  setupClient(key) {
+    let baseURL = undefined;
+    let model = 'gpt-4o-mini';
+    
+    // Auto-detect based on env vars to allow instant 1-key switching
+    if (process.env.DEEPSEEK_API_KEY && key === process.env.DEEPSEEK_API_KEY) {
+        baseURL = 'https://api.deepseek.com';
+        model = 'deepseek-chat';
+    } else if (process.env.GROK_API_KEY && key === process.env.GROK_API_KEY) {
+        baseURL = 'https://api.x.ai/v1';
+        model = 'grok-beta';
+    } 
+    
+    this.model = model;
+    this.openai = new OpenAI({ apiKey: key, baseURL });
+    console.log(`[AI SERVICE] Initialized with model: ${model}`);
   }
 
   async initAsync() {
     try {
       const prisma = require('../db');
       const settings = await prisma.globalSettings.findFirst();
-      if (settings?.geminiApiKey && settings.geminiApiKey !== 'NONE') {
-        this.genAI = new GoogleGenerativeAI(settings.geminiApiKey.trim());
-        console.log('[AI] Initialized with Global Gemini API Key');
+      let key = (settings?.geminiApiKey && settings.geminiApiKey !== 'NONE') ? settings.geminiApiKey : null;
+      if (!key) key = process.env.DEEPSEEK_API_KEY || process.env.GROK_API_KEY || process.env.OPENAI_API_KEY;
+
+      if (key && key !== 'undefined') {
+        this.setupClient(key.trim());
       }
     } catch (e) { }
   }
 
-  async generateWithFallback(prompt) {
-    if(!this.genAI) throw new Error("AI not configured");
+  async generateWithFallback(prompt, expectsJson = false) {
+    if(!this.openai) throw new Error("AI not configured");
     
-    const modelsToTry = [
-      "gemini-1.5-flash", 
-      "gemini-1.5-flash-latest",
-      "gemini-1.0-pro",
-      "gemini-pro"
-    ];
-
-    let lastError;
-
-    for (const modelName of modelsToTry) {
-      try {
-        console.log(`[AI SERVICE] Attempting generation with model: ${modelName}`);
-        const model = this.genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent(prompt);
-        return result; 
-      } catch (error) {
-        console.error(`[AI SERVICE] Model ${modelName} failed:`, error.message);
-        lastError = error;
-        if (!error.message.includes('404') && !error.message.includes('not found') && !error.message.includes('not supported')) {
-           if(error.message.includes('429')) throw error; 
+    try {
+        const payload = {
+            model: this.model,
+            messages: [{ role: 'system', content: prompt }]
+        };
+        
+        // Use JSON mode if supported
+        if (expectsJson && this.model !== 'grok-beta') {
+             payload.response_format = { type: 'json_object' };
         }
-      }
-    }
 
-    throw new Error(`All fallback models failed. Last error: ${lastError?.message}`);
+        const response = await this.openai.chat.completions.create(payload);
+        return response.choices[0].message.content;
+    } catch (error) {
+        console.error(`[AI SERVICE] Generation failed:`, error.message);
+        throw error;
+    }
   }
 
   /**
@@ -58,7 +70,7 @@ class AIQueryHandler {
    * @returns {Promise<object>} { intent, entities }
    */
   async analyzeQuery(message, context = {}) {
-    if (!this.genAI) {
+    if (!this.openai) {
       // Fallback to simple keyword matching if no AI
       return this.fallbackIntentDetection(message);
     }
@@ -86,9 +98,7 @@ Respond ONLY with a JSON object in this format:
 }`;
 
     try {
-      const result = await this.generateWithFallback(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const text = await this.generateWithFallback(prompt, true);
 
       // Extract JSON from response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -141,7 +151,7 @@ Respond ONLY with a JSON object in this format:
    * @returns {Promise<string>} Natural language response
    */
   async generateResponse(data, intent) {
-    if (!this.genAI) {
+    if (!this.openai) {
       // Use template-based responses
       return this.templateResponse(data, intent);
     }
@@ -161,9 +171,8 @@ Rules:
 Respond with ONLY the message text, nothing else.`;
 
     try {
-      const result = await this.generateWithFallback(prompt);
-      const response = await result.response;
-      return response.text().trim();
+      const text = await this.generateWithFallback(prompt, false);
+      return text.trim();
     } catch (error) {
       console.error('[AI] Response generation error:', error.message);
       return this.templateResponse(data, intent);
