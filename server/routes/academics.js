@@ -348,7 +348,7 @@ router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'adm
 
     const prompt = `Generate a ${type === 'plans' ? 'Lesson Plan' : 'Lesson Note'} for ${subject.name} (Class: ${classModel.name}) on Topic: ${topic}. Use professional Markdown. Headers: Objectives, Hook, Vocabulary, Content, Activities, Assessment, Summary, Homework.`;
 
-    const result = await model.generateContent(prompt);
+    const result = await generateWithFallback(genAI, prompt);
     res.json({ content: (await result.response).text() });
     logAction({ schoolId, userId: req.user.id, action: 'AI_GENERATE_LESSON_DRAFT', resource: 'LESSON_ACADEMICS', details: { topic, type }, ipAddress: req.ip });
   } catch (error) {
