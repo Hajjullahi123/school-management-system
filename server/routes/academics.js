@@ -5,6 +5,29 @@ const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
+// Helper to get Gemini AI Instance with stable production endpoint
+async function getGeminiModel(schoolId) {
+  const school = await prisma.school.findUnique({
+    where: { id: schoolId },
+    select: { geminiApiKey: true }
+  });
+
+  let apiKey = (school?.geminiApiKey && school?.geminiApiKey !== 'NONE') ? school.geminiApiKey : null;
+  if (!apiKey) {
+    const global = await prisma.globalSettings.findFirst();
+    apiKey = (global?.geminiApiKey && global?.geminiApiKey !== 'NONE') ? global.geminiApiKey : null;
+  }
+  
+  // Fallback to Env for Render environments
+  if (!apiKey) apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) return null;
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  // CRITICAL: Explicitly using 'v1' to prevent 404s on regional beta endpoints
+  return genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1" });
+}
+
 // Helper to get current session and term
 async function getCurrentSessionAndTerm(schoolId) {
   const session = await prisma.academicSession.findFirst({
@@ -18,7 +41,6 @@ async function getCurrentSessionAndTerm(schoolId) {
 
 // ================= EXAM REPOSITORY =================
 
-// Submit Exam Google Drive Link (Teacher)
 router.post('/exam-repository', authenticate, authorize(['teacher', 'admin', 'principal', 'examination_officer', 'superadmin']), async (req, res) => {
   try {
     const { title, driveLink, subjectId, classId } = req.body;
@@ -26,53 +48,34 @@ router.post('/exam-repository', authenticate, authorize(['teacher', 'admin', 'pr
     const teacherId = req.user.id;
 
     const { session, term } = await getCurrentSessionAndTerm(schoolId);
-    if (!session || !term) {
-      return res.status(400).json({ error: 'No active academic session or term found' });
-    }
+    if (!session || !term) return res.status(400).json({ error: 'No active academic session or term found' });
 
     const examEntry = await prisma.examRepository.create({
       data: {
-        schoolId,
-        teacherId,
+        schoolId, teacherId,
         subjectId: parseInt(subjectId),
         classId: parseInt(classId),
-        title,
-        driveLink,
+        title, driveLink,
         termId: term.id,
         academicSessionId: session.id,
         status: 'submitted'
       }
     });
 
-    logAction({
-      schoolId,
-      userId: teacherId,
-      action: 'SUBMIT_EXAM_LINK',
-      resource: 'EXAM_REPOSITORY',
-      details: { examEntryId: examEntry.id, title },
-      ipAddress: req.ip
-    });
-
+    logAction({ schoolId, userId: teacherId, action: 'SUBMIT_EXAM_LINK', resource: 'EXAM_REPOSITORY', details: { examEntryId: examEntry.id, title }, ipAddress: req.ip });
     res.json(examEntry);
   } catch (error) {
-    console.error('Exam repository submission error:', error);
-    res.status(500).json({ error: 'Failed to submit exam link' });
+    res.status(500).json({ error: 'Failed' });
   }
 });
 
-// Get Exam Repository (Admin/Exam Officer/Teacher theirs)
 router.get('/exam-repository', authenticate, authorize(['admin', 'principal', 'examination_officer', 'superadmin', 'teacher']), async (req, res) => {
   try {
     const schoolId = req.schoolId;
     const { termId, academicSessionId, classId, subjectId } = req.query;
-
     const where = { schoolId };
     
-    // Teachers only see their own submissions unless they have a higher role
-    if (req.user.role === 'teacher') {
-      where.teacherId = req.user.id;
-    }
-
+    if (req.user.role === 'teacher') where.teacherId = req.user.id;
     if (termId) where.termId = parseInt(termId);
     if (academicSessionId) where.academicSessionId = parseInt(academicSessionId);
     if (classId) where.classId = parseInt(classId);
@@ -87,17 +90,14 @@ router.get('/exam-repository', authenticate, authorize(['admin', 'principal', 'e
       },
       orderBy: { createdAt: 'desc' }
     });
-
     res.json(exams);
   } catch (error) {
-    console.error('Fetch exam repository error:', error);
-    res.status(500).json({ error: 'Failed to fetch exam repository' });
+    res.status(500).json({ error: 'Failed' });
   }
 });
 
 // ================= LESSON PLANS & NOTES =================
 
-// Create/Update Lesson Plan
 router.post('/lesson-plans', authenticate, authorize(['teacher', 'admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const { id, classId, subjectId, week, topic, content, status } = req.body;
@@ -105,11 +105,8 @@ router.post('/lesson-plans', authenticate, authorize(['teacher', 'admin', 'princ
     const teacherId = req.user.id;
 
     if (id) {
-      // Update
       const existing = await prisma.lessonPlan.findUnique({ where: { id: parseInt(id) } });
-      if (!existing || (req.user.role === 'teacher' && existing.teacherId !== teacherId)) {
-        return res.status(403).json({ error: 'Unauthorized' });
-      }
+      if (!existing || (req.user.role === 'teacher' && existing.teacherId !== teacherId)) return res.status(403).json({ error: 'Unauthorized' });
 
       const updated = await prisma.lessonPlan.update({
         where: { id: parseInt(id) },
@@ -117,49 +114,37 @@ router.post('/lesson-plans', authenticate, authorize(['teacher', 'admin', 'princ
           classId: classId ? parseInt(classId) : undefined,
           subjectId: subjectId ? parseInt(subjectId) : undefined,
           week: week ? parseInt(week) : undefined,
-          topic,
-          content,
-          status
+          topic, content, status
         }
       });
       return res.json(updated);
     } else {
-      // Create
       const created = await prisma.lessonPlan.create({
         data: {
-          schoolId,
-          teacherId,
+          schoolId, teacherId,
           classId: parseInt(classId),
           subjectId: parseInt(subjectId),
           week: parseInt(week),
-          topic,
-          content,
+          topic, content,
           status: status || 'draft'
         }
       });
       res.json(created);
     }
   } catch (error) {
-    console.error('Lesson plan error:', error);
-    res.status(500).json({ error: 'Failed to save lesson plan' });
+    res.status(500).json({ error: 'Failed' });
   }
 });
 
-// Get Lesson Plans
 router.get('/lesson-plans', authenticate, async (req, res) => {
   try {
     const { classId, subjectId, teacherId, status } = req.query;
     const where = { schoolId: req.schoolId };
-
     if (classId) where.classId = parseInt(classId);
     if (subjectId) where.subjectId = parseInt(subjectId);
     if (teacherId) where.teacherId = parseInt(teacherId);
     if (status) where.status = status;
-
-    // Teachers only see their own unless admin/principal
-    if (req.user.role === 'teacher' && !teacherId) {
-       where.teacherId = req.user.id;
-    }
+    if (req.user.role === 'teacher' && !teacherId) where.teacherId = req.user.id;
 
     const plans = await prisma.lessonPlan.findMany({
       where,
@@ -176,7 +161,6 @@ router.get('/lesson-plans', authenticate, async (req, res) => {
   }
 });
 
-// Create/Update Lesson Note
 router.post('/lesson-notes', authenticate, authorize(['teacher', 'admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const { id, classId, subjectId, week, topic, content, status } = req.body;
@@ -185,9 +169,7 @@ router.post('/lesson-notes', authenticate, authorize(['teacher', 'admin', 'princ
 
     if (id) {
       const existing = await prisma.lessonNote.findUnique({ where: { id: parseInt(id) } });
-      if (!existing || (req.user.role === 'teacher' && existing.teacherId !== teacherId)) {
-        return res.status(403).json({ error: 'Unauthorized' });
-      }
+      if (!existing || (req.user.role === 'teacher' && existing.teacherId !== teacherId)) return res.status(403).json({ error: 'Unauthorized' });
 
       const updated = await prisma.lessonNote.update({
         where: { id: parseInt(id) },
@@ -195,47 +177,37 @@ router.post('/lesson-notes', authenticate, authorize(['teacher', 'admin', 'princ
           classId: classId ? parseInt(classId) : undefined,
           subjectId: subjectId ? parseInt(subjectId) : undefined,
           week: week ? parseInt(week) : undefined,
-          topic,
-          content,
-          status
+          topic, content, status
         }
       });
       return res.json(updated);
     } else {
       const created = await prisma.lessonNote.create({
         data: {
-          schoolId,
-          teacherId,
+          schoolId, teacherId,
           classId: parseInt(classId),
           subjectId: parseInt(subjectId),
           week: parseInt(week),
-          topic,
-          content,
+          topic, content,
           status: status || 'draft'
         }
       });
       res.json(created);
     }
   } catch (error) {
-    console.error('Lesson note error:', error);
-    res.status(500).json({ error: 'Failed to save lesson note' });
+    res.status(500).json({ error: 'Failed' });
   }
 });
 
-// Get Lesson Notes
 router.get('/lesson-notes', authenticate, async (req, res) => {
     try {
       const { classId, subjectId, teacherId, status } = req.query;
       const where = { schoolId: req.schoolId };
-  
       if (classId) where.classId = parseInt(classId);
       if (subjectId) where.subjectId = parseInt(subjectId);
       if (teacherId) where.teacherId = parseInt(teacherId);
       if (status) where.status = status;
-  
-      if (req.user.role === 'teacher' && !teacherId) {
-         where.teacherId = req.user.id;
-      }
+      if (req.user.role === 'teacher' && !teacherId) where.teacherId = req.user.id;
   
       const notes = await prisma.lessonNote.findMany({
         where,
@@ -254,34 +226,19 @@ router.get('/lesson-notes', authenticate, async (req, res) => {
 
 // ================= CURRICULUM =================
 
-// Create/Update Curriculum (Syllabus)
 router.post('/curriculum', authenticate, authorize(['admin', 'principal', 'superadmin', 'teacher']), async (req, res) => {
   try {
     const { id, classId, subjectId, content } = req.body;
     const schoolId = req.schoolId;
 
     if (id) {
-        const updated = await prisma.curriculum.update({
-          where: { id: parseInt(id) },
-          data: { content }
-        });
+        const updated = await prisma.curriculum.update({ where: { id: parseInt(id) }, data: { content } });
         return res.json(updated);
     } else {
         const curriculum = await prisma.curriculum.upsert({
-            where: {
-                schoolId_subjectId_classId: {
-                    schoolId,
-                    subjectId: parseInt(subjectId),
-                    classId: parseInt(classId)
-                }
-            },
+            where: { schoolId_subjectId_classId: { schoolId, subjectId: parseInt(subjectId), classId: parseInt(classId) } },
             update: { content },
-            create: {
-                schoolId,
-                subjectId: parseInt(subjectId),
-                classId: parseInt(classId),
-                content
-            }
+            create: { schoolId, subjectId: parseInt(subjectId), classId: parseInt(classId), content }
         });
         res.json(curriculum);
     }
@@ -290,20 +247,12 @@ router.post('/curriculum', authenticate, authorize(['admin', 'principal', 'super
   }
 });
 
-// Get Curriculum
 router.get('/curriculum', authenticate, async (req, res) => {
     try {
         const { classId, subjectId } = req.query;
         if (!classId || !subjectId) return res.status(400).json({ error: 'Class and Subject IDs required' });
-
         const curriculum = await prisma.curriculum.findUnique({
-            where: {
-                schoolId_subjectId_classId: {
-                    schoolId: req.schoolId,
-                    subjectId: parseInt(subjectId),
-                    classId: parseInt(classId)
-                }
-            }
+            where: { schoolId_subjectId_classId: { schoolId: req.schoolId, subjectId: parseInt(subjectId), classId: parseInt(classId) } }
         });
         res.json(curriculum || { content: '' });
     } catch (error) {
@@ -311,96 +260,38 @@ router.get('/curriculum', authenticate, async (req, res) => {
     }
 });
 
-// ================= AI CBT GENERATION =================
+// ================= AI FEATURES (STABLE v1) =================
 
 router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'principal', 'examination_officer', 'superadmin']), async (req, res) => {
   try {
     const { classId, subjectId, topic, count = 10, difficulty = 'medium' } = req.body;
     const schoolId = req.schoolId;
 
-    // 1. Get Gemini API Key (School specific or Global Fallback)
-    const school = await prisma.school.findUnique({
-      where: { id: schoolId },
-      select: { geminiApiKey: true }
-    });
+    const model = await getGeminiModel(schoolId);
+    if (!model) return res.status(400).json({ error: 'AI not configured', message: 'No Gemini API Key found.' });
 
-    let apiKey = (school?.geminiApiKey && school?.geminiApiKey !== 'NONE') ? school.geminiApiKey : null;
-    if (!apiKey) {
-      const global = await prisma.globalSettings.findFirst();
-      apiKey = (global?.geminiApiKey && global?.geminiApiKey !== 'NONE') ? global.geminiApiKey : null;
-    }
-
-    if (!apiKey) {
-      return res.status(400).json({ 
-        error: 'AI feature not configured', 
-        message: 'No Gemini API Key found. Please configure a key in School Settings or System Settings.' 
-      });
-    }
-
-    const { GoogleGenerativeAI } = require('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const curriculum = await prisma.curriculum.findUnique({
-      where: {
-        schoolId_subjectId_classId: {
-          schoolId,
-          subjectId: parseInt(subjectId),
-          classId: parseInt(classId)
-        }
-      }
-    });
-
+    const curriculum = await prisma.curriculum.findUnique({ where: { schoolId_subjectId_classId: { schoolId, subjectId: parseInt(subjectId), classId: parseInt(classId) } } });
     const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
     const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
 
-    // 3. Prompt Engineering
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
     const prompt = `
-      Act as an expert school teacher and examiner.
-      Generate ${count} multiple-choice CBT questions for:
-      Subject: ${subject.name}
-      Class: ${classModel.name}
-      Topic: ${topic || 'General curriculum'}
-      Difficulty: ${difficulty}
-      ${curriculum ? `Reference the following Curriculum/Syllabus: ${curriculum.content}` : ''}
-
-      Format your response as a valid JSON array of objects. Each object MUST have:
-      - questionText: The question string
-      - options: An array of exactly 4 objects: [{"id": "a", "text": "..."}, {"id": "b", "text": "..."}, {"id": "c", "text": "..."}, {"id": "d", "text": "..."}]
-      - correctOption: Either "a", "b", "c", or "d"
-      - bloomLevel: One of [Remembering, Understanding, Applying, Analyzing, Evaluating, Creating]
-      - explanation: A brief explanation of why the answer is correct
-      - points: 1.0
-
-      Return ONLY the JSON array. No markdown code blocks, no preamble, no explanation.
+      Act as an expert school teacher and examiner. Generate ${count} MCQs for:
+      Subject: ${subject.name}, Class: ${classModel.name}, Topic: ${topic || 'General curriculum'}, Difficulty: ${difficulty}
+      ${curriculum ? `Reference: ${curriculum.content}` : ''}
+      Format: JSON array of objects [{"questionText": "...", "options": [{"id": "a", "text": "..."}, ...], "correctOption": "a", "bloomLevel": "...", "explanation": "...", "points": 1.0}]
+      Return ONLY the JSON.
     `;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text();
-    
-    // Better JSON extraction: Find the first '[' and last ']' to extract array content
+    const text = (await result.response).text();
     const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      console.error('AI non-JSON response:', text);
-      throw new Error("AI did not produce a valid JSON array");
-    }
-    
-    const questions = JSON.parse(jsonMatch[0]);
-    res.json(questions);
+    if (!jsonMatch) throw new Error("AI did not produce valid JSON");
+    res.json(JSON.parse(jsonMatch[0]));
 
-    logAction({
-      schoolId,
-      userId: req.user.id,
-      action: 'AI_GENERATE_CBT',
-      resource: 'CBT_QUESTIONS',
-      details: { subject: subject.name, class: classModel.name, topic, count },
-      ipAddress: req.ip
-    });
-
+    logAction({ schoolId, userId: req.user.id, action: 'AI_GENERATE_CBT', resource: 'CBT_QUESTIONS', details: { subject: subject.name, class: classModel.name, topic, count }, ipAddress: req.ip });
   } catch (error) {
-    console.error('AI Generation Error:', error);
-    res.status(500).json({ error: 'Failed to generate questions using AI' });
+    console.error('AI CBT Error:', error);
+    res.status(500).json({ error: 'AI Error', message: `[${new Date().toISOString()}] ${error.message}` });
   }
 });
 
@@ -409,195 +300,75 @@ router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'adm
     const { classId, subjectId, topic, type = 'plans' } = req.body;
     const schoolId = req.schoolId;
 
-    const school = await prisma.school.findUnique({
-      where: { id: schoolId },
-      select: { geminiApiKey: true }
-    });
-
-    let apiKey = (school?.geminiApiKey && school?.geminiApiKey !== 'NONE') ? school.geminiApiKey : null;
-    if (!apiKey) {
-      const global = await prisma.globalSettings.findFirst();
-      apiKey = (global?.geminiApiKey && global?.geminiApiKey !== 'NONE') ? global.geminiApiKey : null;
-    }
-
-    if (!apiKey) {
-      return res.status(400).json({ error: 'AI feature not configured' });
-    }
+    const model = await getGeminiModel(schoolId);
+    if (!model) return res.status(400).json({ error: 'AI not configured' });
 
     const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
     const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
 
-    const { GoogleGenerativeAI } = require('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const prompt = `
-      Act as an expert pedagogical consultant and master teacher. 
-      Generate a comprehensive and engaging ${type === 'plans' ? 'Lesson Plan' : 'Lesson Note'} for:
-      Subject: ${subject.name}
-      Class: ${classModel.name}
-      Topic: ${topic}
-      
-      Structure the response using professional academic standards:
-      1. Learning Objectives (aligned with SMART goals and Bloom's Taxonomy)
-      2. Anticipatory Set (an engaging "hook" to capture student interest)
-      3. Key Vocabulary/Concepts
-      4. Detailed Content Breakdown (Step-by-step introduction and core explanation)
-      5. Practical Illustrations/In-Class Activities
-      6. Assessment Questions (Oral or written to check understanding)
-      7. Summary and Conclusion
-      8. Homework/Follow-up Project
-      9. Differentiated Instruction Tips (Tips for supporting diverse learners)
-
-      Use clean, professional Markdown for formatting. Be thorough but concise.
-      Return ONLY the content of the lesson document.
-    `;
+    const prompt = `Generate a ${type === 'plans' ? 'Lesson Plan' : 'Lesson Note'} for ${subject.name} (Class: ${classModel.name}) on Topic: ${topic}. Use professional Markdown. Headers: Objectives, Hook, Vocabulary, Content, Activities, Assessment, Summary, Homework.`;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    res.json({ content: response.text() });
-
-    logAction({
-      schoolId,
-      userId: req.user.id,
-      action: 'AI_GENERATE_LESSON_DRAFT',
-      resource: 'LESSON_ACADEMICS',
-      details: { subject: subject.name, class: classModel.name, topic, type },
-      ipAddress: req.ip
-    });
-
+    res.json({ content: (await result.response).text() });
+    logAction({ schoolId, userId: req.user.id, action: 'AI_GENERATE_LESSON_DRAFT', resource: 'LESSON_ACADEMICS', details: { topic, type }, ipAddress: req.ip });
   } catch (error) {
-    console.error('AI Lesson Scaffolding Error:', error);
-    res.status(500).json({ 
-      error: 'AI service error', 
-      message: `[${new Date().toISOString()}] ${error.message}` || 'Failed to scaffold lesson content' 
-    });
+    console.error('AI Scaffold Error:', error);
+    res.status(500).json({ error: 'AI Error', message: `[${new Date().toISOString()}] ${error.message}` });
   }
 });
 
 router.post('/ai/suggest-resources', authenticate, authorize(['teacher', 'admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const { topic, subjectId, classId } = req.body;
-    const schoolId = req.schoolId;
-
-    const school = await prisma.school.findUnique({
-      where: { id: schoolId },
-      select: { geminiApiKey: true }
-    });
-
-    let apiKey = (school?.geminiApiKey && school?.geminiApiKey !== 'NONE') ? school.geminiApiKey : null;
-    if (!apiKey) {
-      const global = await prisma.globalSettings.findFirst();
-      apiKey = (global?.geminiApiKey && global?.geminiApiKey !== 'NONE') ? global.geminiApiKey : null;
-    }
-
-    if (!apiKey) return res.status(400).json({ error: 'AI not configured' });
+    const model = await getGeminiModel(req.schoolId);
+    if (!model) return res.status(400).json({ error: 'AI not configured' });
 
     const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
     const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
 
-    const { GoogleGenerativeAI } = require('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const prompt = `
-      As an expert educational curator for ${classModel.name} level students.
-      Suggest 3-5 high-quality, safe, and engaging educational resources for the topic: "${topic}" in the subject "${subject.name}".
-      Include:
-      - YouTube video titles/brief descriptions (and if possible, suggest what to search for)
-      - Interactive simulations (like PhET) if applicable
-      - Academic articles or reliable websites (National Geographic, Britannica, etc.)
-      
-      Return ONLY a JSON array of objects: [{"title": "...", "description": "...", "type": "video|article|simulation", "searchQuery": "..."}]
-    `;
-
+    const prompt = `Suggest 3-5 high-quality educational resources for ${topic} in ${subject.name} for ${classModel.name}. Return JSON array: [{"title": "...", "description": "...", "type": "video|article", "searchQuery": "..."}].`;
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error("Invalid resource format from AI");
+    const jsonMatch = (await result.response).text().match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error("Invalid format");
     res.json(JSON.parse(jsonMatch[0]));
-
   } catch (error) {
-    res.status(500).json({ error: 'Failed' });
+    res.status(500).json({ error: 'Failed', message: error.message });
   }
 });
 
 router.post('/ai/lesson-chat', authenticate, async (req, res) => {
   try {
     const { lessonNoteId, message, history = [] } = req.body;
-    const schoolId = req.schoolId;
+    const lesson = await prisma.lessonNote.findUnique({ where: { id: parseInt(lessonNoteId), schoolId: req.schoolId } });
+    if (!lesson) return res.status(404).json({ error: 'Not found' });
 
-    const lesson = await prisma.lessonNote.findUnique({
-      where: { id: parseInt(lessonNoteId), schoolId }
-    });
+    const model = await getGeminiModel(req.schoolId);
+    if (!model) return res.status(400).json({ error: 'AI unconfigured' });
 
-    if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
-
-    const school = await prisma.school.findUnique({
-      where: { id: schoolId },
-      select: { geminiApiKey: true }
-    });
-
-    if (!school?.geminiApiKey) return res.status(400).json({ error: 'AI not configured' });
-
-    const genAI = new GoogleGenerativeAI(school.geminiApiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    // RAG: Inject lesson content as system instructions
     const chat = model.startChat({
       history: [
-        {
-          role: "user",
-          parts: [{ text: `You are an AI Tutor for the following school lesson:
-            Topic: ${lesson.topic}
-            Content: ${lesson.content}
-            Your goal is to answer student questions STRICTLY based on this content. If they ask something unrelated, politely steer them back to the lesson. Be encouraging and use simple language.` }]
-        },
-        {
-          role: "model",
-          parts: [{ text: "Understood. I am now your dedicated tutor for this lesson. How can I help you understand the material better today?" }]
-        },
+        { role: "user", parts: [{ text: `Tutor for: ${lesson.topic}. Content: ${lesson.content}` }] },
+        { role: "model", parts: [{ text: "Hello! I am your AI Tutor." }] },
         ...history
       ]
     });
 
     const result = await chat.sendMessage(message);
-    const response = await result.response;
-    res.json({ reply: response.text() });
-
+    res.json({ reply: (await result.response).text() });
   } catch (error) {
-    console.error('AI Tutor Error:', error);
-    res.status(500).json({ error: 'AI Tutor is currently unavailable' });
+    res.status(500).json({ error: 'AI Tutor unavailable' });
   }
 });
 
 router.post('/ai/translate-lesson', authenticate, async (req, res) => {
   try {
     const { content, targetLang } = req.body;
-    const schoolId = req.schoolId;
+    const model = await getGeminiModel(req.schoolId);
+    if (!model) return res.status(400).json({ error: 'AI unconfigured' });
 
-    const school = await prisma.school.findUnique({
-      where: { id: schoolId },
-      select: { geminiApiKey: true }
-    });
-
-    if (!school?.geminiApiKey) return res.status(400).json({ error: 'AI not configured' });
-
-    const genAI = new GoogleGenerativeAI(school.geminiApiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const prompt = `
-      Translate the following educational content into professional and grammatically correct ${targetLang}. 
-      Ensure educational terms are translated accurately or explained in context.
-      Maintain the original formatting.
-      Content: ${content}
-    `;
-
+    const prompt = `Translate to ${targetLang}, maintain formatting: ${content}`;
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    res.json({ translated: response.text() });
-
+    res.json({ translated: (await result.response).text() });
   } catch (error) {
     res.status(500).json({ error: 'Translation failed' });
   }
