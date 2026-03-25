@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
-import { FiSave, FiSend, FiFileText, FiBook, FiPlus, FiTrash2, FiCpu } from 'react-icons/fi';
+import { FiSave, FiSend, FiFileText, FiBook, FiPlus, FiTrash2, FiCpu, FiDownload } from 'react-icons/fi';
+import { jsPDF } from 'jspdf';
+import Papa from 'papaparse';
 
 const LessonWorkspace = () => {
     const { user } = useAuth();
@@ -34,6 +36,12 @@ const LessonWorkspace = () => {
     const [scaffolding, setScaffolding] = useState(false);
     const [fetchingResources, setFetchingResources] = useState(false);
     const [suggestedResources, setSuggestedResources] = useState([]);
+
+    // Independent content states
+    const [planContent, setPlanContent] = useState('');
+    const [noteContent, setNoteContent] = useState('');
+    const [generatedQuestions, setGeneratedQuestions] = useState([]); // Raw data for CSV
+    const [isQuestionView, setIsQuestionView] = useState(false); // Sub-view for CBT content
 
     useEffect(() => {
         fetchItems();
@@ -183,6 +191,9 @@ const LessonWorkspace = () => {
             content: item.content,
             status: item.status
         });
+        
+        if (view === 'plans') setPlanContent(item.content);
+        else setNoteContent(item.content);
         // Update subjects list for the selected class
         const relevantSubjects = teacherAssignments
             .filter(a => a.classSubject.classId === item.classId)
@@ -207,12 +218,14 @@ const LessonWorkspace = () => {
 
             if (resp.ok) {
                 const questions = await resp.json();
+                setGeneratedQuestions(questions);
+                setIsQuestionView(true);
                 toast.success(`Generated ${questions.length} questions! Content updated.`);
-                // For now, let's append it to the content or show it
+                
                 const formatted = questions.map((q, i) => 
                    `${i+1}. [${q.bloomLevel || 'Knowledge'}] ${q.questionText}\n   Options: A: ${q.options[0].text}, B: ${q.options[1].text}, C: ${q.options[2].text}, D: ${q.options[3].text}\n   Answer: ${q.correctOption.toUpperCase()}\n   Explanation: ${q.explanation || 'N/A'}`
                 ).join('\n\n');
-                setFormData({ ...formData, content: (formData.content ? formData.content + '\n\n--- AI GENERATED QUESTIONS ---\n' : '') + formatted });
+                setFormData({ ...formData, content: formatted });
                 setShowAiModal(false);
             } else {
                 const err = await resp.json();
@@ -243,6 +256,8 @@ const LessonWorkspace = () => {
                 const data = await resp.json();
                 toast.success('AI Draft Generated!');
                 setFormData({ ...formData, content: data.content });
+                if (view === 'plans') setPlanContent(data.content);
+                else setNoteContent(data.content);
             } else {
                 const err = await resp.json();
                 toast.error(err.message || err.error || 'AI scaffolding failed');
@@ -277,6 +292,105 @@ const LessonWorkspace = () => {
         }
     };
 
+    const handleDownloadPDF = () => {
+        const doc = new jsPDF();
+        const margin = 20;
+        const width = 170;
+        const titleText = `${view === 'plans' ? 'LESSON PLAN' : 'LESSON NOTE'}: ${formData.topic || 'UNTITLED'}`;
+        
+        doc.setFontSize(20);
+        doc.setTextColor(30, 64, 175); // Indigo
+        doc.text("EducTechAI Academic System", margin, 20);
+        
+        doc.setFontSize(14);
+        doc.setTextColor(31, 41, 55); // Gray 800
+        doc.text(titleText, margin, 35);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(107, 114, 128); // Gray 500
+        doc.text(`Class: ${classes.find(c => c.id.toString() === formData.classId)?.name || 'N/A'}`, margin, 45);
+        doc.text(`Subject: ${subjects.find(s => s.id.toString() === formData.subjectId)?.name || 'N/A'}`, margin, 50);
+        doc.text(`Week: ${formData.week || 'N/A'}`, margin, 55);
+        doc.text(`Date: ${new Date().toLocaleDateString()}`, margin, 60);
+        
+        doc.setLineWidth(0.5);
+        doc.line(margin, 65, margin + width, 65);
+        
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        const splitContent = doc.splitTextToSize(formData.content, width);
+        doc.text(splitContent, margin, 75);
+        
+        doc.save(`${view}_${formData.topic || 'no_topic'}.pdf`);
+        toast.success("PDF Downloaded!");
+    };
+
+    const handleExportCSV = () => {
+        if (generatedQuestions.length === 0) return;
+        
+        const csvData = generatedQuestions.map((q, i) => ({
+            '#' : i + 1,
+            'Question': q.questionText,
+            'Option A': q.options[0]?.text || '',
+            'Option B': q.options[1]?.text || '',
+            'Option C': q.options[2]?.text || '',
+            'Option D': q.options[3]?.text || '',
+            'Answer': q.correctOption,
+            'Bloom Level': q.bloomLevel,
+            'Explanation': q.explanation
+        }));
+        
+        const csv = Papa.unparse(csvData);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `questions_${formData.topic || 'export'}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("CSV Exported!");
+    };
+
+    const handleToggleView = (newView) => {
+        // Save current content before switching
+        if (isQuestionView) {
+            // we don't stash question text back to plans/notes automatically
+        } else if (view === 'plans') {
+            setPlanContent(formData.content);
+        } else {
+            setNoteContent(formData.content);
+        }
+
+        setView(newView);
+        setIsQuestionView(false);
+        setFormData(prev => ({
+            ...prev,
+            content: newView === 'plans' ? planContent : noteContent
+        }));
+    };
+
+    const handleToggleQuestions = () => {
+        if (!isQuestionView) {
+            // Switching to question view
+            if (view === 'plans') setPlanContent(formData.content);
+            else setNoteContent(formData.content);
+            
+            setIsQuestionView(true);
+            const formatted = generatedQuestions.map((q, i) => 
+                `${i+1}. [${q.bloomLevel || 'Knowledge'}] ${q.questionText}\n   Options: A: ${q.options[0].text}, B: ${q.options[1].text}, C: ${q.options[2].text}, D: ${q.options[3].text}\n   Answer: ${q.correctOption.toUpperCase()}\n   Explanation: ${q.explanation || 'N/A'}`
+             ).join('\n\n');
+            setFormData(prev => ({ ...prev, content: formatted }));
+        } else {
+            // Switching back to plan/note
+            setIsQuestionView(false);
+            setFormData(prev => ({ 
+                ...prev, 
+                content: view === 'plans' ? planContent : noteContent 
+            }));
+        }
+    };
+
     return (
         <div className="p-6 max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -286,17 +400,25 @@ const LessonWorkspace = () => {
                 </div>
                 <div className="flex bg-gray-100 p-1 rounded-xl shadow-inner border border-gray-200">
                     <button 
-                        onClick={() => setView('plans')}
-                        className={`px-6 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${view === 'plans' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => handleToggleView('plans')}
+                        className={`px-6 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${view === 'plans' && !isQuestionView ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <FiFileText /> Lesson Plans
                     </button>
                     <button 
-                        onClick={() => setView('notes')}
-                        className={`px-6 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${view === 'notes' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => handleToggleView('notes')}
+                        className={`px-6 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${view === 'notes' && !isQuestionView ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <FiBook /> Lesson Notes
                     </button>
+                    {generatedQuestions.length > 0 && (
+                        <button 
+                            onClick={handleToggleQuestions}
+                            className={`px-6 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${isQuestionView ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <FiCpu /> Generated CBT
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -306,7 +428,9 @@ const LessonWorkspace = () => {
                     <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
                         <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex flex-wrap justify-between items-center gap-4">
                             <div className="flex flex-wrap gap-4 items-center">
-                                <h3 className="font-bold text-gray-800 text-lg">{editingItem ? 'Edit' : 'Create New'} {view === 'plans' ? 'Plan' : 'Note'}</h3>
+                                <h3 className="font-bold text-gray-800 text-lg">
+                                    {isQuestionView ? 'Review Generated Questions' : `${editingItem ? 'Edit' : 'Create New'} ${view === 'plans' ? 'Plan' : 'Note'}`}
+                                </h3>
                                 <div className="flex gap-2">
                                     <select 
                                         value={formData.classId} 
@@ -356,16 +480,34 @@ const LessonWorkspace = () => {
                                 </button>
                                 <button 
                                     onClick={() => handleSave('draft')}
-                                    className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 flex items-center gap-2 shadow-sm"
+                                    disabled={isQuestionView}
+                                    className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 flex items-center gap-2 shadow-sm disabled:opacity-50"
                                 >
                                     <FiSave /> Save Draft
                                 </button>
-                                <button 
-                                    onClick={() => handleSave('published')}
-                                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 flex items-center gap-2 shadow-md shadow-indigo-100"
-                                >
-                                    <FiSend /> Publish
-                                </button>
+                                {isQuestionView ? (
+                                    <button 
+                                        onClick={handleExportCSV}
+                                        className="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 flex items-center gap-2 shadow-md shadow-green-100"
+                                    >
+                                        <FiDownload /> Export CSV
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button 
+                                            onClick={handleDownloadPDF}
+                                            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-200 flex items-center gap-2 shadow-sm"
+                                        >
+                                            <FiDownload /> PDF
+                                        </button>
+                                        <button 
+                                            onClick={() => handleSave('published')}
+                                            className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 flex items-center gap-2 shadow-md shadow-indigo-100"
+                                        >
+                                            <FiSend /> Publish
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                         <div className="p-6 bg-white space-y-4">
@@ -377,8 +519,9 @@ const LessonWorkspace = () => {
                                 className="w-full text-2xl font-bold text-gray-900 border-none outline-none placeholder:text-gray-300"
                             />
                             <textarea 
-                                placeholder={`Write your ${view === 'plans' ? 'lesson plan' : 'lesson note'} here...`}
+                                placeholder={isQuestionView ? "Questions will appear here..." : `Write your ${view === 'plans' ? 'lesson plan' : 'lesson note'} here...`}
                                 value={formData.content}
+                                readOnly={isQuestionView}
                                 onChange={e => setFormData({...formData, content: e.target.value})}
                                 className="w-full min-h-[400px] text-lg text-gray-700 border-none resize-none outline-none font-mono bg-gray-50/10 p-4 rounded-xl placeholder:text-gray-300 focus:bg-white transition-colors duration-300"
                             />
