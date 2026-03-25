@@ -318,7 +318,7 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
       Return ONLY the JSON.
     `;
 
-    const result = await model.generateContent(prompt);
+    const result = await generateWithFallback(genAI, prompt);
     const text = (await result.response).text();
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error("AI did not produce valid JSON");
