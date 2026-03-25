@@ -5,8 +5,8 @@ const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// Helper to get Gemini AI Instance with stable production endpoint
-async function getGeminiModel(schoolId) {
+// Helper to get authenticated Gemini AI Instance
+async function getGeminiAI(schoolId) {
   const school = await prisma.school.findUnique({
     where: { id: schoolId },
     select: { geminiApiKey: true }
@@ -26,9 +26,42 @@ async function getGeminiModel(schoolId) {
   // Trim to prevent empty character 404s
   const cleanedKey = apiKey.trim();
 
-  const genAI = new GoogleGenerativeAI(cleanedKey);
-  // Using gemini-1.5-flash as the standard, but ensuring we don't force a broken endpoint version
-  return genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  return new GoogleGenerativeAI(cleanedKey);
+}
+
+// Fallback logic to cycle through stable models
+async function generateWithFallback(genAI, prompt) {
+  // Ordered from fastest/cheapest/best to older stable models to prevent 404s in restricted regions
+  const modelsToTry = [
+    "gemini-1.5-flash", 
+    "gemini-1.5-flash-latest",
+    "gemini-1.0-pro",
+    "gemini-pro"
+  ];
+
+  let lastError;
+
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`[AI ACADEMICS] Attempting generation with model: ${modelName}`);
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      return result; // Success, return result immediately
+    } catch (error) {
+      console.error(`[AI ACADEMICS] Model ${modelName} failed:`, error.message);
+      lastError = error;
+      // If the error isn't a 404 (Not Found) or 403 (Permission), it might be a prompt safety block 
+      // or syntax error which shouldn't be retried across models.
+      // But for 404/400 (model not found/supported), we definitely want to continue to the next model.
+      if (!error.message.includes('404') && !error.message.includes('not found') && !error.message.includes('not supported')) {
+         // Optionally, break here if it's a hard error like quota exceeded (429)
+         if(error.message.includes('429')) throw error; 
+      }
+    }
+  }
+
+  // If we exhaust all models, throw the last error
+  throw new Error(`All fallback models failed. Last error: ${lastError?.message}`);
 }
 
 // Helper to get current session and term
@@ -270,8 +303,8 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
     const { classId, subjectId, topic, count = 10, difficulty = 'medium' } = req.body;
     const schoolId = req.schoolId;
 
-    const model = await getGeminiModel(schoolId);
-    if (!model) return res.status(400).json({ error: 'AI not configured', message: 'No Gemini API Key found.' });
+    const genAI = await getGeminiAI(schoolId);
+    if (!genAI) return res.status(400).json({ error: 'AI not configured', message: 'No Gemini API Key found.' });
 
     const curriculum = await prisma.curriculum.findUnique({ where: { schoolId_subjectId_classId: { schoolId, subjectId: parseInt(subjectId), classId: parseInt(classId) } } });
     const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
@@ -303,8 +336,8 @@ router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'adm
     const { classId, subjectId, topic, type = 'plans' } = req.body;
     const schoolId = req.schoolId;
 
-    const model = await getGeminiModel(schoolId);
-    if (!model) return res.status(400).json({ error: 'AI not configured' });
+    const genAI = await getGeminiAI(schoolId);
+    if (!genAI) return res.status(400).json({ error: 'AI not configured' });
 
     const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
     const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
@@ -327,14 +360,14 @@ router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'adm
 router.post('/ai/suggest-resources', authenticate, authorize(['teacher', 'admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const { topic, subjectId, classId } = req.body;
-    const model = await getGeminiModel(req.schoolId);
-    if (!model) return res.status(400).json({ error: 'AI not configured' });
+    const genAI = await getGeminiAI(req.schoolId);
+    if (!genAI) return res.status(400).json({ error: 'AI not configured' });
 
     const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
     const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
 
     const prompt = `Suggest 3-5 high-quality educational resources for ${topic} in ${subject.name} for ${classModel.name}. Return JSON array: [{"title": "...", "description": "...", "type": "video|article", "searchQuery": "..."}].`;
-    const result = await model.generateContent(prompt);
+    const result = await generateWithFallback(genAI, prompt);
     const jsonMatch = (await result.response).text().match(/\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error("Invalid format");
     res.json(JSON.parse(jsonMatch[0]));
@@ -349,10 +382,10 @@ router.post('/ai/lesson-chat', authenticate, async (req, res) => {
     const lesson = await prisma.lessonNote.findUnique({ where: { id: parseInt(lessonNoteId), schoolId: req.schoolId } });
     if (!lesson) return res.status(404).json({ error: 'Not found' });
 
-    const model = await getGeminiModel(req.schoolId);
-    if (!model) return res.status(400).json({ error: 'AI unconfigured' });
+    const genAI = await getGeminiAI(req.schoolId);
+    if (!genAI) return res.status(400).json({ error: 'AI unconfigured' });
 
-    const chat = model.startChat({
+    const result = await genAI.getGenerativeModel({ model: "gemini-1.5-flash" }).startChat({
       history: [
         { role: "user", parts: [{ text: `Tutor for: ${lesson.topic}. Content: ${lesson.content}` }] },
         { role: "model", parts: [{ text: "Hello! I am your AI Tutor." }] },
@@ -360,8 +393,8 @@ router.post('/ai/lesson-chat', authenticate, async (req, res) => {
       ]
     });
 
-    const result = await chat.sendMessage(message);
-    res.json({ reply: (await result.response).text() });
+    const reply = await result.sendMessage(message);
+    res.json({ reply: (await reply.response).text() });
   } catch (error) {
     res.status(500).json({ error: 'AI Tutor unavailable' });
   }
@@ -370,11 +403,11 @@ router.post('/ai/lesson-chat', authenticate, async (req, res) => {
 router.post('/ai/translate-lesson', authenticate, async (req, res) => {
   try {
     const { content, targetLang } = req.body;
-    const model = await getGeminiModel(req.schoolId);
-    if (!model) return res.status(400).json({ error: 'AI unconfigured' });
+    const genAI = await getGeminiAI(req.schoolId);
+    if (!genAI) return res.status(400).json({ error: 'AI unconfigured' });
 
     const prompt = `Translate to ${targetLang}, maintain formatting: ${content}`;
-    const result = await model.generateContent(prompt);
+    const result = await generateWithFallback(genAI, prompt);
     res.json({ translated: (await result.response).text() });
   } catch (error) {
     res.status(500).json({ error: 'Translation failed' });

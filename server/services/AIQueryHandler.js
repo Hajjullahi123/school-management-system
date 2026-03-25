@@ -6,8 +6,7 @@ class AIQueryHandler {
       console.warn('[AI] Gemini API key not provided, will check global fallback');
       this.initAsync();
     } else {
-      this.genAI = new GoogleGenerativeAI(apiKey);
-      this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+      this.genAI = new GoogleGenerativeAI(apiKey.trim());
     }
   }
 
@@ -15,12 +14,41 @@ class AIQueryHandler {
     try {
       const prisma = require('../db');
       const settings = await prisma.globalSettings.findFirst();
-      if (settings?.geminiApiKey) {
-        this.genAI = new GoogleGenerativeAI(settings.geminiApiKey);
-        this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+      if (settings?.geminiApiKey && settings.geminiApiKey !== 'NONE') {
+        this.genAI = new GoogleGenerativeAI(settings.geminiApiKey.trim());
         console.log('[AI] Initialized with Global Gemini API Key');
       }
     } catch (e) { }
+  }
+
+  async generateWithFallback(prompt) {
+    if(!this.genAI) throw new Error("AI not configured");
+    
+    const modelsToTry = [
+      "gemini-1.5-flash", 
+      "gemini-1.5-flash-latest",
+      "gemini-1.0-pro",
+      "gemini-pro"
+    ];
+
+    let lastError;
+
+    for (const modelName of modelsToTry) {
+      try {
+        console.log(`[AI SERVICE] Attempting generation with model: ${modelName}`);
+        const model = this.genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        return result; 
+      } catch (error) {
+        console.error(`[AI SERVICE] Model ${modelName} failed:`, error.message);
+        lastError = error;
+        if (!error.message.includes('404') && !error.message.includes('not found') && !error.message.includes('not supported')) {
+           if(error.message.includes('429')) throw error; 
+        }
+      }
+    }
+
+    throw new Error(`All fallback models failed. Last error: ${lastError?.message}`);
   }
 
   /**
@@ -58,7 +86,7 @@ Respond ONLY with a JSON object in this format:
 }`;
 
     try {
-      const result = await this.model.generateContent(prompt);
+      const result = await this.generateWithFallback(prompt);
       const response = await result.response;
       const text = response.text();
 
@@ -133,7 +161,7 @@ Rules:
 Respond with ONLY the message text, nothing else.`;
 
     try {
-      const result = await this.model.generateContent(prompt);
+      const result = await this.generateWithFallback(prompt);
       const response = await result.response;
       return response.text().trim();
     } catch (error) {
