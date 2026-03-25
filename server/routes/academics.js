@@ -353,7 +353,7 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
     const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
 
     // 3. Prompt Engineering
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     const prompt = `
       Act as an expert school teacher and examiner.
@@ -429,7 +429,7 @@ router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'adm
 
     const { GoogleGenerativeAI } = require('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     const prompt = `
       Act as an expert pedagogical consultant and master teacher. 
@@ -498,7 +498,7 @@ router.post('/ai/suggest-resources', authenticate, authorize(['teacher', 'admin'
 
     const { GoogleGenerativeAI } = require('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     const prompt = `
       As an expert educational curator for ${classModel.name} level students.
@@ -542,7 +542,7 @@ router.post('/ai/lesson-chat', authenticate, async (req, res) => {
     if (!school?.geminiApiKey) return res.status(400).json({ error: 'AI not configured' });
 
     const genAI = new GoogleGenerativeAI(school.geminiApiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     // RAG: Inject lesson content as system instructions
     const chat = model.startChat({
@@ -585,7 +585,7 @@ router.post('/ai/translate-lesson', authenticate, async (req, res) => {
     if (!school?.geminiApiKey) return res.status(400).json({ error: 'AI not configured' });
 
     const genAI = new GoogleGenerativeAI(school.geminiApiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     const prompt = `
       Translate the following educational content into professional and grammatically correct ${targetLang}. 
