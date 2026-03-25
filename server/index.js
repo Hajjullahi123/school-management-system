@@ -71,6 +71,7 @@ try {
 
 // Ping route for health checks
 app.get('/ping', (req, res) => res.status(200).send('pong'));
+app.get('/api/version', (req, res) => res.json({ version: '1.0.9-ai-fix-v4', timestamp: new Date().toISOString() }));
 
 // Public Privacy Policy for App Stores
 app.get('/privacy-policy', (req, res) => {

@@ -470,7 +470,7 @@ router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'adm
     console.error('AI Lesson Scaffolding Error:', error);
     res.status(500).json({ 
       error: 'AI service error', 
-      message: error.message || 'Failed to scaffold lesson content' 
+      message: `[${new Date().toISOString()}] ${error.message}` || 'Failed to scaffold lesson content' 
     });
   }
 });
