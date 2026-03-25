@@ -848,27 +848,6 @@ const SuperAdminDashboard = () => {
                     </div>
                   </div>
  
-                  {/* Global AI Config */}
-                  <div className="pt-6 border-t border-gray-100">
-                    <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <FiKey className="text-indigo-600" /> Platform-Wide AI Configuration (Fallback)
-                    </h4>
-                    <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-4">
-                      <p className="text-xs text-amber-700 font-bold">
-                        This Gemini API Key will be used as the default for ALL schools that haven't provided their own key.
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Global Gemini API Key</label>
-                      <input
-                        type="password"
-                        value={globalSettings.geminiApiKey || ''}
-                        onChange={e => setGlobalSettings({ ...globalSettings, geminiApiKey: e.target.value })}
-                        placeholder="Enter Global Gemini Key"
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm font-mono"
-                      />
-                    </div>
-                  </div>
 
                   <div className="pt-6 border-t border-gray-100 flex justify-center">
                     <button

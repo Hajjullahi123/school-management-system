@@ -1,77 +1,75 @@
-const { OpenAI } = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 class AIQueryHandler {
   constructor(apiKey) {
-    if (!apiKey) {
-      console.warn('[AI] API key not provided, will check ENV or DB fallback');
-      this.initAsync();
+    if (!apiKey || apiKey === 'NONE') {
+      console.warn('[AI SERVICE] No API key provided for school. AI features will be disabled.');
+      this.genAI = null;
     } else {
       this.setupClient(apiKey.trim());
     }
   }
 
   setupClient(key) {
-    let baseURL = undefined;
-    let model = 'gpt-4o-mini';
-    
-    // Auto-detect based on env vars to allow instant 1-key switching
-    if (process.env.DEEPSEEK_API_KEY && key === process.env.DEEPSEEK_API_KEY) {
-        baseURL = 'https://api.deepseek.com';
-        model = 'deepseek-chat';
-    } else if (process.env.GROK_API_KEY && key === process.env.GROK_API_KEY) {
-        baseURL = 'https://api.x.ai/v1';
-        model = 'grok-beta';
-    } 
-    
-    this.model = model;
-    this.openai = new OpenAI({ apiKey: key, baseURL });
-    console.log(`[AI SERVICE] Initialized with model: ${model}`);
-  }
-
-  async initAsync() {
     try {
-      const prisma = require('../db');
-      const settings = await prisma.globalSettings.findFirst();
-      let key = (settings?.geminiApiKey && settings.geminiApiKey !== 'NONE') ? settings.geminiApiKey : null;
-      if (!key) key = process.env.DEEPSEEK_API_KEY || process.env.GROK_API_KEY || process.env.OPENAI_API_KEY;
-
-      if (key && key !== 'undefined') {
-        this.setupClient(key.trim());
-      }
-    } catch (e) { }
-  }
-
-  async generateWithFallback(prompt, expectsJson = false) {
-    if(!this.openai) throw new Error("AI not configured");
-    
-    try {
-        const payload = {
-            model: this.model,
-            messages: [{ role: 'system', content: prompt }]
-        };
-        
-        // Use JSON mode if supported
-        if (expectsJson && this.model !== 'grok-beta') {
-             payload.response_format = { type: 'json_object' };
-        }
-
-        const response = await this.openai.chat.completions.create(payload);
-        return response.choices[0].message.content;
+      this.genAI = new GoogleGenerativeAI(key);
+      this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      console.log(`[AI SERVICE] Initialized with Google Gemini (gemini-1.5-flash)`);
     } catch (error) {
-        console.error(`[AI SERVICE] Generation failed:`, error.message);
-        throw error;
+      console.error(`[AI SERVICE] Initialization failed:`, error.message);
+      this.genAI = null;
+    }
+  }
+
+  /**
+   * General purpose generation method
+   */
+  async generate(prompt, expectsJson = false) {
+    if (!this.genAI || !this.model) {
+      throw new Error("AI service is not configured with a valid API key for this school.");
+    }
+
+    try {
+      const config = {};
+      if (expectsJson) {
+        config.responseMimeType = 'application/json';
+      }
+
+      const result = await this.model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: config
+      });
+
+      const response = await result.response;
+      return response.text();
+    } catch (error) {
+      console.error(`[AI SERVICE] Generation failed:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Cleans AI output and extracts JSON
+   */
+  cleanJson(text) {
+    if (!text) return null;
+    try {
+      // Remove markdown code blocks if present
+      let cleaned = text.trim();
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(json)?\n?/, '').replace(/\n?```$/, '');
+      }
+      return cleaned.trim();
+    } catch (e) {
+      return text;
     }
   }
 
   /**
    * Analyze parent query and extract intent
-   * @param {string} message - Parent's message
-   * @param {object} context - Parent and student context
-   * @returns {Promise<object>} { intent, entities }
    */
   async analyzeQuery(message, context = {}) {
-    if (!this.openai) {
-      // Fallback to simple keyword matching if no AI
+    if (!this.genAI) {
       return this.fallbackIntentDetection(message);
     }
 
@@ -98,19 +96,13 @@ Respond ONLY with a JSON object in this format:
 }`;
 
     try {
-      const text = await this.generateWithFallback(prompt, true);
-
-      // Extract JSON from response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        console.log('[AI] Intent detected:', parsed);
-        return parsed;
-      }
-
-      throw new Error('Could not parse AI response');
+      const text = await this.generate(prompt, true);
+      const cleaned = this.cleanJson(text);
+      const parsed = JSON.parse(cleaned);
+      console.log('[AI SERVICE] Intent detected:', parsed);
+      return parsed;
     } catch (error) {
-      console.error('[AI] Analysis error:', error.message);
+      console.error('[AI SERVICE] Analysis error:', error.message);
       return this.fallbackIntentDetection(message);
     }
   }
@@ -146,13 +138,9 @@ Respond ONLY with a JSON object in this format:
 
   /**
    * Generate a natural response using AI
-   * @param {object} data - Structured data to convert to natural language
-   * @param {string} intent - Query intent
-   * @returns {Promise<string>} Natural language response
    */
   async generateResponse(data, intent) {
-    if (!this.openai) {
-      // Use template-based responses
+    if (!this.genAI) {
       return this.templateResponse(data, intent);
     }
 
@@ -171,10 +159,10 @@ Rules:
 Respond with ONLY the message text, nothing else.`;
 
     try {
-      const text = await this.generateWithFallback(prompt, false);
+      const text = await this.generate(prompt, false);
       return text.trim();
     } catch (error) {
-      console.error('[AI] Response generation error:', error.message);
+      console.error('[AI SERVICE] Response generation error:', error.message);
       return this.templateResponse(data, intent);
     }
   }

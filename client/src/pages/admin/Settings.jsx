@@ -405,7 +405,16 @@ const Settings = () => {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
-              WhatsApp AI Bot
+              WhatsApp Bot
+            </button>
+            <button
+              onClick={() => setActiveTab('ai')}
+              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'ai'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              AI Configuration
             </button>
             <button
               onClick={() => setActiveTab('attendance')}
@@ -1191,7 +1200,8 @@ const Settings = () => {
                   <span className="mr-2">🤖</span> WhatsApp AI Parent Assistant
                 </h3>
                 <p className="text-sm text-green-700 mt-1">
-                  Enable this to allow parents to query student information (fees, attendance, etc.) via natural language on WhatsApp.
+                  Enable this to allow parents to query student information (fees, attendance, etc.) via natural language on WhatsApp. 
+                  <strong> Note: This requires a valid Gemini API Key in the AI Configuration tab.</strong>
                 </p>
               </div>
 
@@ -1226,21 +1236,6 @@ const Settings = () => {
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                   />
                   <p className="text-xs text-gray-500 mt-1">Your Twilio WhatsApp-enabled number (Sandbox or Production)</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Google Gemini API Key
-                  </label>
-                  <input
-                    type="password"
-                    name="geminiApiKey"
-                    value={settings.geminiApiKey}
-                    onChange={handleInputChange}
-                    placeholder="Enter your Gemini API key"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Used for natural language processing of parent queries</p>
                 </div>
 
                 <div>
@@ -1280,7 +1275,7 @@ const Settings = () => {
                 </code>
               </div>
 
-              <div className="flex justify-end space-x-4 pt-4 border-t">
+              <div className="flex justify-end pt-4 border-t">
                 <button
                   type="submit"
                   disabled={saving}
@@ -1292,6 +1287,78 @@ const Settings = () => {
                       Saving...
                     </>
                   ) : 'Save WhatsApp Configuration'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* AI Configuration Tab */}
+          {activeTab === 'ai' && (
+            <form onSubmit={handleSaveSettings} className="space-y-6">
+              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 bg-indigo-100 p-3 rounded-lg text-indigo-600">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-bold text-indigo-900">Google Gemini AI Integration</h3>
+                    <p className="text-sm text-indigo-700 mt-1">
+                      This API Key powers all AI-driven features in your school, including:
+                    </p>
+                    <ul className="text-sm text-indigo-700 mt-2 list-disc list-inside space-y-1 font-medium">
+                      <li>AI Lesson Planner & Note Curator</li>
+                      <li>CBT Question Generator (MCQs)</li>
+                      <li>Parent Assistant WhatsApp Bot</li>
+                      <li>Educational Resource Suggester</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-tight">
+                  Google Gemini API Key
+                </label>
+                <input
+                  type="password"
+                  name="geminiApiKey"
+                  value={settings.geminiApiKey}
+                  onChange={handleInputChange}
+                  placeholder="Paste your Gemini API Key here"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                />
+                <div className="mt-4 flex items-start gap-2 text-xs text-gray-500">
+                  <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p>
+                    Get your free or paid API key from the <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold">Google AI Studio</a>.
+                    Ensure you have the <strong>gemini-1.5-flash</strong> model enabled.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4 border-t">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-bold disabled:opacity-50 flex items-center shadow-lg shadow-indigo-100 transition-all active:scale-95"
+                >
+                  {saving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Saving Config...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Apply AI Configuration
+                    </>
+                  )}
                 </button>
               </div>
             </form>
