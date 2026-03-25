@@ -39,6 +39,7 @@ model GlobalSettings {
 
   // AI Configuration (Platform Level Fallback)
   geminiApiKey     String?
+  groqApiKey       String?
 
   updatedAt DateTime @updatedAt
 }
@@ -86,6 +87,7 @@ model School {
   twilioAccountSid    String?
   twilioAuthToken     String?
   geminiApiKey        String?
+  groqApiKey          String?
 
   // Portal Links
   facebookUrl           String?

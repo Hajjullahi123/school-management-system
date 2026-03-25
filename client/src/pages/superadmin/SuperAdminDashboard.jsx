@@ -36,7 +36,8 @@ const SuperAdminDashboard = () => {
     contactEmail: '',
     latestAppVersion: '',
     apkDownloadUrl: '',
-    geminiApiKey: ''
+    geminiApiKey: '',
+    groqApiKey: ''
   });
   const [updatingSettings, setUpdatingSettings] = useState(false);
 
@@ -848,6 +849,35 @@ const SuperAdminDashboard = () => {
                     </div>
                   </div>
  
+
+                  {/* AI Configuration Section */}
+                  <div className="pt-6 border-t border-gray-100">
+                    <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                       Platform AI Implementation (Global Fallback)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-indigo-600">Global Gemini API Key</label>
+                        <input
+                          type="password"
+                          value={globalSettings.geminiApiKey || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, geminiApiKey: e.target.value })}
+                          placeholder="AI Studio Key"
+                          className="w-full px-4 py-3 rounded-xl bg-gray-900 text-indigo-400 font-mono border-none focus:ring-2 focus:ring-indigo-600 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-green-600">Global Groq API Key</label>
+                        <input
+                          type="password"
+                          value={globalSettings.groqApiKey || ''}
+                          onChange={e => setGlobalSettings({ ...globalSettings, groqApiKey: e.target.value })}
+                          placeholder="Groq Console Key"
+                          className="w-full px-4 py-3 rounded-xl bg-gray-900 text-green-400 font-mono border-none focus:ring-2 focus:ring-indigo-600 text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
 
                   <div className="pt-6 border-t border-gray-100 flex justify-center">
                     <button

@@ -169,7 +169,19 @@ router.post('/webhook', async (req, res) => {
       school.whatsappPhoneNumber
     );
 
-    const aiHandler = new AIQueryHandler(school.geminiApiKey);
+    // Initialize AI Handler (with platform fallback if school keys missing)
+    let geminiKey = school.geminiApiKey;
+    let groqKey = school.groqApiKey;
+
+    if (!geminiKey || !groqKey) {
+      const globalSettings = await prisma.globalSettings.findFirst({
+        select: { geminiApiKey: true, groqApiKey: true }
+      });
+      if (!geminiKey) geminiKey = globalSettings?.geminiApiKey;
+      if (!groqKey) groqKey = globalSettings?.groqApiKey;
+    }
+
+    const aiHandler = new AIQueryHandler({ geminiApiKey: geminiKey, groqApiKey: groqKey });
 
     // Find parent by phone number
     const parent = await findParentByPhone(from, school.id);

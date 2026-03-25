@@ -1,48 +1,145 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 class AIQueryHandler {
-  constructor(apiKey) {
-    if (!apiKey || apiKey === 'NONE') {
-      console.warn('[AI SERVICE] No API key provided for school. AI features will be disabled.');
-      this.genAI = null;
-    } else {
-      this.setupClient(apiKey.trim());
+  constructor(options = {}) {
+    // Support legacy single-key constructor: new AIQueryHandler('key')
+    if (typeof options === 'string') {
+      options = { geminiApiKey: options };
+    }
+
+    const { geminiApiKey, groqApiKey } = options;
+    this.provider = null;
+
+    // Try Gemini first
+    if (geminiApiKey && geminiApiKey !== 'NONE') {
+      this.setupGemini(geminiApiKey.trim());
+    }
+
+    // Setup Groq as fallback (or primary if no Gemini)
+    if (groqApiKey && groqApiKey !== 'NONE') {
+      this.groqApiKey = groqApiKey.trim();
+      this.groqModel = 'llama-3.3-70b-versatile';
+      if (!this.provider) {
+        this.provider = 'groq';
+        console.log(`[AI SERVICE] Primary provider: Groq (${this.groqModel})`);
+      } else {
+        console.log(`[AI SERVICE] Fallback provider: Groq (${this.groqModel})`);
+      }
+    }
+
+    if (!this.provider && !this.groqApiKey) {
+      console.warn('[AI SERVICE] No AI provider configured. AI features will be disabled.');
     }
   }
 
-  setupClient(key) {
+  setupGemini(key) {
     try {
       this.genAI = new GoogleGenerativeAI(key);
       this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-      console.log(`[AI SERVICE] Initialized with Google Gemini (gemini-2.0-flash)`);
+      this.provider = 'gemini';
+      console.log(`[AI SERVICE] Primary provider: Google Gemini (gemini-2.0-flash)`);
     } catch (error) {
-      console.error(`[AI SERVICE] Initialization failed:`, error.message);
+      console.error(`[AI SERVICE] Gemini initialization failed:`, error.message);
       this.genAI = null;
     }
   }
 
   /**
-   * General purpose generation method
+   * Generate with Groq (OpenAI-compatible REST API)
+   */
+  async generateWithGroq(prompt, expectsJson = false) {
+    const body = {
+      model: this.groqModel,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      max_tokens: 4096
+    };
+
+    if (expectsJson) {
+      body.response_format = { type: 'json_object' };
+    }
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.groqApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(`Groq API error ${response.status}: ${errData?.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  }
+
+  /**
+   * Generate with Gemini
+   */
+  async generateWithGemini(prompt, expectsJson = false) {
+    const config = {};
+    if (expectsJson) {
+      config.responseMimeType = 'application/json';
+    }
+
+    const result = await this.model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: config
+    });
+
+    const response = await result.response;
+    return response.text();
+  }
+
+  /**
+   * General purpose generation method with automatic failover
    */
   async generate(prompt, expectsJson = false) {
-    if (!this.genAI || !this.model) {
+    if (!this.provider) {
       throw new Error("AI service is not configured with a valid API key for this school.");
     }
 
+    // Try primary provider
     try {
-      const config = {};
-      if (expectsJson) {
-        config.responseMimeType = 'application/json';
+      if (this.provider === 'gemini') {
+        return await this.generateWithGemini(prompt, expectsJson);
+      } else {
+        return await this.generateWithGroq(prompt, expectsJson);
+      }
+    } catch (error) {
+      const isQuotaError = error.message && (
+        error.message.includes('429') ||
+        error.message.includes('quota') ||
+        error.message.includes('Too Many Requests') ||
+        error.message.includes('RESOURCE_EXHAUSTED')
+      );
+
+      // Failover: if primary was Gemini and we have Groq, try Groq
+      if (this.provider === 'gemini' && this.groqApiKey && isQuotaError) {
+        console.warn(`[AI SERVICE] Gemini quota exceeded. Failing over to Groq...`);
+        try {
+          return await this.generateWithGroq(prompt, expectsJson);
+        } catch (groqError) {
+          console.error(`[AI SERVICE] Groq fallback also failed:`, groqError.message);
+          throw groqError;
+        }
       }
 
-      const result = await this.model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: config
-      });
+      // Failover: if primary was Groq and we have Gemini, try Gemini
+      if (this.provider === 'groq' && this.genAI && this.model && isQuotaError) {
+        console.warn(`[AI SERVICE] Groq quota exceeded. Failing over to Gemini...`);
+        try {
+          return await this.generateWithGemini(prompt, expectsJson);
+        } catch (geminiError) {
+          console.error(`[AI SERVICE] Gemini fallback also failed:`, geminiError.message);
+          throw geminiError;
+        }
+      }
 
-      const response = await result.response;
-      return response.text();
-    } catch (error) {
       console.error(`[AI SERVICE] Generation failed:`, error.message);
       throw error;
     }
@@ -69,7 +166,7 @@ class AIQueryHandler {
    * Analyze parent query and extract intent
    */
   async analyzeQuery(message, context = {}) {
-    if (!this.genAI) {
+    if (!this.provider) {
       return this.fallbackIntentDetection(message);
     }
 
@@ -140,7 +237,7 @@ Respond ONLY with a JSON object in this format:
    * Generate a natural response using AI
    */
   async generateResponse(data, intent) {
-    if (!this.genAI) {
+    if (!this.provider) {
       return this.templateResponse(data, intent);
     }
 

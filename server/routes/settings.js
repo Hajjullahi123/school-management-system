@@ -57,6 +57,7 @@ router.get('/', async (req, res) => {
     delete sanitizedSettings.smsApiKey;
     delete sanitizedSettings.twilioAuthToken;
     delete sanitizedSettings.geminiApiKey;
+    delete sanitizedSettings.groqApiKey;
 
     // Map fields for frontend compatibility
     sanitizedSettings.schoolName = sanitizedSettings.name;
@@ -91,7 +92,7 @@ router.put('/', authenticate, async (req, res) => {
     openingHours, welcomeTitle, welcomeMessage,
     examMode, examModeType,
     gradingSystem, passThreshold,
-    whatsappBotEnabled, whatsappPhoneNumber, twilioAccountSid, twilioAuthToken, geminiApiKey,
+    whatsappBotEnabled, whatsappPhoneNumber, twilioAccountSid, twilioAuthToken, geminiApiKey, groqApiKey,
     staffExpectedArrivalTime, enableStaffAttendanceReport, staffClockInDeadline,
     staffClockInMode, authorizedIP,
     weekendDays
@@ -175,6 +176,7 @@ router.put('/', authenticate, async (req, res) => {
     if (twilioAccountSid !== undefined) updateData.twilioAccountSid = twilioAccountSid;
     if (twilioAuthToken !== undefined) updateData.twilioAuthToken = twilioAuthToken;
     if (geminiApiKey !== undefined) updateData.geminiApiKey = geminiApiKey;
+    if (groqApiKey !== undefined) updateData.groqApiKey = groqApiKey;
 
     if (staffExpectedArrivalTime !== undefined) updateData.staffExpectedArrivalTime = staffExpectedArrivalTime;
     if (staffClockInDeadline !== undefined) updateData.staffClockInDeadline = staffClockInDeadline;

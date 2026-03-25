@@ -5,17 +5,28 @@ const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 const AIQueryHandler = require('../services/AIQueryHandler');
 
-// Helper to get Gemini AI Handler for a school
+// Helper to get AI Handler for a school (supports Gemini + Groq failover with Platform Fallback)
 async function getAIHandler(schoolId) {
   const school = await prisma.school.findUnique({
     where: { id: schoolId },
-    select: { geminiApiKey: true }
+    select: { geminiApiKey: true, groqApiKey: true }
   });
 
-  const apiKey = (school?.geminiApiKey && school?.geminiApiKey !== 'NONE') ? school.geminiApiKey : null;
+  let geminiKey = (school?.geminiApiKey && school?.geminiApiKey !== 'NONE') ? school.geminiApiKey : null;
+  let groqKey = (school?.groqApiKey && school?.groqApiKey !== 'NONE') ? school.groqApiKey : null;
   
-  if (!apiKey) return null;
-  return new AIQueryHandler(apiKey);
+  // If school doesn't have keys, check Global Settings (Platform Fallback)
+  if (!geminiKey || !groqKey) {
+    const globalSettings = await prisma.globalSettings.findFirst({
+      select: { geminiApiKey: true, groqApiKey: true }
+    });
+    
+    if (!geminiKey && globalSettings?.geminiApiKey) geminiKey = globalSettings.geminiApiKey;
+    if (!groqKey && globalSettings?.groqApiKey) groqKey = globalSettings.groqApiKey;
+  }
+
+  if (!geminiKey && !groqKey) return null;
+  return new AIQueryHandler({ geminiApiKey: geminiKey, groqApiKey: groqKey });
 }
 
 // Helper to get current session and term

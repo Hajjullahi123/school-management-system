@@ -51,6 +51,7 @@ const Settings = () => {
     twilioAccountSid: '',
     twilioAuthToken: '',
     geminiApiKey: '',
+    groqApiKey: '',
     staffExpectedArrivalTime: '07:00',
     staffClockInDeadline: '10:00',
     enableStaffAttendanceReport: true,
@@ -1303,9 +1304,9 @@ const Settings = () => {
                     </svg>
                   </div>
                   <div className="ml-4">
-                    <h3 className="text-lg font-bold text-indigo-900">Google Gemini AI Integration</h3>
+                    <h3 className="text-lg font-bold text-indigo-900">AI Integration (Dual Provider)</h3>
                     <p className="text-sm text-indigo-700 mt-1">
-                      This API Key powers all AI-driven features in your school, including:
+                      Configure one or both AI providers. If both are set, the system uses Gemini as primary and automatically falls back to Groq when quota is exceeded.
                     </p>
                     <ul className="text-sm text-indigo-700 mt-2 list-disc list-inside space-y-1 font-medium">
                       <li>AI Lesson Planner & Note Curator</li>
@@ -1317,6 +1318,7 @@ const Settings = () => {
                 </div>
               </div>
 
+              {/* Gemini API Key */}
               <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
                 <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-tight">
                   Google Gemini API Key
@@ -1334,8 +1336,35 @@ const Settings = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <p>
-                    Get your free or paid API key from the <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold">Google AI Studio</a>.
-                    Ensure you have the <strong>gemini-2.0-flash</strong> model enabled.
+                    Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold">Google AI Studio</a>.
+                    Uses <strong>gemini-2.0-flash</strong> model.
+                  </p>
+                </div>
+              </div>
+
+              {/* Groq API Key */}
+              <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 uppercase tracking-tight">
+                    Groq API Key
+                  </label>
+                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">Fallback</span>
+                </div>
+                <input
+                  type="password"
+                  name="groqApiKey"
+                  value={settings.groqApiKey}
+                  onChange={handleInputChange}
+                  placeholder="Paste your Groq API Key here"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                />
+                <div className="mt-4 flex items-start gap-2 text-xs text-gray-500">
+                  <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p>
+                    Get your free API key from <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold">Groq Console</a>.
+                    Uses <strong>llama-3.3-70b-versatile</strong> model. Free tier: ~14,400 requests/day.
                   </p>
                 </div>
               </div>
