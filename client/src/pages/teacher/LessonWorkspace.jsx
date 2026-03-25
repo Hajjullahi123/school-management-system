@@ -30,8 +30,10 @@ const LessonWorkspace = () => {
     const [aiParams, setAiParams] = useState({
         topic: '',
         count: 10,
-        difficulty: 'medium'
+        difficulty: 'medium',
+        language: 'English'
     });
+    const LANGUAGES = ['English', 'Arabic', 'Hausa', 'Igbo', 'Yoruba'];
     const [generating, setGenerating] = useState(false);
     const [scaffolding, setScaffolding] = useState(false);
     const [fetchingResources, setFetchingResources] = useState(false);
@@ -213,7 +215,8 @@ const LessonWorkspace = () => {
                 subjectId: formData.subjectId,
                 topic: aiParams.topic || formData.topic,
                 count: aiParams.count,
-                difficulty: aiParams.difficulty
+                difficulty: aiParams.difficulty,
+                language: aiParams.language
             });
 
             if (resp.ok) {
@@ -249,7 +252,8 @@ const LessonWorkspace = () => {
                 classId: formData.classId,
                 subjectId: formData.subjectId,
                 topic: formData.topic,
-                type: view // 'plans' or 'notes'
+                type: view, // 'plans' or 'notes'
+                language: aiParams.language
             });
 
             if (resp.ok) {
@@ -458,13 +462,23 @@ const LessonWorkspace = () => {
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                <button 
-                                    onClick={handleAiScaffold}
-                                    disabled={scaffolding}
-                                    className="bg-indigo-50 border border-indigo-200 text-indigo-600 px-4 py-2 rounded-lg font-bold shadow-sm hover:bg-indigo-100 transform active:scale-95 transition flex items-center gap-2"
-                                >
-                                    <FiCpu className={scaffolding ? 'animate-spin' : 'animate-pulse text-purple-600'} /> {scaffolding ? 'Generating...' : 'AI Draft Assistant'}
-                                </button>
+                                <div className="flex bg-gray-50 border border-indigo-100 p-1 rounded-xl">
+                                    <select 
+                                        value={aiParams.language}
+                                        onChange={e => setAiParams({...aiParams, language: e.target.value})}
+                                        className="bg-transparent text-[10px] font-black uppercase text-indigo-400 outline-none cursor-pointer pr-2 border-r border-indigo-50 mr-2 ml-1"
+                                    >
+                                        {LANGUAGES.map(lang => <option key={lang} value={lang}>{lang}</option>)}
+                                    </select>
+                                    <button 
+                                        onClick={handleAiScaffold}
+                                        disabled={scaffolding}
+                                        className="text-indigo-600 px-2 py-1.5 rounded-lg font-bold hover:bg-indigo-100 transition flex items-center gap-2 text-xs"
+                                    >
+                                        <FiCpu className={scaffolding ? 'animate-spin' : 'animate-pulse text-purple-600'} /> 
+                                        {scaffolding ? 'Generating...' : `AI Draft (${aiParams.language})`}
+                                    </button>
+                                </div>
                                 <button 
                                     onClick={() => setShowAiModal(true)}
                                     className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg font-bold shadow-md hover:shadow-lg transform active:scale-95 transition flex items-center gap-2"
@@ -648,6 +662,17 @@ const LessonWorkspace = () => {
                                         <option value="hard">Hard</option>
                                     </select>
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Language</label>
+                                <select 
+                                    value={aiParams.language}
+                                    onChange={e => setAiParams({...aiParams, language: e.target.value})}
+                                    className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-medium cursor-pointer"
+                                >
+                                    {LANGUAGES.map(lang => <option key={lang} value={lang}>{lang}</option>)}
+                                </select>
                             </div>
 
                             <div className="flex gap-4 pt-4">

@@ -394,7 +394,7 @@ router.get('/curriculum', authenticate, async (req, res) => {
 
 router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'principal', 'examination_officer', 'superadmin']), async (req, res) => {
   try {
-    const { classId, subjectId, topic, count = 10, difficulty = 'medium' } = req.body;
+    const { classId, subjectId, topic, count = 10, difficulty = 'medium', language = 'English' } = req.body;
     const schoolId = req.schoolId;
 
     const aiHandler = await getAIHandler(schoolId);
@@ -411,7 +411,9 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
     const prompt = `
       Act as an expert school teacher and examiner. Generate ${count} MCQs for:
       Subject: ${subject.name}, Class: ${classModel.name}, Topic: ${topic || 'General curriculum'}, Difficulty: ${difficulty}
+      Language: ${language}
       ${curriculum ? `Reference: ${curriculum.content}` : ''}
+      CRITICAL: All question text, options, and explanations MUST be in ${language}.
       Format: JSON array of objects [{"questionText": "...", "options": [{"id": "a", "text": "..."}, ...], "correctOption": "a", "bloomLevel": "...", "explanation": "...", "points": 1.0}]
       Return ONLY the JSON.
     `;
@@ -437,7 +439,7 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
 
 router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'admin', 'principal', 'superadmin']), async (req, res) => {
   try {
-    const { classId, subjectId, topic, type = 'plans' } = req.body;
+    const { classId, subjectId, topic, type = 'plans', language = 'English' } = req.body;
     const schoolId = req.schoolId;
 
     const aiHandler = await getAIHandler(schoolId);
@@ -450,7 +452,10 @@ router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'adm
         return res.status(404).json({ error: 'Subject or Class not found' });
     }
 
-    const prompt = `Generate a ${type === 'plans' ? 'Lesson Plan' : 'Lesson Note'} for ${subject.name} (Class: ${classModel.name}) on Topic: ${topic}. Use professional Markdown. Headers: Objectives, Hook, Vocabulary, Content, Activities, Assessment, Summary, Homework.`;
+    const prompt = `Generate a ${type === 'plans' ? 'Lesson Plan' : 'Lesson Note'} for ${subject.name} (Class: ${classModel.name}) on Topic: ${topic}. 
+    Language: ${language}.
+    CRITICAL: The entire content MUST be written in ${language}.
+    Use professional Markdown. Headers: Objectives, Hook, Vocabulary, Content, Activities, Assessment, Summary, Homework.`;
 
     const text = await aiHandler.generate(prompt);
     res.json({ content: text });
