@@ -310,6 +310,10 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
     const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
     const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
 
+    if (!subject || !classModel) {
+        return res.status(404).json({ error: 'Subject or Class not found', message: 'The selected subject or class is no longer valid.' });
+    }
+
     const prompt = `
       Act as an expert school teacher and examiner. Generate ${count} MCQs for:
       Subject: ${subject.name}, Class: ${classModel.name}, Topic: ${topic || 'General curriculum'}, Difficulty: ${difficulty}
@@ -321,8 +325,15 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
     const result = await generateWithFallback(genAI, prompt);
     const text = (await result.response).text();
     const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error("AI did not produce valid JSON");
-    res.json(JSON.parse(jsonMatch[0]));
+    if (!jsonMatch) throw new Error("AI did not produce valid JSON block");
+    
+    let parsedQuestions;
+    try {
+        parsedQuestions = JSON.parse(jsonMatch[0]);
+    } catch (e) {
+        throw new Error("AI produced invalid JSON: " + e.message);
+    }
+    res.json(parsedQuestions);
 
     logAction({ schoolId, userId: req.user.id, action: 'AI_GENERATE_CBT', resource: 'CBT_QUESTIONS', details: { subject: subject.name, class: classModel.name, topic, count }, ipAddress: req.ip });
   } catch (error) {
