@@ -245,7 +245,7 @@ const LessonWorkspace = () => {
                 setFormData({ ...formData, content: data.content });
             } else {
                 const err = await resp.json();
-                toast.error(err.error || 'AI scaffolding failed');
+                toast.error(err.message || err.error || 'AI scaffolding failed');
             }
         } catch (err) {
             toast.error('AI service error');
