@@ -21,12 +21,14 @@ async function getGeminiModel(schoolId) {
   // Fallback to Env for Render environments
   if (!apiKey) apiKey = process.env.GEMINI_API_KEY;
 
-  if (!apiKey) return null;
+  if (!apiKey || apiKey === 'undefined') return null;
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  // Using 'gemini-1.5-flash-latest' alias which is generally more robust across regions/endpoints
-  // Removing explicit apiVersion to let the SDK (v0.24+) select the best stable endpoint
-  return genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+  // Trim to prevent empty character 404s
+  const cleanedKey = apiKey.trim();
+
+  const genAI = new GoogleGenerativeAI(cleanedKey);
+  // Using gemini-1.5-flash as the standard, but ensuring we don't force a broken endpoint version
+  return genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 }
 
 // Helper to get current session and term
@@ -307,13 +309,17 @@ router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'adm
     const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
     const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
 
+    if (!subject || !classModel) {
+        return res.status(404).json({ error: 'Subject or Class not found' });
+    }
+
     const prompt = `Generate a ${type === 'plans' ? 'Lesson Plan' : 'Lesson Note'} for ${subject.name} (Class: ${classModel.name}) on Topic: ${topic}. Use professional Markdown. Headers: Objectives, Hook, Vocabulary, Content, Activities, Assessment, Summary, Homework.`;
 
     const result = await model.generateContent(prompt);
     res.json({ content: (await result.response).text() });
     logAction({ schoolId, userId: req.user.id, action: 'AI_GENERATE_LESSON_DRAFT', resource: 'LESSON_ACADEMICS', details: { topic, type }, ipAddress: req.ip });
   } catch (error) {
-    console.error('AI Scaffold Error:', error);
+    console.error('[AI ACADEMICS DEBUG]:', error);
     res.status(500).json({ error: 'AI Error', message: `[${new Date().toISOString()}] ${error.message}` });
   }
 });
