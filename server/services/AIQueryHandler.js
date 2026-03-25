@@ -7,7 +7,7 @@ class AIQueryHandler {
       this.initAsync();
     } else {
       this.genAI = new GoogleGenerativeAI(apiKey);
-      this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }, { apiVersion: 'v1beta' });
     }
   }
 
@@ -17,7 +17,7 @@ class AIQueryHandler {
       const settings = await prisma.globalSettings.findFirst();
       if (settings?.geminiApiKey) {
         this.genAI = new GoogleGenerativeAI(settings.geminiApiKey);
-        this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }, { apiVersion: 'v1beta' });
         console.log('[AI] Initialized with Global Gemini API Key');
       }
     } catch (e) { }
