@@ -24,8 +24,9 @@ async function getGeminiModel(schoolId) {
   if (!apiKey) return null;
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  // CRITICAL: Using 'v1beta' because 'v1' is reporting 404 for gemini-1.5-flash in some environments/regions
-  return genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1beta" });
+  // Using 'gemini-1.5-flash-latest' alias which is generally more robust across regions/endpoints
+  // Removing explicit apiVersion to let the SDK (v0.24+) select the best stable endpoint
+  return genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 }
 
 // Helper to get current session and term
