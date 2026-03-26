@@ -197,7 +197,7 @@ const ExamRepository = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Exam Repository</h1>
@@ -268,16 +268,16 @@ const ExamRepository = () => {
                 )}
              </div>
            )}
-           <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+           <div className="bg-white rounded-2xl shadow-sm overflow-x-auto border border-gray-100">
           <table className="w-full text-left">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                <th className="px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Exam Title</th>
-                <th className="px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Subject & Class</th>
-                <th className="px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Teacher</th>
-                <th className="px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Submission</th>
-                <th className="px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Status</th>
-                <th className="px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px] text-right">Actions</th>
+                <th className="px-3 md:px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Exam Title</th>
+                <th className="px-3 md:px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Subject & Class</th>
+                <th className="px-3 md:px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Teacher</th>
+                <th className="px-3 md:px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Submission</th>
+                <th className="px-3 md:px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Status</th>
+                <th className="px-3 md:px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -287,18 +287,18 @@ const ExamRepository = () => {
                 <tr><td colSpan="5" className="text-center py-20 text-gray-400 font-medium italic">No exam submissions found.</td></tr>
               ) : exams.map(exam => (
                 <tr key={exam.id} className="hover:bg-gray-50/50 transition duration-200">
-                  <td className="px-6 py-4">
+                  <td className="px-3 md:px-6 py-4">
                     <div className="font-bold text-gray-900">{exam.title}</div>
                     <div className="text-[10px] text-gray-400 font-medium uppercase tracking-tight">{new Date(exam.createdAt).toLocaleDateString()}</div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 md:px-6 py-4">
                     <div className="font-bold text-indigo-600 text-sm">{exam.subject?.name}</div>
                     <div className="text-xs text-gray-500">{exam.class?.name} {exam.class?.arm}</div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 md:px-6 py-4">
                     <div className="font-medium text-gray-700 text-sm">{exam.teacher?.firstName} {exam.teacher?.lastName}</div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 md:px-6 py-4">
                     <div className="flex flex-col gap-1">
                       {exam.fileUrl && (
                         <a 
@@ -322,7 +322,7 @@ const ExamRepository = () => {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 md:px-6 py-4">
                     <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
                       exam.status === 'approved' ? 'bg-green-100 text-green-700' : 
                       exam.status === 'submitted' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'
