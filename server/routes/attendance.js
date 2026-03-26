@@ -152,7 +152,7 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
       isHoliday,
       holidayInfo,
       session: session ? { id: session.id, name: session.name } : null,
-      term: term ? { id: term.id, name: term.name } : null
+      term: term ? { id: term.id, name: term.name, startDate: term.startDate, endDate: term.endDate } : null
     });
 
   } catch (error) {
@@ -222,6 +222,20 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal', '
     }
 
     targetDate.setHours(0, 0, 0, 0);
+
+    // TERM DATE BOUNDARY CHECK: Ensure targetDate is within the current term's date range
+    const termStart = new Date(term.startDate);
+    termStart.setHours(0, 0, 0, 0);
+    const termEnd = new Date(term.endDate);
+    termEnd.setHours(23, 59, 59, 999);
+
+    if ((targetDate < termStart || targetDate > termEnd) && !adminOverride) {
+      const startStr = termStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      const endStr = termEnd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      return res.status(400).json({
+        error: `Date out of term range. The current term (${term.name}) runs from ${startStr} to ${endStr}. Attendance can only be marked within this period.`
+      });
+    }
 
     // We use a transaction because we might be updating many rows
     await prisma.$transaction(
