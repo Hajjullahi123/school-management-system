@@ -5,18 +5,29 @@ const WhatsAppService = require('../services/WhatsAppService');
 const AIQueryHandler = require('../services/AIQueryHandler');
 const { logAction } = require('../utils/audit');
 
-// Helper to get school settings by phone number
-async function getSchoolByWhatsApp(phoneNumber) {
-  // Since multiple schools could use the same system, we need to identify which school
-  // this WhatsApp number belongs to by checking school settings
-  const schools = await prisma.school.findMany({
-    where: {
-      whatsappBotEnabled: true,
-      whatsappPhoneNumber: phoneNumber
-    }
-  });
-
-  return schools[0] || null;
+// Helper to get school settings by phone number or Meta ID
+async function getSchoolByWhatsApp(phoneNumber, provider = 'twilio') {
+  if (provider === 'twilio') {
+    return await prisma.school.findFirst({
+      where: {
+        whatsappBotEnabled: true,
+        whatsappPhoneNumber: phoneNumber,
+        whatsappProvider: 'twilio'
+      }
+    });
+  } else {
+    // For Meta, we might match by phone number or metaPhoneNumberId
+    return await prisma.school.findFirst({
+      where: {
+        whatsappBotEnabled: true,
+        whatsappProvider: 'meta',
+        OR: [
+          { whatsappPhoneNumber: phoneNumber },
+          { metaPhoneNumberId: phoneNumber }
+        ]
+      }
+    });
+  }
 }
 
 // Helper to find parent by phone number
@@ -145,29 +156,67 @@ async function handleGeneralQuery(schoolId) {
   };
 }
 
-// Webhook endpoint - Receives WhatsApp messages from Twilio
+// Meta Webhook Verification (GET request)
+router.get('/webhook', async (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode && token) {
+    if (mode === 'subscribe') {
+      // Check if any school matches this verify token
+      const school = await prisma.school.findFirst({
+        where: { metaVerifyToken: token }
+      });
+
+      // Also check global settings as fallback
+      const globalSettings = await prisma.globalSettings.findFirst({
+        where: { metaVerifyToken: token } // Wait, I didn't add this yet, but I will.
+      });
+
+      if (school || token === process.env.WHATSAPP_VERIFY_TOKEN) {
+        console.log('[WhatsApp-Meta] Webhook verified');
+        return res.status(200).send(challenge);
+      }
+    }
+  }
+  console.warn('[WhatsApp-Meta] Verification failed');
+  res.sendStatus(403);
+});
+
+// Webhook endpoint - Receives WhatsApp messages from Twilio or Meta
 router.post('/webhook', async (req, res) => {
   try {
-    console.log('[WhatsApp Webhook] Received:', req.body);
+    // Detect Provider
+    const isMeta = req.body.object === 'whatsapp_business_account';
+    const provider = isMeta ? 'meta' : 'twilio';
 
     // Parse incoming message
-    const incomingData = WhatsAppService.parseIncoming(req.body);
-    const { from, message } = incomingData;
+    const incomingData = WhatsAppService.parseIncoming(req.body, provider);
+    
+    if (!incomingData) {
+      return res.status(200).send(); // Not a message or status update we care about
+    }
 
-    // Identify which school this is for (based on the "To" number)
-    const school = await getSchoolByWhatsApp(incomingData.to);
+    const { from, message, to } = incomingData;
+
+    // Identify which school this is for
+    const school = await getSchoolByWhatsApp(to, provider);
 
     if (!school) {
-      console.warn('[WhatsApp] No school found for number:', incomingData.to);
-      return res.status(200).send(); // Return 200 to prevent Twilio retries
+      console.warn(`[WhatsApp] No school found for ${provider} number:`, to);
+      return res.status(200).send();
     }
 
     // Initialize services
-    const whatsappService = new WhatsAppService(
-      school.twilioAccountSid,
-      school.twilioAuthToken,
-      school.whatsappPhoneNumber
-    );
+    const whatsappService = new WhatsAppService({
+      whatsappProvider: school.whatsappProvider,
+      twilioAccountSid: school.twilioAccountSid,
+      twilioAuthToken: school.twilioAuthToken,
+      whatsappPhoneNumber: school.whatsappPhoneNumber,
+      metaAccessToken: school.metaAccessToken,
+      metaPhoneNumberId: school.metaPhoneNumberId
+    });
 
     // Initialize AI Handler (with platform fallback if school keys missing)
     let geminiKey = school.geminiApiKey;

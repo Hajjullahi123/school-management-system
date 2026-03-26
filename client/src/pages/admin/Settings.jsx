@@ -47,9 +47,14 @@ const Settings = () => {
     gradingSystem: '[{"grade":"A","min":70,"max":100,"remark":"Excellent"},{"grade":"B","min":60,"max":69.9,"remark":"Very Good"},{"grade":"C","min":50,"max":59.9,"remark":"Good"},{"grade":"D","min":40,"max":49.9,"remark":"Pass"},{"grade":"E","min":30,"max":39.9,"remark":"Weak Pass"},{"grade":"F","min":0,"max":29.9,"remark":"Fail"}]',
     passThreshold: 40,
     whatsappBotEnabled: false,
+    whatsappProvider: 'twilio',
     whatsappPhoneNumber: '',
     twilioAccountSid: '',
     twilioAuthToken: '',
+    metaAccessToken: '',
+    metaPhoneNumberId: '',
+    metaBusinessAccountId: '',
+    metaVerifyToken: '',
     geminiApiKey: '',
     groqApiKey: '',
     staffExpectedArrivalTime: '07:00',
@@ -1224,56 +1229,161 @@ const Settings = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    WhatsApp Phone Number (Twilio)
+                    WhatsApp Service Provider
                   </label>
-                  <input
-                    type="text"
-                    name="whatsappPhoneNumber"
-                    value={settings.whatsappPhoneNumber}
+                  <select
+                    name="whatsappProvider"
+                    value={settings.whatsappProvider || 'twilio'}
                     onChange={handleInputChange}
-                    placeholder="e.g. +14155238886"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Your Twilio WhatsApp-enabled number (Sandbox or Production)</p>
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
+                  >
+                    <option value="twilio">Twilio (Traditional/Stable)</option>
+                    <option value="meta">Meta Cloud API (Official/Direct/Cheaper)</option>
+                  </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Twilio Account SID
-                  </label>
-                  <input
-                    type="text"
-                    name="twilioAccountSid"
-                    value={settings.twilioAccountSid}
-                    onChange={handleInputChange}
-                    placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  />
-                </div>
+                {settings.whatsappProvider === 'twilio' ? (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        WhatsApp Phone Number (Twilio)
+                      </label>
+                      <input
+                        type="text"
+                        name="whatsappPhoneNumber"
+                        value={settings.whatsappPhoneNumber || ''}
+                        onChange={handleInputChange}
+                        placeholder="e.g. +14155238886"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Your Twilio WhatsApp-enabled number</p>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Twilio Auth Token
-                  </label>
-                  <input
-                    type="password"
-                    name="twilioAuthToken"
-                    value={settings.twilioAuthToken}
-                    onChange={handleInputChange}
-                    placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Twilio Account SID
+                      </label>
+                      <input
+                        type="text"
+                        name="twilioAccountSid"
+                        value={settings.twilioAccountSid || ''}
+                        onChange={handleInputChange}
+                        placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Twilio Auth Token
+                      </label>
+                      <input
+                        type="password"
+                        name="twilioAuthToken"
+                        value={settings.twilioAuthToken || ''}
+                        onChange={handleInputChange}
+                        placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Meta Access Token (Permanent)
+                      </label>
+                      <input
+                        type="password"
+                        name="metaAccessToken"
+                        value={settings.metaAccessToken || ''}
+                        onChange={handleInputChange}
+                        placeholder="EAAB..."
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Found in Meta App Settings under "API Setup"</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone Number ID
+                      </label>
+                      <input
+                        type="text"
+                        name="metaPhoneNumberId"
+                        value={settings.metaPhoneNumberId || ''}
+                        onChange={handleInputChange}
+                        placeholder="1029384756..."
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        WhatsApp Business Account ID
+                      </label>
+                      <input
+                        type="text"
+                        name="metaBusinessAccountId"
+                        value={settings.metaBusinessAccountId || ''}
+                        onChange={handleInputChange}
+                        placeholder="1122334455..."
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Webhook Verify Token
+                      </label>
+                      <input
+                        type="text"
+                        name="metaVerifyToken"
+                        value={settings.metaVerifyToken || ''}
+                        onChange={handleInputChange}
+                        placeholder="Any random string"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Set this same value in the Meta Developer portal</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Public Phone Number
+                      </label>
+                      <input
+                        type="text"
+                        name="whatsappPhoneNumber"
+                        value={settings.whatsappPhoneNumber || ''}
+                        onChange={handleInputChange}
+                        placeholder="23480..."
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">International format without + prefix</p>
+                    </div>
+                  </>
+                )}
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-                <p className="font-semibold mb-1">Webhook URL Configuration:</p>
-                <p>Set your Twilio Sandbox/Production webhook URL to:</p>
-                <code className="bg-white/50 px-2 py-1 rounded block mt-2 border border-blue-100 select-all">
-                  {`${window.location.origin}/api/whatsapp/webhook`}
-                </code>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-5 text-sm text-blue-800 space-y-3">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <p className="font-bold">Webhook Configuration Checklist:</p>
+                </div>
+                <div className="ml-7 space-y-2">
+                  <p>1. Set your <strong>Webhook URL</strong> to:</p>
+                  <code className="bg-white/70 px-3 py-1.5 rounded-lg block border border-blue-100 select-all font-mono">
+                    {`${window.location.protocol}//${window.location.host}/api/whatsapp/webhook`}
+                  </code>
+                  {settings.whatsappProvider === 'meta' && (
+                    <p>2. Ensure <strong>Webhooks &gt; Messages</strong> is subscribed in Meta App Dashboard.</p>
+                  )}
+                  <p>{settings.whatsappProvider === 'twilio' ? '2.' : '3.'} Ensure <strong>HTTP POST</strong> is selected as the method.</p>
+                </div>
               </div>
 
               <div className="flex justify-end pt-4 border-t">

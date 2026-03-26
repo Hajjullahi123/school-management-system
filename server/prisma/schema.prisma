@@ -41,6 +41,9 @@ model GlobalSettings {
   geminiApiKey     String?
   groqApiKey       String?
 
+  // WhatsApp Platform Fallback
+  whatsappProvider String? @default("twilio")
+
   updatedAt DateTime @updatedAt
 }
 
@@ -83,9 +86,14 @@ model School {
 
   // WhatsApp Bot Configuration
   whatsappBotEnabled  Boolean @default(false)
+  whatsappProvider    String? @default("twilio")
   whatsappPhoneNumber String?
   twilioAccountSid    String?
   twilioAuthToken     String?
+  metaAccessToken     String?
+  metaPhoneNumberId   String?
+  metaBusinessAccountId String?
+  metaVerifyToken     String?
   geminiApiKey        String?
   groqApiKey          String?
 
