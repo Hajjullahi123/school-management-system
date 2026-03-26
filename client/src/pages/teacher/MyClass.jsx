@@ -23,6 +23,12 @@ const MyClass = () => {
     fetchCurrentTerm();
   }, []);
 
+  useEffect(() => {
+    if (classData?.id && currentTerm?.id) {
+      fetchPublicationStatus(currentTerm.id);
+    }
+  }, [classData?.id, currentTerm?.id]);
+
   const fetchDomains = async () => {
     try {
       const res = await api.get('/api/report-extras/domains');

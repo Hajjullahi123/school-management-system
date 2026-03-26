@@ -27,9 +27,12 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         test1Weight: true,
         test2Weight: true,
         examWeight: true,
-        principalSignatureUrl: true
+        principalSignatureUrl: true,
+        weekendDays: true
       }
     });
+
+    const weekendIndices = (schoolSettings?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
 
     // Fetch student with all details
     const student = await prisma.student.findFirst({
@@ -197,7 +200,40 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       }
     });
 
-    const totalAttendanceDays = classAttendanceDays.length;
+    // Determine the denominator for attendance.
+    // If term dates are set, we can calculate the total possible school days (excluding weekends/holidays)
+    // to provide a more realistic "Full Term" denominator.
+    const recordedAttendanceDays = classAttendanceDays.length;
+    let totalAttendanceDays = recordedAttendanceDays;
+
+    if (term.startDate && term.endDate) {
+      const holidays = await prisma.schoolHoliday.findMany({
+        where: { schoolId: req.schoolId, date: { gte: term.startDate, lte: term.endDate } },
+        select: { date: true }
+      });
+      const holidayDates = holidays.map(h => new Date(h.date));
+
+      // Calculate business days between start and today (or end if term has passed)
+      const now = new Date();
+      const calculationEndDate = term.endDate < now ? new Date(term.endDate) : now;
+      calculationEndDate.setHours(23, 59, 59, 999);
+
+      let businessDaysSoFar = 0;
+      let d = new Date(term.startDate);
+      d.setHours(0,0,0,0);
+
+      while (d <= calculationEndDate) {
+        if (!weekendIndices.includes(d.getDay())) {
+          const isHoliday = holidayDates.some(hd => hd.toDateString() === d.toDateString());
+          if (!isHoliday) businessDaysSoFar++;
+        }
+        d.setDate(d.getDate() + 1);
+      }
+
+      // Use the maximum of recorded days and business days so far to avoid confusion
+      // If they marked attendance on a weekend (rare but possible), recorded days might be higher.
+      totalAttendanceDays = Math.max(recordedAttendanceDays, businessDaysSoFar);
+    }
 
     const presentAttendanceDays = await prisma.attendanceRecord.count({
       where: {
@@ -447,9 +483,12 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         gradingSystem: true, passThreshold: true,
         assignment1Weight: true, assignment2Weight: true,
         test1Weight: true, test2Weight: true, examWeight: true,
-        principalSignatureUrl: true
+        principalSignatureUrl: true,
+        weekendDays: true
       }
     });
+
+    const weekendIndices = (schoolSettings?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
 
     // Fetch term details
     const term = await prisma.term.findFirst({
@@ -550,7 +589,35 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       by: ['date'],
       where: { schoolId: req.schoolId, classId: parseInt(classId), termId: parseInt(termId) }
     });
-    const totalAttendanceDays = classAttendanceDays.length;
+
+    // Determine the denominator for attendance.
+    const recordedAttendanceDays = classAttendanceDays.length;
+    let totalAttendanceDays = recordedAttendanceDays;
+
+    if (term.startDate && term.endDate) {
+      const holidays = await prisma.schoolHoliday.findMany({
+        where: { schoolId: req.schoolId, date: { gte: term.startDate, lte: term.endDate } },
+        select: { date: true }
+      });
+      const holidayDates = holidays.map(h => new Date(h.date));
+
+      const now = new Date();
+      const calculationEndDate = term.endDate < now ? new Date(term.endDate) : now;
+      calculationEndDate.setHours(23, 59, 59, 999);
+
+      let businessDaysSoFar = 0;
+      let d = new Date(term.startDate);
+      d.setHours(0,0,0,0);
+
+      while (d <= calculationEndDate) {
+        if (!weekendIndices.includes(d.getDay())) {
+          const isHoliday = holidayDates.some(hd => hd.toDateString() === d.toDateString());
+          if (!isHoliday) businessDaysSoFar++;
+        }
+        d.setDate(d.getDate() + 1);
+      }
+      totalAttendanceDays = Math.max(recordedAttendanceDays, businessDaysSoFar);
+    }
 
     const attendanceCounts = await prisma.attendanceRecord.groupBy({
       by: ['studentId'],
