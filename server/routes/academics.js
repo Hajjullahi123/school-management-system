@@ -452,14 +452,42 @@ router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'adm
         return res.status(404).json({ error: 'Subject or Class not found' });
     }
 
-    const prompt = `Generate a ${type === 'plans' ? 'Lesson Plan' : 'Lesson Note'} for ${subject.name} (Class: ${classModel.name}) on Topic: ${topic}. 
+    const prompt = `Generate a highly detailed and comprehensive ${type === 'plans' ? 'Lesson Plan' : 'Lesson Note'} for ${subject.name} (Class: ${classModel.name}) on Topic: ${topic}. 
     Language: ${language}.
-    CRITICAL: The entire content MUST be written in ${language}.
-    Use professional Markdown. Headers: Objectives, Hook, Vocabulary, Content, Activities, Assessment, Summary, Homework.`;
+    CRITICAL: The entire content MUST be written in ${language}, MUST conform to modern educational standards, and MUST be in line with current academic trends.
+    Use professional Markdown. Headers: Objectives, Hook, Vocabulary, Detailed Content, Modern Learning Activities, Standardized Assessment, Summary, Homework.`;
 
     const text = await aiHandler.generate(prompt);
     res.json({ content: text });
     logAction({ schoolId, userId: req.user.id, action: 'AI_GENERATE_LESSON_DRAFT', resource: 'LESSON_ACADEMICS', details: { topic, type }, ipAddress: req.ip });
+  } catch (error) {
+    console.error('[AI ACADEMICS DEBUG]:', error);
+    res.status(500).json({ error: 'AI Error', message: `[${new Date().toISOString()}] ${error.message}` });
+  }
+});
+
+router.post('/ai/generate-essay', authenticate, authorize(['teacher', 'admin', 'principal', 'superadmin']), async (req, res) => {
+  try {
+    const { classId, subjectId, topic, language = 'English' } = req.body;
+    const schoolId = req.schoolId;
+
+    const aiHandler = await getAIHandler(schoolId);
+    if (!aiHandler) return res.status(400).json({ error: 'AI not configured' });
+
+    const subject = await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } });
+    const classModel = await prisma.class.findUnique({ where: { id: parseInt(classId) } });
+
+    if (!subject || !classModel) {
+        return res.status(404).json({ error: 'Subject or Class not found' });
+    }
+
+    const prompt = `Act as an expert school teacher and examiner. Generate 10 sample examination objective questions for Subject: ${subject.name}, Class: ${classModel.name}, Topic: ${topic}. 
+    Language: ${language}. 
+    CRITICAL: Each question MUST have exactly 3 options (A, B, and C). Provide the questions in a clear, numbered markdown format suitable for direct printing or saving as a PDF. Do NOT use JSON. Include a separate "Answer Key" section at the very end. The content MUST be written entirely in ${language}.`;
+
+    const text = await aiHandler.generate(prompt);
+    res.json({ content: text });
+    logAction({ schoolId, userId: req.user.id, action: 'AI_GENERATE_ESSAY', resource: 'LESSON_ACADEMICS', details: { topic }, ipAddress: req.ip });
   } catch (error) {
     console.error('[AI ACADEMICS DEBUG]:', error);
     res.status(500).json({ error: 'AI Error', message: `[${new Date().toISOString()}] ${error.message}` });

@@ -36,6 +36,7 @@ const LessonWorkspace = () => {
     const LANGUAGES = ['English', 'Arabic', 'Hausa', 'Igbo', 'Yoruba'];
     const [generating, setGenerating] = useState(false);
     const [scaffolding, setScaffolding] = useState(false);
+    const [scaffoldingEssay, setScaffoldingEssay] = useState(false);
     const [fetchingResources, setFetchingResources] = useState(false);
     const [suggestedResources, setSuggestedResources] = useState([]);
 
@@ -273,6 +274,37 @@ const LessonWorkspace = () => {
         }
     };
 
+    const handleAiGenerateEssay = async () => {
+        if (!formData.classId || !formData.subjectId || !formData.topic) {
+            toast.error('Please select Class, Subject and provide a Topic first');
+            return;
+        }
+        setScaffoldingEssay(true);
+        try {
+            const resp = await api.post('/api/academics/ai/generate-essay', {
+                classId: formData.classId,
+                subjectId: formData.subjectId,
+                topic: formData.topic,
+                language: aiParams.language
+            });
+
+            if (resp.ok) {
+                const data = await resp.json();
+                toast.success('AI Essay Questions Generated!');
+                setFormData({ ...formData, content: data.content });
+                if (view === 'plans') setPlanContent(data.content);
+                else setNoteContent(data.content);
+            } else {
+                const err = await resp.json();
+                toast.error(err.message || err.error || 'AI generation failed');
+            }
+        } catch (err) {
+            toast.error('AI service error');
+        } finally {
+            setScaffoldingEssay(false);
+        }
+    };
+
     const handleSuggestResources = async () => {
         if (!formData.topic || !formData.subjectId || !formData.classId) {
             toast.error('Select Class, Subject and enter a Topic');
@@ -476,7 +508,7 @@ const LessonWorkspace = () => {
                                         className="text-indigo-600 px-4 py-2 rounded-xl font-bold hover:bg-indigo-50 transition flex items-center gap-2 text-xs whitespace-nowrap"
                                     >
                                         <FiCpu className={scaffolding ? 'animate-spin' : 'animate-pulse text-purple-600'} /> 
-                                        {scaffolding ? 'Generating...' : `AI Draft (${aiParams.language})`}
+                                        {scaffolding ? 'Generating...' : `Generate AI draft (${aiParams.language})`}
                                     </button>
                                 </div>
                                 <button 
@@ -484,6 +516,14 @@ const LessonWorkspace = () => {
                                     className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-purple-100 hover:shadow-purple-200 transform active:scale-95 transition flex items-center gap-2 text-xs"
                                 >
                                     <FiCpu className="animate-pulse" /> AI Generate CBT
+                                </button>
+                                <button 
+                                    onClick={handleAiGenerateEssay}
+                                    disabled={scaffoldingEssay}
+                                    className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-blue-100 hover:shadow-blue-200 transform active:scale-95 transition flex items-center gap-2 text-xs"
+                                >
+                                    <FiCpu className={scaffoldingEssay ? 'animate-spin' : 'animate-pulse'} /> 
+                                    {scaffoldingEssay ? 'Generating...' : 'AI Generate Essay'}
                                 </button>
                                 <button 
                                     onClick={handleSuggestResources}
