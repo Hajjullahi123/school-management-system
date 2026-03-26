@@ -397,28 +397,28 @@ const LessonWorkspace = () => {
 
     return (
         <div className="p-6 max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
                 <div>
                     <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Academic Workspace</h1>
                     <p className="text-gray-500 mt-1">Manage your lesson plans, notes, and AI-powered assessments.</p>
                 </div>
-                <div className="flex bg-gray-100 p-1 rounded-xl shadow-inner border border-gray-200">
+                <div className="flex bg-gray-100 p-1 rounded-2xl shadow-inner border border-gray-200 w-full lg:w-auto overflow-x-auto no-scrollbar">
                     <button 
                         onClick={() => handleToggleView('plans')}
-                        className={`px-6 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${view === 'plans' && !isQuestionView ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`flex-1 lg:flex-none px-6 py-2.5 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap ${view === 'plans' && !isQuestionView ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <FiFileText /> Lesson Plans
                     </button>
                     <button 
                         onClick={() => handleToggleView('notes')}
-                        className={`px-6 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${view === 'notes' && !isQuestionView ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`flex-1 lg:flex-none px-6 py-2.5 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap ${view === 'notes' && !isQuestionView ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <FiBook /> Lesson Notes
                     </button>
                     {generatedQuestions.length > 0 && (
                         <button 
                             onClick={handleToggleQuestions}
-                            className={`px-6 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${isQuestionView ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`flex-1 lg:flex-none px-6 py-2.5 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap ${isQuestionView ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                         >
                             <FiCpu /> Generated CBT
                         </button>
@@ -430,16 +430,16 @@ const LessonWorkspace = () => {
                 {/* Editor Section */}
                 <div className="lg:col-span-12">
                     <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex flex-wrap justify-between items-center gap-4">
-                            <div className="flex flex-wrap gap-4 items-center">
-                                <h3 className="font-bold text-gray-800 text-lg">
+                        <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+                            <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-start sm:items-center w-full xl:w-auto">
+                                <h3 className="font-black text-gray-900 text-xl tracking-tight mb-2 sm:mb-0">
                                     {isQuestionView ? 'Review Generated Questions' : `${editingItem ? 'Edit' : 'Create New'} ${view === 'plans' ? 'Plan' : 'Note'}`}
                                 </h3>
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap gap-3 w-full sm:w-auto">
                                     <select 
                                         value={formData.classId} 
                                         onChange={e => handleClassChange(e.target.value)}
-                                        className="bg-white border text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                                        className="flex-1 sm:flex-none bg-white border-2 border-gray-100 text-sm font-bold rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all"
                                     >
                                         <option value="">Select Class</option>
                                         {classes.map(c => <option key={c.id} value={c.id}>{c.name} {c.arm}</option>)}
@@ -447,7 +447,7 @@ const LessonWorkspace = () => {
                                     <select 
                                         value={formData.subjectId} 
                                         onChange={e => setFormData({...formData, subjectId: e.target.value})}
-                                        className="bg-white border text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                                        className="flex-1 sm:flex-none bg-white border-2 border-gray-100 text-sm font-bold rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all"
                                     >
                                         <option value="">Select Subject</option>
                                         {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -457,23 +457,23 @@ const LessonWorkspace = () => {
                                         placeholder="Week" 
                                         value={formData.week}
                                         onChange={e => setFormData({...formData, week: e.target.value})}
-                                        className="w-20 bg-white border text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                                        className="w-24 bg-white border-2 border-gray-100 text-sm font-bold rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all"
                                     />
                                 </div>
                             </div>
-                            <div className="flex gap-2">
-                                <div className="flex bg-gray-50 border border-indigo-100 p-1 rounded-xl">
+                            <div className="flex flex-wrap gap-3 w-full xl:w-auto justify-start xl:justify-end">
+                                <div className="flex bg-white border-2 border-indigo-50 p-1.5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                                     <select 
                                         value={aiParams.language}
                                         onChange={e => setAiParams({...aiParams, language: e.target.value})}
-                                        className="bg-transparent text-[10px] font-black uppercase text-indigo-400 outline-none cursor-pointer pr-2 border-r border-indigo-50 mr-2 ml-1"
+                                        className="bg-transparent text-[11px] font-black uppercase text-indigo-400 outline-none cursor-pointer px-3 border-r border-indigo-50"
                                     >
                                         {LANGUAGES.map(lang => <option key={lang} value={lang}>{lang}</option>)}
                                     </select>
                                     <button 
                                         onClick={handleAiScaffold}
                                         disabled={scaffolding}
-                                        className="text-indigo-600 px-2 py-1.5 rounded-lg font-bold hover:bg-indigo-100 transition flex items-center gap-2 text-xs"
+                                        className="text-indigo-600 px-4 py-2 rounded-xl font-bold hover:bg-indigo-50 transition flex items-center gap-2 text-xs whitespace-nowrap"
                                     >
                                         <FiCpu className={scaffolding ? 'animate-spin' : 'animate-pulse text-purple-600'} /> 
                                         {scaffolding ? 'Generating...' : `AI Draft (${aiParams.language})`}
@@ -481,28 +481,28 @@ const LessonWorkspace = () => {
                                 </div>
                                 <button 
                                     onClick={() => setShowAiModal(true)}
-                                    className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg font-bold shadow-md hover:shadow-lg transform active:scale-95 transition flex items-center gap-2"
+                                    className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-purple-100 hover:shadow-purple-200 transform active:scale-95 transition flex items-center gap-2 text-xs"
                                 >
                                     <FiCpu className="animate-pulse" /> AI Generate CBT
                                 </button>
                                 <button 
                                     onClick={handleSuggestResources}
                                     disabled={fetchingResources}
-                                    className="bg-purple-50 border border-purple-200 text-purple-600 px-4 py-2 rounded-lg font-bold shadow-sm hover:bg-purple-100 transform active:scale-95 transition flex items-center gap-2"
+                                    className="bg-white border-2 border-purple-100 text-purple-600 px-5 py-3 rounded-2xl font-bold shadow-sm hover:bg-purple-50 transform active:scale-95 transition flex items-center gap-2 text-xs"
                                 >
                                     <FiFileText className={fetchingResources ? 'animate-spin' : ''} /> {fetchingResources ? 'Searching...' : 'Find Resources'}
                                 </button>
                                 <button 
                                     onClick={() => handleSave('draft')}
                                     disabled={isQuestionView}
-                                    className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 flex items-center gap-2 shadow-sm disabled:opacity-50"
+                                    className="bg-white border-2 border-gray-100 text-gray-700 px-5 py-3 rounded-2xl font-bold hover:bg-gray-50 flex items-center gap-2 shadow-sm disabled:opacity-50 text-xs"
                                 >
                                     <FiSave /> Save Draft
                                 </button>
                                 {isQuestionView ? (
                                     <button 
                                         onClick={handleExportCSV}
-                                        className="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 flex items-center gap-2 shadow-md shadow-green-100"
+                                        className="bg-green-600 text-white px-5 py-3 rounded-2xl font-bold hover:bg-green-700 flex items-center gap-2 shadow-lg shadow-green-100 text-xs"
                                     >
                                         <FiDownload /> Export CSV
                                     </button>
@@ -510,13 +510,13 @@ const LessonWorkspace = () => {
                                     <>
                                         <button 
                                             onClick={handleDownloadPDF}
-                                            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-200 flex items-center gap-2 shadow-sm"
+                                            className="bg-gray-100 text-gray-700 px-5 py-3 rounded-2xl font-bold hover:bg-gray-200 flex items-center gap-2 shadow-sm text-xs"
                                         >
                                             <FiDownload /> PDF
                                         </button>
                                         <button 
                                             onClick={() => handleSave('published')}
-                                            className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 flex items-center gap-2 shadow-md shadow-indigo-100"
+                                            className="bg-indigo-600 text-white px-5 py-3 rounded-2xl font-bold hover:bg-indigo-700 flex items-center gap-2 shadow-lg shadow-indigo-100 text-xs"
                                         >
                                             <FiSend /> Publish
                                         </button>
