@@ -981,6 +981,7 @@ model StudentReportCard {
   principalRemark    String?
   formMasterRemark   String?
   psychomotorRatings String? // JSON string of ratings
+  aiNarrative        String? // AI-generated performance narrative
   isPublished        Boolean  @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

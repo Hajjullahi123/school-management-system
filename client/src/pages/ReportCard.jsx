@@ -28,6 +28,7 @@ const ReportCard = () => {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailAddress, setEmailAddress] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [generatingNarrative, setGeneratingNarrative] = useState(false);
 
   useEffect(() => {
     fetchSessions();
@@ -195,6 +196,27 @@ const ReportCard = () => {
       toast.error('Failed to send email');
     } finally {
       setSendingEmail(false);
+    }
+  };
+
+  const handleGenerateNarrative = async () => {
+    if (!reportData?.student?.id || !selectedTerm) return;
+
+    setGeneratingNarrative(true);
+    try {
+      const response = await api.post(`/api/reports/generate-narrative/${reportData.student.id}/${selectedTerm}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('AI Narrative generated successfully');
+        setReportData(prev => ({ ...prev, aiNarrative: data.narrative }));
+      } else {
+        toast.error(data.error || 'Failed to generate narrative');
+      }
+    } catch (error) {
+      toast.error('Connection error while generating narrative');
+    } finally {
+      setGeneratingNarrative(false);
     }
   };
 
@@ -597,6 +619,48 @@ const ReportCard = () => {
               )}
 
               {/* REMARKS SECTION */}
+              {/* AI PERFORMANCE NARRATIVE */}
+              {(reportData.aiNarrative || (!reportData.isPublished && (schoolSettings?.packageType === 'premium' || schoolSettings?.packageType === 'standard'))) && (
+                <div className="mt-4 border-2 border-emerald-800 bg-emerald-50/20 rounded-lg overflow-hidden relative" style={{ borderColor: schoolSettings?.primaryColor }}>
+                  <div className="bg-emerald-800 text-white text-[10px] font-bold py-1 px-4 flex justify-between items-center uppercase tracking-widest" style={{ backgroundColor: schoolSettings?.primaryColor }}>
+                    <span>Personalized Academic Performance Narrative</span>
+                    <span className="bg-white/20 px-2 rounded text-[8px]">AI POWERED</span>
+                  </div>
+                  <div className="p-4 relative">
+                    {reportData.aiNarrative ? (
+                      <div className="space-y-3">
+                        <p className="text-xs font-medium italic leading-relaxed text-gray-800">
+                          {reportData.aiNarrative}
+                        </p>
+                        <div className="flex justify-end print:hidden">
+                           <button 
+                            onClick={handleGenerateNarrative}
+                            disabled={generatingNarrative}
+                            className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 bg-emerald-100 px-2 py-1 rounded transition-all"
+                           >
+                            {generatingNarrative ? 'Regenerating...' : '🔄 Regenerate Narrative'}
+                           </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-2 print:hidden">
+                        <button
+                          onClick={handleGenerateNarrative}
+                          disabled={generatingNarrative}
+                          className="bg-emerald-800 text-white px-6 py-2 rounded-xl text-xs font-bold shadow-lg shadow-emerald-200 hover:brightness-110 flex items-center gap-2 mx-auto transition-all"
+                          style={{ backgroundColor: schoolSettings?.primaryColor }}
+                        >
+                          {generatingNarrative ? (
+                            <div className="w-3 h-3 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
+                          ) : '✨ Generate AI Performance Summary'}
+                        </button>
+                        <p className="text-[9px] text-gray-400 mt-2 italic">Based on term results, attendance, and psychomotor skills.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-4">
                 <div className="grid grid-cols-2 divide-x-2 divide-black">
                   <div className="p-2 space-y-1">

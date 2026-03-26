@@ -9,6 +9,8 @@
     "start": "npm run start --prefix server",
     "desktop:dev": "electron .",
     "desktop:dist": "node build-script.js --desktop && electron-builder",
+    "mobile:build": "npm run mobile:build --prefix client",
+    "mobile:open:android": "npm run mobile:open:android --prefix client",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

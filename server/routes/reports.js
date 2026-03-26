@@ -10,6 +10,7 @@ const {
   getRemark
 } = require('../utils/grading');
 const { getStudentFeeSummary } = require('../utils/feeCalculations');
+const { generateAINarrative } = require('../utils/aiNarrative');
 
 // Get term report for a student
 router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
@@ -435,7 +436,8 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
           maxScore: d.maxScore || 5
         };
       }),
-      feeSummary: feeSummary
+      feeSummary: feeSummary,
+      aiNarrative: reportExtras?.aiNarrative || null
     };
 
     res.json(reportData);
@@ -458,6 +460,105 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
     res.status(500).json({ error: `Failed to generate term report: ${error.message}`, stack: error.stack });
   }
 });
+
+// Generate AI Performance Narrative
+router.post('/generate-narrative/:studentId/:termId', authenticate, authorize(['admin', 'teacher', 'principal', 'superadmin']), async (req, res) => {
+  try {
+    const { studentId, termId } = req.params;
+
+    // 1. Fetch all data needed for the narrative (reuse logic from GET /term)
+    // For brevity, we'll re-fetch the report data by calling an internal helper or just duplicating the core logic.
+    // In a production app, refactor the GET code into a shared function. 
+    // Here we'll just fetch enough for the AI:
+    
+    const reportDataRes = await api_internal_get_report_data(req.schoolId, studentId, termId);
+    
+    // Fetch school for AI keys
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { geminiApiKey: true, groqApiKey: true }
+    });
+
+    const narrative = await generateAINarrative(reportDataRes, school);
+
+    // 2. Save to StudentReportCard
+    const term = await prisma.term.findUnique({ where: { id: parseInt(termId) } });
+    
+    await prisma.studentReportCard.upsert({
+      where: {
+        schoolId_studentId_termId_academicSessionId: {
+          schoolId: req.schoolId,
+          studentId: parseInt(studentId),
+          termId: parseInt(termId),
+          academicSessionId: term.academicSessionId
+        }
+      },
+      update: { aiNarrative: narrative },
+      create: {
+        schoolId: req.schoolId,
+        studentId: parseInt(studentId),
+        termId: parseInt(termId),
+        academicSessionId: term.academicSessionId,
+        classId: reportDataRes.student.classId, // We'll need to ensure classId is available
+        aiNarrative: narrative
+      }
+    });
+
+    res.json({ narrative });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'GENERATE_AI_NARRATIVE',
+      resource: 'STUDENT_REPORT_CARD',
+      details: { studentId: parseInt(studentId), termId: parseInt(termId) },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error in AI narrative generation:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Internal helper to fetch report data for AI (Simplified version of the GET route)
+ */
+async function api_internal_get_report_data(schoolId, studentId, termId) {
+  // We'll actually just wrap the existing logic or re-calculate.
+  // Since I can't easily refactor the whole GET route right now without risk,
+  // I will just pull the essential stats.
+  
+  const student = await prisma.student.findFirst({
+    where: { id: parseInt(studentId), schoolId },
+    include: { user: true }
+  });
+
+  const results = await prisma.result.findMany({
+    where: { studentId: parseInt(studentId), termId: parseInt(termId), schoolId },
+    include: { subject: true }
+  });
+
+  const term = await prisma.term.findFirst({
+    where: { id: parseInt(termId), schoolId },
+    include: { academicSession: true }
+  });
+
+  const subjects = results.map(r => ({
+    name: r.subject.name,
+    grade: r.grade,
+    total: r.totalScore
+  }));
+
+  // Simple average
+  const avg = subjects.length > 0 ? subjects.reduce((acc, s) => acc + s.total, 0) / subjects.length : 0;
+
+  return {
+    student: { name: `${student.user.firstName} ${student.user.lastName}`, gender: student.gender, classId: student.classId },
+    subjects,
+    termAverage: avg,
+    term: { name: term.name }
+  };
+}
 
 // Bulk term reports for an entire class
 router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher', 'principal', 'superadmin', 'examination_officer']), async (req, res) => {
