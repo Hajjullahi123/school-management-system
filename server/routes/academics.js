@@ -208,6 +208,55 @@ router.get('/exam-monitoring', authenticate, authorize(['admin', 'principal', 'e
   }
 });
 
+// DELETE Exam Submission
+router.delete('/exam-repository/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    const exam = await prisma.examRepository.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!exam) return res.status(404).json({ error: 'Exam submission not found' });
+
+    // Ownership check: Only uploader or Admin can delete
+    if (exam.teacherId !== userId && !['admin', 'superadmin', 'principal', 'examination_officer'].includes(userRole)) {
+      return res.status(403).json({ error: 'You are not authorized to delete this submission' });
+    }
+
+    // Status check: Prevent deletion of approved exams
+    if (exam.status === 'approved' && !['admin', 'superadmin'].includes(userRole)) {
+      return res.status(400).json({ error: 'Approved exams cannot be deleted. Contact Admin.' });
+    }
+
+    // Delete file from disk if exists
+    if (exam.fileUrl) {
+      const fs = require('fs');
+      const path = require('path');
+      // fileUrl is likely relative to public or root
+      const filePath = path.join(__dirname, '..', '..', exam.fileUrl); 
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (e) {
+          console.error('File deletion error:', e);
+        }
+      }
+    }
+
+    await prisma.examRepository.delete({
+      where: { id: parseInt(id) }
+    });
+
+    res.json({ message: 'Exam submission deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting exam:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // POST Nudge Teacher
 router.post('/nudge-teacher', authenticate, authorize(['admin', 'principal', 'examination_officer', 'superadmin']), async (req, res) => {
   try {

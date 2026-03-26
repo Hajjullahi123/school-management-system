@@ -4,11 +4,26 @@ import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 import { api } from '../../api';
 import { toast } from '../../utils/toast';
 
+const SURAH_LIST = [
+  "Al-Fatihah", "Al-Baqarah", "Aali 'Imran", "An-Nisa'", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Tawbah", "Yunus",
+  "Hud", "Yusuf", "Ar-Ra'd", "Ibrahim", "Al-Hijr", "An-Nahl", "Al-Isra'", "Al-Kahf", "Maryam", "Ta-Ha",
+  "Al-Anbiya'", "Al-Hajj", "Al-Mu'minun", "An-Nur", "Al-Furqan", "Ash-Shu'ara'", "An-Naml", "Al-Qasas", "Al-Ankabut", "Ar-Rum",
+  "Luqman", "As-Sajdah", "Al-Ahzab", "Saba'", "Fatir", "Ya-Sin", "As-Saffat", "Sad", "Az-Zumar", "Ghafir",
+  "Fussilat", "Ash-Shura", "Az-Zukhruf", "Ad-Dukhan", "Al-Jathiyah", "Al-Ahqaf", "Muhammad", "Al-Fath", "Al-Hujurat", "Qaf",
+  "Adh-Dhariyat", "At-Tur", "An-Najm", "Al-Qamar", "Ar-Rahman", "Al-Waqi'ah", "Al-Hadid", "Al-Mujadilah", "Al-Hashr", "Al-Mumtahanah",
+  "As-Saff", "Al-Jumu'ah", "Al-Munafiqun", "At-Taghabun", "At-Talaq", "At-Tahrim", "Al-Mulk", "Al-Qalam", "Al-Haqqah", "Al-Ma'arij",
+  "Nuh", "Al-Jinn", "Al-Muzzammil", "Al-Muddaththir", "Al-Qiyamah", "Al-Insan", "Al-Mursalat", "An-Naba'", "An-Nazi'at", "'Abasa",
+  "At-Takwir", "Al-Infitar", "Al-Mutaffifin", "Al-Inshiqaq", "Al-Buruj", "At-Tariq", "Al-A'la", "Al-Ghashiyah", "Al-Fajr", "Al-Balad",
+  "Ash-Shams", "Al-Layl", "Ad-Duha", "Ash-Sharh", "At-Tin", "Al-'Alaq", "Al-Qadr", "Al-Bayyinah", "Az-Zalzalah", "Al-'Adiyat",
+  "Al-Qari'ah", "At-Takathur", "Al-'Asr", "Al-Humazah", "Al-Fil", "Quraysh", "Al-Ma'un", "Al-Kawthar", "Al-Kafirun", "An-Nasr",
+  "Al-Masad", "Al-Ikhlas", "Al-Falaq", "An-Nas"
+];
+
 const QuranTracker = () => {
   const { user } = useAuth();
   const { settings } = useSchoolSettings();
 
-  const [activeTab, setActiveTab] = useState('targets'); // targets, records, summary
+  const [activeTab, setActiveTab] = useState('targets'); // targets, records, summary, viewer
   const [classes, setClasses] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState('');
   const [students, setStudents] = useState([]);
@@ -20,6 +35,8 @@ const QuranTracker = () => {
   const [showRecordModal, setShowRecordModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [classSummary, setClassSummary] = useState([]);
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [studentRecords, setStudentRecords] = useState([]);
 
   const [targetForm, setTargetForm] = useState({
     classId: '',
@@ -54,9 +71,32 @@ const QuranTracker = () => {
 
   useEffect(() => {
     fetchClasses();
-    fetchSessions();
-    fetchTerms();
+    fetchCurrentSessionAndTerm();
   }, []);
+
+  const fetchCurrentSessionAndTerm = async () => {
+    try {
+      const resp = await api.get('/api/academic-sessions');
+      const sessionsData = await resp.json();
+      setSessions(sessionsData);
+      const currentSession = sessionsData.find(s => s.isCurrent);
+      
+      const respTerms = await api.get('/api/terms');
+      const termsData = await respTerms.json();
+      setTerms(termsData);
+      const currentTerm = termsData.find(t => t.isCurrent);
+
+      if (currentSession && currentTerm) {
+        setTargetForm(prev => ({
+          ...prev,
+          sessionId: currentSession.id,
+          termId: currentTerm.id
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching session/term:', error);
+    }
+  };
 
   useEffect(() => {
     if (selectedClassId) {
@@ -134,6 +174,50 @@ const QuranTracker = () => {
     }
   };
 
+  const fetchStudentRecords = async (studentId) => {
+    try {
+      setLoading(true);
+      const resp = await api.get(`/api/quran-tracker/records/${studentId}`);
+      const data = await resp.json();
+      setStudentRecords(data);
+    } catch (err) {
+      toast.error('Failed to fetch records');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditRecord = (record) => {
+    setEditingRecord(record);
+    setRecordForm({
+      studentId: record.studentId,
+      date: new Date(record.date).toISOString().split('T')[0],
+      type: record.type,
+      juz: record.juz || '',
+      surah: record.surah || '',
+      ayahStart: record.ayahStart || '',
+      ayahEnd: record.ayahEnd || '',
+      pages: record.pages || '',
+      status: record.status,
+      comments: record.comments || ''
+    });
+    setShowRecordModal(true);
+  };
+
+  const handleDeleteRecord = async (id, studentId) => {
+    if (!confirm('Are you sure you want to delete this record?')) return;
+    try {
+      const resp = await api.delete(`/api/quran-tracker/records/${id}`);
+      if (resp.ok) {
+        toast.success('Record deleted');
+        fetchStudentRecords(studentId);
+        fetchClassSummary();
+      }
+    } catch (err) {
+      toast.error('Deletion failed');
+    }
+  };
+
   const handleCreateTarget = async (e) => {
     e.preventDefault();
     try {
@@ -172,15 +256,22 @@ const QuranTracker = () => {
   const handleAddRecord = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post('/api/quran-tracker/records', recordForm);
+      let response;
+      if (editingRecord) {
+        response = await api.put(`/api/quran-tracker/records/${editingRecord.id}`, recordForm);
+      } else {
+        response = await api.post('/api/quran-tracker/records', recordForm);
+      }
 
       if (response.ok) {
-        toast.success('Progress recorded successfully');
+        toast.success(editingRecord ? 'Record updated' : 'Progress recorded successfully');
         setShowRecordModal(false);
         resetRecordForm();
-        if (activeTab === 'summary') {
-          fetchClassSummary();
+        setEditingRecord(null);
+        if (selectedStudent) {
+          fetchStudentRecords(selectedStudent.id);
         }
+        fetchClassSummary();
       } else {
         const error = await response.json();
         toast.error(error.error || 'Failed to record progress');
@@ -306,7 +397,7 @@ const QuranTracker = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                 >
-                  Daily Records
+                  Student History
                 </button>
                 <button
                   onClick={() => setActiveTab('summary')}
@@ -316,6 +407,15 @@ const QuranTracker = () => {
                     }`}
                 >
                   Class Summary
+                </button>
+                <button
+                  onClick={() => setActiveTab('viewer')}
+                  className={`px-6 py-3 border-b-2 font-medium text-sm ${activeTab === 'viewer'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                >
+                  Quran Viewer
                 </button>
               </nav>
             </div>
@@ -391,10 +491,85 @@ const QuranTracker = () => {
                 </div>
               )}
 
-              {/* Records Tab */}
+              {/* Records Tab -> Student History */}
               {activeTab === 'records' && (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                  <p className="text-gray-600">Select a student from the Class Summary tab to view their detailed records</p>
+                <div className="space-y-6">
+                  <div className="bg-gray-50 p-4 rounded-lg flex flex-col md:flex-row gap-4 items-end">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Select Student to View History</label>
+                      <select
+                        value={selectedStudent?.id || ''}
+                        onChange={(e) => {
+                          const student = students.find(s => s.id === parseInt(e.target.value));
+                          setSelectedStudent(student);
+                          if (student) fetchStudentRecords(student.id);
+                        }}
+                        className="w-full border rounded-md px-3 py-2 bg-white"
+                      >
+                        <option value="">-- Select Student --</option>
+                        {students.map(s => (
+                          <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {loading ? (
+                    <div className="text-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    </div>
+                  ) : !selectedStudent ? (
+                    <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
+                      <p className="text-gray-500">Pick a student above to see their full memorization timeline</p>
+                    </div>
+                  ) : studentRecords.length === 0 ? (
+                    <div className="text-center py-12 bg-gray-50 rounded-lg">
+                      <p className="text-gray-500">No records found for {selectedStudent.user.firstName}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {studentRecords.map(record => (
+                        <div key={record.id} className="bg-white border rounded-xl p-4 hover:shadow-sm transition flex justify-between items-center">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm font-bold text-gray-900">{new Date(record.date).toLocaleDateString()}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold ${getStatusColor(record.status)}`}>
+                                {record.status}
+                              </span>
+                              <span className="text-[10px] text-gray-400 font-medium px-2 py-0.5 bg-gray-50 rounded-full border">
+                                {record.type}
+                              </span>
+                            </div>
+                            <div className="text-sm text-gray-700">
+                              {record.surah && <span className="mr-3">Surah: <span className="font-medium">{record.surah}</span></span>}
+                              {record.juz && <span className="mr-3">Juz: <span className="font-medium">{record.juz}</span></span>}
+                              {(record.ayahStart || record.ayahEnd) && (
+                                <span className="mr-3">Ayah: <span className="font-medium">{record.ayahStart || '?'}-{record.ayahEnd || '?'}</span></span>
+                              )}
+                              {record.pages && <span>Pages: <span className="font-medium">{record.pages}</span></span>}
+                            </div>
+                            {record.comments && <p className="text-xs text-gray-500 mt-2 italic">"{record.comments}"</p>}
+                          </div>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => handleEditRecord(record)}
+                              className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"
+                              title="Edit"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteRecord(record.id, record.studentId)}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                              title="Delete"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -410,49 +585,49 @@ const QuranTracker = () => {
                       <p className="text-gray-500">No students found in this class</p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto border rounded-xl">
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Records</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Activity</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Latest Status</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 uppercase tracking-widest">Student</th>
+                            <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 uppercase tracking-widest">Records</th>
+                            <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 uppercase tracking-widest">Last Activity</th>
+                            <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 uppercase tracking-widest">Latest Status</th>
+                            <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-500 uppercase tracking-widest">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-white divide-y divide-gray-100">
                           {classSummary.map(student => (
-                            <tr key={student.id} className="hover:bg-gray-50">
+                            <tr key={student.id} className="hover:bg-gray-50 transition">
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-gray-900">
+                                <div className="text-sm font-semibold text-gray-900">
                                   {student.user.firstName} {student.user.lastName}
                                 </div>
-                                <div className="text-sm text-gray-500">{student.admissionNumber}</div>
+                                <div className="text-xs text-gray-400">{student.admissionNumber}</div>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {student.quranRecords.length}
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                <span className="bg-gray-100 px-2 py-0.5 rounded-full font-medium">{student.quranRecords.length} entries</span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {student.quranRecords[0] ? new Date(student.quranRecords[0].date).toLocaleDateString() : 'N/A'}
+                                {student.quranRecords[0] ? new Date(student.quranRecords[0].date).toLocaleDateString() : '—'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 {student.quranRecords[0] && (
-                                  <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(student.quranRecords[0].status)}`}>
+                                  <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${getStatusColor(student.quranRecords[0].status)}`}>
                                     {student.quranRecords[0].status}
                                   </span>
                                 )}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <td className="px-6 py-4 whitespace-nowrap text-right">
                                 <button
                                   onClick={() => {
                                     setSelectedStudent(student);
                                     setRecordForm({ ...recordForm, studentId: student.id });
                                     setShowRecordModal(true);
                                   }}
-                                  className="text-primary hover:text-primary/80 font-medium"
+                                  className="text-primary hover:text-primary/80 font-bold text-xs uppercase tracking-wider bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/20"
                                 >
-                                  Add Progress
+                                  + Add Progress
                                 </button>
                               </td>
                             </tr>
@@ -463,6 +638,18 @@ const QuranTracker = () => {
                   )}
                 </div>
               )}
+
+              {/* Quran Viewer Tab */}
+              {activeTab === 'viewer' && (
+                <div className="h-[700px] border rounded-xl overflow-hidden shadow-sm">
+                   <iframe 
+                    src="https://quran.com" 
+                    title="Al-Qur'an Reference"
+                    className="w-full h-full border-0"
+                    loading="lazy"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </>
@@ -470,17 +657,22 @@ const QuranTracker = () => {
 
       {/* Target Modal */}
       {showTargetModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold mb-4">Set Memorization Target</h3>
-            <form onSubmit={handleCreateTarget} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900">Set Memorization Target</h3>
+              <button onClick={() => setShowTargetModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <form onSubmit={handleCreateTarget} className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Academic Session *</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Academic Session *</label>
                   <select
                     value={targetForm.sessionId}
                     onChange={(e) => setTargetForm({ ...targetForm, sessionId: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 outline-none"
                     required
                   >
                     <option value="">Select Session</option>
@@ -490,11 +682,11 @@ const QuranTracker = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Term *</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Term *</label>
                   <select
                     value={targetForm.termId}
                     onChange={(e) => setTargetForm({ ...targetForm, termId: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 outline-none"
                     required
                   >
                     <option value="">Select Term</option>
@@ -505,13 +697,13 @@ const QuranTracker = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Target Type *</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Target Type *</label>
                   <select
                     value={targetForm.targetType}
                     onChange={(e) => setTargetForm({ ...targetForm, targetType: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 outline-none"
                     required
                   >
                     <option value="memorization">Memorization</option>
@@ -519,11 +711,11 @@ const QuranTracker = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Period *</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Period *</label>
                   <select
                     value={targetForm.period}
                     onChange={(e) => setTargetForm({ ...targetForm, period: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 outline-none"
                     required
                   >
                     <option value="daily">Daily</option>
@@ -534,136 +726,88 @@ const QuranTracker = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Juz Start</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="30"
-                    value={targetForm.juzStart}
-                    onChange={(e) => setTargetForm({ ...targetForm, juzStart: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
-                  />
+              <div className="bg-gray-50 p-6 rounded-2xl space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Juz Start</label>
+                    <input
+                      type="number" min="1" max="30"
+                      value={targetForm.juzStart}
+                      onChange={(e) => setTargetForm({ ...targetForm, juzStart: e.target.value })}
+                      className="w-full border rounded-lg px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Juz End</label>
+                    <input
+                      type="number" min="1" max="30"
+                      value={targetForm.juzEnd}
+                      onChange={(e) => setTargetForm({ ...targetForm, juzEnd: e.target.value })}
+                      className="w-full border rounded-lg px-3 py-2"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Juz End</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="30"
-                    value={targetForm.juzEnd}
-                    onChange={(e) => setTargetForm({ ...targetForm, juzEnd: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
-                  />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Surah Start</label>
+                    <select
+                      value={targetForm.surahStart}
+                      onChange={(e) => setTargetForm({ ...targetForm, surahStart: e.target.value })}
+                      className="w-full border rounded-lg px-3 py-2"
+                    >
+                      <option value="">-- Select Surah --</option>
+                      {SURAH_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Surah End</label>
+                    <select
+                      value={targetForm.surahEnd}
+                      onChange={(e) => setTargetForm({ ...targetForm, surahEnd: e.target.value })}
+                      className="w-full border rounded-lg px-3 py-2"
+                    >
+                      <option value="">-- Select Surah --</option>
+                      {SURAH_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Surah Start</label>
-                  <input
-                    type="text"
-                    value={targetForm.surahStart}
-                    onChange={(e) => setTargetForm({ ...targetForm, surahStart: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
-                    placeholder="e.g., Al-Fatiha"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Surah End</label>
-                  <input
-                    type="text"
-                    value={targetForm.surahEnd}
-                    onChange={(e) => setTargetForm({ ...targetForm, surahEnd: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
-                    placeholder="e.g., Al-Baqarah"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Ayah Start</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={targetForm.ayahStart}
-                    onChange={(e) => setTargetForm({ ...targetForm, ayahStart: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Ayah End</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={targetForm.ayahEnd}
-                    onChange={(e) => setTargetForm({ ...targetForm, ayahEnd: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Pages Count</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={targetForm.pagesCount}
-                    onChange={(e) => setTargetForm({ ...targetForm, pagesCount: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Start Date *</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Start Date *</label>
                   <input
                     type="date"
                     value={targetForm.startDate}
                     onChange={(e) => setTargetForm({ ...targetForm, startDate: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 outline-none"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">End Date *</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">End Date *</label>
                   <input
                     type="date"
                     value={targetForm.endDate}
                     onChange={(e) => setTargetForm({ ...targetForm, endDate: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 outline-none"
                     required
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
-                <textarea
-                  value={targetForm.description}
-                  onChange={(e) => setTargetForm({ ...targetForm, description: e.target.value })}
-                  className="w-full border rounded px-3 py-2"
-                  rows="3"
-                  placeholder="Optional notes about this target..."
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 mt-6">
+              <div className="flex justify-end gap-3 mt-8">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowTargetModal(false);
-                    resetTargetForm();
-                  }}
-                  className="px-4 py-2 border rounded hover:bg-gray-50"
+                  onClick={() => setShowTargetModal(false)}
+                  className="px-6 py-3 font-bold text-gray-400 hover:text-gray-600 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-primary text-white rounded hover:brightness-90"
+                  className="px-8 py-3 bg-primary text-white font-bold rounded-xl hover:shadow-lg transition transform hover:-translate-y-0.5"
                 >
                   Create Target
                 </button>
@@ -675,152 +819,141 @@ const QuranTracker = () => {
 
       {/* Record Modal */}
       {showRecordModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
-            <h3 className="text-lg font-bold mb-4">Record Student Progress</h3>
-            <form onSubmit={handleAddRecord} className="space-y-4">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-lg border border-gray-100">
+            <div className="flex justify-between items-center mb-8">
               <div>
-                <label className="block text-sm font-medium mb-1">Student *</label>
-                <select
-                  value={recordForm.studentId}
-                  onChange={(e) => setRecordForm({ ...recordForm, studentId: e.target.value })}
-                  className="w-full border rounded px-3 py-2"
-                  required
-                >
-                  <option value="">Select Student</option>
-                  {students.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.user.firstName} {s.user.lastName} - {s.admissionNumber}
-                    </option>
+                <h3 className="text-2xl font-black text-gray-900">{editingRecord ? 'Update' : 'Record'} Progress</h3>
+                <p className="text-gray-400 text-sm font-medium">Tracking for {selectedStudent?.user?.firstName || 'Student'}</p>
+              </div>
+              <button onClick={() => { setShowRecordModal(false); setEditingRecord(null); }} className="p-2 hover:bg-gray-100 rounded-full transition">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <form onSubmit={handleAddRecord} className="space-y-6">
+              <div className="bg-gray-50/50 p-6 rounded-2xl space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Date *</label>
+                    <input
+                      type="date"
+                      value={recordForm.date}
+                      onChange={(e) => setRecordForm({ ...recordForm, date: e.target.value })}
+                      className="w-full border-0 rounded-xl px-4 py-3 bg-white shadow-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Type *</label>
+                    <select
+                      value={recordForm.type}
+                      onChange={(e) => setRecordForm({ ...recordForm, type: e.target.value })}
+                      className="w-full border-0 rounded-xl px-4 py-3 bg-white shadow-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                      required
+                    >
+                      <option value="memorization">Memorization</option>
+                      <option value="revision">Revision</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Juz</label>
+                    <input
+                      type="number" min="1" max="30"
+                      value={recordForm.juz}
+                      onChange={(e) => setRecordForm({ ...recordForm, juz: e.target.value })}
+                      className="w-full border-0 rounded-xl px-4 py-3 bg-white shadow-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Surah</label>
+                    <select
+                      value={recordForm.surah}
+                      onChange={(e) => setRecordForm({ ...recordForm, surah: e.target.value })}
+                      className="w-full border-0 rounded-xl px-4 py-3 bg-white shadow-sm"
+                    >
+                      <option value="">-- Choose Surah --</option>
+                      {SURAH_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Ayah Start</label>
+                    <input
+                      type="number" min="1"
+                      value={recordForm.ayahStart}
+                      onChange={(e) => setRecordForm({ ...recordForm, ayahStart: e.target.value })}
+                      className="w-full border-0 rounded-xl px-4 py-3 bg-white shadow-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Ayah End</label>
+                    <input
+                      type="number" min="1"
+                      value={recordForm.ayahEnd}
+                      onChange={(e) => setRecordForm({ ...recordForm, ayahEnd: e.target.value })}
+                      className="w-full border-0 rounded-xl px-4 py-3 bg-white shadow-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Pages</label>
+                    <input
+                      type="number" min="0" step="0.25"
+                      value={recordForm.pages}
+                      onChange={(e) => setRecordForm({ ...recordForm, pages: e.target.value })}
+                      className="w-full border-0 rounded-xl px-4 py-3 bg-white shadow-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Performance *</label>
+                <div className="flex gap-2">
+                  {['Poor', 'Fair', 'Good', 'Excellent'].map(status => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => setRecordForm({ ...recordForm, status })}
+                      className={`flex-1 py-3 rounded-xl text-xs font-bold transition border-2 ${
+                        recordForm.status === status 
+                          ? 'bg-primary border-primary text-white shadow-lg' 
+                          : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
+                      }`}
+                    >
+                      {status}
+                    </button>
                   ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Date *</label>
-                  <input
-                    type="date"
-                    value={recordForm.date}
-                    onChange={(e) => setRecordForm({ ...recordForm, date: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Type *</label>
-                  <select
-                    value={recordForm.type}
-                    onChange={(e) => setRecordForm({ ...recordForm, type: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
-                    required
-                  >
-                    <option value="memorization">Memorization</option>
-                    <option value="revision">Revision</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Juz</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="30"
-                    value={recordForm.juz}
-                    onChange={(e) => setRecordForm({ ...recordForm, juz: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Surah</label>
-                  <input
-                    type="text"
-                    value={recordForm.surah}
-                    onChange={(e) => setRecordForm({ ...recordForm, surah: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
-                    placeholder="e.g., Al-Baqarah"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Ayah Start</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={recordForm.ayahStart}
-                    onChange={(e) => setRecordForm({ ...recordForm, ayahStart: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Ayah End</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={recordForm.ayahEnd}
-                    onChange={(e) => setRecordForm({ ...recordForm, ayahEnd: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Pages</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.25"
-                    value={recordForm.pages}
-                    onChange={(e) => setRecordForm({ ...recordForm, pages: e.target.value })}
-                    className="w-full border rounded px-3 py-2"
-                  />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Performance Status *</label>
-                <select
-                  value={recordForm.status}
-                  onChange={(e) => setRecordForm({ ...recordForm, status: e.target.value })}
-                  className="w-full border rounded px-3 py-2"
-                  required
-                >
-                  <option value="Excellent">Excellent</option>
-                  <option value="Good">Good</option>
-                  <option value="Fair">Fair</option>
-                  <option value="Poor">Poor</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Comments</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Teacher Comments</label>
                 <textarea
                   value={recordForm.comments}
                   onChange={(e) => setRecordForm({ ...recordForm, comments: e.target.value })}
-                  className="w-full border rounded px-3 py-2"
-                  rows="3"
-                  placeholder="Teacher's observations..."
+                  className="w-full border rounded-2xl px-4 py-3 bg-gray-50/50 min-h-[100px] outline-none focus:ring-2 focus:ring-primary/10"
+                  placeholder="Optional notes about performance..."
                 />
               </div>
 
-              <div className="flex justify-end gap-2 mt-6">
+              <div className="flex gap-4 pt-4">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowRecordModal(false);
-                    resetRecordForm();
-                  }}
-                  className="px-4 py-2 border rounded hover:bg-gray-50"
+                  onClick={() => { setShowRecordModal(false); setEditingRecord(null); }}
+                  className="flex-1 py-4 font-bold text-gray-400 hover:text-gray-600 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                  className="flex-[2] py-4 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] transition"
                 >
-                  Save Progress
+                  {editingRecord ? 'Update Record' : 'Save Progress'}
                 </button>
               </div>
             </form>

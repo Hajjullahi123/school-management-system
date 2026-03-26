@@ -193,4 +193,52 @@ router.get('/class-summary/:classId', authenticate, async (req, res) => {
   }
 });
 
+// Update a record (Teacher)
+router.put('/records/:id', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type, juz, surah, ayahStart, ayahEnd, pages, status, comments, date } = req.body;
+
+    const record = await prisma.quranRecord.update({
+      where: { 
+        id: parseInt(id),
+        schoolId: req.schoolId 
+      },
+      data: {
+        date: date ? new Date(date) : undefined,
+        type,
+        juz: juz ? parseInt(juz) : undefined,
+        surah,
+        ayahStart: ayahStart ? parseInt(ayahStart) : undefined,
+        ayahEnd: ayahEnd ? parseInt(ayahEnd) : undefined,
+        pages: pages ? parseFloat(pages) : undefined,
+        status,
+        comments
+      }
+    });
+
+    res.json(record);
+    logAction({ schoolId: req.schoolId, userId: req.user.id, action: 'UPDATE', resource: 'QURAN_RECORD', details: { recordId: id }, ipAddress: req.ip });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update record' });
+  }
+});
+
+// Delete a record (Teacher)
+router.delete('/records/:id', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.quranRecord.delete({
+      where: { 
+        id: parseInt(id),
+        schoolId: req.schoolId 
+      }
+    });
+    res.json({ message: 'Record deleted successfully' });
+    logAction({ schoolId: req.schoolId, userId: req.user.id, action: 'DELETE', resource: 'QURAN_RECORD', details: { recordId: id }, ipAddress: req.ip });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete record' });
+  }
+});
+
 module.exports = router;
