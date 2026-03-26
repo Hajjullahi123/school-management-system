@@ -20,6 +20,9 @@ const ExamRepository = () => {
   });
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [terms, setTerms] = useState([]);
+  const [filters, setFilters] = useState({ academicSessionId: '', termId: '' });
   const [teacherAssignments, setTeacherAssignments] = useState([]);
 
   useEffect(() => {
@@ -30,12 +33,18 @@ const ExamRepository = () => {
       fetchTeacherAssignments();
     } else {
       fetchClassesAndSubjects();
+      fetchAcademicContext();
     }
-  }, [activeTab]);
+  }, [activeTab, filters.academicSessionId, filters.termId]);
 
   const fetchExams = async () => {
+    setLoading(true);
     try {
-      const resp = await api.get('/api/academics/exam-repository');
+      const params = new URLSearchParams();
+      if (filters.academicSessionId) params.append('academicSessionId', filters.academicSessionId);
+      if (filters.termId) params.append('termId', filters.termId);
+
+      const resp = await api.get(`/api/academics/exam-repository?${params.toString()}`);
       if (resp.ok) {
         setExams(await resp.json());
       }
@@ -49,7 +58,11 @@ const ExamRepository = () => {
   const fetchMonitoringData = async () => {
     setLoading(true);
     try {
-      const resp = await api.get('/api/academics/exam-monitoring');
+      const params = new URLSearchParams();
+      if (filters.academicSessionId) params.append('sessionId', filters.academicSessionId);
+      if (filters.termId) params.append('termId', filters.termId);
+
+      const resp = await api.get(`/api/academics/exam-monitoring?${params.toString()}`);
       if (resp.ok) setMonitoringData(await resp.json());
     } catch (err) {
       toast.error('Failed to fetch monitoring data');
@@ -107,6 +120,15 @@ const ExamRepository = () => {
       ]);
       if (cResp.ok) setClasses(await cResp.json());
       if (sResp.ok) setSubjects(await sResp.json());
+  };
+
+  const fetchAcademicContext = async () => {
+      const [sResp, tResp] = await Promise.all([
+          api.get('/api/academic-sessions'),
+          api.get('/api/terms')
+      ]);
+      if (sResp.ok) setSessions(await sResp.json());
+      if (tResp.ok) setTerms(await tResp.json());
   };
 
   const handleClassChange = (classId) => {
@@ -194,7 +216,42 @@ const ExamRepository = () => {
       </div>
 
       {activeTab === 'repository' ? (
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+        <div className="space-y-4">
+           {user.role !== 'teacher' && (
+             <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Session:</span>
+                  <select 
+                    value={filters.academicSessionId}
+                    onChange={(e) => setFilters({...filters, academicSessionId: e.target.value})}
+                    className="bg-gray-50 border-none rounded-lg px-3 py-1.5 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    <option value="">All Sessions</option>
+                    {sessions.map(s => <option key={s.id} value={s.id}>{s.name} {s.isCurrent ? '(Current)' : ''}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Term:</span>
+                  <select 
+                    value={filters.termId}
+                    onChange={(e) => setFilters({...filters, termId: e.target.value})}
+                    className="bg-gray-50 border-none rounded-lg px-3 py-1.5 text-xs font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    <option value="">All Terms</option>
+                    {terms.map(t => <option key={t.id} value={t.id}>{t.name} {t.isCurrent ? '(Current)' : ''}</option>)}
+                  </select>
+                </div>
+                {(filters.academicSessionId || filters.termId) && (
+                  <button 
+                    onClick={() => setFilters({ academicSessionId: '', termId: '' })}
+                    className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-700 transition"
+                  >
+                    Clear Filters
+                  </button>
+                )}
+             </div>
+           )}
+           <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
           <table className="w-full text-left">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
@@ -260,7 +317,8 @@ const ExamRepository = () => {
             </tbody>
           </table>
         </div>
-      ) : (
+      </div>
+    ) : (
         <div className="space-y-6">
            <div className="bg-amber-50 rounded-2xl p-4 border border-amber-100 flex items-center gap-3 text-amber-700">
              <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>

@@ -132,8 +132,21 @@ router.get('/exam-repository', authenticate, authorize(['admin', 'principal', 'e
 router.get('/exam-monitoring', authenticate, authorize(['admin', 'principal', 'examination_officer', 'superadmin']), async (req, res) => {
   try {
     const schoolId = req.schoolId;
-    const { session, term } = await getCurrentSessionAndTerm(schoolId);
-    if (!session || !term) return res.status(400).json({ error: 'No active session/term' });
+    const { sessionId, termId } = req.query;
+
+    let session, term;
+    if (sessionId && termId) {
+      [session, term] = await Promise.all([
+        prisma.academicSession.findUnique({ where: { id: parseInt(sessionId) } }),
+        prisma.term.findUnique({ where: { id: parseInt(termId) } })
+      ]);
+    } else {
+      const active = await getCurrentSessionAndTerm(schoolId);
+      session = active.session;
+      term = active.term;
+    }
+
+    if (!session || !term) return res.status(400).json({ error: 'Session or term not found' });
 
     // 1. Get all teachers
     const teachers = await prisma.user.findMany({
