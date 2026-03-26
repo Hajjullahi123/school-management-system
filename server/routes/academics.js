@@ -198,30 +198,64 @@ router.get('/exam-monitoring', authenticate, authorize(['admin', 'principal', 'e
 // POST Nudge Teacher
 router.post('/nudge-teacher', authenticate, authorize(['admin', 'principal', 'examination_officer', 'superadmin']), async (req, res) => {
   try {
-    const { teacherId, message } = req.body;
+    const { teacherId, message, nudgeType = 'whatsapp', subjectName, className } = req.body;
     const schoolId = req.schoolId;
 
-    const teacher = await prisma.user.findUnique({ where: { id: teacherId } });
-    if (!teacher || !teacher.phone) return res.status(404).json({ error: 'Teacher not found or missing phone number' });
+    const teacher = await prisma.user.findUnique({ 
+      where: { id: parseInt(teacherId) },
+      select: { id: true, firstName: true, lastName: true, phone: true }
+    });
+    
+    if (!teacher) return res.status(404).json({ error: 'Teacher not found' });
 
-    const school = await prisma.school.findUnique({ where: { id: schoolId } });
-    
-    // Initialize WhatsApp Service
-    const whatsapp = new WhatsAppService(
-      school.twilioSid || process.env.TWILIO_ACCOUNT_SID,
-      school.twilioAuthToken || process.env.TWILIO_AUTH_TOKEN,
-      school.twilioPhoneNumber || process.env.TWILIO_PHONE_NUMBER
-    );
+    let nudgeMessage = message;
+    if (!nudgeMessage) {
+      if (subjectName && className) {
+        nudgeMessage = `Hello ${teacher.firstName}, this is a reminder to upload your examination questions for ${subjectName} (${className}). Thank you.`;
+      } else {
+        nudgeMessage = `Hello ${teacher.firstName}, this is a reminder to upload your pending examination questions to the portal. Thank you.`;
+      }
+    }
 
-    const nudgeMessage = message || `Hello ${teacher.firstName}, this is a reminder to upload your examination questions to the portal for the current term. Thank you.`;
+    if (nudgeType === 'whatsapp' || nudgeType === 'both') {
+      if (!teacher.phone) {
+        if (nudgeType === 'whatsapp') return res.status(400).json({ error: 'Teacher missing phone number for WhatsApp nudge' });
+      } else {
+        const school = await prisma.school.findUnique({ where: { id: schoolId } });
+        const WhatsAppService = require('../services/WhatsAppService'); // Ensure it's required
+        const whatsapp = new WhatsAppService(
+          school.twilioSid || process.env.TWILIO_ACCOUNT_SID,
+          school.twilioAuthToken || process.env.TWILIO_AUTH_TOKEN,
+          school.twilioPhoneNumber || process.env.TWILIO_PHONE_NUMBER
+        );
+        await whatsapp.send(teacher.phone, nudgeMessage);
+      }
+    }
+
+    if (nudgeType === 'dashboard' || nudgeType === 'both') {
+      await prisma.notice.create({
+        data: {
+          schoolId,
+          title: 'Exam Repository Reminder',
+          content: nudgeMessage,
+          audience: `user:${teacher.id}`,
+          authorId: req.user.id
+        }
+      });
+    }
     
-    await whatsapp.send(teacher.phone, nudgeMessage);
-    
-    logAction({ schoolId, userId: req.user.id, action: 'NUDGE_TEACHER', resource: 'EXAM_REPOSITORY', details: { teacherId, teacherName: teacher.firstName }, ipAddress: req.ip });
+    logAction({ 
+      schoolId, 
+      userId: req.user.id, 
+      action: 'NUDGE_TEACHER', 
+      resource: 'EXAM_REPOSITORY', 
+      details: { teacherId, teacherName: teacher.firstName, nudgeType, subjectName, className }, 
+      ipAddress: req.ip 
+    });
     
     res.json({ success: true, message: 'Nudge sent successfully' });
   } catch (error) {
-    console.error(error);
+    console.error('Nudge Error:', error);
     res.status(500).json({ error: error.message || 'Failed to send nudge' });
   }
 });

@@ -58,11 +58,22 @@ const ExamRepository = () => {
     }
   };
 
-  const handleNudge = async (teacherId) => {
+  const handleNudge = async (teacherId, nudgeType = 'whatsapp', context = null) => {
     try {
-      const resp = await api.post('/api/academics/nudge-teacher', { teacherId });
-      if (resp.ok) toast.success('Nudge sent to teacher!');
-      else toast.error('Failed to send nudge');
+      const payload = { 
+        teacherId, 
+        nudgeType,
+        subjectName: context?.subject,
+        className: context?.class
+      };
+      
+      const resp = await api.post('/api/academics/nudge-teacher', payload);
+      if (resp.ok) {
+        toast.success(`${nudgeType === 'dashboard' ? 'Dashboard' : 'WhatsApp'} nudge sent!`);
+      } else {
+        const err = await resp.json();
+        toast.error(err.error || 'Failed to send nudge');
+      }
     } catch (err) {
       toast.error('Nudge service error');
     }
@@ -280,11 +291,28 @@ const ExamRepository = () => {
                            </div>
                            <div className="text-[11px] font-medium text-gray-500">{a.class}</div>
                          </div>
-                         <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${a.isSubmitted ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                         <div className={`flex items-center gap-1 shrink-0`}>
                             {a.isSubmitted ? (
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                              <div className="w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                              </div>
                             ) : (
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                              <div className="flex gap-1">
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); handleNudge(teacher.id, 'whatsapp', a); }}
+                                  title="Nudge via WhatsApp"
+                                  className="w-7 h-7 rounded-lg bg-green-500 text-white flex items-center justify-center hover:bg-green-600 transition shadow-sm"
+                                >
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.414 0 .044 5.37.041 12.008c0 2.126.556 4.2 1.61 6.062L0 24l6.135-1.61a11.801 11.801 0 005.918 1.57h.004c6.635 0 12.006-5.37 12.009-12.008a11.77 11.77 0 00-3.417-8.411z"/></svg>
+                                </button>
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); handleNudge(teacher.id, 'dashboard', a); }}
+                                  title="Nudge via Dashboard"
+                                  className="w-7 h-7 rounded-lg bg-indigo-500 text-white flex items-center justify-center hover:bg-indigo-600 transition shadow-sm"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                                </button>
+                              </div>
                             )}
                          </div>
                       </div>
@@ -292,11 +320,20 @@ const ExamRepository = () => {
                  </div>
                  <div className="p-4 bg-gray-50/30 border-t border-gray-50 flex justify-end">
                     <button 
-                      onClick={() => handleNudge(teacher.id)}
+                      onClick={() => handleNudge(teacher.id, 'whatsapp')}
                       disabled={teacher.submitted === teacher.total}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-black transition disabled:opacity-30 disabled:grayscale"
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition disabled:opacity-30 flex items-center gap-2"
                     >
-                      SEND WHATSAPP NUDGE
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.414 0 .044 5.37.041 12.008c0 2.126.556 4.2 1.61 6.062L0 24l6.135-1.61a11.801 11.801 0 005.918 1.57h.004c6.635 0 12.006-5.37 12.009-12.008a11.77 11.77 0 00-3.417-8.411z"/></svg>
+                      WHATSAPP ALL
+                    </button>
+                    <button 
+                      onClick={() => handleNudge(teacher.id, 'dashboard')}
+                      disabled={teacher.submitted === teacher.total}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-black transition disabled:opacity-30 flex items-center gap-2"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                      DASHBOARD ALL
                     </button>
                  </div>
                </div>
