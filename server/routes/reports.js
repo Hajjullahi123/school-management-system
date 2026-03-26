@@ -208,6 +208,25 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       }
     });
 
+    const absentAttendanceDays = await prisma.attendanceRecord.count({
+      where: {
+        schoolId: req.schoolId,
+        studentId: parseInt(studentId),
+        termId: parseInt(termId),
+        status: 'absent'
+      }
+    });
+
+    const studentTotalRecordedDays = await prisma.attendanceRecord.count({
+      where: {
+        schoolId: req.schoolId,
+        studentId: parseInt(studentId),
+        termId: parseInt(termId)
+      }
+    });
+
+    const unmarkedAttendanceDays = totalAttendanceDays - studentTotalRecordedDays;
+
     // Find next term
     const nextTerm = await prisma.term.findFirst({
       where: {
@@ -324,6 +343,8 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       },
       attendance: {
         present: presentAttendanceDays,
+        absent: absentAttendanceDays,
+        unmarked: unmarkedAttendanceDays > 0 ? unmarkedAttendanceDays : 0,
         total: totalAttendanceDays,
         percentage: totalAttendanceDays > 0 ? ((presentAttendanceDays / totalAttendanceDays) * 100).toFixed(1) : 0
       },
@@ -542,6 +563,29 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     const attendanceMap = {};
     attendanceCounts.forEach(a => { attendanceMap[a.studentId] = a._count.id; });
 
+    // Fetch absent counts per student in bulk
+    const absentCounts = await prisma.attendanceRecord.groupBy({
+      by: ['studentId'],
+      where: {
+        schoolId: req.schoolId, classId: parseInt(classId), termId: parseInt(termId),
+        status: 'absent'
+      },
+      _count: { id: true }
+    });
+    const absentMap = {};
+    absentCounts.forEach(a => { absentMap[a.studentId] = a._count.id; });
+
+    // Fetch total recorded days per student in bulk (to calculate unmarked)
+    const totalRecordedCounts = await prisma.attendanceRecord.groupBy({
+      by: ['studentId'],
+      where: {
+        schoolId: req.schoolId, classId: parseInt(classId), termId: parseInt(termId)
+      },
+      _count: { id: true }
+    });
+    const totalRecordedMap = {};
+    totalRecordedCounts.forEach(a => { totalRecordedMap[a.studentId] = a._count.id; });
+
     // Fetch psychomotor domains once
     const psychomotorDomains = await prisma.psychomotorDomain.findMany({
       where: { schoolId: req.schoolId, isActive: true },
@@ -638,6 +682,8 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         },
         attendance: {
           present: presentDays,
+          absent: absentMap[student.id] || 0,
+          unmarked: Math.max(0, totalAttendanceDays - (totalRecordedMap[student.id] || 0)),
           total: totalAttendanceDays,
           percentage: totalAttendanceDays > 0 ? ((presentDays / totalAttendanceDays) * 100).toFixed(1) : 0
         },

@@ -553,7 +553,7 @@ router.get('/student-attendance', authenticate, authorize(['parent', 'admin', 'p
       }
     }
 
-    // Fetch attendance records
+    // Fetch attendance records for this student
     const records = await prisma.attendanceRecord.findMany({
       where,
       include: {
@@ -563,7 +563,39 @@ router.get('/student-attendance', authenticate, authorize(['parent', 'admin', 'p
       orderBy: { date: 'desc' }
     });
 
-    res.json(records);
+    // Fetch class-wide attendance dates so frontend can compute unmarked days
+    const student = await prisma.student.findFirst({
+      where: { id: parseInt(studentId), schoolId: req.schoolId },
+      select: { classId: true }
+    });
+
+    let classAttendanceDates = [];
+    if (student?.classId) {
+      // Build matching where clause for class dates (same filters as student)
+      const classWhere = {
+        schoolId: req.schoolId,
+        classId: student.classId
+      };
+      if (sessionId) classWhere.academicSessionId = parseInt(sessionId);
+      if (termId) classWhere.termId = parseInt(termId);
+      if (startDate || endDate) {
+        classWhere.date = {};
+        if (startDate) classWhere.date.gte = new Date(startDate);
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          classWhere.date.lte = end;
+        }
+      }
+
+      const classDays = await prisma.attendanceRecord.groupBy({
+        by: ['date'],
+        where: classWhere
+      });
+      classAttendanceDates = classDays.map(d => d.date);
+    }
+
+    res.json({ records, classAttendanceDates });
   } catch (error) {
     console.error('Get student attendance error:', error);
     res.status(500).json({ error: 'Failed to fetch attendance records' });

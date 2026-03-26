@@ -413,7 +413,7 @@ router.get('/student/:studentId/summary', authenticate, async (req, res) => {
     const { studentId } = req.params;
     const { session, term } = await getCurrentSessionAndTerm(req.schoolId);
 
-    if (!session || !term) return res.json({ present: 0, absent: 0, late: 0, total: 0 });
+    if (!session || !term) return res.json({ present: 0, absent: 0, late: 0, unmarked: 0, total: 0 });
 
     const stats = await prisma.attendanceRecord.groupBy({
       by: ['status'],
@@ -428,21 +428,46 @@ router.get('/student/:studentId/summary', authenticate, async (req, res) => {
       }
     });
 
-    // Format: { present: 45, absent: 2, late: 1 }
+    // Format: { present: 45, absent: 2, late: 1, unmarked: 3 }
     const summary = {
       present: 0,
       absent: 0,
       late: 0,
       excused: 0,
+      unmarked: 0,
       total: 0
     };
 
+    let studentRecordedDays = 0;
     stats.forEach(s => {
       if (summary[s.status] !== undefined) {
         summary[s.status] = s._count.status;
-        summary.total += s._count.status;
+        studentRecordedDays += s._count.status;
       }
     });
+
+    // Get the student's class to find total class attendance days
+    const student = await prisma.student.findFirst({
+      where: { id: parseInt(studentId), schoolId: req.schoolId },
+      select: { classId: true }
+    });
+
+    if (student?.classId) {
+      const classAttendanceDays = await prisma.attendanceRecord.groupBy({
+        by: ['date'],
+        where: {
+          schoolId: req.schoolId,
+          classId: student.classId,
+          academicSessionId: session.id,
+          termId: term.id
+        }
+      });
+      const totalClassDays = classAttendanceDays.length;
+      summary.unmarked = Math.max(0, totalClassDays - studentRecordedDays);
+      summary.total = totalClassDays;
+    } else {
+      summary.total = studentRecordedDays;
+    }
 
     res.json(summary);
 

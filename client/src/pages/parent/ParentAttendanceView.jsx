@@ -8,6 +8,7 @@ const ParentAttendanceView = () => {
   const [wards, setWards] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [classAttendanceDates, setClassAttendanceDates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchingAttendance, setFetchingAttendance] = useState(false);
   const [sessions, setSessions] = useState([]);
@@ -125,7 +126,16 @@ const ParentAttendanceView = () => {
 
       const response = await api.get(`/api/parents/student-attendance?${params.toString()}`);
       if (response.ok) {
-        setAttendanceRecords(await response.json());
+        const data = await response.json();
+        // Handle new response format { records, classAttendanceDates }
+        if (data.records) {
+          setAttendanceRecords(data.records);
+          setClassAttendanceDates(data.classAttendanceDates || []);
+        } else {
+          // Fallback for old format (plain array)
+          setAttendanceRecords(Array.isArray(data) ? data : []);
+          setClassAttendanceDates([]);
+        }
       }
     } catch (error) { console.error(error); }
     finally { setFetchingAttendance(false); }
@@ -137,12 +147,13 @@ const ParentAttendanceView = () => {
       case 'absent': return 'bg-red-100 text-red-800';
       case 'late': return 'bg-yellow-100 text-yellow-800';
       case 'excused': return 'bg-blue-100 text-blue-800';
+      case 'unmarked': return 'bg-gray-200 text-gray-600';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const calculateStats = () => {
-    const stats = { present: 0, absent: 0, late: 0, excused: 0, total: 0 };
+    const stats = { present: 0, absent: 0, late: 0, excused: 0, unmarked: 0, total: 0 };
     const holidayDates = new Set(holidays.map(h => {
       const d = new Date(h.date);
       d.setHours(0,0,0,0);
@@ -151,6 +162,8 @@ const ParentAttendanceView = () => {
 
     const weekendDays = (schoolSettings?.weekendDays || '0,6').split(',').map(d => parseInt(d.trim()));
 
+    // Build a set of dates the student actually has records for
+    const studentRecordDates = new Set();
     attendanceRecords.forEach(record => {
       const recordDate = new Date(record.date);
       recordDate.setHours(0,0,0,0);
@@ -158,13 +171,27 @@ const ParentAttendanceView = () => {
       const isHoliday = holidayDates.has(recordDate.getTime());
 
       if (!isHoliday && !isWeekend) {
+        studentRecordDates.add(recordDate.getTime());
         if (record.status === 'present') stats.present++;
         else if (record.status === 'absent') stats.absent++;
         else if (record.status === 'late') { stats.present++; stats.late++; }
         else if (record.status === 'excused') stats.excused++;
-        stats.total++;
       }
     });
+
+    // Count unmarked days: class had attendance taken but this student has no record
+    classAttendanceDates.forEach(dateStr => {
+      const d = new Date(dateStr);
+      d.setHours(0,0,0,0);
+      const isWeekend = weekendDays.includes(d.getDay());
+      const isHoliday = holidayDates.has(d.getTime());
+      if (!isHoliday && !isWeekend && !studentRecordDates.has(d.getTime())) {
+        stats.unmarked++;
+      }
+    });
+
+    // Total = recorded days + unmarked days
+    stats.total = studentRecordDates.size + stats.unmarked;
 
     const percentage = stats.total > 0 ? ((stats.present / stats.total) * 100).toFixed(1) : 0;
     return { ...stats, percentage };
@@ -228,7 +255,7 @@ const ParentAttendanceView = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 text-center">
             <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Total Days</p>
             <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
@@ -244,6 +271,10 @@ const ParentAttendanceView = () => {
          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100 text-center">
             <p className="text-[10px] font-black uppercase text-yellow-600 mb-1">Late</p>
             <p className="text-2xl font-bold text-yellow-700">{stats.late}</p>
+         </div>
+         <div className="bg-gray-100 p-4 rounded-lg border border-gray-200 text-center">
+            <p className="text-[10px] font-black uppercase text-gray-500 mb-1">Unmarked</p>
+            <p className="text-2xl font-bold text-gray-600">{stats.unmarked}</p>
          </div>
          <div className="bg-primary/5 p-4 rounded-lg border border-primary/20 text-center">
             <p className="text-[10px] font-black uppercase text-primary mb-1">Attendance</p>
@@ -285,34 +316,64 @@ const ParentAttendanceView = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
-                    {attendanceRecords.filter(r => {
-                      const rd = new Date(r.date);
-                      rd.setHours(0,0,0,0);
-                      const isHoliday = holidays.some(h => {
+                    {(() => {
+                      const weekendDays = (schoolSettings?.weekendDays || '0,6').split(',').map(d => parseInt(d.trim()));
+                      const holidayDates = new Set(holidays.map(h => {
                         const d = new Date(h.date);
                         d.setHours(0,0,0,0);
-                        return d.getTime() === rd.getTime();
-                      });
-                      const weekendDays = (schoolSettings?.weekendDays || '0,6').split(',').map(d => parseInt(d.trim()));
-                      const isWeekend = weekendDays.includes(rd.getDay());
-                      return !isHoliday && !isWeekend;
-                    }).map((record) => (
-                      <tr key={record.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-bold text-gray-900">
-                            {new Date(record.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${getStatusColor(record.status)}`}>
-                            {record.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 italic">
-                          {record.notes || '-'}
-                        </td>
-                      </tr>
-                    ))}
+                        return d.getTime();
+                      }));
+
+                      // Filter actual records (exclude weekends/holidays)
+                      const filteredRecords = attendanceRecords.filter(r => {
+                        const rd = new Date(r.date);
+                        rd.setHours(0,0,0,0);
+                        return !holidayDates.has(rd.getTime()) && !weekendDays.includes(rd.getDay());
+                      }).map(r => ({ ...r, _type: 'recorded' }));
+
+                      // Synthesize unmarked day records
+                      const studentDates = new Set(filteredRecords.map(r => {
+                        const d = new Date(r.date);
+                        d.setHours(0,0,0,0);
+                        return d.getTime();
+                      }));
+
+                      const unmarkedRecords = classAttendanceDates
+                        .filter(dateStr => {
+                          const d = new Date(dateStr);
+                          d.setHours(0,0,0,0);
+                          return !holidayDates.has(d.getTime()) && !weekendDays.includes(d.getDay()) && !studentDates.has(d.getTime());
+                        })
+                        .map(dateStr => ({
+                          id: `unmarked-${dateStr}`,
+                          date: dateStr,
+                          status: 'unmarked',
+                          notes: 'Not marked by teacher',
+                          _type: 'unmarked'
+                        }));
+
+                      // Merge and sort by date descending
+                      const allRecords = [...filteredRecords, ...unmarkedRecords]
+                        .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                      return allRecords.map((record) => (
+                        <tr key={record.id} className={`hover:bg-gray-50 transition-colors ${record._type === 'unmarked' ? 'bg-gray-50/50' : ''}`}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-bold text-gray-900">
+                              {new Date(record.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${getStatusColor(record.status)}`}>
+                              {record.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-500 italic">
+                            {record.notes || '-'}
+                          </td>
+                        </tr>
+                      ));
+                    })()}
                   </tbody>
                 </table>
               </div>
