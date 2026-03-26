@@ -1,4 +1,4 @@
-const AIQueryHandler = require('./AIQueryHandler');
+const AIQueryHandler = require('../services/AIQueryHandler');
 const prisma = require('../db');
 
 /**
