@@ -644,11 +644,14 @@ const LessonWorkspace = () => {
                                     <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Question Count</label>
                                     <input 
                                         type="number"
-                                        min="1" max="50"
+                                        min="1" max="100"
                                         value={aiParams.count}
                                         onChange={e => setAiParams({...aiParams, count: parseInt(e.target.value)})}
                                         className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-lg"
                                     />
+                                    {aiParams.count > 40 && (
+                                        <p className="text-[10px] text-orange-500 font-bold mt-1 leading-tight">Note: Generating 40+ questions may take longer or be truncated by AI limits.</p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Difficulty</label>
