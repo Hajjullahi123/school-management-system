@@ -11,6 +11,7 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
   const [assignedClassCount, setAssignedClassCount] = useState(0);
   const [notices, setNotices] = useState([]);
   const [teacherCBTExams, setTeacherCBTExams] = useState([]);
+  const [totalSubjectsCount, setTotalSubjectsCount] = useState(0);
   const [allTerms, setAllTerms] = useState([]);
   const [allSessions, setAllSessions] = useState([]);
   const [selectedDashboardTerm, setSelectedDashboardTerm] = useState(null);
@@ -36,17 +37,23 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
   const fetchMainData = async (termId = null, sessionId = null) => {
     try {
       setLoading(true);
-      const [studentsRes, classesRes, termsRes, sessionsRes] = await Promise.all([
+      const [studentsRes, classesRes, termsRes, sessionsRes, subjectsRes] = await Promise.all([
         api.get('/api/students'),
         api.get('/api/classes'),
         api.get('/api/terms'),
-        api.get('/api/academic-sessions')
+        api.get('/api/academic-sessions'),
+        (user?.role === 'admin' || user?.role === 'principal') ? api.get('/api/subjects') : Promise.resolve(null)
       ]);
 
       const studentsData = await studentsRes.json();
       const classesData = await classesRes.json();
       const terms = await termsRes.json();
       const sessions = await sessionsRes.json();
+
+      if (subjectsRes?.ok) {
+        const subjectsData = await subjectsRes.json();
+        setTotalSubjectsCount(Array.isArray(subjectsData) ? subjectsData.length : 0);
+      }
 
       setAllTerms(Array.isArray(terms) ? terms : []);
       setAllSessions(Array.isArray(sessions) ? sessions : []);
@@ -143,19 +150,25 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
       </div>
 
       {/* Grid Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Enrollment</p>
-          <p className="text-xl font-black text-gray-900">{teacherStats?.totalStudents || 0}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div className="bg-blue-50 p-4 rounded-xl shadow-sm border border-blue-100">
+          <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest mb-1">Total Enrollment</p>
+          <p className="text-xl font-black text-blue-900">{teacherStats?.totalStudents || 0}</p>
         </div>
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Assigned Classes</p>
-          <p className="text-xl font-black text-gray-900">{teacherStats?.activeClasses || 0}</p>
+        <div className="bg-purple-50 p-4 rounded-xl shadow-sm border border-purple-100">
+          <p className="text-[8px] font-black text-purple-600 uppercase tracking-widest mb-1">Assigned Classes</p>
+          <p className="text-xl font-black text-purple-900">{teacherStats?.activeClasses || 0}</p>
         </div>
+        {(user?.role === 'admin' || user?.role === 'principal') && (
+          <div className="bg-indigo-50 p-4 rounded-xl shadow-sm border border-indigo-100">
+            <p className="text-[8px] font-black text-indigo-600 uppercase tracking-widest mb-1">Registered Subjects</p>
+            <p className="text-xl font-black text-indigo-900">{totalSubjectsCount || 0}</p>
+          </div>
+        )}
         {user?.role === 'admin' && (
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Registered Alumni</p>
-            <p className="text-xl font-black text-gray-900">{alumniCount || 0}</p>
+          <div className="bg-pink-50 p-4 rounded-xl shadow-sm border border-pink-100">
+            <p className="text-[8px] font-black text-pink-600 uppercase tracking-widest mb-1">Registered Alumni</p>
+            <p className="text-xl font-black text-pink-900">{alumniCount || 0}</p>
           </div>
         )}
         {user?.role === 'admin' && feeStats && (
