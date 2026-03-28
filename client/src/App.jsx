@@ -136,9 +136,12 @@ function ExamCardSwitch() {
   return <ExamCardGenerator />;
 }
 
+import { PWAProvider } from './context/PWAContext';
+
 function App() {
   return (
-    <AuthProvider>
+    <PWAProvider>
+      <AuthProvider>
       <Toaster position="top-right" reverseOrder={false} />
       <ThemeController />
       <AppUpdateNotifier />

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import useSchoolSettings from '../hooks/useSchoolSettings';
+import PWAInstallButton from '../components/PWAInstallButton';
 import { apiCall } from '../api';
 import { API_BASE_URL } from '../config';
 import { FiFacebook, FiInstagram, FiMessageCircle, FiGlobe } from 'react-icons/fi';
@@ -194,7 +195,13 @@ const Login = () => {
                 </div>
               ))}
             </div>
+            </div>
           </div>
+        </div>
+
+        {/* PWA Install Button */}
+        <div className="relative z-10 mb-8 max-w-xs">
+          <PWAInstallButton />
         </div>
 
         {/* Developer Spotlight */}
