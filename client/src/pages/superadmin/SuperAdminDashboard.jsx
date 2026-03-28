@@ -856,11 +856,7 @@ const SuperAdminDashboard = () => {
                       </div>
                     </div>
                   </div>
- 
 
-                    </div>
-                  </div>
- 
                   {/* WhatsApp Platform Fallback Section */}
                   <div className="pt-6 border-t border-gray-100">
                     <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
