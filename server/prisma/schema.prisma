@@ -42,7 +42,14 @@ model GlobalSettings {
   groqApiKey       String?
 
   // WhatsApp Platform Fallback
-  whatsappProvider String? @default("twilio")
+  whatsappProvider    String? @default("twilio")
+  whatsappPhoneNumber String?
+  twilioAccountSid    String?
+  twilioAuthToken     String?
+  metaAccessToken     String?
+  metaPhoneNumberId   String?
+  metaBusinessAccountId String?
+  metaVerifyToken     String?
 
   updatedAt DateTime @updatedAt
 }

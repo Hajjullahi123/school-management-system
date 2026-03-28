@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
 const WhatsAppService = require('../services/WhatsAppService');
-const AIQueryHandler = require('../services/AIQueryHandler');
+const { getWhatsAppHandler } = require('../utils/whatsappConfig');
 const { logAction } = require('../utils/audit');
 
 // Helper to get school settings by phone number or Meta ID
@@ -16,17 +16,34 @@ async function getSchoolByWhatsApp(phoneNumber, provider = 'twilio') {
       }
     });
   } else {
-    // For Meta, we might match by phone number or metaPhoneNumberId
-    return await prisma.school.findFirst({
+    // Option 2: Individual School Match
+    let school = await prisma.school.findFirst({
       where: {
         whatsappBotEnabled: true,
-        whatsappProvider: 'meta',
         OR: [
           { whatsappPhoneNumber: phoneNumber },
           { metaPhoneNumberId: phoneNumber }
         ]
       }
     });
+
+    // Option 3: Global Platform Match (Shared Number)
+    if (!school) {
+      const globalSettings = await prisma.globalSettings.findFirst({
+        where: {
+          OR: [
+            { whatsappPhoneNumber: phoneNumber },
+            { metaPhoneNumberId: phoneNumber }
+          ]
+        }
+      });
+      if (globalSettings) {
+        // Return a virtual object or handle it as "Platform School"
+        return { isGlobal: true, ...globalSettings };
+      }
+    }
+
+    return school;
   }
 }
 

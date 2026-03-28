@@ -18,7 +18,7 @@ const Timetable = () => {
     // If settings are not loaded yet, default to Mon-Fri for safety
     if (!settings) return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
     
-    const weekendIndices = (settings?.weekendDays || '0,6')
+    const weekendIndices = (settings?.weekendDays ?? '0,6')
       .split(',')
       .map(d => d.trim())
       .filter(d => d !== "")

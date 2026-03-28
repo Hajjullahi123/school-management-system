@@ -122,7 +122,7 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
       select: { name: true, weekendDays: true }
     });
 
-    const weekendIndices = (school?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
+    const weekendIndices = (school?.weekendDays ?? "0,6").split(',').map(n => parseInt(n.trim()));
     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
     if (weekendIndices.includes(dayOfWeek)) {
@@ -189,7 +189,7 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal', '
       where: { id: req.schoolId },
       select: { weekendDays: true }
     });
-    const weekendIndices = (school?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
+    const weekendIndices = (school?.weekendDays ?? "0,6").split(',').map(n => parseInt(n.trim()));
 
     const holidayRecord = await prisma.schoolHoliday.findFirst({
       where: { schoolId: req.schoolId, date: targetDate }
@@ -624,7 +624,7 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
       where: { id: req.schoolId },
       select: { weekendDays: true, name: true, schoolName: true, staffExpectedArrivalTime: true, enableSMS: true, staffClockInMode: true, authorizedIP: true }
     });
-    const weekendIndices = (schoolSettings?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
+    const weekendIndices = (schoolSettings?.weekendDays ?? "0,6").split(',').map(n => parseInt(n.trim()));
 
     const holidayRecord = await prisma.schoolHoliday.findFirst({
       where: { schoolId: req.schoolId, date: today }

@@ -18,8 +18,11 @@ const AcademicSetup = () => {
   const [termForm, setTermForm] = useState({ name: '', academicSessionId: '', startDate: '', endDate: '', nextTermBeginsDate: '', isCurrent: false });
   const [editingTerm, setEditingTerm] = useState(null);
 
-  // School Settings (for weights)
+  // School Settings (for weights and weekends)
   const [schoolSettings, setSchoolSettings] = useState({
+    assignment1Weight: 5,
+    assignment2Weight: 5,
+    test1Weight: 10,
     test2Weight: 10,
     examWeight: 70,
     weekendDays: '0,6'
@@ -48,12 +51,12 @@ const AcademicSetup = () => {
         const settingsData = await settingsRes.json();
         if (isMounted) {
           setSchoolSettings({
-            assignment1Weight: settingsData.assignment1Weight || 5,
-            assignment2Weight: settingsData.assignment2Weight || 5,
-            test1Weight: settingsData.test1Weight || 10,
-            test2Weight: settingsData.test2Weight || 10,
-            examWeight: settingsData.examWeight || 70,
-            weekendDays: settingsData.weekendDays || '0,6'
+            assignment1Weight: settingsData.assignment1Weight ?? 5,
+            assignment2Weight: settingsData.assignment2Weight ?? 5,
+            test1Weight: settingsData.test1Weight ?? 10,
+            test2Weight: settingsData.test2Weight ?? 10,
+            examWeight: settingsData.examWeight ?? 70,
+            weekendDays: settingsData.weekendDays ?? '0,6'
           });
         }
       } catch (error) {
@@ -197,12 +200,12 @@ const AcademicSetup = () => {
       const response = await api.get('/api/settings');
       const data = await response.json();
       setSchoolSettings({
-        assignment1Weight: data.assignment1Weight || 5,
-        assignment2Weight: data.assignment2Weight || 5,
-        test1Weight: data.test1Weight || 10,
-        test2Weight: data.test2Weight || 10,
-        examWeight: data.examWeight || 70,
-        weekendDays: data.weekendDays || '0,6'
+        assignment1Weight: data.assignment1Weight ?? 5,
+        assignment2Weight: data.assignment2Weight ?? 5,
+        test1Weight: data.test1Weight ?? 10,
+        test2Weight: data.test2Weight ?? 10,
+        examWeight: data.examWeight ?? 70,
+        weekendDays: data.weekendDays ?? '0,6'
       });
     } catch (error) {
       console.error('Error fetching weights:', error);

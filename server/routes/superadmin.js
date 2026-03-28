@@ -612,7 +612,9 @@ router.post('/global-settings', authenticate, authorize(['superadmin']), async (
       platformPaystackKey, platformFlutterwaveKey, platformSecretKey,
       basicPrice, standardPrice, premiumPrice,
       s3AccessKey, s3SecretKey, s3BucketName, s3Region, enableAutoBackup, backupRetentionDays,
-      latestAppVersion, apkDownloadUrl, geminiApiKey
+      latestAppVersion, apkDownloadUrl, geminiApiKey, groqApiKey,
+      whatsappProvider, whatsappPhoneNumber, twilioAccountSid, twilioAuthToken,
+      metaAccessToken, metaPhoneNumberId, metaBusinessAccountId, metaVerifyToken
     } = req.body;
 
     const settings = await prisma.globalSettings.upsert({
@@ -638,7 +640,16 @@ router.post('/global-settings', authenticate, authorize(['superadmin']), async (
         backupRetentionDays: parseInt(backupRetentionDays) || undefined,
         latestAppVersion: latestAppVersion || undefined,
         apkDownloadUrl: apkDownloadUrl || undefined,
-        geminiApiKey: geminiApiKey || undefined
+        geminiApiKey: geminiApiKey || undefined,
+        groqApiKey: groqApiKey || undefined,
+        whatsappProvider: whatsappProvider || undefined,
+        whatsappPhoneNumber: whatsappPhoneNumber || undefined,
+        twilioAccountSid: twilioAccountSid || undefined,
+        twilioAuthToken: twilioAuthToken || undefined,
+        metaAccessToken: metaAccessToken || undefined,
+        metaPhoneNumberId: metaPhoneNumberId || undefined,
+        metaBusinessAccountId: metaBusinessAccountId || undefined,
+        metaVerifyToken: metaVerifyToken || undefined
       },
       create: {
         id: 1,
@@ -662,7 +673,16 @@ router.post('/global-settings', authenticate, authorize(['superadmin']), async (
         backupRetentionDays: parseInt(backupRetentionDays) || 30,
         latestAppVersion: latestAppVersion || "1.0.0",
         apkDownloadUrl,
-        geminiApiKey: geminiApiKey || undefined
+        geminiApiKey: geminiApiKey || undefined,
+        groqApiKey: groqApiKey || undefined,
+        whatsappProvider: whatsappProvider || "twilio",
+        whatsappPhoneNumber,
+        twilioAccountSid,
+        twilioAuthToken,
+        metaAccessToken,
+        metaPhoneNumberId,
+        metaBusinessAccountId,
+        metaVerifyToken
       }
     });
 

@@ -4,7 +4,7 @@ const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 const AIQueryHandler = require('../services/AIQueryHandler');
-const WhatsAppService = require('../services/WhatsAppService');
+const { getWhatsAppHandler } = require('../utils/whatsappConfig');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -283,14 +283,13 @@ router.post('/nudge-teacher', authenticate, authorize(['admin', 'principal', 'ex
       if (!teacher.phone) {
         if (nudgeType === 'whatsapp') return res.status(400).json({ error: 'Teacher missing phone number for WhatsApp nudge' });
       } else {
-        const school = await prisma.school.findUnique({ where: { id: schoolId } });
-        const WhatsAppService = require('../services/WhatsAppService'); // Ensure it's required
-        const whatsapp = new WhatsAppService(
-          school.twilioSid || process.env.TWILIO_ACCOUNT_SID,
-          school.twilioAuthToken || process.env.TWILIO_AUTH_TOKEN,
-          school.twilioPhoneNumber || process.env.TWILIO_PHONE_NUMBER
-        );
-        await whatsapp.send(teacher.phone, nudgeMessage);
+        const schoolWhatsApp = await getWhatsAppHandler(schoolId);
+        if (schoolWhatsApp) {
+          await schoolWhatsApp.send(teacher.phone, nudgeMessage);
+        } else {
+          console.warn('[Nudge] Skipping WhatsApp - Not configured');
+          if (nudgeType === 'whatsapp') return res.status(400).json({ error: 'WhatsApp is not configured for this school or platform.' });
+        }
       }
     }
 

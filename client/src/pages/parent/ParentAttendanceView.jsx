@@ -160,7 +160,7 @@ const ParentAttendanceView = () => {
       return d.getTime();
     }));
 
-    const weekendDays = (schoolSettings?.weekendDays || '0,6').split(',').map(d => parseInt(d.trim()));
+    const weekendDays = (schoolSettings?.weekendDays ?? '0,6').split(',').map(d => parseInt(d.trim()));
 
     // Build a set of dates the student actually has records for
     const studentRecordDates = new Set();
@@ -317,7 +317,7 @@ const ParentAttendanceView = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
                     {(() => {
-                      const weekendDays = (schoolSettings?.weekendDays || '0,6').split(',').map(d => parseInt(d.trim()));
+                      const weekendDays = (schoolSettings?.weekendDays ?? '0,6').split(',').map(d => parseInt(d.trim()));
                       const holidayDates = new Set(holidays.map(h => {
                         const d = new Date(h.date);
                         d.setHours(0,0,0,0);

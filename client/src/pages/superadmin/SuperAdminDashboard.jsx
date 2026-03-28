@@ -37,7 +37,15 @@ const SuperAdminDashboard = () => {
     latestAppVersion: '',
     apkDownloadUrl: '',
     geminiApiKey: '',
-    groqApiKey: ''
+    groqApiKey: '',
+    whatsappProvider: 'twilio',
+    whatsappPhoneNumber: '',
+    twilioAccountSid: '',
+    twilioAuthToken: '',
+    metaAccessToken: '',
+    metaPhoneNumberId: '',
+    metaBusinessAccountId: '',
+    metaVerifyToken: ''
   });
   const [updatingSettings, setUpdatingSettings] = useState(false);
 
@@ -850,32 +858,100 @@ const SuperAdminDashboard = () => {
                   </div>
  
 
-                  {/* AI Configuration Section */}
+                    </div>
+                  </div>
+ 
+                  {/* WhatsApp Platform Fallback Section */}
                   <div className="pt-6 border-t border-gray-100">
                     <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-                       Platform AI Implementation (Global Fallback)
+                       WhatsApp Platform Fallback (Centralized API)
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-indigo-600">Global Gemini API Key</label>
-                        <input
-                          type="password"
-                          value={globalSettings.geminiApiKey || ''}
-                          onChange={e => setGlobalSettings({ ...globalSettings, geminiApiKey: e.target.value })}
-                          placeholder="AI Studio Key"
-                          className="w-full px-4 py-3 rounded-xl bg-gray-900 text-indigo-400 font-mono border-none focus:ring-2 focus:ring-indigo-600 text-xs"
-                        />
+                      <div className="col-span-2 space-y-2">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Global Provider</label>
+                        <select
+                          value={globalSettings.whatsappProvider || 'twilio'}
+                          onChange={e => setGlobalSettings({ ...globalSettings, whatsappProvider: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                        >
+                          <option value="twilio">Twilio (Central Account)</option>
+                          <option value="meta">Meta WhatsApp Cloud API (Central Account)</option>
+                        </select>
+                        <p className="text-[10px] text-gray-400 italic">Schools without individual keys will use this configuration.</p>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-green-600">Global Groq API Key</label>
-                        <input
-                          type="password"
-                          value={globalSettings.groqApiKey || ''}
-                          onChange={e => setGlobalSettings({ ...globalSettings, groqApiKey: e.target.value })}
-                          placeholder="Groq Console Key"
-                          className="w-full px-4 py-3 rounded-xl bg-gray-900 text-green-400 font-mono border-none focus:ring-2 focus:ring-indigo-600 text-xs"
-                        />
-                      </div>
+
+                      {globalSettings.whatsappProvider === 'meta' ? (
+                        <>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Meta Access Token</label>
+                            <input
+                              type="password"
+                              value={globalSettings.metaAccessToken || ''}
+                              onChange={e => setGlobalSettings({ ...globalSettings, metaAccessToken: e.target.value })}
+                              placeholder="Permanent Page Access Token"
+                              className="w-full px-4 py-3 rounded-xl bg-gray-900 text-indigo-400 font-mono border-none focus:ring-2 focus:ring-indigo-600 text-xs"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Phone Number ID</label>
+                            <input
+                              type="text"
+                              value={globalSettings.metaPhoneNumberId || ''}
+                              onChange={e => setGlobalSettings({ ...globalSettings, metaPhoneNumberId: e.target.value })}
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Business Account ID</label>
+                            <input
+                              type="text"
+                              value={globalSettings.metaBusinessAccountId || ''}
+                              onChange={e => setGlobalSettings({ ...globalSettings, metaBusinessAccountId: e.target.value })}
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Verify Token</label>
+                            <input
+                              type="text"
+                              value={globalSettings.metaVerifyToken || ''}
+                              onChange={e => setGlobalSettings({ ...globalSettings, metaVerifyToken: e.target.value })}
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Twilio Account SID</label>
+                            <input
+                              type="text"
+                              value={globalSettings.twilioAccountSid || ''}
+                              onChange={e => setGlobalSettings({ ...globalSettings, twilioAccountSid: e.target.value })}
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Twilio Auth Token</label>
+                            <input
+                              type="password"
+                              value={globalSettings.twilioAuthToken || ''}
+                              onChange={e => setGlobalSettings({ ...globalSettings, twilioAuthToken: e.target.value })}
+                              className="w-full px-4 py-3 rounded-xl bg-gray-900 text-indigo-400 font-mono border-none focus:ring-2 focus:ring-indigo-600 text-xs"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Platform Twilio/WhatsApp Phone</label>
+                            <input
+                              type="text"
+                              value={globalSettings.whatsappPhoneNumber || ''}
+                              onChange={e => setGlobalSettings({ ...globalSettings, whatsappPhoneNumber: e.target.value })}
+                              placeholder="+1234567890"
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 text-sm"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
 
