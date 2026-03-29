@@ -230,14 +230,33 @@ const AcademicSetup = () => {
     try {
       const response = await api.put('/api/settings', schoolSettings);
       if (response.ok) {
-        alert('Grading weights updated successfully!');
+        toast.success('Grading weights updated successfully');
       } else {
-        const error = await response.json();
-        alert('Failed to save weights: ' + (error.error || 'Unknown error'));
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Failed to update weights');
       }
     } catch (error) {
-      console.error('Error saving weights:', error);
-      alert('Failed to save weights');
+      toast.error('An error occurred while saving weights');
+    } finally {
+      setSavingWeights(false);
+    }
+  };
+
+  const handleWeekendSubmit = async (e) => {
+    e.preventDefault();
+    setSavingWeights(true);
+    try {
+      const response = await api.put('/api/settings', {
+        weekendDays: schoolSettings.weekendDays
+      });
+      if (response.ok) {
+        toast.success('Weekend settings updated successfully');
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Failed to update weekends');
+      }
+    } catch (error) {
+      toast.error('An error occurred while saving weekend settings');
     } finally {
       setSavingWeights(false);
     }
@@ -774,7 +793,7 @@ const AcademicSetup = () => {
                     Current configuration: <span className="font-bold text-gray-600">{schoolSettings.weekendDays || 'None (Full Week)'}</span>
                   </div>
                   <button
-                    onClick={handleWeightsSubmit}
+                    onClick={handleWeekendSubmit}
                     disabled={savingWeights}
                     className="bg-emerald-600 text-white px-10 py-3 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-emerald-100"
                   >

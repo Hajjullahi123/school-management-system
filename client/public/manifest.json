@@ -2,7 +2,7 @@
   "name": "EduTechAI School Manager",
   "short_name": "EduTechAI",
   "description": "Multi-tenant AI-Powered School Management System",
-  "start_url": ".",
+  "start_url": "/login",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4f46e5",

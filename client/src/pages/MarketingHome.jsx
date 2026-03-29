@@ -29,7 +29,13 @@ const MarketingHome = () => {
         }
       })
       .catch(() => { });
-  }, []);
+
+    // PWA Bypass: If running in standalone mode, go directly to login
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isStandalone && !user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
 
   /* handleDemoLogin removed - using /demo route directly */
 
