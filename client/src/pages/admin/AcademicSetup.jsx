@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../api';
+import { toast } from '../../utils/toast';
 
 const AcademicSetup = () => {
   const [activeTab, setActiveTab] = useState('sessions');
@@ -228,7 +229,13 @@ const AcademicSetup = () => {
 
     setSavingWeights(true);
     try {
-      const response = await api.put('/api/settings', schoolSettings);
+      const response = await api.put('/api/settings', {
+        assignment1Weight: schoolSettings.assignment1Weight,
+        assignment2Weight: schoolSettings.assignment2Weight,
+        test1Weight: schoolSettings.test1Weight,
+        test2Weight: schoolSettings.test2Weight,
+        examWeight: schoolSettings.examWeight
+      });
       if (response.ok) {
         toast.success('Grading weights updated successfully');
       } else {

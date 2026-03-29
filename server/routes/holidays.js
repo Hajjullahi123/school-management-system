@@ -58,7 +58,7 @@ router.get('/check', authenticate, async (req, res) => {
       .filter(d => d !== "")
       .map(d => parseInt(d));
       
-    const dayOfWeek = checkDate.getDay();
+    const dayOfWeek = checkDate.getUTCDay();
 
     if (weekendDays.includes(dayOfWeek)) {
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
