@@ -166,6 +166,14 @@ const Login = () => {
               <span className="text-2xl font-black text-white">EA</span>
             </div>
             <h1 className="text-3xl font-black tracking-tighter">EduTechAI PORTAL</h1>
+            
+            {/* Mobile-only Login Access Button */}
+            <button 
+              onClick={() => document.getElementById('login-section')?.scrollIntoView({ behavior: 'smooth' })}
+              className="md:hidden ml-auto bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl font-bold text-xs border border-white/20 backdrop-blur-sm transition-all"
+            >
+              Log In
+            </button>
           </div>
 
           <div className="max-w-xl">
@@ -194,7 +202,6 @@ const Login = () => {
                   </div>
                 </div>
               ))}
-            </div>
             </div>
           </div>
         </div>
@@ -244,7 +251,7 @@ const Login = () => {
       </div>
 
       {/* Right Side: Login Form */}
-      <div className="md:w-1/2 lg:w-2/5 flex items-center justify-center p-8 bg-gray-50 relative">
+      <div id="login-section" className="md:w-1/2 lg:w-2/5 flex items-center justify-center p-8 bg-gray-50 relative">
         <div className="absolute top-0 right-0 p-8">
           <Link to={urlSlug ? `/${urlSlug}` : "/school-home"} className="text-gray-400 hover:text-primary font-bold text-sm flex items-center gap-2">
             Back to Home <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
