@@ -33,7 +33,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       }
     });
 
-    const weekendIndices = (schoolSettings?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
+    const weekendIndices = (schoolSettings?.weekendDays ?? "0,6").split(',').map(n => n.trim()).filter(n => n !== "").map(n => parseInt(n));
 
     // Fetch student with all details
     const student = await prisma.student.findFirst({
@@ -589,7 +589,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       }
     });
 
-    const weekendIndices = (schoolSettings?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
+    const weekendIndices = (schoolSettings?.weekendDays ?? "0,6").split(',').map(n => n.trim()).filter(n => n !== "").map(n => parseInt(n));
 
     // Fetch term details
     const term = await prisma.term.findFirst({

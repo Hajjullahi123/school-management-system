@@ -21,7 +21,7 @@ const authenticate = (req, res, next) => {
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
       req.user = decoded;
-      req.schoolId = decoded.schoolId;
+      req.schoolId = decoded.schoolId ? parseInt(decoded.schoolId) : null;
 
       // DEMO PROTECTION: Prevent modifications by demo_admin
       if (decoded.username === 'demo_admin') {
@@ -73,7 +73,7 @@ const optionalAuth = (req, res, next) => {
     if (token) {
       const decoded = jwt.verify(token, JWT_SECRET);
       req.user = decoded;
-      req.schoolId = decoded.schoolId;
+      req.schoolId = decoded.schoolId ? parseInt(decoded.schoolId) : null;
     }
   } catch (error) {
     // Ignore errors for optional auth

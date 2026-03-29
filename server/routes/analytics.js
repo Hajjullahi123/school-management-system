@@ -551,7 +551,11 @@ router.get('/attendance-tracking', authenticate, authorize(['admin', 'principal'
       where: { id: req.schoolId },
       select: { weekendDays: true }
     });
-    const weekendIndices = (school?.weekendDays || "0,6").split(',').map(n => parseInt(n.trim()));
+    const weekendDaysRaw = school?.weekendDays ?? "0,6";
+    const weekendIndices = weekendDaysRaw.split(',')
+      .map(n => n.trim())
+      .filter(n => n !== "")
+      .map(n => parseInt(n));
     const dayOfWeek = today.getDay();
     const holidayRecord = await prisma.schoolHoliday.findFirst({
       where: { schoolId: req.schoolId, date: today }

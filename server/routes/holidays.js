@@ -52,7 +52,12 @@ router.get('/check', authenticate, async (req, res) => {
       select: { weekendDays: true }
     });
 
-    const weekendDays = (school.weekendDays ?? '0,6').split(',').map(d => parseInt(d.trim()));
+    const weekendDaysRaw = school?.weekendDays ?? "0,6";
+    const weekendDays = weekendDaysRaw.split(',')
+      .map(d => d.trim())
+      .filter(d => d !== "")
+      .map(d => parseInt(d));
+      
     const dayOfWeek = checkDate.getDay();
 
     if (weekendDays.includes(dayOfWeek)) {
@@ -121,7 +126,12 @@ router.post('/bulk-weekends', authenticate, authorize(['admin', 'principal', 'su
       select: { weekendDays: true }
     });
 
-    const weekendDays = (school.weekendDays ?? '0,6').split(',').map(d => parseInt(d.trim()));
+    const weekendDaysRaw = school?.weekendDays ?? "0,6";
+    const weekendDays = weekendDaysRaw.split(',')
+      .map(d => d.trim())
+      .filter(d => d !== "")
+      .map(d => parseInt(d));
+      
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     const [startYear, startMonth, startDay] = startDate.split('-');
