@@ -354,4 +354,52 @@ router.post('/test-sms', async (req, res) => {
   }
 });
 
+// Test WhatsApp configuration
+router.post('/test-whatsapp', authenticate, async (req, res) => {
+  const { 
+    whatsappProvider, whatsappPhoneNumber, 
+    twilioAccountSid, twilioAuthToken, 
+    metaAccessToken, metaPhoneNumberId,
+    testPhone 
+  } = req.body;
+
+  if (!whatsappProvider || !testPhone) {
+    return res.status(400).json({ error: 'Provider and Test Phone are required' });
+  }
+
+  try {
+    const WhatsAppService = require('../services/WhatsAppService');
+    const whatsappService = new WhatsAppService({
+      whatsappProvider,
+      twilioAccountSid,
+      twilioAuthToken,
+      whatsappPhoneNumber,
+      metaAccessToken,
+      metaPhoneNumberId
+    });
+
+    const testMessage = `Hello! This is a test message from your School Management System's WhatsApp integration. If you are reading this, your settings are correct! 🚀`;
+    const response = await whatsappService.send(testPhone, testMessage);
+
+    console.log('✅ WhatsApp Test Response:', response);
+    res.json({ success: true, response });
+
+    // Log the action
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'TEST_WHATSAPP',
+      resource: 'SCHOOL_SETTINGS',
+      details: {
+        testPhone,
+        provider: whatsappProvider
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('❌ WhatsApp Test failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

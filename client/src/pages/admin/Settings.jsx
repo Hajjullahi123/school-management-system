@@ -300,6 +300,39 @@ const Settings = () => {
     }
   };
 
+  const handleTestWhatsApp = async () => {
+    try {
+      if (!settings.whatsappProvider || (settings.whatsappProvider === 'twilio' && (!settings.twilioAccountSid || !settings.twilioAuthToken)) || (settings.whatsappProvider === 'meta' && !settings.metaAccessToken)) {
+        toast.error('Please fill in required WhatsApp credentials to test');
+        return;
+      }
+
+      const testPhone = prompt('Enter recipient WhatsApp number (international format e.g. 234...):', settings.whatsappPhoneNumber || '');
+      if (!testPhone) return;
+
+      toast.info('Sending test WhatsApp message...');
+      const response = await api.post('/api/settings/test-whatsapp', {
+        whatsappProvider: settings.whatsappProvider,
+        whatsappPhoneNumber: settings.whatsappPhoneNumber,
+        twilioAccountSid: settings.twilioAccountSid,
+        twilioAuthToken: settings.twilioAuthToken,
+        metaAccessToken: settings.metaAccessToken,
+        metaPhoneNumberId: settings.metaPhoneNumberId,
+        testPhone
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.success('Test WhatsApp sent successfully!');
+      } else {
+        toast.error(data.error || 'Failed to send test WhatsApp');
+      }
+    } catch (error) {
+      console.error('Test WhatsApp error:', error);
+      toast.error('Failed to test WhatsApp connection');
+    }
+  };
+
   const handleActivateLicense = async (e) => {
     e.preventDefault();
     if (!licenseKey.trim()) {
@@ -1386,7 +1419,14 @@ const Settings = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4 border-t">
+              <div className="flex justify-between items-center pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={handleTestWhatsApp}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                >
+                  Send Test WhatsApp
+                </button>
                 <button
                   type="submit"
                   disabled={saving}
