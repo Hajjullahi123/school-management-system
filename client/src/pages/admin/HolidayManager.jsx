@@ -24,11 +24,20 @@ const HolidayManager = () => {
 
   const [settings, setSettings] = useState(null);
   const [updatingSettings, setUpdatingSettings] = useState(false);
+  const [pendingWeekends, setPendingWeekends] = useState([]);
 
   useEffect(() => {
     fetchHolidays();
     fetchSettings();
   }, []);
+
+  useEffect(() => {
+    if (settings?.weekendDays) {
+      setPendingWeekends(settings.weekendDays.split(',').map(d => d.trim()).filter(d => d !== ''));
+    } else if (settings) {
+      setPendingWeekends(['0', '6']); // Default Sunday/Saturday
+    }
+  }, [settings]);
 
   const fetchHolidays = async () => {
     try {
@@ -54,24 +63,25 @@ const HolidayManager = () => {
     }
   };
 
-  const handleUpdateWeekends = async (dayIndex) => {
+  const handleToggleWeekend = (dayIndex) => {
+    const dayStr = String(dayIndex);
+    if (pendingWeekends.includes(dayStr)) {
+      setPendingWeekends(pendingWeekends.filter(d => d !== dayStr));
+    } else {
+      setPendingWeekends([...pendingWeekends, dayStr]);
+    }
+  };
+
+  const handleSaveWeekends = async () => {
     setUpdatingSettings(true);
     try {
-      const currentWeekends = (settings.weekendDays || '0,6').split(',').map(d => d.trim()).filter(d => d !== '');
-      let newWeekends;
-      
-      if (currentWeekends.includes(String(dayIndex))) {
-        newWeekends = currentWeekends.filter(d => d !== String(dayIndex));
-      } else {
-        newWeekends = [...currentWeekends, String(dayIndex)];
-      }
-
-      const res = await api.put('/api/settings', { weekendDays: newWeekends.join(',') });
+      const res = await api.put('/api/settings', { weekendDays: pendingWeekends.join(',') });
       if (res.ok) {
-        toast.success('Weekend settings updated');
+        toast.success('Weekend settings updated successfully');
         fetchSettings();
       } else {
-        toast.error('Failed to update weekend settings');
+        const error = await res.json();
+        toast.error(error.error || 'Failed to update weekend settings');
       }
     } catch (err) {
       toast.error('Error updating settings');
@@ -140,7 +150,7 @@ const HolidayManager = () => {
     { id: 6, name: 'Saturday' }
   ];
 
-  const currentWeekendIndices = (settings?.weekendDays || '0,6').split(',').map(d => d.trim());
+  const currentWeekendIndices = pendingWeekends;
   const currentWeekendNames = daysOfWeek.filter(d => currentWeekendIndices.includes(String(d.id))).map(d => d.name + 's').join(' & ');
 
   return (
@@ -172,14 +182,14 @@ const HolidayManager = () => {
         </h2>
         <p className="text-sm text-gray-500 mb-6 font-medium">Select which days of the week are considered weekends for your school. This affects attendance marking and auto-filling.</p>
         
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 mb-6">
           {daysOfWeek.map((day) => {
-            const isSelected = currentWeekendIndices.includes(String(day.id));
+            const isSelected = pendingWeekends.includes(String(day.id));
             return (
               <button
                 key={day.id}
                 disabled={updatingSettings || !settings}
-                onClick={() => handleUpdateWeekends(day.id)}
+                onClick={() => handleToggleWeekend(day.id)}
                 className={`px-3 py-3 rounded-lg border-2 text-center transition-all ${
                   isSelected 
                     ? 'bg-primary/10 border-primary text-primary font-bold shadow-sm' 
@@ -191,6 +201,16 @@ const HolidayManager = () => {
               </button>
             );
           })}
+        </div>
+
+        <div className="flex justify-end pt-4 border-t">
+          <button
+            onClick={handleSaveWeekends}
+            disabled={updatingSettings || !settings}
+            className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-50"
+          >
+            {updatingSettings ? 'Saving...' : 'Confirm School Week'}
+          </button>
         </div>
       </div>
 
