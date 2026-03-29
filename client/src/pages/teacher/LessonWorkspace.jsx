@@ -6,6 +6,23 @@ import { FiSave, FiSend, FiFileText, FiBook, FiPlus, FiTrash2, FiCpu, FiDownload
 import { jsPDF } from 'jspdf';
 import Papa from 'papaparse';
 
+const cleanAiContent = (text) => {
+    if (!text) return '';
+    // Remove markdown bold (**), italic (* or _), and other common AI markers like # or `
+    return text
+        .replace(/\*\*\*/g, '') // Triple asterisks
+        .replace(/\*\*/g, '')    // Double asterisks (bold)
+        .replace(/\*/g, '')      // Single asterisks (italic or bullets)
+        .replace(/___/g, '')     // Triple underscores
+        .replace(/__/g, '')      // Double underscores
+        .replace(/_/g, '')       // Single underscores
+        .replace(/`/g, '')       // Backticks
+        .replace(/#{1,6}\s?/g, '') // Headers
+        .replace(/^>\s?/gm, '')    // Blockquotes at start of line
+        .replace(/[-*]{3,}/g, '')  // Horizontal rules
+        .trim();
+};
+
 const LessonWorkspace = () => {
     const { user } = useAuth();
     const [view, setView] = useState('plans'); // 'plans' or 'notes'
@@ -259,10 +276,11 @@ const LessonWorkspace = () => {
 
             if (resp.ok) {
                 const data = await resp.json();
+                const cleanedContent = cleanAiContent(data.content);
                 toast.success('AI Draft Generated!');
-                setFormData({ ...formData, content: data.content });
-                if (view === 'plans') setPlanContent(data.content);
-                else setNoteContent(data.content);
+                setFormData({ ...formData, content: cleanedContent });
+                if (view === 'plans') setPlanContent(cleanedContent);
+                else setNoteContent(cleanedContent);
             } else {
                 const err = await resp.json();
                 toast.error(err.message || err.error || 'AI scaffolding failed');
@@ -290,10 +308,11 @@ const LessonWorkspace = () => {
 
             if (resp.ok) {
                 const data = await resp.json();
+                const cleanedContent = cleanAiContent(data.content);
                 toast.success('AI Essay Questions Generated!');
-                setFormData({ ...formData, content: data.content });
-                if (view === 'plans') setPlanContent(data.content);
-                else setNoteContent(data.content);
+                setFormData({ ...formData, content: cleanedContent });
+                if (view === 'plans') setPlanContent(cleanedContent);
+                else setNoteContent(cleanedContent);
             } else {
                 const err = await resp.json();
                 toast.error(err.message || err.error || 'AI generation failed');
@@ -434,28 +453,6 @@ const LessonWorkspace = () => {
                     <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Academic Workspace</h1>
                     <p className="text-gray-500 mt-1">Manage your lesson plans, notes, and AI-powered assessments.</p>
                 </div>
-                <div className="flex bg-gray-100 p-1 rounded-2xl shadow-inner border border-gray-200 w-full lg:w-auto overflow-x-auto no-scrollbar">
-                    <button 
-                        onClick={() => handleToggleView('plans')}
-                        className={`flex-1 lg:flex-none px-6 py-2.5 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap ${view === 'plans' && !isQuestionView ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <FiFileText /> Lesson Plans
-                    </button>
-                    <button 
-                        onClick={() => handleToggleView('notes')}
-                        className={`flex-1 lg:flex-none px-6 py-2.5 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap ${view === 'notes' && !isQuestionView ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <FiBook /> Lesson Notes
-                    </button>
-                    {generatedQuestions.length > 0 && (
-                        <button 
-                            onClick={handleToggleQuestions}
-                            className={`flex-1 lg:flex-none px-6 py-2.5 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap ${isQuestionView ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            <FiCpu /> Generated CBT
-                        </button>
-                    )}
-                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 font-sans">
@@ -494,6 +491,28 @@ const LessonWorkspace = () => {
                                 </div>
                             </div>
                             <div className="flex flex-wrap gap-3 w-full xl:w-auto justify-start xl:justify-end">
+                                <div className="flex bg-gray-100 p-1 rounded-2xl shadow-inner border border-gray-200 overflow-x-auto mr-2">
+                                    <button 
+                                        onClick={() => handleToggleView('plans')}
+                                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${view === 'plans' && !isQuestionView ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        <FiFileText /> Plans
+                                    </button>
+                                    <button 
+                                        onClick={() => handleToggleView('notes')}
+                                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${view === 'notes' && !isQuestionView ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        <FiBook /> Notes
+                                    </button>
+                                    {generatedQuestions.length > 0 && (
+                                        <button 
+                                            onClick={handleToggleQuestions}
+                                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${isQuestionView ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                        >
+                                            <FiCpu /> CBT
+                                        </button>
+                                    )}
+                                </div>
                                 <div className="flex bg-white border-2 border-indigo-50 p-1.5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                                     <select 
                                         value={aiParams.language}
@@ -508,7 +527,7 @@ const LessonWorkspace = () => {
                                         className="text-indigo-600 px-4 py-2 rounded-xl font-bold hover:bg-indigo-50 transition flex items-center gap-2 text-xs whitespace-nowrap"
                                     >
                                         <FiCpu className={scaffolding ? 'animate-spin' : 'animate-pulse text-purple-600'} /> 
-                                        {scaffolding ? 'Generating...' : `Generate AI draft (${aiParams.language})`}
+                                        {scaffolding ? 'Generating...' : `Generate ${view === 'plans' ? 'Lesson Plan' : 'Lesson Note'} Draft (${aiParams.language})`}
                                     </button>
                                 </div>
                                 <button 

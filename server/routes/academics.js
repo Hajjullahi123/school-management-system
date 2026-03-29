@@ -576,9 +576,9 @@ router.post('/ai/generate-essay', authenticate, authorize(['teacher', 'admin', '
         return res.status(404).json({ error: 'Subject or Class not found' });
     }
 
-    const prompt = `Act as an expert school teacher and examiner. Generate 10 sample examination objective questions for Subject: ${subject.name}, Class: ${classModel.name}, Topic: ${topic}. 
+    const prompt = `Act as an expert school teacher and examiner. Generate 5-10 high-quality theory/essay examination questions for Subject: ${subject.name}, Class: ${classModel.name}, Topic: ${topic}. 
     Language: ${language}. 
-    CRITICAL: Each question MUST have exactly 3 options (A, B, and C). Provide the questions in a clear, numbered markdown format suitable for direct printing or saving as a PDF. Do NOT use JSON. Include a separate "Answer Key" section at the very end. The content MUST be written entirely in ${language}.`;
+    CRITICAL: The questions MUST be structured as essay questions (e.g., 1a, 1b, 2, 3a, 3b, etc.). Do NOT provide multiple-choice options (A, B, C). Provide the questions in a clear, numbered markdown format suitable for direct printing or saving as a PDF. Do NOT use JSON. Include a separate "Sample Answers/Marking Guide" section at the very end. The content MUST be written entirely in ${language}.`;
 
     const text = await aiHandler.generate(prompt);
     res.json({ content: text });
