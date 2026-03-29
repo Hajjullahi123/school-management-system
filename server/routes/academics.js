@@ -519,7 +519,8 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
     
     let parsedQuestions;
     try {
-        parsedQuestions = JSON.parse(jsonMatch[0]);
+        const rawQuestions = JSON.parse(jsonMatch[0]);
+        parsedQuestions = aiHandler.deepSanitize(rawQuestions);
     } catch (e) {
         throw new Error("AI produced invalid JSON: " + e.message);
     }
@@ -602,7 +603,9 @@ router.post('/ai/suggest-resources', authenticate, authorize(['teacher', 'admin'
     const text = await aiHandler.generate(prompt, true);
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error("Invalid format");
-    res.json(JSON.parse(jsonMatch[0]));
+    const rawResources = JSON.parse(jsonMatch[0]);
+    const sanitizedResources = aiHandler.deepSanitize(rawResources);
+    res.json(sanitizedResources);
   } catch (error) {
     res.status(500).json({ error: 'Failed', message: error.message });
   }

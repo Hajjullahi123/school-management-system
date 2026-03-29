@@ -105,11 +105,19 @@ class AIQueryHandler {
 
     // Try primary provider
     try {
+      let result;
       if (this.provider === 'gemini') {
-        return await this.generateWithGemini(prompt, expectsJson);
+        result = await this.generateWithGemini(prompt, expectsJson);
       } else {
-        return await this.generateWithGroq(prompt, expectsJson);
+        result = await this.generateWithGroq(prompt, expectsJson);
       }
+
+      // Automatically sanitize if it's not JSON mode
+      // If it is JSON mode, we let the caller handle it or use deepSanitize
+      if (!expectsJson && typeof result === 'string') {
+        return this.sanitizeText(result);
+      }
+      return result;
     } catch (error) {
       const isQuotaError = error.message && (
         error.message.includes('429') ||
@@ -122,7 +130,8 @@ class AIQueryHandler {
       if (this.provider === 'gemini' && this.groqApiKey && isQuotaError) {
         console.warn(`[AI SERVICE] Gemini quota exceeded. Failing over to Groq...`);
         try {
-          return await this.generateWithGroq(prompt, expectsJson);
+          const result = await this.generateWithGroq(prompt, expectsJson);
+          return (!expectsJson && typeof result === 'string') ? this.sanitizeText(result) : result;
         } catch (groqError) {
           console.error(`[AI SERVICE] Groq fallback also failed:`, groqError.message);
           throw groqError;
@@ -133,7 +142,8 @@ class AIQueryHandler {
       if (this.provider === 'groq' && this.genAI && this.model && isQuotaError) {
         console.warn(`[AI SERVICE] Groq quota exceeded. Failing over to Gemini...`);
         try {
-          return await this.generateWithGemini(prompt, expectsJson);
+          const result = await this.generateWithGemini(prompt, expectsJson);
+          return (!expectsJson && typeof result === 'string') ? this.sanitizeText(result) : result;
         } catch (geminiError) {
           console.error(`[AI SERVICE] Gemini fallback also failed:`, geminiError.message);
           throw geminiError;
@@ -160,6 +170,50 @@ class AIQueryHandler {
     } catch (e) {
       return text;
     }
+  }
+
+  /**
+   * Deeply cleans a JSON object by sanitizing all string values
+   */
+  deepSanitize(obj) {
+    if (!obj) return obj;
+    if (typeof obj === 'string') return this.sanitizeText(obj);
+    if (Array.isArray(obj)) return obj.map(item => this.deepSanitize(item));
+    if (typeof obj === 'object') {
+      const sanitized = {};
+      for (const key in obj) {
+        sanitized[key] = this.deepSanitize(obj[key]);
+      }
+      return sanitized;
+    }
+    return obj;
+  }
+
+  /**
+   * Sanitizes plain text by removing markdown markers and AI signatures
+   */
+  sanitizeText(text) {
+    if (!text || typeof text !== 'string') return text;
+    
+    return text
+      // 1. Remove common AI signatures and polite fluff
+      .replace(/As an AI( (language|model|assistant|tutor))? ?(model|assistant|tutor)?(, )?/gi, '')
+      .replace(/I am an AI (assistant|tutor) (developed by Google|and)? ?/gi, '')
+      .replace(/I hope this (helps|is useful)[.!]?/gi, '')
+      .replace(/Let me know if you need anything else[.!]?/gi, '')
+      .replace(/Sure, I can help with that[.!]?/gi, '')
+      .replace(/Here is the (.*) you requested:?/gi, '')
+      
+      // 2. Remove technical markdown markers that aren't useful in plain text exports
+      .replace(/\*\*\*/g, '') // Triple stars
+      .replace(/\*\*/g, '')   // Double stars (bold)
+      .replace(/\*/g, '')     // Single stars
+      .replace(/_{1,2}/g, '') // Underscores
+      .replace(/`{1,3}/g, '') // Backticks
+      
+      // 3. Clean up leading/trailing whitespace and excessive newlines
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   }
 
   /**
