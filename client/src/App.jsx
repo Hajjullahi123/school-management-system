@@ -580,6 +580,7 @@ function App() {
         </Suspense>
       </BrowserRouter>
     </AuthProvider >
+    </PWAProvider>
   );
 }
 
