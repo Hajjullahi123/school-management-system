@@ -48,7 +48,9 @@ const LessonWorkspace = () => {
         topic: '',
         count: 10,
         difficulty: 'medium',
-        language: 'English'
+        language: 'English',
+        detailLevel: '500',
+        essayDifficulty: 'medium'
     });
     const LANGUAGES = ['English', 'Arabic', 'Hausa', 'Igbo', 'Yoruba'];
     const [generating, setGenerating] = useState(false);
@@ -271,7 +273,8 @@ const LessonWorkspace = () => {
                 subjectId: formData.subjectId,
                 topic: formData.topic,
                 type: view, // 'plans' or 'notes'
-                language: aiParams.language
+                language: aiParams.language,
+                detailLevel: aiParams.detailLevel
             });
 
             if (resp.ok) {
@@ -303,7 +306,8 @@ const LessonWorkspace = () => {
                 classId: formData.classId,
                 subjectId: formData.subjectId,
                 topic: formData.topic,
-                language: aiParams.language
+                language: aiParams.language,
+                difficulty: aiParams.essayDifficulty
             });
 
             if (resp.ok) {
@@ -514,35 +518,67 @@ const LessonWorkspace = () => {
                                     )}
                                 </div>
                                 <div className="flex bg-white border-2 border-indigo-50 p-1.5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                                    <select 
-                                        value={aiParams.language}
-                                        onChange={e => setAiParams({...aiParams, language: e.target.value})}
-                                        className="bg-transparent text-[11px] font-black uppercase text-indigo-400 outline-none cursor-pointer px-3 border-r border-indigo-50"
-                                    >
-                                        {LANGUAGES.map(lang => <option key={lang} value={lang}>{lang}</option>)}
-                                    </select>
+                                    <div className="flex flex-col border-r border-indigo-50">
+                                        <label className="text-[8px] font-black text-indigo-300 px-3 pt-1 uppercase">Language</label>
+                                        <select 
+                                            value={aiParams.language}
+                                            onChange={e => setAiParams({...aiParams, language: e.target.value})}
+                                            className="bg-transparent text-[11px] font-black uppercase text-indigo-600 outline-none cursor-pointer px-3 pb-1"
+                                        >
+                                            {LANGUAGES.map(lang => <option key={lang} value={lang}>{lang}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="flex flex-col border-r border-indigo-50">
+                                        <label className="text-[8px] font-black text-indigo-300 px-3 pt-1 uppercase">Length</label>
+                                        <select 
+                                            value={aiParams.detailLevel}
+                                            onChange={e => setAiParams({...aiParams, detailLevel: e.target.value})}
+                                            className="bg-transparent text-[11px] font-black uppercase text-indigo-600 outline-none cursor-pointer px-3 pb-1"
+                                        >
+                                            <option value="200">200 Words</option>
+                                            <option value="500">500 Words</option>
+                                            <option value="1000">1000 Words</option>
+                                            <option value="1500">Extensive</option>
+                                        </select>
+                                    </div>
                                     <button 
                                         onClick={handleAiScaffold}
                                         disabled={scaffolding}
                                         className="text-indigo-600 px-4 py-2 rounded-xl font-bold hover:bg-indigo-50 transition flex items-center gap-2 text-xs whitespace-nowrap"
                                     >
                                         <FiCpu className={scaffolding ? 'animate-spin' : 'animate-pulse text-purple-600'} /> 
-                                        {scaffolding ? 'Generating...' : `Generate ${view === 'plans' ? 'Lesson Plan' : 'Lesson Note'} Draft (${aiParams.language})`}
+                                        {scaffolding ? 'Generating...' : `Generate ${view === 'plans' ? 'Plan' : 'Note'} Draft`}
                                     </button>
                                 </div>
+                                
+                                <div className="flex bg-white border-2 border-blue-50 p-1.5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="flex flex-col border-r border-blue-50">
+                                        <label className="text-[8px] font-black text-blue-300 px-3 pt-1 uppercase">Difficulty</label>
+                                        <select 
+                                            value={aiParams.essayDifficulty}
+                                            onChange={e => setAiParams({...aiParams, essayDifficulty: e.target.value})}
+                                            className="bg-transparent text-[11px] font-black uppercase text-blue-600 outline-none cursor-pointer px-3 pb-1"
+                                        >
+                                            <option value="simple">Simple</option>
+                                            <option value="medium">Medium</option>
+                                            <option value="difficult">Hard</option>
+                                        </select>
+                                    </div>
+                                    <button 
+                                        onClick={handleAiGenerateEssay}
+                                        disabled={scaffoldingEssay}
+                                        className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white px-5 py-2 rounded-xl font-bold shadow-lg shadow-blue-100 hover:shadow-blue-200 transform active:scale-95 transition flex items-center gap-2 text-xs"
+                                    >
+                                        <FiCpu className={scaffoldingEssay ? 'animate-spin' : 'animate-pulse'} /> 
+                                        {scaffoldingEssay ? 'Generating...' : 'Generate Essay'}
+                                    </button>
+                                </div>
+
                                 <button 
                                     onClick={() => setShowAiModal(true)}
                                     className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-purple-100 hover:shadow-purple-200 transform active:scale-95 transition flex items-center gap-2 text-xs"
                                 >
                                     <FiCpu className="animate-pulse" /> AI Generate CBT
-                                </button>
-                                <button 
-                                    onClick={handleAiGenerateEssay}
-                                    disabled={scaffoldingEssay}
-                                    className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-blue-100 hover:shadow-blue-200 transform active:scale-95 transition flex items-center gap-2 text-xs"
-                                >
-                                    <FiCpu className={scaffoldingEssay ? 'animate-spin' : 'animate-pulse'} /> 
-                                    {scaffoldingEssay ? 'Generating...' : 'AI Generate Essay'}
                                 </button>
                                 <button 
                                     onClick={handleSuggestResources}

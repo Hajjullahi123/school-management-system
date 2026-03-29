@@ -535,7 +535,7 @@ router.post('/ai/generate-cbt', authenticate, authorize(['teacher', 'admin', 'pr
 
 router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'admin', 'principal', 'superadmin']), async (req, res) => {
   try {
-    const { classId, subjectId, topic, type = 'plans', language = 'English' } = req.body;
+    const { classId, subjectId, topic, type = 'plans', language = 'English', detailLevel = '500' } = req.body;
     const schoolId = req.schoolId;
 
     const aiHandler = await getAIHandler(schoolId);
@@ -550,6 +550,7 @@ router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'adm
 
     const prompt = `Generate a highly detailed and comprehensive ${type === 'plans' ? 'Lesson Plan' : 'Lesson Note'} for ${subject.name} (Class: ${classModel.name}) on Topic: ${topic}. 
     Language: ${language}.
+    Target Length: Approximately ${detailLevel} words.
     CRITICAL: The entire content MUST be written in ${language}, MUST conform to modern educational standards, and MUST be in line with current academic trends.
     Use professional Markdown. Headers: Objectives, Hook, Vocabulary, Detailed Content, Modern Learning Activities, Standardized Assessment, Summary, Homework.`;
 
@@ -564,7 +565,7 @@ router.post('/ai/generate-lesson-plan', authenticate, authorize(['teacher', 'adm
 
 router.post('/ai/generate-essay', authenticate, authorize(['teacher', 'admin', 'principal', 'superadmin']), async (req, res) => {
   try {
-    const { classId, subjectId, topic, language = 'English' } = req.body;
+    const { classId, subjectId, topic, language = 'English', difficulty = 'medium' } = req.body;
     const schoolId = req.schoolId;
 
     const aiHandler = await getAIHandler(schoolId);
@@ -578,6 +579,7 @@ router.post('/ai/generate-essay', authenticate, authorize(['teacher', 'admin', '
     }
 
     const prompt = `Act as an expert school teacher and examiner. Generate 5-10 high-quality theory/essay examination questions for Subject: ${subject.name}, Class: ${classModel.name}, Topic: ${topic}. 
+    Difficulty Level: ${difficulty.toUpperCase()} (where simple = direct/recall, medium = application, difficult = critical thinking/complex analysis).
     Language: ${language}. 
     CRITICAL: The questions MUST be structured as essay questions (e.g., 1a, 1b, 2, 3a, 3b, etc.). Do NOT provide multiple-choice options (A, B, C). Provide the questions in a clear, numbered markdown format suitable for direct printing or saving as a PDF. Do NOT use JSON. Include a separate "Sample Answers/Marking Guide" section at the very end. The content MUST be written entirely in ${language}.`;
 
