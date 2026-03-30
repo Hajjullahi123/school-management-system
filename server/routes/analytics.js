@@ -544,7 +544,7 @@ router.get('/cbt-tracking', authenticate, async (req, res) => {
 router.get('/attendance-tracking', authenticate, authorize(['admin', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
 
     // 0. HOLIDAY / WEEKEND CHECK
     const school = await prisma.school.findUnique({
@@ -556,12 +556,11 @@ router.get('/attendance-tracking', authenticate, authorize(['admin', 'principal'
       .map(n => n.trim())
       .filter(n => n !== "")
       .map(n => parseInt(n));
-    const dayOfWeek = today.getDay();
-    const holidayRecord = await prisma.schoolHoliday.findFirst({
-      where: { schoolId: req.schoolId, date: today }
-    });
+    const dayOfWeek = today.getUTCDay();
+    const isActuallyWeekend = weekendIndices.includes(dayOfWeek);
+    const isActuallyHoliday = holidayRecord && (holidayRecord.type !== 'weekend' || isActuallyWeekend);
 
-    if (holidayRecord || weekendIndices.includes(dayOfWeek)) {
+    if (isActuallyHoliday || isActuallyWeekend) {
        return res.json([]); // Attendance tracking is suspended on non-school days
     }
 

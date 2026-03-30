@@ -82,7 +82,13 @@ router.get('/check', authenticate, async (req, res) => {
     });
 
     if (holiday) {
-      res.json({ isHoliday: true, name: holiday.name, type: holiday.type, description: holiday.description });
+      // If the record exists but is a 'weekend' type, it should only be respected 
+      // if it's ALSO currently configured as a weekend in school settings.
+      // Dynamic settings (School model) are the primary source of truth.
+      if (holiday.type === 'weekend' && !weekendDays.includes(dayOfWeek)) {
+        return res.json({ isHoliday: false });
+      }
+      return res.json({ isHoliday: true, name: holiday.name, type: holiday.type, description: holiday.description });
     } else {
       res.json({ isHoliday: false });
     }
@@ -142,8 +148,8 @@ router.post('/bulk-weekends', authenticate, authorize(['admin', 'principal', 'su
 
     const weekends = [];
 
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dayOfWeek = d.getDay();
+    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+      const dayOfWeek = d.getUTCDay();
       if (weekendDays.includes(dayOfWeek)) {
         const dayName = days[dayOfWeek];
         weekends.push({

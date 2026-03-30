@@ -65,7 +65,7 @@ router.post('/check-in', authenticate, authorize(['teacher', 'admin', 'principal
     }
 
     // 0. HOLIDAY / WEEKEND CHECK
-    const dayOfWeek = today.getDay();
+    const dayOfWeek = today.getUTCDay();
     const schoolSettings = await prisma.school.findUnique({
       where: { id: schoolId },
       select: {
@@ -88,8 +88,11 @@ router.post('/check-in', authenticate, authorize(['teacher', 'admin', 'principal
       where: { schoolId, date: today }
     });
 
-    if (holidayRecord || weekendIndices.includes(dayOfWeek)) {
-      const reason = holidayRecord ? `Holiday: ${holidayRecord.name}` : "Weekend";
+    const isActuallyWeekend = weekendIndices.includes(dayOfWeek);
+    const isActuallyHoliday = holidayRecord && (holidayRecord.type !== 'weekend' || isActuallyWeekend);
+
+    if (isActuallyHoliday || isActuallyWeekend) {
+      const reason = isActuallyHoliday ? `Holiday: ${holidayRecord.name}` : "Weekend";
       return res.status(403).json({
         error: 'School is closed',
         message: `Clock-in is not permitted on ${reason}.`
@@ -413,14 +416,16 @@ router.get('/daily-report', authenticate, authorize(['admin', 'principal', 'atte
         }
       });
       const weekendDaysRaw = school?.weekendDays || "";
-      const weekendDays = weekendDaysRaw.split(',')
+      const weekendIndices = weekendDaysRaw.split(',')
         .map(d => d.trim())
         .filter(d => d !== "")
         .map(d => parseInt(d));
         
-      const isWeekend = weekendDays.includes(queryDate.getDay());
-      const isHoliday = !!holidayRecord || isWeekend;
-      const holidayName = holidayRecord?.name || (isWeekend ? 'Weekend' : null);
+      const isActuallyWeekend = weekendIndices.includes(queryDate.getUTCDay());
+      const isActuallyHoliday = holidayRecord ? (holidayRecord.type !== 'weekend' || isActuallyWeekend) : isActuallyWeekend;
+      
+      const holidayName = isActuallyHoliday ? (holidayRecord?.name || (isActuallyWeekend ? 'Weekend' : null)) : null;
+      const isHoliday = isActuallyHoliday || isActuallyWeekend;
 
       // Calculate summary stats
       const stats = isHoliday ? {
@@ -543,7 +548,7 @@ router.post('/mark-absent', authenticate, authorize(['admin', 'principal', 'atte
     targetDate.setHours(0, 0, 0, 0);
 
     // Holiday Check
-    const dayOfWeek = targetDate.getDay();
+    const dayOfWeek = targetDate.getUTCDay();
     const schoolSettings = await prisma.school.findUnique({
       where: { id: schoolId },
       select: { weekendDays: true }
@@ -558,8 +563,11 @@ router.post('/mark-absent', authenticate, authorize(['admin', 'principal', 'atte
       where: { schoolId, date: targetDate }
     });
 
-    if (holidayRecord || weekendIndices.includes(dayOfWeek)) {
-      const reason = holidayRecord ? `Holiday: ${holidayRecord.name}` : "Weekend";
+    const isActuallyWeekend = weekendIndices.includes(dayOfWeek);
+    const isActuallyHoliday = holidayRecord && (holidayRecord.type !== 'weekend' || isActuallyWeekend);
+
+    if (isActuallyHoliday || isActuallyWeekend) {
+      const reason = isActuallyHoliday ? `Holiday: ${holidayRecord.name}` : "Weekend";
       return res.status(400).json({ error: `Cannot mark attendance on ${reason}.` });
     }
 
@@ -701,13 +709,13 @@ router.post('/mark-bulk', authenticate, authorize(['admin', 'principal', 'attend
       return res.status(400).json({ error: 'Invalid records format' });
     }
 
-    const targetDate = new Date(date || new Date());
-    targetDate.setHours(0, 0, 0, 0);
+    const targetDate = date ? new Date(date) : new Date();
+    targetDate.setUTCHours(0, 0, 0, 0);
 
     const schoolId = parseInt(req.schoolId);
 
     // Holiday Check
-    const dayOfWeek = targetDate.getDay();
+    const dayOfWeek = targetDate.getUTCDay();
     const schoolSettings = await prisma.school.findUnique({
       where: { id: schoolId },
       select: { weekendDays: true, staffExpectedArrivalTime: true }
@@ -721,8 +729,11 @@ router.post('/mark-bulk', authenticate, authorize(['admin', 'principal', 'attend
       where: { schoolId, date: targetDate }
     });
 
-    if (holidayRecord || weekendIndices.includes(dayOfWeek)) {
-      const reason = holidayRecord ? `Holiday: ${holidayRecord.name}` : "Weekend";
+    const isActuallyWeekend = weekendIndices.includes(dayOfWeek);
+    const isActuallyHoliday = holidayRecord && (holidayRecord.type !== 'weekend' || isActuallyWeekend);
+
+    if (isActuallyHoliday || isActuallyWeekend) {
+      const reason = isActuallyHoliday ? `Holiday: ${holidayRecord.name}` : "Weekend";
       return res.status(400).json({ error: `Cannot mark bulk attendance on ${reason}.` });
     }
 

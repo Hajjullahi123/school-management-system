@@ -210,25 +210,35 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
     if (term.startDate && term.endDate) {
       const holidays = await prisma.schoolHoliday.findMany({
         where: { schoolId: req.schoolId, date: { gte: term.startDate, lte: term.endDate } },
-        select: { date: true }
+        select: { date: true, type: true }
       });
-      const holidayDates = holidays.map(h => new Date(h.date));
 
       // Calculate business days between start and today (or end if term has passed)
       const now = new Date();
       const calculationEndDate = term.endDate < now ? new Date(term.endDate) : now;
-      calculationEndDate.setHours(23, 59, 59, 999);
+      calculationEndDate.setUTCHours(23, 59, 59, 999);
 
       let businessDaysSoFar = 0;
       let d = new Date(term.startDate);
-      d.setHours(0,0,0,0);
+      d.setUTCHours(0, 0, 0, 0);
 
       while (d <= calculationEndDate) {
-        if (!weekendIndices.includes(d.getDay())) {
-          const isHoliday = holidayDates.some(hd => hd.toDateString() === d.toDateString());
-          if (!isHoliday) businessDaysSoFar++;
+        const dayOfWeek = d.getUTCDay();
+        const isConfiguredWeekend = weekendIndices.includes(dayOfWeek);
+        
+        // A day is a holiday if:
+        // 1. It's a configured weekend (dynamic settings)
+        // 2. It's a database holiday record (that is NOT a 'weekend' type record OR it's also a configured weekend)
+        const hasHolidayRecord = holidays.some(h => {
+          const hDate = new Date(h.date);
+          hDate.setUTCHours(0, 0, 0, 0);
+          return hDate.getTime() === d.getTime() && (h.type !== 'weekend' || isConfiguredWeekend);
+        });
+
+        if (!isConfiguredWeekend && !hasHolidayRecord) {
+          businessDaysSoFar++;
         }
-        d.setDate(d.getDate() + 1);
+        d.setUTCDate(d.getUTCDate() + 1);
       }
 
       // Use the maximum of recorded days and business days so far to avoid confusion
@@ -698,24 +708,31 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     if (term.startDate && term.endDate) {
       const holidays = await prisma.schoolHoliday.findMany({
         where: { schoolId: req.schoolId, date: { gte: term.startDate, lte: term.endDate } },
-        select: { date: true }
+        select: { date: true, type: true }
       });
-      const holidayDates = holidays.map(h => new Date(h.date));
 
       const now = new Date();
       const calculationEndDate = term.endDate < now ? new Date(term.endDate) : now;
-      calculationEndDate.setHours(23, 59, 59, 999);
+      calculationEndDate.setUTCHours(23, 59, 59, 999);
 
       let businessDaysSoFar = 0;
       let d = new Date(term.startDate);
-      d.setHours(0,0,0,0);
+      d.setUTCHours(0, 0, 0, 0);
 
       while (d <= calculationEndDate) {
-        if (!weekendIndices.includes(d.getDay())) {
-          const isHoliday = holidayDates.some(hd => hd.toDateString() === d.toDateString());
-          if (!isHoliday) businessDaysSoFar++;
+        const dayOfWeek = d.getUTCDay();
+        const isConfiguredWeekend = weekendIndices.includes(dayOfWeek);
+        
+        const hasHolidayRecord = holidays.some(h => {
+          const hDate = new Date(h.date);
+          hDate.setUTCHours(0, 0, 0, 0);
+          return hDate.getTime() === d.getTime() && (h.type !== 'weekend' || isConfiguredWeekend);
+        });
+
+        if (!isConfiguredWeekend && !hasHolidayRecord) {
+          businessDaysSoFar++;
         }
-        d.setDate(d.getDate() + 1);
+        d.setUTCDate(d.getUTCDate() + 1);
       }
       totalAttendanceDays = Math.max(recordedAttendanceDays, businessDaysSoFar);
     }

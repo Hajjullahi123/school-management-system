@@ -56,8 +56,9 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
       }
     }
 
-    // Default to today if no date provided, but strip time to midnight for consistency
+    // Default to today if no date provided, but consistently use UTC midnight
     const queryDate = date ? new Date(date) : new Date();
+    if (!date) queryDate.setUTCHours(0, 0, 0, 0); 
     queryDate.setHours(0, 0, 0, 0);
 
     // Ensure session and term exist (optional check for sheet, mandatory for marking)
@@ -112,7 +113,7 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
     });
 
     // Check if the requested date is a holiday or weekend based on school settings
-    const dayOfWeek = queryDate.getDay();
+    const dayOfWeek = queryDate.getUTCDay();
     let isHoliday = false;
     let holidayInfo = null;
 
@@ -145,12 +146,28 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
     });
 
     if (holidayRecord) {
-      isHoliday = true;
-      holidayInfo = {
-        name: holidayRecord.name,
-        type: holidayRecord.type,
-        description: holidayRecord.description
-      };
+      // Prioritize dynamic weekend configuration for records of type 'weekend'
+      if (holidayRecord.type === 'weekend') {
+        if (weekendIndices.includes(dayOfWeek)) {
+          isHoliday = true;
+          holidayInfo = {
+            name: holidayRecord.name || dayNames[dayOfWeek],
+            type: 'weekend',
+            description: holidayRecord.description
+          };
+        } else {
+          // If it's a weekend record but NOT a configured weekend, 
+          // we ignore it and keep isHoliday based on weekendIndices (which covers the case where it was set but now removed)
+        }
+      } else {
+        // Real holidays or non-weekend types always override
+        isHoliday = true;
+        holidayInfo = {
+          name: holidayRecord.name,
+          type: holidayRecord.type,
+          description: holidayRecord.description
+        };
+      }
     }
 
     res.json({
@@ -178,10 +195,10 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal', '
     let targetDate;
     if (date) {
       const [year, month, day] = date.split('-');
-      targetDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0);
+      targetDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0));
     } else {
       targetDate = new Date();
-      targetDate.setHours(0, 0, 0, 0);
+      targetDate.setUTCHours(0, 0, 0, 0);
     }
 
     const dateDiff = (new Date() - targetDate) / (1000 * 60 * 60);
@@ -191,7 +208,7 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal', '
     }
 
     // HOLIDAY / WEEKEND CHECK (Global check for all users)
-    const dayOfWeek = targetDate.getDay();
+    const dayOfWeek = targetDate.getUTCDay();
     // Fetch school settings for weekend configuration
     const school = await prisma.school.findUnique({
       where: { id: req.schoolId },
@@ -208,8 +225,15 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal', '
       where: { schoolId: req.schoolId, date: targetDate }
     });
 
-    if ((holidayRecord || weekendIndices.includes(dayOfWeek)) && !adminOverride) {
-      const reason = holidayRecord ? `Holiday: ${holidayRecord.name}` : "Weekend";
+    // Logical gate: 
+    // 1. If it's a configured weekend day (dynamic setting), it's blocked.
+    // 2. If it's a database holiday record, it's blocked UNLESS it's a 'weekend' type record 
+    //    that is no longer in the dynamic weekend setting.
+    const isActuallyWeekend = weekendIndices.includes(dayOfWeek);
+    const isActuallyHoliday = holidayRecord && (holidayRecord.type !== 'weekend' || isActuallyWeekend);
+
+    if ((isActuallyHoliday || isActuallyWeekend) && !adminOverride) {
+      const reason = isActuallyHoliday ? `Holiday: ${holidayRecord?.name || 'School Holiday'}` : "Weekend";
       return res.status(403).json({
         error: `Cannot mark attendance on ${reason}.`
       });

@@ -205,6 +205,39 @@ router.put('/', authenticate, async (req, res) => {
       data: updateData
     });
 
+    // Cleanup stale SchoolHoliday records if weekendDays was updated
+    if (weekendDays !== undefined) {
+      try {
+        const newWeekendIndices = (weekendDays || "").split(',')
+          .map(n => n.trim())
+          .filter(n => n !== "")
+          .map(n => parseInt(n));
+
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+        const staleWeekends = await prisma.schoolHoliday.findMany({
+          where: {
+            schoolId: req.schoolId,
+            OR: [
+              { type: 'weekend' },
+              { name: { in: dayNames } }
+            ]
+          }
+        });
+
+        for (const record of staleWeekends) {
+          const dayOfWeek = new Date(record.date).getUTCDay();
+          if (!newWeekendIndices.includes(dayOfWeek)) {
+            await prisma.schoolHoliday.delete({
+              where: { id: record.id }
+            });
+          }
+        }
+      } catch (cleanupError) {
+        console.error('Error cleaning up stale weekend records:', cleanupError);
+      }
+    }
+
     // Sanitize response
     const sanitizedSettings = { ...settings };
     delete sanitizedSettings.paystackSecretKey;
