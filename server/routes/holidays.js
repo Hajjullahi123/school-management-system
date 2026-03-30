@@ -52,7 +52,7 @@ router.get('/check', authenticate, async (req, res) => {
       select: { weekendDays: true }
     });
 
-    const weekendDaysRaw = school?.weekendDays ?? "0,6";
+    const weekendDaysRaw = school?.weekendDays || "";
     const weekendDays = weekendDaysRaw.split(',')
       .map(d => d.trim())
       .filter(d => d !== "")
@@ -126,7 +126,7 @@ router.post('/bulk-weekends', authenticate, authorize(['admin', 'principal', 'su
       select: { weekendDays: true }
     });
 
-    const weekendDaysRaw = school?.weekendDays ?? "0,6";
+    const weekendDaysRaw = school?.weekendDays || "";
     const weekendDays = weekendDaysRaw.split(',')
       .map(d => d.trim())
       .filter(d => d !== "")

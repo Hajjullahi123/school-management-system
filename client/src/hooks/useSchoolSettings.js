@@ -80,7 +80,7 @@ export const useSchoolSettings = () => {
             currentSession: data.currentSession || null,
             isSetupComplete: data.isSetupComplete ?? true,
             principalSignatureUrl: data.principalSignatureUrl ? (data.principalSignatureUrl.startsWith('data:') || data.principalSignatureUrl.startsWith('http') ? data.principalSignatureUrl : `${API_BASE_URL}${data.principalSignatureUrl}`) : null,
-            weekendDays: data.weekendDays ?? "0,6"
+            weekendDays: data.weekendDays ?? ""
           });
         }
 
@@ -110,7 +110,7 @@ export const useSchoolSettings = () => {
           ...data,
           schoolName: data.schoolName || data.name,
           logoUrl: data.logoUrl ? (data.logoUrl.startsWith('data:') || data.logoUrl.startsWith('http') ? data.logoUrl : `${API_BASE_URL}${data.logoUrl}`) : null,
-          weekendDays: data.weekendDays ?? "0,6"
+          weekendDays: data.weekendDays ?? ""
         }));
       }
     } catch (err) {

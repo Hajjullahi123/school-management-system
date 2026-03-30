@@ -26,7 +26,7 @@ const AcademicSetup = () => {
     test1Weight: 10,
     test2Weight: 10,
     examWeight: 70,
-    weekendDays: '0,6'
+    weekendDays: ''
   });
   const [savingWeights, setSavingWeights] = useState(false);
 
@@ -57,7 +57,7 @@ const AcademicSetup = () => {
             test1Weight: settingsData.test1Weight ?? 10,
             test2Weight: settingsData.test2Weight ?? 10,
             examWeight: settingsData.examWeight ?? 70,
-            weekendDays: settingsData.weekendDays ?? '0,6'
+            weekendDays: settingsData.weekendDays ?? ''
           });
         }
       } catch (error) {
@@ -206,7 +206,7 @@ const AcademicSetup = () => {
         test1Weight: data.test1Weight ?? 10,
         test2Weight: data.test2Weight ?? 10,
         examWeight: data.examWeight ?? 70,
-        weekendDays: data.weekendDays ?? '0,6'
+        weekendDays: data.weekendDays ?? ''
       });
     } catch (error) {
       console.error('Error fetching weights:', error);

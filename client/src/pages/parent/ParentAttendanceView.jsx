@@ -160,7 +160,7 @@ const ParentAttendanceView = () => {
       return d.getTime();
     }));
 
-    const weekendDays = (schoolSettings?.weekendDays ?? '0,6').split(',').map(d => parseInt(d.trim()));
+    const weekendDays = (schoolSettings?.weekendDays ?? '').split(',').map(d => parseInt(d.trim()));
 
     // Build a set of dates the student actually has records for
     const studentRecordDates = new Set();

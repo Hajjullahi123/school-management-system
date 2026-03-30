@@ -124,7 +124,7 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
 
     // Determine weekend indices, defaulting to Sunday (0) and Saturday (6) if not set
     // Important: Handle empty string case where split(',') results in ['']
-    const weekendDaysRaw = school?.weekendDays ?? "0,6";
+    const weekendDaysRaw = school?.weekendDays || "";
     const weekendIndices = weekendDaysRaw.split(',')
       .map(n => n.trim())
       .filter(n => n !== "")
@@ -198,7 +198,7 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal', '
       select: { weekendDays: true }
     });
 
-    const weekendDaysRaw = school?.weekendDays ?? "0,6";
+    const weekendDaysRaw = school?.weekendDays || "";
     const weekendIndices = weekendDaysRaw.split(',')
       .map(n => n.trim())
       .filter(n => n !== "")
@@ -637,7 +637,7 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
       where: { id: req.schoolId },
       select: { weekendDays: true, name: true, schoolName: true, staffExpectedArrivalTime: true, enableSMS: true, staffClockInMode: true, authorizedIP: true }
     });
-    const weekendDaysRaw = schoolSettings?.weekendDays ?? "0,6";
+    const weekendDaysRaw = schoolSettings?.weekendDays || "";
     const weekendIndices = weekendDaysRaw.split(',')
       .map(n => n.trim())
       .filter(n => n !== "")

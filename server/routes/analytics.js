@@ -551,7 +551,7 @@ router.get('/attendance-tracking', authenticate, authorize(['admin', 'principal'
       where: { id: req.schoolId },
       select: { weekendDays: true }
     });
-    const weekendDaysRaw = school?.weekendDays ?? "0,6";
+    const weekendDaysRaw = school?.weekendDays || "";
     const weekendIndices = weekendDaysRaw.split(',')
       .map(n => n.trim())
       .filter(n => n !== "")

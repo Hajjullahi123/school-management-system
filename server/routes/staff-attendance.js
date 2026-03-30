@@ -78,7 +78,7 @@ router.post('/check-in', authenticate, authorize(['teacher', 'admin', 'principal
       }
     });
 
-    const weekendDaysRaw = schoolSettings?.weekendDays ?? "0,6";
+    const weekendDaysRaw = schoolSettings?.weekendDays || "";
     const weekendIndices = weekendDaysRaw.split(',')
       .map(n => n.trim())
       .filter(n => n !== "")
@@ -412,7 +412,7 @@ router.get('/daily-report', authenticate, authorize(['admin', 'principal', 'atte
           }
         }
       });
-      const weekendDaysRaw = school?.weekendDays ?? "0,6";
+      const weekendDaysRaw = school?.weekendDays || "";
       const weekendDays = weekendDaysRaw.split(',')
         .map(d => d.trim())
         .filter(d => d !== "")
@@ -548,7 +548,7 @@ router.post('/mark-absent', authenticate, authorize(['admin', 'principal', 'atte
       where: { id: schoolId },
       select: { weekendDays: true }
     });
-    const weekendDaysRaw = schoolSettings?.weekendDays ?? "0,6";
+    const weekendDaysRaw = schoolSettings?.weekendDays || "";
     const weekendIndices = weekendDaysRaw.split(',')
       .map(n => n.trim())
       .filter(n => n !== "")
@@ -712,7 +712,7 @@ router.post('/mark-bulk', authenticate, authorize(['admin', 'principal', 'attend
       where: { id: schoolId },
       select: { weekendDays: true, staffExpectedArrivalTime: true }
     });
-    const weekendDaysRaw = schoolSettings?.weekendDays ?? "0,6";
+    const weekendDaysRaw = schoolSettings?.weekendDays || "";
     const weekendIndices = weekendDaysRaw.split(',')
       .map(n => n.trim())
       .filter(n => n !== "")
