@@ -37,16 +37,16 @@ router.post('/identify', async (req, res) => {
             {
               ...schoolFilter,
               OR: [
-                { username: { equals: searchId, mode: 'insensitive' } },
-                { email: { equals: searchId, mode: 'insensitive' } }
+                { username: { equals: searchId } },
+                { email: { equals: searchId } }
               ]
             },
             {
               schoolId: null,
               role: 'superadmin',
               OR: [
-                { username: { equals: searchId, mode: 'insensitive' } },
-                { email: { equals: searchId, mode: 'insensitive' } }
+                { username: { equals: searchId } },
+                { email: { equals: searchId } }
               ]
             }
           ]
@@ -62,7 +62,7 @@ router.post('/identify', async (req, res) => {
       prisma.student.findMany({
         where: { 
           ...schoolFilter,
-          admissionNumber: { equals: searchId, mode: 'insensitive' } 
+          admissionNumber: { equals: searchId } 
         },
         select: {
           school: {
@@ -73,7 +73,7 @@ router.post('/identify', async (req, res) => {
       prisma.teacher.findMany({
         where: { 
           ...schoolFilter,
-          staffId: { equals: searchId, mode: 'insensitive' } 
+          staffId: { equals: searchId } 
         },
         select: {
           school: {
@@ -138,7 +138,7 @@ router.post('/login', async (req, res) => {
       // Global login (superadmin)
       user = await prisma.user.findFirst({
         where: {
-          username: { equals: searchId, mode: 'insensitive' },
+          username: { equals: searchId },
           schoolId: null,
           role: 'superadmin'
         },
@@ -164,7 +164,7 @@ router.post('/login', async (req, res) => {
         // 1. Lookup by username
         prisma.user.findFirst({
           where: {
-            username: { equals: searchId, mode: 'insensitive' },
+            username: { equals: searchId },
             schoolId: school.id
           },
           include: userInclude
@@ -172,7 +172,7 @@ router.post('/login', async (req, res) => {
         // 2. Lookup by admission number (students)
         prisma.student.findFirst({
           where: {
-            admissionNumber: { equals: searchId, mode: 'insensitive' },
+            admissionNumber: { equals: searchId },
             schoolId: school.id
           },
           select: { user: { include: userInclude } }
@@ -180,7 +180,7 @@ router.post('/login', async (req, res) => {
         // 3. Lookup by staff ID (teachers)
         prisma.teacher.findFirst({
           where: {
-            staffId: { equals: searchId, mode: 'insensitive' },
+            staffId: { equals: searchId },
             schoolId: school.id
           },
           select: { user: { include: userInclude } }
