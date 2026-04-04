@@ -1857,6 +1857,140 @@ const Settings = () => {
                 </div>
               </div>
 
+              {/* LIVE PREVIEW */}
+              <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100">
+                <h4 className="text-sm font-black text-gray-700 uppercase tracking-wider mb-2">Live Preview</h4>
+                <p className="text-xs text-gray-500 mb-4">This preview updates in real-time as you change settings above</p>
+                
+                <div className="flex justify-center">
+                  <div
+                    className={`bg-white shadow-xl transition-all duration-300 w-full max-w-[480px] ${
+                      settings.reportLayout === 'minimal' ? 'border-[2px] border-gray-400' :
+                      settings.reportLayout === 'modern' ? 'border-[4px] rounded-2xl' :
+                      'border-[8px]'
+                    }`}
+                    style={{
+                      fontFamily: settings.reportFontFamily || 'serif',
+                      borderColor: settings.reportLayout !== 'minimal'
+                        ? (settings.reportColorScheme || settings.primaryColor || '#1e40af')
+                        : undefined,
+                      aspectRatio: '210 / 297',
+                      maxHeight: '600px',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <div className="p-4 h-full flex flex-col text-[10px]">
+                      {/* Preview Header */}
+                      <div className="flex items-center gap-3 border-b-2 pb-3 mb-3" style={{ borderColor: settings.reportColorScheme || settings.primaryColor || '#1e40af' }}>
+                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-[7px] font-bold text-gray-400 flex-shrink-0">LOGO</div>
+                        <div className="flex-1 text-center">
+                          <p className="font-extrabold uppercase tracking-wider text-sm leading-tight" style={{ color: settings.reportColorScheme || settings.primaryColor || '#1e40af' }}>
+                            {settings.schoolName || 'School Name'}
+                          </p>
+                          <p className="text-[8px] text-gray-500 font-bold italic">{settings.schoolMotto || 'School Motto'}</p>
+                          <div className="mt-1 inline-block px-3 py-0.5 border-b-2" style={{ borderColor: settings.reportColorScheme || settings.primaryColor || '#1e40af' }}>
+                            <span className="font-bold uppercase text-[8px] tracking-wide">Term Performance Report</span>
+                          </div>
+                        </div>
+                        <div className="w-10 h-12 bg-gray-100 border border-gray-300 flex items-center justify-center text-[6px] text-gray-400 font-bold flex-shrink-0">PHOTO</div>
+                      </div>
+
+                      {/* Preview Student Info */}
+                      <div className="grid grid-cols-4 border border-black/30 mb-2 text-[7px] font-bold">
+                        <div className="p-1 border-r border-black/20"><span className="text-gray-400">NAME:</span> <span className="text-gray-800">John Doe</span></div>
+                        <div className="p-1 border-r border-black/20"><span className="text-gray-400">CLASS:</span> <span className="text-gray-800">SS2A</span></div>
+                        <div className="p-1 border-r border-black/20"><span className="text-gray-400">ADM:</span> <span className="text-gray-800">2024-001</span></div>
+                        <div className="p-1"><span className="text-gray-400">TERM:</span> <span className="text-gray-800">1st Term</span></div>
+                      </div>
+
+                      {/* Preview Subjects Table */}
+                      <div className="flex-1 min-h-0">
+                        <div className="text-white text-center font-bold py-1 text-[8px] uppercase tracking-wider"
+                          style={{ backgroundColor: settings.reportColorScheme || settings.primaryColor || '#1e40af' }}>
+                          Cognitive Domain Performance
+                        </div>
+                        <table className="w-full border-collapse border border-black/30 text-[7px]">
+                          <thead>
+                            <tr className="bg-gray-100">
+                              <th className="border border-black/20 p-0.5 text-left">Subject</th>
+                              <th className="border border-black/20 p-0.5 text-center w-8">CA</th>
+                              <th className="border border-black/20 p-0.5 text-center w-8">Exam</th>
+                              <th className="border border-black/20 p-0.5 text-center w-8">Total</th>
+                              <th className="border border-black/20 p-0.5 text-center w-8">GRD</th>
+                              {settings.showPositionOnReport && <th className="border border-black/20 p-0.5 text-center w-8">POS</th>}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { name: 'Mathematics', ca: 25, exam: 58, total: 83, grade: 'A', pos: '1st' },
+                              { name: 'English Language', ca: 22, exam: 50, total: 72, grade: 'B', pos: '3rd' },
+                              { name: 'Physics', ca: 20, exam: 45, total: 65, grade: 'B', pos: '5th' },
+                              { name: 'Chemistry', ca: 18, exam: 40, total: 58, grade: 'C', pos: '8th' },
+                              { name: 'Biology', ca: 24, exam: 52, total: 76, grade: 'A', pos: '2nd' },
+                            ].map((sub, i) => (
+                              <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                                <td className="border border-black/20 p-0.5 font-bold">{sub.name}</td>
+                                <td className="border border-black/20 p-0.5 text-center">{sub.ca}</td>
+                                <td className="border border-black/20 p-0.5 text-center">{sub.exam}</td>
+                                <td className="border border-black/20 p-0.5 text-center font-black">{sub.total}</td>
+                                <td className="border border-black/20 p-0.5 text-center font-black">{sub.grade}</td>
+                                {settings.showPositionOnReport && <td className="border border-black/20 p-0.5 text-center">{sub.pos}</td>}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Preview Summary */}
+                      <div className="mt-2 grid grid-cols-3 gap-1 text-[7px]">
+                        <div className="border border-black/20 p-1 text-center">
+                          <p className="text-gray-400 font-bold uppercase">Average</p>
+                          <p className="font-black text-sm">70.8%</p>
+                        </div>
+                        {settings.showPositionOnReport && (
+                          <div className="border border-black/20 p-1 text-center">
+                            <p className="text-gray-400 font-bold uppercase">Position</p>
+                            <p className="font-black text-sm">3rd / 45</p>
+                          </div>
+                        )}
+                        <div className="border border-black/20 p-1 text-center">
+                          <p className="text-gray-400 font-bold uppercase">Grade</p>
+                          <p className="font-black text-sm" style={{ color: settings.reportColorScheme || settings.primaryColor || '#1e40af' }}>B</p>
+                        </div>
+                      </div>
+
+                      {/* Preview Fee Section */}
+                      {settings.showFeesOnReport && (
+                        <div className="mt-2 border border-black/20 rounded overflow-hidden">
+                          <div className="text-white text-center py-0.5 text-[7px] font-bold uppercase"
+                            style={{ backgroundColor: settings.reportColorScheme || settings.primaryColor || '#1e40af' }}>
+                            Financial Standing & Fee Status
+                          </div>
+                          <div className="grid grid-cols-4 divide-x divide-black/10 p-1 text-center text-[6px]">
+                            <div><p className="text-gray-400 font-bold">ARREARS</p><p className="font-black">₦0</p></div>
+                            <div><p className="text-gray-400 font-bold">TERM FEE</p><p className="font-black">₦150,000</p></div>
+                            <div><p className="text-gray-400 font-bold">PAID</p><p className="font-black text-green-700">₦150,000</p></div>
+                            <div><p className="text-gray-400 font-bold">BALANCE</p><p className="font-black text-green-700">₦0</p></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Preview Signatures */}
+                      <div className="mt-2 grid grid-cols-2 gap-4 text-[7px] pt-2 border-t border-gray-200">
+                        <div className="text-center">
+                          <div className="border-b border-black h-4 mb-0.5"></div>
+                          <p className="font-bold text-gray-500 uppercase">Class Teacher</p>
+                        </div>
+                        <div className="text-center">
+                          <div className="border-b border-black h-4 mb-0.5"></div>
+                          <p className="font-bold text-gray-500 uppercase">Principal</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Save Button */}
               <div className="flex justify-end pt-4 border-t border-gray-100">
                 <button
