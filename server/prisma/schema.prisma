@@ -147,6 +147,13 @@ model School {
   passThreshold Int     @default(40)
   weekendDays   String? // No default - admin must set this during setup
 
+  // Report Card Customization
+  reportFontFamily     String?  @default("serif")   // serif, sans-serif, Georgia, Times New Roman, Inter, Roboto
+  reportColorScheme    String?  @default("")         // custom hex color for report accents (empty = use primaryColor)
+  showPositionOnReport Boolean  @default(true)       // whether subject/overall positions appear on report
+  showFeesOnReport     Boolean  @default(true)       // whether Financial Standing section appears on report
+  reportLayout         String?  @default("classic")  // classic, modern, minimal
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -204,6 +211,7 @@ model School {
   lessonPlans           LessonPlan[]
   lessonNotes           LessonNote[]
   curriculums           Curriculum[]
+  counters              Counter[]
 }
 
 model AuditLog {
@@ -1387,4 +1395,15 @@ model Curriculum {
   class   Class   @relation(fields: [classId], references: [id])
 
   @@unique([schoolId, subjectId, classId])
+}
+model Counter {
+  id        Int      @id @default(autoincrement())
+  schoolId  Int
+  entity    String   // "STUDENT", "STAFF", "ALUMNI", "INVOICE"
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, entity])
 }

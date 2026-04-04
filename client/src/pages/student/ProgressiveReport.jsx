@@ -345,7 +345,7 @@ const ProgressiveReport = () => {
                 : null;
 
               return (
-                <div key={data.student.id} className="report-card-page bg-white mx-auto shadow-2xl relative overflow-hidden" style={{ width: '210mm', minHeight: '297mm', padding: '15mm', boxSizing: 'border-box', pageBreakAfter: index < reports.length - 1 ? 'always' : 'auto' }}>
+                <div key={data.student.id} className="report-card-page bg-white mx-auto shadow-2xl relative overflow-hidden" style={{ width: '210mm', minHeight: '297mm', padding: '15mm', boxSizing: 'border-box', pageBreakAfter: index < reports.length - 1 ? 'always' : 'auto', fontFamily: ss?.reportFontFamily || 'sans-serif' }}>
 
                   {logoUri && (
                     <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] z-0">
@@ -355,17 +355,17 @@ const ProgressiveReport = () => {
 
                   <div className="relative z-10 print-safe-content font-sans text-gray-900 border-4 border-double border-gray-800 p-4 min-h-[265mm] flex flex-col">
 
-                    <div className="flex items-center justify-between border-b-[3px] border-emerald-800 pb-4 mb-6" style={{ borderColor: ss?.primaryColor || '#065f46' }}>
+                    <div className="flex items-center justify-between border-b-[3px] border-emerald-800 pb-4 mb-6" style={{ borderColor: ss?.reportColorScheme || ss?.primaryColor || '#065f46' }}>
                       {logoUri ? (
                         <img src={logoUri} alt="School Logo" className="w-24 h-24 object-contain" />
                       ) : (
                         <div className="w-24 h-24 bg-gray-200 flex items-center justify-center rounded-full text-xs text-gray-500">No Logo</div>
                       )}
                       <div className="text-center flex-1 px-4">
-                        <h1 className="text-3xl font-black uppercase mb-1 tracking-wider text-emerald-800" style={{ color: ss?.primaryColor || '#065f46' }}>{ss?.name || 'School Name'}</h1>
+                        <h1 className="text-3xl font-black uppercase mb-1 tracking-wider text-emerald-800" style={{ color: ss?.reportColorScheme || ss?.primaryColor || '#065f46' }}>{ss?.name || 'School Name'}</h1>
                         <p className="text-sm font-semibold text-gray-700 uppercase">{ss?.address || 'School Address'}</p>
                         <p className="text-xs text-gray-600 mb-2">{ss?.phone} | {ss?.email}</p>
-                        <div className="inline-block bg-emerald-800 text-white px-6 py-1.5 rounded-full font-bold uppercase tracking-widest text-sm shadow-sm" style={{ backgroundColor: ss?.primaryColor || '#065f46' }}>
+                        <div className="inline-block bg-emerald-800 text-white px-6 py-1.5 rounded-full font-bold uppercase tracking-widest text-sm shadow-sm" style={{ backgroundColor: ss?.reportColorScheme || ss?.primaryColor || '#065f46' }}>
                           PROGRESSIVE REPORT
                         </div>
                       </div>
@@ -407,14 +407,19 @@ const ProgressiveReport = () => {
                       </div>
                       <div className="p-2 border-black flex flex-col justify-center bg-white">
                         <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Position in Class</p>
-                        <p className="font-black text-sm text-emerald-800" style={{ color: ss?.primaryColor || '#065f46' }}>{getSuffix(data.performance.position)} Out of {data.performance.outOf}</p>
+                        {ss?.showPositionOnReport !== false && (
+                        <p className="font-black text-sm text-emerald-800" style={{ color: ss?.reportColorScheme || ss?.primaryColor || '#065f46' }}>{getSuffix(data.performance.position)} Out of {data.performance.outOf}</p>
+                        )}
+                        {ss?.showPositionOnReport === false && (
+                        <p className="font-bold text-sm text-gray-400 italic">Hidden</p>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex-1">
                       <table className="w-full border-collapse border-2 border-black mb-6 text-xs bg-white">
                         <thead>
-                          <tr className="bg-emerald-800 text-white uppercase text-[10px] tracking-wider" style={{ backgroundColor: ss?.primaryColor || '#065f46' }}>
+                          <tr className="bg-emerald-800 text-white uppercase text-[10px] tracking-wider" style={{ backgroundColor: ss?.reportColorScheme || ss?.primaryColor || '#065f46' }}>
                             <th className="border border-black p-2 text-left w-1/4">Subjects</th>
                             <th className="border border-black p-1 text-center font-normal px-2">Ass. 1<br /><span className="text-[8px] opacity-75">({weights.assignment1})</span></th>
                             <th className="border border-black p-1 text-center font-normal px-2">Ass. 2<br /><span className="text-[8px] opacity-75">({weights.assignment2})</span></th>
@@ -422,7 +427,7 @@ const ProgressiveReport = () => {
                             <th className="border border-black p-1 text-center font-normal px-2">Test 2<br /><span className="text-[8px] opacity-75">({weights.test2})</span></th>
                             <th className="border border-black p-2 text-center bg-black/20 font-bold w-16">Total<br /><span className="text-[8px] opacity-75">({weights.assignment1 + weights.assignment2 + weights.test1 + weights.test2})</span></th>
                             <th className="border border-black p-2 text-center w-20">Class Avg</th>
-                            <th className="border border-black p-2 text-center font-bold">Position</th>
+                            {ss?.showPositionOnReport !== false && <th className="border border-black p-2 text-center font-bold">Position</th>}
                           </tr>
                         </thead>
                         <tbody>
@@ -433,9 +438,9 @@ const ProgressiveReport = () => {
                               <td className="border-x border-gray-400 p-2 text-center">{sub.assignment2Score ?? '-'}</td>
                               <td className="border-x border-gray-400 p-2 text-center">{sub.test1Score ?? '-'}</td>
                               <td className="border-x border-gray-400 p-2 text-center">{sub.test2Score ?? '-'}</td>
-                              <td className="border-x border-black p-2 text-center font-bold bg-gray-100 text-sm text-emerald-800" style={{ color: ss?.primaryColor || '#065f46' }}>{sub.totalScore ?? '-'}</td>
+                              <td className="border-x border-black p-2 text-center font-bold bg-gray-100 text-sm text-emerald-800" style={{ color: ss?.reportColorScheme || ss?.primaryColor || '#065f46' }}>{sub.totalScore ?? '-'}</td>
                               <td className="border-x border-gray-400 p-2 text-center italic text-gray-600">{sub.averageInClass ? sub.averageInClass.toFixed(1) : '-'}</td>
-                              <td className="border-x border-black p-2 text-center font-black text-emerald-800 bg-emerald-50/50">{getSuffix(sub.position)}</td>
+                              {ss?.showPositionOnReport !== false && <td className="border-x border-black p-2 text-center font-black text-emerald-800 bg-emerald-50/50">{getSuffix(sub.position)}</td>}
                             </tr>
                           ))}
                         </tbody>

@@ -100,7 +100,8 @@ router.put('/', authenticate, async (req, res) => {
     geminiApiKey, groqApiKey,
     staffExpectedArrivalTime, enableStaffAttendanceReport, staffClockInDeadline,
     staffClockInMode, authorizedIP,
-    weekendDays
+    weekendDays,
+    reportFontFamily, reportColorScheme, showPositionOnReport, showFeesOnReport, reportLayout
   } = req.body;
 
   // Validate weightings if provided
@@ -194,6 +195,13 @@ router.put('/', authenticate, async (req, res) => {
     if (staffClockInMode !== undefined) updateData.staffClockInMode = staffClockInMode;
     if (authorizedIP !== undefined) updateData.authorizedIP = authorizedIP;
     if (weekendDays !== undefined) updateData.weekendDays = weekendDays;
+
+    // Report Card Customization
+    if (reportFontFamily !== undefined) updateData.reportFontFamily = reportFontFamily;
+    if (reportColorScheme !== undefined) updateData.reportColorScheme = reportColorScheme;
+    if (showPositionOnReport !== undefined) updateData.showPositionOnReport = !!showPositionOnReport;
+    if (showFeesOnReport !== undefined) updateData.showFeesOnReport = !!showFeesOnReport;
+    if (reportLayout !== undefined) updateData.reportLayout = reportLayout;
 
     // Automatically complete setup if basic info is provided
     if (schoolName && schoolAddress && schoolPhone) {

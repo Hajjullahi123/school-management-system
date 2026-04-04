@@ -61,7 +61,12 @@ const Settings = () => {
     staffClockInDeadline: '10:00',
     enableStaffAttendanceReport: true,
     staffClockInMode: 'anywhere',
-    authorizedIP: ''
+    authorizedIP: '',
+    reportFontFamily: 'serif',
+    reportColorScheme: '',
+    showPositionOnReport: true,
+    showFeesOnReport: true,
+    reportLayout: 'classic'
   });
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
@@ -463,6 +468,15 @@ const Settings = () => {
                 }`}
             >
               Staff Attendance
+            </button>
+            <button
+              onClick={() => setActiveTab('reportCustomization')}
+              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'reportCustomization'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              📄 Report Customization
             </button>
           </nav>
         </div>
@@ -1673,6 +1687,187 @@ const Settings = () => {
                       Saving...
                     </>
                   ) : 'Save Attendance Settings'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Report Customization Tab */}
+          {activeTab === 'reportCustomization' && (
+            <div className="space-y-8">
+              <div className="flex items-center gap-4 border-b border-gray-100 pb-4">
+                <div className="p-3 bg-gradient-to-br from-violet-100 to-indigo-100 text-violet-600 rounded-xl">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Report Card Customization</h3>
+                  <p className="text-sm text-gray-500">Customize how your school's semester/term report cards appear when generated or printed</p>
+                </div>
+              </div>
+
+              {/* Font Family */}
+              <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100">
+                <h4 className="text-sm font-black text-gray-700 uppercase tracking-wider mb-4">Report Font</h4>
+                <p className="text-xs text-gray-500 mb-4">Choose the font family used on your printed report cards</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    { value: 'serif', label: 'Serif (Traditional)', preview: 'font-serif' },
+                    { value: 'sans-serif', label: 'Sans-Serif (Modern)', preview: 'font-sans' },
+                    { value: 'Georgia, serif', label: 'Georgia', preview: '' },
+                    { value: '"Times New Roman", serif', label: 'Times New Roman', preview: '' },
+                    { value: 'Inter, sans-serif', label: 'Inter', preview: '' },
+                    { value: 'Roboto, sans-serif', label: 'Roboto', preview: '' },
+                  ].map(font => (
+                    <button
+                      key={font.value}
+                      type="button"
+                      onClick={() => setSettings(prev => ({ ...prev, reportFontFamily: font.value }))}
+                      className={`p-4 rounded-xl border-2 text-left transition-all ${
+                        settings.reportFontFamily === font.value
+                          ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <p className="text-xs font-bold text-gray-500 mb-1">{font.label}</p>
+                      <p className="text-lg font-bold text-gray-800" style={{ fontFamily: font.value }}>Abc 123</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Report Color */}
+              <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100">
+                <h4 className="text-sm font-black text-gray-700 uppercase tracking-wider mb-4">Report Accent Color</h4>
+                <p className="text-xs text-gray-500 mb-4">Custom accent color for report borders and section headers. Leave empty to use your school's primary color.</p>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={settings.reportColorScheme || settings.primaryColor || '#1e40af'}
+                      onChange={(e) => setSettings(prev => ({ ...prev, reportColorScheme: e.target.value }))}
+                      className="h-12 w-20 rounded-lg cursor-pointer border-2 border-gray-200"
+                    />
+                    <div>
+                      <p className="text-sm font-bold text-gray-700">{settings.reportColorScheme || 'Using Primary Color'}</p>
+                      <p className="text-xs text-gray-400">Click to pick a color</p>
+                    </div>
+                  </div>
+                  {settings.reportColorScheme && (
+                    <button
+                      type="button"
+                      onClick={() => setSettings(prev => ({ ...prev, reportColorScheme: '' }))}
+                      className="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 px-3 py-1.5 rounded-lg transition-all"
+                    >
+                      Reset to Primary
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Toggle Options */}
+              <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100 space-y-6">
+                <h4 className="text-sm font-black text-gray-700 uppercase tracking-wider mb-2">Report Content Options</h4>
+
+                {/* Show Position */}
+                <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100">
+                  <div>
+                    <p className="font-bold text-gray-800">Show Position on Report</p>
+                    <p className="text-xs text-gray-500 mt-1">Display subject-level and overall class position on report cards</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="showPositionOnReport"
+                      checked={settings.showPositionOnReport}
+                      onChange={handleInputChange}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+                </div>
+
+                {/* Show Fee Breakdown */}
+                <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100">
+                  <div>
+                    <p className="font-bold text-gray-800">Show Fee Breakdown on Report</p>
+                    <p className="text-xs text-gray-500 mt-1">Display the Financial Standing & Fee Status section on report cards</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="showFeesOnReport"
+                      checked={settings.showFeesOnReport}
+                      onChange={handleInputChange}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Layout Template */}
+              <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100">
+                <h4 className="text-sm font-black text-gray-700 uppercase tracking-wider mb-2">Report Layout Template</h4>
+                <p className="text-xs text-gray-500 mb-6">Choose from different pre-designed layouts for your report cards</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    {
+                      value: 'classic',
+                      label: 'Classic',
+                      desc: 'Traditional formal design with thick borders, dense tables, and emerald accent. Best for official documents.',
+                      icon: '🏛️'
+                    },
+                    {
+                      value: 'modern',
+                      label: 'Modern',
+                      desc: 'Clean card-based layout with rounded corners, softer colors, and more whitespace. Contemporary look.',
+                      icon: '✨'
+                    },
+                    {
+                      value: 'minimal',
+                      label: 'Minimal',
+                      desc: 'Simple, printer-friendly layout with thin borders and no heavy colors. Maximum readability.',
+                      icon: '📋'
+                    }
+                  ].map(layout => (
+                    <button
+                      key={layout.value}
+                      type="button"
+                      onClick={() => setSettings(prev => ({ ...prev, reportLayout: layout.value }))}
+                      className={`p-5 rounded-2xl border-2 text-left transition-all group ${
+                        settings.reportLayout === layout.value
+                          ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10 ring-2 ring-primary/20'
+                          : 'border-gray-200 hover:border-gray-300 bg-white hover:shadow-md'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-2xl">{layout.icon}</span>
+                        <div>
+                          <p className="font-black text-gray-800">{layout.label}</p>
+                          {settings.reportLayout === layout.value && (
+                            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase">Active</span>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 leading-relaxed">{layout.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="flex justify-end pt-4 border-t border-gray-100">
+                <button
+                  onClick={handleSaveSettings}
+                  disabled={saving}
+                  className="px-8 py-3 bg-primary text-white rounded-xl font-bold hover:brightness-90 disabled:bg-gray-400 transition-all shadow-lg flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  {saving ? 'Saving...' : 'Save Report Settings'}
                 </button>
               </div>
             </div>

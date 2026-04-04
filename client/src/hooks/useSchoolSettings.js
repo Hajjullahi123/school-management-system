@@ -80,7 +80,13 @@ export const useSchoolSettings = () => {
             currentSession: data.currentSession || null,
             isSetupComplete: data.isSetupComplete ?? true,
             principalSignatureUrl: data.principalSignatureUrl ? (data.principalSignatureUrl.startsWith('data:') || data.principalSignatureUrl.startsWith('http') ? data.principalSignatureUrl : `${API_BASE_URL}${data.principalSignatureUrl}`) : null,
-            weekendDays: data.weekendDays ?? ""
+            weekendDays: data.weekendDays ?? "",
+            // Report Card Customization
+            reportFontFamily: data.reportFontFamily || 'serif',
+            reportColorScheme: data.reportColorScheme || '',
+            showPositionOnReport: data.showPositionOnReport !== false, // default true
+            showFeesOnReport: data.showFeesOnReport !== false, // default true
+            reportLayout: data.reportLayout || 'classic',
           });
         }
 

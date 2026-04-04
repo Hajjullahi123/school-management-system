@@ -355,8 +355,16 @@ const ReportCard = () => {
             </button>
           </div>
 
+          {(() => {
+            const reportColor = schoolSettings?.reportColorScheme || schoolSettings?.primaryColor;
+            const reportFont = schoolSettings?.reportFontFamily || 'serif';
+            const showPosition = schoolSettings?.showPositionOnReport !== false;
+            const showFees = schoolSettings?.showFeesOnReport !== false;
+            const layout = schoolSettings?.reportLayout || 'classic';
+            const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
+            return (
           <div className="report-card-wrapper overflow-x-auto md:overflow-visible pb-4">
-            <div id="result-sheet" className="relative bg-white p-8 print:p-4 shadow-2xl print:shadow-none print:break-after-page text-black font-serif border-[12px] border-emerald-800 print:emerald-border-A4 mx-auto w-[210mm] min-w-[210mm] md:min-w-0">
+            <div id="result-sheet" className={`relative bg-white p-8 print:p-4 shadow-2xl print:shadow-none print:break-after-page text-black ${borderStyle} print:emerald-border-A4 mx-auto w-[210mm] min-w-[210mm] md:min-w-0`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
             {/* PROTECTION WATERMARK */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
               <div className="text-[100px] font-black uppercase text-gray-900 leading-[0.8] text-center">
@@ -381,13 +389,13 @@ const ReportCard = () => {
                 </div>
 
                 <div className="flex-1 text-center">
-                  <h1 className="text-2xl font-extrabold uppercase tracking-wider leading-tight text-emerald-900" style={{ color: schoolSettings?.primaryColor }}>
+                  <h1 className="text-2xl font-extrabold uppercase tracking-wider leading-tight text-emerald-900" style={{ color: reportColor }}>
                     {schoolSettings?.schoolName || 'SCHOOL NAME'}
                   </h1>
                   <p className="text-sm font-bold italic text-gray-700">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
                   <p className="text-xs font-bold">{schoolSettings?.address || 'School Address Location'}, TEL: {schoolSettings?.phone || '000000'}, Email: {schoolSettings?.email || 'email@school.com'}</p>
 
-                  <div className="mt-4 border-b-2 border-emerald-800 inline-block px-4 pb-1">
+                  <div className="mt-4 border-b-2 inline-block px-4 pb-1" style={{ borderColor: reportColor }}>
                     <h2 className="text-lg font-bold uppercase tracking-wide">
                       {reportData.term?.name?.toUpperCase()} PERFORMANCE REPORT
                     </h2>
@@ -411,7 +419,7 @@ const ReportCard = () => {
                 <tbody>
                   <tr className="border-b border-black">
                     <td className="border-r border-black p-1 w-1/6">NAME:</td>
-                    <td className="border-r border-black p-1 w-2/3 text-emerald-800 font-black" style={{ color: schoolSettings?.primaryColor }}>{reportData.student?.name}</td>
+                    <td className="border-r border-black p-1 w-2/3 text-emerald-800 font-black" style={{ color: reportColor }}>{reportData.student?.name}</td>
                     <td className="border-r border-black p-1 w-1/6">GENDER:</td>
                     <td className="p-1">{reportData.student?.gender}</td>
                   </tr>
@@ -435,7 +443,7 @@ const ReportCard = () => {
                   </tr>
                   <tr>
                     <td className="border-r border-black p-1">ATTENDANCE:</td>
-                    <td className="border-r border-black p-1 text-emerald-700 font-bold" style={{ color: schoolSettings?.primaryColor }}>{reportData.attendance?.present} / {reportData.attendance?.total} DAYS ({reportData.attendance?.percentage}%)</td>
+                    <td className="border-r border-black p-1 text-emerald-700 font-bold" style={{ color: reportColor }}>{reportData.attendance?.present} / {reportData.attendance?.total} DAYS ({reportData.attendance?.percentage}%)</td>
                     <td className="border-r border-black p-1">TERM:</td>
                     <td className="p-1">{reportData.term?.name}</td>
                   </tr>
@@ -446,7 +454,7 @@ const ReportCard = () => {
               <div className="grid grid-cols-[68%_31%] gap-2 items-stretch">
                 {/* LEFT: COGNITIVE */}
                 <div className="space-y-0 text-[10px] md:text-sm h-full flex flex-col">
-                  <div className="bg-emerald-800 text-white text-center font-bold py-1 text-sm border-2 border-b-0 border-black" style={{ backgroundColor: schoolSettings?.primaryColor }}>
+                  <div className="bg-emerald-800 text-white text-center font-bold py-1 text-sm border-2 border-b-0 border-black" style={{ backgroundColor: reportColor }}>
                     COGNITIVE DOMAIN PERFORMANCE
                   </div>
                   <table className="w-full border-2 border-black border-collapse">
@@ -467,7 +475,7 @@ const ReportCard = () => {
                           </>
                         )}
                         <th className="border border-black px-1 py-1 text-center w-6">GRD</th>
-                        <th className="border border-black px-1 py-1 text-center w-6">POS</th>
+                        {showPosition && <th className="border border-black px-1 py-1 text-center w-6">POS</th>}
                         <th className="border border-black px-2 py-1 text-left italic text-[8px]">Remark</th>
                       </tr>
                     </thead>
@@ -489,7 +497,7 @@ const ReportCard = () => {
                             </>
                           )}
                           <td className="border border-black text-center font-black">{sub.grade}</td>
-                          <td className="border border-black text-center">{sub.position}</td>
+                          {showPosition && <td className="border border-black text-center">{sub.position}</td>}
                           <td className="border border-black px-2 italic text-[8px] leading-tight font-medium">{sub.remark}</td>
                         </tr>
                       ))}
@@ -552,20 +560,22 @@ const ReportCard = () => {
                   </div>
 
                   <div className="flex flex-col">
-                    <div className="bg-emerald-800 text-white text-center py-0.5 text-[9px] font-bold uppercase tracking-widest" style={{ backgroundColor: schoolSettings?.primaryColor }}>Performance Summary</div>
+                    <div className="bg-emerald-800 text-white text-center py-0.5 text-[9px] font-bold uppercase tracking-widest" style={{ backgroundColor: reportColor }}>Performance Summary</div>
                     <div className="bg-gray-50 flex-1 grid grid-cols-2 divide-x divide-black/10 items-center">
                       <div className="text-center p-1">
                         <p className="text-[7px] text-gray-400 uppercase font-black">Average</p>
                         <p className="text-sm font-black italic">{reportData.termAverage?.toFixed(1)}%</p>
                       </div>
+                      {showPosition && (
                       <div className="text-center p-1">
                         <p className="text-[7px] text-gray-400 uppercase font-black">Position</p>
                         <p className="text-sm font-black italic">{reportData.termPosition} / {reportData.totalStudents}</p>
                       </div>
+                      )}
                     </div>
                     <div className="border-t border-black p-1 flex justify-between items-center bg-gray-100 px-3">
                       <span className="text-[8px] font-black text-gray-500 uppercase">Grade:</span>
-                      <span className="text-lg font-black" style={{ color: schoolSettings?.primaryColor }}>{reportData.overallGrade || 'F'}</span>
+                      <span className="text-lg font-black" style={{ color: reportColor }}>{reportData.overallGrade || 'F'}</span>
                     </div>
                   </div>
                 </div>
@@ -581,9 +591,9 @@ const ReportCard = () => {
               </div>
 
               {/* FINANCIAL STANDING SECTION */}
-              {reportData.feeSummary && (
-                <div className="border-2 border-black bg-emerald-50/30 rounded-lg overflow-hidden mt-4" style={{ backgroundColor: `${schoolSettings?.primaryColor}05` }}>
-                  <div className="bg-emerald-800 text-white text-[10px] font-bold text-center py-1 uppercase tracking-widest" style={{ backgroundColor: schoolSettings?.primaryColor }}>
+              {showFees && reportData.feeSummary && (
+                <div className="border-2 border-black bg-emerald-50/30 rounded-lg overflow-hidden mt-4" style={{ backgroundColor: `${reportColor}05` }}>
+                  <div className="bg-emerald-800 text-white text-[10px] font-bold text-center py-1 uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
                     Financial Standing & Fee Status
                   </div>
                   <div className="p-3 grid grid-cols-4 gap-4 text-center divide-x divide-black/10">
@@ -746,6 +756,8 @@ const ReportCard = () => {
             </div>
           </div>
         </div>
+            );
+          })()}
       </div>
       )}
 

@@ -151,35 +151,35 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
 
       {/* Grid Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-        <div className="bg-blue-50 p-4 rounded-xl shadow-sm border border-blue-100">
-          <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest mb-1">Total Enrollment</p>
-          <p className="text-xl font-black text-blue-900">{teacherStats?.totalStudents || 0}</p>
+        <div className="bg-blue-50 p-5 rounded-xl shadow-sm border border-blue-100">
+          <p className="text-[11px] font-black text-blue-600 uppercase tracking-widest mb-1">Total Enrollment</p>
+          <p className="text-2xl font-black text-blue-900">{teacherStats?.totalStudents || 0}</p>
         </div>
-        <div className="bg-purple-50 p-4 rounded-xl shadow-sm border border-purple-100">
-          <p className="text-[8px] font-black text-purple-600 uppercase tracking-widest mb-1">Assigned Classes</p>
-          <p className="text-xl font-black text-purple-900">{teacherStats?.activeClasses || 0}</p>
+        <div className="bg-purple-50 p-5 rounded-xl shadow-sm border border-purple-100">
+          <p className="text-[11px] font-black text-purple-600 uppercase tracking-widest mb-1">Assigned Classes</p>
+          <p className="text-2xl font-black text-purple-900">{teacherStats?.activeClasses || 0}</p>
         </div>
         {(user?.role === 'admin' || user?.role === 'principal') && (
-          <div className="bg-indigo-50 p-4 rounded-xl shadow-sm border border-indigo-100">
-            <p className="text-[8px] font-black text-indigo-600 uppercase tracking-widest mb-1">Registered Subjects</p>
-            <p className="text-xl font-black text-indigo-900">{totalSubjectsCount || 0}</p>
+          <div className="bg-indigo-50 p-5 rounded-xl shadow-sm border border-indigo-100">
+            <p className="text-[11px] font-black text-indigo-600 uppercase tracking-widest mb-1">Registered Subjects</p>
+            <p className="text-2xl font-black text-indigo-900">{totalSubjectsCount || 0}</p>
           </div>
         )}
         {user?.role === 'admin' && (
-          <div className="bg-pink-50 p-4 rounded-xl shadow-sm border border-pink-100">
-            <p className="text-[8px] font-black text-pink-600 uppercase tracking-widest mb-1">Registered Alumni</p>
-            <p className="text-xl font-black text-pink-900">{alumniCount || 0}</p>
+          <div className="bg-pink-50 p-5 rounded-xl shadow-sm border border-pink-100">
+            <p className="text-[11px] font-black text-pink-600 uppercase tracking-widest mb-1">Registered Alumni</p>
+            <p className="text-2xl font-black text-pink-900">{alumniCount || 0}</p>
           </div>
         )}
         {user?.role === 'admin' && feeStats && (
           <>
-            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
-              <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1">Collections</p>
-              <p className="text-lg font-black text-emerald-900">₦{formatNumber(feeStats.totalPaid)}</p>
+            <div className="bg-emerald-50 p-5 rounded-xl border border-emerald-100">
+              <p className="text-[11px] font-black text-emerald-600 uppercase tracking-widest mb-1">Collections</p>
+              <p className="text-xl font-black text-emerald-900">₦{formatNumber(feeStats.totalPaid)}</p>
             </div>
-            <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
-              <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1">Outstanding</p>
-              <p className="text-lg font-black text-amber-900">₦{formatNumber(feeStats.totalBalance)}</p>
+            <div className="bg-amber-50 p-5 rounded-xl border border-amber-100">
+              <p className="text-[11px] font-black text-amber-600 uppercase tracking-widest mb-1">Outstanding</p>
+              <p className="text-xl font-black text-amber-900">₦{formatNumber(feeStats.totalBalance)}</p>
             </div>
           </>
         )}
@@ -189,13 +189,13 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
       {notices.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
           <div className="p-3 bg-orange-50 border-b border-orange-100 flex items-center justify-between">
-            <span className="text-[9px] font-black uppercase tracking-widest text-orange-800 italic">Broadcast Wire</span>
+            <span className="text-xs font-black uppercase tracking-widest text-orange-800 italic">Broadcast Wire</span>
           </div>
-          <div className="divide-y divide-gray-50 max-h-48 overflow-y-auto">
+          <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
             {notices.map(n => (
-              <div key={n.id} className="p-3">
-                <h4 className="text-xs font-bold text-gray-900">{n.title}</h4>
-                <p className="text-[10px] text-gray-500 line-clamp-1">{n.content}</p>
+              <div key={n.id} className="p-4">
+                <h4 className="text-sm font-bold text-gray-900">{n.title}</h4>
+                <p className="text-xs text-gray-600 line-clamp-2 mt-1 leading-relaxed">{n.content}</p>
               </div>
             ))}
           </div>

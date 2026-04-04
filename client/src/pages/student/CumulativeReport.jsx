@@ -191,12 +191,16 @@ const CumulativeReport = () => {
     const logoUri = buildLogoUrl(ss?.logoUrl);
     const photoUri = buildPhotoUrl(data.student?.user?.photoUrl || data.student?.photoUrl);
     const isLast = index === total - 1;
+    const reportColor = ss?.reportColorScheme || ss?.primaryColor;
+    const reportFont = ss?.reportFontFamily || 'serif';
+    const layout = ss?.reportLayout || 'classic';
+    const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
     return (
       <div
         key={data.student?.id || index}
-        className="relative bg-white p-8 print:p-4 shadow-2xl print:shadow-none text-black font-serif border-[12px] border-emerald-800 print:emerald-border-A4"
-        style={{ pageBreakAfter: !isLast ? 'always' : 'auto', breakAfter: !isLast ? 'page' : 'auto' }}
+        className={`relative bg-white p-8 print:p-4 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-border-A4`}
+        style={{ pageBreakAfter: !isLast ? 'always' : 'auto', breakAfter: !isLast ? 'page' : 'auto', fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}
       >
         <div className="relative z-10 space-y-3 print:space-y-2">
           {/* HEADER */}
@@ -210,12 +214,12 @@ const CumulativeReport = () => {
             </div>
 
             <div className="flex-1 text-center">
-              <h1 className="text-2xl font-extrabold uppercase tracking-wider leading-tight text-emerald-900" style={{ color: ss?.primaryColor }}>
+              <h1 className="text-2xl font-extrabold uppercase tracking-wider leading-tight text-emerald-900" style={{ color: reportColor }}>
                 {ss?.name || 'SCHOOL NAME'}
               </h1>
               <p className="text-sm font-bold italic text-gray-700">{ss?.motto || 'Excellence and Dedication'}</p>
               <p className="text-xs font-bold">{ss?.address || 'School Address'}, TEL: {ss?.phone || '---'}, Email: {ss?.email || '---'}</p>
-              <div className="mt-4 border-b-2 border-emerald-800 inline-block px-4 pb-1">
+              <div className="mt-4 border-b-2 inline-block px-4 pb-1" style={{ borderColor: reportColor }}>
                 <h2 className="text-lg font-bold uppercase tracking-wide">ANNUAL CUMULATIVE PERFORMANCE REPORT</h2>
               </div>
             </div>
@@ -240,7 +244,7 @@ const CumulativeReport = () => {
           {/* CUMULATIVE SCORE TABLE */}
           <div className="border-2 border-black rounded-sm overflow-hidden">
             <table className="w-full text-[10px] uppercase font-bold text-center border-collapse">
-              <thead className="bg-emerald-800 text-white border-b-2 border-black">
+              <thead className="bg-emerald-800 text-white border-b-2 border-black" style={{ backgroundColor: reportColor }}>
                 <tr className="divide-x divide-white/20">
                   <th className="p-2 text-left w-[35%] bg-emerald-900 border-r-2 border-black">SUBJECT</th>
                   <th className="p-2 w-[12%]">1st TERM</th>
@@ -270,7 +274,7 @@ const CumulativeReport = () => {
                       <span>AVERAGE: {data.overallAverage?.toFixed(2)}%</span>
                     </div>
                   </td>
-                  <td className="p-2 bg-emerald-900 text-white text-xs border-l-2 border-black" colSpan={2}>
+                  <td className="p-2 text-white text-xs border-l-2 border-black" colSpan={2} style={{ backgroundColor: reportColor || '#064e3b' }}>
                     OVERALL GRADE: {data.overallGrade}
                   </td>
                 </tr>
