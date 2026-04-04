@@ -169,7 +169,7 @@ const StudentDashboard = ({ user, currentTerm, currentSession }) => {
       {/* Notices Section */}
       {notices.length > 0 && (
         <div className="bg-white rounded-lg shadow-md overflow-hidden border-l-4 border-orange-500">
-          <div className="p-4 bg-orange-50 border-b border-orange-100 italic font-black uppercase tracking-widest text-[10px] text-orange-800 flex items-center gap-2">
+          <div className="p-4 bg-orange-50 border-b border-orange-100 italic font-black uppercase tracking-widest text-xs text-orange-800 flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
             Bulletin Intelligence
           </div>
@@ -231,15 +231,15 @@ const StudentDashboard = ({ user, currentTerm, currentSession }) => {
           {studentFeeRecord ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Expected</p>
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Expected</p>
                 <p className="text-xl font-black text-white">₦{formatNumber(studentFeeRecord.expectedAmount || 0)}</p>
               </div>
               <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Settled</p>
+                <p className="text-[11px] font-black text-emerald-400 uppercase tracking-widest mb-1">Settled</p>
                 <p className="text-xl font-black text-emerald-400">₦{formatNumber(studentFeeRecord.paidAmount || 0)}</p>
               </div>
               <div className={`p-4 rounded-xl border ${studentFeeRecord.balance > 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-white/5 border-white/5'}`}>
-                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Balance</p>
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Balance</p>
                 <p className={`text-xl font-black ${studentFeeRecord.balance > 0 ? 'text-white' : 'text-slate-400'}`}>
                   ₦{formatNumber(studentFeeRecord.balance || 0)}
                 </p>

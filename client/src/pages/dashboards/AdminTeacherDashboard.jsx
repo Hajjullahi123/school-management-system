@@ -160,9 +160,9 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
           <p className="text-2xl font-black text-purple-900">{teacherStats?.activeClasses || 0}</p>
         </div>
         {(user?.role === 'admin' || user?.role === 'principal') && (
-          <div className="bg-indigo-50 p-5 rounded-xl shadow-sm border border-indigo-100">
-            <p className="text-[11px] font-black text-indigo-600 uppercase tracking-widest mb-1">Registered Subjects</p>
-            <p className="text-2xl font-black text-indigo-900">{totalSubjectsCount || 0}</p>
+          <div className="bg-teal-50 p-5 rounded-xl shadow-sm border border-teal-100">
+            <p className="text-[11px] font-black text-teal-600 uppercase tracking-widest mb-1">Registered Subjects</p>
+            <p className="text-2xl font-black text-teal-900">{totalSubjectsCount || 0}</p>
           </div>
         )}
         {user?.role === 'admin' && (

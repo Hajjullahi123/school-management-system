@@ -92,17 +92,17 @@ const AccountantDashboard = ({ user }) => {
 
       {feeStats && (
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
-            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Collections</p>
-            <p className="text-lg font-black text-gray-900">₦{formatNumber(feeStats.totalPaid)}</p>
+          <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-green-500">
+            <p className="text-[11px] font-black text-green-600 uppercase tracking-widest mb-1">Collections</p>
+            <p className="text-xl font-black text-gray-900">₦{formatNumber(feeStats.totalPaid)}</p>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500">
-            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Unsettled</p>
-            <p className="text-lg font-black text-gray-900">₦{formatNumber(feeStats.totalBalance)}</p>
+          <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-red-500">
+            <p className="text-[11px] font-black text-red-600 uppercase tracking-widest mb-1">Unsettled</p>
+            <p className="text-xl font-black text-gray-900">₦{formatNumber(feeStats.totalBalance)}</p>
           </div>
-          <div className="col-span-2 bg-slate-900 p-4 rounded-xl flex justify-between items-center">
+          <div className="col-span-2 bg-slate-900 p-5 rounded-xl flex justify-between items-center">
             <div>
-              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Remittance Rate</p>
+              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Remittance Rate</p>
               <p className="text-xl font-black text-white">
                 {feeStats.totalExpected > 0 ? ((feeStats.totalPaid / feeStats.totalExpected) * 100).toFixed(1) : 0}%
               </p>
