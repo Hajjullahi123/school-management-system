@@ -198,13 +198,13 @@ const BulkStudentUpload = () => {
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
     const instructions = [
-      '1. Download the CSV template from the admin dashboard.',
-      '2. Open the template in Excel, Google Sheets, or a text editor.',
-      '3. Fill in the student data. Ensure firstName, lastName, and classId are provided.',
-      '4. The "classId" MUST be numeric. Refer to the table below for correct IDs.',
-      '5. For the "isScholarship" column, use "Yes" for scholarship students and "No" for others.',
-      '6. Save your file as "Comma Separated Values (.csv)".',
-      '7. Upload the saved CSV file through the system to complete import.'
+      '1. Download the Excel template from the admin dashboard.',
+      '2. Open the template in Microsoft Excel or Google Sheets.',
+      '3. Fill in the student data. Ensure First Name, Last Name, and Class ID are provided.',
+      '4. For the "Class ID" column, select the class from the drop-down menu.',
+      '5. Use the drop-down menus for Gender, Genotype, Disability, and Scholarship columns.',
+      '6. Save your file as an "Excel Workbook (.xlsx)" to keep the dropdowns working.',
+      '7. Upload the saved Excel file through the system to complete import.'
     ];
     doc.text(instructions, 20, 45);
 
@@ -372,9 +372,9 @@ const BulkStudentUpload = () => {
         <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800">
           <li>Download the Excel (.xlsx) template below</li>
           <li>Fill in student information (First Name, Last Name, and Class ID are required)</li>
-          <li>New: Use the drop-down menus for <strong>Gender, Genotype, Disability, and Scholarship</strong></li>
-          <li>For the "Class ID" column, use the Numeric ID from the Guidance PDF or Reference Sheet</li>
-          <li>Upload the file (.xlsx or .csv) using the form below</li>
+          <li>New: Use the drop-down menus for <strong>Class ID, Gender, Genotype, Disability, and Scholarship</strong></li>
+          <li>For the "Class ID" column, simply select the mapped class from the dropdown list menu.</li>
+          <li>Upload the Excel file (.xlsx) using the form below (saving as .csv will remove dropdowns)</li>
           <li>Review the results and fix any errors if needed</li>
         </ol>
         <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
@@ -554,25 +554,24 @@ const BulkStudentUpload = () => {
 
       {/* Field Reference */}
       <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-4">CSV Field Reference</h3>
+        <h3 className="text-lg font-semibold mb-4">Template Field Reference</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
             <p className="font-medium text-gray-700">Required Fields:</p>
             <ul className="list-disc list-inside text-gray-600 mt-2 space-y-1">
-              <li><code className="bg-gray-100 px-1">firstName</code></li>
-              <li><code className="bg-gray-100 px-1">lastName</code></li>
-              <li><code className="bg-gray-100 px-1">classId</code> (numeric, e.g., 1, 2, 3)</li>
+              <li><code className="bg-gray-100 px-1">First Name</code></li>
+              <li><code className="bg-gray-100 px-1">Last Name</code></li>
+              <li><code className="bg-gray-100 px-1">Class ID</code> (select from dropdown)</li>
             </ul>
           </div>
           <div>
             <p className="font-medium text-gray-700">Optional Fields:</p>
             <ul className="list-disc list-inside text-gray-600 mt-2 space-y-1">
-              <li><code className="bg-gray-100 px-1">dateOfBirth</code> (YYYY-MM-DD)</li>
-              <li><code className="bg-gray-100 px-1">gender</code> (Male/Female)</li>
-              <li><code className="bg-gray-100 px-1">email</code></li>
-              <li><code className="bg-gray-100 px-1">parentGuardianName</code></li>
-              <li><code className="bg-gray-100 px-1">bloodGroup</code> (A+, O+, etc.)</li>
-              <li><code className="bg-gray-100 px-1">isScholarship</code> (Yes/No)</li>
+              <li><code className="bg-gray-100 px-1">Date of Birth</code> (YYYY-MM-DD)</li>
+              <li><code className="bg-gray-100 px-1">Gender</code> (select from dropdown)</li>
+              <li><code className="bg-gray-100 px-1">Email</code></li>
+              <li><code className="bg-gray-100 px-1">Parent Name</code></li>
+              <li><code className="bg-gray-100 px-1">Scholarship</code> (select from dropdown)</li>
               <li>...and more (see template)</li>
             </ul>
           </div>

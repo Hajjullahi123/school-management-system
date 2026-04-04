@@ -71,14 +71,43 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       });
     }
 
+    // Add a second sheet with Class IDs for reference
+    const refSheet = workbook.addWorksheet('Class IDs Reference');
+    refSheet.columns = [
+      { header: 'Local ID (USE THIS)', key: 'localId', width: 20 },
+      { header: 'Class Name', key: 'name', width: 30 },
+      { header: 'Class Arm', key: 'arm', width: 15 },
+      { header: 'Dropdown Selection', key: 'dropdown', width: 40 }
+    ];
+    refSheet.getRow(1).font = { bold: true };
+    
+    classes.forEach((c, index) => {
+      refSheet.addRow({ 
+        localId: index + 1, 
+        name: c.name,
+        arm: c.arm || 'N/A',
+        dropdown: `${index + 1} - ${c.name} ${c.arm || ''}`.trim()
+      });
+    });
+
     // Add Data Validation (Dropdowns) - Processing from row 2 up to 500
     for (let i = 2; i <= 500; i++) {
+      // Class ID (Column D) - Dropdown referencing the Class IDs Reference sheet
+      if (classes.length > 0) {
+        worksheet.getCell(`D${i}`).dataValidation = {
+          type: 'list',
+          allowBlank: true,
+          formulae: [`'Class IDs Reference'!$D$2:$D$${classes.length + 1}`]
+        };
+      }
+      
       // Gender (Column F)
       worksheet.getCell(`F${i}`).dataValidation = {
         type: 'list',
         allowBlank: true,
         formulae: ['"Male,Female"']
       };
+      
       // Genotype (Column G)
       worksheet.getCell(`G${i}`).dataValidation = {
         type: 'list',
@@ -91,7 +120,7 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
         allowBlank: true,
         formulae: ['"None,Visual,Hearing,Physical,Intellectual,Other"']
       };
-      // Scholarship (Column L) - Note: Shifted because of new columns
+      // Scholarship (Column N)
       worksheet.getCell(`N${i}`).dataValidation = {
         type: 'list',
         allowBlank: true,
@@ -99,33 +128,16 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       };
     }
 
-    // Add a second sheet with Class IDs for reference
-    const refSheet = workbook.addWorksheet('Class IDs Reference');
-    refSheet.columns = [
-      { header: 'Local ID (USE THIS)', key: 'localId', width: 20 },
-      { header: 'Class Name', key: 'name', width: 30 },
-      { header: 'Class Arm', key: 'arm', width: 15 }
-    ];
-    refSheet.getRow(1).font = { bold: true };
-    
-    classes.forEach((c, index) => {
-      refSheet.addRow({ 
-        localId: index + 1, 
-        name: c.name,
-        arm: c.arm || 'N/A'
-      });
-    });
-
     // Add instructions sheet
     const helpSheet = workbook.addWorksheet('Instructions');
     helpSheet.columns = [{ header: 'Step', key: 'step', width: 80 }];
     [
       '1. Use the "Students Template" sheet to fill in student information.',
-      '2. In the "Class ID" column, use the Numeric ID from the "Class IDs Reference" sheet.',
+      '2. In the "Class ID" column, select the class from the dropdown menu (e.g., "1 - Class Name").',
       '3. Fields marked with * are required.',
       '4. Date of Birth must follow the format YYYY-MM-DD (e.g., 2012-10-25).',
-      '5. Use the drop-down menus for columns with selections (Gender, Genotype, Disability, Scholarship).',
-      '6. Save this file as .xlsx or .csv before uploading.'
+      '5. Use the drop-down menus for columns with selections (Class ID, Gender, Genotype, Disability, Scholarship).',
+      '6. Save this file as .xlsx before uploading (CSV might lose dropdowns).'
     ].forEach(text => helpSheet.addRow({ step: text }));
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
