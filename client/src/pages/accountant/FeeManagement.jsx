@@ -1715,8 +1715,9 @@ export default function FeeManagement() {
               marginBottom: '24px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
             }}>
-              <h3 style={{ marginBottom: '15px', fontSize: '18px', fontWeight: 'bold' }} className="text-primary">
-                📅 View Fee Records
+              <h3 className="text-lg font-bold text-primary mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                View Fee Records
               </h3>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '15px', alignItems: 'end' }}>
@@ -1800,16 +1801,9 @@ export default function FeeManagement() {
                   </select>
                 </div>
 
-                <div style={{
-                  background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
-                  padding: '10px 15px',
-                  borderRadius: '6px',
-                  border: '2px solid var(--color-primary)'
-                }}>
-                  <div style={{ fontSize: '11px', color: '#059669', marginBottom: '3px', fontWeight: '600', textTransform: 'uppercase' }}>
-                    Currently Viewing
-                  </div>
-                  <div className="text-primary font-bold">
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border-2 border-primary flex flex-col justify-center">
+                  <div className="text-xs text-emerald-600 font-bold uppercase tracking-wider mb-1">Currently Viewing</div>
+                  <div className="text-primary font-black text-base">
                     {viewAllTerms
                       ? `${selectedViewSession?.name} - All Terms`
                       : `${selectedViewSession?.name} - ${selectedViewTerm?.name} `
@@ -1859,29 +1853,57 @@ export default function FeeManagement() {
 
           {/* Summary Cards */}
           {summary && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              <div className="bg-gradient-to-br from-primary to-primary/90 text-white p-6 rounded-lg shadow-md">
-                <h3 className="text-lg font-semibold mb-4">Quick Info</h3>
-                <div className="space-y-3 text-sm">
-                  <p className="text-white/90">📊 Total Students: <span className="font-bold text-white">{summary.totalStudents}</span></p>
-                  <p className="text-white/90">💰 Avg. Payment: <span className="font-bold text-white">₦{summary.totalStudents > 0 ? formatNumber(summary.totalPaid / summary.totalStudents, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 0}</span></p>
-                  <p className="text-white/90">✅ Allowance Rate: <span className="font-bold text-white">{summary.totalStudents > 0 ? ((summary.clearedStudents / summary.totalStudents) * 100).toFixed(1) : 0}%</span></p>
-                  <p className="text-red-500 font-bold">🎓 Total number of students on scholarship: {students.filter(s => s.isScholarship).length}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
+              <div className="bg-gradient-to-br from-primary to-primary/90 text-white p-6 rounded-xl shadow-lg">
+                <h3 className="text-sm font-black uppercase tracking-widest mb-5 opacity-80">Quick Info</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/80 text-sm font-medium">📊 Total Students</span>
+                    <span className="font-black text-xl text-white">{summary.totalStudents}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/80 text-sm font-medium">💰 Avg. Payment</span>
+                    <span className="font-black text-lg text-white">₦{summary.totalStudents > 0 ? formatNumber(summary.totalPaid / summary.totalStudents, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/80 text-sm font-medium">✅ Clearance Rate</span>
+                    <span className="font-black text-lg text-white">{summary.totalStudents > 0 ? ((summary.clearedStudents / summary.totalStudents) * 100).toFixed(1) : 0}%</span>
+                  </div>
+                  <div className="pt-3 border-t border-white/20">
+                    <div className="flex items-center justify-between">
+                      <span className="text-yellow-200 text-sm font-bold">🎓 On Scholarship</span>
+                      <span className="font-black text-lg text-yellow-200">{students.filter(s => s.isScholarship).length}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
-                <p className="text-sm opacity-90 mb-1">Total Collected</p>
-                <p className="text-3xl font-bold">₦{formatNumber(summary.totalPaid)}</p>
-                <p className="text-xs opacity-75 mt-2">
-                  {summary.totalExpected > 0 ? ((summary.totalPaid / summary.totalExpected) * 100).toFixed(1) : 0}% collected
-                </p>
+              <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between">
+                <p className="text-sm font-bold text-emerald-100 uppercase tracking-wider mb-2">Total Collected</p>
+                <p className="text-3xl font-black">₦{formatNumber(summary.totalPaid)}</p>
+                <div className="mt-4 pt-3 border-t border-white/20">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-white/20 rounded-full h-2">
+                      <div className="bg-white h-2 rounded-full transition-all" style={{ width: `${summary.totalExpected > 0 ? Math.min((summary.totalPaid / summary.totalExpected) * 100, 100) : 0}%` }}></div>
+                    </div>
+                    <span className="text-sm font-black text-emerald-100">
+                      {summary.totalExpected > 0 ? ((summary.totalPaid / summary.totalExpected) * 100).toFixed(1) : 0}%
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-6 text-white">
-                <p className="text-sm opacity-90 mb-1">Outstanding</p>
-                <p className="text-3xl font-bold">₦{formatNumber(summary.totalBalance)}</p>
-                <p className="text-xs opacity-75 mt-2">
-                  {summary.totalExpected > 0 ? ((summary.totalBalance / summary.totalExpected) * 100).toFixed(1) : 0}% pending
-                </p>
+              <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between">
+                <p className="text-sm font-bold text-red-100 uppercase tracking-wider mb-2">Outstanding</p>
+                <p className="text-3xl font-black">₦{formatNumber(summary.totalBalance)}</p>
+                <div className="mt-4 pt-3 border-t border-white/20">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-white/20 rounded-full h-2">
+                      <div className="bg-white h-2 rounded-full transition-all" style={{ width: `${summary.totalExpected > 0 ? Math.min((summary.totalBalance / summary.totalExpected) * 100, 100) : 0}%` }}></div>
+                    </div>
+                    <span className="text-sm font-black text-red-100">
+                      {summary.totalExpected > 0 ? ((summary.totalBalance / summary.totalExpected) * 100).toFixed(1) : 0}%
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1921,21 +1943,21 @@ export default function FeeManagement() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Students:</span>
-                    <span className="font-semibold text-gray-900">{students.length}</span>
+                    <span className="font-bold text-gray-900">{students.length}</span>
                   </div>
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Expected:</span>
-                    <span className="font-semibold text-blue-600">₦{formatNumber(summary?.totalExpected || 0)}</span>
+                    <span className="font-bold text-blue-600">₦{formatNumber(summary?.totalExpected || 0)}</span>
                   </div>
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Collected:</span>
-                    <span className="font-semibold text-green-600">₦{formatNumber(summary?.totalPaid || 0)}</span>
+                    <span className="font-bold text-green-600">₦{formatNumber(summary?.totalPaid || 0)}</span>
                   </div>
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Balance:</span>
-                    <span className="font-semibold text-red-600">₦{formatNumber(summary?.totalBalance || 0)}</span>
+                    <span className="font-bold text-red-600">₦{formatNumber(summary?.totalBalance || 0)}</span>
                   </div>
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <div className="w-full bg-gray-100 rounded-full h-1.5">
@@ -1972,30 +1994,30 @@ export default function FeeManagement() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <div className="flex justify-between text-xs">
+                    <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Students:</span>
-                      <span className="font-semibold text-gray-900">{classSummary.totalStudents}</span>
+                      <span className="font-bold text-gray-900">{classSummary.totalStudents}</span>
                     </div>
-                    <div className="flex justify-between text-xs">
+                    <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Expected:</span>
-                      <span className="font-semibold text-blue-600">₦{formatNumber(classSummary.totalExpected)}</span>
+                      <span className="font-bold text-blue-600">₦{formatNumber(classSummary.totalExpected)}</span>
                     </div>
-                    <div className="flex justify-between text-xs">
+                    <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Collected:</span>
-                      <span className="font-semibold text-green-600">₦{formatNumber(classSummary.totalPaid)}</span>
+                      <span className="font-bold text-green-600">₦{formatNumber(classSummary.totalPaid)}</span>
                     </div>
-                    <div className="flex justify-between text-xs">
+                    <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Balance:</span>
-                      <span className="font-semibold text-red-600">₦{formatNumber(classSummary.totalBalance)}</span>
+                      <span className="font-bold text-red-600">₦{formatNumber(classSummary.totalBalance)}</span>
                     </div>
                     <div className="mt-3 pt-3 border-t border-gray-100">
-                      <div className="flex justify-between text-[10px] font-medium">
+                      <div className="flex justify-between text-xs font-medium">
                         <span className="text-gray-400 uppercase tracking-tighter">Allowed:</span>
-                        <span className="text-indigo-600">{classSummary.clearedStudents}</span>
+                        <span className="font-bold text-indigo-600">{classSummary.clearedStudents}</span>
                       </div>
-                      <div className="flex justify-between text-[10px] font-medium mt-1">
+                      <div className="flex justify-between text-xs font-medium mt-1">
                         <span className="text-gray-400 uppercase tracking-tighter">Restricted:</span>
-                        <span className="text-amber-600">{classSummary.unclearedStudents}</span>
+                        <span className="font-bold text-amber-600">{classSummary.unclearedStudents}</span>
                       </div>
                     </div>
                     {/* Progress Bar */}
