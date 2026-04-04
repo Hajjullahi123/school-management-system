@@ -2154,7 +2154,7 @@ export default function FeeManagement() {
             </div>
 
             <div className="flex flex-wrap gap-2 sm:gap-3">
-              <div className="flex-1 sm:flex-none relative group min-w-[200px]">
+              <div className="flex-1 sm:flex-none relative group min-w-[220px]">
                 <select
                   onChange={(e) => {
                     if (e.target.value) {
@@ -2162,7 +2162,7 @@ export default function FeeManagement() {
                       e.target.value = ''; // reset after selection
                     }
                   }}
-                  className="appearance-none w-full px-4 pr-8 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold cursor-pointer outline-none shadow-sm"
+                  className="appearance-none w-full pl-4 pr-12 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm font-bold cursor-pointer outline-none shadow-md transition-all"
                   defaultValue=""
                 >
                   <option value="" disabled>📥 Export By Class...</option>
@@ -2173,9 +2173,9 @@ export default function FeeManagement() {
                     </option>
                   ))}
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-white/80">
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 border-l border-white/30 pl-2 ml-2">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
               </div>
@@ -2476,6 +2476,113 @@ export default function FeeManagement() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* Cards View */}
+          {viewMode === 'cards' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredStudents.map((student) => {
+                const feeRecord = student.feeRecords[0];
+                const prevBalance = feeRecord?.openingBalance || 0;
+                const currentExpected = feeRecord?.expectedAmount || 0;
+                const paid = feeRecord?.paidAmount || 0;
+                const totalBalance = feeRecord?.balance || 0;
+                const totalDue = prevBalance + currentExpected;
+                const paymentPercent = totalDue > 0 ? Math.min((paid / totalDue) * 100, 100) : 0;
+
+                if (student.isScholarship) {
+                  return (
+                    <div key={student.id} className="rounded-2xl overflow-hidden shadow-lg border border-emerald-200 bg-gradient-to-br from-emerald-500 to-teal-700 text-white p-5 relative">
+                      <div className="absolute top-0 right-0 -mr-6 -mt-6 w-24 h-24 rounded-full bg-white/10 blur-2xl"></div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center font-black text-sm">
+                          {student.user.firstName?.[0]}{student.user.lastName?.[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-black text-sm truncate">{student.user.firstName} {student.user.lastName}</p>
+                          <p className="text-emerald-100 text-xs font-medium">{student.admissionNumber}</p>
+                        </div>
+                        <span className="px-2 py-0.5 bg-yellow-400 text-yellow-900 text-[9px] font-black uppercase rounded-sm">Scholar</span>
+                      </div>
+                      <p className="text-sm font-bold text-emerald-100">
+                        {student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'N/A'}
+                      </p>
+                      <p className="text-xs text-emerald-200 mt-2 italic">Full scholarship — fees waived</p>
+                      <div className="flex gap-2 mt-4 pt-3 border-t border-white/20">
+                        <button onClick={() => viewPaymentHistory(student)} className="flex-1 bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-1.5 rounded-lg transition-all">History</button>
+                        <button onClick={() => { setReceiptStudent(student); setReceiptPayment(null); setReceiptModalOpen(true); }} className="flex-1 bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-1.5 rounded-lg transition-all">Receipt</button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={student.id} className="rounded-2xl overflow-hidden shadow-md border border-gray-100 bg-white hover:shadow-lg transition-all">
+                    {/* Card Header */}
+                    <div className="p-4 border-b border-gray-50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-black text-primary text-sm">
+                          {student.user.firstName?.[0]}{student.user.lastName?.[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-gray-900 text-sm truncate">{student.user.firstName} {student.user.lastName}</p>
+                          <p className="text-gray-400 text-xs font-medium">{student.admissionNumber}</p>
+                        </div>
+                        <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${
+                          totalBalance <= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {totalBalance <= 0 ? 'Cleared' : 'Owing'}
+                        </span>
+                      </div>
+                      <p className="text-xs font-semibold text-gray-500 mt-2 ml-[52px]">
+                        {student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'N/A'}
+                      </p>
+                    </div>
+
+                    {/* Card Body - Financial Info */}
+                    <div className="p-4 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-gray-50 rounded-lg p-2.5 text-center">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase">Prev. Balance</p>
+                          <p className="text-sm font-black text-gray-700">₦{formatNumber(prevBalance)}</p>
+                        </div>
+                        <div className="bg-blue-50 rounded-lg p-2.5 text-center">
+                          <p className="text-[10px] font-bold text-blue-400 uppercase">Expected</p>
+                          <p className="text-sm font-black text-blue-700">₦{formatNumber(currentExpected)}</p>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-2.5 text-center">
+                          <p className="text-[10px] font-bold text-green-500 uppercase">Paid</p>
+                          <p className="text-sm font-black text-green-700">₦{formatNumber(paid)}</p>
+                        </div>
+                        <div className={`rounded-lg p-2.5 text-center ${totalBalance > 0 ? 'bg-red-50' : 'bg-emerald-50'}`}>
+                          <p className={`text-[10px] font-bold uppercase ${totalBalance > 0 ? 'text-red-400' : 'text-emerald-400'}`}>Balance</p>
+                          <p className={`text-sm font-black ${totalBalance > 0 ? 'text-red-700' : 'text-emerald-700'}`}>₦{formatNumber(totalBalance)}</p>
+                        </div>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div>
+                        <div className="w-full bg-gray-100 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all ${paymentPercent >= 100 ? 'bg-emerald-500' : paymentPercent >= 50 ? 'bg-blue-500' : 'bg-amber-500'}`}
+                            style={{ width: `${paymentPercent}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-[10px] text-gray-400 font-bold mt-1 text-center">{paymentPercent.toFixed(1)}% paid</p>
+                      </div>
+                    </div>
+
+                    {/* Card Actions */}
+                    <div className="px-4 pb-4 flex gap-2">
+                      <button onClick={() => setSelectedStudent(student)} className="flex-1 bg-primary/10 text-primary hover:bg-primary hover:text-white text-xs font-bold py-2 rounded-lg transition-all">Pay</button>
+                      <button onClick={() => viewPaymentHistory(student)} className="flex-1 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white text-xs font-bold py-2 rounded-lg transition-all">History</button>
+                      <button onClick={() => { setReceiptStudent(student); setReceiptPayment(null); setReceiptModalOpen(true); }} className="flex-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white text-xs font-bold py-2 rounded-lg transition-all">Receipt</button>
+                      <button onClick={() => handleEditFee(student)} className="flex-1 bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white text-xs font-bold py-2 rounded-lg transition-all">Adjust</button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </>
