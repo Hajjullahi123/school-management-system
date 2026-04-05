@@ -171,17 +171,6 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
             <p className="text-2xl font-black text-pink-900">{alumniCount || 0}</p>
           </div>
         )}
-        {user?.role === 'admin' && feeStats && (
-          <>
-            <div className="bg-emerald-50 p-5 rounded-xl border border-emerald-100">
-              <p className="text-[11px] font-black text-emerald-600 uppercase tracking-widest mb-1">Collections</p>
-              <p className="text-xl font-black text-emerald-900">₦{formatNumber(feeStats.totalPaid)}</p>
-            </div>
-            <div className="bg-amber-50 p-5 rounded-xl border border-amber-100">
-              <p className="text-[11px] font-black text-amber-600 uppercase tracking-widest mb-1">Outstanding</p>
-              <p className="text-xl font-black text-amber-900">₦{formatNumber(feeStats.totalBalance)}</p>
-            </div>
-          </>
         )}
       </div>
 
