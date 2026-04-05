@@ -31,7 +31,7 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       { header: 'Last Name*', key: 'lastName', width: 20 },
       { header: 'Middle Name', key: 'middleName', width: 20 },
       { header: 'Class ID*', key: 'classId', width: 12 },
-      { header: 'Class Name (Reference)', key: 'className', width: 25 },
+      { header: 'Class Name (Optional)', key: 'className', width: 25 },
       { header: 'Gender (Male/Female)', key: 'gender', width: 20 },
       { header: 'Genotype (Drop-down)', key: 'genotype', width: 20 },
       { header: 'Disability (Drop-down)', key: 'disability', width: 25 },
