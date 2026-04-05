@@ -66,7 +66,15 @@ const Settings = () => {
     reportColorScheme: '',
     showPositionOnReport: true,
     showFeesOnReport: true,
-    reportLayout: 'classic'
+    reportLayout: 'classic',
+    certFontFamily: 'serif',
+    certBorderType: 'ornate',
+    certPrimaryColor: '',
+    certSecondaryColor: '',
+    testimFontFamily: 'sans-serif',
+    testimBorderType: 'modern',
+    testimPrimaryColor: '',
+    testimSecondaryColor: ''
   });
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
@@ -450,6 +458,24 @@ const Settings = () => {
                 }`}
             >
               WhatsApp Bot
+            </button>
+            <button
+              onClick={() => setActiveTab('academics')}
+              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'academics'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              Academic Config
+            </button>
+            <button
+              onClick={() => setActiveTab('documents')}
+              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'documents'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              Document Styling
             </button>
             <button
               onClick={() => setActiveTab('ai')}
@@ -2002,6 +2028,93 @@ const Settings = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   {saving ? 'Saving...' : 'Save Report Settings'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'documents' && (
+            <div className="space-y-8">
+              <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Certificate Styling</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Font Family</label>
+                    <select name="certFontFamily" value={settings.certFontFamily || 'serif'} onChange={handleInputChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
+                       <option value="serif">Serif (Traditional)</option>
+                       <option value="sans-serif">Sans-Serif (Modern)</option>
+                       <option value="cursive">Cursive (Elegant)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Border Style</label>
+                    <select name="certBorderType" value={settings.certBorderType || 'ornate'} onChange={handleInputChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
+                       <option value="ornate">Ornate (Classic)</option>
+                       <option value="modern">Modern (Clean Lines)</option>
+                       <option value="minimal">Minimal (Thin)</option>
+                       <option value="solid">Solid (Bold)</option>
+                       <option value="none">None</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Primary Accent Color</label>
+                    <div className="flex gap-2">
+                      <input type="color" name="certPrimaryColor" value={settings.certPrimaryColor || settings.primaryColor || '#1e40af'} onChange={handleInputChange} className="h-10 w-16 p-1 border border-gray-300 rounded cursor-pointer" />
+                      <button type="button" onClick={() => setSettings(prev => ({...prev, certPrimaryColor: ''}))} className="text-xs text-blue-600 underline">Use Theme Default</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Secondary Accent Color</label>
+                    <div className="flex gap-2">
+                      <input type="color" name="certSecondaryColor" value={settings.certSecondaryColor || settings.secondaryColor || '#3b82f6'} onChange={handleInputChange} className="h-10 w-16 p-1 border border-gray-300 rounded cursor-pointer" />
+                      <button type="button" onClick={() => setSettings(prev => ({...prev, certSecondaryColor: ''}))} className="text-xs text-blue-600 underline">Use Theme Default</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Testimonial Styling</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Font Family</label>
+                    <select name="testimFontFamily" value={settings.testimFontFamily || 'sans-serif'} onChange={handleInputChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
+                       <option value="serif">Serif (Traditional)</option>
+                       <option value="sans-serif">Sans-Serif (Modern)</option>
+                       <option value="cursive">Cursive (Elegant)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Border Style</label>
+                    <select name="testimBorderType" value={settings.testimBorderType || 'modern'} onChange={handleInputChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
+                       <option value="ornate">Ornate (Classic)</option>
+                       <option value="modern">Modern (Clean Lines)</option>
+                       <option value="minimal">Minimal (Thin)</option>
+                       <option value="solid">Solid (Bold)</option>
+                       <option value="none">None</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Primary Accent Color</label>
+                    <div className="flex gap-2">
+                      <input type="color" name="testimPrimaryColor" value={settings.testimPrimaryColor || settings.primaryColor || '#1e40af'} onChange={handleInputChange} className="h-10 w-16 p-1 border border-gray-300 rounded cursor-pointer" />
+                      <button type="button" onClick={() => setSettings(prev => ({...prev, testimPrimaryColor: ''}))} className="text-xs text-blue-600 underline">Use Theme Default</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Secondary Accent Color</label>
+                    <div className="flex gap-2">
+                      <input type="color" name="testimSecondaryColor" value={settings.testimSecondaryColor || settings.secondaryColor || '#3b82f6'} onChange={handleInputChange} className="h-10 w-16 p-1 border border-gray-300 rounded cursor-pointer" />
+                      <button type="button" onClick={() => setSettings(prev => ({...prev, testimSecondaryColor: ''}))} className="text-xs text-blue-600 underline">Use Theme Default</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4 border-t border-gray-100">
+                <button onClick={handleSaveSettings} disabled={saving} className="px-8 py-3 bg-primary text-white rounded-xl font-bold hover:brightness-90 disabled:bg-gray-400 transition-all shadow-lg flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  {saving ? 'Saving...' : 'Save Document Settings'}
                 </button>
               </div>
             </div>

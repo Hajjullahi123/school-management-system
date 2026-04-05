@@ -101,7 +101,9 @@ router.put('/', authenticate, async (req, res) => {
     staffExpectedArrivalTime, enableStaffAttendanceReport, staffClockInDeadline,
     staffClockInMode, authorizedIP,
     weekendDays,
-    reportFontFamily, reportColorScheme, showPositionOnReport, showFeesOnReport, reportLayout
+    reportFontFamily, reportColorScheme, showPositionOnReport, showFeesOnReport, reportLayout,
+    certFontFamily, certBorderType, certPrimaryColor, certSecondaryColor,
+    testimFontFamily, testimBorderType, testimPrimaryColor, testimSecondaryColor
   } = req.body;
 
   // Validate weightings if provided
@@ -202,6 +204,18 @@ router.put('/', authenticate, async (req, res) => {
     if (showPositionOnReport !== undefined) updateData.showPositionOnReport = !!showPositionOnReport;
     if (showFeesOnReport !== undefined) updateData.showFeesOnReport = !!showFeesOnReport;
     if (reportLayout !== undefined) updateData.reportLayout = reportLayout;
+
+    // Document Customization (Certificates)
+    if (certFontFamily !== undefined) updateData.certFontFamily = certFontFamily;
+    if (certBorderType !== undefined) updateData.certBorderType = certBorderType;
+    if (certPrimaryColor !== undefined) updateData.certPrimaryColor = certPrimaryColor;
+    if (certSecondaryColor !== undefined) updateData.certSecondaryColor = certSecondaryColor;
+
+    // Document Customization (Testimonials)
+    if (testimFontFamily !== undefined) updateData.testimFontFamily = testimFontFamily;
+    if (testimBorderType !== undefined) updateData.testimBorderType = testimBorderType;
+    if (testimPrimaryColor !== undefined) updateData.testimPrimaryColor = testimPrimaryColor;
+    if (testimSecondaryColor !== undefined) updateData.testimSecondaryColor = testimSecondaryColor;
 
     // Automatically complete setup if basic info is provided
     if (schoolName && schoolAddress && schoolPhone) {

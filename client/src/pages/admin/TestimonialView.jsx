@@ -152,6 +152,25 @@ const TestimonialView = () => {
     day: 'numeric'
   });
 
+  const primaryCol = testimonial.school?.testimPrimaryColor || testimonial.school?.primaryColor || '#1e40af';
+  const secondaryCol = testimonial.school?.testimSecondaryColor || testimonial.school?.secondaryColor || '#3b82f6';
+  
+  const getBorderStyle = (type, primary, secondary) => {
+    switch (type) {
+      case 'modern':
+        return \`15px solid \${primary || '#3b82f6'}\`;
+      case 'minimal':
+        return \`4px solid \${primary || '#1e40af'}\`;
+      case 'solid':
+        return \`30px solid \${primary || '#1e40af'}\`;
+      case 'none':
+        return 'none';
+      case 'ornate':
+      default:
+        return \`16px double \${primary || '#1e40af'}\`;
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Action Buttons */}
@@ -190,12 +209,13 @@ const TestimonialView = () => {
           minWidth: '210mm',
           height: '297mm',
           padding: '15mm',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          fontFamily: testimonial.school?.testimFontFamily || 'sans-serif'
         }}
       >
-        {/* Ornate Border */}
-        <div className="absolute inset-0 border-[16px] border-double pointer-events-none z-20" style={{ borderColor: testimonial.school?.primaryColor || '#1e40af', opacity: 0.15 }}></div>
-        <div className="absolute inset-4 border border-gray-200 pointer-events-none z-20"></div>
+        {/* Border */}
+        <div className="absolute inset-0 pointer-events-none z-20" style={{ border: getBorderStyle(testimonial.school?.testimBorderType, primaryCol, secondaryCol), opacity: testimonial.school?.testimBorderType === 'ornate' ? 0.15 : 0.9 }}></div>
+        <div className="absolute inset-4 border border-gray-200 pointer-events-none z-20" style={{ display: testimonial.school?.testimBorderType === 'none' ? 'none' : 'block' }}></div>
 
         {/* Security Watermark */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] rotate-[-45deg] select-none z-0">
@@ -218,7 +238,7 @@ const TestimonialView = () => {
                 <Shield size={40} className="text-gray-200" />
               </div>
             )}
-            <h1 className="text-4xl font-serif font-black tracking-tight mb-3 uppercase" style={{ color: testimonial.school?.primaryColor || '#1e40af' }}>
+            <h1 className="text-4xl font-serif font-black tracking-tight mb-3 uppercase" style={{ color: primaryCol }}>
               {testimonial.school?.name}
             </h1>
             <p className="text-sm font-medium text-gray-500 uppercase tracking-[0.2em]">
@@ -230,7 +250,7 @@ const TestimonialView = () => {
 
           {/* Document Title */}
           <div className="mb-8">
-            <h2 className="text-4xl font-serif italic font-bold mb-4" style={{ color: testimonial.school?.primaryColor || '#1e40af' }}>
+            <h2 className="text-4xl font-serif italic font-bold mb-4" style={{ color: primaryCol }}>
               Student Testimonial
             </h2>
             <div className="inline-block px-4 py-1 bg-gray-50 border border-gray-200 rounded text-xs font-mono text-gray-500">
@@ -396,7 +416,6 @@ const TestimonialView = () => {
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&display=swap');
         
         .testimonial-paper {
-          font-family: 'Playfair Display', serif;
           background-color: #fff;
           background-image: radial-gradient(#f0f0f0 1px, transparent 1px);
           background-size: 40px 40px;

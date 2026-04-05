@@ -114,9 +114,31 @@ const BulkCertificateView = () => {
           const verificationUrl = `${window.location.origin}/verify/certificate/${cert.certificateNumber}`;
           const displayPhotoUrl = cert.passportUrl || cert.student?.user?.photoUrl || cert.student?.photoUrl;
 
+          const primaryCol = cert.school?.certPrimaryColor || cert.school?.primaryColor || '#1e40af';
+          const secondaryCol = cert.school?.certSecondaryColor || cert.school?.secondaryColor || '#3b82f6';
+
+          const getBorderStyle = (type, primary, secondary) => {
+            switch (type) {
+              case 'modern':
+                return { border: `15px solid ${primary || '#3b82f6'}`, outline: `2px solid ${secondary || '#1e40af'}`, outlineOffset: '-25px' };
+              case 'minimal':
+                return { border: `4px solid ${primary || '#1e40af'}`, outline: '1px solid #ccc', outlineOffset: '-10px' };
+              case 'solid':
+                return { border: `30px solid ${primary || '#1e40af'}` };
+              case 'none':
+                return {};
+              case 'ornate':
+              default:
+                return {
+                  border: '15px solid',
+                  borderImage: `linear-gradient(45deg, ${primary || '#d4af37'}, ${secondary || '#f4d03f'}) 1`
+                };
+            }
+          };
+
           return (
-            <div key={cert.id} className="certificate-page bg-white p-0 m-0 relative mx-auto my-4 shadow-xl md:shadow-none" style={{ width: '297mm', minWidth: '297mm', height: '210mm', overflow: 'hidden' }}>
-              <div className="absolute inset-0 m-[10mm]" style={{ border: '15px solid', borderImage: 'linear-gradient(45deg, #d4af37, #f4d03f) 1' }}>
+            <div key={cert.id} className="certificate-page bg-white p-0 m-0 relative mx-auto my-4 shadow-xl md:shadow-none" style={{ width: '297mm', minWidth: '297mm', height: '210mm', overflow: 'hidden', fontFamily: cert.school?.certFontFamily || 'serif' }}>
+              <div className="absolute inset-0 m-[10mm]" style={{ ...getBorderStyle(cert.school?.certBorderType, primaryCol, secondaryCol) }}>
                 {/* Watermark */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none"
                   style={{ fontSize: '100px', fontWeight: 'bold', transform: 'rotate(-45deg)' }}>
@@ -139,7 +161,7 @@ const BulkCertificateView = () => {
                       )}
                     </div>
 
-                    <h1 className="text-2xl font-bold mb-1 pt-2 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" style={{ color: cert.school?.primaryColor || '#1e40af' }} contentEditable suppressContentEditableWarning>
+                    <h1 className="text-2xl font-bold mb-1 pt-2 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" style={{ color: primaryCol }} contentEditable suppressContentEditableWarning>
                       {cert.school?.name}
                     </h1>
                     <p className="text-gray-600 text-xs outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>{cert.school?.address}</p>
@@ -162,7 +184,7 @@ const BulkCertificateView = () => {
                     <p className="text-lg mb-2 text-gray-700 max-w-3xl mx-auto leading-tight outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" contentEditable suppressContentEditableWarning>
                       {cert.content || 'has successfully completed the academic program and is hereby awarded this'}
                     </p>
-                    <p className="text-xl font-semibold mb-2 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" style={{ color: cert.school?.primaryColor || '#1e40af' }} contentEditable suppressContentEditableWarning>
+                    <p className="text-xl font-semibold mb-2 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" style={{ color: primaryCol }} contentEditable suppressContentEditableWarning>
                       {cert.programType || 'Certificate of Graduation'}
                     </p>
                     <div className="text-base text-gray-700">

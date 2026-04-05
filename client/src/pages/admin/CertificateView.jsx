@@ -218,8 +218,29 @@ const CertificateView = () => {
 
   const studentName = `${certificate.student?.user?.firstName || ''} ${certificate.student?.user?.lastName || ''} ${certificate.student?.middleName || ''}`.trim();
   const verificationUrl = `${window.location.origin}/verify/certificate/${certificate.certificateNumber}`;
-  // Prefer certificate-specific photo, then student photo
   const displayPhotoUrl = certificate.passportUrl || certificate.student?.user?.photoUrl || certificate.student?.photoUrl;
+
+  const getBorderStyle = (type, primary, secondary) => {
+    switch (type) {
+      case 'modern':
+        return { border: `15px solid ${primary || '#3b82f6'}`, outline: `2px solid ${secondary || '#1e40af'}`, outlineOffset: '-25px' };
+      case 'minimal':
+        return { border: `4px solid ${primary || '#1e40af'}`, outline: '1px solid #ccc', outlineOffset: '-10px' };
+      case 'solid':
+        return { border: `30px solid ${primary || '#1e40af'}` };
+      case 'none':
+        return {};
+      case 'ornate':
+      default:
+        return {
+          border: '20px solid',
+          borderImage: `linear-gradient(45deg, ${primary || '#d4af37'}, ${secondary || '#f4d03f'}) 1`
+        };
+    }
+  };
+
+  const primaryCol = certificate.school?.certPrimaryColor || certificate.school?.primaryColor || '#1e40af';
+  const secondaryCol = certificate.school?.certSecondaryColor || certificate.school?.secondaryColor || '#3b82f6';
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -275,8 +296,8 @@ const CertificateView = () => {
           width: '297mm',
           minWidth: '297mm',
           height: '210mm',
-          border: '20px solid',
-          borderImage: 'linear-gradient(45deg, #d4af37, #f4d03f) 1',
+          fontFamily: certificate.school?.certFontFamily || 'serif',
+          ...getBorderStyle(certificate.school?.certBorderType, primaryCol, secondaryCol)
         }}
       >
         {/* Watermark */}
@@ -330,7 +351,7 @@ const CertificateView = () => {
               </div>
             </div>
 
-            <h1 className="text-3xl font-bold mb-1 pt-1 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" style={{ color: certificate.school?.primaryColor || '#1e40af' }} contentEditable suppressContentEditableWarning>
+            <h1 className="text-3xl font-bold mb-1 pt-1 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" style={{ color: primaryCol }} contentEditable suppressContentEditableWarning>
               {certificate.school?.name}
             </h1>
             {certificate.school?.address && (
@@ -377,11 +398,11 @@ const CertificateView = () => {
                   onChange={(e) => setFormData({ ...formData, programType: e.target.value })}
                   className="text-2xl font-semibold text-center border rounded p-1"
                   placeholder="Graduation Level (e.g. Primary School)"
-                  style={{ color: certificate.school?.primaryColor || '#1e40af' }}
+                  style={{ color: primaryCol }}
                 />
               </div>
             ) : (
-              <p className="text-2xl font-semibold mb-3 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" style={{ color: certificate.school?.primaryColor || '#1e40af' }} contentEditable suppressContentEditableWarning>
+              <p className="text-2xl font-semibold mb-3 outline-none hover:bg-gray-50 focus:bg-gray-50 rounded" style={{ color: primaryCol }} contentEditable suppressContentEditableWarning>
                 {formData.programType || 'Certificate of Graduation'}
               </p>
             )}

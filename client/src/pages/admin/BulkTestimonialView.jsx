@@ -39,7 +39,6 @@ const BulkTestimonialView = () => {
     contentRef: componentRef,
     documentTitle: `Bulk_Testimonials_${year}`,
     pageStyle: `
-            @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&display=swap');
             @page {
                 size: A4;
                 margin: 0;
@@ -119,11 +118,30 @@ const BulkTestimonialView = () => {
             day: 'numeric'
           });
 
+          const primaryCol = testimonial.school?.testimPrimaryColor || testimonial.school?.primaryColor || '#1e40af';
+          const secondaryCol = testimonial.school?.testimSecondaryColor || testimonial.school?.secondaryColor || '#3b82f6';
+          
+          const getBorderStyle = (type, primary, secondary) => {
+            switch (type) {
+              case 'modern':
+                return `15px solid ${primary || '#3b82f6'}`;
+              case 'minimal':
+                return `4px solid ${primary || '#1e40af'}`;
+              case 'solid':
+                return `30px solid ${primary || '#1e40af'}`;
+              case 'none':
+                return 'none';
+              case 'ornate':
+              default:
+                return `16px double ${primary || '#1e40af'}`;
+            }
+          };
+
           return (
-            <div key={testimonial.id} className="testimonial-page bg-white relative overflow-hidden mx-auto my-4 shadow-xl md:shadow-none" style={{ width: '210mm', minWidth: '210mm', height: '297mm', padding: '20mm', fontFamily: "'Playfair Display', serif" }}>
-              {/* Ornate Border */}
-              <div className="absolute inset-0 border-[16px] border-double pointer-events-none z-20" style={{ borderColor: testimonial.school?.primaryColor || '#1e40af', opacity: 0.15 }}></div>
-              <div className="absolute inset-4 border border-gray-200 pointer-events-none z-20"></div>
+            <div key={testimonial.id} className="testimonial-page bg-white relative overflow-hidden mx-auto my-4 shadow-xl md:shadow-none" style={{ width: '210mm', minWidth: '210mm', height: '297mm', padding: '20mm', fontFamily: testimonial.school?.testimFontFamily || 'sans-serif' }}>
+              {/* Border */}
+              <div className="absolute inset-0 pointer-events-none z-20" style={{ border: getBorderStyle(testimonial.school?.testimBorderType, primaryCol, secondaryCol), opacity: testimonial.school?.testimBorderType === 'ornate' ? 0.15 : 0.9 }}></div>
+              <div className="absolute inset-4 border border-gray-200 pointer-events-none z-20" style={{ display: testimonial.school?.testimBorderType === 'none' ? 'none' : 'block' }}></div>
 
               {/* Security Watermark */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] rotate-[-45deg] select-none z-0">
@@ -136,7 +154,7 @@ const BulkTestimonialView = () => {
                   {testimonial.school?.logoUrl && (
                     <img src={testimonial.school.logoUrl.startsWith('data:') || testimonial.school.logoUrl.startsWith('http') ? testimonial.school.logoUrl : `${API_BASE_URL}${testimonial.school.logoUrl}`} alt="Logo" className="h-20 mx-auto mb-4 object-contain" />
                   )}
-                  <h1 className="text-3xl font-black tracking-tight mb-2 uppercase" style={{ color: testimonial.school?.primaryColor || '#1e40af' }}>
+                  <h1 className="text-3xl font-black tracking-tight mb-2 uppercase" style={{ color: primaryCol }}>
                     {testimonial.school?.name}
                   </h1>
                   <p className="text-[10px] font-medium text-gray-500 uppercase tracking-widest">
@@ -148,7 +166,7 @@ const BulkTestimonialView = () => {
 
                 {/* Document Title */}
                 <div className="mb-10">
-                  <h2 className="text-4xl italic font-bold mb-4" style={{ color: testimonial.school?.primaryColor || '#1e40af' }}>
+                  <h2 className="text-4xl italic font-bold mb-4" style={{ color: primaryCol }}>
                     Student Testimonial
                   </h2>
                   <div className="inline-block px-3 py-1 bg-gray-50 border border-gray-100 rounded text-[9px] font-mono text-gray-400">
@@ -215,7 +233,6 @@ const BulkTestimonialView = () => {
       </div>
 
       <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&display=swap');
                 @media print {
                     body { margin: 0; padding: 0; }
                     .no-print { display: none !important; }
