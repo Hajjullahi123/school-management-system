@@ -496,13 +496,13 @@ const Settings = () => {
               Staff Attendance
             </button>
             <button
-              onClick={() => setActiveTab('reportCustomization')}
-              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'reportCustomization'
+              onClick={() => setActiveTab('documents')}
+              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'documents'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
-              📄 Report Customization
+              📄 Document Styling
             </button>
           </nav>
         </div>
@@ -1718,8 +1718,8 @@ const Settings = () => {
             </div>
           )}
 
-          {/* Report Customization Tab */}
-          {activeTab === 'reportCustomization' && (
+          {/* Document Styling Tab */}
+          {activeTab === 'documents' && (
             <div className="space-y-8">
               <div className="flex items-center gap-4 border-b border-gray-100 pb-4">
                 <div className="p-3 bg-gradient-to-br from-violet-100 to-indigo-100 text-violet-600 rounded-xl">
@@ -2017,24 +2017,18 @@ const Settings = () => {
                 </div>
               </div>
 
-              {/* Save Button */}
-              <div className="flex justify-end pt-4 border-t border-gray-100">
-                <button
-                  onClick={handleSaveSettings}
-                  disabled={saving}
-                  className="px-8 py-3 bg-primary text-white rounded-xl font-bold hover:brightness-90 disabled:bg-gray-400 transition-all shadow-lg flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <div className="h-px bg-gray-200 my-8"></div>
+              <div className="flex items-center gap-4 border-b border-gray-100 pb-4">
+                <div className="p-3 bg-gradient-to-br from-yellow-100 to-amber-100 text-yellow-600 rounded-xl">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  {saving ? 'Saving...' : 'Save Report Settings'}
-                </button>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Certificate & Testimonial Customization</h3>
+                  <p className="text-sm text-gray-500">Configure visual themes, styles, and designs for official student credentials</p>
+                </div>
               </div>
-            </div>
-          )}
-
-          {activeTab === 'documents' && (
-            <div className="space-y-8">
               <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Certificate Styling</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

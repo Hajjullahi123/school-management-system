@@ -158,16 +158,16 @@ const TestimonialView = () => {
   const getBorderStyle = (type, primary, secondary) => {
     switch (type) {
       case 'modern':
-        return \`15px solid \${primary || '#3b82f6'}\`;
+        return `15px solid ${primary || '#3b82f6'}`;
       case 'minimal':
-        return \`4px solid \${primary || '#1e40af'}\`;
+        return `4px solid ${primary || '#1e40af'}`;
       case 'solid':
-        return \`30px solid \${primary || '#1e40af'}\`;
+        return `30px solid ${primary || '#1e40af'}`;
       case 'none':
         return 'none';
       case 'ornate':
       default:
-        return \`16px double \${primary || '#1e40af'}\`;
+        return `16px double ${primary || '#1e40af'}`;
     }
   };
 
