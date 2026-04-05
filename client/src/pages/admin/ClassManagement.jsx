@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../../api';
+import { Link } from 'react-router-dom';
 
 const ClassManagement = () => {
   const [classes, setClasses] = useState([]);
@@ -13,11 +14,81 @@ const ClassManagement = () => {
   const [terms, setTerms] = useState([]);
   const [selectedTermId, setSelectedTermId] = useState('');
 
+  // Grading Modal State
+  const [gradingStudent, setGradingStudent] = useState(null);
+  const [remarks, setRemarks] = useState({ formMasterRemark: '', principalRemark: '' });
+  const [psychomotorRatings, setPsychomotorRatings] = useState([]);
+  const [domains, setDomains] = useState([]);
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     fetchClasses();
     fetchTeachers();
     fetchTerms();
+    fetchDomains();
   }, []);
+
+  const fetchDomains = async () => {
+    try {
+      const res = await api.get('/api/report-extras/domains');
+      if (res.ok) {
+        const data = await res.json();
+        setDomains(Array.isArray(data) ? data : []);
+      }
+    } catch (e) { console.error("Failed to fetch domains", e); }
+  };
+
+  const openGradingModal = async (student) => {
+    if (!selectedTermId) {
+      alert("Please select a term first from the top right.");
+      return;
+    }
+    setGradingStudent(student);
+    setRemarks({ formMasterRemark: '', principalRemark: '' });
+    setPsychomotorRatings([]);
+
+    try {
+      const res = await api.get(`/api/report-extras/${student.id}/${selectedTermId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setRemarks({
+          formMasterRemark: data.formMasterRemark || '',
+          principalRemark: data.principalRemark || ''
+        });
+        setPsychomotorRatings(Array.isArray(data.psychomotorRatings) ? data.psychomotorRatings : []);
+      }
+    } catch (e) {
+      console.error("Error fetching report details", e);
+    }
+  };
+
+  const saveGrading = async () => {
+    if (!gradingStudent || !selectedTermId || !selectedClass) return;
+    setSaving(true);
+    try {
+      const payload = {
+        studentId: gradingStudent.id,
+        termId: selectedTermId,
+        classId: selectedClass.id,
+        formMasterRemark: remarks.formMasterRemark,
+        principalRemark: remarks.principalRemark,
+        psychomotorRatings
+      };
+
+      const res = await api.post('/api/report-extras/save', payload);
+      if (res.ok) {
+        alert("Saved successfully!");
+        setGradingStudent(null);
+      } else {
+        alert("Failed to save. Ensure you have the right permissions.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error saving.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const fetchTerms = async () => {
     try {
@@ -433,6 +504,109 @@ const ClassManagement = () => {
   // Detail view - Students in selected class
   return (
     <div className="space-y-6">
+      {/* Grading Modal */}
+      {gradingStudent && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b flex justify-between items-center">
+              <h3 className="text-xl font-bold">Grading & Remarks: {gradingStudent.user?.firstName} {gradingStudent.user?.lastName}</h3>
+              <button
+                onClick={() => setGradingStudent(null)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Remarks Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Form Master's Remark</label>
+                  <textarea
+                    value={remarks.formMasterRemark}
+                    onChange={(e) => setRemarks({ ...remarks, formMasterRemark: e.target.value })}
+                    className="w-full border rounded-md p-2 h-24"
+                    placeholder="Teacher's impression..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Principal's Remark (On Behalf)</label>
+                  <textarea
+                    value={remarks.principalRemark}
+                    onChange={(e) => setRemarks({ ...remarks, principalRemark: e.target.value })}
+                    className="w-full border rounded-md p-2 h-24"
+                    placeholder="Headteacher's remark..."
+                  />
+                </div>
+              </div>
+
+              {/* Psychomotor Domain Section */}
+              <div>
+                <h4 className="font-semibold text-lg mb-4 border-b pb-2">Psychomotor Domain & Affective Assessment</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {domains.length === 0 ? (
+                    <div className="col-span-full text-center p-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                      <p className="text-gray-500">No assessment domains configured.</p>
+                      <p className="text-sm text-gray-400 mt-1">Please ask the administrator to run the psychomotor seed script.</p>
+                    </div>
+                  ) : (
+                    (Array.isArray(domains) ? domains : []).map(domain => {
+                      const rating = psychomotorRatings.find(r => r.domainId === domain.id) || { score: 0 };
+                      return (
+                        <div key={domain.id} className="bg-gray-50 p-4 rounded-md">
+                          <div className="flex justify-between mb-2">
+                            <span className="font-medium text-sm">{domain.name}</span>
+                            <span className="text-sm font-bold text-primary">{rating.score}/{domain.maxScore}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="1"
+                            max={domain.maxScore}
+                            value={rating.score || 0}
+                            onChange={(e) => {
+                              const newScore = parseInt(e.target.value);
+                              setPsychomotorRatings(prev => {
+                                const existing = prev.find(p => p.domainId === domain.id);
+                                if (existing) {
+                                  return prev.map(p => p.domainId === domain.id ? { ...p, score: newScore } : p);
+                                } else {
+                                  return [...prev, { domainId: domain.id, name: domain.name, score: newScore }];
+                                }
+                              });
+                            }}
+                            className="w-full"
+                          />
+                          <div className="flex justify-between text-xs text-gray-400 px-1 mt-1">
+                            <span>1 (Poor)</span>
+                            <span>{domain.maxScore} (Excellent)</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
+              <button
+                onClick={() => setGradingStudent(null)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-md"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveGrading}
+                disabled={saving}
+                className="px-6 py-2 bg-primary text-white rounded-md hover:brightness-90 disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : 'Save Grading'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header with back button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -591,6 +765,9 @@ const ClassManagement = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date of Birth
                     </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -623,6 +800,28 @@ const ClassManagement = () => {
                         <div className="text-sm text-gray-900">
                           {student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : 'N/A'}
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex gap-2 justify-end">
+                        <Link
+                          to={`/dashboard/term-report?studentId=${student.id}&termId=${selectedTermId || ''}`}
+                          className="text-blue-600 border border-blue-200 hover:bg-blue-50 px-3 py-1 rounded-md transition-colors"
+                          target="_blank"
+                        >
+                          Term Report
+                        </Link>
+                        <Link
+                          to={`/dashboard/report-card?studentId=${student.id}`}
+                          className="text-purple-600 border border-purple-200 hover:bg-purple-50 px-3 py-1 rounded-md transition-colors"
+                          target="_blank"
+                        >
+                          Cum. Report
+                        </Link>
+                        <button
+                          onClick={() => openGradingModal(student)}
+                          className="text-white bg-primary hover:bg-primary/90 px-3 py-1 rounded-md transition-colors"
+                        >
+                          Grade & Remark
+                        </button>
                       </td>
                     </tr>
                   ))}

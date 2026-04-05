@@ -117,7 +117,7 @@ router.get('/:studentId/:termId', authenticate, async (req, res) => {
 });
 
 // Save remarks/psychomotor
-router.post('/save', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+router.post('/save', authenticate, authorize(['admin', 'teacher', 'principal']), async (req, res) => {
   try {
     const {
       studentId,
