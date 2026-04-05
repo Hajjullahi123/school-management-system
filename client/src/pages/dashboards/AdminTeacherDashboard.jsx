@@ -150,7 +150,7 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
       </div>
 
       {/* Grid Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-blue-50 p-5 rounded-xl shadow-sm border border-blue-100">
           <p className="text-[11px] font-black text-blue-600 uppercase tracking-widest mb-1">Total Enrollment</p>
           <p className="text-2xl font-black text-blue-900">{teacherStats?.totalStudents || 0}</p>
@@ -164,6 +164,7 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
             <p className="text-[11px] font-black text-teal-600 uppercase tracking-widest mb-1">Registered Subjects</p>
             <p className="text-2xl font-black text-teal-900">{totalSubjectsCount || 0}</p>
           </div>
+        )}
       </div>
 
       {/* Notices */}
