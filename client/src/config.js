@@ -14,15 +14,17 @@ const PRODUCTION_URL = 'https://school-management-system-bkat.onrender.com';
 
 const isElectron = window.navigator.userAgent.toLowerCase().includes('electron') || window.location.origin.includes('file://');
 
+const CURRENT_LOCAL_IP = '192.168.43.66';
+
 export const API_BASE_URL = isProduction
   ? (isElectron 
     ? 'http://localhost:5115'
     : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.origin.includes('capacitor://')
       ? PRODUCTION_URL
       : window.location.origin))
-  : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^(\d{1,3}\.){3}\d{1,3}$/.test(window.location.hostname)
+  : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? (currentPort !== '5115' ? `http://${window.location.hostname}:5115` : window.location.origin)
-    : window.location.origin);
+    : `http://${CURRENT_LOCAL_IP}:5115`);
 
 
 export const CLIENT_URL = window.location.origin;
