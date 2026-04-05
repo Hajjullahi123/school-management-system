@@ -4,6 +4,25 @@ import { api, API_BASE_URL } from '../../api';
 
 import DocumentUploader from '../../components/DocumentUploader';
 
+const getBorderStyle = (type, primary, secondary) => {
+  switch (type) {
+    case 'modern':
+      return { border: `8px solid ${primary || '#3b82f6'}`, outline: `1px solid ${secondary || '#1e40af'}`, outlineOffset: '-12px' };
+    case 'minimal':
+      return { border: `2px solid ${primary || '#1e40af'}`, outline: '0.5px solid #ccc', outlineOffset: '-6px' };
+    case 'solid':
+      return { border: `12px solid ${primary || '#1e40af'}` };
+    case 'none':
+      return {};
+    case 'ornate':
+    default:
+      return {
+        border: '10px solid',
+        borderImage: `linear-gradient(45deg, ${primary || '#d4af37'}, ${secondary || '#f4d03f'}) 1`
+      };
+  }
+};
+
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('branding');
   const [settings, setSettings] = useState({
@@ -2029,9 +2048,10 @@ const Settings = () => {
                   <p className="text-sm text-gray-500">Configure visual themes, styles, and designs for official student credentials</p>
                 </div>
               </div>
-              <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Certificate Styling</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col xl:flex-row gap-6">
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Certificate Styling</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Font Family</label>
                     <select name="certFontFamily" value={settings.certFontFamily || 'serif'} onChange={handleInputChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
@@ -2065,11 +2085,31 @@ const Settings = () => {
                     </div>
                   </div>
                 </div>
+                </div>
+                {/* Certificate Live Preview */}
+                <div className="xl:w-64 bg-gray-50 flex items-center justify-center p-4 border border-gray-200 rounded-lg shrink-0 flex-col">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Live Preview</span>
+                  <div
+                    className="bg-white shadow w-full flex items-center justify-center pt-8 pb-4"
+                    style={{
+                      aspectRatio: '1.414',
+                      fontFamily: settings.certFontFamily || 'serif',
+                      ...getBorderStyle(settings.certBorderType, settings.certPrimaryColor || settings.primaryColor, settings.certSecondaryColor || settings.secondaryColor)
+                    }}
+                  >
+                    <div className="text-center px-4">
+                      <h4 className="font-black text-[12px] leading-tight mb-2" style={{ color: settings.certPrimaryColor || settings.primaryColor || '#1e40af' }}>CERTIFICATE<br/>OF COMPLETION</h4>
+                      <p className="text-[6px] text-gray-600 mb-1 italic">This is to certify that</p>
+                      <p className="text-[8px] font-bold border-b border-black/20 pb-0.5 inline-block min-w-[80px]">Student Name</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Testimonial Styling</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col xl:flex-row gap-6">
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Testimonial Styling</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Font Family</label>
                     <select name="testimFontFamily" value={settings.testimFontFamily || 'sans-serif'} onChange={handleInputChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
@@ -2103,6 +2143,24 @@ const Settings = () => {
                     </div>
                   </div>
                 </div>
+                </div>
+                {/* Testimonial Live Preview */}
+                <div className="xl:w-64 bg-gray-50 flex items-center justify-center p-4 border border-gray-200 rounded-lg shrink-0 flex-col">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Live Preview</span>
+                  <div
+                    className="bg-white shadow w-full flex items-center pt-6 px-4"
+                    style={{
+                      aspectRatio: '1 / 1.414',
+                      fontFamily: settings.testimFontFamily || 'sans-serif',
+                      ...getBorderStyle(settings.testimBorderType, settings.testimPrimaryColor || settings.primaryColor, settings.testimSecondaryColor || settings.secondaryColor)
+                    }}
+                  >
+                    <div className="text-center w-full">
+                      <h4 className="font-black text-[10px] uppercase mb-2 border-b-2 inline-block" style={{ color: settings.testimPrimaryColor || settings.primaryColor || '#1e40af', borderColor: settings.testimPrimaryColor || settings.primaryColor || '#1e40af' }}>TESTIMONIAL</h4>
+                      <p className="text-[6px] text-gray-600 text-left mt-2">This is to attest that <span className="font-bold text-gray-800">Student Name</span> has been a student...</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end pt-4 border-t border-gray-100">
@@ -2117,8 +2175,8 @@ const Settings = () => {
           {/* System Settings Tab */}
 
         </div>
-      </div >
-    </div >
+      </div>
+    </div>
   );
 };
 
