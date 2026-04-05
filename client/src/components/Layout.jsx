@@ -1277,7 +1277,7 @@ const Layout = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-white/20 space-y-2 pb-24 lg:pb-4">
+        <div className="p-4 border-t border-white/20 space-y-2 pb-2 sm:pb-4">
           {/* Change Password - Available to ALL users */}
           <Link
             to="/dashboard/change-password"

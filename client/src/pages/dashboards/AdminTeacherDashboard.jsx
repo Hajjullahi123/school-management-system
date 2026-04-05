@@ -164,14 +164,6 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
             <p className="text-[11px] font-black text-teal-600 uppercase tracking-widest mb-1">Registered Subjects</p>
             <p className="text-2xl font-black text-teal-900">{totalSubjectsCount || 0}</p>
           </div>
-        )}
-        {user?.role === 'admin' && (
-          <div className="bg-pink-50 p-5 rounded-xl shadow-sm border border-pink-100">
-            <p className="text-[11px] font-black text-pink-600 uppercase tracking-widest mb-1">Registered Alumni</p>
-            <p className="text-2xl font-black text-pink-900">{alumniCount || 0}</p>
-          </div>
-        )}
-        )}
       </div>
 
       {/* Notices */}
@@ -196,10 +188,10 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
         <div className="space-y-4">
           <StaffAttendanceWidget />
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Academic Pipelines</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Assigned Subjects</h3>
             <div className="space-y-2">
               {teacherAssignments.slice(0, 4).map(a => (
-                <Link key={a.id} to={`/dashboard/result-entry?classId=${a.classId}&subjectId=${a.subjectId}`} className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <Link key={a.id} to={`/dashboard/result-entry?classId=${a.classId}&subjectId=${a.subjectId}`} className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors relative z-10">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-gray-900">{a.className} - {a.subjectName}</span>
                     <span className="text-[9px] font-black text-primary uppercase">{Math.round((a.protocolCount / a.totalStudents) * 100)}%</span>
