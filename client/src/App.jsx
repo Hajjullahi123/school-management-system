@@ -104,6 +104,8 @@ const StudentNotes = lazyRetry(() => import('./pages/student/StudentNotes'));
 const TranscriptView = lazyRetry(() => import('./pages/admin/TranscriptView'));
 const CertificateView = lazyRetry(() => import('./pages/admin/CertificateView'));
 const TestimonialView = lazyRetry(() => import('./pages/admin/TestimonialView'));
+const DocumentBranding = lazyRetry(() => import('./pages/admin/DocumentBranding'));
+const StaffAttendanceConfig = lazyRetry(() => import('./pages/admin/StaffAttendanceConfig'));
 const BulkCertificateView = lazyRetry(() => import('./pages/admin/BulkCertificateView'));
 const BulkTestimonialView = lazyRetry(() => import('./pages/admin/BulkTestimonialView'));
 const HistoryBulkCertificateView = lazyRetry(() => import('./pages/admin/HistoryBulkCertificateView'));
@@ -266,6 +268,11 @@ function App() {
                   <StaffAttendanceReport />
                 </ProtectedRoute>
               } />
+              <Route path="attendance-rules" element={
+                <ProtectedRoute roles={['admin', 'principal', 'attendance_admin']}>
+                  <StaffAttendanceConfig />
+                </ProtectedRoute>
+              } />
               <Route path="teacher/messages" element={
                 <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
                   <TeacherMessages />
@@ -318,9 +325,14 @@ function App() {
                   <QuranProgress />
                 </ProtectedRoute>
               } />
-              <Route path="id-card" element={
-                <ProtectedRoute roles={['admin', 'teacher', 'student', 'examination_officer']}>
+              <Route path="id-cards" element={
+                <ProtectedRoute roles={['admin', 'teacher', 'examination_officer']}>
                   <IDCardGenerator />
+                </ProtectedRoute>
+              } />
+              <Route path="document-branding" element={
+                <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
+                  <DocumentBranding />
                 </ProtectedRoute>
               } />
               <Route path="profile" element={
