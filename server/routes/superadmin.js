@@ -702,4 +702,72 @@ router.post('/global-settings', authenticate, authorize(['superadmin']), async (
   }
 });
 
+/**
+ * @route   GET /api/superadmin/audit
+ * @desc    Get global audit logs for all schools
+ * @access  SuperAdmin only
+ */
+router.get('/audit', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    const { schoolId, action, resource, startDate, endDate, limit = 50, offset = 0 } = req.query;
+
+    const where = {};
+    if (schoolId) where.schoolId = parseInt(schoolId);
+    if (action) where.action = action;
+    if (resource) where.resource = resource;
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
+
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        include: {
+          school: {
+            select: { name: true, slug: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: parseInt(limit),
+        skip: parseInt(offset)
+      }),
+      prisma.auditLog.count({ where })
+    ]);
+
+    // Enrich with user details
+    const userIds = [...new Set(logs.map(log => log.userId).filter(Boolean))];
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, firstName: true, lastName: true, username: true, role: true }
+    });
+
+    const userMap = users.reduce((acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    }, {});
+
+    const enrichedLogs = logs.map(log => ({
+      ...log,
+      user: log.userId ? userMap[log.userId] : null
+    }));
+
+    res.json({
+      logs: enrichedLogs,
+      total,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+  } catch (error) {
+    console.error('Superadmin audit logs error:', error);
+    res.status(500).json({ error: 'Failed to fetch global audit logs' });
+  }
+});
+
 module.exports = router;

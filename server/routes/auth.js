@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../db');
 const { JWT_SECRET, authenticate } = require('../middleware/auth');
+const { logAction } = require('../utils/audit');
 
 // Identify school based on username/email/admissionNumber
 router.post('/identify', async (req, res) => {
@@ -264,7 +265,15 @@ router.post('/login', async (req, res) => {
 });
 
 // Logout endpoint
-router.post('/logout', (req, res) => {
+router.post('/logout', authenticate, (req, res) => {
+  logAction({
+    schoolId: req.schoolId || 1,
+    userId: req.user.id,
+    action: 'LOGOUT',
+    resource: 'USER',
+    details: { username: req.user.username },
+    ipAddress: req.ip
+  });
   res.clearCookie('token');
   res.json({ success: true, message: 'Logged out successfully' });
 });
@@ -312,6 +321,15 @@ router.get('/me', authenticate, async (req, res) => {
       student: user.student,
       classesAsTeacher: user.classesAsTeacher,
       photoUrl: user.photoUrl
+    });
+
+    logAction({
+      schoolId: user.schoolId || 1,
+      userId: user.id,
+      action: 'LOGIN',
+      resource: 'USER',
+      details: { username: user.username, role: user.role },
+      ipAddress: req.ip
     });
   } catch (error) {
     console.error('Me error:', error);

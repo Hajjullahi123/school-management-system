@@ -28,8 +28,11 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         test1Weight: true,
         test2Weight: true,
         examWeight: true,
+        examMode: true,
+        examModeType: true,
         principalSignatureUrl: true,
-        weekendDays: true
+        weekendDays: true,
+        showAttendanceOnReport: true
       }
     });
 
@@ -388,13 +391,13 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
           exam: schoolSettings.examWeight
         }
       },
-      attendance: {
+      attendance: schoolSettings.showAttendanceOnReport ? {
         present: presentAttendanceDays,
         absent: absentAttendanceDays,
         unmarked: unmarkedAttendanceDays > 0 ? unmarkedAttendanceDays : 0,
         total: totalAttendanceDays,
         percentage: totalAttendanceDays > 0 ? ((presentAttendanceDays / totalAttendanceDays) * 100).toFixed(1) : 0
-      },
+      } : null,
       subjects: classSubjects.map(cs => {
         const result = results.find(r => r.subjectId === cs.subjectId);
 
@@ -593,9 +596,10 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       select: {
         gradingSystem: true, passThreshold: true,
         assignment1Weight: true, assignment2Weight: true,
-        test1Weight: true, test2Weight: true, examWeight: true,
+        examWeight: true,
         principalSignatureUrl: true,
-        weekendDays: true
+        weekendDays: true,
+        showAttendanceOnReport: true
       }
     });
 
@@ -829,6 +833,14 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         parseInt(termId)
       );
 
+      const studentAttendance = schoolSettings.showAttendanceOnReport ? {
+        present: attendanceMap[student.id] || 0,
+        absent: absentMap[student.id] || 0,
+        unmarked: Math.max(0, totalAttendanceDays - (totalRecordedMap[student.id] || 0)),
+        total: totalAttendanceDays,
+        percentage: totalAttendanceDays > 0 ? (((attendanceMap[student.id] || 0) / totalAttendanceDays) * 100).toFixed(1) : 0
+      } : null;
+
       return {
         student: {
           id: student.id,
@@ -865,13 +877,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
             exam: schoolSettings.examWeight
           }
         },
-        attendance: {
-          present: presentDays,
-          absent: absentMap[student.id] || 0,
-          unmarked: Math.max(0, totalAttendanceDays - (totalRecordedMap[student.id] || 0)),
-          total: totalAttendanceDays,
-          percentage: totalAttendanceDays > 0 ? ((presentDays / totalAttendanceDays) * 100).toFixed(1) : 0
-        },
+        attendance: studentAttendance,
         subjects: classSubjects.map(cs => {
           const result = studentResults.find(r => r.subjectId === cs.subjectId);
           let t1Score = null, t2Score = null, cumulativeAvg = null;

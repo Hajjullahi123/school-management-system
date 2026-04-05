@@ -26,7 +26,8 @@ const AcademicSetup = () => {
     test1Weight: 10,
     test2Weight: 10,
     examWeight: 70,
-    weekendDays: ''
+    weekendDays: '',
+    showAttendanceOnReport: true
   });
   const [savingWeights, setSavingWeights] = useState(false);
 
@@ -57,7 +58,8 @@ const AcademicSetup = () => {
             test1Weight: settingsData.test1Weight ?? 10,
             test2Weight: settingsData.test2Weight ?? 10,
             examWeight: settingsData.examWeight ?? 70,
-            weekendDays: settingsData.weekendDays ?? ''
+            weekendDays: settingsData.weekendDays ?? '',
+            showAttendanceOnReport: settingsData.showAttendanceOnReport ?? true
           });
         }
       } catch (error) {
@@ -206,7 +208,8 @@ const AcademicSetup = () => {
         test1Weight: data.test1Weight ?? 10,
         test2Weight: data.test2Weight ?? 10,
         examWeight: data.examWeight ?? 70,
-        weekendDays: data.weekendDays ?? ''
+        weekendDays: data.weekendDays ?? '',
+        showAttendanceOnReport: data.showAttendanceOnReport ?? true
       });
     } catch (error) {
       console.error('Error fetching weights:', error);
@@ -269,6 +272,26 @@ const AcademicSetup = () => {
     }
   };
 
+  const handleReportSettingsSubmit = async (e) => {
+    e.preventDefault();
+    setSavingWeights(true);
+    try {
+      const response = await api.put('/api/settings', {
+        showAttendanceOnReport: schoolSettings.showAttendanceOnReport
+      });
+      if (response.ok) {
+        toast.success('Report customization updated successfully');
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Failed to update report settings');
+      }
+    } catch (error) {
+      toast.error('An error occurred while saving report settings');
+    } finally {
+      setSavingWeights(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Academic Setup</h1>
@@ -312,6 +335,15 @@ const AcademicSetup = () => {
                 }`}
             >
               Weekend Setup
+            </button>
+            <button
+              onClick={() => setActiveTab('reports')}
+              className={`px-6 py-3 text-sm font-medium ${activeTab === 'reports'
+                ? 'border-b-2 border-primary text-primary'
+                : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              Report Customization
             </button>
           </nav>
         </div>
@@ -807,6 +839,58 @@ const AcademicSetup = () => {
                     {savingWeights ? 'Updating Layout...' : 'Confirm School Week'}
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* REPORT CUSTOMIZATION TAB */}
+          {activeTab === 'reports' && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
+                <div className="flex">
+                  <div className="p-2 bg-blue-100 rounded-full mr-4">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m32-2v-2a4 4 0 00-4-4h-4a4 4 0 00-4 4v2m0-10V3m0 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-blue-900 mb-1">Student Report Customization</h3>
+                    <p className="text-sm text-blue-800 opacity-80">
+                      Configure what information appears on student terminal reports. 
+                      Changes applied here will affect both individual and bulk report generation.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="max-w-2xl bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
+                <form onSubmit={handleReportSettingsSubmit} className="space-y-8">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div>
+                      <h4 className="font-bold text-gray-900">Show Attendance Statistics</h4>
+                      <p className="text-xs text-gray-500">Enable this to display the student's attendance record (Present/Absent/Late) on the report card.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={schoolSettings.showAttendanceOnReport}
+                        onChange={(e) => setSchoolSettings({ ...schoolSettings, showAttendanceOnReport: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                  </div>
+
+                  <div className="pt-6 border-t border-gray-50 flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={savingWeights}
+                      className="bg-primary text-white px-10 py-3 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-primary/10"
+                    >
+                      {savingWeights ? 'Saving...' : 'Save Report Settings'}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}

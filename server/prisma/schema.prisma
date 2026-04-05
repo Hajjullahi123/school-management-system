@@ -148,11 +148,12 @@ model School {
   weekendDays   String? // No default - admin must set this during setup
 
   // Report Card Customization
-  reportFontFamily     String?  @default("serif")   // serif, sans-serif, Georgia, Times New Roman, Inter, Roboto
-  reportColorScheme    String?  @default("")         // custom hex color for report accents (empty = use primaryColor)
-  showPositionOnReport Boolean  @default(true)       // whether subject/overall positions appear on report
-  showFeesOnReport     Boolean  @default(true)       // whether Financial Standing section appears on report
-  reportLayout         String?  @default("classic")  // classic, modern, minimal
+  reportFontFamily          String?  @default("serif")   // serif, sans-serif, Georgia, Times New Roman, Inter, Roboto
+  reportColorScheme         String?  @default("")         // custom hex color for report accents (empty = use primaryColor)
+  showPositionOnReport      Boolean  @default(true)       // whether subject/overall positions appear on report
+  showFeesOnReport          Boolean  @default(true)       // whether Financial Standing section appears on report
+  showAttendanceOnReport    Boolean  @default(true)       // whether Attendance section appears on report
+  reportLayout              String?  @default("classic")  // classic, modern, minimal
 
   // Document Customization (Certificates)
   certFontFamily      String?  @default("serif")      // Options: serif, sans-serif, cursive

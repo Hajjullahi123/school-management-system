@@ -191,6 +191,15 @@ router.put('/my-profile', authenticate, async (req, res) => {
       message: 'Profile updated successfully',
       student: updatedStudent
     });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPDATE',
+      resource: 'STUDENT_PROFILE',
+      details: { studentId: updatedStudent.id, fields: Object.keys(dataToUpdate) },
+      ipAddress: req.ip
+    });
   } catch (error) {
     console.error('Error updating student profile:', error);
     res.status(500).json({ error: error.message });
@@ -312,6 +321,15 @@ router.delete('/my-photo', authenticate, async (req, res) => {
     });
 
     res.json({ message: 'Photo deleted successfully' });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'DELETE',
+      resource: 'STUDENT_PHOTO',
+      details: { studentId: student.id },
+      ipAddress: req.ip
+    });
   } catch (error) {
     console.error('Error deleting photo:', error);
     res.status(500).json({ error: error.message });

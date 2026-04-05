@@ -25,6 +25,7 @@ const Analytics = lazyRetry(() => import('./pages/Analytics'));
 const AdvancedAnalytics = lazyRetry(() => import('./pages/admin/AdvancedAnalytics'));
 const ExamSubmissionTracker = lazyRetry(() => import('./pages/admin/ExamSubmissionTracker'));
 const AttendanceTracker = lazyRetry(() => import('./pages/admin/AttendanceTracker'));
+const AuditLog = lazyRetry(() => import('./pages/admin/AuditLog'));
 
 const ResultEntry = lazyRetry(() => import('./pages/teacher/ResultEntry'));
 const TermReportCard = lazyRetry(() => import('./pages/student/TermReportCard'));
@@ -485,6 +486,11 @@ function App() {
               <Route path="manage-notices" element={
                 <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
                   <NoticeBoard />
+                </ProtectedRoute>
+              } />
+              <Route path="audit-log" element={
+                <ProtectedRoute roles={['admin', 'principal']}>
+                  <AuditLog />
                 </ProtectedRoute>
               } />
               <Route path="manage-parents" element={
