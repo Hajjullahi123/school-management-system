@@ -659,7 +659,7 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
 
     const schoolSettings = await prisma.school.findUnique({
       where: { id: req.schoolId },
-      select: { weekendDays: true, name: true, schoolName: true, staffExpectedArrivalTime: true, enableSMS: true, staffClockInMode: true, authorizedIP: true }
+      select: { weekendDays: true, name: true, staffExpectedArrivalTime: true, enableSMS: true, staffClockInMode: true, authorizedIP: true }
     });
     const weekendDaysRaw = schoolSettings?.weekendDays || "";
     const weekendIndices = weekendDaysRaw.split(',')
