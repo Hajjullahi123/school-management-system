@@ -656,8 +656,24 @@ router.post('/verify', authenticate, authorize(['admin', 'principal', 'attendanc
         const arrivalTimeStr = schoolSettings?.staffExpectedArrivalTime || '07:00';
         const [hours, minutes] = arrivalTimeStr.split(':');
         const defaultTime = new Date(targetDate);
-        defaultTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-        updateData.checkInTime = defaultTime;
+        
+        // Use current time if marking for TODAY, otherwise use school start time
+        const now = new Date();
+        const isToday = now.toISOString().split('T')[0] === targetDate.toISOString().split('T')[0];
+        
+        if (isToday) {
+          updateData.checkInTime = now;
+        } else {
+          defaultTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+          updateData.checkInTime = defaultTime;
+        }
+
+        // Also calculate late minutes if we're setting time
+        const lateMinutes = calculateLateMinutes(updateData.checkInTime, arrivalTimeStr);
+        updateData.lateMinutes = lateMinutes;
+        if (status === 'present' || status === 'late') {
+          updateData.status = determineStatus(updateData.checkInTime, lateMinutes);
+        }
       }
     }
 
@@ -738,7 +754,8 @@ router.post('/mark-bulk', authenticate, authorize(['admin', 'principal', 'attend
     }
 
     const arrivalTimeStr = schoolSettings?.staffExpectedArrivalTime || '07:00';
-    const [hours, minutes] = arrivalTimeStr.split(':');
+    const now = new Date();
+    const isToday = now.toISOString().split('T')[0] === targetDate.toISOString().split('T')[0];
 
     await prisma.$transaction(
       records.map(record => {
@@ -748,10 +765,21 @@ router.post('/mark-bulk', authenticate, authorize(['admin', 'principal', 'attend
           updatedAt: new Date()
         };
 
-        // If marking present/late but no check-in exists, set a default
-        // In bulk mode, we don't necessarily have a check-in time, so we use school default or current time
-        // Actually, for simplicity and matching student behavior, we just set the status.
-        // If they want to set specific times, they use the Verify individual modal.
+        // If marking present/late but no check-in exists, set a default to satisfy dashboard "hasCheckedIn" logic
+        if (record.status === 'present' || record.status === 'late') {
+          const defaultTime = new Date(targetDate);
+          if (isToday) {
+            updateData.checkInTime = now;
+          } else {
+            const [hours, minutes] = arrivalTimeStr.split(':');
+            defaultTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            updateData.checkInTime = defaultTime;
+          }
+          
+          const lateMinutes = calculateLateMinutes(updateData.checkInTime, arrivalTimeStr);
+          updateData.lateMinutes = lateMinutes;
+          updateData.status = determineStatus(updateData.checkInTime, lateMinutes);
+        }
 
         return prisma.staffAttendance.upsert({
           where: {
