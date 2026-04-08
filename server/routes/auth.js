@@ -30,93 +30,60 @@ router.post('/identify', async (req, res) => {
     }
 
     // Perform lookups in parallel to save time
-    // Recommendation: Create indexes on [User.username], [User.email], [Student.admissionNumber], [Teacher.staffId]
+    // Selective fields to reduce DB load
+    const userSelect = { 
+      school: { select: { id: true, name: true, slug: true, logoUrl: true } },
+      role: true,
+      schoolId: true
+    };
+    const entitySelect = {
+      school: { select: { id: true, name: true, slug: true, logoUrl: true } }
+    };
+
     const [users, students, teachers] = await Promise.all([
       prisma.user.findMany({
         where: {
           OR: [
             {
               ...schoolFilter,
-              OR: [
-                { username: { equals: searchId } },
-                { email: { equals: searchId } }
-              ]
+              OR: [{ username: { equals: searchId } }, { email: { equals: searchId } }]
             },
             {
               schoolId: null,
               role: 'superadmin',
-              OR: [
-                { username: { equals: searchId } },
-                { email: { equals: searchId } }
-              ]
+              OR: [{ username: { equals: searchId } }, { email: { equals: searchId } }]
             }
           ]
         },
-        select: { 
-          school: {
-            select: { id: true, name: true, slug: true, logoUrl: true }
-          },
-          role: true,
-          schoolId: true
-        }
+        select: userSelect
       }),
       prisma.student.findMany({
-        where: { 
-          ...schoolFilter,
-          admissionNumber: { equals: searchId } 
-        },
-        select: {
-          school: {
-            select: { id: true, name: true, slug: true, logoUrl: true }
-          }
-        }
+        where: { ...schoolFilter, admissionNumber: { equals: searchId } },
+        select: entitySelect
       }),
       prisma.teacher.findMany({
-        where: { 
-          ...schoolFilter,
-          staffId: { equals: searchId } 
-        },
-        select: {
-          school: {
-            select: { id: true, name: true, slug: true, logoUrl: true }
-          }
-        }
+        where: { ...schoolFilter, staffId: { equals: searchId } },
+        select: entitySelect
       })
     ]);
 
-    // Check for superadmin (global access)
-    const hasGlobalAccess = users.some(u => !u.schoolId && u.role === 'superadmin');
-    if (hasGlobalAccess) {
-      return res.json({
-        schools: [],
-        count: 0,
-        globalAccess: true,
-        message: 'Global administrator account detected'
-      });
+    // Fast check for superadmin
+    if (users.some(u => !u.schoolId && u.role === 'superadmin')) {
+      return res.json({ schools: [], count: 0, globalAccess: true, message: 'Global admin detected' });
     }
 
-    // Collect distinct schools
+    // Collect distinct schools efficiently
     const schoolsMap = new Map();
-    users.forEach(u => {
-      if (u.school) schoolsMap.set(u.school.id, u.school);
-    });
-    students.forEach(s => {
-      if (s.school) schoolsMap.set(s.school.id, s.school);
-    });
-    teachers.forEach(t => {
-      if (t.school) schoolsMap.set(t.school.id, t.school);
+    [...users, ...students, ...teachers].forEach(entry => {
+      if (entry.school) schoolsMap.set(entry.school.id, entry.school);
     });
 
     const matchedSchools = Array.from(schoolsMap.values());
-
     if (matchedSchools.length === 0) {
-      return res.status(404).json({ error: 'Account not found. Please check your credentials.' });
+      return res.status(404).json({ error: 'Account not found. Check your credentials.' });
     }
 
-    res.json({
-      schools: matchedSchools,
-      count: matchedSchools.length
-    });
+    res.json({ schools: matchedSchools, count: matchedSchools.length });
   } catch (error) {
     console.error('Identify error:', error);
     res.status(500).json({ error: 'Identification failed' });
@@ -215,25 +182,18 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    // Generate JWT
+    // Generate JWT (Trimmed payload for speed)
     const token = jwt.sign(
-      {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        schoolId: user.schoolId,
-        schoolSlug: user.school?.slug
-      },
+      { id: user.id, role: user.role, schoolId: user.schoolId },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    // Set cookie
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      maxAge: 24 * 60 * 60 * 1000
     });
 
     res.json({
@@ -249,12 +209,8 @@ router.post('/login', async (req, res) => {
         schoolSlug: user.school?.slug,
         schoolLogo: user.school?.logoUrl,
         schoolName: user.school?.name,
-        schoolMotto: user.school?.motto,
         signatureUrl: user.signatureUrl,
         mustChangePassword: user.mustChangePassword,
-        teacher: user.teacher,
-        student: user.student,
-        classesAsTeacher: user.classesAsTeacher,
         photoUrl: user.photoUrl
       }
     });

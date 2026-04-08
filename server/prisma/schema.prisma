@@ -375,6 +375,7 @@ model Teacher {
   availabilities TeacherAvailability[]
 
   @@unique([schoolId, staffId])
+  @@index([staffId]) // Global index for fast identification
 }
 
 model TeacherAvailability {
