@@ -12,7 +12,23 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
     const includeQuery = {
       students: {
         include: {
-          classModel: true,
+          classModel: {
+            include: {
+              classTeacher: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  photoUrl: true,
+                  teacher: {
+                    select: {
+                      publicPhone: true,
+                      publicEmail: true
+                    }
+                  }
+                }
+              }
+            }
+          },
           user: { select: { firstName: true, lastName: true, email: true, photoUrl: true } },
           results: {
             where: { schoolId: req.schoolId },

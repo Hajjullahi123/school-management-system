@@ -82,7 +82,9 @@ router.put('/profile', authenticate, authorize(['teacher', 'examination_officer'
       // Update teacher specific info
       const teacherUpdateData = {
         specialization: specialization || undefined,
-        staffId: staffId || undefined
+        staffId: staffId || undefined,
+        publicPhone: req.body.publicPhone || undefined,
+        publicEmail: req.body.publicEmail || undefined
       };
 
       if (userUpdateData.photoUrl) {

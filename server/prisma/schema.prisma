@@ -369,6 +369,8 @@ model Teacher {
   specialization String?
   createdAt      DateTime @default(now())
   photoUrl       String?
+  publicPhone    String?
+  publicEmail    String?
 
   school         School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   user           User                  @relation(fields: [userId], references: [id])

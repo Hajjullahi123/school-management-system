@@ -188,7 +188,82 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
       {user?.role === 'teacher' && (
         <div className="space-y-4">
           <StaffAttendanceWidget />
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+
+          {/* Form Master Public Contact Widget */}
+          {teacherStats?.activeClasses > 0 && (
+            <div className="bg-gradient-to-br from-indigo-900 to-slate-900 p-6 rounded-2xl shadow-xl border border-white/10 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/30 transition-all"></div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-primary/20 p-2 rounded-lg">
+                    <svg className="w-5 h-5 text-primary-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-black italic uppercase text-xs tracking-widest">Form Master Contact Info</h3>
+                    <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest leading-none mt-1">Visible to Parents for Communication</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Public Phone</label>
+                    <input 
+                      type="text"
+                      placeholder="e.g. +234 800 000 0000"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-xs font-bold focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-600"
+                      defaultValue={user?.teacher?.publicPhone || ''}
+                      onChange={async (e) => {
+                        const val = e.target.value;
+                        // For simplicity in this demo/dashboard, we can add a local state or use a ref. 
+                        // But since 'user' comes from context, we typically update it via a profile update.
+                        // We'll add a 'Save' button for better UX.
+                      }}
+                      id="publicPhone"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Public Email</label>
+                    <input 
+                      type="email"
+                      placeholder="e.g. teacher@school.com"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-xs font-bold focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-600"
+                      defaultValue={user?.teacher?.publicEmail || ''}
+                      id="publicEmail"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-end">
+                  <button 
+                    onClick={async () => {
+                      const phone = document.getElementById('publicPhone').value;
+                      const email = document.getElementById('publicEmail').value;
+                      try {
+                        const res = await api.put('/api/teachers/profile', { 
+                          publicPhone: phone, 
+                          publicEmail: email 
+                        });
+                        if (res.ok) {
+                          alert('Contact details updated successfully! These are now visible to parents.');
+                          window.location.reload(); // Simple refresh to update context
+                        }
+                      } catch (e) {
+                        alert('Failed to update contact info');
+                      }
+                    }}
+                    className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-6 py-2 rounded-xl shadow-lg hover: brightness-110 active:scale-95 transition-all"
+                  >
+                    Save Contact Info
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 font-bold">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Assigned Subjects</h3>
             <div className="space-y-2">
               {teacherAssignments.slice(0, 4).map(a => (
