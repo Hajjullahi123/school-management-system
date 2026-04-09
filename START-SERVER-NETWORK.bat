@@ -24,9 +24,9 @@ echo Other computers can access the site at:
 echo   http://%IP%:5173
 echo.
 echo Make sure to:
-echo   1. Update client/src/config.js with this IP
-echo   2. Keep this window open while using the system
-echo   3. Connect other computers to the same network
+echo   1. Keep this window open while using the system
+echo   2. Connect other computers to the same network (WiFi/LAN)
+echo   3. For remote access (Internet), you MUST forward port 5115 and 5173 on your router.
 echo.
 echo ========================================
 echo.
@@ -35,7 +35,7 @@ REM Change to server directory
 cd /d "%~dp0server"
 
 echo Starting Backend Server...
-echo Server will run on: http://%IP%:3000
+echo Server will run on: http://%IP%:5115
 echo.
 
 REM Start the server
