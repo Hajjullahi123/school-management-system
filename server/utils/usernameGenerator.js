@@ -92,7 +92,7 @@ async function generateTeacherUsername(schoolId, schoolCode, firstName, lastName
   });
 
   const serial = String(teachersCount + 1).padStart(3, '0');
-  let baseId = `${sCode}/${tInitials}/${year}/${serial}`;
+  let baseId = `${sCode}/${tInitials}/STA/${serial}`;
   let uniqueId = baseId;
   let counter = 1;
 
@@ -129,7 +129,7 @@ async function generateStudentUsername(schoolId, schoolCode, firstName, lastName
   });
 
   const serial = String(studentCount + 1).padStart(3, '0');
-  let baseId = `${sCode}/${initials}/${year}/${serial}`;
+  let baseId = `${sCode}/${initials}/STU/${serial}`;
   let uniqueId = baseId;
   let counter = 1;
 
