@@ -77,14 +77,25 @@ async function generateAdminUsername(schoolId, schoolCode, registrationYear) {
 }
 
 /**
- * Generates a unique teacher username in the format:
- * SCHOOL_CODE/TEACHER_INITIALS/YEAR/SERIAL
- * Example: AAM/AL/2026/001
+ * Generates two random uppercase letters
  */
-async function generateTeacherUsername(schoolId, schoolCode, firstName, lastName, yearEnrolled) {
+function generateRandomSuffix() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let result = '';
+  for (let i = 0; i < 2; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+/**
+ * Generates a unique teacher username in the format:
+ * SCHOOL_CODE/TEACHER_INITIALS/STA/SERIAL + RANDOM_2_LETTERS
+ * Example: AAM/AL/STA/001AG
+ */
+async function generateTeacherUsername(schoolId, schoolCode, firstName, lastName) {
   const sCode = schoolCode.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
   const tInitials = (firstName[0] + lastName[0]).toUpperCase();
-  const year = yearEnrolled || new Date().getFullYear();
 
   // Find the next serial number for this pattern
   const teachersCount = await prisma.teacher.count({
@@ -92,7 +103,8 @@ async function generateTeacherUsername(schoolId, schoolCode, firstName, lastName
   });
 
   const serial = String(teachersCount + 1).padStart(3, '0');
-  let baseId = `${sCode}/${tInitials}/STA/${serial}`;
+  const randomSuffix = generateRandomSuffix();
+  let baseId = `${sCode}/${tInitials}/STA/${serial}${randomSuffix}`;
   let uniqueId = baseId;
   let counter = 1;
 
@@ -115,13 +127,12 @@ async function generateTeacherUsername(schoolId, schoolCode, firstName, lastName
 
 /**
  * Generates a unique student username/admission number in the format:
- * SCHOOL_CODE/STUDENT_INITIALS/YEAR/SERIAL
- * Example: AAM/JD/2026/050
+ * SCHOOL_CODE/STUDENT_INITIALS/STU/SERIAL + RANDOM_2_LETTERS
+ * Example: AAM/JD/STU/050TR
  */
-async function generateStudentUsername(schoolId, schoolCode, firstName, lastName, admissionYear) {
+async function generateStudentUsername(schoolId, schoolCode, firstName, lastName) {
   const sCode = schoolCode.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
   const initials = ((firstName[0] || '') + (lastName[0] || '')).toUpperCase();
-  const year = admissionYear || new Date().getFullYear();
 
   // Find the next serial number for this pattern across the WHOLE school
   const studentCount = await prisma.student.count({
@@ -129,7 +140,8 @@ async function generateStudentUsername(schoolId, schoolCode, firstName, lastName
   });
 
   const serial = String(studentCount + 1).padStart(3, '0');
-  let baseId = `${sCode}/${initials}/STU/${serial}`;
+  const randomSuffix = generateRandomSuffix();
+  let baseId = `${sCode}/${initials}/STU/${serial}${randomSuffix}`;
   let uniqueId = baseId;
   let counter = 1;
 
