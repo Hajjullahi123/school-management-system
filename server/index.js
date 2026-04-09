@@ -323,7 +323,9 @@ if (process.env.NODE_ENV === 'production') {
     immutable: true
   }));
   app.use(express.static(clientDistPath, {
-    maxAge: '1h' // Cache index.html for 1 hour
+    maxAge: '1y', // Cache assets for a long time
+    immutable: true,
+    index: false // Don't serve index.html via static middleware automatically
   }));
 
   // 1. API 404 Handler (JSON)
@@ -352,6 +354,10 @@ if (process.env.NODE_ENV === 'production') {
     if (req.url.startsWith('/uploads/') || req.url.startsWith('/api/') || req.url.startsWith('/assets/')) {
       return res.status(404).json({ error: 'File or route not found' });
     }
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
     res.sendFile(path.join(clientDistPath, 'index.html'));
   });
   // 4. Development API 404 Handler

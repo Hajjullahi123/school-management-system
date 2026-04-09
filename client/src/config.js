@@ -17,20 +17,25 @@ const getApiBaseUrl = () => {
     return `http://localhost:${DEFAULT_API_PORT}`;
   }
 
-  // 2. Localhost/Development handling (Running on your own PC)
+  // 2. Production Environment Check (Critical for Mobile & Hosted)
+  if (isProduction) {
+    // If we are on a Mobile App (Capacitor/Android) or built Electron,
+    // hostname will often be 'localhost' or 'capacitor://'
+    // In this case, we MUST use the remote server address.
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || protocol.includes('capacitor')) {
+      return PRODUCTION_URL;
+    }
+    // Generic hosted web (Render, etc.) - use the current address
+    return origin; 
+  }
+
+  // 3. Localhost/Development handling (npm run dev on your own PC)
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return `http://localhost:${DEFAULT_API_PORT}`;
   }
 
-  // 3. Live Hosted Server / Production Web
-  // On a live server (Render, Vercel, or custom domain), 
-  // we use the current website address as the base for API calls.
-  if (isProduction) {
-    return origin; 
-  }
-
   // 4. Local Network Access (e.g. 192.168.x.x or Public IP)
-  // If not in production (npm run dev), we still need to specify the backend port
+  // Accessing your PC from your phone on the same WiFi
   return `${protocol}//${hostname}:${DEFAULT_API_PORT}`;
 };
 
