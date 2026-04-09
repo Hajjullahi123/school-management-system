@@ -254,9 +254,7 @@ const Login = () => {
       {/* Right Side: Login Form */}
       <div id="login-section" className="md:w-1/2 lg:w-2/5 flex items-center justify-center p-8 bg-gray-50 relative">
         <div className="absolute top-0 right-0 p-8">
-          <Link to={urlSlug ? `/${urlSlug}` : "/school-home"} className="text-gray-400 hover:text-primary font-bold text-sm flex items-center gap-2">
-            Back to Home <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
-          </Link>
+          {/* Back to Home removed as per Login-First requirement */}
         </div>
 
         <div className="w-full max-w-md">

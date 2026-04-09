@@ -152,12 +152,12 @@ function App() {
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<MarketingHome />} />
+            <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
             <Route path="/news-events" element={<NewsEvents />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/gallery" element={<Gallery />} />
-            <Route path="/:schoolSlug" element={<LandingPage />} />
+            <Route path="/:schoolSlug" element={<Navigate to="/login" replace />} />
             <Route path="/:schoolSlug/login" element={<Login />} />
             <Route path="/alumni" element={<AlumniPortal />} />
             <Route path="/alumni/directory" element={<AlumniDirectory />} />
