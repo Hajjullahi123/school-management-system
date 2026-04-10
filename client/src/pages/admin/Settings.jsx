@@ -66,6 +66,7 @@ const Settings = () => {
     reportColorScheme: '',
     showPositionOnReport: true,
     showFeesOnReport: true,
+    showAttendanceOnReport: true,
     reportLayout: 'classic',
     certFontFamily: 'serif',
     certBorderType: 'ornate',

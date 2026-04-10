@@ -12,31 +12,30 @@ const DEFAULT_API_PORT = '5115';
 const getApiBaseUrl = () => {
   const { hostname, protocol, origin } = window.location;
   
+  // Detect if we are running in a Capacitor/Mobile environment
+  const isMobileApp = 
+    protocol.includes('capacitor') || 
+    hostname === 'localhost' && (window.location.port === '' || window.location.port === '80' || window.location.port === '443') ||
+    window.location.href.includes('android_asset');
+
   // 1. Electron handling (Desktop App)
   if (isElectron) {
     return `http://localhost:${DEFAULT_API_PORT}`;
   }
 
-  // 2. Production Environment Check (Critical for Mobile & Hosted)
-  if (isProduction) {
-    // If we are on a Mobile App (Capacitor/Android) or built Electron,
-    // hostname will often be 'localhost' or 'capacitor://'
-    // In this case, we MUST use the remote server address.
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || protocol.includes('capacitor')) {
-      return PRODUCTION_URL;
+  // 2. Mobile/Production Fallback
+  // If we are on mobile OR in production, use the remote server
+  if (isMobileApp || isProduction) {
+    // If we are strictly on a hosted domain (not localhost), use that origin
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return origin;
     }
-    // Generic hosted web (Render, etc.) - use the current address
-    return origin; 
+    // Otherwise (Mobile App or localhost-production), force the live server
+    return PRODUCTION_URL;
   }
 
-  // 3. Localhost/Development handling (npm run dev on your own PC)
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return `http://localhost:${DEFAULT_API_PORT}`;
-  }
-
-  // 4. Local Network Access (e.g. 192.168.x.x or Public IP)
-  // Accessing your PC from your phone on the same WiFi
-  return `${protocol}//${hostname}:${DEFAULT_API_PORT}`;
+  // 3. Local Development (npm run dev)
+  return `http://localhost:${DEFAULT_API_PORT}`;
 };
 
 export const API_BASE_URL = getApiBaseUrl();

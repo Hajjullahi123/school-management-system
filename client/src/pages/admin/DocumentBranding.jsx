@@ -31,6 +31,7 @@ const DocumentBranding = () => {
     reportColorScheme: '',
     showPositionOnReport: true,
     showFeesOnReport: true,
+    showAttendanceOnReport: true,
     reportLayout: 'classic',
     certFontFamily: 'serif',
     certBorderType: 'ornate',
@@ -190,7 +191,8 @@ const DocumentBranding = () => {
                   <h4 className="text-sm font-black text-gray-700 uppercase tracking-wider mb-2">Content Visibility</h4>
                   {[
                     { key: 'showPositionOnReport', label: 'Student Position', desc: 'Display rank in class and subject' },
-                    { key: 'showFeesOnReport', label: 'Fee Breakdown', desc: 'Display outstanding balance and payment status' }
+                    { key: 'showFeesOnReport', label: 'Fee Breakdown', desc: 'Display outstanding balance and payment status' },
+                    { key: 'showAttendanceOnReport', label: 'Attendance Record', desc: 'Display student termly attendance percentage' }
                   ].map(toggle => (
                     <div key={toggle.key} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
                       <div>
@@ -260,13 +262,19 @@ const DocumentBranding = () => {
                         ))}
                       </div>
                     </div>
-                    {settings.showFeesOnReport && (
-                      <div className="mt-auto pt-4 border-t border-gray-100">
-                         <div className="bg-emerald-50 p-2 rounded text-emerald-800 text-[6px] font-bold flex justify-between">
-                            <span>FEE STATUS:</span>
-                            <span>₦0.00 (PAID)</span>
-                         </div>
+                    {settings.showAttendanceOnReport && (
+                      <div className="flex justify-between border-t border-black pb-1 my-1">
+                        <span className="font-bold">ATTENDANCE:</span>
+                        <span className="font-black">95% (PRESENT)</span>
                       </div>
+                    )}
+                    {settings.showFeesOnReport && (
+                       <div className="mt-auto pt-4 border-t border-gray-100">
+                          <div className="bg-emerald-50 p-2 rounded text-emerald-800 text-[6px] font-bold flex justify-between">
+                             <span>FEE STATUS:</span>
+                             <span>₦0.00 (PAID)</span>
+                          </div>
+                       </div>
                     )}
                   </div>
                 </div>

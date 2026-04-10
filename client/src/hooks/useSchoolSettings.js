@@ -86,6 +86,7 @@ export const useSchoolSettings = () => {
             reportColorScheme: data.reportColorScheme || '',
             showPositionOnReport: data.showPositionOnReport !== false, // default true
             showFeesOnReport: data.showFeesOnReport !== false, // default true
+            showAttendanceOnReport: data.showAttendanceOnReport !== false, // default true
             reportLayout: data.reportLayout || 'classic',
           });
         }

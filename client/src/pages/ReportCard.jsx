@@ -360,6 +360,7 @@ const ReportCard = () => {
             const reportFont = schoolSettings?.reportFontFamily || 'serif';
             const showPosition = schoolSettings?.showPositionOnReport !== false;
             const showFees = schoolSettings?.showFeesOnReport !== false;
+            const showAttendance = schoolSettings?.showAttendanceOnReport !== false;
             const layout = schoolSettings?.reportLayout || 'classic';
             const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
             return (
@@ -441,12 +442,20 @@ const ReportCard = () => {
                     <td className="border-r border-black p-1">CLUB:</td>
                     <td className="p-1">{reportData.student?.clubs !== 'None Assigned' ? reportData.student?.clubs : 'N/A'}</td>
                   </tr>
+                  {showAttendance && (
                   <tr>
                     <td className="border-r border-black p-1">ATTENDANCE:</td>
                     <td className="border-r border-black p-1 text-emerald-700 font-bold" style={{ color: reportColor }}>{reportData.attendance?.present} / {reportData.attendance?.total} DAYS ({reportData.attendance?.percentage}%)</td>
                     <td className="border-r border-black p-1">TERM:</td>
                     <td className="p-1">{reportData.term?.name}</td>
                   </tr>
+                  )}
+                  {!showAttendance && (
+                  <tr>
+                    <td className="border-r border-black p-1">TERM:</td>
+                    <td className="p-1" colSpan="3">{reportData.term?.name}</td>
+                  </tr>
+                  )}
                 </tbody>
               </table>
 

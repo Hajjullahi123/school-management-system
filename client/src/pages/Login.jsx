@@ -15,6 +15,7 @@ const Login = () => {
   const [schoolSlug, setSchoolSlug] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [slowLoading, setSlowLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [globalSettings, setGlobalSettings] = useState(null);
 
@@ -83,6 +84,12 @@ const Login = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
+    setSlowLoading(false);
+    
+    // Timer to detect if Render is "Sleeping"
+    const slowTimer = setTimeout(() => {
+      setSlowLoading(true);
+    }, 3500);
 
     try {
       const res = await apiCall('/api/auth/identify', {
@@ -92,6 +99,9 @@ const Login = () => {
           schoolSlug: urlSlug || schoolSlug 
         })
       });
+
+      clearTimeout(slowTimer);
+      setSlowLoading(false);
 
       if (res.data.globalAccess) {
         // Superadmin with global access - skip school selection and go directly to password
@@ -127,9 +137,17 @@ const Login = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
+    setSlowLoading(false);
+
+    const loginSlowTimer = setTimeout(() => {
+      setSlowLoading(true);
+    }, 3500);
 
     try {
       const result = await login(username, password, schoolSlug);
+
+      clearTimeout(loginSlowTimer);
+      setSlowLoading(false);
 
       if (result.success) {
         // Ensure slug is set in localStorage on successful login
@@ -163,8 +181,8 @@ const Login = () => {
 
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-12">
-            <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-2xl font-black text-white">EA</span>
+            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-2xl p-2 border border-white/20 overflow-hidden">
+               <img src="/logo-pwa.png" alt="EduTechAI Logo" className="w-full h-full object-contain" />
             </div>
             <h1 className="text-3xl font-black tracking-tighter">EduTechAI PORTAL</h1>
             
@@ -428,6 +446,15 @@ const Login = () => {
                   <span className="text-sm font-bold text-gray-600 group-hover:text-primary transition-colors">Keep me signed in</span>
                 </label>
                 <a href="#" className="text-sm font-black text-primary hover:text-accent transition-colors">Support Help?</a>
+              </div>
+            )}
+
+            {slowLoading && (
+              <div className="mb-6 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center gap-3 animate-pulse">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
+                <p className="text-xs text-blue-700 font-medium">
+                  Identifiying... (Cloud server is waking up)
+                </p>
               </div>
             )}
 

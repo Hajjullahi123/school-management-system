@@ -31,51 +31,47 @@ router.post('/identify', async (req, res) => {
 
     // Perform lookups in parallel to save time
     // Selective fields to reduce DB load
-    const userSelect = { 
-      school: { select: { id: true, name: true, slug: true, logoUrl: true } },
-      role: true,
-      schoolId: true
-    };
-    const entitySelect = {
-      school: { select: { id: true, name: true, slug: true, logoUrl: true } }
-    };
-
+    // Perform lookups sequentially but stop early if we find a unique match for school-slugged requests
+    // or use optimized parallel lookups for global identification.
+    
     const [users, students, teachers] = await Promise.all([
       prisma.user.findMany({
         where: {
-          OR: [
-            {
-              ...schoolFilter,
-              OR: [{ username: { equals: searchId } }, { email: { equals: searchId } }]
-            },
-            {
-              schoolId: null,
-              role: 'superadmin',
-              OR: [{ username: { equals: searchId } }, { email: { equals: searchId } }]
-            }
+          AND: [
+             schoolFilter,
+             { OR: [{ username: searchId }, { email: searchId }] }
           ]
         },
-        select: userSelect
+        select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } }, role: true, schoolId: true }
       }),
       prisma.student.findMany({
-        where: { ...schoolFilter, admissionNumber: { equals: searchId } },
-        select: entitySelect
+        where: { ...schoolFilter, admissionNumber: searchId },
+        select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
       }),
       prisma.teacher.findMany({
-        where: { ...schoolFilter, staffId: { equals: searchId } },
-        select: entitySelect
+        where: { ...schoolFilter, staffId: searchId },
+        select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
       })
     ]);
-
-    // Fast check for superadmin
-    if (users.some(u => !u.schoolId && u.role === 'superadmin')) {
-      return res.json({ schools: [], count: 0, globalAccess: true, message: 'Global admin detected' });
+    
+    // Check for superadmin specifically if no school filter was applied
+    let finalUsers = users;
+    if (!schoolSlug) {
+      const superadmins = await prisma.user.findMany({
+        where: { role: 'superadmin', schoolId: null, OR: [{ username: searchId }, { email: searchId }] },
+        select: { role: true, schoolId: true }
+      });
+      if (superadmins.length > 0) {
+        return res.json({ schools: [], count: 0, globalAccess: true, message: 'Global admin detected' });
+      }
     }
 
     // Collect distinct schools efficiently
     const schoolsMap = new Map();
-    [...users, ...students, ...teachers].forEach(entry => {
-      if (entry.school) schoolsMap.set(entry.school.id, entry.school);
+    [...finalUsers, ...students, ...teachers].forEach(entry => {
+      if (entry && entry.school) {
+        schoolsMap.set(entry.school.id, entry.school);
+      }
     });
 
     const matchedSchools = Array.from(schoolsMap.values());
