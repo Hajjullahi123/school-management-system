@@ -95,12 +95,26 @@ In a mobile app, "localhost" refers to the phone itself, not your server.
 
 ---
 
-## 7. 📦 Publishing to Play Store
+### 📦 7. Publishing to Play Store (Automated)
 
-1.  In Android Studio, go to **Build > Generate Signed Bundle / APK**.
-2.  Follow the wizard to create a Keystore file.
-3.  This generates an `.aab` file in `android/app/release`.
-4.  Upload this `.aab` file to the [Google Play Console](https://play.google.com/console).
+I have pre-configured the Android project for **automated signing**. You no longer need to use the Android Studio wizard for every build.
+
+1.  **Generate Signed APK**:
+    ```bash
+    cd client/android
+    ./gradlew assembleRelease
+    ```
+2.  **Find your APK**: The signed production file will be at:
+    `client/android/app/build/outputs/apk/release/app-release.apk`
+3.  **Keystore Details** (Stored in `build.gradle`):
+    *   **Keystore File**: `client/android/app/upload-keystore.jks`
+    *   **Password**: `schoolmanager2026`
+    *   **Alias**: `school-manager`
+
+> [!IMPORTANT]
+> Keep your `upload-keystore.jks` file and passwords safe. If you lose them, you cannot update your app on the Play Store.
+
+4.  Upload the `.apk` (or `.aab` for Play Store) to the [Google Play Console](https://play.google.com/console).
 
 ---
 

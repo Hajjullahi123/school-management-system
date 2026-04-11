@@ -38,21 +38,27 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
     try {
       setLoading(true);
       const [studentsRes, classesRes, termsRes, sessionsRes, subjectsRes] = await Promise.all([
-        api.get('/api/students'),
-        api.get('/api/classes'),
-        api.get('/api/terms'),
-        api.get('/api/academic-sessions'),
-        (user?.role === 'admin' || user?.role === 'principal') ? api.get('/api/subjects') : Promise.resolve(null)
+        api.get('/api/students').catch(err => ({ ok: false, error: err })),
+        api.get('/api/classes').catch(err => ({ ok: false, error: err })),
+        api.get('/api/terms').catch(err => ({ ok: false, error: err })),
+        api.get('/api/academic-sessions').catch(err => ({ ok: false, error: err })),
+        (user?.role === 'admin' || user?.role === 'principal') ? api.get('/api/subjects').catch(err => ({ ok: false, error: err })) : Promise.resolve({ ok: true, json: () => [] })
       ]);
 
-      const studentsData = await studentsRes.json();
-      const classesData = await classesRes.json();
-      const terms = await termsRes.json();
-      const sessions = await sessionsRes.json();
+      // Parse safely
+      const studentsData = studentsRes.ok ? await studentsRes.json() : [];
+      const classesData = classesRes.ok ? await classesRes.json() : [];
+      const terms = termsRes.ok ? await termsRes.json() : [];
+      const sessions = sessionsRes.ok ? await sessionsRes.json() : [];
+
+      if (!studentsRes.ok) console.warn('Student fetch failed:', studentsRes.status);
+      if (!classesRes.ok) console.error('Classes fetch failed:', classesRes.status);
 
       if (subjectsRes?.ok) {
         const subjectsData = await subjectsRes.json();
         setTotalSubjectsCount(Array.isArray(subjectsData) ? subjectsData.length : 0);
+      } else if (subjectsRes) {
+        console.warn('Subjects fetch failed');
       }
 
       setAllTerms(Array.isArray(terms) ? terms : []);
@@ -77,7 +83,12 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
         totalStudentsCount = students.filter(s => myClassIds.includes(s.classId)).length;
         activeClassesCount = myClasses.length;
       } else {
-        totalStudentsCount = students.length;
+        // Optimization: If students fetch returned empty/failed, try to get count from classes _count
+        if (students.length === 0 && classes.length > 0) {
+          totalStudentsCount = classes.reduce((acc, curr) => acc + (curr._count?.students || 0), 0);
+        } else {
+          totalStudentsCount = students.length;
+        }
         activeClassesCount = classes.length;
       }
 
