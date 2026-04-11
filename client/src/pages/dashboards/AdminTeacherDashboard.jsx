@@ -150,17 +150,21 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
       </div>
 
       {/* Grid Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-blue-50 p-5 rounded-xl shadow-sm border border-blue-100">
+      <div className={`grid gap-4 ${
+        (user?.role === 'admin' || user?.role === 'principal') 
+          ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' 
+          : 'grid-cols-1 sm:grid-cols-2'
+      }`}>
+        <div className="bg-blue-50 p-5 rounded-xl shadow-sm border border-blue-100 transition-all hover:scale-[1.02]">
           <p className="text-[11px] font-black text-blue-600 uppercase tracking-widest mb-1">Total Enrollment</p>
           <p className="text-2xl font-black text-blue-900">{teacherStats?.totalStudents || 0}</p>
         </div>
-        <div className="bg-purple-50 p-5 rounded-xl shadow-sm border border-purple-100">
+        <div className="bg-purple-50 p-5 rounded-xl shadow-sm border border-purple-100 transition-all hover:scale-[1.02]">
           <p className="text-[11px] font-black text-purple-600 uppercase tracking-widest mb-1">Assigned Classes</p>
           <p className="text-2xl font-black text-purple-900">{teacherStats?.activeClasses || 0}</p>
         </div>
         {(user?.role === 'admin' || user?.role === 'principal') && (
-          <div className="bg-teal-50 p-5 rounded-xl shadow-sm border border-teal-100">
+          <div className="bg-teal-50 p-5 rounded-xl shadow-sm border border-teal-100 transition-all hover:scale-[1.02] sm:col-span-2 lg:col-span-1">
             <p className="text-[11px] font-black text-teal-600 uppercase tracking-widest mb-1">Registered Subjects</p>
             <p className="text-2xl font-black text-teal-900">{totalSubjectsCount || 0}</p>
           </div>
