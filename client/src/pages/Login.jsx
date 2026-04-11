@@ -92,13 +92,29 @@ const Login = () => {
     }, 3500);
 
     try {
-      const res = await apiCall('/api/auth/identify', {
-        method: 'POST',
-        body: JSON.stringify({ 
-          identifier: username,
-          schoolSlug: urlSlug || schoolSlug 
-        })
-      });
+      let res;
+      try {
+        res = await apiCall('/api/auth/identify', {
+          method: 'POST',
+          body: JSON.stringify({ 
+            identifier: username,
+            schoolSlug: urlSlug || schoolSlug 
+          })
+        });
+      } catch (firstErr) {
+        // SMART RETRY: If identity fails AND we were using a persisted schoolSlug (but NOT a URL slug),
+        // try searching globally. This fixes the "stale logout" issue where a user is stuck 
+        // in the previous school's context.
+        if (firstErr.response?.status === 404 && schoolSlug && !urlSlug) {
+          console.log('[LOGIN] Retrying global identification (stale schoolSlug detected)');
+          res = await apiCall('/api/auth/identify', {
+            method: 'POST',
+            body: JSON.stringify({ identifier: username }) // No schoolSlug filter
+          });
+        } else {
+          throw firstErr;
+        }
+      }
 
       clearTimeout(slowTimer);
       setSlowLoading(false);
