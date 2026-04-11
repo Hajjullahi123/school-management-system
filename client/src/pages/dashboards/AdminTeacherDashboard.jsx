@@ -37,6 +37,19 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
   const fetchMainData = async (termId = null, sessionId = null) => {
     try {
       setLoading(true);
+
+      // Fast Stats Fetch (Optimized for Mobile/Slow Connections)
+      try {
+        const statsRes = await api.get('/api/settings/stats-summary');
+        if (statsRes.ok) {
+          const stats = await statsRes.json();
+          setTeacherStats({ totalStudents: stats.students, activeClasses: stats.classes });
+          setTotalSubjectsCount(stats.subjects);
+        }
+      } catch (err) {
+        console.warn('Fast stats fetch failed');
+      }
+
       const [studentsRes, classesRes, termsRes, sessionsRes, subjectsRes] = await Promise.all([
         api.get('/api/students').catch(err => ({ ok: false, error: err })),
         api.get('/api/classes').catch(err => ({ ok: false, error: err })),
@@ -54,11 +67,33 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
       if (!studentsRes.ok) console.warn('Student fetch failed:', studentsRes.status);
       if (!classesRes.ok) console.error('Classes fetch failed:', classesRes.status);
 
-      if (subjectsRes?.ok) {
-        const subjectsData = await subjectsRes.json();
-        setTotalSubjectsCount(Array.isArray(subjectsData) ? subjectsData.length : 0);
-      } else if (subjectsRes) {
-        console.warn('Subjects fetch failed');
+      // If fast stats failed, fall back to calculating from full lists
+      if (!teacherStats || teacherStats.totalStudents === 0) {
+        if (subjectsRes?.ok) {
+          const subjectsData = await subjectsRes.json();
+          setTotalSubjectsCount(Array.isArray(subjectsData) ? subjectsData.length : 0);
+        }
+
+        const students = Array.isArray(studentsData) ? studentsData : [];
+        const classes = Array.isArray(classesData) ? classesData : [];
+
+        let totalStudentsCount = 0;
+        let activeClassesCount = 0;
+
+        if (user?.role === 'teacher') {
+          const myClasses = classes.filter(c => c.classTeacherId == user.id);
+          const myClassIds = myClasses.map(c => c.id);
+          totalStudentsCount = students.filter(s => myClassIds.includes(s.classId)).length;
+          activeClassesCount = myClasses.length;
+        } else {
+          if (students.length === 0 && classes.length > 0) {
+            totalStudentsCount = classes.reduce((acc, curr) => acc + (curr._count?.students || 0), 0);
+          } else {
+            totalStudentsCount = students.length;
+          }
+          activeClassesCount = classes.length;
+        }
+        setTeacherStats({ totalStudents: totalStudentsCount, activeClasses: activeClassesCount });
       }
 
       setAllTerms(Array.isArray(terms) ? terms : []);
@@ -70,29 +105,6 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
       setSelectedDashboardTerm(activeTerm);
       setSelectedDashboardSession(activeSession);
 
-      // Basic Stats Calculation
-      let totalStudentsCount = 0;
-      let activeClassesCount = 0;
-
-      const students = Array.isArray(studentsData) ? studentsData : [];
-      const classes = Array.isArray(classesData) ? classesData : [];
-
-      if (user?.role === 'teacher') {
-        const myClasses = classes.filter(c => c.classTeacherId == user.id);
-        const myClassIds = myClasses.map(c => c.id);
-        totalStudentsCount = students.filter(s => myClassIds.includes(s.classId)).length;
-        activeClassesCount = myClasses.length;
-      } else {
-        // Optimization: If students fetch returned empty/failed, try to get count from classes _count
-        if (students.length === 0 && classes.length > 0) {
-          totalStudentsCount = classes.reduce((acc, curr) => acc + (curr._count?.students || 0), 0);
-        } else {
-          totalStudentsCount = students.length;
-        }
-        activeClassesCount = classes.length;
-      }
-
-      setTeacherStats({ totalStudents: totalStudentsCount, activeClasses: activeClassesCount });
 
       // Admin specific financial summary
       if (user?.role === 'admin' && activeTerm && activeSession) {
@@ -240,36 +252,46 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Public Email</label>
-                    <input 
-                      type="email"
-                      placeholder="e.g. teacher@school.com"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-xs font-bold focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-600"
-                      defaultValue={user?.teacher?.publicEmail || ''}
-                      id="publicEmail"
-                    />
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">WhatsApp Number</label>
+                    <div className="relative">
+                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-bold">https://wa.me/</span>
+                       <input 
+                        type="text"
+                        placeholder="2348000000000"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 pl-24 text-white text-xs font-bold focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-600"
+                        defaultValue={user?.teacher?.publicWhatsapp || ''}
+                        id="publicWhatsapp"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-4 flex justify-end">
+                <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <p className="text-[9px] text-slate-500 font-bold uppercase italic">※ Enter numbers ONLY for WhatsApp (include country code like 234)</p>
                   <button 
                     onClick={async () => {
                       const phone = document.getElementById('publicPhone').value;
                       const email = document.getElementById('publicEmail').value;
+                      const whatsapp = document.getElementById('publicWhatsapp').value;
+                      
                       try {
-                        const res = await api.put('/api/teachers/profile', { 
-                          publicPhone: phone, 
-                          publicEmail: email 
+                        const res = await apiCall('/api/teachers/profile', { 
+                          method: 'PUT',
+                          body: JSON.stringify({ 
+                            publicPhone: phone, 
+                            publicEmail: email,
+                            publicWhatsapp: whatsapp
+                          })
                         });
                         if (res.ok) {
-                          alert('Contact details updated successfully! These are now visible to parents.');
-                          window.location.reload(); // Simple refresh to update context
+                          toast.success('Contact details updated! Visible to parents.');
+                          setTimeout(() => window.location.reload(), 1000);
                         }
                       } catch (e) {
-                        alert('Failed to update contact info');
+                        toast.error('Failed to update contact info');
                       }
                     }}
-                    className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-6 py-2 rounded-xl shadow-lg hover: brightness-110 active:scale-95 transition-all"
+                    className="w-full sm:w-auto bg-primary text-white text-[10px] font-black uppercase tracking-widest px-8 py-3 rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition-all"
                   >
                     Save Contact Info
                   </button>

@@ -386,18 +386,18 @@ const SuperAdminDashboard = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <StatCard icon={<FiGlobe className="text-blue-600" />} label="Total Schools" value={stats?.schools} bgColor="bg-blue-100" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-10">
+        <StatCard icon={<FiGlobe className="text-blue-600" />} label="Schools" value={stats?.schools} bgColor="bg-blue-100" />
         <StatCard icon={<FiUsers className="text-indigo-600" />} label="Total Users" value={stats?.users} bgColor="bg-indigo-100" />
-        <StatCard icon={<FiUserCheck className="text-emerald-600" />} label="Active Students" value={stats?.students} bgColor="bg-emerald-100" />
-        <StatCard icon={<FiShield className="text-amber-600" />} label="Audit Actions" value={stats?.audits} bgColor="bg-amber-100" />
+        <StatCard icon={<FiUserCheck className="text-emerald-600" />} label="Students" value={stats?.students} bgColor="bg-emerald-100" />
+        <StatCard icon={<FiShield className="text-amber-600" />} label="Audits" value={stats?.audits} bgColor="bg-amber-100" />
       </div>
 
       {/* Tabs */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="flex border-b border-gray-100 bg-gray-50/50">
+        <div className="flex border-b border-gray-100 bg-gray-50/50 overflow-x-auto no-scrollbar whitespace-nowrap">
           <TabButton active={activeTab === 'overview'} onClick={() => navigate('/dashboard/superadmin')} icon={<FiActivity />} label="Overview" />
-          <TabButton active={activeTab === 'schools'} onClick={() => navigate('/dashboard/superadmin#schools')} icon={<FiBriefcase />} label="School Management" />
+          <TabButton active={activeTab === 'schools'} onClick={() => navigate('/dashboard/superadmin#schools')} icon={<FiBriefcase />} label="Schools" />
           <TabButton active={activeTab === 'platform'} onClick={() => navigate('/dashboard/superadmin#platform')} icon={<FiGlobe />} label="Platform" />
           <TabButton active={activeTab === 'audits'} onClick={() => navigate('/dashboard/superadmin#audits')} icon={<FiShield />} label="Global Log" />
         </div>
@@ -527,7 +527,7 @@ const SuperAdminDashboard = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">School Name</th>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10 shadow-sm sm:shadow-none">School Name</th>
                     <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">License Status</th>
                     <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Usage Stats</th>
                     <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
@@ -536,17 +536,17 @@ const SuperAdminDashboard = () => {
                 <tbody className="divide-y divide-gray-100">
                   {(Array.isArray(schools) ? schools : []).map(s => (
                     <tr key={s.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="p-4">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-3 shadow-sm">
-                            {s.name.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="font-bold text-gray-800">{s.name}</p>
-                            <p className="text-xs text-gray-400 font-medium">{s.email || 'No email'}</p>
-                          </div>
+                    <td className="p-4 sticky left-0 bg-white z-10 shadow-sm sm:shadow-none min-w-[200px]">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-3 shadow-sm shrink-0">
+                          {s.name.charAt(0)}
                         </div>
-                      </td>
+                        <div className="truncate">
+                          <p className="font-bold text-gray-800 truncate">{s.name}</p>
+                          <p className="text-xs text-gray-400 font-medium truncate">{s.email || 'No email'}</p>
+                        </div>
+                      </div>
+                    </td>
                       <td className="p-4">
                         {s.isActivated ? (
                           <div className="flex flex-col gap-1">

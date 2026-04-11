@@ -84,7 +84,8 @@ router.put('/profile', authenticate, authorize(['teacher', 'examination_officer'
         specialization: specialization || undefined,
         staffId: staffId || undefined,
         publicPhone: req.body.publicPhone || undefined,
-        publicEmail: req.body.publicEmail || undefined
+        publicEmail: req.body.publicEmail || undefined,
+        publicWhatsapp: req.body.publicWhatsapp || undefined
       };
 
       if (userUpdateData.photoUrl) {

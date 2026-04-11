@@ -200,8 +200,8 @@ const LicenseManagement = () => {
       )}
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 font-semibold uppercase tracking-wide">Total Schools</p>
@@ -213,7 +213,7 @@ const LicenseManagement = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 font-semibold uppercase tracking-wide">Active</p>
@@ -225,7 +225,7 @@ const LicenseManagement = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 font-semibold uppercase tracking-wide">Expiring Soon</p>
@@ -237,7 +237,7 @@ const LicenseManagement = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 font-semibold uppercase tracking-wide">Total Students</p>
@@ -249,7 +249,7 @@ const LicenseManagement = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 font-semibold uppercase tracking-wide">Revenue</p>

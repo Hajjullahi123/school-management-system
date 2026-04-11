@@ -20,10 +20,19 @@ const IDCard = ({ data, type, schoolSettings }) => {
   const statusColor = isStudent ? 'bg-green-500' : 'bg-blue-500';
 
   return (
-    <div className="id-card-container break-inside-avoid mb-12 mx-auto transition-transform hover:scale-[1.02] duration-300">
-      <div className="flex flex-col md:flex-row gap-8 justify-center items-start print:flex-row print:gap-12">
+    <div className="id-card-container break-inside-avoid mb-12 mx-auto transition-transform hover:scale-[1.02] duration-300 px-4">
+        {/* Mobile Scroll Hint */}
+        <div className="md:hidden flex items-center justify-center gap-2 mb-4 text-primary font-bold text-xs uppercase tracking-widest animate-pulse no-print">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+            Scroll or Swipe to see Back Side
+        </div>
+
+      <div className="flex flex-col md:flex-row gap-8 justify-center items-start print:flex-row print:gap-12 overflow-x-auto no-scrollbar pb-6 print:overflow-visible">
         {/* FRONT SIDE */}
-        <div className="w-[360px] h-[580px] rounded-[2.5rem] overflow-hidden relative shadow-[0_20px_50px_rgba(0,0,0,0.2)] bg-slate-50 border border-gray-200 print:shadow-none">
+        <div className="w-full max-w-[360px] min-w-[300px] h-[580px] rounded-[2.5rem] overflow-hidden relative shadow-[0_20px_50px_rgba(0,0,0,0.2)] bg-slate-50 border border-gray-200 print:shadow-none flex-shrink-0">
+
           {/* Top Decorative Header */}
           <div className="h-48 bg-primary relative overflow-hidden">
             {/* Abstract Background Patterns */}
@@ -119,7 +128,7 @@ const IDCard = ({ data, type, schoolSettings }) => {
         </div>
 
         {/* BACK SIDE */}
-        <div className="w-[360px] h-[580px] rounded-[2.5rem] bg-white border-2 border-primary/20 overflow-hidden relative shadow-2xl print:shadow-none">
+        <div className="w-full max-w-[360px] min-w-[300px] h-[580px] rounded-[2.5rem] bg-white border-2 border-primary/20 overflow-hidden relative shadow-2xl print:shadow-none flex-shrink-0">
           {/* Top Branding Section */}
           <div className="bg-slate-50 p-8 border-b border-gray-100">
             <div className="flex items-center gap-4 mb-4">

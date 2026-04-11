@@ -22,7 +22,8 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
                   teacher: {
                     select: {
                       publicPhone: true,
-                      publicEmail: true
+                      publicEmail: true,
+                      publicWhatsapp: true
                     }
                   }
                 }

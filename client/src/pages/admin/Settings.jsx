@@ -394,40 +394,60 @@ const Settings = () => {
 
       {/* Tabs */}
       <div className="bg-white rounded-lg shadow mb-6">
-        <div className="border-b border-gray-200 overflow-x-auto">
+        {/* Mobile Tab Selection Dropdown */}
+        <div className="md:hidden p-4 border-b border-gray-100">
+          <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 block">Settings Area</label>
+          <select 
+            value={activeTab} 
+            onChange={(e) => setActiveTab(e.target.value)}
+            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="branding">🏫 School Branding</option>
+            <option value="socials">🔗 Social Media</option>
+            <option value="payment">💳 Payment Integration</option>
+            <option value="license">🔑 License Activation</option>
+            <option value="email">📧 Email Config</option>
+            <option value="sms">📱 SMS Config</option>
+            <option value="whatsapp">💬 WhatsApp Bot</option>
+            <option value="academics">📊 Academic Config</option>
+            <option value="ai">🤖 AI Configuration</option>
+          </select>
+        </div>
+
+        <div className="hidden md:block border-b border-gray-200 overflow-x-auto">
           <nav className="flex -mb-px min-w-max">
             <button
               onClick={() => setActiveTab('branding')}
-              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'branding'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`px-6 py-4 border-b-2 font-black text-[10px] uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === 'branding'
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
             >
               School Branding
             </button>
             <button
               onClick={() => setActiveTab('socials')}
-              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'socials'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`px-6 py-4 border-b-2 font-black text-[10px] uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === 'socials'
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
             >
               Social Media
             </button>
             <button
               onClick={() => setActiveTab('payment')}
-              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'payment'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`px-6 py-4 border-b-2 font-black text-[10px] uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === 'payment'
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
             >
               Payment Integration
             </button>
             <button
               onClick={() => setActiveTab('license')}
-              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'license'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`px-6 py-4 border-b-2 font-black text-[10px] uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === 'license'
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
             >
               License Activation
@@ -435,45 +455,45 @@ const Settings = () => {
 
             <button
               onClick={() => setActiveTab('email')}
-              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'email'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`px-6 py-4 border-b-2 font-black text-[10px] uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === 'email'
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
             >
               Email Config
             </button>
             <button
               onClick={() => setActiveTab('sms')}
-              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'sms'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`px-6 py-4 border-b-2 font-black text-[10px] uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === 'sms'
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
             >
               SMS Config
             </button>
             <button
               onClick={() => setActiveTab('whatsapp')}
-              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'whatsapp'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`px-6 py-4 border-b-2 font-black text-[10px] uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === 'whatsapp'
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
             >
               WhatsApp Bot
             </button>
             <button
               onClick={() => setActiveTab('academics')}
-              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'academics'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`px-6 py-4 border-b-2 font-black text-[10px] uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === 'academics'
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
             >
               Academic Config
             </button>
             <button
               onClick={() => setActiveTab('ai')}
-              className={`px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'ai'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`px-6 py-4 border-b-2 font-black text-[10px] uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === 'ai'
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
             >
               AI Configuration

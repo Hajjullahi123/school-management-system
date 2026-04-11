@@ -242,7 +242,7 @@ const LandingPage = () => {
       </nav>
 
       {/* Hero Section */}
-      <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <div className="relative min-h-[85vh] sm:min-h-screen flex items-center justify-center overflow-hidden">
         {/* Background Slider */}
         {studentImages.map((img, index) => (
           <div
@@ -255,6 +255,8 @@ const LandingPage = () => {
               src={img}
               alt={`Student ${index + 1}`}
               className="w-full h-full object-cover transform scale-105 animate-slow-zoom"
+              loading="lazy"
+              decoding="async"
             />
           </div>
         ))}
@@ -643,9 +645,9 @@ const LandingPage = () => {
                   <div className="md:w-2/5 bg-primary text-white p-10 flex flex-col items-center justify-center relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-accent opacity-50"></div>
 
-                    <div className="relative z-10 w-44 h-44 rounded-[30px] border-4 border-white/20 shadow-2xl overflow-hidden mb-8 bg-white/10 backdrop-blur-md">
+                    <div className="relative z-10 w-32 h-32 sm:w-44 sm:h-44 rounded-[30px] border-4 border-white/20 shadow-2xl overflow-hidden mb-8 bg-white/10 backdrop-blur-md">
                       {selectedStudent.photo ? (
-                        <img src={selectedStudent.photo} alt={selectedStudent.name} className="w-full h-full object-cover" />
+                        <img src={selectedStudent.photo} alt={selectedStudent.name} className="w-full h-full object-cover" loading="lazy" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white/50">
                           <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 20 20">

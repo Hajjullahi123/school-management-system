@@ -475,6 +475,14 @@ const Attendance = () => {
                   </div>
                 </div>
               )}
+              {/* Mobile Scroll Hint */}
+              <div className="md:hidden flex items-center justify-center gap-2 mb-4 text-primary font-bold text-xs uppercase tracking-widest animate-pulse no-print py-2 bg-primary/5">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+                Scroll horizontally to mark attendance
+              </div>
+
               <div className="p-4 bg-primary/5 border-b border-primary/10 flex justify-between items-center">
                 <span className="font-semibold text-primary">Class Roll Call</span>
                 {!isPastDate && (
@@ -484,19 +492,19 @@ const Attendance = () => {
                   </div>
                 )}
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto no-scrollbar">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50 z-10 border-r">Student</th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {students.map((student) => (
-                      <tr key={student.studentId} className={student.status === 'absent' ? 'bg-red-50' : ''}>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                    {students.map((student, idx) => (
+                      <tr key={student.studentId} className={student.status === 'absent' ? 'bg-red-50' : idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}>
+                        <td className="px-6 py-4 whitespace-nowrap sticky left-0 z-10 border-r" style={{ backgroundColor: student.status === 'absent' ? '#fef2f2' : idx % 2 === 0 ? 'white' : '#f9fafb' }}>
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border-2 border-white shadow-sm shrink-0">
                               {student.photoUrl ? (
@@ -513,11 +521,11 @@ const Attendance = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex justify-center gap-2">
+                        <td className="px-6 py-4 whitespace-nowrap min-w-[320px]">
+                          <div className="flex justify-center gap-1 sm:gap-2">
                             {['present', 'absent', 'late', 'excused'].map(status => (
                               <label key={status} className={`
-                                                        inline-flex flex-col items-center cursor-pointer p-2 rounded-lg transition-colors border
+                                                        inline-flex flex-col items-center cursor-pointer p-2 rounded-lg transition-colors border min-w-[65px]
                                                         ${student.status === status
                                   ? (status === 'present' ? 'bg-green-100 border-green-300 ring-1 ring-green-500' :
                                     status === 'absent' ? 'bg-red-100 border-red-300 ring-1 ring-red-500' :

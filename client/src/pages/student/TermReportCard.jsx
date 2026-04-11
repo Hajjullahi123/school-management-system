@@ -437,7 +437,16 @@ const TermReportCard = () => {
             const termNumber = data.term?.number || data.academic?.termNumber;
 
             return (
-                <div className="report-card-wrapper overflow-x-auto md:overflow-visible pb-4">
+              <div key={idx} className="mb-12 last:mb-0">
+                {/* Mobile Scroll Hint */}
+                <div className="md:hidden flex items-center justify-center gap-2 mb-4 text-primary font-bold text-xs uppercase tracking-widest animate-pulse no-print">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                  Scroll to view full sheet
+                </div>
+
+                <div className="report-card-wrapper overflow-x-auto no-scrollbar pb-4 print:overflow-visible">
             {(() => {
             const reportColor = (data.schoolSettings || schoolSettings)?.reportColorScheme || (data.schoolSettings || schoolSettings)?.primaryColor;
             const reportFont = (data.schoolSettings || schoolSettings)?.reportFontFamily || 'serif';
@@ -826,6 +835,7 @@ const TermReportCard = () => {
               </div>
             );
             })()}
+              </div>
             </div>
           );
         })}

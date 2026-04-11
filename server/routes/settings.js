@@ -8,6 +8,59 @@ const { logAction } = require('../utils/audit');
 
 const { optionalAuth } = require('../middleware/auth');
 
+// Get school statistics summary
+router.get('/stats-summary', authenticate, async (req, res) => {
+  try {
+    const schoolId = req.schoolId;
+    const userId = req.user.id;
+    const role = req.user.role;
+
+    // For teachers, return only their assigned class/student counts
+    if (role === 'teacher') {
+      const myClasses = await prisma.class.findMany({
+        where: { schoolId, classTeacherId: userId },
+        select: { id: true, _count: { select: { students: true } } }
+      });
+
+      const totalStudents = myClasses.reduce((acc, c) => acc + c._count.students, 0);
+      
+      // Get subjects assigned to this teacher via TeacherAssignment -> ClassSubject
+      const assignments = await prisma.teacherAssignment.findMany({
+          where: { schoolId, teacherId: userId },
+          include: { classSubject: true }
+      });
+      
+      // Count unique subjects assigned across all their classes
+      const uniqueSubjectIds = new Set(assignments.map(a => a.classSubject.subjectId));
+
+      return res.json({
+        students: totalStudents,
+        classes: myClasses.length,
+        subjects: uniqueSubjectIds.size,
+        teachers: 1 // Self
+      });
+    }
+
+    // For admin/principal/superadmin, return full school metrics
+    const [studentCount, subjectCount, teacherCount, classCount] = await Promise.all([
+      prisma.student.count({ where: { schoolId } }),
+      prisma.subject.count({ where: { schoolId } }),
+      prisma.user.count({ where: { schoolId, role: 'teacher', isActive: true } }),
+      prisma.class.count({ where: { schoolId } })
+    ]);
+
+    res.json({
+      students: studentCount,
+      subjects: subjectCount,
+      teachers: teacherCount,
+      classes: classCount
+    });
+  } catch (error) {
+    console.error('[StatsSummary] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch statistics summary' });
+  }
+});
+
 // Get school settings
 // Can be accessed via schoolSlug (public) or via auth token (private)
 router.get('/', async (req, res) => {
