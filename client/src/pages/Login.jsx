@@ -449,14 +449,6 @@ const Login = () => {
               </div>
             )}
 
-            {slowLoading && (
-              <div className="mb-6 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center gap-3 animate-pulse">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
-                <p className="text-xs text-blue-700 font-medium">
-                  Identifiying... (Cloud server is waking up)
-                </p>
-              </div>
-            )}
 
             {step !== 2 && (
               <button

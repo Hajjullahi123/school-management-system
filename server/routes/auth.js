@@ -54,16 +54,21 @@ router.post('/identify', async (req, res) => {
       })
     ]);
     
-    // Check for superadmin specifically if no school filter was applied
-    let finalUsers = users;
-    if (!schoolSlug) {
-      const superadmins = await prisma.user.findMany({
-        where: { role: 'superadmin', schoolId: null, OR: [{ username: searchId }, { email: searchId }] },
-        select: { role: true, schoolId: true }
-      });
-      if (superadmins.length > 0) {
-        return res.json({ schools: [], count: 0, globalAccess: true, message: 'Global admin detected' });
-      }
+    // ALWAYS check for superadmin specifically to allow global access from any domain
+    let finalUsers = [...users];
+    
+    const superadmins = await prisma.user.findMany({
+      where: { 
+        role: 'superadmin', 
+        schoolId: null, 
+        OR: [{ username: searchId }, { email: searchId }] 
+      },
+      select: { role: true, schoolId: true }
+    });
+
+    if (superadmins.length > 0) {
+      // If we found a global admin, we return immediately with globalAccess flag
+      return res.json({ schools: [], count: 0, globalAccess: true, message: 'Global admin detected' });
     }
 
     // Collect distinct schools efficiently

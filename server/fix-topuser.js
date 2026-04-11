@@ -17,7 +17,7 @@ async function fixTopUser() {
     // Try to find the user globally (schoolId: null)
     let user = await prisma.user.findFirst({
       where: {
-        username: { equals: username, mode: 'insensitive' },
+        username: username,
         schoolId: null
       }
     });
