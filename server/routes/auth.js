@@ -79,6 +79,9 @@ router.post('/identify', async (req, res) => {
       return res.status(404).json({ error: 'Account not found. Check your credentials.' });
     }
 
+    // PERFORMANCE OPTIMIZATION: If we only found ONE school and we have a schoolSlug context,
+    // we can return faster without the client needing to pick.
+    
     res.json({ schools: matchedSchools, count: matchedSchools.length });
   } catch (error) {
     console.error('Identify error:', error);
@@ -210,6 +213,16 @@ router.post('/login', async (req, res) => {
         photoUrl: user.photoUrl
       }
     });
+
+    // Log login success here (Moved from /me for better performance)
+    logAction({
+      schoolId: user.schoolId || 1,
+      userId: user.id,
+      action: 'LOGIN',
+      resource: 'USER',
+      details: { username: user.username, role: user.role, method: 'credentials' },
+      ipAddress: req.ip
+    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Login failed' });
@@ -273,15 +286,6 @@ router.get('/me', authenticate, async (req, res) => {
       student: user.student,
       classesAsTeacher: user.classesAsTeacher,
       photoUrl: user.photoUrl
-    });
-
-    logAction({
-      schoolId: user.schoolId || 1,
-      userId: user.id,
-      action: 'LOGIN',
-      resource: 'USER',
-      details: { username: user.username, role: user.role },
-      ipAddress: req.ip
     });
   } catch (error) {
     console.error('Me error:', error);
