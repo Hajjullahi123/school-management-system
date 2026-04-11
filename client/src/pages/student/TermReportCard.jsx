@@ -668,6 +668,21 @@ const TermReportCard = () => {
                             <span className="text-sm font-black italic">{data.termAverage?.toFixed(1)}%</span>
                           </div>
                         </div>
+
+                        {/* PASS/FAIL SUMMARY SECTION */}
+                        {data.passFailSummary?.show && (
+                          <div className="border-t border-black grid grid-cols-2 divide-x divide-black/10 bg-white items-center h-8">
+                             <div className="flex items-center justify-between px-2 h-full">
+                                <span className="text-[7px] font-black text-gray-400 uppercase">Passed</span>
+                                <span className="text-[10px] font-black text-emerald-700">{data.passFailSummary.totalPassed}</span>
+                             </div>
+                             <div className="flex items-center justify-between px-2 h-full">
+                                <span className="text-[7px] font-black text-gray-400 uppercase">Failed</span>
+                                <span className="text-[10px] font-black text-red-600">{data.passFailSummary.totalFailed}</span>
+                             </div>
+                          </div>
+                        )}
+
                         <div className="border-t border-black p-1 flex items-center justify-between bg-emerald-50" style={{ backgroundColor: `${reportColor}10` }}>
                           <span className="text-[9px] font-black uppercase text-gray-500">Overall Grade:</span>
                           <span className="text-lg font-black text-emerald-800" style={{ color: reportColor }}>{data.overallGrade}</span>

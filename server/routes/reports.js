@@ -32,7 +32,8 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         examModeType: true,
         principalSignatureUrl: true,
         weekendDays: true,
-        showAttendanceOnReport: true
+        showAttendanceOnReport: true,
+        showPassFailStats: true
       }
     });
 
@@ -433,6 +434,11 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
           cumulativeAverage: cumulativeAvg
         };
       }),
+      passFailSummary: {
+        totalPassed: results.filter(r => r.totalScore >= schoolSettings.passThreshold).length,
+        totalFailed: results.filter(r => r.totalScore < schoolSettings.passThreshold).length,
+        show: schoolSettings.showPassFailStats
+      },
       termAverage: termAverage,
       termPosition: termPosition,
       totalStudents: totalStudents,

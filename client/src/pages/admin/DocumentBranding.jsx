@@ -192,7 +192,8 @@ const DocumentBranding = () => {
                   {[
                     { key: 'showPositionOnReport', label: 'Student Position', desc: 'Display rank in class and subject' },
                     { key: 'showFeesOnReport', label: 'Fee Breakdown', desc: 'Display outstanding balance and payment status' },
-                    { key: 'showAttendanceOnReport', label: 'Attendance Record', desc: 'Display student termly attendance percentage' }
+                    { key: 'showAttendanceOnReport', label: 'Attendance Record', desc: 'Display student termly attendance percentage' },
+                    { key: 'showPassFailStats', label: 'Pass/Fail Analysis', desc: 'Display total subjects passed vs total subjects failed' }
                   ].map(toggle => (
                     <div key={toggle.key} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
                       <div>
@@ -266,6 +267,12 @@ const DocumentBranding = () => {
                       <div className="flex justify-between border-t border-black pb-1 my-1">
                         <span className="font-bold">ATTENDANCE:</span>
                         <span className="font-black">95% (PRESENT)</span>
+                      </div>
+                    )}
+                    {settings.showPassFailStats && (
+                      <div className="flex justify-between border-t border-black py-1">
+                        <span className="font-bold">PASSED: <span className="text-emerald-600 ml-1">12</span></span>
+                        <span className="font-bold">FAILED: <span className="text-red-500 ml-1">0</span></span>
                       </div>
                     )}
                     {settings.showFeesOnReport && (

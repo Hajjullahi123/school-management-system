@@ -16,6 +16,18 @@ const MyClass = () => {
   const [currentTerm, setCurrentTerm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [publication, setPublication] = useState({ isPublished: false, isProgressivePublished: false });
+  const [reportPreview, setReportPreview] = useState(null);
+  const [fetchingPreview, setFetchingPreview] = useState(false);
+
+  const predefinedRemarks = [
+    "An excellent result, keep up the good work.",
+    "A very good performance, keep it up.",
+    "A good result. You can do better.",
+    "Fair performance. Room for more improvement.",
+    "Weak performance. Needs more focus on core subjects.",
+    "Satisfactory result. Consolidate your effort.",
+    "Poor performance. You need to be more serious with your studies."
+  ];
 
   useEffect(() => {
     fetchMyClass();
@@ -66,26 +78,36 @@ const MyClass = () => {
       return;
     }
     setGradingStudent(student);
-    setLoading(true); // Re-using loading or creating a local one? Let's just block UI slightly or better, use a specific loader. 
-    // Actually, better to fetch data and then show modal, or show modal with loader.
-    // Let's reset state first
+    setLoading(true);
+    setFetchingPreview(true);
+    setReportPreview(null);
     setRemarks({ formMasterRemark: '', principalRemark: '' });
     setPsychomotorRatings([]);
 
     try {
-      const res = await api.get(`/api/report-extras/${student.id}/${currentTerm.id}`);
-      if (res.ok) {
-        const data = await res.json();
+      // Parallel fetch for speed
+      const [extrasRes, reportRes] = await Promise.all([
+        api.get(`/api/report-extras/${student.id}/${currentTerm.id}`),
+        api.get(`/api/reports/term/${student.id}/${currentTerm.id}`)
+      ]);
+
+      if (extrasRes.ok) {
+        const data = await extrasRes.json();
         setRemarks({
           formMasterRemark: data.formMasterRemark || '',
           principalRemark: data.principalRemark || ''
         });
         setPsychomotorRatings(Array.isArray(data.psychomotorRatings) ? data.psychomotorRatings : []);
       }
+
+      if (reportRes.ok) {
+        setReportPreview(await reportRes.json());
+      }
     } catch (e) {
       console.error("Error fetching report details", e);
     } finally {
       setLoading(false);
+      setFetchingPreview(false);
     }
   };
 
@@ -172,6 +194,19 @@ const MyClass = () => {
 
   const activeStudents = classData?.students?.filter(s => s.user.isActive) || [];
 
+  const renderRatingTicks = (score) => {
+    const rounded = Math.round(score);
+    return (
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map(val => (
+          <div key={val} className={`w-4 h-4 rounded-sm border flex items-center justify-center text-[10px] ${rounded === val ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-300'}`}>
+            {rounded === val ? '✔' : val}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
@@ -246,7 +281,6 @@ const MyClass = () => {
 
       {/* Compact Info Bar */}
       <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-100 flex flex-wrap items-center justify-between gap-y-4 gap-x-2 sm:gap-6">
-        {/* Active Students */}
         <div className="flex items-center gap-3 min-w-[120px]">
           <div className="p-2 bg-green-50 rounded-lg">
             <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -258,10 +292,7 @@ const MyClass = () => {
             <p className="text-lg font-black text-gray-900 leading-none">{activeStudents.length}</p>
           </div>
         </div>
-
         <div className="hidden lg:block w-px h-8 bg-gray-100"></div>
-
-        {/* Total Registered */}
         <div className="flex items-center gap-3 min-w-[120px]">
           <div className="p-2 bg-primary/10 rounded-lg">
             <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -273,10 +304,7 @@ const MyClass = () => {
             <p className="text-lg font-black text-gray-900 leading-none">{classData.students.length}</p>
           </div>
         </div>
-
         <div className="hidden lg:block w-px h-8 bg-gray-100"></div>
-
-        {/* Session */}
         <div className="flex items-center gap-3 min-w-[140px]">
           <div className="p-2 bg-blue-50 rounded-lg">
             <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -288,10 +316,7 @@ const MyClass = () => {
             <p className="text-sm font-black text-gray-900 leading-none">{currentTerm?.academicSession?.name || '...'}</p>
           </div>
         </div>
-
         <div className="hidden lg:block w-px h-8 bg-gray-100"></div>
-
-        {/* Term */}
         <div className="flex items-center gap-3 min-w-[140px]">
           <div className="p-2 bg-indigo-50 rounded-lg">
             <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -307,103 +332,240 @@ const MyClass = () => {
 
       {/* Grading Modal */}
       {gradingStudent && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b flex justify-between items-center">
-              <h3 className="text-xl font-bold">Grading: {gradingStudent.user.firstName} {gradingStudent.user.lastName}</h3>
-              <button
-                onClick={() => setGradingStudent(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl h-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </div>
+                <div>
+                   <h3 className="text-xl font-black text-gray-900 leading-none mb-1">Continuous Assessment & Remark</h3>
+                   <p className="text-sm font-medium text-gray-500">Student: <span className="text-primary font-bold">{gradingStudent.user.firstName} {gradingStudent.user.lastName}</span></p>
+                </div>
+              </div>
+              <button onClick={() => setGradingStudent(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* Remarks Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Form Master's Remark</label>
-                  <textarea
-                    value={remarks.formMasterRemark}
-                    onChange={(e) => setRemarks({ ...remarks, formMasterRemark: e.target.value })}
-                    className="w-full border rounded-md p-2 h-24"
-                    placeholder="Teacher's impression..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Principal's Remark (On Behalf)</label>
-                  <textarea
-                    value={remarks.principalRemark}
-                    onChange={(e) => setRemarks({ ...remarks, principalRemark: e.target.value })}
-                    className="w-full border rounded-md p-2 h-24"
-                    placeholder="Headteacher's remark..."
-                  />
-                </div>
-              </div>
-
-              {/* Psychomotor Domain Section */}
-              <div>
-                <h4 className="font-semibold text-lg mb-4 border-b pb-2">Psychomotor Domain & Affective Assessment</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {domains.length === 0 ? (
-                    <div className="col-span-full text-center p-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                      <p className="text-gray-500">No assessment domains configured.</p>
-                      <p className="text-sm text-gray-400 mt-1">Please ask the administrator to run the psychomotor seed script.</p>
+            <div className="flex-1 overflow-hidden">
+              <div className="h-full grid grid-cols-1 lg:grid-cols-[1fr,380px] divide-x divide-gray-100">
+                {/* LEFT: Assessment Form */}
+                <div className="overflow-y-auto p-8 space-y-10 custom-scrollbar">
+                  {/* Performance Breakdown Section */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                       <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm">01</span>
+                       <h4 className="font-black text-gray-900 uppercase tracking-tighter">Academic Remarks</h4>
                     </div>
-                  ) : (
-                    (Array.isArray(domains) ? domains : []).map(domain => {
-                      const rating = psychomotorRatings.find(r => r.domainId === domain.id) || { score: 0 };
-                      return (
-                        <div key={domain.id} className="bg-gray-50 p-4 rounded-md">
-                          <div className="flex justify-between mb-2">
-                            <span className="font-medium text-sm">{domain.name}</span>
-                            <span className="text-sm font-bold text-primary">{rating.score}/{domain.maxScore}</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="1"
-                            max={domain.maxScore}
-                            value={rating.score || 0}
-                            onChange={(e) => {
-                              const newScore = parseInt(e.target.value);
-                              setPsychomotorRatings(prev => {
-                                const existing = prev.find(p => p.domainId === domain.id);
-                                if (existing) {
-                                  return prev.map(p => p.domainId === domain.id ? { ...p, score: newScore } : p);
-                                } else {
-                                  return [...prev, { domainId: domain.id, name: domain.name, score: newScore }];
-                                }
-                              });
-                            }}
-                            className="w-full"
-                          />
-                          <div className="flex justify-between text-xs text-gray-400 px-1 mt-1">
-                            <span>1 (Poor)</span>
-                            <span>{domain.maxScore} (Excellent)</span>
-                          </div>
+                    
+                    <div className="grid grid-cols-1 gap-8">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <label className="text-sm font-black text-gray-700 uppercase tracking-wider">Form Master's Remark</label>
+                          <select 
+                            onChange={(e) => setRemarks({ ...remarks, formMasterRemark: e.target.value })}
+                            className="text-xs border-none bg-gray-50 rounded-lg px-3 py-1.5 font-bold text-gray-500 focus:ring-0 cursor-pointer outline-none"
+                          >
+                            <option value="">-- Quick Select --</option>
+                            {predefinedRemarks.map((rem, i) => <option key={i} value={rem}>{rem}</option>)}
+                          </select>
                         </div>
-                      );
-                    })
-                  )}
+                        <textarea
+                          placeholder="Provide a detailed assessment of the student's behavior and academic attitude..."
+                          className="w-full border-2 border-gray-100 rounded-2xl p-4 h-32 focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none font-medium text-gray-700 bg-gray-50/30 resize-none"
+                          value={remarks.formMasterRemark}
+                          onChange={(e) => setRemarks({ ...remarks, formMasterRemark: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <label className="text-sm font-black text-gray-700 uppercase tracking-wider">Principal's Remark</label>
+                          <select 
+                            onChange={(e) => setRemarks({ ...remarks, principalRemark: e.target.value })}
+                            className="text-xs border-none bg-gray-50 rounded-lg px-3 py-1.5 font-bold text-gray-500 focus:ring-0 cursor-pointer outline-none"
+                          >
+                            <option value="">-- Quick Select --</option>
+                            {predefinedRemarks.map((rem, i) => <option key={i} value={rem}>{rem}</option>)}
+                          </select>
+                        </div>
+                        <textarea
+                          placeholder="Official headteacher's comment based on term performance..."
+                          className="w-full border-2 border-gray-100 rounded-2xl p-4 h-28 focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none font-medium text-gray-700 bg-gray-50/30 resize-none"
+                          value={remarks.principalRemark}
+                          onChange={(e) => setRemarks({ ...remarks, principalRemark: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Psychomotor Assessment */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                       <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-sm">02</span>
+                       <h4 className="font-black text-gray-900 uppercase tracking-tighter text-lg">Affective & Psychomotor Assessment</h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {domains.length === 0 ? (
+                        <div className="col-span-full p-4 bg-amber-50 rounded-2xl border border-amber-100 text-amber-700 text-sm font-medium">
+                           Assessment categories are not yet configured. Please contact the administrator.
+                        </div>
+                      ) : (
+                        domains.map((domain) => {
+                          const rating = psychomotorRatings.find(r => r.domainId === domain.id) || { score: 1 };
+                          return (
+                            <div key={domain.id} className="group p-4 rounded-2xl border-2 border-gray-50 hover:border-emerald-100 hover:bg-emerald-50/30 transition-all">
+                              <div className="flex justify-between items-center mb-4">
+                                <span className="text-sm font-black text-gray-700 uppercase tracking-tight">{domain.name}</span>
+                                <span className="px-2 py-1 bg-white rounded-lg text-xs font-black text-emerald-600 shadow-sm border border-emerald-100">{rating.score} / {domain.maxScore}</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="1"
+                                max={domain.maxScore}
+                                step="1"
+                                value={rating.score}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  setPsychomotorRatings(prev => {
+                                    const existing = prev.find(p => p.domainId === domain.id);
+                                    if (existing) {
+                                      return prev.map(p => p.domainId === domain.id ? { ...p, score: val } : p);
+                                    }
+                                    return [...prev, { domainId: domain.id, name: domain.name, score: val }];
+                                  });
+                                }}
+                                className="w-full accent-emerald-600 h-1.5 bg-gray-200 rounded-lg cursor-pointer"
+                              />
+                              <div className="flex justify-between mt-2 px-1">
+                                <span className="text-[10px] font-black text-gray-300">WEAK</span>
+                                <span className="text-[10px] font-black text-gray-300">EXCELLENT</span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* RIGHT: LIVE REPORT PREVIEW */}
+                <div className="bg-gray-50/50 flex flex-col overflow-hidden">
+                  <div className="p-4 bg-white border-b border-gray-100 shrink-0">
+                    <h4 className="font-black text-gray-900 text-xs uppercase tracking-widest flex items-center gap-2">
+                       <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                       Live Report Preview
+                    </h4>
+                  </div>
+                  
+                  <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                    {fetchingPreview ? (
+                       <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
+                          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                          <p className="text-sm font-bold text-gray-500">Retrieving academic record...</p>
+                       </div>
+                    ) : reportPreview ? (
+                      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
+                        {/* Summary Header */}
+                        <div className="p-5 bg-gradient-to-br from-primary to-primary-dark text-white">
+                           <div className="flex justify-between items-start mb-4">
+                              <div>
+                                 <p className="text-[10px] font-black opacity-60 uppercase mb-1">Overall Average</p>
+                                 <p className="text-3xl font-black">{reportPreview.termAverage?.toFixed(1)}%</p>
+                              </div>
+                              <div className="text-right">
+                                 <p className="text-[10px] font-black opacity-60 uppercase mb-1">Position</p>
+                                 <p className="text-xl font-black">{reportPreview.termPosition} / {reportPreview.totalStudents}</p>
+                              </div>
+                           </div>
+                           <div className="flex gap-2">
+                              <span className="px-2 py-1 bg-white/20 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                                Grade: {reportPreview.overallGrade || 'N/A'}
+                              </span>
+                           </div>
+                        </div>
+
+                        {/* Subject Table */}
+                        <div className="p-0">
+                           <table className="w-full text-left text-[11px]">
+                              <thead className="bg-gray-50/50 text-gray-400 font-black uppercase tracking-widest font-mono">
+                                 <tr>
+                                    <th className="px-4 py-3">Subject</th>
+                                    <th className="px-4 py-3 text-center">TOT</th>
+                                    <th className="px-4 py-3 text-center">GRD</th>
+                                 </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-50">
+                                 {reportPreview.subjects?.map((sub, i) => (
+                                    <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                                       <td className="px-4 py-3 font-bold text-gray-700">{sub.name}</td>
+                                       <td className="px-4 py-3 text-center font-black">{sub.total?.toFixed(0)}</td>
+                                       <td className="px-4 py-3 text-center">
+                                          <span className={`px-2 py-0.5 rounded font-black ${sub.grade === 'F' ? 'text-red-500 bg-red-50' : 'text-emerald-600 bg-emerald-50'}`}>{sub.grade}</span>
+                                       </td>
+                                    </tr>
+                                 ))}
+                              </tbody>
+                           </table>
+                        </div>
+
+                        {/* Psychomotor Summary */}
+                        <div className="p-5 space-y-4">
+                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Psychomotor Record</p>
+                           <div className="space-y-2">
+                              {reportPreview.psychomotorRatings?.slice(0, 5).map((r, i) => (
+                                <div key={i} className="flex justify-between items-center text-[11px]">
+                                   <span className="font-bold text-gray-600">{r.name}</span>
+                                   {renderRatingTicks(r.score)}
+                                </div>
+                              ))}
+                           </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
+                         <p className="text-gray-400 font-bold text-sm">No grade data available for this term yet.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
-              <button
-                onClick={() => setGradingStudent(null)}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-md"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveGrading}
-                disabled={saving}
-                className="px-6 py-2 bg-primary text-white rounded-md hover:brightness-90 disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save Grading'}
-              </button>
+            <div className="p-6 border-t border-gray-100 bg-white flex justify-between items-center shrink-0">
+               <p className="text-xs text-gray-400 font-bold max-w-md italic">
+                 Note: Remarks and assessments are only visible to parents once the results have been officially published.
+               </p>
+               <div className="flex gap-3">
+                 <button
+                   onClick={() => setGradingStudent(null)}
+                   className="px-6 py-3 rounded-2xl font-bold text-gray-500 hover:bg-gray-100 transition-all border border-gray-100"
+                 >
+                   Discard Changes
+                 </button>
+                 <button
+                   onClick={saveGrading}
+                   disabled={saving}
+                   className="px-10 py-3 bg-primary text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:brightness-110 active:scale-95 transition-all disabled:bg-gray-400 flex items-center gap-2"
+                 >
+                   {saving ? (
+                     <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
+                        <span>Saving...</span>
+                     </>
+                   ) : (
+                     <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+                        <span>Confirm Grading</span>
+                     </>
+                   )}
+                 </button>
+               </div>
             </div>
           </div>
         </div>

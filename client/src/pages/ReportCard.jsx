@@ -582,6 +582,21 @@ const ReportCard = () => {
                       </div>
                       )}
                     </div>
+
+                    {/* PASS/FAIL SUMMARY SECTION */}
+                    {reportData.passFailSummary?.show && (
+                      <div className="border-t border-black grid grid-cols-2 divide-x divide-black/10 bg-white items-center h-8">
+                         <div className="flex items-center justify-between px-2 h-full">
+                            <span className="text-[7px] font-black text-gray-400 uppercase">Passed</span>
+                            <span className="text-[10px] font-black text-emerald-700">{reportData.passFailSummary.totalPassed}</span>
+                         </div>
+                         <div className="flex items-center justify-between px-2 h-full">
+                            <span className="text-[7px] font-black text-gray-400 uppercase">Failed</span>
+                            <span className="text-[10px] font-black text-red-600">{reportData.passFailSummary.totalFailed}</span>
+                         </div>
+                      </div>
+                    )}
+
                     <div className="border-t border-black p-1 flex justify-between items-center bg-gray-100 px-3">
                       <span className="text-[8px] font-black text-gray-500 uppercase">Grade:</span>
                       <span className="text-lg font-black" style={{ color: reportColor }}>{reportData.overallGrade || 'F'}</span>
