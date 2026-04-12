@@ -259,29 +259,62 @@ const ParentMessages = () => {
         </div>
       )}
 
-      {/* Form Master Info */}
+      {/* Form Master Info - Premium Card */}
       {formMaster && (
-        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-blue-100 flex-shrink-0 flex items-center justify-center text-blue-600 font-bold overflow-hidden shadow-sm">
-              {formMaster.formMaster.user?.photoUrl ? (
-                <img
-                  src={formMaster.formMaster.user.photoUrl.startsWith('data:') || formMaster.formMaster.user.photoUrl.startsWith('http') ? formMaster.formMaster.user.photoUrl : `${API_BASE_URL}${formMaster.formMaster.user.photoUrl}`}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span>{formMaster.formMaster.user.firstName?.[0]}{formMaster.formMaster.user.lastName?.[0]}</span>
-              )}
+        <div className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col sm:flex-row items-center gap-6 group">
+          <div className="h-20 w-20 rounded-[24px] bg-slate-50 border-2 border-slate-100 flex items-center justify-center font-black text-2xl text-primary shadow-inner overflow-hidden group-hover:border-primary/30 transition-all duration-500">
+            {formMaster.formMaster.user?.photoUrl ? (
+              <img
+                src={formMaster.formMaster.user.photoUrl.startsWith('data:') || formMaster.formMaster.user.photoUrl.startsWith('http') ? formMaster.formMaster.user.photoUrl : `${API_BASE_URL}${formMaster.formMaster.user.photoUrl}`}
+                alt=""
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              />
+            ) : (
+              <span>{formMaster.formMaster.user.firstName?.[0]}{formMaster.formMaster.user.lastName?.[0]}</span>
+            )}
+          </div>
+          
+          <div className="flex-1 text-center sm:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/5 rounded-full mb-2">
+              <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
+              <span className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Your Form Master</span>
             </div>
-            <div>
-              <p className="font-semibold text-blue-900">
-                Form Master: {formMaster.formMaster.user.firstName} {formMaster.formMaster.user.lastName}
-              </p>
-              <p className="text-sm text-blue-700">
-                Class: {formMaster.class.name} {formMaster.class.arm}
-              </p>
-            </div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              {formMaster.formMaster.user.firstName} {formMaster.formMaster.user.lastName}
+            </h2>
+            <p className="text-slate-500 font-medium flex items-center justify-center sm:justify-start gap-2 mt-1">
+              <svg className="w-4 h-4 text-primary/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-7h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              Class {formMaster.class.name} {formMaster.class.arm}
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            {(formMaster.formMaster.user?.teacher?.publicPhone || formMaster.formMaster.user?.phone) && (
+              <a 
+                href={`tel:${formMaster.formMaster.user?.teacher?.publicPhone || formMaster.formMaster.user?.phone}`}
+                className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95 transition-all text-slate-600 hover:text-primary hover:border-primary/20"
+                title="Call Form Master"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </a>
+            )}
+            {(formMaster.formMaster.user?.teacher?.publicWhatsapp || formMaster.formMaster.user?.teacher?.publicPhone || formMaster.formMaster.user?.phone) && (
+              <a 
+                href={`https://wa.me/${formMaster.formMaster.user?.teacher?.publicWhatsapp || formMaster.formMaster.user?.teacher?.publicPhone || formMaster.formMaster.user?.phone}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:-translate-y-1 active:scale-95 transition-all text-white"
+                title="WhatsApp Form Master"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-4.431 6.516a10.024 10.024 0 01-5.115-1.411l-.367-.218-3.801 1.002.112-3.8-.231-.368A9.994 9.994 0 012.83 10.155c0-5.518 4.482-10 10-10 5.518 0 10 4.482 10 10 0 5.519-4.482 10-10 10z" />
+                </svg>
+              </a>
+            )}
           </div>
         </div>
       )}

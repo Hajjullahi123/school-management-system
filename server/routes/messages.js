@@ -344,7 +344,16 @@ router.get('/form-master/:studentId', authenticate, authorize(['parent', 'admin'
                 schoolId: true,
                 firstName: true,
                 lastName: true,
-                role: true
+                role: true,
+                phone: true,
+                photoUrl: true,
+                teacher: {
+                  select: {
+                    publicPhone: true,
+                    publicEmail: true,
+                    publicWhatsapp: true
+                  }
+                }
               }
             }
           }

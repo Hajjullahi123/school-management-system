@@ -492,8 +492,17 @@ const ParentDashboard = () => {
                           {student.classModel?.name} {student.classModel?.arm}
                         </span>
                       </div>
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-                        Reg. No: <span className="text-slate-800">{student.admissionNumber}</span>
+                      <div className="flex flex-col gap-1 mt-1 text-[10px] font-bold uppercase tracking-[0.15em]">
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <span>REG:</span>
+                          <span className="text-slate-800">{student.admissionNumber}</span>
+                        </div>
+                         {(student.parentPhone || student.parentGuardianPhone) && (
+                          <div className="flex items-center gap-1.5 text-slate-400">
+                            <span>PARENT PH:</span>
+                            <span className="text-slate-800">{student.parentPhone || student.parentGuardianPhone}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -666,8 +675,8 @@ const ParentDashboard = () => {
 
                     {/* Form Master Quick-Link */}
                     {student.classModel?.classTeacher && (
-                      <div className="mt-2 p-5 bg-emerald-50/30 rounded-[28px] border border-emerald-100/50 flex items-center gap-4 transition-all hover:bg-emerald-50">
-                        <div className="h-12 w-12 rounded-2xl bg-white border-2 border-emerald-100 flex items-center justify-center font-black text-emerald-600 shadow-sm overflow-hidden">
+                      <div className="mt-2 p-5 bg-emerald-50/30 rounded-[28px] border border-emerald-100/50 flex items-center gap-4 transition-all hover:bg-emerald-50 group/master">
+                        <div className="h-12 w-12 rounded-2xl bg-white border-2 border-emerald-100 flex items-center justify-center font-black text-emerald-600 shadow-sm overflow-hidden group-hover/master:border-emerald-500 transition-all">
                            {student.classModel.classTeacher.photoUrl ? (
                             <img 
                               src={student.classModel.classTeacher.photoUrl.startsWith('data:') || student.classModel.classTeacher.photoUrl.startsWith('http') ? student.classModel.classTeacher.photoUrl : `${API_BASE_URL}${student.classModel.classTeacher.photoUrl}`}
@@ -685,22 +694,24 @@ const ParentDashboard = () => {
                           </p>
                         </div>
                         <div className="flex gap-2">
-                           {student.classModel.classTeacher.teacher?.publicPhone && (
+                           {(student.classModel.classTeacher.teacher?.publicPhone || student.classModel.classTeacher.teacher?.phone) && (
                             <a 
-                              href={`tel:${student.classModel.classTeacher.teacher.publicPhone}`}
-                              className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center border border-emerald-100 shadow-sm hover:scale-110 active:scale-95 transition-all text-emerald-600"
+                              href={`tel:${student.classModel.classTeacher.teacher?.publicPhone || student.classModel.classTeacher.teacher?.phone}`}
+                              className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center border border-emerald-100 shadow-sm hover:scale-110 active:scale-95 transition-all text-emerald-600 hover:bg-emerald-600 hover:text-white"
+                              title="Call Form Master"
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                               </svg>
                             </a>
                            )}
-                           {student.classModel.classTeacher.teacher?.publicWhatsapp && (
+                           {(student.classModel.classTeacher.teacher?.publicWhatsapp || student.classModel.classTeacher.teacher?.publicPhone) && (
                             <a 
-                              href={`https://wa.me/${student.classModel.classTeacher.teacher.publicWhatsapp}`}
+                              href={`https://wa.me/${student.classModel.classTeacher.teacher?.publicWhatsapp || student.classModel.classTeacher.teacher?.publicPhone || student.classModel.classTeacher.teacher?.phone}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="w-10 h-10 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30 hover:scale-110 active:scale-95 transition-all text-white"
+                              title="WhatsApp Form Master"
                             >
                               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-4.431 6.516a10.024 10.024 0 01-5.115-1.411l-.367-.218-3.801 1.002.112-3.8-.231-.368A9.994 9.994 0 012.83 10.155c0-5.518 4.482-10 10-10 5.518 0 10 4.482 10 10 0 5.519-4.482 10-10 10z" />

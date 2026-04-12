@@ -16,7 +16,10 @@ const TeacherProfile = () => {
     staffId: '',
     email: '',
     firstName: '',
-    lastName: ''
+    lastName: '',
+    publicPhone: '',
+    publicEmail: '',
+    publicWhatsapp: ''
   });
   const [message, setMessage] = useState({ type: '', text: '' });
 
@@ -27,7 +30,10 @@ const TeacherProfile = () => {
         staffId: user.teacher?.staffId || user.username || '',
         email: user.email || '',
         firstName: user.firstName || '',
-        lastName: user.lastName || ''
+        lastName: user.lastName || '',
+        publicPhone: user.teacher?.publicPhone || '',
+        publicEmail: user.teacher?.publicEmail || '',
+        publicWhatsapp: user.teacher?.publicWhatsapp || ''
       });
       const photoUrl = user.photoUrl || user.teacher?.photoUrl;
       if (photoUrl) {
@@ -86,6 +92,9 @@ const TeacherProfile = () => {
       if (formData.email) formDataToSend.append('email', formData.email);
       formDataToSend.append('firstName', formData.firstName);
       formDataToSend.append('lastName', formData.lastName);
+      formDataToSend.append('publicPhone', formData.publicPhone);
+      formDataToSend.append('publicEmail', formData.publicEmail);
+      formDataToSend.append('publicWhatsapp', formData.publicWhatsapp);
 
       // Add photo if selected
       if (photoFile) {
@@ -241,6 +250,49 @@ const TeacherProfile = () => {
               />
             </div>
           )}
+
+          <div className="bg-primary/5 p-6 rounded-2xl space-y-4">
+            <h3 className="text-sm font-black text-primary uppercase tracking-widest flex items-center gap-2">
+              <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+              Public Contact Info (Visible to Parents)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Public Phone</label>
+                <input
+                  type="text"
+                  name="publicPhone"
+                  value={formData.publicPhone}
+                  onChange={handleInputChange}
+                  placeholder="e.g. 08012345678"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Public Email</label>
+                <input
+                  type="email"
+                  name="publicEmail"
+                  value={formData.publicEmail}
+                  onChange={handleInputChange}
+                  placeholder="teacher@school.com"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">WhatsApp Number</label>
+                <input
+                  type="text"
+                  name="publicWhatsapp"
+                  value={formData.publicWhatsapp}
+                  onChange={handleInputChange}
+                  placeholder="e.g. 2348012345678"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+                <p className="mt-1 text-[10px] text-gray-500 italic">Include country code without + (e.g. 234...)</p>
+              </div>
+            </div>
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
