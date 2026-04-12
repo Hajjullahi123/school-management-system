@@ -1425,3 +1425,12 @@ model Counter {
 
   @@unique([schoolId, entity])
 }
+
+model ShowcaseSchool {
+  id        Int      @id @default(autoincrement())
+  name      String
+  logoUrl   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -35,7 +35,8 @@ const getApiBaseUrl = () => {
   }
 
   // 3. Local Development (npm run dev)
-  return `http://localhost:${DEFAULT_API_PORT}`;
+  // dynamically use the hostname to support mobile access on the same network
+  return `${protocol}//${hostname}:${DEFAULT_API_PORT}`;
 };
 
 export const API_BASE_URL = getApiBaseUrl();

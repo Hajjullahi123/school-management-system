@@ -10,6 +10,7 @@ import { toast } from '../../utils/toast';
 import { apiCall } from '../../api';
 import { formatNumber } from '../../utils/formatters';
 import LicenseManagement from './LicenseManagement';
+import ShowcaseSchoolsManagement from '../../components/ShowcaseSchoolsManagement';
 
 const SuperAdminDashboard = () => {
   const location = useLocation();
@@ -52,7 +53,7 @@ const SuperAdminDashboard = () => {
   // Sync activeTab with URL hash
   useEffect(() => {
     const hash = location.hash.replace('#', '');
-    if (hash && ['schools', 'platform', 'audits'].includes(hash)) {
+    if (hash && ['schools', 'platform', 'audits', 'showcase'].includes(hash)) {
       setActiveTab(hash);
     } else {
       setActiveTab('overview');
@@ -398,6 +399,7 @@ const SuperAdminDashboard = () => {
         <div className="flex border-b border-gray-100 bg-gray-50/50 overflow-x-auto no-scrollbar whitespace-nowrap">
           <TabButton active={activeTab === 'overview'} onClick={() => navigate('/dashboard/superadmin')} icon={<FiActivity />} label="Overview" />
           <TabButton active={activeTab === 'schools'} onClick={() => navigate('/dashboard/superadmin#schools')} icon={<FiBriefcase />} label="Schools" />
+          <TabButton active={activeTab === 'showcase'} onClick={() => navigate('/dashboard/superadmin#showcase')} icon={<FiPlus />} label="Use Case Schools" />
           <TabButton active={activeTab === 'platform'} onClick={() => navigate('/dashboard/superadmin#platform')} icon={<FiGlobe />} label="Platform" />
           <TabButton active={activeTab === 'audits'} onClick={() => navigate('/dashboard/superadmin#audits')} icon={<FiShield />} label="Global Log" />
         </div>
@@ -1070,6 +1072,10 @@ const SuperAdminDashboard = () => {
                 </table>
               </div>
             </div>
+          )}
+          
+          {activeTab === 'showcase' && (
+            <ShowcaseSchoolsManagement />
           )}
         </div>
       </div>

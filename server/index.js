@@ -241,6 +241,7 @@ const whatsappRoutes = require('./routes/whatsapp');
 const miscFeesRoutes = require('./routes/misc-fees');
 const holidayRoutes = require('./routes/holidays');
 const academicsRoutes = require('./routes/academics');
+const showcaseRoutes = require('./routes/showcase');
 
 console.log('[Server] All route modules imported.');
 
@@ -314,6 +315,7 @@ app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/misc-fees', authenticate, checkSubscription, miscFeesRoutes);
 app.use('/api/holidays', authenticate, checkSubscription, holidayRoutes);
 app.use('/api/academics', authenticate, checkSubscription, academicsRoutes);
+app.use('/api/showcase', showcaseRoutes);
 
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {

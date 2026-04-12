@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import useSchoolSettings from '../hooks/useSchoolSettings';
 import PWAInstallButton from '../components/PWAInstallButton';
+import SchoolShowcase from '../components/SchoolShowcase';
 import { apiCall } from '../api';
 import { API_BASE_URL } from '../config';
 import { FiFacebook, FiInstagram, FiMessageCircle, FiGlobe } from 'react-icons/fi';
@@ -188,7 +189,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col md:flex-row overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-white">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
       {/* Left Side: Marketing & Showcase */}
       <div className="md:w-1/2 lg:w-3/5 bg-gray-900 relative flex flex-col justify-between p-8 md:p-16 text-white overflow-hidden">
         {/* Animated Background Orbs */}
@@ -508,6 +510,7 @@ const Login = () => {
           </div>
         </div>
       </div>
+      <SchoolShowcase />
     </div>
 
   );
