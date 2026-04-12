@@ -460,7 +460,7 @@ const TermReportCard = () => {
                         {loading ? '...' : 'COLLECT'}
                       </button>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             )}
