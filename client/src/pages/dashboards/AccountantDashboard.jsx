@@ -65,24 +65,24 @@ const AccountantDashboard = ({ user }) => {
 
   return (
     <div className="space-y-4">
-      <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-5 rounded-xl shadow-lg">
-        <h1 className="text-xl font-black italic tracking-tighter uppercase">Treasury Control</h1>
+      <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-4 sm:p-5 rounded-xl shadow-lg">
+        <h1 className="text-lg sm:text-xl font-black italic tracking-tighter uppercase">Treasury Control</h1>
         <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-1">Authorized User: {user?.firstName} {user?.lastName}</p>
       </div>
 
       {/* Selectors */}
-      <div className="bg-white p-4 rounded-xl border border-gray-100 flex gap-2">
+      <div className="bg-white p-3 sm:p-4 rounded-xl border border-gray-100 flex flex-col sm:flex-row gap-2">
         <select
           value={selectedDashboardSession?.id || ''}
           onChange={(e) => fetchAccountantData(selectedDashboardTerm?.id, e.target.value)}
-          className="flex-1 bg-gray-50 border-none rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest"
+          className="flex-1 bg-gray-50 border-none rounded-lg px-3 py-2 text-[10px] sm:text-xs font-black uppercase tracking-widest"
         >
           {allSessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
         <select
           value={selectedDashboardTerm?.id || ''}
           onChange={(e) => fetchAccountantData(e.target.value, selectedDashboardSession?.id)}
-          className="flex-1 bg-gray-50 border-none rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest"
+          className="flex-1 bg-gray-50 border-none rounded-lg px-3 py-2 text-[10px] sm:text-xs font-black uppercase tracking-widest"
         >
           {allTerms.filter(t => t.academicSessionId === selectedDashboardSession?.id).map(t => (
             <option key={t.id} value={t.id}>{t.name}</option>
@@ -91,23 +91,23 @@ const AccountantDashboard = ({ user }) => {
       </div>
 
       {feeStats && (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-green-500">
-            <p className="text-[11px] font-black text-green-600 uppercase tracking-widest mb-1">Collections</p>
-            <p className="text-xl font-black text-gray-900">₦{formatNumber(feeStats.totalPaid)}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm border-l-4 border-green-500">
+            <p className="text-[10px] sm:text-[11px] font-black text-green-600 uppercase tracking-widest mb-1">Collections</p>
+            <p className="text-lg sm:text-xl font-black text-gray-900">₦{formatNumber(feeStats.totalPaid)}</p>
           </div>
-          <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-red-500">
-            <p className="text-[11px] font-black text-red-600 uppercase tracking-widest mb-1">Unsettled</p>
-            <p className="text-xl font-black text-gray-900">₦{formatNumber(feeStats.totalBalance)}</p>
+          <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm border-l-4 border-red-500">
+            <p className="text-[10px] sm:text-[11px] font-black text-red-600 uppercase tracking-widest mb-1">Unsettled</p>
+            <p className="text-lg sm:text-xl font-black text-gray-900">₦{formatNumber(feeStats.totalBalance)}</p>
           </div>
-          <div className="col-span-2 bg-slate-900 p-5 rounded-xl flex justify-between items-center">
-            <div>
-              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Remittance Rate</p>
-              <p className="text-xl font-black text-white">
+          <div className="sm:col-span-2 bg-slate-900 p-4 sm:p-5 rounded-xl flex flex-col xs:flex-row justify-between items-center gap-3 xs:gap-0">
+            <div className="text-center xs:text-left">
+              <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest">Remittance Rate</p>
+              <p className="text-lg sm:text-xl font-black text-white">
                 {feeStats.totalExpected > 0 ? ((feeStats.totalPaid / feeStats.totalExpected) * 100).toFixed(1) : 0}%
               </p>
             </div>
-            <Link to="/dashboard/fees" className="bg-primary text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest">
+            <Link to="/dashboard/fees" className="w-full xs:w-auto bg-primary text-white px-6 py-2 rounded-lg text-center text-[10px] font-black uppercase tracking-widest">
               Manage
             </Link>
           </div>

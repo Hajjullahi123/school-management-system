@@ -1207,7 +1207,7 @@ const Layout = () => {
       <div
         className={`
           fixed lg:static inset-y-0 left-0 z-[60]
-          w-64 text-white shadow-xl flex flex-col transition-all duration-300
+          w-64 text-white shadow-2xl flex flex-col transition-all duration-500 ease-in-out
           ${user?.role === 'superadmin' ? 'bg-gradient-to-b from-slate-800 to-slate-900 border-r border-slate-700' : 'bg-gradient-to-b from-secondary to-primary'} 
           print:hidden
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -1225,9 +1225,10 @@ const Layout = () => {
           </button>
         </div>
 
-        <div className="p-6 border-b border-white/20">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-lg overflow-hidden">
+        <div className="p-6 border-b border-white/20 relative group">
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <div className="flex items-center space-x-3 relative z-10">
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden group-hover:scale-105 transition-transform duration-500">
               {logoUrl ? (
                 <img
                   src={logoUrl}
@@ -1245,9 +1246,9 @@ const Layout = () => {
                 </span>
               )}
             </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-wide leading-tight">{schoolName}</h1>
-              <p className="text-xs text-white/80">{schoolMotto}</p>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-sm font-black tracking-widest leading-tight uppercase truncate">{schoolName}</h1>
+              <p className="text-[10px] text-white/60 uppercase tracking-tighter truncate">{schoolMotto}</p>
             </div>
           </div>
         </div>
@@ -1331,8 +1332,8 @@ const Layout = () => {
           </div>
         )}
         {/* Header */}
-        <header className="bg-white shadow-md border-b-4 border-secondary print:hidden">
-          <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <header className="bg-white/80 backdrop-blur-lg sticky top-0 shadow-sm border-b border-gray-100 z-40 print:hidden transition-all duration-300">
+          <div className="px-3 sm:px-6 lg:px-8 py-2 sm:py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2 sm:space-x-3">
                 {/* Mobile Hamburger Menu */}
@@ -1363,7 +1364,7 @@ const Layout = () => {
                     <p className="text-[10px] sm:text-xs text-gray-500 capitalize">{user?.role}</p>
                   </div>
                   <div
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white text-xs sm:text-base font-bold shadow-lg bg-secondary flex-shrink-0 overflow-hidden"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-white text-xs sm:text-base font-bold shadow-lg bg-gradient-to-br from-secondary to-primary flex-shrink-0 overflow-hidden ring-2 ring-white hover:scale-110 transition-transform duration-300 cursor-pointer"
                   >
                     {user?.photoUrl ? (
                       <img

@@ -135,32 +135,34 @@ const StudentDashboard = ({ user, currentTerm, currentSession }) => {
               <img
                 src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`}
                 alt="Student"
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white shadow-xl"
+                className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl object-cover border-2 sm:border-4 border-white shadow-xl rotate-1 group-hover:rotate-0 transition-transform duration-500"
               />
             ) : (
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white flex items-center justify-center text-primary font-black text-2xl sm:text-3xl border-4 border-white shadow-xl">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl bg-white flex items-center justify-center text-primary font-black text-xl sm:text-2xl md:text-3xl border-2 sm:border-4 border-white shadow-xl">
                 {user?.firstName?.[0]}{user?.lastName?.[0]}
               </div>
             );
           })()}
           <div className="text-center sm:text-left flex-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black italic tracking-tighter uppercase leading-tight">
-              Welcome, {user?.firstName} {user?.lastName}!
+            <h1 className="text-lg sm:text-2xl lg:text-3xl font-black italic tracking-tighter uppercase leading-tight">
+              Welcome Back,
             </h1>
-            <div className="flex flex-col mt-2 space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-white/90 text-xs sm:text-base font-bold uppercase tracking-widest opacity-80 truncate">
+            <p className="text-xl sm:text-3xl font-black tracking-tight">{user?.firstName}!</p>
+            <div className="flex flex-col mt-3 space-y-2">
+              <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2">
+                <span className="text-white/90 text-[10px] sm:text-base font-bold uppercase tracking-widest opacity-80 truncate">
                   {studentData?.classModel?.name} {studentData?.classModel?.arm || ''}
                 </span>
                 {currentTerm && (
-                  <span className="bg-white/10 text-white text-[10px] sm:text-xs px-2 py-0.5 rounded border border-white/20 font-black uppercase tracking-tighter italic">
+                  <span className="bg-white/20 backdrop-blur-sm text-white text-[8px] sm:text-xs px-2 py-0.5 rounded border border-white/20 font-black uppercase tracking-tighter italic">
                     {currentTerm.name}
                   </span>
                 )}
               </div>
-              <span className="text-white font-black bg-white/20 px-3 py-1.5 rounded-full text-[10px] sm:text-xs w-fit mx-auto sm:mx-0 uppercase tracking-widest border border-white/20">
-                ADM: {studentData?.admissionNumber || 'N/A'}
-              </span>
+              <div className="inline-flex items-center bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full border border-white/20 w-fit mx-auto sm:mx-0">
+                 <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-white/70 mr-2">ADM:</span>
+                 <span className="text-[9px] sm:text-xs font-black text-white">{studentData?.admissionNumber || 'PENDING'}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -188,12 +190,15 @@ const StudentDashboard = ({ user, currentTerm, currentSession }) => {
       )}
 
       {/* Personal Information */}
-      <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
-        <h2 className="text-sm font-black uppercase tracking-widest text-gray-400 mb-4 border-b border-gray-50 pb-2">Identification Ledger</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-[11px]">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 group">
+        <h2 className="text-[10px] sm:text-sm font-black uppercase tracking-widest text-gray-400 mb-4 border-b border-gray-50 pb-2 flex items-center gap-2">
+          <div className="w-1 h-3 bg-primary rounded-full"></div>
+          Identification Ledger
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-2 text-[10px] sm:text-[11px]">
           <div>
             <p className="text-gray-400 font-bold uppercase tracking-tighter mb-0.5">Full Name</p>
-            <p className="font-black text-gray-900 break-words">{user?.firstName} {user?.lastName}</p>
+            <p className="font-black text-gray-900 break-words line-clamp-2">{user?.firstName} {user?.lastName}</p>
           </div>
           <div>
             <p className="text-gray-400 font-bold uppercase tracking-tighter mb-0.5">Birth Ledger</p>
@@ -213,40 +218,40 @@ const StudentDashboard = ({ user, currentTerm, currentSession }) => {
           </div>
           <div>
             <p className="text-gray-400 font-bold uppercase tracking-tighter mb-0.5">Origin</p>
-            <p className="font-black text-gray-900 uppercase">{studentData?.nationality || 'N/A'}</p>
+            <p className="font-black text-gray-900 uppercase truncate">{studentData?.nationality || 'N/A'}</p>
           </div>
         </div>
       </div>
 
       {/* Financial Overview */}
-      <div className="bg-slate-900 p-5 sm:p-8 rounded-[24px] overflow-hidden relative border border-white/5">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2"></div>
+      <div className="bg-slate-900 p-4 sm:p-8 rounded-[24px] overflow-hidden relative border border-white/5">
+        <div className="absolute top-0 right-0 w-32 sm:w-48 h-32 sm:h-48 bg-primary/20 rounded-full blur-[60px] sm:blur-[80px] -translate-y-1/2 translate-x-1/2"></div>
         <div className="relative z-10">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-black italic tracking-tighter text-white uppercase">Financial Ledger</h2>
-            <Link to="/dashboard/student/fees" className="bg-white/5 hover:bg-white/10 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border border-white/10">
+            <h2 className="text-sm sm:text-lg font-black italic tracking-tighter text-white uppercase">Financial Ledger</h2>
+            <Link to="/dashboard/student/fees" className="bg-white/5 hover:bg-white/10 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all border border-white/10">
               Audit
             </Link>
           </div>
           {studentFeeRecord ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Expected</p>
-                <p className="text-xl font-black text-white">₦{formatNumber(studentFeeRecord.expectedAmount || 0)}</p>
+              <div className="bg-white/5 p-3 sm:p-4 rounded-xl border border-white/5">
+                <p className="text-[9px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Expected</p>
+                <p className="text-lg sm:text-xl font-black text-white">₦{formatNumber(studentFeeRecord.expectedAmount || 0)}</p>
               </div>
-              <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                <p className="text-[11px] font-black text-emerald-400 uppercase tracking-widest mb-1">Settled</p>
-                <p className="text-xl font-black text-emerald-400">₦{formatNumber(studentFeeRecord.paidAmount || 0)}</p>
+              <div className="bg-white/5 p-3 sm:p-4 rounded-xl border border-white/5">
+                <p className="text-[9px] sm:text-[11px] font-black text-emerald-400 uppercase tracking-widest mb-1">Settled</p>
+                <p className="text-lg sm:text-xl font-black text-emerald-400">₦{formatNumber(studentFeeRecord.paidAmount || 0)}</p>
               </div>
-              <div className={`p-4 rounded-xl border ${studentFeeRecord.balance > 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-white/5 border-white/5'}`}>
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Balance</p>
-                <p className={`text-xl font-black ${studentFeeRecord.balance > 0 ? 'text-white' : 'text-slate-400'}`}>
+              <div className={`p-3 sm:p-4 rounded-xl border ${studentFeeRecord.balance > 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-white/5 border-white/5'}`}>
+                <p className="text-[9px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Balance</p>
+                <p className={`text-lg sm:text-xl font-black ${studentFeeRecord.balance > 0 ? 'text-white' : 'text-slate-400'}`}>
                   ₦{formatNumber(studentFeeRecord.balance || 0)}
                 </p>
               </div>
             </div>
           ) : (
-            <p className="text-center py-4 text-slate-500 text-xs italic">No tuition records found for this term.</p>
+            <p className="text-center py-4 text-slate-500 text-[10px] sm:text-xs italic">No tuition records found for this term.</p>
           )}
         </div>
       </div>

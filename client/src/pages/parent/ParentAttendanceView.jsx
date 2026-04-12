@@ -205,18 +205,18 @@ const ParentAttendanceView = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-primary to-primary/90 p-6 rounded-lg text-white shadow-lg">
-        <h1 className="text-3xl font-bold">Attendance History</h1>
-        <p className="text-white/90 mt-2">Personalized tracker for your child's records.</p>
+      <div className="bg-gradient-to-r from-primary to-primary/90 p-4 sm:p-6 rounded-lg text-white shadow-lg">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Attendance History</h1>
+        <p className="text-xs sm:text-sm text-white/90 mt-1 sm:mt-2">Personalized tracker for your child's records.</p>
       </div>
 
       {wards.length > 1 && (
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <label className="block text-sm font-bold text-gray-700 mb-2">Select Child</label>
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-100">
+          <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Select Child</label>
           <select
             value={selectedStudent?.id || ''}
             onChange={(e) => setSelectedStudent(wards.find(w => w.id === parseInt(e.target.value)))}
-            className="w-full border border-gray-300 rounded-md px-4 py-2"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
           >
             {wards.map(ward => (
               <option key={ward.id} value={ward.id}>
@@ -227,64 +227,69 @@ const ParentAttendanceView = () => {
         </div>
       )}
 
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-        <h3 className="font-bold text-gray-900 mb-4">Date & Academic Period Filters</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-100">
+        <h3 className="text-sm sm:text-base font-bold text-gray-900 mb-4">Date & Academic Period Filters</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs font-black text-gray-500 uppercase mb-2">Academic Session</label>
-            <select value={filters.sessionId} onChange={(e) => setFilters({ ...filters, sessionId: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm">
+            <label className="block text-[10px] sm:text-xs font-black text-gray-500 uppercase mb-2">Academic Session</label>
+            <select value={filters.sessionId} onChange={(e) => setFilters({ ...filters, sessionId: e.target.value })} className="w-full border rounded-md px-3 py-2 text-xs sm:text-sm">
               <option value="">All Sessions</option>
               {sessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-black text-gray-500 uppercase mb-2">Term</label>
-            <select value={filters.termId} onChange={(e) => setFilters({ ...filters, termId: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm">
+            <label className="block text-[10px] sm:text-xs font-black text-gray-500 uppercase mb-2">Term</label>
+            <select value={filters.termId} onChange={(e) => setFilters({ ...filters, termId: e.target.value })} className="w-full border rounded-md px-3 py-2 text-xs sm:text-sm">
               <option value="">All Terms</option>
               {terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-black text-gray-500 uppercase mb-2">Start Date</label>
-            <input type="date" value={filters.startDate} onChange={(e) => setFilters({ ...filters, startDate: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" />
+            <label className="block text-[10px] sm:text-xs font-black text-gray-500 uppercase mb-2">Start Date</label>
+            <input type="date" value={filters.startDate} onChange={(e) => setFilters({ ...filters, startDate: e.target.value })} className="w-full border rounded-md px-3 py-2 text-xs sm:text-sm" />
           </div>
           <div>
-            <label className="block text-xs font-black text-gray-500 uppercase mb-2">End Date</label>
-            <input type="date" value={filters.endDate} onChange={(e) => setFilters({ ...filters, endDate: e.target.value })} className="w-full border rounded-md px-3 py-2 text-sm" />
+            <label className="block text-[10px] sm:text-xs font-black text-gray-500 uppercase mb-2">End Date</label>
+            <input type="date" value={filters.endDate} onChange={(e) => setFilters({ ...filters, endDate: e.target.value })} className="w-full border rounded-md px-3 py-2 text-xs sm:text-sm" />
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 text-center">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
+         <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-gray-100 text-center">
             <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Total Days</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.total}</p>
          </div>
-         <div className="bg-green-50 p-4 rounded-lg border border-green-100 text-center">
+         <div className="bg-green-50 p-3 sm:p-4 rounded-lg border border-green-100 text-center">
             <p className="text-[10px] font-black uppercase text-green-600 mb-1">Present</p>
-            <p className="text-2xl font-bold text-green-700">{stats.present}</p>
+            <p className="text-xl sm:text-2xl font-bold text-green-700">{stats.present}</p>
          </div>
-         <div className="bg-red-50 p-4 rounded-lg border border-red-100 text-center">
+         <div className="bg-red-50 p-3 sm:p-4 rounded-lg border border-red-100 text-center">
             <p className="text-[10px] font-black uppercase text-red-600 mb-1">Absent</p>
-            <p className="text-2xl font-bold text-red-700">{stats.absent}</p>
+            <p className="text-xl sm:text-2xl font-bold text-red-700">{stats.absent}</p>
          </div>
-         <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100 text-center">
+         <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg border border-yellow-100 text-center">
             <p className="text-[10px] font-black uppercase text-yellow-600 mb-1">Late</p>
-            <p className="text-2xl font-bold text-yellow-700">{stats.late}</p>
+            <p className="text-xl sm:text-2xl font-bold text-yellow-700">{stats.late}</p>
          </div>
-         <div className="bg-gray-100 p-4 rounded-lg border border-gray-200 text-center">
+         <div className="bg-gray-100 p-3 sm:p-4 rounded-lg border border-gray-200 text-center">
             <p className="text-[10px] font-black uppercase text-gray-500 mb-1">Unmarked</p>
-            <p className="text-2xl font-bold text-gray-600">{stats.unmarked}</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-600">{stats.unmarked}</p>
          </div>
-         <div className="bg-primary/5 p-4 rounded-lg border border-primary/20 text-center">
+         <div className="bg-primary/5 p-3 sm:p-4 rounded-lg border border-primary/20 text-center">
             <p className="text-[10px] font-black uppercase text-primary mb-1">Attendance</p>
-            <p className="text-2xl font-bold text-primary">{stats.percentage}%</p>
+            <p className="text-xl sm:text-2xl font-bold text-primary">{stats.percentage}%</p>
          </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 bg-gray-50">
-          <h3 className="font-bold text-gray-900">Attendance Log</h3>
+        <div className="p-3 sm:p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
+          <div className="p-1.5 bg-primary/10 rounded-md">
+            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h3 className="font-bold text-sm sm:text-base text-gray-900 uppercase tracking-tight">Attendance Log</h3>
         </div>
 
         {fetchingAttendance ? (
@@ -306,13 +311,13 @@ const ParentAttendanceView = () => {
                 <div className="p-12 text-center text-gray-400 italic">No attendance records found for this period.</div>
               ) : null
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
                 <table className="min-w-full divide-y divide-gray-100">
                   <thead className="bg-gray-50/50">
                     <tr>
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</th>
-                      <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Notes</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-center text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest">Notes</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
@@ -358,17 +363,17 @@ const ParentAttendanceView = () => {
 
                       return allRecords.map((record) => (
                         <tr key={record.id} className={`hover:bg-gray-50 transition-colors ${record._type === 'unmarked' ? 'bg-gray-50/50' : ''}`}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-bold text-gray-900">
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                            <div className="text-[11px] sm:text-sm font-bold text-gray-900">
                               {new Date(record.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${getStatusColor(record.status)}`}>
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center">
+                            <span className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-tighter border ${getStatusColor(record.status)}`}>
                               {record.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-500 italic">
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 text-[11px] sm:text-sm text-gray-500 italic truncate max-w-[100px] sm:max-w-xs">
                             {record.notes || '-'}
                           </td>
                         </tr>

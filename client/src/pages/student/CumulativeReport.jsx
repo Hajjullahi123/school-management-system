@@ -347,132 +347,175 @@ const CumulativeReport = () => {
   const allReports = bulkReports.length > 0 ? bulkReports : (reportData ? [reportData] : []);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center no-print">
-        <h1 className="text-2xl font-bold text-gray-900">Cumulative Report (3 Terms)</h1>
-        {hasReports && (
-          <button
-            onClick={handlePrint}
-            className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
-            {bulkReports.length > 1 ? `Print All ${bulkReports.length} Reports` : 'Print Report'}
-          </button>
-        )}
+    <div className="space-y-6 max-h-[calc(100vh-180px)] overflow-y-auto pr-2 pb-10" style={{
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none'
+    }}>
+      {/* Hide scrollbar but keep functionality */}
+      <style>{`
+        div::-webkit-scrollbar { display: none; }
+      `}</style>
+
+      {/* Header Section - Glassmorphism */}
+      <div className="relative group overflow-hidden rounded-[32px] p-1 bg-gradient-to-br from-indigo-600 via-primary to-emerald-600 shadow-2xl no-print">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"></div>
+        <div className="relative bg-white/5 backdrop-blur-sm p-6 sm:p-8 rounded-[31px] text-white flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="min-w-0 text-center sm:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-white/20 mb-3">
+              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Annual Performance</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tighter italic mb-1 uppercase text-white">Cumulative Reports</h1>
+            <p className="text-xs sm:text-sm text-white/70 font-medium tracking-wide">Three-Term Holistic Academic Summary</p>
+          </div>
+          
+          {hasReports && (
+            <button 
+              onClick={handlePrint} 
+              className="group/btn bg-white text-primary px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white"
+            >
+              <svg className="w-5 h-5 transition-transform group-hover/btn:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Print Master {bulkReports.length > 1 ? 'Bundle' : 'Report'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
       {user?.role === 'teacher' && classes.length === 0 ? (
-        <div className="bg-white p-12 rounded-lg shadow text-center border border-gray-200 no-print">
-          <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <div className="bg-white p-12 rounded-[32px] shadow-2xl text-center border border-slate-100 no-print group overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-50"></div>
+          <div className="w-24 h-24 bg-amber-100 rounded-[28px] flex items-center justify-center mx-auto mb-6 relative">
+            <svg className="w-12 h-12 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h3 className="text-xl font-bold text-gray-900">Access Restricted</h3>
-          <p className="text-gray-600 mt-2">You are not assigned as a Form Master for any class. The report card section is reserved for Form Masters and Administrators.</p>
+          <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight relative">Access Restricted</h3>
+          <p className="text-slate-500 mt-2 font-medium max-w-sm mx-auto relative text-sm">Form Master permission required to access cumulative annual reports.</p>
         </div>
       ) : (
-        <div className="bg-white p-6 rounded-lg shadow no-print">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Academic Session <span className="text-red-500">*</span></label>
-              <select value={selectedSession} onChange={(e) => setSelectedSession(e.target.value)} className="w-full border rounded-md px-3 py-2">
-                <option value="">Select Session</option>
+        <div className="bg-white p-6 sm:p-8 rounded-[32px] shadow-xl border border-slate-100 mb-6 no-print">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Academic Session</label>
+              <select 
+                value={selectedSession} 
+                onChange={(e) => setSelectedSession(e.target.value)} 
+                className="w-full bg-slate-50 border-white rounded-2xl px-4 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer"
+              >
+                <option value="">Select Target Session</option>
                 {sessions.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
               </select>
             </div>
 
             {user?.role === 'student' || isParentView ? (
-              <div className="md:col-span-2 flex items-end gap-4">
+              <div className="md:col-span-2 flex flex-col sm:flex-row items-end gap-4">
                 {isParentView && (
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
+                  <div className="flex-1 w-full space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Selected Ward</label>
                     {classStudents.length === 1 ? (
-                      <div className="w-full border rounded-md px-3 py-2 bg-gray-50 text-gray-700 font-medium">
-                        {classStudents[0].user.firstName} {classStudents[0].user.lastName} {classStudents[0].middleName || ''} ({classStudents[0].admissionNumber})
+                      <div className="w-full bg-slate-100 border-white rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 shadow-inner">
+                        {classStudents[0].user.firstName} {classStudents[0].user.lastName}
                       </div>
                     ) : (
-                      <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} className="w-full border rounded-md px-3 py-2">
-                        <option value="">Choose your child</option>
+                      <select 
+                        value={selectedStudentId} 
+                        onChange={(e) => setSelectedStudentId(e.target.value)} 
+                        className="w-full bg-slate-50 border-white rounded-2xl px-4 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer"
+                      >
+                        <option value="">Choose Ward</option>
                         {classStudents.map((ward) => (
-                          <option key={ward.id} value={ward.id}>{ward.user.firstName} {ward.user.lastName} {ward.middleName || ''} ({ward.admissionNumber})</option>
+                          <option key={ward.id} value={ward.id}>{ward.user.firstName} {ward.user.lastName}</option>
                         ))}
                       </select>
                     )}
                   </div>
                 )}
-                <button onClick={fetchCumulativeReport} disabled={!selectedSession || !selectedStudentId || loading}
-                  className="bg-primary text-white px-8 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400 w-full md:w-auto font-bold shadow">
-                  {loading ? 'Generating...' : isParentView ? 'View Report' : 'View My Cumulative Report'}
+                <button 
+                  onClick={fetchCumulativeReport} 
+                  disabled={!selectedSession || !selectedStudentId || loading}
+                  className="bg-slate-900 text-white h-[54px] px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl active:scale-95 disabled:bg-slate-200 disabled:text-slate-400 transition-all w-full sm:w-auto"
+                >
+                  {loading ? 'Analyzing Data...' : isParentView ? 'Fetch Report' : 'View Cumulative Insights'}
                 </button>
               </div>
             ) : (
-              <div className="col-span-2 space-y-4">
-                {/* Search mode radio buttons */}
-                <div className="flex gap-4 flex-wrap">
-                  {user?.role !== 'teacher' && (
-                    <>
-                      <label className="inline-flex items-center cursor-pointer">
-                        <input type="radio" name="searchMode" value="admission" checked={searchMode === 'admission'} onChange={(e) => setSearchMode(e.target.value)} />
-                        <span className="ml-2">By Admission No</span>
-                      </label>
-                      <label className="inline-flex items-center cursor-pointer">
-                        <input type="radio" name="searchMode" value="class" checked={searchMode === 'class'} onChange={(e) => setSearchMode(e.target.value)} />
-                        <span className="ml-2">By Class Student</span>
-                      </label>
-                    </>
-                  )}
-                  {(user?.role === 'teacher' || user?.role === 'admin' || user?.role === 'principal' || user?.role === 'superadmin') && (
-                    <>
-                      {user?.role !== 'teacher' && null /* Space */}
-                      <label className="inline-flex items-center cursor-pointer">
-                        <input type="radio" name="searchMode" value={user?.role === 'teacher' ? 'class' : 'class'} checked={searchMode === 'class'} onChange={(e) => setSearchMode(e.target.value)} />
-                        <span className="ml-2">{user?.role === 'teacher' ? 'Single Student' : null}</span>
-                      </label>
-                      <label className="inline-flex items-center cursor-pointer">
-                        <input type="radio" name="searchMode" value="bulk" checked={searchMode === 'bulk'} onChange={(e) => setSearchMode(e.target.value)} />
-                        <span className="ml-2 font-semibold text-emerald-700">Bulk Print (Whole Class)</span>
-                      </label>
-                    </>
-                  )}
+              <div className="col-span-1 md:col-span-2 space-y-6 pt-4 border-t border-slate-50">
+                <div className="flex flex-wrap gap-4">
+                  {(user?.role !== 'teacher' ? ['admission', 'class', 'bulk'] : ['class', 'bulk']).map(mode => (
+                    <label 
+                      key={mode}
+                      className={`flex items-center gap-3 px-5 py-3 rounded-2xl border transition-all cursor-pointer font-black text-[10px] uppercase tracking-widest ${searchMode === mode ? 'bg-slate-900 border-slate-900 text-white shadow-xl scale-105' : 'bg-slate-50 border-slate-100 text-slate-400 hover:bg-slate-100'}`}
+                    >
+                      <input 
+                        type="radio" 
+                        className="hidden" 
+                        value={mode} 
+                        checked={searchMode === mode} 
+                        onChange={(e) => setSearchMode(e.target.value)} 
+                      />
+                      {mode === 'admission' ? 'By ID' : mode === 'class' ? 'Single' : 'Bulk Collection'}
+                    </label>
+                  ))}
                 </div>
 
                 {searchMode === 'admission' && user?.role !== 'teacher' ? (
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Admission Number *</label>
-                      <input type="text" value={admissionNumber} onChange={(e) => setAdmissionNumber(e.target.value)} className="w-full border rounded-md px-3 py-2" placeholder="e.g. 2024-SS1A-JD" />
+                  <div className="flex gap-3 items-end">
+                    <div className="flex-1 space-y-2">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Admission Number</label>
+                      <input 
+                        type="text" 
+                        value={admissionNumber} 
+                        onChange={(e) => setAdmissionNumber(e.target.value)} 
+                        className="w-full bg-slate-50 border-white rounded-2xl px-5 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-indigo-500 transition-all font-mono" 
+                        placeholder="ENTER STUDENT ID" 
+                      />
                     </div>
-                    <button onClick={fetchCumulativeReport} disabled={loading} className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400">
-                      {loading ? 'Generating...' : 'Generate'}
+                    <button 
+                      onClick={fetchCumulativeReport} 
+                      disabled={loading || !selectedSession} 
+                      className="bg-primary text-white h-[54px] px-10 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 disabled:bg-slate-200 transition-all"
+                    >
+                      {loading ? 'Searching...' : 'GENERATE'}
                     </button>
                   </div>
                 ) : (
-                  <div className="flex gap-4 items-end flex-wrap">
-                    <div className="flex-1 min-w-[180px]">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Class</label>
-                      <select value={selectedClassId} onChange={(e) => setSelectedClassId(e.target.value)} className="w-full border rounded-md px-3 py-2">
-                        <option value="">Select Class</option>
-                        {classes.map((cls) => (<option key={cls.id} value={cls.id}>{cls.name} {cls.arm}</option>))}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-end">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Target Class</label>
+                      <select 
+                        value={selectedClassId} 
+                        onChange={(e) => setSelectedClassId(e.target.value)} 
+                        className="w-full bg-slate-50 border-white rounded-2xl px-4 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-indigo-500 transition-all"
+                      >
+                        <option value="">Select Level</option>
+                        {classes.map((cls) => (<option key={cls.id} value={cls.id}>{cls.name}</option>))}
                       </select>
                     </div>
                     {searchMode !== 'bulk' && (
-                      <div className="flex-1 min-w-[180px]">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
-                        <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} className="w-full border rounded-md px-3 py-2" disabled={!selectedClassId}>
-                          <option value="">Select Student</option>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Student Name</label>
+                        <select 
+                          value={selectedStudentId} 
+                          onChange={(e) => setSelectedStudentId(e.target.value)} 
+                          className="w-full bg-slate-50 border-white rounded-2xl px-4 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-indigo-500 transition-all" 
+                          disabled={!selectedClassId}
+                        >
+                          <option value="">Choose Student</option>
                           {classStudents.map((student) => (
-                            <option key={student.id} value={student.id}>{student.user.firstName} {student.user.lastName} ({student.admissionNumber})</option>
+                            <option key={student.id} value={student.id}>{student.user.firstName} {student.user.lastName}</option>
                           ))}
                         </select>
                       </div>
                     )}
-                    <button onClick={fetchCumulativeReport} disabled={loading || !selectedClassId} className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400 whitespace-nowrap font-bold shadow">
-                      {loading ? 'Generating...' : searchMode === 'bulk' ? 'Generate All Reports' : 'Generate'}
+                    <button 
+                      onClick={fetchCumulativeReport} 
+                      disabled={loading || !selectedClassId || !selectedSession || (searchMode !== 'bulk' && !selectedStudentId)} 
+                      className={`h-[54px] rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl active:scale-95 disabled:bg-slate-200 transition-all px-8 ${searchMode === 'bulk' ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-primary text-white'}`}
+                    >
+                      {loading ? 'Processing...' : searchMode === 'bulk' ? `Collect all Reports` : 'Generate'}
                     </button>
                   </div>
                 )}

@@ -192,34 +192,64 @@ const ProgressiveReport = () => {
   });
 
   return (
-    <div className="p-6 h-full overflow-y-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Progressive Reports (Open Day)</h1>
-        {reports.length > 0 && (
-          <button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-            Print {reports.length > 1 ? 'All Reports' : 'Report'}
-          </button>
-        )}
+    <div className="space-y-6 max-h-[calc(100vh-180px)] overflow-y-auto pr-2 pb-10" style={{
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none'
+    }}>
+      {/* Hide scrollbar but keep functionality */}
+      <style>{`
+        div::-webkit-scrollbar { display: none; }
+      `}</style>
+
+      {/* Header Section - Glassmorphism */}
+      <div className="relative group overflow-hidden rounded-[32px] p-1 bg-gradient-to-br from-emerald-600 via-teal-500 to-primary shadow-2xl">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"></div>
+        <div className="relative bg-white/5 backdrop-blur-sm p-6 sm:p-8 rounded-[31px] text-white flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="min-w-0 text-center sm:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-white/20 mb-3">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Academic Monitoring</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tighter italic mb-1 uppercase">Progressive Reports</h1>
+            <p className="text-xs sm:text-sm text-white/70 font-medium tracking-wide">Continuous Assessment & Open Day Analytics</p>
+          </div>
+          
+          {reports.length > 0 && (
+            <button 
+              onClick={handlePrint} 
+              className="group/btn bg-white text-emerald-900 px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white"
+            >
+              <svg className="w-5 h-5 transition-transform group-hover/btn:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Print Master {reports.length > 1 ? 'Bundle' : 'Report'}
+            </button>
+          )}
+        </div>
       </div>
 
       {user?.role === 'teacher' && classes.length === 0 ? (
-        <div className="bg-white p-12 rounded-lg shadow text-center border border-gray-200 print:hidden mb-6">
-          <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <div className="bg-white p-12 rounded-[32px] shadow-2xl text-center border border-slate-100 print:hidden mb-6 group overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-50"></div>
+          <div className="w-24 h-24 bg-amber-100 rounded-[28px] flex items-center justify-center mx-auto mb-6 relative">
+            <svg className="w-12 h-12 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h3 className="text-xl font-bold text-gray-900">Access Restricted</h3>
-          <p className="text-gray-600 mt-2">You are not assigned as a Form Master for any class. The report card section is reserved for Form Masters and Administrators.</p>
+          <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight relative">Access Restricted</h3>
+          <p className="text-slate-500 mt-2 font-medium max-w-sm mx-auto relative">You are not assigned as a Form Master. The report section is restricted to class teachers and admins.</p>
         </div>
       ) : (
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-6 print:hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Term *</label>
-              <select value={termId} onChange={(e) => setTermId(e.target.value)} className="w-full border rounded-md px-3 py-2">
-                <option value="">Select Term</option>
+        <div className="bg-white p-6 sm:p-8 rounded-[32px] shadow-xl border border-slate-100 mb-6 print:hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Academic Term</label>
+              <select 
+                value={termId} 
+                onChange={(e) => setTermId(e.target.value)} 
+                className="w-full bg-slate-50 border-white rounded-2xl px-4 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer"
+              >
+                <option value="">Select Target Term</option>
                 {terms.map(t => (
                   <option key={t.id} value={t.id}>{t.name} - {t.academicSession?.name}</option>
                 ))}
@@ -227,97 +257,115 @@ const ProgressiveReport = () => {
             </div>
 
             {user?.role === 'student' ? (
-              <div className="flex items-end">
-                <button
-                  onClick={fetchReport} disabled={loading}
-                  className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400"
-                >
-                  {loading ? 'Generating...' : 'View My Report'}
-                </button>
-              </div>
+              <button
+                onClick={fetchReport} 
+                disabled={loading || !termId}
+                className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 disabled:bg-slate-200 disabled:text-slate-400 transition-all"
+              >
+                {loading ? 'Initializing Analytics...' : 'View My Progressive Stats'}
+              </button>
             ) : isParentView ? (
-              <div className="flex gap-4 items-end">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
+              <div className="grid grid-cols-2 gap-4 items-end">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Selected Ward</label>
                   {classStudents.length === 1 ? (
-                    <div className="w-full border rounded-md px-3 py-2 bg-gray-50 text-gray-700 font-medium">
-                      {classStudents[0].user.firstName} {classStudents[0].user.lastName} {classStudents[0].middleName || ''}
+                    <div className="w-full bg-slate-100 border-white rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 shadow-inner">
+                      {classStudents[0].user.firstName} {classStudents[0].user.lastName}
                     </div>
                   ) : (
-                    <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} className="w-full border rounded-md px-3 py-2">
-                      <option value="">Select Ward</option>
+                    <select 
+                      value={selectedStudentId} 
+                      onChange={(e) => setSelectedStudentId(e.target.value)} 
+                      className="w-full bg-slate-50 border-white rounded-2xl px-4 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer"
+                    >
+                      <option value="">Choose Ward</option>
                       {classStudents.map(student => (
-                        <option key={student.id} value={student.id}>{student.user.firstName} {student.user.lastName} {student.middleName || ''}</option>
+                        <option key={student.id} value={student.id}>{student.user.firstName} {student.user.lastName}</option>
                       ))}
                     </select>
                   )}
                 </div>
                 <button
-                  onClick={fetchReport} disabled={loading}
-                  className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400"
+                  onClick={fetchReport} 
+                  disabled={loading || !termId || !selectedStudentId}
+                  className="bg-primary text-white px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 disabled:bg-slate-200 transition-all"
                 >
-                  {loading ? 'Generating...' : 'View Report'}
+                  {loading ? 'Fetching...' : 'View Report'}
                 </button>
               </div>
             ) : (
-              <div className="col-span-1 md:col-span-2 space-y-4">
-                {user?.role !== 'teacher' && (
-                  <div className="flex gap-4 mb-2">
-                    <label className="inline-flex items-center">
-                      <input type="radio" value="admission" checked={searchMode === 'admission'} onChange={(e) => setSearchMode(e.target.value)} />
-                      <span className="ml-2">By Admission No</span>
+              <div className="col-span-1 md:col-span-2 space-y-6 pt-4 border-t border-slate-50">
+                <div className="flex flex-wrap gap-4">
+                  {(user?.role !== 'teacher' ? ['admission', 'class', 'bulk'] : ['class', 'bulk']).map(mode => (
+                    <label 
+                      key={mode}
+                      className={`flex items-center gap-3 px-5 py-3 rounded-2xl border transition-all cursor-pointer font-black text-[10px] uppercase tracking-widest ${searchMode === mode ? 'bg-slate-900 border-slate-900 text-white shadow-xl scale-105' : 'bg-slate-50 border-slate-100 text-slate-400 hover:bg-slate-100'}`}
+                    >
+                      <input 
+                        type="radio" 
+                        className="hidden" 
+                        value={mode} 
+                        checked={searchMode === mode} 
+                        onChange={(e) => setSearchMode(e.target.value)} 
+                      />
+                      {mode === 'admission' ? 'By ID' : mode === 'class' ? 'Single' : 'Bulk Generation'}
                     </label>
-                    <label className="inline-flex items-center">
-                      <input type="radio" value="class" checked={searchMode === 'class'} onChange={(e) => setSearchMode(e.target.value)} />
-                      <span className="ml-2">By Class Student</span>
-                    </label>
-                    <label className="inline-flex items-center block">
-                      <input type="radio" value="bulk" checked={searchMode === 'bulk'} onChange={(e) => setSearchMode(e.target.value)} />
-                      <span className="ml-2 font-semibold">Bulk Print (Whole Class)</span>
-                    </label>
-                  </div>
-                )}
-                {user?.role === 'teacher' && (
-                  <div className="flex gap-4 mb-2">
-                    <label className="inline-flex items-center">
-                      <input type="radio" value="class" checked={searchMode === 'class'} onChange={(e) => setSearchMode(e.target.value)} />
-                      <span className="ml-2">Single Student</span>
-                    </label>
-                    <label className="inline-flex items-center">
-                      <input type="radio" value="bulk" checked={searchMode === 'bulk'} onChange={(e) => setSearchMode(e.target.value)} />
-                      <span className="ml-2 font-semibold">Bulk Print (Whole Class)</span>
-                    </label>
-                  </div>
-                )}
+                  ))}
+                </div>
 
-                {searchMode === 'admission' && user?.role !== 'teacher' ? (
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Admission Number *</label>
-                      <input type="text" value={admissionNumber} onChange={(e) => setAdmissionNumber(e.target.value)} className="w-full border rounded-md px-3 py-2" placeholder="e.g. 2024-SS1A-JD" />
+                {searchMode === 'admission' ? (
+                  <div className="flex gap-3 items-end">
+                    <div className="flex-1 space-y-2">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Admission Number</label>
+                      <input 
+                        type="text" 
+                        value={admissionNumber} 
+                        onChange={(e) => setAdmissionNumber(e.target.value)} 
+                        className="w-full bg-slate-50 border-white rounded-2xl px-5 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-emerald-500 transition-all" 
+                        placeholder="FORMAT: 2024-SS1A-XXX" 
+                      />
                     </div>
-                    <button onClick={fetchReport} disabled={loading} className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400">Generate</button>
+                    <button 
+                      onClick={fetchReport} 
+                      disabled={loading || !termId}
+                      className="bg-primary text-white h-[54px] px-10 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 disabled:bg-slate-200 transition-all"
+                    >
+                      {loading ? 'Searching...' : 'GENERATE'}
+                    </button>
                   </div>
                 ) : (
-                  <div className="flex gap-4 items-end">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Class</label>
-                      <select value={selectedClassId} onChange={(e) => setSelectedClassId(e.target.value)} className="w-full border rounded-md px-3 py-2">
-                        <option value="">Select Class</option>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Target Class</label>
+                      <select 
+                        value={selectedClassId} 
+                        onChange={(e) => setSelectedClassId(e.target.value)} 
+                        className="w-full bg-slate-50 border-white rounded-2xl px-4 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-emerald-500 transition-all"
+                      >
+                        <option value="">Choose Class</option>
                         {classes.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
                       </select>
                     </div>
                     {searchMode === 'class' && (
-                      <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
-                        <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} className="w-full border rounded-md px-3 py-2" disabled={!selectedClassId}>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Student Profile</label>
+                        <select 
+                          value={selectedStudentId} 
+                          onChange={(e) => setSelectedStudentId(e.target.value)} 
+                          className="w-full bg-slate-50 border-white rounded-2xl px-4 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-emerald-500 transition-all" 
+                          disabled={!selectedClassId}
+                        >
                           <option value="">Select Student</option>
-                          {classStudents.map(student => (<option key={student.id} value={student.id}>{student.user.firstName} {student.user.lastName} {student.middleName || ''}</option>))}
+                          {classStudents.map(student => (<option key={student.id} value={student.id}>{student.user.firstName} {student.user.lastName}</option>))}
                         </select>
                       </div>
                     )}
-                    <button onClick={fetchReport} disabled={loading} className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400">
-                      {loading ? 'Generating...' : searchMode === 'bulk' ? 'Generate Bulk Reports' : 'Generate'}
+                    <button 
+                      onClick={fetchReport} 
+                      disabled={loading || !termId || !selectedClassId || (searchMode === 'class' && !selectedStudentId)}
+                      className={`h-[54px] rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl active:scale-95 disabled:bg-slate-200 transition-all px-8 ${searchMode === 'bulk' ? 'bg-orange-600 text-white' : 'bg-primary text-white'}`}
+                    >
+                      {loading ? 'Processing...' : searchMode === 'bulk' ? 'Generate Class Bundle' : 'Generate'}
                     </button>
                   </div>
                 )}
@@ -327,16 +375,25 @@ const ProgressiveReport = () => {
         </div>
       )}
 
-      {error && <div className="bg-red-50 text-red-600 p-4 rounded-md mb-6">{error}</div>}
-
-      {reports.length > 0 && (
-        <div className="hidden lg:block bg-gray-50 p-6 rounded-lg text-sm text-gray-500 text-center mb-6 max-w-5xl mx-auto">
-          (Previewing {reports.length} report{reports.length > 1 ? 's' : ''} below. Use the Print button to print all).
+      {error && (
+        <div className="bg-rose-50 text-rose-700 p-6 rounded-[24px] mb-6 border-2 border-rose-100 animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="font-black uppercase tracking-widest text-xs italic">{error}</span>
+          </div>
         </div>
       )}
 
       {reports.length > 0 && (
-        <div className="print-safe-area relative bg-gray-200 p-2 sm:p-8 rounded" style={{ overflowX: 'auto' }}>
+        <div className="lg:block bg-slate-900/5 backdrop-blur-md p-5 rounded-[24px] text-[10px] font-black text-slate-500 text-center mb-6 uppercase tracking-[0.2em]">
+          Master View: <span className="text-slate-900">{reports.length} Prepared Document{reports.length > 1 ? 's' : ''}</span>
+        </div>
+      )}
+
+      {reports.length > 0 && (
+        <div className="print-safe-area relative bg-slate-100/50 backdrop-blur-xl p-4 sm:p-10 rounded-[40px] shadow-inner border border-white" style={{ overflowX: 'auto' }}>
           <div ref={componentRef} className="print-container">
             {reports.map((data, index) => {
               const ss = data.schoolSettings || schoolSettings;

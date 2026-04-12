@@ -295,44 +295,65 @@ const TermReportCard = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-[210mm] mx-auto pb-10">
-      <div className="flex justify-between items-center print:hidden">
-        <h1 className="text-2xl font-bold text-gray-900">Term Report Card</h1>
-        {reportData && (
-          <button
-            onClick={printReport}
-            className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 flex items-center shadow"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
-            Print Report
-          </button>
-        )}
+    <div className="space-y-6 max-h-[calc(100vh-180px)] overflow-y-auto pr-2 pb-10" style={{
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none'
+    }}>
+      {/* Hide scrollbar but keep functionality */}
+      <style>{`
+        div::-webkit-scrollbar { display: none; }
+      `}</style>
+
+      {/* Header Section - Glassmorphism */}
+      <div className="relative group overflow-hidden rounded-[32px] p-1 bg-gradient-to-br from-indigo-600 via-primary to-emerald-600 shadow-2xl print:hidden">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"></div>
+        <div className="relative bg-white/5 backdrop-blur-sm p-6 sm:p-8 rounded-[31px] text-white flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="min-w-0 text-center sm:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-white/20 mb-3">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Academic Portal</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tighter italic mb-1 uppercase text-white">Term Report Cards</h1>
+            <p className="text-xs sm:text-sm text-white/70 font-medium tracking-wide">Secure Student Performance & Analytics</p>
+          </div>
+          
+          {reportData && (
+            <button 
+              onClick={printReport} 
+              className="group/btn bg-white text-primary px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white"
+            >
+              <svg className="w-5 h-5 transition-transform group-hover/btn:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Print Master Report
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter Section (Hidden on Print) */}
       {user?.role === 'teacher' && classes.length === 0 ? (
-        <div className="bg-white p-12 rounded-lg shadow text-center border border-gray-200 print:hidden">
-          <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <div className="bg-white p-12 rounded-[32px] shadow-2xl text-center border border-slate-100 print:hidden mb-6 group overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-50"></div>
+          <div className="w-24 h-24 bg-amber-100 rounded-[28px] flex items-center justify-center mx-auto mb-6 relative">
+            <svg className="w-12 h-12 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h3 className="text-xl font-bold text-gray-900">Access Restricted</h3>
-          <p className="text-gray-600 mt-2">You are not assigned as a Form Master for any class. The report card section is reserved for Form Masters and Administrators.</p>
+          <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight relative">Access Restricted</h3>
+          <p className="text-slate-500 mt-2 font-medium max-w-sm mx-auto relative text-sm">Form Master permission is required to access primary term reports.</p>
         </div>
       ) : (
-        <div className="bg-white p-6 rounded-lg shadow print:hidden border border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Select Term</label>
+        <div className="bg-white p-6 sm:p-8 rounded-[32px] shadow-xl border border-slate-100 mb-6 print:hidden">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Select Target Term</label>
               <select
                 value={selectedTerm}
                 onChange={(e) => setSelectedTerm(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                className="w-full bg-slate-50 border-white rounded-2xl px-4 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-primary transition-all cursor-pointer"
               >
-                <option value="">Choose a term</option>
+                <option value="">Select Academic Term</option>
                 {terms.map(term => (
                   <option key={term.id} value={term.id}>
                     {term.name} - {term.academicSession?.name}
@@ -342,23 +363,23 @@ const TermReportCard = () => {
             </div>
 
             {user?.role === 'student' || isParentView ? (
-              <div className="flex md:col-span-2 items-end gap-4">
+              <div className="md:col-span-2 flex flex-col sm:flex-row items-end gap-4">
                 {isParentView && (
-                  <div className="flex-1">
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Student</label>
+                  <div className="flex-1 w-full space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Selected Ward</label>
                     {classStudents.length === 1 ? (
-                      <div className="w-full border border-gray-300 bg-gray-50 rounded-md px-3 py-2 text-gray-700 font-medium">
-                        {classStudents[0].user.firstName} {classStudents[0].user.lastName} {classStudents[0].middleName || ''}
+                      <div className="w-full bg-slate-100 border-white rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 shadow-inner">
+                        {classStudents[0].user.firstName} {classStudents[0].user.lastName}
                       </div>
                     ) : (
                       <select
                         value={selectedStudentId}
                         onChange={(e) => setSelectedStudentId(e.target.value)}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                        className="w-full bg-slate-50 border-white rounded-2xl px-4 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-primary transition-all cursor-pointer"
                       >
-                        <option value="">Select Ward</option>
+                        <option value="">Select Student</option>
                         {classStudents.map(s => (
-                          <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName} {s.middleName || ''}</option>
+                          <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName}</option>
                         ))}
                       </select>
                     )}
@@ -367,53 +388,76 @@ const TermReportCard = () => {
                 <button
                   onClick={fetchReport}
                   disabled={!selectedTerm || !selectedStudentId || loading}
-                  className="bg-primary text-white px-8 py-3 rounded-md hover:brightness-90 disabled:bg-gray-400 w-full md:w-auto font-bold shadow"
+                  className="bg-slate-900 text-white h-[54px] px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl active:scale-95 disabled:bg-slate-200 disabled:text-slate-400 transition-all w-full sm:w-auto"
                 >
-                  {loading ? 'Generating Report...' : isParentView ? 'View Report' : 'View My Report'}
+                  {loading ? 'Initializing Analytics...' : isParentView ? 'Fetch Report' : 'View My Profile'}
                 </button>
               </div>
             ) : (
-              <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {user?.role !== 'teacher' && (
-                  <div className="md:col-span-2 flex gap-4 mb-2">
-                    <label className="inline-flex items-center cursor-pointer">
-                      <input type="radio" className="form-radio text-primary" name="searchMode" value="admission" checked={searchMode === 'admission'} onChange={(e) => setSearchMode(e.target.value)} />
-                      <span className="ml-2 font-medium">By Admission No</span>
+              <div className="col-span-1 md:col-span-2 space-y-6 pt-4 border-t border-slate-50">
+                <div className="flex flex-wrap gap-4">
+                  {(user?.role !== 'teacher' ? ['admission', 'class'] : ['class']).map(mode => (
+                    <label 
+                      key={mode}
+                      className={`flex items-center gap-3 px-5 py-3 rounded-2xl border transition-all cursor-pointer font-black text-[10px] uppercase tracking-widest ${searchMode === mode ? 'bg-slate-900 border-slate-900 text-white shadow-xl scale-105' : 'bg-slate-50 border-slate-100 text-slate-400 hover:bg-slate-100'}`}
+                    >
+                      <input 
+                        type="radio" 
+                        className="hidden" 
+                        value={mode} 
+                        checked={searchMode === mode} 
+                        onChange={(e) => setSearchMode(e.target.value)} 
+                      />
+                      {mode === 'admission' ? 'By ID' : 'By Class Student'}
                     </label>
-                    <label className="inline-flex items-center cursor-pointer">
-                      <input type="radio" className="form-radio text-primary" name="searchMode" value="class" checked={searchMode === 'class'} onChange={(e) => setSearchMode(e.target.value)} />
-                      <span className="ml-2 font-medium">By Class</span>
-                    </label>
-                  </div>
-                )}
+                  ))}
+                </div>
 
                 {searchMode === 'admission' && user?.role !== 'teacher' ? (
-                  <div className="md:col-span-2 flex gap-2">
-                    <input
-                      type="text"
-                      value={admissionNumber}
-                      onChange={(e) => setAdmissionNumber(e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                      placeholder="Admission Number"
-                    />
-                    <button onClick={fetchReport} disabled={loading} className="bg-primary text-white px-8 py-2 rounded-md hover:brightness-90 whitespace-nowrap font-bold">
-                      {loading ? '...' : 'Generate'}
+                  <div className="flex gap-3 items-end">
+                    <div className="flex-1 space-y-2">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Admission Number</label>
+                      <input
+                        type="text"
+                        value={admissionNumber}
+                        onChange={(e) => setAdmissionNumber(e.target.value)}
+                        className="w-full bg-slate-50 border-white rounded-2xl px-5 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-primary transition-all font-mono"
+                        placeholder="FORMAT: 2024-SS1A-XXX"
+                      />
+                    </div>
+                    <button onClick={fetchReport} disabled={loading} className="bg-primary text-white h-[54px] px-10 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 disabled:bg-slate-200 transition-all">
+                      {loading ? 'SEARCHING...' : 'GENERATE'}
                     </button>
                   </div>
                 ) : (
-                  <>
-                    <select value={selectedClassId} onChange={(e) => setSelectedClassId(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2">
-                      <option value="">Select Class</option>
-                      {classes.map(cls => <option key={cls.id} value={cls.id}>{cls.name} {cls.arm}</option>)}
-                    </select>
-                    <div className="flex gap-2">
-                      <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} className="flex-1 border border-gray-300 rounded-md px-3 py-2" disabled={!selectedClassId}>
-                        <option value="">Select Student</option>
-                        <option value="all">-- ALL STUDENTS --</option>
-                        {classStudents.map(s => <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName} {s.middleName || ''}</option>)}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Target Grade</label>
+                      <select 
+                        value={selectedClassId} 
+                        onChange={(e) => setSelectedClassId(e.target.value)} 
+                        className="w-full bg-slate-50 border-white rounded-2xl px-4 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-primary transition-all"
+                      >
+                        <option value="">Select Level</option>
+                        {classes.map(cls => <option key={cls.id} value={cls.id}>{cls.name} {cls.arm}</option>)}
                       </select>
-                      <button onClick={fetchReport} disabled={loading || !selectedStudentId} className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 font-bold">
-                        Fetch
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex-1 space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Student Name</label>
+                        <select 
+                          value={selectedStudentId} 
+                          onChange={(e) => setSelectedStudentId(e.target.value)} 
+                          className="w-full bg-slate-50 border-white rounded-2xl px-4 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-primary transition-all" 
+                          disabled={!selectedClassId}
+                        >
+                          <option value="">Choose Student</option>
+                          <option value="all">-- COLLECT ENTIRE CLASS --</option>
+                          {classStudents.map(s => <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName}</option>)}
+                        </select>
+                      </div>
+                      <button onClick={fetchReport} disabled={loading || !selectedStudentId} className="h-[54px] bg-primary text-white px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl active:scale-95 disabled:bg-slate-200 transition-all">
+                        {loading ? '...' : 'COLLECT'}
                       </button>
                     </div>
                   </>

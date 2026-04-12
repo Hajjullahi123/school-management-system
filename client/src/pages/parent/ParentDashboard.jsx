@@ -316,41 +316,36 @@ const ParentDashboard = () => {
   }
 
   return (
-    <div className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto pr-2" style={{
-      scrollbarWidth: '12px',
-      scrollbarColor: '#0f766e #f1f5f9'
+    <div className="space-y-6 max-h-[calc(100vh-180px)] overflow-y-auto pr-2 pb-10" style={{
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none'
     }}>
-      {/* Custom scrollbar for Webkit browsers */}
+      {/* Hide scrollbar but keep functionality */}
       <style>{`
-        div::-webkit-scrollbar {
-          width: 12px;
+        div::-webkit-scrollbar { display: none; }
+        @keyframes subtle-bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
         }
-        div::-webkit-scrollbar-track {
-          background: #f1f5f9;
-          border-radius: 6px;
-        }
-        div::-webkit-scrollbar-thumb {
-          background: #0f766e;
-          border-radius: 6px;
-        }
-        div::-webkit-scrollbar-thumb:hover {
-          background: #0d9488;
-        }
+        .animate-subtle-bounce { animation: subtle-bounce 3s ease-in-out infinite; }
       `}</style>
 
-      {/* Priority Alerts section */}
+      {/* Priority Alerts section - Premium Redesign */}
       {alerts.length > 0 && (
-        <div className="space-y-3 mb-6">
+        <div className="space-y-4 mb-8">
           {alerts.map(alert => (
             <div
               key={alert.id}
-              className={`p-4 rounded-xl shadow-xl border-l-8 border-white/30 animate-pulse-slow ${alert.subject === 'Safe Arrival Alert'
-                ? 'bg-gradient-to-r from-teal-600 to-teal-500 text-white'
-                : 'bg-gradient-to-r from-red-600 to-red-500 text-white'
+              className={`relative p-5 rounded-[24px] shadow-2xl border border-white/20 overflow-hidden transition-all hover:scale-[1.01] ${alert.subject === 'Safe Arrival Alert'
+                ? 'bg-gradient-to-br from-teal-600 via-teal-500 to-emerald-500 text-white'
+                : 'bg-gradient-to-br from-rose-600 via-red-500 to-orange-500 text-white'
                 }`}
             >
-              <div className="flex items-center gap-4">
-                <div className="bg-white/20 p-2 rounded-lg">
+              {/* Background Decoration */}
+              <div className="absolute top-[-20%] right-[-5%] w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+              
+              <div className="flex items-center gap-5 relative z-10">
+                <div className="bg-white/20 backdrop-blur-md p-3 rounded-2xl shadow-inner border border-white/30 animate-pulse">
                   {alert.subject === 'Safe Arrival Alert' ? (
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -362,17 +357,20 @@ const ParentDashboard = () => {
                   )}
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-black uppercase text-[10px] tracking-widest opacity-80 mb-1">
-                    {alert.subject === 'Safe Arrival Alert' ? 'Arrival Alert' : 'Priority Alert'}
-                  </h4>
-                  <p className="text-sm font-bold leading-tight">{alert.message}</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="bg-white/20 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em]">Priority</span>
+                    <h4 className="font-black uppercase text-[10px] tracking-widest opacity-80">
+                      {alert.subject === 'Safe Arrival Alert' ? 'Arrival Confirmation' : 'Important Notice'}
+                    </h4>
+                  </div>
+                  <p className="text-sm font-bold leading-tight tracking-tight drop-shadow-sm">{alert.message}</p>
                 </div>
                 <button
                   onClick={() => markAlertRead(alert.id)}
-                  className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-all"
+                  className="bg-white/20 hover:bg-white/40 p-2.5 rounded-full transition-all active:scale-90 border border-white/20 shadow-lg"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
@@ -381,60 +379,55 @@ const ParentDashboard = () => {
         </div>
       )}
 
-      {/* Welcoming Notification Banner */}
-      {wards.length > 0 && (
-        <div className="bg-gradient-to-r from-green-500 to-primary text-white p-4 rounded-lg shadow-lg animate-fade-in">
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 p-3 rounded-full">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-              </svg>
+      {/* Welcome Header - Glassmorphism Edition */}
+      <div className="relative group overflow-hidden rounded-[32px] p-1 bg-gradient-to-br from-primary via-primary/80 to-blue-600 shadow-2xl">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"></div>
+        <div className="relative bg-white/5 backdrop-blur-sm p-6 sm:p-10 rounded-[31px] text-white flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="min-w-0 text-center sm:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-white/20 mb-4 animate-in fade-in slide-in-from-left-4 duration-700">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Active Portal Session</span>
             </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-lg">
-                {wards.length === 1 ? 'Child Linked Successfully!' : `${wards.length} Children Linked Successfully!`}
-              </h3>
-              <p className="text-sm text-white/90">
-                You are connected to: {wards.map(s => `${s.user?.firstName} ${s.user?.lastName}`).join(', ')}
-              </p>
-            </div>
-            <div className="hidden md:flex items-center bg-white/20 px-4 py-2 rounded-full">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="font-semibold">{wards.length} Active</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-primary to-primary/90 p-4 sm:p-8 rounded-lg text-white shadow-lg">
-        <div className="flex items-center justify-between">
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-3xl font-bold truncate">Welcome, {user.firstName} {user.lastName}!</h1>
-            <div className="flex flex-wrap items-center gap-2 mt-1 sm:mt-2">
-              <p className="text-xs sm:text-sm text-white/90 truncate">Portal Access • {schoolSettings?.schoolName || 'School System'}</p>
+            <h1 className="text-2xl sm:text-4xl font-black tracking-tighter italic mb-2">Hello, {user.firstName}!</h1>
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+              <p className="text-xs sm:text-sm text-white/70 font-medium">{schoolSettings?.schoolName || 'Management System'}</p>
               {currentTerm && (
-                <span className="bg-white/20 text-white text-[10px] sm:text-xs px-2 py-0.5 rounded border border-white/20 font-black uppercase tracking-tighter italic">
+                <span className="bg-emerald-500 text-white text-[10px] sm:text-xs px-3 py-1 rounded-full font-black uppercase tracking-widest border border-white/20 shadow-lg">
                   {currentTerm.name}
                 </span>
               )}
             </div>
           </div>
-          <div className="hidden sm:block">
-            <div className="bg-white/20 rounded-lg p-3 sm:p-4">
-              <p className="text-[10px] sm:text-sm text-white/90 uppercase tracking-widest">Wards</p>
-              <p className="text-2xl sm:text-4xl font-bold">{wards.length}</p>
+          
+          <div className="flex items-center gap-4 bg-white/10 backdrop-blur-xl p-5 rounded-[24px] border border-white/20 shadow-inner group-hover:scale-105 transition-transform duration-500">
+            <div className="text-center space-y-1">
+              <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em]">Connected Wards</p>
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-4xl sm:text-5xl font-black italic tracking-tighter">{wards.length}</span>
+                <div className="h-10 w-[2px] bg-white/20 rounded-full"></div>
+                <div className="text-left">
+                  <p className="text-[10px] font-black uppercase leading-none text-emerald-400">Verified</p>
+                  <p className="text-[10px] font-black uppercase leading-none opacity-40">Accounts</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Children Cards */}
-      <div className="space-y-4">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-4">My Children</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
+      {/* Children Section */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between px-2">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
+            <span className="w-2 h-8 bg-primary rounded-full"></span>
+            Academic Profiles
+          </h2>
+          <div className="bg-slate-100 px-4 py-1.5 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest border border-slate-200">
+            {wards.length} Student{wards.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
           {wards.map(student => {
             const currentTermFeeRecord = student.feeRecords?.find(
               fee => fee.term?.isCurrent && fee.academicSession?.isCurrent
@@ -443,276 +436,281 @@ const ParentDashboard = () => {
             const hasFeeInfo = latestFeeRecord != null;
 
             return (
-              <div key={student.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow flex flex-col">
-                <div className="bg-gradient-to-r from-primary/5 to-blue-50 p-4 sm:p-6">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-lg sm:text-2xl font-bold shadow-lg flex-shrink-0 overflow-hidden">
-                      {(() => {
-                        const photoUrl = student.user?.photoUrl || student.photoUrl;
-                        return photoUrl ? (
-                          <img
-                            src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span>{student.user?.firstName?.[0]}{student.user?.lastName?.[0]}</span>
-                        );
-                      })()}
+              <div key={student.id} className="group flex flex-col bg-white rounded-[32px] overflow-hidden shadow-xl border border-slate-100 hover:shadow-2xl transition-all duration-500 animate-in fade-in slide-in-from-bottom-4">
+                {/* Ward Header - High Gloss */}
+                <div className="relative p-6 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100">
+                  <div className="absolute top-0 right-0 p-4">
+                    {todayStatus?.isHoliday ? (
+                      <div className="px-3 py-1.5 rounded-2xl bg-blue-50/80 backdrop-blur-sm border border-blue-100 text-[9px] font-black uppercase tracking-widest text-blue-600 flex flex-col items-center">
+                        <span className="opacity-50 text-[7px] mb-0.5 leading-none">Status</span>
+                        {todayStatus.type === 'weekend' ? 'Weekend' : 'Holiday'}
+                      </div>
+                    ) : getTodayAttendance(student) ? (
+                      <div className={`px-3 py-1.5 rounded-2xl border backdrop-blur-sm text-[9px] font-black uppercase tracking-widest flex flex-col items-center ${getStatusBadge(getTodayAttendance(student).status).replace('bg-', 'bg-').replace('text-', 'text-')}`}>
+                        <span className="opacity-50 text-[7px] mb-0.5 leading-none">Today</span>
+                        {getTodayAttendance(student).status}
+                      </div>
+                    ) : (
+                      <div className="px-3 py-1.5 rounded-2xl bg-slate-100/80 border border-slate-200 text-[9px] font-black uppercase tracking-widest text-slate-400 flex flex-col items-center">
+                        <span className="opacity-50 text-[7px] mb-0.5 leading-none">Attendance</span>
+                        Pending
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-6">
+                    <div className="relative">
+                      <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-[28px] bg-primary p-1 shadow-2xl transition-transform group-hover:rotate-3 duration-500">
+                        <div className="w-full h-full rounded-[24px] bg-slate-100 overflow-hidden flex items-center justify-center border-4 border-white">
+                          {(() => {
+                            const photoUrl = student.user?.photoUrl || student.photoUrl;
+                            return photoUrl ? (
+                              <img
+                                src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-2xl font-black text-primary">{student.user?.firstName?.[0]}{student.user?.lastName?.[0]}</span>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                      <div className="absolute -bottom-2 -right-2 h-8 w-8 bg-emerald-500 rounded-full border-4 border-white flex items-center justify-center text-white shadow-lg animate-bounce">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
+
+                    <div className="min-w-0 pr-16">
+                      <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mb-1 truncate">
                         {student.user?.firstName} {student.user?.lastName}
                       </h3>
-                      <p className="text-xs sm:text-sm text-gray-600 truncate">
-                        {student.classModel?.name} {student.classModel?.arm}
-                      </p>
-                      <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 truncate uppercase tracking-widest font-semibold">
-                        ID: {student.admissionNumber}
-                      </p>
-                    </div>
-                    {/* Today's Attendance Badge */}
-                    <div className="flex-shrink-0">
-                      {todayStatus?.isHoliday ? (
-                        <div className="px-2 py-1 rounded-lg border border-blue-100 bg-blue-50 text-[10px] font-black uppercase tracking-tight text-blue-600 flex flex-col items-center justify-center">
-                          <span className="opacity-60 text-[8px] leading-tight">TODAY</span>
-                          <span className="leading-tight">{todayStatus.type === 'weekend' ? 'WEEKEND' : 'HOLIDAY'}</span>
-                        </div>
-                      ) : getTodayAttendance(student) ? (
-                        <div className={`px-2 py-1 rounded-lg border text-[10px] font-black uppercase tracking-tight flex flex-col items-center justify-center ${getStatusBadge(getTodayAttendance(student).status)}`}>
-                          <span className="opacity-60 text-[8px] leading-tight">TODAY</span>
-                          <span className="leading-tight">{getTodayAttendance(student).status}</span>
-                        </div>
-                      ) : (
-                        <div className="px-2 py-1 rounded-lg border border-gray-100 bg-gray-50 text-[10px] font-black uppercase tracking-tight text-gray-400 flex flex-col items-center justify-center">
-                          <span className="opacity-60 text-[8px] leading-tight">TODAY</span>
-                          <span className="leading-tight">PENDING</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-md">
+                          {student.classModel?.name} {student.classModel?.arm}
+                        </span>
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                        Reg. No: <span className="text-slate-800">{student.admissionNumber}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-4 sm:p-6 border-b border-gray-100 flex-1">
-                  <h4 className="text-xs sm:text-sm font-bold text-gray-700 mb-3 flex items-center gap-2 uppercase tracking-wider">
-                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    Fee Status {currentTermFeeRecord && <span className="text-primary text-[10px] sm:text-xs font-black ml-auto">CURRENT</span>}
-                  </h4>
-
-                  {hasFeeInfo ? (
-                    <div className="space-y-2 sm:space-y-3">
-                      <div className="flex justify-between items-center p-2.5 sm:p-3 bg-gray-50 rounded-lg">
-                        <span className="text-xs sm:text-sm text-gray-600">Total</span>
-                        <span className="text-sm sm:text-base font-bold text-gray-900">{formatCurrency(latestFeeRecord.expectedAmount)}</span>
-                      </div>
-                      <div className="flex justify-between items-center p-2.5 sm:p-3 bg-green-50 rounded-lg">
-                        <span className="text-xs sm:text-sm text-gray-600">Paid</span>
-                        <span className="text-sm sm:text-base font-bold text-green-700">{formatCurrency(latestFeeRecord.paidAmount)}</span>
-                      </div>
-                      <div className="flex justify-between items-center p-2.5 sm:p-3 bg-red-50 rounded-lg">
-                        <span className="text-xs sm:text-sm text-gray-600">Balance</span>
-                        <span className="text-sm sm:text-base font-bold text-red-700">{formatCurrency(latestFeeRecord.balance)}</span>
-                      </div>
-
-                      <div className="pt-1">
-                        {latestFeeRecord.balance === 0 ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-green-100 text-green-800">
-                            Fully Paid
-                          </span>
-                        ) : latestFeeRecord.paidAmount > 0 ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-yellow-100 text-yellow-800">
-                            Partial
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-red-100 text-red-800">
-                            Unpaid
-                          </span>
-                        )}
-                      </div>
+                <div className="p-6 sm:p-8 space-y-6 flex-1 bg-white">
+                  {/* Financial Ledger Section */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
+                        <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Fee Dashboard
+                      </h4>
+                      {currentTermFeeRecord && <span className="text-[8px] font-black px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full tracking-widest">CURRENT TERM</span>}
                     </div>
-                  ) : (
-                    <div className="text-center py-4 sm:py-6 bg-gray-50 rounded-lg">
-                      <p className="text-xs sm:text-sm text-gray-400 font-bold uppercase tracking-widest">No Records Found</p>
-                    </div>
-                  )}
-                  {/* Premium Miscellaneous Summary */}
-                  {(() => {
-                    const studentMiscFees = getStudentMiscFees(student);
-                    if (studentMiscFees.length === 0) return null;
-                    
-                    const totalExpected = studentMiscFees.reduce((sum, f) => sum + f.amount, 0);
-                    const totalPaid = studentMiscFees.reduce((sum, f) => sum + (f.paid || 0), 0);
-                    const balance = totalExpected - totalPaid;
-                    
-                    if (totalExpected === 0) return null;
 
-                    return (
-                      <div className="mt-5 p-5 bg-slate-900 rounded-[28px] shadow-xl relative overflow-hidden group/misc">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl group-hover/misc:bg-orange-500/20 transition-all"></div>
-                        
-                        <div className="relative z-10">
-                          <div className="flex justify-between items-start mb-4">
-                            <h4 className="text-[10px] font-black text-orange-400 flex items-center gap-2 uppercase tracking-[0.25em]">
-                              <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
-                              Miscellaneous/Extra Fee
-                            </h4>
-                            <div className="flex flex-wrap gap-1 max-w-[50%] justify-end">
-                              {studentMiscFees.map(f => (
-                                <span key={f.id} className="text-[8px] px-1.5 py-0.5 bg-white/10 text-white/60 rounded-md border border-white/5 font-bold truncate">
-                                  {f.title}
-                                </span>
-                              ))}
+                    {hasFeeInfo ? (
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="relative p-4 rounded-3xl bg-slate-50 border border-slate-100 overflow-hidden group/fee transition-all hover:bg-slate-100">
+                          <div className="flex justify-between items-center relative z-10">
+                            <div className="space-y-0.5">
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Outstanding</p>
+                              <p className={`text-2xl font-black italic tracking-tighter ${latestFeeRecord.balance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                                {formatCurrency(latestFeeRecord.balance)}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <div className={`inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${
+                                latestFeeRecord.balance === 0 ? 'bg-emerald-500 text-white' : 
+                                latestFeeRecord.paidAmount > 0 ? 'bg-amber-500 text-white' : 'bg-red-600 text-white'
+                              }`}>
+                                {latestFeeRecord.balance === 0 ? 'Settled' : latestFeeRecord.paidAmount > 0 ? 'Partial' : 'Debt'}
+                              </div>
                             </div>
                           </div>
-                          
-                          <div className="grid grid-cols-3 gap-3">
-                            <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/5 group-hover/misc:border-white/10 transition-all text-center">
-                              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 group-hover/misc:text-slate-400">Amount Expected</p>
-                              <p className="text-sm font-bold text-white tracking-tighter italic">₦{formatCurrency(totalExpected).replace('NGN', '')}</p>
-                            </div>
-                            <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/5 group-hover/misc:border-white/10 transition-all text-center">
-                              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 group-hover/misc:text-emerald-400">Amount Paid</p>
-                              <p className="text-sm font-bold text-emerald-400 tracking-tighter italic">₦{formatCurrency(totalPaid).replace('NGN', '')}</p>
-                            </div>
-                            <div className={`p-3 rounded-2xl border transition-all text-center ${balance > 0 ? 'bg-orange-500/10 border-orange-500/20 shadow-lg shadow-orange-500/5' : 'bg-white/5 border-white/5'}`}>
-                              <p className={`text-[8px] font-black uppercase tracking-widest mb-1 ${balance > 0 ? 'text-orange-400' : 'text-slate-500'}`}>Balance</p>
-                              <p className={`text-sm font-bold tracking-tighter italic ${balance > 0 ? 'text-white' : 'text-slate-400'}`}>{formatCurrency(balance).replace('NGN', '')}</p>
-                            </div>
+                          {/* Mini Progress Bar */}
+                          <div className="mt-4 h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full transition-all duration-1000 bg-emerald-500`}
+                              style={{ width: `${Math.min(100, (latestFeeRecord.paidAmount / latestFeeRecord.expectedAmount) * 100)}%` }}
+                            ></div>
                           </div>
-                          
-                          {balance > 0 && (
-                            <div className="mt-4 flex items-center gap-2 justify-center py-2 bg-orange-500/5 rounded-xl border border-orange-500/10">
-                              <span className="text-[9px] font-black text-orange-400 uppercase tracking-widest italic animate-pulse">Awaiting Payment</span>
-                            </div>
-                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 mt-1">
+                          <div className="p-3 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                            <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Total Fee</p>
+                            <p className="font-bold text-slate-900 tracking-tight">{formatCurrency(latestFeeRecord.expectedAmount)}</p>
+                          </div>
+                          <div className="p-3 rounded-2xl bg-emerald-50/50 border border-emerald-100 shadow-sm">
+                            <p className="text-[8px] font-black text-emerald-600 uppercase mb-1">Paid to Date</p>
+                            <p className="font-bold text-emerald-700 tracking-tight">{formatCurrency(latestFeeRecord.paidAmount)}</p>
+                          </div>
                         </div>
                       </div>
-                    );
-                  })()}
-                </div>
-
-                <div className="p-3 sm:p-4 bg-white border-t border-gray-100 flex flex-col gap-2">
-                  {/* Row 1: Core Info */}
-                  <div className="flex gap-2">
-                    {hasFeeInfo && (
-                      <button
-                        onClick={() => handleViewFees(student)}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
-                      >
-                        Fees
-                      </button>
+                    ) : (
+                      <div className="text-center py-8 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+                        <p className="text-xs text-slate-400 font-black uppercase tracking-[0.2em]">No Financial Records</p>
+                      </div>
                     )}
-                    <Link
-                      to={`/dashboard/parent/attendance?studentId=${student.id}&view=parent`}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
-                    >
-                      Attendance
-                    </Link>
+
+                    {/* Premium Miscellaneous Summary - Embedded */}
+                    {(() => {
+                      const studentMiscFees = getStudentMiscFees(student);
+                      if (studentMiscFees.length === 0) return null;
+                      
+                      const totalExpected = studentMiscFees.reduce((sum, f) => sum + f.amount, 0);
+                      const totalPaid = studentMiscFees.reduce((sum, f) => sum + (f.paid || 0), 0);
+                      const balance = totalExpected - totalPaid;
+                      
+                      if (totalExpected === 0) return null;
+
+                      return (
+                        <div className="p-5 bg-slate-900 rounded-[28px] shadow-2xl relative overflow-hidden group/misc">
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl group-hover/misc:bg-primary/20 transition-all"></div>
+                          
+                          <div className="relative z-10">
+                            <div className="flex justify-between items-start mb-4">
+                              <h4 className="text-[9px] font-black text-primary flex items-center gap-2 uppercase tracking-[0.25em]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                                Ancillary Services
+                              </h4>
+                              <div className="flex flex-wrap gap-1 max-w-[50%] justify-end">
+                                {studentMiscFees.slice(0, 2).map(f => (
+                                  <span key={f.id} className="text-[7px] px-2 py-0.5 bg-white/5 text-white/50 rounded-full border border-white/5 font-black uppercase italic truncate">
+                                    {f.title}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-3 gap-2">
+                              <div className="bg-white/5 p-2 rounded-2xl text-center">
+                                <p className="text-[7px] font-black text-slate-500 uppercase mb-0.5">Billed</p>
+                                <p className="text-xs font-bold text-white tracking-tighter italic">₦{totalExpected.toLocaleString()}</p>
+                              </div>
+                              <div className="bg-white/5 p-2 rounded-2xl text-center">
+                                <p className="text-[7px] font-black text-slate-500 uppercase mb-0.5">Cleared</p>
+                                <p className="text-xs font-bold text-emerald-400 tracking-tighter italic">₦{totalPaid.toLocaleString()}</p>
+                              </div>
+                              <div className={`p-2 rounded-2xl border transition-all text-center ${balance > 0 ? 'bg-primary/10 border-primary/20' : 'bg-white/5 border-white/5'}`}>
+                                <p className={`text-[7px] font-black uppercase mb-0.5 ${balance > 0 ? 'text-primary' : 'text-slate-500'}`}>Balance</p>
+                                <p className={`text-xs font-bold tracking-tighter italic ${balance > 0 ? 'text-white' : 'text-slate-400'}`}>₦{balance.toLocaleString()}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
-                  {/* Row 2: Results/Reports */}
-                  <div className="flex gap-2">
-                    <Link
-                      to={`/dashboard/term-report?studentId=${student.id}&view=parent`}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
-                    >
-                      Terminal
-                    </Link>
-                    <Link
-                      to={`/dashboard/progressive-report?studentId=${student.id}&view=parent`}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
-                    >
-                      Progressive
-                    </Link>
-                    <Link
-                      to={`/dashboard/cumulative-report?studentId=${student.id}&view=parent`}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
-                    >
-                      Cumulative
-                    </Link>
-                  </div>
+                  {/* Actions Grid - Premium Buttons */}
+                  <div className="grid grid-cols-1 gap-4 pt-2">
+                    <div className="grid grid-cols-2 gap-3">
+                      {hasFeeInfo && (
+                        <button
+                          onClick={() => handleViewFees(student)}
+                          className="group/btn flex-1 flex items-center justify-center gap-2 py-4 px-4 bg-teal-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg hover:bg-teal-700 active:scale-95 transition-all"
+                        >
+                          <svg className="w-4 h-4 transition-transform group-hover/btn:scale-125" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                          </svg>
+                          Payments
+                        </button>
+                      )}
+                      <Link
+                        to={`/dashboard/parent/attendance?studentId=${student.id}&view=parent`}
+                        className="group/btn flex-1 flex items-center justify-center gap-2 py-4 px-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg hover:bg-blue-700 active:scale-95 transition-all"
+                      >
+                        <svg className="w-4 h-4 transition-transform group-hover/btn:scale-125" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Calendar
+                      </Link>
+                    </div>
 
-                  {/* Row 3: Communication & More */}
-                  <div className="flex gap-2">
-                    <Link
-                      to="/dashboard/parent/messages?view=parent"
-                      className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-purple-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
-                    >
-                      Message
-                    </Link>
-                    <Link
-                      to={`/dashboard/analytics?studentId=${student.id}&view=parent`}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all transition-colors hover:bg-orange-700"
-                    >
-                      Analytics
-                    </Link>
-                  </div>
+                    <div className="flex gap-3">
+                      <Link
+                        to={`/dashboard/term-report?studentId=${student.id}&view=parent`}
+                        className="flex-1 flex flex-col items-center justify-center py-4 bg-slate-900 text-white rounded-[24px] text-[9px] font-black uppercase tracking-widest shadow-xl border border-white/5 hover:bg-black transition-colors"
+                      >
+                        <span className="opacity-40 text-[7px] mb-1">Terminal</span>
+                        Report Card
+                      </Link>
+                      <Link
+                        to={`/dashboard/cumulative-report?studentId=${student.id}&view=parent`}
+                        className="flex-1 flex flex-col items-center justify-center py-4 bg-slate-800 text-white rounded-[24px] text-[9px] font-black uppercase tracking-widest shadow-xl border border-white/5 hover:bg-slate-900 transition-colors"
+                      >
+                        <span className="opacity-40 text-[7px] mb-1">Annual</span>
+                        Cumulative
+                      </Link>
+                    </div>
 
-                  {/* Form Master Details */}
-                  {student.classModel?.classTeacher && (
-                    <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                      <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0">
-                          {student.classModel.classTeacher.photoUrl ? (
+                    <div className="flex gap-3">
+                       <Link
+                        to="/dashboard/parent/messages?view=parent"
+                        className="flex-1 flex items-center justify-center gap-2 py-4 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:brightness-110 transition-all active:scale-95"
+                      >
+                        Support Center
+                      </Link>
+                      <Link
+                        to={`/dashboard/analytics?studentId=${student.id}&view=parent`}
+                        className="flex-1 flex items-center justify-center gap-2 py-4 bg-orange-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-orange-600 transition-all active:scale-95"
+                      >
+                        Performance
+                      </Link>
+                    </div>
+
+                    {/* Form Master Quick-Link */}
+                    {student.classModel?.classTeacher && (
+                      <div className="mt-2 p-5 bg-emerald-50/30 rounded-[28px] border border-emerald-100/50 flex items-center gap-4 transition-all hover:bg-emerald-50">
+                        <div className="h-12 w-12 rounded-2xl bg-white border-2 border-emerald-100 flex items-center justify-center font-black text-emerald-600 shadow-sm overflow-hidden">
+                           {student.classModel.classTeacher.photoUrl ? (
                             <img 
                               src={student.classModel.classTeacher.photoUrl.startsWith('data:') || student.classModel.classTeacher.photoUrl.startsWith('http') ? student.classModel.classTeacher.photoUrl : `${API_BASE_URL}${student.classModel.classTeacher.photoUrl}`}
                               alt=""
-                              className="w-8 h-8 rounded-full border border-slate-300"
+                              className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                              {student.classModel.classTeacher.firstName?.[0]}{student.classModel.classTeacher.lastName?.[0]}
-                            </div>
+                            <span>{student.classModel.classTeacher.firstName?.[0]}{student.classModel.classTeacher.lastName?.[0]}</span>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Form Master</p>
-                          <p className="text-xs font-bold text-slate-800 truncate">
+                          <p className="text-[8px] font-black uppercase text-emerald-600 tracking-[0.2em] mb-0.5">Form Master</p>
+                          <p className="text-sm font-black text-slate-900 truncate">
                             {student.classModel.classTeacher.firstName} {student.classModel.classTeacher.lastName}
                           </p>
                         </div>
                         <div className="flex gap-2">
-                          {student.classModel.classTeacher.teacher?.publicPhone && (
+                           {student.classModel.classTeacher.teacher?.publicPhone && (
                             <a 
                               href={`tel:${student.classModel.classTeacher.teacher.publicPhone}`}
-                              className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200 shadow-sm hover:border-blue-500 hover:bg-blue-50 transition-all group/call"
-                              title="Call Form Master"
+                              className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center border border-emerald-100 shadow-sm hover:scale-110 active:scale-95 transition-all text-emerald-600"
                             >
-                              <svg className="w-4 h-4 text-slate-500 group-hover/call:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                               </svg>
                             </a>
-                          )}
-                          {student.classModel.classTeacher.teacher?.publicEmail && (
-                            <a 
-                              href={`mailto:${student.classModel.classTeacher.teacher.publicEmail}`}
-                              className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200 shadow-sm hover:border-slate-800 hover:bg-slate-200 transition-all group/mail"
-                              title="Email Form Master"
-                            >
-                              <svg className="w-4 h-4 text-slate-500 group-hover/mail:text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                              </svg>
-                            </a>
-                          )}
-                          {student.classModel.classTeacher.teacher?.publicWhatsapp && (
+                           )}
+                           {student.classModel.classTeacher.teacher?.publicWhatsapp && (
                             <a 
                               href={`https://wa.me/${student.classModel.classTeacher.teacher.publicWhatsapp}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100 shadow-sm hover:border-emerald-500 hover:bg-emerald-500 transition-all group/wa"
-                              title="Direct WhatsApp"
+                              className="w-10 h-10 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30 hover:scale-110 active:scale-95 transition-all text-white"
                             >
-                              <svg className="w-4 h-4 text-emerald-600 group-hover/wa:text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-4.431 6.516a10.024 10.024 0 01-5.115-1.411l-.367-.218-3.801 1.002.112-3.8-.231-.368A9.994 9.994 0 012.83 10.155c0-5.518 4.482-10 10-10 5.518 0 10 4.482 10 10 0 5.519-4.482 10-10 10z" />
                               </svg>
                             </a>
-                          )}
+                           )}
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             );

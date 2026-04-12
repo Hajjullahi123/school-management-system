@@ -209,17 +209,17 @@ const TeacherMessages = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary to-primary/90 p-6 rounded-lg text-white shadow-lg">
-        <div className="flex justify-between items-center">
+      <div className="bg-gradient-to-r from-primary to-primary/90 p-4 sm:p-6 rounded-lg text-white shadow-lg">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h1 className="text-3xl font-bold">Parent Messages</h1>
-            <p className="text-white/90 mt-2">Communicate with parents of students in your class</p>
-            <p className="text-white/80 text-sm mt-1">
-              Form Class: {myClass.name} {myClass.arm} ({students.length} students)
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Parent Messages</h1>
+            <p className="text-xs sm:text-sm text-white/90 mt-1">Communicate with parents</p>
+            <p className="text-white/80 text-[10px] sm:text-xs mt-1">
+              {myClass.name} {myClass.arm} • {students.length} Students
             </p>
           </div>
           {unreadCount > 0 && (
-            <div className="bg-red-500 text-white px-4 py-2 rounded-full font-bold">
+            <div className="bg-red-500 text-white px-3 sm:px-4 py-1 sm:py-2 rounded-full font-bold text-xs sm:text-sm">
               {unreadCount} Unread
             </div>
           )}
@@ -246,17 +246,16 @@ const TeacherMessages = () => {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select Student</label>
+              <label className="block text-xs font-black text-gray-500 uppercase mb-2">Select Student</label>
               <select
                 value={selectedStudent || ''}
                 onChange={(e) => setSelectedStudent(e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
               >
                 <option value="">-- Select a student --</option>
                 {students.map(student => (
                   <option key={student.id} value={student.id}>
                     {student.user?.firstName} {student.user?.lastName} - {student.admissionNumber}
-                    {student.parent ? ` (Parent: ${student.parent.user?.firstName || 'N/A'})` : ' (No parent linked)'}
                   </option>
                 ))}
               </select>
@@ -286,13 +285,13 @@ const TeacherMessages = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
+              <label className="block text-xs font-black text-gray-500 uppercase mb-2">Message</label>
               <textarea
                 value={newMessageData.message}
                 onChange={(e) => setNewMessageData({ ...newMessageData, message: e.target.value })}
                 rows="6"
                 placeholder="Write your message to the parent..."
-                className="w-full border rounded-md px-3 py-2"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
               />
             </div>
 
@@ -320,8 +319,8 @@ const TeacherMessages = () => {
 
       {/* Message Thread View */}
       {showThread && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
+        <div className="bg-white rounded-[24px] shadow-2xl overflow-hidden border border-gray-100 transition-all duration-500 animate-in slide-in-from-bottom-4">
+          <div className="p-4 bg-white/80 backdrop-blur-md border-b sticky top-0 z-10 flex justify-between items-center px-4 sm:px-6">
             <button
               onClick={() => {
                 setShowThread(false);
@@ -329,42 +328,59 @@ const TeacherMessages = () => {
                 setThread([]);
                 setReplyData({ message: '' });
               }}
-              className="text-primary hover:text-primary/80 flex items-center gap-2"
+              className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-primary transition-all active:scale-90"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Back to Messages
             </button>
-            <h3 className="font-semibold text-gray-900">{thread[0]?.subject}</h3>
+            <div className="flex-1 text-center truncate px-4">
+              <h3 className="font-black text-gray-900 uppercase tracking-widest text-xs sm:text-sm">{thread[0]?.subject}</h3>
+            </div>
+            <div className="w-10"></div> {/* Spacer for balance */}
           </div>
 
-          <div className="p-6 space-y-4 max-h-96 overflow-y-auto">
+          <div className="p-4 sm:p-6 space-y-4 max-h-[500px] overflow-y-auto">
             {thread.map((msg) => (
               <div
                 key={msg.id}
-                className={`p-4 rounded-lg ${msg.senderId === user.id
-                  ? 'bg-primary/5 border-l-4 border-primary ml-8'
-                  : 'bg-gray-50 border-l-4 border-gray-300 mr-8'
+                className={`p-3 sm:p-4 rounded-lg ${msg.senderId === user.id
+                  ? 'bg-primary/5 border-l-4 border-primary ml-4 sm:ml-8 text-right'
+                  : 'bg-gray-50 border-l-4 border-gray-300 mr-4 sm:mr-8 text-left'
                   }`}
               >
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      {msg.senderId === user.id ? 'You' : `${msg.sender?.firstName} ${msg.sender?.lastName}`}
-                      <span className="text-sm text-gray-500 ml-2">({msg.sender?.role})</span>
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(msg.createdAt).toLocaleString()}
-                    </p>
+                <div className={`flex items-start gap-2 sm:gap-3 ${msg.senderId === user.id ? 'flex-row-reverse' : ''}`}>
+                  <div className={`h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold overflow-hidden shadow-sm ${msg.senderId === user.id ? 'bg-primary text-white' : 'bg-gray-200 text-gray-600'}`}>
+                    {msg.sender?.photoUrl ? (
+                      <img
+                        src={msg.sender.photoUrl.startsWith('data:') || msg.sender.photoUrl.startsWith('http') ? msg.sender.photoUrl : `${API_BASE_URL}${msg.sender.photoUrl}`}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{msg.sender?.firstName?.[0]}{msg.sender?.lastName?.[0]}</span>
+                    )}
                   </div>
-                  {msg.messageType === 'complaint' && (
-                    <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-semibold">
-                      Complaint
-                    </span>
-                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className={msg.senderId === user.id ? 'text-right' : 'text-left'}>
+                        <p className="font-semibold text-xs sm:text-sm text-gray-900">
+                          {msg.senderId === user.id ? 'You' : `${msg.sender?.firstName} ${msg.sender?.lastName}`}
+                          <span className="text-[10px] sm:text-xs text-gray-500 ml-1 sm:ml-2">({msg.sender?.role})</span>
+                        </p>
+                        <p className="text-[10px] text-gray-500">
+                          {new Date(msg.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                        </p>
+                      </div>
+                      {msg.messageType === 'complaint' && (
+                        <span className="bg-red-100 text-red-800 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-tight">
+                          Complaint
+                        </span>
+                      )}
+                    </div>
+                <p className={`text-xs sm:text-sm text-gray-700 whitespace-pre-wrap ${msg.senderId === user.id ? 'text-right' : 'text-left'}`}>{msg.message}</p>
+                  </div>
                 </div>
-                <p className="text-gray-700 whitespace-pre-wrap">{msg.message}</p>
               </div>
             ))}
           </div>
@@ -412,43 +428,43 @@ const TeacherMessages = () => {
                     setSelectedMessage(msg);
                     fetchThread(msg.parentMessageId || msg.id);
                   }}
-                  className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                  className={`p-4 sm:p-5 hover:bg-gray-50 cursor-pointer transition-all active:scale-[0.98] group relative ${!msg.isRead && msg.receiverId === user.id ? 'bg-primary/5' : ''}`}
                 >
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary scale-y-0 group-hover:scale-y-100 transition-transform duration-300"></div>
                   <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold text-gray-900">{msg.subject}</h4>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h4 className="font-bold text-sm sm:text-base text-gray-900 truncate max-w-[150px] sm:max-w-none">{msg.subject}</h4>
                         {!msg.isRead && msg.receiverId === user.id && (
-                          <span className="bg-red-500 text-white px-2 py-0.5 rounded text-xs font-semibold">
+                          <span className="bg-red-500 text-white px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-black uppercase tracking-widest">
                             NEW
                           </span>
                         )}
                         {msg.messageType === 'complaint' && (
-                          <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded text-xs font-semibold">
+                          <span className="bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-bold uppercase">
                             Complaint
                           </span>
                         )}
                         {msg.messageType === 'update' && (
-                          <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-semibold">
+                          <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-bold uppercase">
                             Update
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs sm:text-sm text-gray-600 font-medium whitespace-nowrap overflow-hidden text-overflow-ellipsis">
                         {msg.senderId === user.id ? 'To' : 'From'}: {
                           msg.senderId === user.id
                             ? `${msg.receiver?.firstName} ${msg.receiver?.lastName}`
                             : `${msg.sender?.firstName} ${msg.sender?.lastName}`
                         }
+                        <span className="mx-1.5 text-gray-300">•</span>
+                        {msg.student?.user?.firstName} {msg.student?.user?.lastName}
                       </p>
-                      <p className="text-sm text-gray-600">
-                        Student: {msg.student?.user?.firstName} {msg.student?.user?.lastName}
-                      </p>
-                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">{msg.message}</p>
+                      <p className="text-[11px] sm:text-sm text-gray-500 mt-1 line-clamp-1 italic">{msg.message}</p>
                     </div>
-                    <div className="flex flex-col items-end gap-2 ml-4">
-                      <div className="text-xs text-gray-500">
-                        {new Date(msg.createdAt).toLocaleDateString()}
+                    <div className="flex flex-col items-end gap-2 ml-2 sm:ml-4 flex-shrink-0">
+                      <div className="text-[10px] text-gray-400 font-medium uppercase">
+                        {new Date(msg.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                       </div>
                       {msg.senderId === user.id && (
                         <button
@@ -458,7 +474,7 @@ const TeacherMessages = () => {
                               handleDeleteMessage(msg.id);
                             }
                           }}
-                          className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
+                          className="text-red-400 hover:text-red-600 p-1.5 rounded-full hover:bg-red-50 transition-colors"
                           title="Delete Message"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

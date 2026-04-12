@@ -475,15 +475,8 @@ const Attendance = () => {
                   </div>
                 </div>
               )}
-              {/* Mobile Scroll Hint */}
-              <div className="md:hidden flex items-center justify-center gap-2 mb-4 text-primary font-bold text-xs uppercase tracking-widest animate-pulse no-print py-2 bg-primary/5">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-                Scroll horizontally to mark attendance
-              </div>
-
-              <div className="p-4 bg-primary/5 border-b border-primary/10 flex justify-between items-center">
+              {/* Desktop Header Description */}
+              <div className="hidden md:flex p-4 bg-primary/5 border-b border-primary/10 justify-between items-center">
                 <span className="font-semibold text-primary">Class Roll Call</span>
                 {!isPastDate && (
                   <div className="flex gap-2 text-xs">
@@ -492,8 +485,20 @@ const Attendance = () => {
                   </div>
                 )}
               </div>
-              <div className="overflow-x-auto no-scrollbar">
-                <table className="min-w-full divide-y divide-gray-200">
+              <div className="overflow-x-visible md:overflow-x-auto no-scrollbar">
+                <div className="md:hidden p-4 space-y-4 bg-gray-50 border-b">
+                   <div className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                      <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Quick Actions</span>
+                      {!isPastDate && (
+                        <div className="flex gap-2">
+                          <button onClick={() => markAll('present')} className="px-3 py-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-black rounded-lg border border-emerald-100 uppercase tracking-tighter shadow-sm">Mark All Present</button>
+                          <button onClick={() => markAll('absent')} className="px-3 py-1.5 bg-rose-50 text-rose-700 text-[10px] font-black rounded-lg border border-rose-100 uppercase tracking-tighter shadow-sm">Mark All Absent</button>
+                        </div>
+                      )}
+                   </div>
+                </div>
+
+                <table className="min-w-full divide-y divide-gray-200 hidden md:table">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50 z-10 border-r">Student</th>
@@ -521,34 +526,38 @@ const Attendance = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap min-w-[320px]">
-                          <div className="flex justify-center gap-1 sm:gap-2">
-                            {['present', 'absent', 'late', 'excused'].map(status => (
-                              <label key={status} className={`
-                                                        inline-flex flex-col items-center cursor-pointer p-2 rounded-lg transition-colors border min-w-[65px]
-                                                        ${student.status === status
-                                  ? (status === 'present' ? 'bg-green-100 border-green-300 ring-1 ring-green-500' :
-                                    status === 'absent' ? 'bg-red-100 border-red-300 ring-1 ring-red-500' :
-                                      status === 'late' ? 'bg-yellow-100 border-yellow-300 ring-1 ring-yellow-500' :
-                                        'bg-blue-100 border-blue-300 ring-1 ring-blue-500')
-                                  : 'bg-white border-gray-200 hover:bg-gray-50'
-                                }
-                                                    `}>
+                        <td className="px-3 py-4 whitespace-nowrap">
+                          <div className="flex justify-center items-center bg-gray-100 p-1 rounded-xl w-fit mx-auto lg:w-full max-w-[280px]">
+                            {[
+                              { id: 'present', label: 'Present', short: 'P', color: 'peer-checked:bg-emerald-600 peer-checked:text-white text-emerald-700 bg-emerald-50' },
+                              { id: 'absent', label: 'Absent', short: 'A', color: 'peer-checked:bg-rose-600 peer-checked:text-white text-rose-700 bg-rose-50' },
+                              { id: 'late', label: 'Late', short: 'L', color: 'peer-checked:bg-amber-500 peer-checked:text-white text-amber-700 bg-amber-50' },
+                              { id: 'excused', label: 'Excused', short: 'E', color: 'peer-checked:bg-indigo-600 peer-checked:text-white text-indigo-700 bg-indigo-50' }
+                            ].map(s => (
+                              <label key={s.id} className="relative flex-1 cursor-pointer group">
                                 <input
                                   type="radio"
                                   name={`status-${student.studentId}`}
-                                  value={status}
-                                  checked={student.status === status}
-                                  onChange={() => handleStatusChange(student.studentId, status)}
-                                  className="sr-only"
+                                  value={s.id}
+                                  checked={student.status === s.id}
+                                  onChange={() => handleStatusChange(student.studentId, s.id)}
+                                  className="sr-only peer"
                                   disabled={isPastDate}
                                 />
-                                <span className={`text-xs capitalize font-medium
-                                                            ${student.status === status ? 'text-gray-900' : 'text-gray-500'}
-                                                            ${isPastDate ? 'opacity-70' : ''}
-                                                        `}>
-                                  {status}
-                                </span>
+                                <div className={`
+                                  flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all duration-200
+                                  ${s.color} hover:brightness-95 mx-0.5
+                                  ${student.status === s.id ? 'shadow-md scale-105 z-10' : 'opacity-40 grayscale-[0.5]'}
+                                  ${isPastDate ? 'cursor-not-allowed opacity-30 shadow-none scale-100' : ''}
+                                `}>
+                                  <span className="text-sm font-black md:hidden">{s.short}</span>
+                                  <span className="text-[10px] font-bold uppercase hidden md:inline tracking-tighter">{s.label}</span>
+                                </div>
+                                {student.status === s.id && (
+                                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full border-2 border-current flex items-center justify-center animate-bounce">
+                                    <div className="w-1 h-1 bg-current rounded-full" />
+                                  </div>
+                                )}
                               </label>
                             ))}
                           </div>
@@ -568,6 +577,88 @@ const Attendance = () => {
                     ))}
                   </tbody>
                 </table>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden bg-gray-50 p-4 space-y-4">
+                   {students.map((student, idx) => (
+                     <div key={student.studentId} className={`bg-white rounded-2xl shadow-sm border p-4 space-y-4 ${student.status === 'absent' ? 'border-rose-200 bg-rose-50/20' : 'border-gray-100'}`}>
+                        <div className="flex items-center gap-3">
+                           <div className="w-12 h-12 rounded-2xl bg-gray-100 overflow-hidden border shadow-sm shrink-0">
+                              {student.photoUrl ? (
+                                <img src={student.photoUrl.startsWith('data:') || student.photoUrl.startsWith('http') ? student.photoUrl : `${API_BASE_URL}${student.photoUrl}`} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
+                                </div>
+                              )}
+                           </div>
+                           <div className="flex-1 min-w-0">
+                              <div className="text-base font-black text-gray-900 truncate">{student.name}</div>
+                              <div className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">{student.admissionNumber}</div>
+                           </div>
+                           <div className={`shrink-0 h-6 px-2 flex items-center justify-center rounded-full text-[9px] font-black uppercase tracking-widest ${
+                              student.status === 'present' ? 'bg-emerald-100 text-emerald-700' :
+                              student.status === 'absent' ? 'bg-rose-100 text-rose-700' :
+                              student.status === 'late' ? 'bg-amber-100 text-amber-700' :
+                              'bg-indigo-100 text-indigo-700'
+                           }`}>
+                              {student.status}
+                           </div>
+                        </div>
+
+                        {/* Status Grid */}
+                        <div className="grid grid-cols-4 gap-1.5">
+                           {[
+                              { id: 'present', label: 'Present', sub: 'On Time', icon: '✅', color: 'peer-checked:bg-emerald-600 peer-checked:text-white bg-emerald-50 text-emerald-700 border-emerald-100' },
+                              { id: 'absent', label: 'Absent', sub: 'Missing', icon: '❌', color: 'peer-checked:bg-rose-600 peer-checked:text-white bg-rose-50 text-rose-700 border-rose-100' },
+                              { id: 'late', label: 'Late', sub: 'Delayed', icon: '⏰', color: 'peer-checked:bg-amber-500 peer-checked:text-white bg-amber-50 text-amber-700 border-amber-100' },
+                              { id: 'excused', label: 'Excused', sub: 'Permit', icon: '📝', color: 'peer-checked:bg-indigo-600 peer-checked:text-white bg-indigo-50 text-indigo-700 border-indigo-100' }
+                           ].map(s => (
+                              <label key={s.id} className="relative flex-1 cursor-pointer">
+                                 <input
+                                   type="radio"
+                                   name={`mobile-status-${student.studentId}`}
+                                   value={s.id}
+                                   checked={student.status === s.id}
+                                   onChange={() => handleStatusChange(student.studentId, s.id)}
+                                   className="sr-only peer"
+                                   disabled={isPastDate}
+                                 />
+                                 <div className={`
+                                    flex flex-col items-center justify-center py-3 rounded-xl border transition-all duration-300
+                                    ${s.color}
+                                    ${student.status === s.id ? 'shadow-lg border-transparent' : 'opacity-40'}
+                                    ${isPastDate ? 'cursor-not-allowed grayscale' : ''}
+                                 `}>
+                                    <span className="text-base mb-1">{s.icon}</span>
+                                    <span className="text-[9px] font-black uppercase tracking-tighter">{s.label}</span>
+                                 </div>
+                              </label>
+                           ))}
+                        </div>
+
+                        {/* Note Input */}
+                        <div className="relative group">
+                           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-primary transition-colors">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                           </div>
+                           <input
+                             type="text"
+                             value={student.notes || ''}
+                             onChange={(e) => handleNoteChange(student.studentId, e.target.value)}
+                             placeholder={(student.status === 'excused' || student.status === 'late') ? "Enter reason here..." : "Add a note..."}
+                             readOnly={isPastDate}
+                             className={`w-full pl-9 pr-4 py-3 text-sm bg-gray-50 border-gray-100 rounded-xl focus:ring-primary focus:border-primary transition-all outline-none font-bold placeholder:font-normal placeholder:text-gray-300
+                               ${(student.status === 'excused' || student.status === 'late') && !student.notes ? 'border-orange-300 bg-orange-50/50' : ''}
+                               ${isPastDate ? 'text-gray-500 opacity-60' : ''}
+                             `}
+                           />
+                        </div>
+                     </div>
+                   ))}
+                </div>
               </div>
 
               <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-between items-center">

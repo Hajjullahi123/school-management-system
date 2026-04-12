@@ -97,8 +97,6 @@ const ParentMessages = () => {
         const data = await response.json();
         setThread(data);
         setShowThread(true);
-
-        setShowThread(true);
         // Refresh unread count and messages since viewing the thread 
         // now automatically marks them as read in the backend
         fetchUnreadCount();
@@ -224,14 +222,14 @@ const ParentMessages = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary to-primary/90 p-6 rounded-lg text-white shadow-lg">
-        <div className="flex justify-between items-center">
+      <div className="bg-gradient-to-r from-primary to-primary/90 p-4 sm:p-6 rounded-lg text-white shadow-lg">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h1 className="text-3xl font-bold">Messages with Form Master</h1>
-            <p className="text-white/90 mt-2">Communicate with your child's teacher</p>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Messages</h1>
+            <p className="text-xs sm:text-sm text-white/90 mt-1">Communicate with your child's teacher</p>
           </div>
           {unreadCount > 0 && (
-            <div className="bg-red-500 text-white px-4 py-2 rounded-full font-bold">
+            <div className="bg-red-500 text-white px-3 sm:px-4 py-1 sm:py-2 rounded-full font-bold text-xs sm:text-sm">
               {unreadCount} Unread
             </div>
           )}
@@ -240,8 +238,8 @@ const ParentMessages = () => {
 
       {/* Student Selector (only if multiple) */}
       {wards.length > 1 && (
-        <div className="bg-white p-6 rounded-lg shadow">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Select Child</label>
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm">
+          <label className="block text-xs sm:text-sm font-black text-gray-500 uppercase mb-2">Select Child</label>
           <select
             value={selectedStudent?.id || ''}
             onChange={(e) => {
@@ -250,11 +248,11 @@ const ParentMessages = () => {
               setShowNewMessage(false);
               setShowThread(false);
             }}
-            className="w-full border border-gray-300 rounded-md px-4 py-2"
+            className="w-full border border-gray-300 rounded-md px-3 sm:px-4 py-2 text-sm sm:text-base"
           >
             {wards.map(ward => (
               <option key={ward.id} value={ward.id}>
-                {ward.user?.firstName} {ward.user?.lastName} - {ward.classModel?.name} {ward.classModel?.arm}
+                {ward.user?.firstName} {ward.user?.lastName} - {ward.classModel?.name}
               </option>
             ))}
           </select>
@@ -331,13 +329,13 @@ const ParentMessages = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
+              <label className="block text-xs font-black text-gray-500 uppercase mb-2">Message</label>
               <textarea
                 value={newMessageData.message}
                 onChange={(e) => setNewMessageData({ ...newMessageData, message: e.target.value })}
                 rows="6"
                 placeholder="Write your message here..."
-                className="w-full border rounded-md px-3 py-2"
+                className="w-full border rounded-md px-3 py-2 text-sm"
               />
             </div>
 
@@ -364,8 +362,8 @@ const ParentMessages = () => {
 
       {/* Message Thread View */}
       {showThread && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
+        <div className="bg-white rounded-[24px] shadow-2xl overflow-hidden border border-gray-100 transition-all duration-500 animate-in slide-in-from-bottom-4">
+          <div className="p-4 bg-white/80 backdrop-blur-md border-b sticky top-0 z-10 flex justify-between items-center px-4 sm:px-6">
             <button
               onClick={() => {
                 setShowThread(false);
@@ -373,27 +371,29 @@ const ParentMessages = () => {
                 setThread([]);
                 setReplyData({ message: '' });
               }}
-              className="text-primary hover:text-primary/80 flex items-center gap-2"
+              className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-primary transition-all active:scale-90"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Back to Messages
             </button>
-            <h3 className="font-semibold text-gray-900">{thread[0]?.subject}</h3>
+            <div className="flex-1 text-center truncate px-4">
+              <h3 className="font-black text-gray-900 uppercase tracking-widest text-xs sm:text-sm">{thread[0]?.subject}</h3>
+            </div>
+            <div className="w-10"></div> {/* Spacer for balance */}
           </div>
 
-          <div className="p-6 space-y-4 max-h-96 overflow-y-auto">
+          <div className="p-4 sm:p-6 space-y-4 max-h-[500px] overflow-y-auto">
             {thread.map((msg, index) => (
               <div
                 key={msg.id}
-                className={`p-4 rounded-lg ${msg.senderId === user.id
-                  ? 'bg-primary/5 border-l-4 border-primary ml-8'
-                  : 'bg-gray-50 border-l-4 border-gray-300 mr-8'
+                className={`p-3 sm:p-4 rounded-lg ${msg.senderId === user.id
+                  ? 'bg-primary/5 border-l-4 border-primary ml-4 sm:ml-8 text-right'
+                  : 'bg-gray-50 border-l-4 border-gray-300 mr-4 sm:mr-8'
                   }`}
               >
-                <div className="flex items-start gap-3">
-                  <div className={`h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold overflow-hidden shadow-sm ${msg.senderId === user.id ? 'bg-primary text-white' : 'bg-gray-200 text-gray-600'}`}>
+                <div className={`flex items-start gap-2 sm:gap-3 ${msg.senderId === user.id ? 'flex-row-reverse' : ''}`}>
+                  <div className={`h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold overflow-hidden shadow-sm ${msg.senderId === user.id ? 'bg-primary text-white' : 'bg-gray-200 text-gray-600'}`}>
                     {msg.sender?.photoUrl ? (
                       <img
                         src={msg.sender.photoUrl.startsWith('data:') || msg.sender.photoUrl.startsWith('http') ? msg.sender.photoUrl : `${API_BASE_URL}${msg.sender.photoUrl}`}
@@ -406,22 +406,22 @@ const ParentMessages = () => {
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-semibold text-gray-900">
+                      <div className={msg.senderId === user.id ? 'text-right' : 'text-left'}>
+                        <p className="font-semibold text-xs sm:text-sm text-gray-900">
                           {msg.senderId === user.id ? 'You' : `${msg.sender?.firstName} ${msg.sender?.lastName}`}
-                          <span className="text-sm text-gray-500 ml-2">({msg.sender?.role})</span>
+                          <span className="text-[10px] sm:text-xs text-gray-500 ml-1 sm:ml-2">({msg.sender?.role})</span>
                         </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(msg.createdAt).toLocaleString()}
+                        <p className="text-[10px] text-gray-500">
+                          {new Date(msg.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                         </p>
                       </div>
                       {msg.messageType === 'complaint' && (
-                        <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-semibold">
+                        <span className="bg-red-100 text-red-800 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-tight">
                           Complaint
                         </span>
                       )}
                     </div>
-                    <p className="text-gray-700 whitespace-pre-wrap">{msg.message}</p>
+                    <p className={`text-xs sm:text-sm text-gray-700 whitespace-pre-wrap ${msg.senderId === user.id ? 'text-right' : 'text-left'}`}>{msg.message}</p>
                   </div>
                 </div>
               </div>
@@ -471,35 +471,36 @@ const ParentMessages = () => {
                     setSelectedMessage(msg);
                     fetchThread(msg.parentMessageId || msg.id);
                   }}
-                  className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                  className={`p-4 sm:p-5 hover:bg-gray-50 cursor-pointer transition-all active:scale-[0.98] group relative ${!msg.isRead && msg.receiverId === user.id ? 'bg-primary/5' : ''}`}
                 >
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary scale-y-0 group-hover:scale-y-100 transition-transform duration-300"></div>
                   <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold text-gray-900">{msg.subject}</h4>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h4 className="font-bold text-sm sm:text-base text-gray-900 truncate max-w-[150px] sm:max-w-none">{msg.subject}</h4>
                         {!msg.isRead && msg.receiverId === user.id && (
-                          <span className="bg-red-500 text-white px-2 py-0.5 rounded text-xs font-semibold">
+                          <span className="bg-red-500 text-white px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-black uppercase tracking-widest">
                             NEW
                           </span>
                         )}
                         {msg.messageType === 'complaint' && (
-                          <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded text-xs font-semibold">
+                          <span className="bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-bold uppercase">
                             Complaint
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs sm:text-sm text-gray-600 font-medium">
                         {msg.senderId === user.id ? 'To' : 'From'}: {
                           msg.senderId === user.id
                             ? `${msg.receiver?.firstName} ${msg.receiver?.lastName}`
                             : `${msg.sender?.firstName} ${msg.sender?.lastName}`
                         }
                       </p>
-                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">{msg.message}</p>
+                      <p className="text-[11px] sm:text-sm text-gray-500 mt-1 line-clamp-1 italic">{msg.message}</p>
                     </div>
-                    <div className="flex flex-col items-end gap-2 ml-4">
-                      <div className="text-xs text-gray-500">
-                        {new Date(msg.createdAt).toLocaleDateString()}
+                    <div className="flex flex-col items-end gap-2 ml-2 sm:ml-4 flex-shrink-0">
+                      <div className="text-[10px] text-gray-400 font-medium uppercase">
+                        {new Date(msg.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                       </div>
                       {msg.senderId === user.id && (
                         <button
@@ -509,7 +510,7 @@ const ParentMessages = () => {
                               handleDeleteMessage(msg.id);
                             }
                           }}
-                          className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
+                          className="text-red-400 hover:text-red-600 p-1.5 rounded-full hover:bg-red-50 transition-colors"
                           title="Delete message thread"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

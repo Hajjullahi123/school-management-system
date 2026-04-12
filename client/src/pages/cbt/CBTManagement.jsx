@@ -551,135 +551,186 @@ const CBTManagement = () => {
   if (loading) return <div className="p-8 text-center">Loading...</div>;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          {schoolSettings?.logoUrl && (
-            <img src={schoolSettings.logoUrl} alt="Logo" className="h-12 w-12 object-contain" />
-          )}
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">CBT Management</h1>
-            <p className="text-sm text-gray-500">
-              {schoolSettings?.schoolName || 'School Management System'} -
-              <span className="text-primary font-bold uppercase ml-1">{currentTerm?.name || '...'}</span>
-            </p>
+    <div className="space-y-6 max-h-[calc(100vh-180px)] overflow-y-auto pr-2 pb-10" style={{
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none'
+    }}>
+      {/* Hide scrollbar but keep functionality */}
+      <style>{`
+        div::-webkit-scrollbar { display: none; }
+      `}</style>
+
+      {/* Header Section - Glassmorphism */}
+      <div className="relative group overflow-hidden rounded-[40px] p-1 bg-gradient-to-br from-indigo-600 via-primary to-emerald-600 shadow-2xl">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"></div>
+        <div className="relative bg-white/5 backdrop-blur-sm p-6 sm:p-10 rounded-[39px] text-white flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex items-center gap-6 text-center md:text-left">
+            {schoolSettings?.logoUrl && (
+              <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-[28px] p-4 border border-white/20 shadow-xl group-hover:scale-110 transition-transform duration-500">
+                <img src={schoolSettings.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+              </div>
+            )}
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-white/20 mb-3">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Digital Examination Control</span>
+              </div>
+              <h1 className="text-3xl md:text-4xl font-black tracking-tighter italic mb-1 uppercase text-white">CBT Management</h1>
+              <p className="text-sm text-white/70 font-medium tracking-wide flex items-center gap-2 justify-center md:justify-start">
+                {currentSession?.name} <span className="w-1 h-1 rounded-full bg-white/30"></span> 
+                <span className="text-emerald-300 font-black uppercase">{currentTerm?.name}</span>
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="space-x-2">
-          {view !== 'list' && (
-            <button
-              onClick={() => setView('list')}
-              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-primary"
-            >
-              Back to List
-            </button>
-          )}
-          {view === 'list' && (
-            <button
-              onClick={() => setView('create')}
-              className="px-4 py-2 bg-primary text-white rounded hover:brightness-90"
-            >
-              + Create New Exam
-            </button>
-          )}
+          
+          <div className="flex gap-4">
+            {view !== 'list' && (
+              <button
+                onClick={() => setView('list')}
+                className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs backdrop-blur-md border border-white/20 transition-all flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                Return Home
+              </button>
+            )}
+            {view === 'list' && (
+              <button
+                onClick={() => setView('create')}
+                className="bg-white text-primary px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border border-white"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+                Create New Exam
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* VIEW: List */}
       {view === 'list' && (
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Exam Title</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Class & Subject</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Info</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Questions</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {exams.map((exam) => (
-                <tr key={exam.id}>
-                  <td className="px-4 py-4">
-                    <div className="font-medium text-gray-900 max-w-[200px] break-words">{exam.title}</div>
-                    <div className="text-xs text-gray-500">{new Date(exam.createdAt).toLocaleDateString()}</div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full capitalize">
-                      {exam.examType?.replace('_', ' ') || 'Examination'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="text-sm text-gray-900">{exam.class?.name}</div>
-                    <div className="text-sm text-gray-500">{exam.subject?.name}</div>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div>{exam.durationMinutes} mins</div>
-                    <div>{exam.totalMarks} Marks</div>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {exam._count?.questions || 0}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => handlePublishToggle(exam)}
-                      className={`px-2 py-1 text-xs rounded-full font-semibold ${exam.isPublished
-                        ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                        : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                        }`}
-                    >
-                      {exam.isPublished ? 'Published' : 'Draft'}
-                    </button>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end gap-3 min-w-[300px]">
-                      <button
-                        onClick={() => handleViewResults(exam)}
-                        className="text-blue-600 hover:text-blue-900 font-bold uppercase tracking-tighter"
-                      >
-                        Results
-                      </button>
-                      <button
-                        onClick={() => handleManageQuestions(exam)}
-                        className="text-primary hover:text-primary-dark font-bold uppercase tracking-tighter"
-                      >
-                        Questions
-                      </button>
-                      <button
-                        onClick={() => handlePrintExam(exam)}
-                        className="text-gray-600 hover:text-gray-900 font-bold uppercase tracking-tighter"
-                      >
-                        Print
-                      </button>
-                      <button
-                        onClick={() => handlePublishToggle(exam)}
-                        className={`${exam.isPublished ? "text-yellow-600 hover:text-yellow-900" : "text-green-600 hover:text-green-900"} font-bold uppercase tracking-tighter`}
-                      >
-                        {exam.isPublished ? 'Unpublish' : 'Publish'}
-                      </button>
-                      <button
-                        onClick={() => handleDeleteExam(exam.id)}
-                        className="text-red-600 hover:text-red-900 font-bold uppercase tracking-tighter"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {exams.length === 0 && (
-                <tr>
-                  <td colSpan="6" className="px-6 py-10 text-center text-gray-500">
-                    No exams found. Create one to get started.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Quick Stats */}
+            <div className="bg-white p-8 rounded-[32px] shadow-xl border border-slate-100 group">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Active Assessments</p>
+              <h3 className="text-4xl font-black text-slate-900 italic tracking-tighter group-hover:scale-105 transition-transform">{exams.length}</h3>
+            </div>
+            <div className="bg-white p-8 rounded-[32px] shadow-xl border border-slate-100 group">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Published Exams</p>
+              <h3 className="text-4xl font-black text-emerald-600 italic tracking-tighter group-hover:scale-105 transition-transform">{exams.filter(e => e.isPublished).length}</h3>
+            </div>
+             <div className="bg-white p-8 rounded-[32px] shadow-xl border border-slate-100 group">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Questions</p>
+              <h3 className="text-4xl font-black text-indigo-600 italic tracking-tighter group-hover:scale-105 transition-transform">
+                {exams.reduce((acc, e) => acc + (e._count?.questions || 0), 0)}
+              </h3>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[40px] shadow-2xl border border-slate-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-100">
+                <thead className="bg-slate-50/50">
+                  <tr>
+                    <th className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Examination Title</th>
+                    <th className="px-6 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Target Group</th>
+                    <th className="px-6 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Configuration</th>
+                    <th className="px-6 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</th>
+                    <th className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Console Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {exams.map((exam) => (
+                    <tr key={exam.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-8 py-6">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-slate-900 uppercase tracking-tight group-hover:text-primary transition-colors">{exam.title}</span>
+                          <div className="flex items-center gap-2 mt-2">
+                             <span className="px-2 py-0.5 text-[9px] font-black bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100 uppercase tracking-widest">
+                              {exam.examType?.replace('_', ' ') || 'Examination'}
+                            </span>
+                             <span className="text-[10px] text-slate-400 font-bold">{new Date(exam.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-6">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-black text-slate-800">{exam.class?.name}</span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{exam.subject?.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-6">
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">{exam.durationMinutes}m</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <svg className="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">{exam._count?.questions || 0} Questions</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-6">
+                        <button
+                          onClick={() => handlePublishToggle(exam)}
+                          className={`px-4 py-2 text-[9px] rounded-full font-black uppercase tracking-[0.2em] border-2 transition-all ${exam.isPublished
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'
+                            : 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100'
+                            }`}
+                        >
+                          {exam.isPublished ? 'Live & Active' : 'Offline Draft'}
+                        </button>
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleViewResults(exam)}
+                            className="p-3 bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white rounded-2xl transition-all shadow-sm hover:shadow-indigo-200 group/btn"
+                            title="Analytics"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                          </button>
+                          <button
+                            onClick={() => handleManageQuestions(exam)}
+                            className="p-3 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-2xl transition-all shadow-sm hover:shadow-primary/30"
+                            title="Manage Bank"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                          </button>
+                          <button
+                            onClick={() => handlePrintExam(exam)}
+                            className="p-3 bg-slate-50 hover:bg-slate-900 text-slate-600 hover:text-white rounded-2xl transition-all shadow-sm"
+                            title="Print Hardcopy"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteExam(exam.id)}
+                            className="p-3 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white rounded-2xl transition-all shadow-sm hover:shadow-rose-100"
+                            title="Destroy"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {exams.length === 0 && (
+                    <tr>
+                      <td colSpan="5" className="px-8 py-20 text-center">
+                        <div className="w-20 h-20 bg-slate-50 rounded-[28px] flex items-center justify-center mx-auto mb-6">
+                           <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        </div>
+                        <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No Examinations Found</p>
+                        <button onClick={() => setView('create')} className="mt-4 text-primary font-black uppercase text-xs hover:underline tracking-widest italic">Create Your First CBT Core</button>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
