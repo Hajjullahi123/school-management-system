@@ -131,7 +131,7 @@ const AdvertsManagement = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {adverts.map(ad => (
-          <div key={ad.id} className={\`bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all group \${!ad.isActive ? 'opacity-70' : ''}\`}>
+          <div key={ad.id} className={`bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all group ${!ad.isActive ? 'opacity-70' : ''}`}>
             {/* Image Preview */}
             <div className="h-40 bg-gray-100 relative overflow-hidden flex items-center justify-center p-4">
               <img 
@@ -141,7 +141,7 @@ const AdvertsManagement = () => {
                 onError={(e) => { e.target.src = 'https://via.placeholder.com/400x200?text=Invalid+Image'; }}
               />
               <div className="absolute top-2 right-2">
-                <span className={\`px-2.5 py-1 text-[10px] font-bold rounded-full uppercase tracking-widest shadow-sm backdrop-blur-md \${ad.isActive ? 'bg-emerald-100/90 text-emerald-700' : 'bg-gray-200/90 text-gray-600'}\`}>
+                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full uppercase tracking-widest shadow-sm backdrop-blur-md ${ad.isActive ? 'bg-emerald-100/90 text-emerald-700' : 'bg-gray-200/90 text-gray-600'}`}>
                   {ad.isActive ? 'Active' : 'Inactive'}
                 </span>
               </div>
@@ -163,7 +163,7 @@ const AdvertsManagement = () => {
               <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
                 <button
                   onClick={() => toggleStatus(ad.id, ad.isActive)}
-                  className={\`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-colors \${ad.isActive ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}\`}
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-colors ${ad.isActive ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
                 >
                   {ad.isActive ? 'Deactivate' : 'Activate'}
                 </button>
