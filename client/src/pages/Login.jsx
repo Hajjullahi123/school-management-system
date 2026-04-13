@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import useSchoolSettings from '../hooks/useSchoolSettings';
 import PWAInstallButton from '../components/PWAInstallButton';
 import SchoolShowcase from '../components/SchoolShowcase';
+import LoginAdvertSection from '../components/LoginAdvertSection';
 import { apiCall } from '../api';
 import { API_BASE_URL } from '../config';
 import { FiFacebook, FiInstagram, FiMessageCircle, FiGlobe } from 'react-icons/fi';
@@ -510,6 +511,7 @@ const Login = () => {
           </div>
         </div>
       </div>
+      <LoginAdvertSection />
       <SchoolShowcase />
     </div>
 

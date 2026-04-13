@@ -1434,3 +1434,13 @@ model ShowcaseSchool {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Advert {
+  id        Int      @id @default(autoincrement())
+  title     String
+  imageUrl  String
+  targetUrl String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

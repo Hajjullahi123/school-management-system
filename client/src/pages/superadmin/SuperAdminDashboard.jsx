@@ -4,13 +4,14 @@ import {
   FiBriefcase, FiUsers, FiUserCheck, FiShield, FiPlus,
   FiTrash2, FiActivity, FiSearch, FiKey, FiGlobe, FiAlertCircle,
   FiPrinter, FiUnlock, FiFacebook, FiInstagram, FiMessageCircle, FiLink,
-  FiPower, FiEdit2, FiArrowUpCircle
+  FiPower, FiEdit2, FiArrowUpCircle, FiImage
 } from 'react-icons/fi';
 import { toast } from '../../utils/toast';
 import { apiCall } from '../../api';
 import { formatNumber } from '../../utils/formatters';
 import LicenseManagement from './LicenseManagement';
 import ShowcaseSchoolsManagement from '../../components/ShowcaseSchoolsManagement';
+import AdvertsManagement from '../../components/AdvertsManagement';
 
 const SuperAdminDashboard = () => {
   const location = useLocation();
@@ -53,7 +54,7 @@ const SuperAdminDashboard = () => {
   // Sync activeTab with URL hash
   useEffect(() => {
     const hash = location.hash.replace('#', '');
-    if (hash && ['schools', 'platform', 'audits', 'showcase'].includes(hash)) {
+    if (hash && ['schools', 'platform', 'audits', 'showcase', 'adverts'].includes(hash)) {
       setActiveTab(hash);
     } else {
       setActiveTab('overview');
@@ -400,6 +401,7 @@ const SuperAdminDashboard = () => {
           <TabButton active={activeTab === 'overview'} onClick={() => navigate('/dashboard/superadmin')} icon={<FiActivity />} label="Overview" />
           <TabButton active={activeTab === 'schools'} onClick={() => navigate('/dashboard/superadmin#schools')} icon={<FiBriefcase />} label="Schools" />
           <TabButton active={activeTab === 'showcase'} onClick={() => navigate('/dashboard/superadmin#showcase')} icon={<FiPlus />} label="Use Case Schools" />
+          <TabButton active={activeTab === 'adverts'} onClick={() => navigate('/dashboard/superadmin#adverts')} icon={<FiImage />} label="Advertisements" />
           <TabButton active={activeTab === 'platform'} onClick={() => navigate('/dashboard/superadmin#platform')} icon={<FiGlobe />} label="Platform" />
           <TabButton active={activeTab === 'audits'} onClick={() => navigate('/dashboard/superadmin#audits')} icon={<FiShield />} label="Global Log" />
         </div>
@@ -1076,6 +1078,10 @@ const SuperAdminDashboard = () => {
           
           {activeTab === 'showcase' && (
             <ShowcaseSchoolsManagement />
+          )}
+
+          {activeTab === 'adverts' && (
+            <AdvertsManagement />
           )}
         </div>
       </div>
