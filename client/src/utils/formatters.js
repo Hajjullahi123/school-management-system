@@ -52,3 +52,18 @@ export const formatDateTime = (date, options = { dateStyle: 'medium', timeStyle:
     return 'N/A';
   }
 };
+
+/**
+ * Formats a phone number for WhatsApp links (wa.me)
+ * Removes non-numeric characters and formats leading zero for Nigeria defaults
+ */
+export const formatWhatsAppNumber = (num) => {
+  if (!num) return '';
+  let cleaned = num.toString().replace(/\D/g, '');
+  
+  if (cleaned.startsWith('0') && cleaned.length === 11) {
+    cleaned = '234' + cleaned.substring(1);
+  }
+  
+  return cleaned;
+};

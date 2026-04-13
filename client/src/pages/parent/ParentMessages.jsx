@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import { formatWhatsAppNumber } from '../../utils/formatters';
 
 const ParentMessages = () => {
   const { user } = useAuth();
@@ -304,7 +305,7 @@ const ParentMessages = () => {
             )}
             {(formMaster.formMaster.user?.teacher?.publicWhatsapp || formMaster.formMaster.user?.teacher?.publicPhone || formMaster.formMaster.user?.phone) && (
               <a 
-                href={`https://wa.me/${formMaster.formMaster.user?.teacher?.publicWhatsapp || formMaster.formMaster.user?.teacher?.publicPhone || formMaster.formMaster.user?.phone}`}
+                href={`https://wa.me/${formatWhatsAppNumber(formMaster.formMaster.user?.teacher?.publicWhatsapp || formMaster.formMaster.user?.teacher?.publicPhone || formMaster.formMaster.user?.phone)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:-translate-y-1 active:scale-95 transition-all text-white"

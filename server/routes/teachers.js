@@ -81,11 +81,11 @@ router.put('/profile', authenticate, authorize(['teacher', 'examination_officer'
     if (req.user.role === 'teacher' || existingTeacher) {
       // Update teacher specific info
       const teacherUpdateData = {
-        specialization: specialization || undefined,
-        staffId: staffId || undefined,
-        publicPhone: req.body.publicPhone || undefined,
-        publicEmail: req.body.publicEmail || undefined,
-        publicWhatsapp: req.body.publicWhatsapp || undefined
+        specialization: specialization !== undefined ? specialization : undefined,
+        staffId: staffId !== undefined ? staffId : undefined,
+        publicPhone: req.body.publicPhone !== undefined ? req.body.publicPhone : undefined,
+        publicEmail: req.body.publicEmail !== undefined ? req.body.publicEmail : undefined,
+        publicWhatsapp: req.body.publicWhatsapp !== undefined ? req.body.publicWhatsapp : undefined
       };
 
       if (userUpdateData.photoUrl) {

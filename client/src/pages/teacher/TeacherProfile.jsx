@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api, apiCall, API_BASE_URL } from '../../api';
+import { toast } from '../../utils/toast';
 
 const TeacherProfile = () => {
   const { user } = useAuth();
@@ -127,13 +128,10 @@ const TeacherProfile = () => {
       }
 
       if (ok) {
-        setMessage({ type: 'success', text: 'Profile updated successfully! Redirecting to dashboard...' });
-
-        // Force a hard redirect to the dashboard so AuthContext completely refreshes the new user photo state
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 1500);
+        toast.success('Profile updated successfully!');
+        setMessage({ type: 'success', text: 'Profile updated successfully! Note: For photo or name changes to reflect across the app, you may need to reload.' });
       } else {
+        toast.error(data.error || 'Failed to update profile');
         setMessage({ type: 'error', text: data.error || 'Failed to update profile. Please try again.' });
       }
     } catch (error) {
