@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../api';
-import { toast } from '../../utils/toast';
+import { api } from '../api';
+import { toast } from '../utils/toast';
 import { FiPlus, FiTrash2, FiEdit2, FiCheck, FiX, FiImage } from 'react-icons/fi';
 
 const ShowcaseSchoolsManagement = () => {
