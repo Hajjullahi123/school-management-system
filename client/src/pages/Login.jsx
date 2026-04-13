@@ -511,9 +511,10 @@ const Login = () => {
           </div>
         </div>
       </div>
-      <LoginAdvertSection />
-      <SchoolShowcase />
     </div>
+    <LoginAdvertSection />
+    <SchoolShowcase />
+  </div>
 
   );
 };
