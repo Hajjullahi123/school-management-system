@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { FiPlus, FiTrash2, FiEdit2, FiImage, FiLink, FiCheckCircle, FiXCircle, FiUploadCloud } from 'react-icons/fi';
 import { toast } from '../utils/toast';
 import { apiCall } from '../api';
-import Modal from './Modal'; // Reusing standard modal styling
 
 const AdvertsManagement = () => {
   const [adverts, setAdverts] = useState([]);
