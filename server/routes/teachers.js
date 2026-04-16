@@ -175,4 +175,42 @@ router.post('/signature-base64', authenticate, authorize(['teacher', 'examinatio
   }
 });
 
+// Admin upload photo for teacher
+router.post('/:id/photo', authenticate, authorize(['admin', 'superadmin']), upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No photo provided' });
+    }
+
+    const teacherId = parseInt(req.params.id);
+    const photoUrl = fileToBase64(req.file);
+
+    const updated = await prisma.teacher.update({
+      where: { id: teacherId, schoolId: req.schoolId },
+      data: { photoUrl },
+      include: { user: true }
+    });
+
+    // Also sync to user model
+    await prisma.user.update({
+      where: { id: updated.userId },
+      data: { photoUrl }
+    });
+
+    res.json({ message: 'Photo uploaded successfully', photoUrl });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPDATE',
+      resource: 'TEACHER_PHOTO',
+      details: { teacherId, method: 'admin_upload' },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Teacher photo upload error:', error);
+    res.status(500).json({ error: 'Failed to upload photo' });
+  }
+});
+
 module.exports = router;

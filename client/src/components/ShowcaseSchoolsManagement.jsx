@@ -114,7 +114,7 @@ const ShowcaseSchoolsManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter">Usecase Schools</h3>
           <p className="text-sm text-gray-500 font-medium">Manage schools displayed in the login page footer as advertisements.</p>
@@ -122,7 +122,7 @@ const ShowcaseSchoolsManagement = () => {
         {!isAdding && (
           <button 
             onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg"
           >
             <FiPlus /> Add School
           </button>

@@ -82,6 +82,12 @@ const AlumniPortal = () => {
               Search Directory
             </Link>
             <Link
+              to="/alumni/yearbook"
+              className="bg-primary text-white border-2 border-primary px-8 py-4 rounded-full font-bold text-lg hover:bg-primary/90 transition-all transform hover:-translate-y-1"
+            >
+              Photo Album (Yearbook)
+            </Link>
+            <Link
               to="/alumni/login"
               className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-primary transition-all transform hover:-translate-y-1"
             >

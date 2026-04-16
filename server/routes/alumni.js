@@ -142,6 +142,71 @@ router.get('/stats', authenticate, authorize(['admin', 'principal', 'superadmin'
   }
 });
 
+// 1.2 Get Yearbook Data (Alumni + Teachers)
+router.get('/yearbook/:year', optionalAuth, async (req, res) => {
+  try {
+    const schoolId = await resolveSchoolId(req);
+    if (!schoolId) return res.status(400).json({ error: 'School identifier is required' });
+
+    const year = parseInt(req.params.year);
+
+    // Fetch Alumni for that year
+    const alumni = await prisma.alumni.findMany({
+      where: {
+        schoolId,
+        graduationYear: year,
+        isPublic: true // Only show public profiles in yearbook
+      },
+      include: {
+        student: {
+          include: {
+            user: {
+              select: { firstName: true, lastName: true, photoUrl: true, gender: true }
+            }
+          }
+        }
+      },
+      orderBy: { student: { user: { firstName: 'asc' } } }
+    });
+
+    // Fetch Teachers for the school
+    const teachers = await prisma.teacher.findMany({
+      where: { schoolId },
+      include: {
+        user: {
+          select: { firstName: true, lastName: true, photoUrl: true, specialization: true, gender: true }
+        }
+      },
+      orderBy: { user: { firstName: 'asc' } }
+    });
+
+    res.json({
+      year,
+      alumni: alumni.map(a => ({
+        id: a.id,
+        studentId: a.student.id,
+        userId: a.student.user.id,
+        name: `${a.student.user.firstName} ${a.student.user.lastName}`,
+        photoUrl: a.profilePicture || a.student.user.photoUrl || a.student.photoUrl,
+        bio: a.bio,
+        specialization: a.courseOfStudy || a.currentJob,
+        gender: a.student.user.gender
+      })),
+      teachers: teachers.map(t => ({
+        id: t.id,
+        userId: t.user.id,
+        name: `${t.user.firstName} ${t.user.lastName}`,
+        photoUrl: t.photoUrl || t.user.photoUrl,
+        specialization: t.specialization || 'Educator',
+        role: 'Teacher'
+      }))
+    });
+  } catch (error) {
+    console.error('Yearbook fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch yearbook data' });
+  }
+});
+
 // 2. Get Success Stories
 router.get('/stories', optionalAuth, async (req, res) => {
   try {

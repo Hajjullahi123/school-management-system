@@ -47,6 +47,7 @@ const AlumniPortal = lazyRetry(() => import('./pages/AlumniPortal'));
 const AlumniDirectory = lazyRetry(() => import('./pages/AlumniDirectory'));
 const AlumniDashboard = lazyRetry(() => import('./pages/alumni/AlumniDashboard'));
 const AlumniLogin = lazyRetry(() => import('./pages/AlumniLogin'));
+const AlumniYearbook = lazyRetry(() => import('./pages/AlumniYearbook'));
 const TeacherAvailability = lazyRetry(() => import('./pages/admin/TeacherAvailability'));
 
 const BulkResultUpload = lazyRetry(() => import('./pages/teacher/BulkResultUpload'));
@@ -161,6 +162,8 @@ function App() {
             <Route path="/:schoolSlug/login" element={<Login />} />
             <Route path="/alumni" element={<AlumniPortal />} />
             <Route path="/alumni/directory" element={<AlumniDirectory />} />
+            <Route path="/alumni/yearbook" element={<AlumniYearbook />} />
+            <Route path="/alumni/yearbook/:year" element={<AlumniYearbook />} />
             <Route path="/alumni/login" element={<AlumniLogin />} />
             <Route path="/demo" element={<DemoRedirect />} />
             <Route path="/verify/transcript/:studentId" element={<TranscriptVerification />} />

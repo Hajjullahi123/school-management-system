@@ -352,17 +352,17 @@ const SuperAdminDashboard = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto bg-gray-50/50 min-h-screen">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-6">
         <div>
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Super Admin Dashboard</h1>
           <p className="mt-1 text-gray-500">Global system oversight and multi-tenant management</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => window.location.href = '/dashboard/license-management'}
-            className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 transform hover:scale-[1.02]"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200"
           >
-            <FiKey className="mr-2" /> License Management
+            <FiKey className="mr-2" /> License <span className="hidden sm:inline">Management</span>
           </button>
           <button
             onClick={async () => {
@@ -374,15 +374,16 @@ const SuperAdminDashboard = () => {
                 toast.error('Backup failed: Verify S3 configuration');
               }
             }}
-            className="inline-flex items-center px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 font-semibold rounded-lg shadow-sm hover:bg-amber-100 transition-all"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 font-semibold rounded-lg shadow-sm hover:bg-amber-100 transition-all"
           >
-            <FiArrowUpCircle className="mr-2" /> Manual S3 Backup
+            <FiArrowUpCircle className="mr-2" /> Backup
           </button>
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 transform hover:scale-[1.02]"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 transform hover:scale-[1.02]"
+            id="add-school-btn"
           >
-            <FiPlus className="mr-2" /> Add New School
+            <FiPlus className="mr-2" /> <span className="whitespace-nowrap">Add New School</span>
           </button>
         </div>
       </div>
@@ -578,14 +579,14 @@ const SuperAdminDashboard = () => {
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 min-w-[210px] max-w-[250px]">
                           <button
                             onClick={() => {
                               setEditingSchool(s);
                               setShowEditModal(true);
                             }}
                             title="Edit School Details"
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100"
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100 shadow-sm"
                           >
                             <FiEdit2 className="w-4 h-4" />
                           </button>
@@ -596,7 +597,7 @@ const SuperAdminDashboard = () => {
                               setGeneratedKey(null);
                             }}
                             title="Issue License"
-                            className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-100"
+                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-100 shadow-sm"
                           >
                             <FiKey className="w-4 h-4" />
                           </button>
@@ -605,28 +606,28 @@ const SuperAdminDashboard = () => {
                               setResetCreds({
                                 schoolName: s.name,
                                 schoolSlug: s.slug,
-                                username: s.adminUsername || 'admin', // Use real admin username
-                                password: '— (Set at Creation)', // Don't show password on reprint
+                                username: s.adminUsername || 'admin',
+                                password: '— (Set at Creation)',
                                 isReprint: true
                               });
                               setShowCredsModal(true);
                             }}
                             title="Print School Details"
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100"
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100 shadow-sm"
                           >
                             <FiPrinter className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleImpersonate(s.id)}
-                            title="Troubleshooting Login"
-                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-emerald-100"
+                            title="Troubleshooting Login (Impersonate)"
+                            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-emerald-100 shadow-sm"
                           >
                             <FiUserCheck className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleResetAdminCreds(s.id, s.name)}
                             title="Reset Admin Password"
-                            className={`p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors border border-amber-100 ${reseting ? 'opacity-50' : ''}`}
+                            className={`p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors border border-amber-100 shadow-sm ${reseting ? 'opacity-50' : ''}`}
                             disabled={reseting}
                           >
                             <FiUnlock className={`w-4 h-4 ${reseting ? 'animate-pulse' : ''}`} />
@@ -634,7 +635,7 @@ const SuperAdminDashboard = () => {
                           <button
                             onClick={() => handleToggleActivation(s.id, s.name, s.isActivated)}
                             title={s.isActivated ? "Deactivate School" : "Activate School"}
-                            className={`p-1.5 rounded-lg transition-colors border ${s.isActivated
+                            className={`p-2 rounded-lg transition-colors border shadow-sm ${s.isActivated
                               ? 'text-rose-600 hover:bg-rose-50 border-rose-100'
                               : 'text-emerald-600 hover:bg-emerald-50 border-emerald-100'
                               }`}
@@ -642,17 +643,14 @@ const SuperAdminDashboard = () => {
                             <FiPower className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => {
-                              console.log('Deleting school:', s.name);
-                              handleDeleteSchool(s.id, s.name);
-                            }}
-                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                            onClick={() => handleDeleteSchool(s.id, s.name)}
+                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-rose-100 shadow-sm"
                             title="Delete School"
                           >
-                            <FiTrash2 size={18} />
+                            <FiTrash2 className="w-4 h-4" />
                           </button>
                         </div>
-                      </td>
+                      </td>d>
                     </tr>
                   ))}
                 </tbody>
@@ -1404,7 +1402,7 @@ const StatCard = ({ icon, label, value, bgColor }) => (
 const TabButton = ({ active, onClick, icon, label }) => (
   <button
     onClick={onClick}
-    className={`flex items-center px-8 py-4 text-sm font-bold transition-all border-b-2 ${active ? 'text-indigo-600 border-indigo-600 bg-white' : 'text-gray-400 border-transparent hover:text-gray-500'
+    className={`flex items-center px-4 sm:px-8 py-4 text-xs sm:text-sm font-bold transition-all border-b-2 ${active ? 'text-indigo-600 border-indigo-600 bg-white' : 'text-gray-400 border-transparent hover:text-gray-500'
       }`}
   >
     <span className="mr-2">{icon}</span>
