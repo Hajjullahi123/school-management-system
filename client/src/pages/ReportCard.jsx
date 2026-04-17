@@ -220,6 +220,7 @@ const ReportCard = () => {
     } finally {
       setGeneratingNarrative(false);
     }
+  };
   const handleBulkNarrative = async () => {
     if (!selectedClassId || !selectedTerm) {
       toast.error('Please select a class and term first');
