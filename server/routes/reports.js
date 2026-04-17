@@ -539,6 +539,90 @@ router.post('/generate-narrative/:studentId/:termId', authenticate, authorize(['
   }
 });
 
+// Bulk Generate AI narratives for a class
+router.post('/bulk-generate-narratives/:classId/:termId', authenticate, authorize(['admin', 'principal', 'superadmin', 'teacher']), async (req, res) => {
+  try {
+    const { classId, termId } = req.params;
+    
+    // Fetch all students in the class
+    const students = await prisma.student.findMany({
+      where: { classId: parseInt(classId), schoolId: req.schoolId, status: 'active' },
+      select: { id: true }
+    });
+
+    if (students.length === 0) {
+      return res.status(404).json({ error: 'No active students found in this class.' });
+    }
+
+    // Fetch school for AI keys
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { geminiApiKey: true, groqApiKey: true }
+    });
+
+    if (!school.geminiApiKey && !school.groqApiKey) {
+      return res.status(400).json({ error: 'AI service not configured for this school. Please set API keys in settings.' });
+    }
+
+    const term = await prisma.term.findUnique({ where: { id: parseInt(termId) } });
+
+    // Process in batches to avoid overwhelming the AI or rate limits
+    const results = { successful: 0, failed: 0 };
+    const BATCH_SIZE = 3; // Small batch size for AI
+    
+    for (let i = 0; i < students.length; i += BATCH_SIZE) {
+      const batch = students.slice(i, i + BATCH_SIZE);
+      await Promise.all(batch.map(async (student) => {
+        try {
+          const reportData = await api_internal_get_report_data(req.schoolId, student.id, termId);
+          const narrative = await generateAINarrative(reportData, school);
+
+          await prisma.studentReportCard.upsert({
+            where: {
+              schoolId_studentId_termId_academicSessionId: {
+                schoolId: req.schoolId,
+                studentId: student.id,
+                termId: parseInt(termId),
+                academicSessionId: term.academicSessionId
+              }
+            },
+            update: { aiNarrative: narrative },
+            create: {
+              schoolId: req.schoolId,
+              studentId: student.id,
+              termId: parseInt(termId),
+              academicSessionId: term.academicSessionId,
+              classId: parseInt(classId),
+              aiNarrative: narrative
+            }
+          });
+          results.successful++;
+        } catch (err) {
+          console.error(`Failed to generate narrative for student ${student.id}:`, err.message);
+          results.failed++;
+        }
+      }));
+    }
+
+    res.json({ 
+      message: `AI Narrative generation complete.`,
+      ...results
+    });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'BULK_GENERATE_AI_NARRATIVES',
+      resource: 'STUDENT_REPORT_CARD',
+      details: { classId: parseInt(classId), termId: parseInt(termId), ...results },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error in bulk AI narrative generation:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 /**
  * Internal helper to fetch report data for AI (Simplified version of the GET route)
  */

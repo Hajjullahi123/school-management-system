@@ -54,12 +54,31 @@ const SuperAdminDashboard = () => {
   // Sync activeTab with URL hash
   useEffect(() => {
     const hash = location.hash.replace('#', '');
-    if (hash && ['schools', 'platform', 'audits', 'showcase', 'adverts'].includes(hash)) {
+    if (hash && ['schools', 'platform', 'audits', 'showcase', 'adverts', 'academic'].includes(hash)) {
       setActiveTab(hash);
     } else {
       setActiveTab('overview');
     }
   }, [location.hash]);
+
+  const [academicIntel, setAcademicIntel] = useState([]);
+  const [fetchingIntel, setFetchingIntel] = useState(false);
+
+  const fetchAcademicIntel = async () => {
+    try {
+      setFetchingIntel(true);
+      const res = await apiCall('/api/superadmin/academic-intelligence');
+      if (res.data) setAcademicIntel(res.data);
+    } catch (error) {
+      toast.error('Failed to fetch platform intelligence');
+    } finally {
+      setFetchingIntel(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'academic') fetchAcademicIntel();
+  }, [activeTab]);
 
   // Initial Load Data
   useEffect(() => {
@@ -401,6 +420,7 @@ const SuperAdminDashboard = () => {
         <div className="flex border-b border-gray-100 bg-gray-50/50 overflow-x-auto no-scrollbar whitespace-nowrap">
           <TabButton active={activeTab === 'overview'} onClick={() => navigate('/dashboard/superadmin')} icon={<FiActivity />} label="Overview" />
           <TabButton active={activeTab === 'schools'} onClick={() => navigate('/dashboard/superadmin#schools')} icon={<FiBriefcase />} label="Schools" />
+          <TabButton active={activeTab === 'academic'} onClick={() => navigate('/dashboard/superadmin#academic')} icon={<FiActivity />} label="Academic Intel" />
           <TabButton active={activeTab === 'showcase'} onClick={() => navigate('/dashboard/superadmin#showcase')} icon={<FiPlus />} label="Use Case Schools" />
           <TabButton active={activeTab === 'adverts'} onClick={() => navigate('/dashboard/superadmin#adverts')} icon={<FiImage />} label="Advertisements" />
           <TabButton active={activeTab === 'platform'} onClick={() => navigate('/dashboard/superadmin#platform')} icon={<FiGlobe />} label="Platform" />
@@ -979,6 +999,87 @@ const SuperAdminDashboard = () => {
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'academic' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2 bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                    <h4 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-2 italic uppercase">
+                      <FiActivity className="text-indigo-600" /> Platform-Wide Performance Index
+                    </h4>
+                    {fetchingIntel ? (
+                      <div className="py-20 text-center animate-pulse text-indigo-400 font-bold uppercase tracking-widest">Gathering global academic data...</div>
+                    ) : academicIntel.length === 0 ? (
+                      <div className="py-20 text-center text-gray-400 italic">No academic data points recorded across the platform yet.</div>
+                    ) : (
+                      <div className="space-y-6">
+                        {academicIntel.map(school => (
+                          <div key={school.schoolId} className="group transition-all">
+                             <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-black text-gray-800 uppercase tracking-tight">{school.schoolName}</span>
+                                <span className="text-xs font-black text-indigo-600">{school.averagePerformance}% AVG</span>
+                             </div>
+                             <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                                <div 
+                                  className={`absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ${
+                                    school.averagePerformance >= 70 ? 'bg-gradient-to-r from-emerald-500 to-teal-400' :
+                                    school.averagePerformance >= 50 ? 'bg-gradient-to-r from-indigo-500 to-blue-400' :
+                                    'bg-gradient-to-r from-rose-500 to-orange-400'
+                                  }`}
+                                  style={{ width: `${school.averagePerformance}%` }}
+                                >
+                                   <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                                </div>
+                             </div>
+                             <div className="flex justify-between mt-1">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{school.totalDataPoints} DATA POINTS</span>
+                                <div className="flex items-center gap-1.5">
+                                   <div className={`w-1.5 h-1.5 rounded-full ${school.atRiskCount > 5 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-400'}`}></div>
+                                   <span className="text-[10px] font-black uppercase text-gray-500">{school.atRiskCount} AT-RISK STUDENTS</span>
+                                </div>
+                             </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-3xl p-8 text-white shadow-2xl">
+                     <h4 className="text-lg font-black italic uppercase tracking-tighter mb-6 flex items-center gap-2">
+                        <FiAlertCircle className="text-rose-400" /> Risk Radar Summary
+                     </h4>
+                     <div className="space-y-8">
+                        <div>
+                           <p className="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-1">Most Struggling School</p>
+                           {academicIntel.length > 0 ? (
+                             <>
+                                <p className="text-xl font-black text-rose-400 uppercase tracking-tighter">{academicIntel[academicIntel.length-1].schoolName}</p>
+                                <p className="text-sm font-bold text-indigo-200">{academicIntel[academicIntel.length-1].atRiskCount} students flagged as critical risk</p>
+                             </>
+                           ) : <p className="text-indigo-600 italic">No data</p>}
+                        </div>
+
+                        <div>
+                           <p className="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-1">Elite Performing Branch</p>
+                           {academicIntel.length > 0 ? (
+                             <>
+                                <p className="text-xl font-black text-emerald-400 uppercase tracking-tighter">{academicIntel[0].schoolName}</p>
+                                <p className="text-sm font-bold text-indigo-200">Maintaining {academicIntel[0].averagePerformance}% academic excellence</p>
+                             </>
+                           ) : <p className="text-indigo-600 italic">No data</p>}
+                        </div>
+
+                        <div className="pt-6 border-t border-white/10">
+                           <p className="text-[10px] text-indigo-400 font-bold leading-relaxed uppercase">
+                              Academic intelligence is calculated based on real-time term results synced from all branches. 
+                              Red signals indicate schools where interference may be needed to maintain platform standards.
+                           </p>
+                        </div>
+                     </div>
+                  </div>
+               </div>
             </div>
           )}
 

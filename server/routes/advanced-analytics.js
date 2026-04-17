@@ -9,6 +9,30 @@ const {
   generateRecommendations,
   Stats
 } = require('../services/analytics-ai');
+const AIQueryHandler = require('../services/AIQueryHandler');
+
+// Helper to get AI Handler for a school
+async function getAIHandler(schoolId) {
+  const school = await prisma.school.findUnique({
+    where: { id: parseInt(schoolId) },
+    select: { geminiApiKey: true, groqApiKey: true }
+  });
+
+  let geminiKey = (school?.geminiApiKey && school?.geminiApiKey !== 'NONE') ? school.geminiApiKey : null;
+  let groqKey = (school?.groqApiKey && school?.groqApiKey !== 'NONE') ? school.groqApiKey : null;
+  
+  if (!geminiKey || !groqKey) {
+    const globalSettings = await prisma.globalSettings.findFirst({
+      select: { geminiApiKey: true, groqApiKey: true }
+    });
+    
+    if (!geminiKey && globalSettings?.geminiApiKey) geminiKey = globalSettings.geminiApiKey;
+    if (!groqKey && globalSettings?.groqApiKey) groqKey = globalSettings.groqApiKey;
+  }
+
+  if (!geminiKey && !groqKey) return null;
+  return new AIQueryHandler({ geminiApiKey: geminiKey, groqApiKey: groqKey });
+}
 
 // Helper to check if results are published for any class in the school for a term
 async function isTermPublished(schoolId, termId = null) {
@@ -924,6 +948,90 @@ router.get('/heatmap', authenticate, requirePackage('premium'), async (req, res)
   } catch (error) {
     console.error('Heatmap error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Deep AI Student Diagnosis
+router.post('/ai/student-diagnosis/:studentId', authenticate, requirePackage('premium'), async (req, res) => {
+  try {
+    const studentId = parseInt(req.params.studentId);
+    const { termId } = req.body; // Optional term context
+    
+    // 1. Fetch Student Data
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      include: {
+        user: { select: { firstName: true, lastName: true } },
+        classModel: true,
+        attendance: { take: 10, orderBy: { date: 'desc' } },
+        psychomotorRatings: { 
+          where: termId ? { termId: parseInt(termId) } : {},
+          include: { skill: true }
+        }
+      }
+    });
+
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    // 2. Fetch Performance History
+    const results = await prisma.result.findMany({
+      where: { 
+        studentId, 
+        schoolId: parseInt(req.schoolId)
+      },
+      include: { subject: true, term: true },
+      orderBy: { createdAt: 'desc' },
+      take: 20
+    });
+
+    // 3. Setup AI
+    const aiHandler = await getAIHandler(req.schoolId);
+    if (!aiHandler) return res.status(400).json({ error: 'AI not configured' });
+
+    // 4. Construct Intelligence Context
+    const performanceContext = results.map(r => ({
+      subject: r.subject.name,
+      score: r.totalScore,
+      term: r.term.name,
+      grade: r.grade
+    }));
+
+    const skillsContext = student.psychomotorRatings.map(r => ({
+      skill: r.skill?.name || 'Unknown Skill',
+      rating: r.rating
+    }));
+
+    const attendanceRate = student.attendance.length > 0
+      ? (student.attendance.filter(a => a.status === 'present').length / student.attendance.length) * 100
+      : 'N/A';
+
+    const prompt = `Act as an Academic Intelligence Analyst for a school. Provide a deep cognitive and behavioral diagnosis and intervention roadmap for the following student:
+
+    STUDENT IDENTITY:
+    Name: ${student.user.firstName} ${student.user.lastName}
+    Class: ${student.classModel?.name || 'N/A'} ${student.classModel?.arm || ''}
+
+    DATA INPUTS:
+    Academic History (Raw): ${JSON.stringify(performanceContext)}
+    Psychomotor/Soft Skills: ${JSON.stringify(skillsContext)}
+    Attendance Context: ${attendanceRate}%
+
+    TASK:
+    Analyze this student across four dimensions and provide a structured report:
+    1. COGNITIVE CLUSTERING: Identify subject-cluster strengths and weaknesses (e.g., STEM vs Humanities performance gap).
+    2. VELOCITY & TRAJECTORY: Analyze score trends. Are they stable, volatile, or sharply declining? Detect "Silent Signals" (consistency issues).
+    3. PSYCHOSOCIAL CORRELATION: Does their social skill rating correlate with academic success? (e.g., struggling in collaboration skill vs poor group project scores).
+    4. STRATEGIC INTERVENTION ROADMAP: Provide a clear, 5-step Subject-Specific Recovery Plan.
+
+    FORMAT:
+    Return your response in PROFESSIONAL MARKDOWN with bold headers. The tone should be authoritative but empathetic, intended for a teacher and principal's review.`;
+
+    const diagnosis = await aiHandler.generate(prompt);
+    res.json({ diagnosis });
+
+  } catch (error) {
+    console.error('AI Diagnosis Error:', error);
+    res.status(500).json({ error: 'Failed to generate diagnosis', message: error.message });
   }
 });
 

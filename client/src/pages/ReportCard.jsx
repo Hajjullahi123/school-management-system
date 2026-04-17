@@ -29,6 +29,8 @@ const ReportCard = () => {
   const [emailAddress, setEmailAddress] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [generatingNarrative, setGeneratingNarrative] = useState(false);
+  const [bulkNarrativeLoading, setBulkNarrativeLoading] = useState(false);
+  const [bulkNarrativeResults, setBulkNarrativeResults] = useState(null);
 
   useEffect(() => {
     fetchSessions();
@@ -218,6 +220,31 @@ const ReportCard = () => {
     } finally {
       setGeneratingNarrative(false);
     }
+  const handleBulkNarrative = async () => {
+    if (!selectedClassId || !selectedTerm) {
+      toast.error('Please select a class and term first');
+      return;
+    }
+
+    if (!window.confirm('This will generate AI narratives for ALL students in this class. This may take a minute depending on class size. Continue?')) return;
+
+    setBulkNarrativeLoading(true);
+    setBulkNarrativeResults(null);
+    try {
+      const response = await api.post(`/api/reports/bulk-generate-narratives/${selectedClassId}/${selectedTerm}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(`Bulk generation complete: ${data.successful} successful, ${data.failed} failed.`);
+        setBulkNarrativeResults(data);
+      } else {
+        toast.error(data.error || 'Failed to generate narratives');
+      }
+    } catch (error) {
+      toast.error('Connection error during bulk generation');
+    } finally {
+      setBulkNarrativeLoading(false);
+    }
   };
 
   return (
@@ -330,6 +357,38 @@ const ReportCard = () => {
             </div>
           )}
         </div>
+
+        {selectedClassId && searchMode === 'class' && (
+          <div className="pt-4 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
+                <span className="text-lg">✨</span>
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900">AI Narrative Suite</h4>
+                <p className="text-[10px] text-gray-500 font-medium whitespace-nowrap">Automate comments for the entire class of {classStudents.length} students</p>
+              </div>
+            </div>
+            
+            <button
+              onClick={handleBulkNarrative}
+              disabled={bulkNarrativeLoading || classStudents.length === 0}
+              className="w-full md:w-auto bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-all"
+            >
+              {bulkNarrativeLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
+                  Generating Archives...
+                </>
+              ) : (
+                <>
+                  <span>🪄</span>
+                  Bulk Generate Narratives
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {reportData && (

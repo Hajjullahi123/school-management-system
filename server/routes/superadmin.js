@@ -84,6 +84,57 @@ router.get('/stats', authenticate, authorize(['superadmin']), async (req, res) =
 });
 
 /**
+ * @route   GET /api/superadmin/academic-intelligence
+ * @desc    Get academic performance metrics across all schools
+ * @access  SuperAdmin only
+ */
+router.get('/academic-intelligence', authenticate, authorize(['superadmin']), async (req, res) => {
+  try {
+    const { sessionId, termId } = req.query;
+
+    const schools = await prisma.school.findMany({
+      select: { id: true, name: true, slug: true }
+    });
+
+    const intelligence = [];
+
+    for (const school of schools) {
+      const where = { schoolId: school.id };
+      if (termId) where.termId = parseInt(termId);
+      
+      const [results, atRiskCount] = await Promise.all([
+        prisma.result.findMany({
+          where,
+          select: { totalScore: true }
+        }),
+        prisma.result.groupBy({
+          by: ['studentId'],
+          where: { ...where, totalScore: { lt: 40 } },
+          _count: { studentId: true }
+        })
+      ]);
+
+      const avgScore = results.length > 0 
+        ? results.reduce((acc, r) => acc + (r.totalScore || 0), 0) / results.length 
+        : 0;
+
+      intelligence.push({
+        schoolId: school.id,
+        schoolName: school.name,
+        averagePerformance: parseFloat(avgScore.toFixed(2)),
+        atRiskCount: atRiskCount.length,
+        totalDataPoints: results.length
+      });
+    }
+
+    res.json(intelligence.sort((a, b) => b.averagePerformance - a.averagePerformance));
+  } catch (error) {
+    console.error('Cross-school intelligence error:', error);
+    res.status(500).json({ error: 'Failed to fetch global academic intelligence' });
+  }
+});
+
+/**
  * @route   POST /api/superadmin/impersonate/:schoolId
  * @desc    Log in as a school admin for troubleshooting
  * @access  SuperAdmin only
