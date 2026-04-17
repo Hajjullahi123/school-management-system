@@ -19,6 +19,7 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
                   firstName: true,
                   lastName: true,
                   photoUrl: true,
+                  username: true,
                   teacher: {
                     select: {
                       publicPhone: true,

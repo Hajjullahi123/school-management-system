@@ -708,7 +708,7 @@ const ParentDashboard = () => {
                            )}
                            {(student.classModel.classTeacher.teacher?.publicWhatsapp || student.classModel.classTeacher.teacher?.publicPhone) && (
                             <a 
-                              href={`https://wa.me/${formatWhatsAppNumber(student.classModel.classTeacher.teacher?.publicWhatsapp || student.classModel.classTeacher.teacher?.publicPhone || student.classModel.classTeacher.teacher?.phone)}`}
+                              href={`https://wa.me/${formatWhatsAppNumber(student.classModel.classTeacher.teacher?.publicWhatsapp || student.classModel.classTeacher.teacher?.publicPhone || student.classModel.classTeacher.username)}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="w-10 h-10 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30 hover:scale-110 active:scale-95 transition-all text-white"
