@@ -569,33 +569,44 @@ const ResultEntry = () => {
           <p className="mt-4 text-gray-600">Loading student data...</p>
         </div>
       ) : students.length > 0 ? (
-        <div className="bg-white rounded-lg shadow ring-1 ring-black ring-opacity-5 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+        <div className="bg-white rounded-xl shadow-lg ring-1 ring-black ring-opacity-5 overflow-hidden border border-gray-100">
+          {/* Scroll Hint for Mobile */}
+          <div className="md:hidden bg-indigo-50 px-4 py-2 border-b border-indigo-100 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-600 uppercase tracking-wider">
+              <svg className="w-4 h-4 animate-bounce-x" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+              Swipe left for more scores
+            </div>
+            <span className="text-[10px] font-black bg-indigo-600 text-white px-2 py-0.5 rounded-full uppercase">Excel Available</span>
+          </div>
+
+          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 table-fixed md:table-auto">
               <thead className="bg-primary/5">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider sticky left-0 bg-primary/5 z-10 border-b border-primary/10">
+                  <th className="px-4 py-4 text-left text-xs font-black text-primary uppercase tracking-widest sticky left-0 bg-white z-30 border-b border-primary/10 shadow-[2px_0_5px_rgba(0,0,0,0.05)] min-w-[160px]">
                     Student Name
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-primary uppercase tracking-wider">
-                    Assgn 1<br /><span className="text-primary text-[10px]">({weights.assignment1}%)</span>
+                  <th className="px-4 py-4 text-center text-xs font-bold text-primary uppercase tracking-wider bg-primary/5 z-10">
+                    Assgn 1<br /><span className="text-primary/60 text-[10px]">({weights.assignment1}%)</span>
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-primary uppercase tracking-wider">
-                    Assgn 2<br /><span className="text-primary text-[10px]">({weights.assignment2}%)</span>
+                  <th className="px-4 py-4 text-center text-xs font-bold text-primary uppercase tracking-wider bg-primary/5 z-10">
+                    Assgn 2<br /><span className="text-primary/60 text-[10px]">({weights.assignment2}%)</span>
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-primary uppercase tracking-wider">
-                    Test 1<br /><span className="text-primary text-[10px]">({weights.test1}%)</span>
+                  <th className="px-4 py-4 text-center text-xs font-bold text-primary uppercase tracking-wider bg-primary/5 z-10">
+                    Test 1<br /><span className="text-primary/60 text-[10px]">({weights.test1}%)</span>
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-primary uppercase tracking-wider">
-                    Test 2<br /><span className="text-primary text-[10px]">({weights.test2}%)</span>
+                  <th className="px-4 py-4 text-center text-xs font-bold text-primary uppercase tracking-wider bg-primary/5 z-10">
+                    Test 2<br /><span className="text-primary/60 text-[10px]">({weights.test2}%)</span>
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-primary uppercase tracking-wider">
-                    Exam<br /><span className="text-primary text-[10px]">({weights.exam}%)</span>
+                  <th className="px-4 py-4 text-center text-xs font-bold text-primary uppercase tracking-wider bg-primary/5 z-10">
+                    Exam<br /><span className="text-primary/60 text-[10px]">({weights.exam}%)</span>
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-primary uppercase tracking-wider bg-primary/10">
-                    Total<br /><span className="text-primary text-[10px]">(100%)</span>
+                  <th className="px-4 py-4 text-center text-xs font-bold text-primary uppercase tracking-wider bg-indigo-50 z-10 border-l border-indigo-100">
+                    Total<br /><span className="text-primary/60 text-[10px]">(100%)</span>
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-primary uppercase tracking-wider bg-primary/10">
+                  <th className="px-4 py-4 text-center text-xs font-bold text-primary uppercase tracking-wider bg-indigo-50 z-10">
                     Grade
                   </th>
                 </tr>
@@ -605,8 +616,13 @@ const ResultEntry = () => {
                   const studentResult = results[student.id] || {};
                   return (
                     <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-800 sticky left-0 border-r" style={{ backgroundColor: index % 2 === 0 ? 'white' : '#f9fafb' }}>
-                        {student.user?.firstName} {student.user?.lastName}
+                      <td 
+                        className="px-4 py-4 whitespace-nowrap text-sm font-bold text-gray-900 sticky left-0 z-20 border-r border-gray-100 shadow-[2px_0_5px_rgba(0,0,0,0.03)]" 
+                        style={{ backgroundColor: index % 2 === 0 ? 'white' : '#fcfcfd' }}
+                      >
+                        <div className="truncate max-w-[120px] md:max-w-none">
+                          {student.user?.firstName} {student.user?.lastName}
+                        </div>
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-center">
                         <input
