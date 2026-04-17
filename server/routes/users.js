@@ -489,7 +489,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
     if (password && password.trim().length >= 6) {
       const trimmedPassword = password.trim();
       updateData.passwordHash = await bcrypt.hash(trimmedPassword, 10);
-      updateData.mustChangePassword = false;
+      updateData.mustChangePassword = true;
     }
 
     // Update user

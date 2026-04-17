@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../db');
-const { JWT_SECRET, authenticate } = require('../middleware/auth');
+const { JWT_SECRET, authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 
 // Identify school based on username/email/admissionNumber
@@ -295,6 +295,124 @@ router.get('/me', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Me error:', error);
     res.status(500).json({ error: 'Failed to fetch user data' });
+  }
+});
+
+/**
+ * @route   POST /api/auth/change-password
+ * @desc    Change current user's password
+ * @access  Private
+ */
+router.post('/change-password', authenticate, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current and new passwords are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+    }
+
+    // Fetch user from DB
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Incorrect current password' });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const newPasswordHash = await bcrypt.hash(newPassword, salt);
+
+    // Update user
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { 
+        passwordHash: newPasswordHash,
+        mustChangePassword: false // Clear flag if it was set
+      }
+    });
+
+    // Log the action
+    logAction({
+      schoolId: user.schoolId || 1,
+      userId: user.id,
+      action: 'UPDATE',
+      resource: 'USER_PASSWORD',
+      details: { username: user.username },
+      ipAddress: req.ip
+    });
+
+    res.json({ success: true, message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    Admin reset user password
+ * @access  Private (Admin/Principal only)
+ */
+router.post('/reset-password', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const { userId, newPassword } = req.body;
+
+    if (!userId || !newPassword) {
+      return res.status(400).json({ error: 'User ID and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    // Update user
+    const updatedUser = await prisma.user.update({
+      where: { id: parseInt(userId) },
+      data: { 
+        passwordHash,
+        mustChangePassword: true // Force change on next login
+      }
+    });
+
+    // Log the action
+    logAction({
+      schoolId: req.schoolId || (updatedUser.schoolId || 1),
+      userId: req.user.id,
+      action: 'UPDATE',
+      resource: 'USER_PASSWORD_RESET',
+      details: { 
+        targetUserId: updatedUser.id,
+        targetUsername: updatedUser.username,
+        resetBy: req.user.username 
+      },
+      ipAddress: req.ip
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Password reset successfully',
+      username: updatedUser.username,
+      temporaryPassword: newPassword // Returning for the admin to show/print
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
   }
 });
 
