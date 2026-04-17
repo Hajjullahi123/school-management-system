@@ -548,133 +548,209 @@ const SuperAdminDashboard = () => {
           )}
 
           {activeTab === 'schools' && (
-            <div className="overflow-x-auto animate-in slide-in-from-bottom-5 duration-500">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10 shadow-sm sm:shadow-none">School Name</th>
-                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">License Status</th>
-                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Usage Stats</th>
-                    <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {(Array.isArray(schools) ? schools : []).map(s => (
-                    <tr key={s.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 sticky left-0 bg-white z-10 shadow-sm sm:shadow-none min-w-[200px]">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-3 shadow-sm shrink-0">
+            <div className="animate-in slide-in-from-bottom-5 duration-500">
+              {/* Mobile Card View */}
+              <div className="grid grid-cols-1 gap-4 md:hidden">
+                {(Array.isArray(schools) ? schools : []).map(s => (
+                  <div key={s.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center min-w-0">
+                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold shrink-0 mr-3">
                           {s.name.charAt(0)}
                         </div>
-                        <div className="truncate">
-                          <p className="font-bold text-gray-800 truncate">{s.name}</p>
-                          <p className="text-xs text-gray-400 font-medium truncate">{s.email || 'No email'}</p>
+                        <div className="min-w-0">
+                          <p className="font-bold text-gray-900 truncate">{s.name}</p>
+                          <p className="text-[10px] text-gray-500 font-medium truncate italic">{s.slug}.school.com</p>
                         </div>
                       </div>
-                    </td>
-                      <td className="p-4">
-                        {s.isActivated ? (
-                          <div className="flex flex-col gap-1">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 w-fit">
-                              Pro - {s.packageType}
-                            </span>
-                            <p className="text-[10px] text-gray-400 font-bold tracking-tight">KEY: {s.licenseKey?.slice(0, 8)}...</p>
-                          </div>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
-                            Unlicensed
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-4">
-                          <div className="text-center">
-                            <p className="text-xs font-bold text-gray-800">{s._count.students}</p>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase">Students</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs font-bold text-gray-800">{s._count.teachers}</p>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase">Staff</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex flex-wrap items-center gap-2 min-w-[210px] max-w-[250px]">
-                          <button
-                            onClick={() => {
-                              setEditingSchool(s);
-                              setShowEditModal(true);
-                            }}
-                            title="Edit School Details"
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100 shadow-sm"
-                          >
-                            <FiEdit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedSchoolForLicense(s);
-                              setShowLicenseModal(true);
-                              setGeneratedKey(null);
-                            }}
-                            title="Issue License"
-                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-100 shadow-sm"
-                          >
-                            <FiKey className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setResetCreds({
-                                schoolName: s.name,
-                                schoolSlug: s.slug,
-                                username: s.adminUsername || 'admin',
-                                password: '— (Set at Creation)',
-                                isReprint: true
-                              });
-                              setShowCredsModal(true);
-                            }}
-                            title="Print School Details"
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100 shadow-sm"
-                          >
-                            <FiPrinter className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleImpersonate(s.id)}
-                            title="Troubleshooting Login (Impersonate)"
-                            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-emerald-100 shadow-sm"
-                          >
-                            <FiUserCheck className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleResetAdminCreds(s.id, s.name)}
-                            title="Reset Admin Password"
-                            className={`p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors border border-amber-100 shadow-sm ${reseting ? 'opacity-50' : ''}`}
-                            disabled={reseting}
-                          >
-                            <FiUnlock className={`w-4 h-4 ${reseting ? 'animate-pulse' : ''}`} />
-                          </button>
-                          <button
-                            onClick={() => handleToggleActivation(s.id, s.name, s.isActivated)}
-                            title={s.isActivated ? "Deactivate School" : "Activate School"}
-                            className={`p-2 rounded-lg transition-colors border shadow-sm ${s.isActivated
-                              ? 'text-rose-600 hover:bg-rose-50 border-rose-100'
-                              : 'text-emerald-600 hover:bg-emerald-50 border-emerald-100'
-                              }`}
-                          >
-                            <FiPower className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteSchool(s.id, s.name)}
-                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-rose-100 shadow-sm"
-                            title="Delete School"
-                          >
-                            <FiTrash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>d>
+                      <div className={`shrink-0 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${s.isActivated ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
+                        {s.isActivated ? 'Active' : 'Locked'}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200">
+                      <div className="text-center border-r border-gray-200">
+                        <p className="text-sm font-black text-gray-900">{s._count.students}</p>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Students</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-black text-gray-900">{s._count.teachers}</p>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Staff</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <button
+                        onClick={() => { setEditingSchool(s); setShowEditModal(true); }}
+                        className="flex-1 min-w-[40px] p-2.5 flex items-center justify-center text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-100 shadow-sm transition-all"
+                        title="Edit Details"
+                      >
+                        <FiEdit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => { setSelectedSchoolForLicense(s); setShowLicenseModal(true); setGeneratedKey(null); }}
+                        className="flex-1 min-w-[40px] p-2.5 flex items-center justify-center text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl border border-indigo-100 shadow-sm transition-all"
+                        title="License"
+                      >
+                        <FiKey className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setResetCreds({ schoolName: s.name, schoolSlug: s.slug, username: s.adminUsername || 'admin', password: '— (Set at Creation)', isReprint: true });
+                          setShowCredsModal(true);
+                        }}
+                        className="flex-1 min-w-[40px] p-2.5 flex items-center justify-center text-blue-700 bg-blue-50/50 hover:bg-blue-100 rounded-xl border border-blue-100 shadow-sm transition-all"
+                        title="Print"
+                      >
+                        <FiPrinter className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleImpersonate(s.id)}
+                        className="flex-1 min-w-[40px] p-2.5 flex items-center justify-center text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-xl border border-emerald-100 shadow-sm transition-all"
+                        title="Login (Impersonate)"
+                      >
+                        <FiUserCheck className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleResetAdminCreds(s.id, s.name)}
+                        className={`flex-1 min-w-[40px] p-2.5 flex items-center justify-center text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-xl border border-amber-100 shadow-sm transition-all ${reseting ? 'opacity-50' : ''}`}
+                        disabled={reseting}
+                        title="Password Reset"
+                      >
+                        <FiUnlock className={`w-4 h-4 ${reseting ? 'animate-pulse' : ''}`} />
+                      </button>
+                      <button
+                        onClick={() => handleToggleActivation(s.id, s.name, s.isActivated)}
+                        className={`flex-1 min-w-[40px] p-2.5 flex items-center justify-center rounded-xl border transition-all shadow-sm ${s.isActivated ? 'text-rose-600 bg-rose-50 border-rose-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100'}`}
+                        title={s.isActivated ? "Lock" : "Unlock"}
+                      >
+                        <FiPower className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSchool(s.id, s.name)}
+                        className="flex-1 min-w-[40px] p-2.5 flex items-center justify-center text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-100 shadow-sm transition-all"
+                        title="Delete"
+                      >
+                        <FiTrash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10 shadow-sm sm:shadow-none">School Name</th>
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">License Status</th>
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Usage Stats</th>
+                      <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 bg-white">
+                    {(Array.isArray(schools) ? schools : []).map(s => (
+                      <tr key={s.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="p-4 sticky left-0 bg-white z-10 shadow-sm sm:shadow-none min-w-[200px]">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-3 shadow-sm shrink-0">
+                              {s.name.charAt(0)}
+                            </div>
+                            <div className="truncate">
+                              <p className="font-bold text-gray-800 truncate">{s.name}</p>
+                              <p className="text-xs text-gray-400 font-medium truncate">{s.email || 'No email'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          {s.isActivated ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 w-fit">
+                                Pro - {s.packageType}
+                              </span>
+                              <p className="text-[10px] text-gray-400 font-bold tracking-tight">KEY: {s.licenseKey?.slice(0, 8)}...</p>
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
+                              Unlicensed
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          <div className="flex gap-4">
+                            <div className="text-center">
+                              <p className="text-xs font-bold text-gray-800">{s._count.students}</p>
+                              <p className="text-[10px] text-gray-400 font-bold uppercase">Students</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs font-bold text-gray-800">{s._count.teachers}</p>
+                              <p className="text-[10px] text-gray-400 font-bold uppercase">Staff</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => { setEditingSchool(s); setShowEditModal(true); }}
+                              title="Edit Details"
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100"
+                            >
+                              <FiEdit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => { setSelectedSchoolForLicense(s); setShowLicenseModal(true); setGeneratedKey(null); }}
+                              title="Issue License"
+                              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-100"
+                            >
+                              <FiKey className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setResetCreds({ schoolName: s.name, schoolSlug: s.slug, username: s.adminUsername || 'admin', password: '— (Set at Creation)', isReprint: true });
+                                setShowCredsModal(true);
+                              }}
+                              title="Print Creds"
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-100"
+                            >
+                              <FiPrinter className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleImpersonate(s.id)}
+                              title="Troubleshooting Login (Impersonate)"
+                              className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-emerald-100"
+                            >
+                              <FiUserCheck className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleResetAdminCreds(s.id, s.name)}
+                              title="Reset Admin Password"
+                              className={`p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors border border-amber-100 ${reseting ? 'opacity-50' : ''}`}
+                              disabled={reseting}
+                            >
+                              <FiUnlock className={`w-4 h-4 ${reseting ? 'animate-pulse' : ''}`} />
+                            </button>
+                            <button
+                              onClick={() => handleToggleActivation(s.id, s.name, s.isActivated)}
+                              title={s.isActivated ? "Deactivate" : "Activate"}
+                              className={`p-2 rounded-lg transition-colors border ${s.isActivated ? 'text-rose-600 hover:bg-rose-50 border-rose-100' : 'text-emerald-600 hover:bg-emerald-50 border-emerald-100'}`}
+                            >
+                              <FiPower className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteSchool(s.id, s.name)}
+                              className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-rose-100"
+                              title="Delete School"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
