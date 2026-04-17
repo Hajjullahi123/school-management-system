@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api, API_BASE_URL } from '../api';
 import useSchoolSettings from '../hooks/useSchoolSettings';
-import useAuth from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext';
 import { toast } from '../utils/toast';
 import { FiUsers, FiAward, FiBookOpen, FiCamera, FiChevronLeft, FiChevronRight, FiUpload, FiCheckCircle } from 'react-icons/fi';
 
