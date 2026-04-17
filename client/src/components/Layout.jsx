@@ -1348,8 +1348,8 @@ const Layout = () => {
                 </button>
 
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-sm sm:text-lg lg:text-2xl font-bold text-gray-800 truncate max-w-[140px] sm:max-w-[250px] lg:max-w-none">{schoolName}</h2>
-                  <p className="text-[10px] sm:text-xs lg:text-sm text-gray-600 truncate max-w-[140px] sm:max-w-[250px] lg:max-w-none">{schoolMotto}</p>
+                  <h2 className="text-sm sm:text-lg lg:text-2xl font-bold text-gray-800 truncate max-w-[180px] sm:max-w-[300px] lg:max-w-none">{schoolName}</h2>
+                  <p className="text-[10px] sm:text-xs lg:text-sm text-gray-600 truncate max-w-[180px] sm:max-w-[300px] lg:max-w-none">{schoolMotto}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-2 sm:space-x-4">

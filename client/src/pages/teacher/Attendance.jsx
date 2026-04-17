@@ -311,13 +311,13 @@ const Attendance = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-gray-900">Daily Attendance</h1>
+    <div className="space-y-6 pb-20 md:pb-6">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Attendance Roll Call</h1>
           <button
             onClick={() => setShowDownloadDialog(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 text-sm"
+            className="w-full sm:w-auto bg-green-600 text-white px-4 py-2.5 rounded-xl hover:bg-green-700 flex items-center justify-center gap-2 text-sm font-bold shadow-sm transition-all active:scale-95"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -325,12 +325,25 @@ const Attendance = () => {
             Download Records
           </button>
         </div>
+        
         {students.length > 0 && !error && (
-          <div className="text-sm font-medium flex gap-4 bg-white px-4 py-2 rounded-lg shadow-sm">
-            <span className="text-green-600">Present: {holidayCheck.isHoliday ? 0 : stats.present}</span>
-            <span className="text-red-600">Absent: {holidayCheck.isHoliday ? 0 : stats.absent}</span>
-            <span className="text-yellow-600">Late: {holidayCheck.isHoliday ? 0 : stats.late}</span>
-            <span className="text-blue-600">Excused: {holidayCheck.isHoliday ? 0 : stats.excused}</span>
+          <div className="grid grid-cols-2 sm:flex sm:flex-row items-center gap-2 sm:gap-4 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between sm:justify-start gap-2 px-3 py-2 bg-emerald-50 rounded-xl border border-emerald-100 flex-1">
+              <span className="text-[10px] sm:text-xs font-black text-emerald-600 uppercase">Present</span>
+              <span className="text-sm sm:text-base font-black text-emerald-700">{holidayCheck.isHoliday ? 0 : stats.present}</span>
+            </div>
+            <div className="flex items-center justify-between sm:justify-start gap-2 px-3 py-2 bg-rose-50 rounded-xl border border-rose-100 flex-1">
+              <span className="text-[10px] sm:text-xs font-black text-rose-600 uppercase">Absent</span>
+              <span className="text-sm sm:text-base font-black text-rose-700">{holidayCheck.isHoliday ? 0 : stats.absent}</span>
+            </div>
+            <div className="flex items-center justify-between sm:justify-start gap-2 px-3 py-2 bg-amber-50 rounded-xl border border-amber-100 flex-1">
+              <span className="text-[10px] sm:text-xs font-black text-amber-600 uppercase">Late</span>
+              <span className="text-sm sm:text-base font-black text-amber-700">{holidayCheck.isHoliday ? 0 : stats.late}</span>
+            </div>
+            <div className="flex items-center justify-between sm:justify-start gap-2 px-3 py-2 bg-indigo-50 rounded-xl border border-indigo-100 flex-1">
+              <span className="text-[10px] sm:text-xs font-black text-indigo-600 uppercase">Excused</span>
+              <span className="text-sm sm:text-base font-black text-indigo-700">{holidayCheck.isHoliday ? 0 : stats.excused}</span>
+            </div>
           </div>
         )}
       </div>
@@ -395,26 +408,26 @@ const Attendance = () => {
       ) : (
         <>
           {/* Filters */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+          <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="relative group">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Marking Date</label>
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   max={new Date().toISOString().split('T')[0]}
-                  className="w-full border rounded-md px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-primary/20 transition-all font-bold"
+                  className="w-full border-gray-100 bg-gray-50 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 transition-all font-bold text-gray-900"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {user?.role === 'teacher' && classes.length === 1 ? 'Assigned Class' : 'Class'}
+              <div className="relative group">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                  {user?.role === 'teacher' && classes.length === 1 ? 'Assigned Class' : 'Target Class'}
                 </label>
                 <select
                   value={selectedClassId}
                   onChange={(e) => setSelectedClassId(e.target.value)}
-                  className="w-full border rounded-md px-3 py-2 disabled:bg-gray-50 disabled:text-gray-500"
+                  className="w-full border-gray-100 bg-gray-50 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 transition-all font-bold text-gray-900 disabled:opacity-70"
                   disabled={user?.role === 'teacher' && classes.length === 1}
                 >
                   <option value="">Select Class</option>
@@ -427,7 +440,7 @@ const Attendance = () => {
                 <button
                   onClick={fetchAttendanceSheet}
                   disabled={!selectedClassId}
-                  className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400 w-full"
+                  className="w-full bg-primary text-white px-6 py-3.5 rounded-xl hover:brightness-95 disabled:bg-gray-200 disabled:text-gray-400 font-black uppercase text-xs tracking-widest shadow-md shadow-primary/20 transition-all active:scale-[0.98]"
                 >
                   Load Sheet
                 </button>
@@ -487,15 +500,17 @@ const Attendance = () => {
               </div>
               <div className="overflow-x-visible md:overflow-x-auto no-scrollbar">
                 <div className="md:hidden p-4 space-y-4 bg-gray-50 border-b">
-                   <div className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-gray-100">
-                      <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Quick Actions</span>
+                    <div className="flex justify-between items-center bg-white p-2.5 rounded-2xl shadow-sm border border-gray-100">
+                      <div className="hidden sm:block pl-2">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Bulk</span>
+                      </div>
                       {!isPastDate && (
-                        <div className="flex gap-2">
-                          <button onClick={() => markAll('present')} className="px-3 py-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-black rounded-lg border border-emerald-100 uppercase tracking-tighter shadow-sm">Mark All Present</button>
-                          <button onClick={() => markAll('absent')} className="px-3 py-1.5 bg-rose-50 text-rose-700 text-[10px] font-black rounded-lg border border-rose-100 uppercase tracking-tighter shadow-sm">Mark All Absent</button>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <button onClick={() => markAll('present')} className="flex-1 sm:flex-none px-3 py-2 bg-emerald-50 text-emerald-700 text-[10px] sm:text-xs font-black rounded-xl border border-emerald-100 uppercase tracking-tighter shadow-sm transition-all active:scale-95">Mark All Present</button>
+                          <button onClick={() => markAll('absent')} className="flex-1 sm:flex-none px-3 py-2 bg-rose-50 text-rose-700 text-[10px] sm:text-xs font-black rounded-xl border border-rose-100 uppercase tracking-tighter shadow-sm transition-all active:scale-95">Mark All Absent</button>
                         </div>
                       )}
-                   </div>
+                    </div>
                 </div>
 
                 <table className="min-w-full divide-y divide-gray-200 hidden md:table">
@@ -596,13 +611,13 @@ const Attendance = () => {
                               <div className="text-base font-black text-gray-900 truncate">{student.name}</div>
                               <div className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">{student.admissionNumber}</div>
                            </div>
-                           <div className={`shrink-0 h-6 px-2 flex items-center justify-center rounded-full text-[9px] font-black uppercase tracking-widest ${
-                              student.status === 'present' ? 'bg-emerald-100 text-emerald-700' :
-                              student.status === 'absent' ? 'bg-rose-100 text-rose-700' :
-                              student.status === 'late' ? 'bg-amber-100 text-amber-700' :
-                              'bg-indigo-100 text-indigo-700'
-                           }`}>
-                              {student.status}
+                           <div className={`shrink-0 h-6 px-3 flex items-center justify-center rounded-xl text-[9px] font-black uppercase tracking-widest border ${
+                               student.status === 'present' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                               student.status === 'absent' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                               student.status === 'late' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                               'bg-indigo-50 text-indigo-700 border-indigo-200'
+                            }`}>
+                               {student.status}
                            </div>
                         </div>
 
