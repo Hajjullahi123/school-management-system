@@ -322,14 +322,6 @@ const ParentDashboard = () => {
       msOverflowStyle: 'none'
     }}>
       {/* Hide scrollbar but keep functionality */}
-      <style>{`
-        div::-webkit-scrollbar { display: none; }
-        @keyframes subtle-bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-5px); }
-        }
-        .animate-subtle-bounce { animation: subtle-bounce 3s ease-in-out infinite; }
-      `}</style>
 
       {/* Priority Alerts section - Premium Redesign */}
       {alerts.length > 0 && (
