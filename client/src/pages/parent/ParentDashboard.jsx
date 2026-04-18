@@ -222,7 +222,7 @@ const ParentDashboard = () => {
   }
 
   return (
-    <div className="space-y-6 max-h-[calc(100vh-180px)] overflow-y-auto pr-2 pb-10 custom-scrollbar">
+    <div className="space-y-6 pb-20 px-2 transition-all duration-500">
       {/* Alerts */}
       {alerts.length > 0 && (
         <div className="space-y-4 mb-8">
