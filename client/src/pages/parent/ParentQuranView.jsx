@@ -402,9 +402,19 @@ const ParentQuranView = () => {
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-8 bg-gray-200 custom-scrollbar">
-              <div ref={componentRef} className="bg-white shadow-lg mx-auto transform origin-top scale-[0.85] md:scale-100">
-                <QuranReportCard student={selectedChild} records={records} type={printType} />
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-0 md:p-8 bg-slate-100 custom-scrollbar">
+              {/* Mobile Scroll Hint */}
+              <div className="md:hidden flex items-center justify-center gap-2 py-4 text-emerald-600 font-black text-[10px] uppercase tracking-widest animate-pulse">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+                Pinch or scroll to see whole report
+              </div>
+
+              <div className="overflow-x-auto pb-12 px-4 flex justify-center no-scrollbar">
+                <div ref={componentRef} className="origin-top scale-[0.42] xs:scale-[0.55] md:scale-90 lg:scale-100 transition-transform duration-500 shadow-2xl">
+                  <QuranReportCard student={selectedChild} records={records} type={printType} />
+                </div>
               </div>
             </div>
           </div>
@@ -472,8 +482,8 @@ const QuranReportCard = ({ student, records, type }) => {
               {filteredRecords.map(record => (
                 <tr key={record.id} className="text-sm">
                   <td className="p-3 font-bold text-slate-600">{new Date(record.date).toLocaleDateString()}</td>
-                  <td className="p-3 font-black text-slate-900">{record.surah || `Juz ${record.juz}`} ({record.type})</td>
-                  <td className="p-3 font-bold text-slate-500">{record.ayahStart}-{record.ayahEnd || record.ayahStart}</td>
+                  <td className="p-3 font-black text-slate-900 min-w-[180px]">{record.surah || `Juz ${record.juz}`} ({record.type})</td>
+                  <td className="p-3 font-bold text-slate-500 min-w-[100px]">{record.ayahStart}-{record.ayahEnd || record.ayahStart}</td>
                   <td className="p-3 text-center">
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
                       record.status === 'Excellent' ? 'bg-green-100 text-green-700' :

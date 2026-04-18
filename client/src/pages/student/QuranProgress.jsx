@@ -179,36 +179,36 @@ const QuranProgress = () => {
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 flex flex-col justify-between">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Sessions</span>
+        <div className="bg-white p-4 sm:p-6 rounded-[24px] shadow-sm border border-gray-100 flex flex-col justify-between">
+          <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight mb-2">Total Sessions</span>
           <div>
-            <p className="text-3xl font-black text-slate-900">{stats.totalRecords}</p>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Entries</p>
+            <p className="text-xl sm:text-3xl font-black text-slate-900">{stats.totalRecords}</p>
+            <p className="text-[8px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider">Entries</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 flex flex-col justify-between">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Weekly Activity</span>
+        <div className="bg-white p-4 sm:p-6 rounded-[24px] shadow-sm border border-gray-100 flex flex-col justify-between">
+          <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight mb-2">Weekly Activity</span>
           <div>
-            <p className="text-3xl font-black text-emerald-600">{stats.thisWeek}</p>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sessions</p>
+            <p className="text-xl sm:text-3xl font-black text-emerald-600">{stats.thisWeek}</p>
+            <p className="text-[8px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sessions</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 flex flex-col justify-between">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Growth</span>
+        <div className="bg-white p-4 sm:p-6 rounded-[24px] shadow-sm border border-gray-100 flex flex-col justify-between">
+          <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight mb-2">Monthly Growth</span>
           <div>
-            <p className="text-3xl font-black text-blue-600">{stats.thisMonth}</p>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Wins</p>
+            <p className="text-xl sm:text-3xl font-black text-blue-600">{stats.thisMonth}</p>
+            <p className="text-[8px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider">Wins</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 flex flex-col justify-between">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Average Rank</span>
+        <div className="bg-white p-4 sm:p-6 rounded-[24px] shadow-sm border border-gray-100 flex flex-col justify-between">
+          <span className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight mb-2">Average Rank</span>
           <div>
-            <p className={`text-2xl font-black ${
+            <p className={`text-lg sm:text-2xl font-black ${
               stats.averageStatus === 'Excellent' ? 'text-emerald-500' :
               stats.averageStatus === 'Good' ? 'text-blue-500' :
               stats.averageStatus === 'Fair' ? 'text-amber-500' : 'text-rose-500'
             }`}>{stats.averageStatus}</p>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status</p>
+            <p className="text-[8px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status</p>
           </div>
         </div>
       </div>
@@ -340,9 +340,19 @@ const QuranProgress = () => {
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-8 bg-gray-200 custom-scrollbar">
-              <div ref={componentRef} className="bg-white shadow-lg mx-auto transform origin-top scale-[0.8] md:scale-100">
-                <QuranReportCard student={{...user.student, user }} records={records} type={printType} />
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-0 md:p-8 bg-slate-100 custom-scrollbar">
+              {/* Mobile Scroll Hint */}
+              <div className="md:hidden flex items-center justify-center gap-2 py-4 text-emerald-600 font-black text-[10px] uppercase tracking-widest animate-pulse">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+                Pinch or scroll to see whole report
+              </div>
+
+              <div className="overflow-x-auto pb-12 px-4 flex justify-center no-scrollbar">
+                <div ref={componentRef} className="origin-top scale-[0.42] xs:scale-[0.55] md:scale-90 lg:scale-100 transition-transform duration-500 shadow-2xl">
+                  <QuranReportCard student={{...user.student, user }} records={records} type={printType} />
+                </div>
               </div>
             </div>
           </div>
@@ -411,11 +421,11 @@ const QuranReportCard = ({ student, records, type }) => {
               {filteredRecords.map(record => (
                 <tr key={record.id} className="text-xs">
                   <td className="p-4 font-black text-slate-400 border-x border-slate-50">{new Date(record.date).toLocaleDateString()}</td>
-                  <td className="p-4 font-black text-slate-900 border-x border-slate-50">
+                  <td className="p-4 font-black text-slate-900 border-x border-slate-50 min-w-[180px]">
                     {record.surah || `Juz ${record.juz}`}
                     <span className="block text-[8px] font-bold text-emerald-600 uppercase mt-0.5">{record.type}</span>
                   </td>
-                  <td className="p-4 font-bold text-slate-600 border-x border-slate-50">V. {record.ayahStart}-{record.ayahEnd || 'End'}</td>
+                  <td className="p-4 font-bold text-slate-600 border-x border-slate-50 min-w-[100px]">V. {record.ayahStart}-{record.ayahEnd || 'End'}</td>
                   <td className="p-4 text-center border-x border-slate-50 font-black">
                      <span className={record.status === 'Excellent' ? 'text-emerald-600' : 'text-slate-900'}>
                        {record.status.toUpperCase()}
