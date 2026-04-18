@@ -888,7 +888,6 @@ const TermReportCard = () => {
                       <span className="text-[8px] font-black block uppercase text-gray-600">PRINCIPAL'S SIGNATURE</span>
                     </div>
                   </div>
-                  </div>
 
                   {/* DOCUMENT VERIFICATION FOOTER */}
                   <div className="mt-auto border-t border-gray-200 pt-2 flex justify-between items-center bg-transparent">
