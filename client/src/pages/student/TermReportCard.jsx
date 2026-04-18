@@ -921,16 +921,17 @@ const TermReportCard = () => {
                     <div className="text-right">
                       <div className="text-[8px] font-black text-slate-900 uppercase tracking-tighter">Academic Status</div>
                       <div className="text-[7px] font-bold text-gray-400">TERM: {data.term?.name?.toUpperCase()} • GEN: {new Date().toLocaleDateString('en-GB')}</div>
-                                    </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        );
-      })}
-    </>
-  )}
+        </div>
+      );
+    })}
+  </>
+)}
 
   <style>{`
     @media (max-width: 640px) {
