@@ -580,8 +580,8 @@ const CumulativeReport = () => {
 
       {/* Report(s) Display */}
       {hasReports && (
-        <div className="max-w-[210mm] mx-auto no-scrollbar overflow-x-auto print:overflow-visible">
-          <div ref={printRef} className="print-container">
+        <div className="report-card-mobile-wrapper overflow-x-auto pb-8 print:overflow-visible">
+          <div ref={printRef} className="report-card-scaler origin-top-left sm:origin-top scale-[0.45] xs:scale-[0.55] sm:scale-100 transition-transform duration-500">
             {allReports.map((data, idx) => renderCard(data, idx, allReports.length))}
           </div>
         </div>
@@ -632,6 +632,30 @@ const CumulativeReport = () => {
         * { box-sizing: border-box !important; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @media (max-width: 640px) {
+          .report-card-mobile-wrapper {
+             min-height: 500px;
+          }
+          .report-card-scaler {
+             width: 210mm;
+             margin-left: 0;
+          }
+          @media (max-width: 400px) { .report-card-scaler { transform: scale(0.42); } }
+          @media (min-width: 401px) and (max-width: 500px) { .report-card-scaler { transform: scale(0.52); } }
+          @media (min-width: 501px) and (max-width: 639px) { .report-card-scaler { transform: scale(0.7); } }
+        }
+        
+        @media print {
+          .report-card-scaler { 
+            transform: none !important; 
+            width: auto !important;
+            margin: 0 !important;
+          }
+          .report-card-mobile-wrapper {
+            overflow: visible !important;
+            padding: 0 !important;
+          }
+        }
       `}</style>
     </div>
   );

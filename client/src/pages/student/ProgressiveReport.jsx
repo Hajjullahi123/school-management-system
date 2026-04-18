@@ -394,8 +394,8 @@ const ProgressiveReport = () => {
       )}
 
       {reports.length > 0 && (
-        <div className="print-safe-area relative bg-slate-100/50 backdrop-blur-xl p-4 sm:p-10 rounded-[40px] shadow-inner border border-white" style={{ overflowX: 'auto' }}>
-          <div ref={componentRef} className="print-container">
+        <div className="report-card-mobile-wrapper overflow-x-auto pb-8 print:overflow-visible">
+          <div ref={componentRef} className="report-card-scaler origin-top-left sm:origin-top scale-[0.45] xs:scale-[0.55] sm:scale-100 transition-transform duration-500">
             {reports.map((data, index) => {
               const ss = data.schoolSettings || schoolSettings;
               const rs = data.reportSettings || {};
@@ -407,7 +407,7 @@ const ProgressiveReport = () => {
                 : null;
 
               return (
-                <div key={data.student.id} className="report-card-page bg-white mx-auto shadow-2xl relative overflow-hidden" style={{ width: '210mm', minHeight: '297mm', padding: '15mm', boxSizing: 'border-box', pageBreakAfter: index < reports.length - 1 ? 'always' : 'auto', fontFamily: reportFont }}>
+                <div key={data.student.id} className="report-card-page bg-white mx-auto shadow-2xl relative overflow-hidden" style={{ width: '210mm', minWidth: '210mm', minHeight: '297mm', padding: '15mm', boxSizing: 'border-box', pageBreakAfter: index < reports.length - 1 ? 'always' : 'auto', fontFamily: reportFont }}>
 
                   {logoUri && (
                     <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] z-0">
@@ -622,7 +622,29 @@ const ProgressiveReport = () => {
           </div>
 
           <style>{`
+          @media (max-width: 640px) {
+            .report-card-mobile-wrapper {
+               min-height: 500px;
+               padding: 10px;
+            }
+            .report-card-scaler {
+               width: 210mm;
+               margin-left: 0;
+            }
+            @media (max-width: 400px) { .report-card-scaler { transform: scale(0.42); } }
+            @media (min-width: 401px) and (max-width: 500px) { .report-card-scaler { transform: scale(0.52); } }
+            @media (min-width: 501px) and (max-width: 639px) { .report-card-scaler { transform: scale(0.7); } }
+          }
           @media print {
+            .report-card-scaler { 
+              transform: none !important; 
+              width: auto !important;
+              margin: 0 !important;
+            }
+            .report-card-mobile-wrapper {
+              overflow: visible !important;
+              padding: 0 !important;
+            }
             @page { 
               size: A4; 
               margin: 0; 

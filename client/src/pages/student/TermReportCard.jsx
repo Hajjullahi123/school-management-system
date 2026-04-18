@@ -491,7 +491,8 @@ const TermReportCard = () => {
                   Scroll to view full sheet
                 </div>
 
-                <div className="report-card-wrapper overflow-x-auto no-scrollbar pb-4 print:overflow-visible">
+                <div className="report-card-mobile-wrapper overflow-x-auto pb-8 print:overflow-visible">
+                  <div className="report-card-scaler origin-top-left sm:origin-top scale-[0.45] xs:scale-[0.55] sm:scale-100 transition-transform duration-500">
             {(() => {
             const reportColor = data.reportSettings?.reportColorScheme || (data.schoolSettings || schoolSettings)?.reportColorScheme || (data.schoolSettings || schoolSettings)?.primaryColor;
             const reportFont = data.reportSettings?.reportFontFamily || (data.schoolSettings || schoolSettings)?.reportFontFamily || 'serif';
@@ -501,7 +502,7 @@ const TermReportCard = () => {
             const layout = data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
             const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
             return (
-                  <div key={idx} className={`relative bg-white p-8 print:p-4 my-8 print:my-0 shadow-2xl print:shadow-none print:break-after-page text-black ${borderStyle} print:emerald-border-A4 mx-auto w-[210mm] min-w-[210mm] md:min-w-0`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
+                  <div key={idx} className={`relative bg-white p-8 print:p-4 my-8 print:my-0 shadow-2xl print:shadow-none print:break-after-page text-black ${borderStyle} print:emerald-border-A4 mx-auto w-[210mm] min-w-[210mm]`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
 
                 {/* PROTECTION WATERMARK */}
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] rotate-[-35deg] overflow-hidden z-0 print:opacity-[0.05]">
@@ -978,14 +979,6 @@ const TermReportCard = () => {
             margin: 0 -1rem;
             padding: 0 1rem;
             display: flex;
-            justify-content: flex-start;
-          }
-          #result-sheet {
-            zoom: 0.45;
-            -moz-transform: scale(0.45);
-            -moz-transform-origin: top center;
-          }
-        }
       `}</style>
     </div>
   );
