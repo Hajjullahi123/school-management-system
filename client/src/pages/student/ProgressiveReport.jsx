@@ -192,15 +192,8 @@ const ProgressiveReport = () => {
     documentTitle: `Progressive_Reports_${terms.find(t => t.id.toString() === termId)?.name || 'Term'}`,
   });
 
-  return (
-    <div className="space-y-6 max-h-[calc(100vh-180px)] overflow-y-auto pr-2 pb-10" style={{
-      scrollbarWidth: 'none',
-      msOverflowStyle: 'none'
-    }}>
-      {/* Hide scrollbar but keep functionality */}
-      <style>{`
-        div::-webkit-scrollbar { display: none; }
-      `}</style>
+    <div className="space-y-6 pb-20">
+
 
       {/* Header Section - Glassmorphism */}
       <div className="relative group overflow-hidden rounded-[32px] p-1 bg-gradient-to-br from-emerald-600 via-teal-500 to-primary shadow-2xl">
