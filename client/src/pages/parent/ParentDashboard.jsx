@@ -128,12 +128,6 @@ const ParentDashboard = () => {
     setShowFeeModal(true);
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN'
-    }).format(amount);
-  };
 
   const getTodayAttendance = (student) => {
     if (!student.attendanceRecords || student.attendanceRecords.length === 0) return null;
@@ -499,6 +493,7 @@ const ParentDashboard = () => {
                       </div>
                     </div>
                   </div>
+                </div>
 
                 <div className="p-6 sm:p-8 space-y-6 flex-1 bg-white">
                   {/* Financial Ledger Section */}
@@ -981,6 +976,8 @@ const ParentDashboard = () => {
 
     </div>
   );
+};
+};
 };
 
 export default ParentDashboard;
