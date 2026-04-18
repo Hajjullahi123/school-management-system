@@ -37,6 +37,8 @@ const QuranTracker = () => {
   const [classSummary, setClassSummary] = useState([]);
   const [editingRecord, setEditingRecord] = useState(null);
   const [studentRecords, setStudentRecords] = useState([]);
+  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
+  const [isBulkMode, setIsBulkMode] = useState(false);
 
   const [targetForm, setTargetForm] = useState({
     classId: '',
@@ -257,17 +259,24 @@ const QuranTracker = () => {
     e.preventDefault();
     try {
       let response;
-      if (editingRecord) {
+      if (isBulkMode) {
+        response = await api.post('/api/quran-tracker/records/bulk', {
+          ...recordForm,
+          studentIds: selectedStudentIds
+        });
+      } else if (editingRecord) {
         response = await api.put(`/api/quran-tracker/records/${editingRecord.id}`, recordForm);
       } else {
         response = await api.post('/api/quran-tracker/records', recordForm);
       }
 
       if (response.ok) {
-        toast.success(editingRecord ? 'Record updated' : 'Progress recorded successfully');
+        toast.success(isBulkMode ? 'Bulk update successful' : editingRecord ? 'Record updated' : 'Progress recorded successfully');
         setShowRecordModal(false);
         resetRecordForm();
         setEditingRecord(null);
+        setIsBulkMode(false);
+        setSelectedStudentIds([]);
         if (selectedStudent) {
           fetchStudentRecords(selectedStudent.id);
         }
@@ -585,10 +594,47 @@ const QuranTracker = () => {
                       <p className="text-gray-500">No students found in this class</p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto border rounded-xl">
-                      <table className="min-w-full divide-y divide-gray-200">
+                    <>
+                      {selectedStudentIds.length > 0 && (
+                        <div className="sticky top-0 z-20 bg-primary/10 backdrop-blur-md border-b border-primary/20 p-4 flex justify-between items-center animate-slideIn">
+                          <div className="flex items-center gap-3">
+                            <span className="bg-primary text-white text-xs font-black px-3 py-1 rounded-full">{selectedStudentIds.length} Selected</span>
+                            <p className="text-sm font-bold text-primary">Apply bulk progress update</p>
+                          </div>
+                          <div className="flex gap-2">
+                             <button
+                              onClick={() => {
+                                setIsBulkMode(true);
+                                setShowRecordModal(true);
+                              }}
+                              className="bg-primary text-white px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:shadow-lg transition"
+                            >
+                              Bulk Update
+                            </button>
+                            <button
+                              onClick={() => setSelectedStudentIds([])}
+                              className="text-gray-500 hover:text-gray-700 text-xs font-bold px-3 py-2"
+                            >
+                              Deselect All
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <div className="overflow-x-auto border rounded-xl">
+                        <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
+                            <th className="px-6 py-4 text-left">
+                              <input 
+                                type="checkbox" 
+                                className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                                checked={selectedStudentIds.length === classSummary.length && classSummary.length > 0}
+                                onChange={(e) => {
+                                  if (e.target.checked) setSelectedStudentIds(classSummary.map(s => s.id));
+                                  else setSelectedStudentIds([]);
+                                }}
+                              />
+                            </th>
                             <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 uppercase tracking-widest">Student</th>
                             <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 uppercase tracking-widest">Records</th>
                             <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-500 uppercase tracking-widest">Last Activity</th>
@@ -598,7 +644,18 @@ const QuranTracker = () => {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-100">
                           {classSummary.map(student => (
-                            <tr key={student.id} className="hover:bg-gray-50 transition">
+                            <tr key={student.id} className={`hover:bg-gray-50 transition ${selectedStudentIds.includes(student.id) ? 'bg-primary/5' : ''}`}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <input 
+                                  type="checkbox" 
+                                  className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                                  checked={selectedStudentIds.includes(student.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) setSelectedStudentIds([...selectedStudentIds, student.id]);
+                                    else setSelectedStudentIds(selectedStudentIds.filter(id => id !== student.id));
+                                  }}
+                                />
+                              </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="text-sm font-semibold text-gray-900">
                                   {student.user.firstName} {student.user.lastName}
@@ -623,11 +680,12 @@ const QuranTracker = () => {
                                   onClick={() => {
                                     setSelectedStudent(student);
                                     setRecordForm({ ...recordForm, studentId: student.id });
+                                    setIsBulkMode(false);
                                     setShowRecordModal(true);
                                   }}
                                   className="text-primary hover:text-primary/80 font-bold text-xs uppercase tracking-wider bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/20"
                                 >
-                                  + Add Progress
+                                  + Record
                                 </button>
                               </td>
                             </tr>
@@ -635,7 +693,8 @@ const QuranTracker = () => {
                         </tbody>
                       </table>
                     </div>
-                  )}
+                  </>
+                )}
                 </div>
               )}
 
@@ -823,10 +882,17 @@ const QuranTracker = () => {
           <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-lg border border-gray-100">
             <div className="flex justify-between items-center mb-8">
               <div>
-                <h3 className="text-2xl font-black text-gray-900">{editingRecord ? 'Update' : 'Record'} Progress</h3>
-                <p className="text-gray-400 text-sm font-medium">Tracking for {selectedStudent?.user?.firstName || 'Student'}</p>
+                <h3 className="text-2xl font-black text-gray-900">{isBulkMode ? 'Bulk' : editingRecord ? 'Update' : 'Record'} Progress</h3>
+                <p className="text-gray-400 text-sm font-medium">Tracking for {isBulkMode ? `${selectedStudentIds.length} Students` : selectedStudent?.user?.firstName || 'Student'}</p>
               </div>
-              <button onClick={() => { setShowRecordModal(false); setEditingRecord(null); }} className="p-2 hover:bg-gray-100 rounded-full transition">
+              <button 
+                onClick={() => { 
+                  setShowRecordModal(false); 
+                  setEditingRecord(null); 
+                  setIsBulkMode(false);
+                }} 
+                className="p-2 hover:bg-gray-100 rounded-full transition"
+              >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>

@@ -158,6 +158,50 @@ router.post('/records', authenticate, authorize(['admin', 'teacher']), async (re
   }
 });
 
+// Add bulk progress records (Teacher)
+router.post('/records/bulk', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
+  try {
+    const { studentIds, date, type, juz, surah, ayahStart, ayahEnd, pages, status, comments } = req.body;
+
+    if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0 || !date || !type || !status) {
+      return res.status(400).json({ error: 'Students, date, type and status are required' });
+    }
+
+    const recordsData = studentIds.map(studentId => ({
+      schoolId: req.schoolId,
+      studentId: parseInt(studentId),
+      teacherId: req.user.id,
+      date: new Date(date),
+      type,
+      juz: juz ? parseInt(juz) : null,
+      surah,
+      ayahStart: ayahStart ? parseInt(ayahStart) : null,
+      ayahEnd: ayahEnd ? parseInt(ayahEnd) : null,
+      pages: pages ? parseFloat(pages) : null,
+      status,
+      comments
+    }));
+
+    const records = await prisma.quranRecord.createMany({
+      data: recordsData
+    });
+
+    res.status(201).json({ count: records.count });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'BATCH_CREATE',
+      resource: 'QURAN_RECORD',
+      details: { count: records.count, studentIds },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error creating bulk records:', error);
+    res.status(500).json({ error: 'Failed to create bulk records' });
+  }
+});
+
 // Get class progress summary
 router.get('/class-summary/:classId', authenticate, async (req, res) => {
   try {
