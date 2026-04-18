@@ -721,6 +721,7 @@ const ParentDashboard = () => {
                     )}
                   </div>
                 </div>
+              </div>
             );
           })}
         </div>
@@ -976,8 +977,6 @@ const ParentDashboard = () => {
 
     </div>
   );
-};
-};
 };
 
 export default ParentDashboard;
