@@ -88,6 +88,15 @@ export const useSchoolSettings = () => {
             showFeesOnReport: data.showFeesOnReport !== false, // default true
             showAttendanceOnReport: data.showAttendanceOnReport !== false, // default true
             reportLayout: data.reportLayout || 'classic',
+            // Certificate & Testimonial Customization
+            certFontFamily: data.certFontFamily || 'serif',
+            certBorderType: data.certBorderType || 'ornate',
+            certPrimaryColor: data.certPrimaryColor || '',
+            certSecondaryColor: data.certSecondaryColor || '',
+            testimFontFamily: data.testimFontFamily || 'sans-serif',
+            testimBorderType: data.testimBorderType || 'modern',
+            testimPrimaryColor: data.testimPrimaryColor || '',
+            testimSecondaryColor: data.testimSecondaryColor || '',
           });
         }
 

@@ -6,11 +6,13 @@ import { useReactToPrint } from 'react-to-print';
 import { Printer, Shield, FileDown } from 'lucide-react';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { toast } from '../../utils/toast';
+import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 
 const CertificateView = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
   const componentRef = useRef();
+  const { settings: schoolSettings } = useSchoolSettings();
   const [certificate, setCertificate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -239,8 +241,10 @@ const CertificateView = () => {
     }
   };
 
-  const primaryCol = certificate.school?.certPrimaryColor || certificate.school?.primaryColor || '#1e40af';
-  const secondaryCol = certificate.school?.certSecondaryColor || certificate.school?.secondaryColor || '#3b82f6';
+  const primaryCol = schoolSettings?.certPrimaryColor || certificate.school?.certPrimaryColor || schoolSettings?.primaryColor || certificate.school?.primaryColor || '#1e40af';
+  const secondaryCol = schoolSettings?.certSecondaryColor || certificate.school?.certSecondaryColor || schoolSettings?.secondaryColor || certificate.school?.secondaryColor || '#3b82f6';
+  const certFont = schoolSettings?.certFontFamily || certificate.school?.certFontFamily || 'serif';
+  const certBorder = schoolSettings?.certBorderType || certificate.school?.certBorderType || 'ornate';
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -296,8 +300,8 @@ const CertificateView = () => {
           width: '297mm',
           minWidth: '297mm',
           height: '210mm',
-          fontFamily: certificate.school?.certFontFamily || 'serif',
-          ...getBorderStyle(certificate.school?.certBorderType, primaryCol, secondaryCol)
+          fontFamily: certFont,
+          ...getBorderStyle(certBorder, primaryCol, secondaryCol)
         }}
       >
         {/* Watermark */}

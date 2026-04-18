@@ -5,11 +5,13 @@ import { useReactToPrint } from 'react-to-print';
 import { Printer, Shield, ChevronLeft } from 'lucide-react';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { toast } from '../../utils/toast';
+import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 
 const TestimonialView = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
   const componentRef = useRef();
+  const { settings: schoolSettings } = useSchoolSettings();
   const [testimonial, setTestimonial] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -152,8 +154,10 @@ const TestimonialView = () => {
     day: 'numeric'
   });
 
-  const primaryCol = testimonial.school?.testimPrimaryColor || testimonial.school?.primaryColor || '#1e40af';
-  const secondaryCol = testimonial.school?.testimSecondaryColor || testimonial.school?.secondaryColor || '#3b82f6';
+  const primaryCol = schoolSettings?.testimPrimaryColor || testimonial.school?.testimPrimaryColor || schoolSettings?.primaryColor || testimonial.school?.primaryColor || '#1e40af';
+  const secondaryCol = schoolSettings?.testimSecondaryColor || testimonial.school?.testimSecondaryColor || schoolSettings?.secondaryColor || testimonial.school?.secondaryColor || '#3b82f6';
+  const testimFont = schoolSettings?.testimFontFamily || testimonial.school?.testimFontFamily || 'sans-serif';
+  const testimBorder = schoolSettings?.testimBorderType || testimonial.school?.testimBorderType || 'modern';
   
   const getBorderStyle = (type, primary, secondary) => {
     switch (type) {
@@ -210,11 +214,11 @@ const TestimonialView = () => {
           height: '297mm',
           padding: '15mm',
           boxSizing: 'border-box',
-          fontFamily: testimonial.school?.testimFontFamily || 'sans-serif'
+          fontFamily: testimFont || 'sans-serif'
         }}
       >
         {/* Border */}
-        <div className="absolute inset-0 pointer-events-none z-20" style={{ border: getBorderStyle(testimonial.school?.testimBorderType, primaryCol, secondaryCol), opacity: testimonial.school?.testimBorderType === 'ornate' ? 0.15 : 0.9 }}></div>
+        <div className="absolute inset-0 pointer-events-none z-20" style={{ border: getBorderStyle(testimBorder, primaryCol, secondaryCol), opacity: testimBorder === 'ornate' ? 0.15 : 0.9 }}></div>
         <div className="absolute inset-4 border border-gray-200 pointer-events-none z-20" style={{ display: testimonial.school?.testimBorderType === 'none' ? 'none' : 'block' }}></div>
 
         {/* Security Watermark */}

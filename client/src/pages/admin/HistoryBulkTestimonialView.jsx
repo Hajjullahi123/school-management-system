@@ -4,11 +4,13 @@ import { api, API_BASE_URL } from '../../api';
 import { useReactToPrint } from 'react-to-print';
 import { Printer, Shield, ChevronLeft } from 'lucide-react';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
+import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 
 const HistoryBulkTestimonialView = () => {
   const { classId, sessionId } = useParams();
   const navigate = useNavigate();
   const componentRef = useRef();
+  const { settings: schoolSettings } = useSchoolSettings();
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -111,19 +113,33 @@ const HistoryBulkTestimonialView = () => {
       {/* Print Container */}
       <div ref={componentRef} className="print-container flex flex-col items-center gap-0 overflow-x-auto md:overflow-visible pb-10">
         {testimonials.map((testimonial) => {
+          const primaryCol = schoolSettings?.testimPrimaryColor || testimonial.school?.testimPrimaryColor || schoolSettings?.primaryColor || testimonial.school?.primaryColor || '#1e40af';
+          const secondaryCol = schoolSettings?.testimSecondaryColor || testimonial.school?.testimSecondaryColor || schoolSettings?.secondaryColor || testimonial.school?.secondaryColor || '#3b82f6';
+          const testimFont = schoolSettings?.testimFontFamily || testimonial.school?.testimFontFamily || 'serif';
+          const testimBorder = schoolSettings?.testimBorderType || testimonial.school?.testimBorderType || 'ornate';
           const studentName = `${testimonial.student?.user?.firstName || ''} ${testimonial.student?.user?.middleName || ''} ${testimonial.student?.user?.lastName || ''}`.trim();
-          const verificationUrl = `${window.location.origin}/verify/testimonial/${testimonial.testimonialNumber}`;
-          const currentDate = new Date(testimonial.dateIssued).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          });
+
+          const getBorderStyle = (type, primary, secondary) => {
+            switch (type) {
+              case 'modern':
+                return `15px solid ${primary || '#3b82f6'}`;
+              case 'minimal':
+                return `4px solid ${primary || '#1e40af'}`;
+              case 'solid':
+                return `30px solid ${primary || '#1e40af'}`;
+              case 'none':
+                return 'none';
+              case 'ornate':
+              default:
+                return `16px double ${primary || '#1e40af'}`;
+            }
+          };
 
           return (
-            <div key={testimonial.id} className="testimonial-page bg-white relative overflow-hidden mx-auto my-4 shadow-xl md:shadow-none" style={{ width: '210mm', minWidth: '210mm', height: '297mm', padding: '20mm', fontFamily: "'Playfair Display', serif" }}>
-              {/* Ornate Border */}
-              <div className="absolute inset-0 border-[16px] border-double pointer-events-none z-20" style={{ borderColor: testimonial.school?.primaryColor || '#1e40af', opacity: 0.15 }}></div>
-              <div className="absolute inset-4 border border-gray-200 pointer-events-none z-20"></div>
+            <div key={testimonial.id} className="testimonial-page bg-white relative overflow-hidden mx-auto my-4 shadow-xl md:shadow-none print:emerald-print-A4" style={{ width: '210mm', minWidth: '210mm', height: '297mm', padding: '15mm', fontFamily: testimFont || 'serif' }}>
+              {/* Border */}
+              <div className="absolute inset-0 pointer-events-none z-20" style={{ border: getBorderStyle(testimBorder, primaryCol, secondaryCol), opacity: testimBorder === 'ornate' ? 0.15 : 0.9 }}></div>
+              <div className="absolute inset-4 border border-gray-200 pointer-events-none z-20" style={{ display: testimBorder === 'none' ? 'none' : 'block' }}></div>
 
               {/* Security Watermark */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] rotate-[-45deg] select-none z-0">

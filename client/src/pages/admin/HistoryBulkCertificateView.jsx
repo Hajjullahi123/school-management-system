@@ -4,11 +4,13 @@ import { api, API_BASE_URL } from '../../api';
 import { useReactToPrint } from 'react-to-print';
 import { Printer, Shield, Eye } from 'lucide-react';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
+import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 
 const HistoryBulkCertificateView = () => {
   const { classId, sessionId } = useParams();
   const navigate = useNavigate();
   const componentRef = useRef();
+  const { settings: schoolSettings } = useSchoolSettings();
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -110,13 +112,36 @@ const HistoryBulkCertificateView = () => {
       {/* Print Container */}
       <div ref={componentRef} className="print-container">
         {certificates.map((cert) => {
+          const primaryCol = schoolSettings?.certPrimaryColor || cert.school?.certPrimaryColor || schoolSettings?.primaryColor || cert.school?.primaryColor || '#1e40af';
+          const secondaryCol = schoolSettings?.certSecondaryColor || cert.school?.certSecondaryColor || schoolSettings?.secondaryColor || cert.school?.secondaryColor || '#3b82f6';
+          const certFont = schoolSettings?.certFontFamily || cert.school?.certFontFamily || 'serif';
+          const certBorder = schoolSettings?.certBorderType || cert.school?.certBorderType || 'ornate';
           const studentName = `${cert.student?.user?.firstName || ''} ${cert.student?.user?.lastName || ''}`.trim();
           const verificationUrl = `${window.location.origin}/verify/certificate/${cert.certificateNumber}`;
           const displayPhotoUrl = cert.passportUrl || cert.student?.user?.photoUrl || cert.student?.photoUrl;
 
+          const getBorderStyle = (type, primary, secondary) => {
+            switch (type) {
+              case 'modern':
+                return { border: `15px solid ${primary || '#3b82f6'}`, outline: `2px solid ${secondary || '#1e40af'}`, outlineOffset: '-25px' };
+              case 'minimal':
+                return { border: `4px solid ${primary || '#1e40af'}`, outline: '1px solid #ccc', outlineOffset: '-10px' };
+              case 'solid':
+                return { border: `30px solid ${primary || '#1e40af'}` };
+              case 'none':
+                return {};
+              case 'ornate':
+              default:
+                return {
+                  border: '20px solid',
+                  borderImage: `linear-gradient(45deg, ${primary || '#d4af37'}, ${secondary || '#f4d03f'}) 1`
+                };
+            }
+          };
+
           return (
-            <div key={cert.id} className="certificate-page bg-white p-0 m-0 relative" style={{ width: '297mm', height: '210mm', overflow: 'hidden' }}>
-              <div className="absolute inset-0 m-[10mm]" style={{ border: '15px solid', borderImage: 'linear-gradient(45deg, #d4af37, #f4d03f) 1' }}>
+            <div key={cert.id} className="certificate-page bg-white p-0 m-0 relative print:emerald-print-A4-landscape mx-auto my-4 shadow-xl md:shadow-none" style={{ width: '297mm', minWidth: '297mm', height: '210mm', overflow: 'hidden', fontFamily: certFont }}>
+              <div className="absolute inset-0" style={{ ...getBorderStyle(certBorder, primaryCol, secondaryCol), margin: '0' }}>
                 {/* Watermark */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none"
                   style={{ fontSize: '100px', fontWeight: 'bold', transform: 'rotate(-45deg)' }}>

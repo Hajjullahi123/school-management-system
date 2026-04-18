@@ -363,12 +363,16 @@ const BulkReportDownload = () => {
             {reports.map((data, idx) => {
               if (!data || !data.student) return null;
 
-              const domainSplit = splitDomains(data.psychomotorRatings);
-              const gradeAnalysis = getGradeAnalysis(data.subjects || []);
-              const termNumber = data.term?.number || data.academic?.termNumber;
+              const reportColor = schoolSettings?.reportColorScheme || schoolSettings?.primaryColor;
+              const reportFont = schoolSettings?.reportFontFamily || 'serif';
+              const showPosition = schoolSettings?.showPositionOnReport !== false;
+              const showFees = schoolSettings?.showFeesOnReport !== false;
+              const showAttendance = schoolSettings?.showAttendanceOnReport !== false;
+              const layout = schoolSettings?.reportLayout || 'classic';
+              const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
               return (
-                <div key={idx} className="relative bg-white p-8 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black font-serif border-[12px] border-emerald-800 print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm]">
+                <div key={idx} className={`relative bg-white p-8 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm]`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
 
                   {/* PROTECTION WATERMARK */}
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
@@ -421,7 +425,7 @@ const BulkReportDownload = () => {
                       <tbody>
                         <tr className="border-b border-black">
                           <td className="border-r border-black p-0.5 w-1/6">NAME:</td>
-                          <td className="border-r border-black p-0.5 w-2/3 text-emerald-800 font-black" style={{ color: schoolSettings?.primaryColor }}>{data.student?.name}</td>
+                          <td className="border-r border-black p-0.5 text-emerald-800 font-black" style={{ color: reportColor }}>{data.student?.name}</td>
                           <td className="border-r border-black p-0.5 w-1/6">GENDER:</td>
                           <td className="p-0.5">{data.student?.gender}</td>
                         </tr>
@@ -445,7 +449,7 @@ const BulkReportDownload = () => {
                         </tr>
                         <tr>
                           <td className="border-r border-black p-0.5">ATTENDANCE:</td>
-                          <td className="border-r border-black p-0.5 text-emerald-700" style={{ color: schoolSettings?.primaryColor }}>{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
+                          <td className="border-r border-black p-0.5 text-emerald-700 font-bold" style={{ color: reportColor }}>{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
                           <td className="border-r border-black p-0.5">TERM:</td>
                           <td className="p-0.5">{data.term?.name}</td>
                         </tr>
@@ -456,7 +460,7 @@ const BulkReportDownload = () => {
                     <div className="grid grid-cols-[68%_31%] gap-2 items-stretch">
                       {/* LEFT: COGNITIVE */}
                       <div className="space-y-0 text-[10px] md:text-sm h-full flex flex-col">
-                        <div className="bg-emerald-800 text-white text-center font-bold py-1 text-sm border-2 border-b-0 border-black" style={{ backgroundColor: schoolSettings?.primaryColor }}>
+                        <div className="bg-emerald-800 text-white text-center font-bold py-1 text-sm border-2 border-b-0 border-black" style={{ backgroundColor: reportColor }}>
                           COGNITIVE DOMAIN PERFORMANCE
                         </div>
                         <table className="w-full border-2 border-black border-collapse">
@@ -565,7 +569,7 @@ const BulkReportDownload = () => {
 
                         {/* POSITION & AVG */}
                         <div className="p-0 flex flex-col">
-                          <div className="bg-emerald-800 text-white text-[9px] font-bold text-center py-0.5 uppercase tracking-tighter" style={{ backgroundColor: schoolSettings?.primaryColor }}>Status Summary</div>
+                          <div className="bg-emerald-800 text-white text-[9px] font-bold text-center py-0.5 uppercase tracking-tighter" style={{ backgroundColor: reportColor }}>Status Summary</div>
                           <div className="bg-white flex-1 grid grid-cols-2 divide-x divide-black/10">
                             <div className="flex flex-col items-center justify-center p-1">
                               <span className="text-[7px] text-gray-400 uppercase font-black">Position</span>
@@ -576,9 +580,9 @@ const BulkReportDownload = () => {
                               <span className="text-sm font-black italic">{data.termAverage?.toFixed(1)}%</span>
                             </div>
                           </div>
-                          <div className="border-t border-black p-1 flex items-center justify-between bg-emerald-50" style={{ backgroundColor: `${schoolSettings?.primaryColor}10` }}>
+                          <div className="border-t border-black p-1 flex items-center justify-between bg-emerald-50" style={{ backgroundColor: `${reportColor}10` }}>
                             <span className="text-[9px] font-black uppercase text-gray-500">Overall Grade:</span>
-                            <span className="text-lg font-black text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>{data.overallGrade}</span>
+                            <span className="text-lg font-black text-emerald-800" style={{ color: reportColor }}>{data.overallGrade}</span>
                           </div>
                         </div>
                       </div>
@@ -596,8 +600,8 @@ const BulkReportDownload = () => {
 
                     {/* FINANCIAL STANDING SECTION */}
                     {data.feeSummary && (
-                      <div className="border-2 border-black bg-emerald-50/30 rounded-lg overflow-hidden mt-2" style={{ backgroundColor: `${schoolSettings?.primaryColor}05` }}>
-                        <div className="bg-emerald-800 text-white text-[10px] font-bold text-center py-0.5 uppercase tracking-widest" style={{ backgroundColor: schoolSettings?.primaryColor }}>
+                      <div className="border-2 border-black bg-emerald-50/30 rounded-lg overflow-hidden mt-2" style={{ backgroundColor: `${reportColor}05` }}>
+                        <div className="bg-emerald-800 text-white text-[10px] font-bold text-center py-0.5 uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
                           Financial Standing & Fee Status
                         </div>
                         <div className="p-3 grid grid-cols-4 gap-4 text-center divide-x divide-black/10">

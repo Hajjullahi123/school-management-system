@@ -402,6 +402,8 @@ const ProgressiveReport = () => {
               const reportColor = rs.reportColorScheme || ss?.reportColorScheme || ss?.primaryColor || '#065f46';
               const reportFont = rs.reportFontFamily || ss?.reportFontFamily || 'sans-serif';
               const showPosition = rs.showPositionOnReport !== undefined ? rs.showPositionOnReport : ss?.showPositionOnReport !== false;
+              const layout = rs.reportLayout || ss?.reportLayout || 'classic';
+              const borderStyleCss = layout === 'minimal' ? 'border-[1px] border-gray-300' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-4 border-double';
               const logoUri = ss?.logoUrl
                 ? (ss.logoUrl.startsWith('http') || ss.logoUrl.startsWith('data:') ? ss.logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${ss.logoUrl.startsWith('/') ? ss.logoUrl : '/' + ss.logoUrl}`)
                 : null;
@@ -415,7 +417,7 @@ const ProgressiveReport = () => {
                     </div>
                   )}
 
-                  <div className="relative z-10 print-safe-content font-sans text-gray-900 border-4 border-double border-gray-800 p-3 min-h-[275mm] flex flex-col">
+                  <div className={`relative z-10 print-safe-content font-sans text-gray-900 ${borderStyleCss} p-3 min-h-[275mm] flex flex-col`} style={{ borderColor: layout !== 'minimal' ? reportColor : '#d1d5db' }}>
 
                     <div className="flex items-center justify-between border-b-[3px] border-emerald-800 pb-2 mb-3" style={{ borderColor: reportColor }}>
                       {logoUri ? (

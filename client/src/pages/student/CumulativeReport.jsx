@@ -202,8 +202,8 @@ const CumulativeReport = () => {
     return (
       <div
         key={data.student?.id || index}
-        className={`relative bg-white p-8 print:p-4 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-border-A4 overflow-hidden`}
-        style={{ pageBreakAfter: !isLast ? 'always' : 'auto', breakAfter: !isLast ? 'page' : 'auto', fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}
+        className={`relative bg-white p-8 print:p-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm]`}
+        style={{ pageBreakAfter: 'always', breakAfter: 'page', fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}
       >
         {/* BACKGROUND WATERMARK */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] rotate-[-35deg] overflow-hidden z-0 print:opacity-[0.05]">
@@ -259,10 +259,10 @@ const CumulativeReport = () => {
             </div>
           ) : (
             <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black text-[10px] font-bold uppercase bg-gray-50 mb-2">
-              <div className="p-1.5"><span className="text-gray-500">NAME:</span> {data.student?.name}</div>
-              <div className="p-1.5"><span className="text-gray-500">ADM NO:</span> {data.student?.admissionNumber}</div>
-              <div className="p-1.5"><span className="text-gray-500">CLASS:</span> {data.student?.class}</div>
-              <div className="p-1.5"><span className="text-gray-500">SESSION:</span> {data.session?.name}</div>
+              <div className="p-1"><span className="text-gray-500">NAME:</span> {data.student?.name}</div>
+              <div className="p-1"><span className="text-gray-500">ADM NO:</span> {data.student?.admissionNumber}</div>
+              <div className="p-1"><span className="text-gray-500">CLASS:</span> {data.student?.class}</div>
+              <div className="p-1"><span className="text-gray-500">SESSION:</span> {data.session?.name}</div>
             </div>
           )}
 
@@ -271,23 +271,23 @@ const CumulativeReport = () => {
             <table className="w-full text-[10px] uppercase font-bold text-center border-collapse">
               <thead className="bg-emerald-800 text-white border-b-2 border-black" style={{ backgroundColor: reportColor }}>
                 <tr className="divide-x divide-white/20">
-                  <th className="p-2 text-left w-[35%] bg-emerald-900 border-r-2 border-black">SUBJECT</th>
-                  <th className="p-2 w-[12%]">1st TERM</th>
-                  <th className="p-2 w-[12%]">2nd TERM</th>
-                  <th className="p-2 w-[12%]">3rd TERM</th>
-                  <th className="p-2 w-[15%] bg-emerald-700">ANNUAL AVG</th>
-                  <th className="p-2 w-[14%] bg-gray-900 border-l border-white/20">GRADE</th>
+                  <th className="p-1 text-left w-[35%] bg-emerald-900 border-r-2 border-black">SUBJECT</th>
+                  <th className="p-1 w-[12%]">1st TERM</th>
+                  <th className="p-1 w-[12%]">2nd TERM</th>
+                  <th className="p-1 w-[12%]">3rd TERM</th>
+                  <th className="p-1 w-[15%] bg-emerald-700">ANNUAL AVG</th>
+                  <th className="p-1 w-[14%] bg-gray-900 border-l border-white/20">GRADE</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-300">
                 {data.subjects?.map((sub, idx) => (
                   <tr key={idx} className={`${idx % 2 === 1 ? 'bg-gray-50' : 'bg-white'} divide-x divide-gray-300`}>
-                    <td className="p-1.5 text-left pl-3 font-extrabold border-r-2 border-black">{sub.name}</td>
-                    <td className="p-1.5">{sub.term1 || '-'}</td>
-                    <td className="p-1.5">{sub.term2 || '-'}</td>
-                    <td className="p-1.5">{sub.term3 || '-'}</td>
-                    <td className="p-1.5 font-black bg-gray-50">{sub.average?.toFixed(1) || '0.0'}</td>
-                    <td className={`p-1.5 font-black ${sub.grade === 'F' ? 'text-red-600' : 'text-emerald-900'}`}>{sub.grade}</td>
+                    <td className="p-1 text-left pl-3 font-extrabold border-r-2 border-black text-[9px]">{sub.name}</td>
+                    <td className="p-1 text-[9px]">{sub.term1 || '-'}</td>
+                    <td className="p-1 text-[9px]">{sub.term2 || '-'}</td>
+                    <td className="p-1 text-[9px]">{sub.term3 || '-'}</td>
+                    <td className="p-1 font-black bg-gray-50 text-[9px]">{sub.average?.toFixed(1) || '0.0'}</td>
+                    <td className={`p-1 font-black text-[9px] ${sub.grade === 'F' ? 'text-red-600' : 'text-emerald-900'}`}>{sub.grade}</td>
                   </tr>
                 ))}
               </tbody>
