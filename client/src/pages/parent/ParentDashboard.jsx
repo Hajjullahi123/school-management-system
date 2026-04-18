@@ -447,7 +447,7 @@ const ParentDashboard = () => {
                         {todayStatus.type === 'weekend' ? 'Weekend' : 'Holiday'}
                       </div>
                     ) : getTodayAttendance(student) ? (
-                      <div className={`px-3 py-1.5 rounded-2xl border backdrop-blur-sm text-[9px] font-black uppercase tracking-widest flex flex-col items-center ${getStatusBadge(getTodayAttendance(student).status).replace('bg-', 'bg-').replace('text-', 'text-')}`}>
+                      <div className={`px-3 py-1.5 rounded-2xl border backdrop-blur-sm text-[9px] font-black uppercase tracking-widest flex flex-col items-center ${getStatusBadge(getTodayAttendance(student).status)}`}>
                         <span className="opacity-50 text-[7px] mb-0.5 leading-none">Today</span>
                         {getTodayAttendance(student).status}
                       </div>
@@ -987,7 +987,7 @@ const ParentDashboard = () => {
         )
       }
 
-    </div >
+    </div>
   );
 };
 
