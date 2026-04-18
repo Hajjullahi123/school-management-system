@@ -501,7 +501,7 @@ const TermReportCard = () => {
 
                 <div className="report-card-mobile-wrapper overflow-x-auto pb-8 print:overflow-visible">
                   <div className="report-card-scaler origin-top-left sm:origin-top scale-[0.45] xs:scale-[0.55] sm:scale-100 transition-transform duration-500">
-                    <div key={idx} className={`relative bg-white p-8 print:p-4 my-8 print:my-0 shadow-2xl print:shadow-none print:break-after-page text-black ${borderStyle} print:emerald-border-A4 mx-auto w-[210mm] min-w-[210mm]`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
+                    <div key={idx} className={`relative bg-white p-8 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm]`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
 
                 {/* PROTECTION WATERMARK */}
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] rotate-[-35deg] overflow-hidden z-0 print:opacity-[0.05]">
@@ -598,26 +598,26 @@ const TermReportCard = () => {
                         <tr className="border-b border-black">
                           <td className="border-r border-black p-1 w-1/6">NAME:</td>
                           <td className="border-r border-black p-1 w-2/3 text-emerald-800 font-black" style={{ color: reportColor }}>{data.student?.name}</td>
-                          <td className="border-r border-black p-1 w-1/6">GENDER:</td>
-                          <td className="p-1">{data.student?.gender}</td>
+                          <td className="border-r border-black p-0.5 w-1/6">GENDER:</td>
+                          <td className="p-0.5">{data.student?.gender}</td>
                         </tr>
                         <tr className="border-b border-black">
-                          <td className="border-r border-black p-1">CLASS:</td>
-                          <td className="border-r border-black p-1">{data.student?.class}</td>
-                          <td className="border-r border-black p-1">SESSION:</td>
-                          <td className="p-1">{data.term?.session}</td>
+                          <td className="border-r border-black p-0.5">CLASS:</td>
+                          <td className="border-r border-black p-0.5">{data.student?.class}</td>
+                          <td className="border-r border-black p-0.5">SESSION:</td>
+                          <td className="p-0.5">{data.term?.session}</td>
                         </tr>
                         <tr className="border-b border-black">
-                          <td className="border-r border-black p-1">ADM NO:</td>
-                          <td className="border-r border-black p-1">{data.student?.admissionNumber}</td>
-                          <td className="border-r border-black p-1">D.O.B:</td>
-                          <td className="p-1">{data.student?.dateOfBirth ? new Date(data.student.dateOfBirth).toLocaleDateString() : 'N/A'}</td>
+                          <td className="border-r border-black p-0.5">ADM NO:</td>
+                          <td className="border-r border-black p-0.5">{data.student?.admissionNumber}</td>
+                          <td className="border-r border-black p-0.5">D.O.B:</td>
+                          <td className="p-0.5">{data.student?.dateOfBirth ? new Date(data.student.dateOfBirth).toLocaleDateString() : 'N/A'}</td>
                         </tr>
                         <tr className="border-b border-black">
-                          <td className="border-r border-black p-1">AGE:</td>
-                          <td className="border-r border-black p-1">{data.student?.age || '-'}</td>
-                          <td className="border-r border-black p-1">CLUB:</td>
-                          <td className="p-1">{data.student?.clubs !== 'None Assigned' ? data.student?.clubs : 'N/A'}</td>
+                          <td className="border-r border-black p-0.5">AGE:</td>
+                          <td className="border-r border-black p-0.5">{data.student?.age || '-'}</td>
+                          <td className="border-r border-black p-0.5">CLUB:</td>
+                          <td className="p-0.5">{data.student?.clubs !== 'None Assigned' ? data.student?.clubs : 'N/A'}</td>
                         </tr>
                         {showAttendance && (
                         <tr>
@@ -798,8 +798,8 @@ const TermReportCard = () => {
 
                   {/* FINANCIAL STANDING SECTION */}
                   {showFees && data.feeSummary && (
-                    <div className="border-2 border-black bg-emerald-50/30 rounded-lg overflow-hidden mt-4" style={{ backgroundColor: `${reportColor}05` }}>
-                      <div className="bg-emerald-800 text-white text-[10px] font-bold text-center py-1 uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
+                    <div className="border-2 border-black bg-emerald-50/30 rounded-lg overflow-hidden mt-2" style={{ backgroundColor: `${reportColor}05` }}>
+                      <div className="bg-emerald-800 text-white text-[10px] font-bold text-center py-0.5 uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
                         Financial Standing & Fee Status
                       </div>
                       <div className="p-3 grid grid-cols-4 gap-4 text-center divide-x divide-black/10">
@@ -835,7 +835,7 @@ const TermReportCard = () => {
                   )}
 
                   {/* REMARKS SECTION */}
-                  <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-4">
+                  <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-2">
                     <div className="grid grid-cols-2 divide-x-2 divide-black">
                       <div className="p-2 space-y-1">
                         <p className="text-[10px] font-black uppercase text-gray-500">Form Master's Remark</p>
@@ -872,7 +872,7 @@ const TermReportCard = () => {
                   </div>
 
                   {/* SIGNATURES & VERIFICATION */}
-                  <div className="mt-4 grid grid-cols-2 gap-8 items-end p-2 print:mt-2">
+                  <div className="mt-2 grid grid-cols-2 gap-8 items-end p-1 print:mt-1">
                     <div className="space-y-2 text-center">
                       <div className="border-b-2 border-black py-1 min-h-[30px] flex items-center justify-center">
                         {data.student?.formMasterSignatureUrl ? (
@@ -896,7 +896,7 @@ const TermReportCard = () => {
                   </div>
 
                   {/* DOCUMENT VERIFICATION FOOTER */}
-                  <div className="mt-auto border-t border-gray-200 pt-3 flex justify-between items-center bg-transparent">
+                  <div className="mt-auto border-t border-gray-200 pt-2 flex justify-between items-center bg-transparent">
                     <div className="flex items-center gap-4">
                       <div className="group/qr relative bg-white p-1 rounded-lg shadow-sm border border-gray-100 transition-all hover:shadow-md">
                         <QRCodeSVG 

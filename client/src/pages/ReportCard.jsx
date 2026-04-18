@@ -425,7 +425,7 @@ const ReportCard = () => {
             const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
             return (
           <div className="report-card-wrapper overflow-x-auto md:overflow-visible pb-4">
-            <div id="result-sheet" className={`relative bg-white p-8 print:p-4 shadow-2xl print:shadow-none print:break-after-page text-black ${borderStyle} print:emerald-border-A4 mx-auto w-[210mm] min-w-[210mm] md:min-w-0`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
+            <div id="result-sheet" className={`relative bg-white p-8 print:p-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] md:min-w-0`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
             {/* PROTECTION WATERMARK */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
               <div className="text-[100px] font-black uppercase text-gray-900 leading-[0.8] text-center">
@@ -479,41 +479,41 @@ const ReportCard = () => {
               <table className="w-full border-2 border-black border-collapse text-xs font-bold uppercase">
                 <tbody>
                   <tr className="border-b border-black">
-                    <td className="border-r border-black p-1 w-1/6">NAME:</td>
-                    <td className="border-r border-black p-1 w-2/3 text-emerald-800 font-black" style={{ color: reportColor }}>{reportData.student?.name}</td>
-                    <td className="border-r border-black p-1 w-1/6">GENDER:</td>
-                    <td className="p-1">{reportData.student?.gender}</td>
+                    <td className="border-r border-black p-0.5 w-1/6">NAME:</td>
+                    <td className="border-r border-black p-0.5 w-2/3 text-emerald-800 font-black" style={{ color: reportColor }}>{reportData.student?.name}</td>
+                    <td className="border-r border-black p-0.5 w-1/6">GENDER:</td>
+                    <td className="p-0.5">{reportData.student?.gender}</td>
                   </tr>
                   <tr className="border-b border-black">
-                    <td className="border-r border-black p-1">CLASS:</td>
-                    <td className="border-r border-black p-1">{reportData.student?.class}</td>
-                    <td className="border-r border-black p-1">SESSION:</td>
-                    <td className="p-1">{reportData.term?.session}</td>
+                    <td className="border-r border-black p-0.5">CLASS:</td>
+                    <td className="border-r border-black p-0.5">{reportData.student?.class}</td>
+                    <td className="border-r border-black p-0.5">SESSION:</td>
+                    <td className="p-0.5">{reportData.term?.session}</td>
                   </tr>
                   <tr className="border-b border-black">
-                    <td className="border-r border-black p-1">ADM NO:</td>
-                    <td className="border-r border-black p-1">{reportData.student?.admissionNumber}</td>
-                    <td className="border-r border-black p-1">D.O.B:</td>
-                    <td className="p-1">{reportData.student?.dateOfBirth ? new Date(reportData.student.dateOfBirth).toLocaleDateString() : 'N/A'}</td>
+                    <td className="border-r border-black p-0.5">ADM NO:</td>
+                    <td className="border-r border-black p-0.5">{reportData.student?.admissionNumber}</td>
+                    <td className="border-r border-black p-0.5">D.O.B:</td>
+                    <td className="p-0.5">{reportData.student?.dateOfBirth ? new Date(reportData.student.dateOfBirth).toLocaleDateString() : 'N/A'}</td>
                   </tr>
                   <tr className="border-b border-black">
-                    <td className="border-r border-black p-1">AGE:</td>
-                    <td className="border-r border-black p-1">{reportData.student?.age || '-'}</td>
-                    <td className="border-r border-black p-1">CLUB:</td>
-                    <td className="p-1">{reportData.student?.clubs !== 'None Assigned' ? reportData.student?.clubs : 'N/A'}</td>
+                    <td className="border-r border-black p-0.5">AGE:</td>
+                    <td className="border-r border-black p-0.5">{reportData.student?.age || '-'}</td>
+                    <td className="border-r border-black p-0.5">CLUB:</td>
+                    <td className="p-0.5">{reportData.student?.clubs !== 'None Assigned' ? reportData.student?.clubs : 'N/A'}</td>
                   </tr>
                   {showAttendance && (
                   <tr>
-                    <td className="border-r border-black p-1">ATTENDANCE:</td>
-                    <td className="border-r border-black p-1 text-emerald-700 font-bold" style={{ color: reportColor }}>{reportData.attendance?.present} / {reportData.attendance?.total} DAYS ({reportData.attendance?.percentage}%)</td>
-                    <td className="border-r border-black p-1">TERM:</td>
-                    <td className="p-1">{reportData.term?.name}</td>
+                    <td className="border-r border-black p-0.5">ATTENDANCE:</td>
+                    <td className="border-r border-black p-0.5 text-emerald-700 font-bold" style={{ color: reportColor }}>{reportData.attendance?.present} / {reportData.attendance?.total} DAYS ({reportData.attendance?.percentage}%)</td>
+                    <td className="border-r border-black p-0.5">TERM:</td>
+                    <td className="p-0.5">{reportData.term?.name}</td>
                   </tr>
                   )}
                   {!showAttendance && (
                   <tr>
-                    <td className="border-r border-black p-1">TERM:</td>
-                    <td className="p-1" colSpan="3">{reportData.term?.name}</td>
+                    <td className="border-r border-black p-0.5">TERM:</td>
+                    <td className="p-0.5" colSpan="3">{reportData.term?.name}</td>
                   </tr>
                   )}
                 </tbody>
@@ -676,8 +676,8 @@ const ReportCard = () => {
 
               {/* FINANCIAL STANDING SECTION */}
               {showFees && reportData.feeSummary && (
-                <div className="border-2 border-black bg-emerald-50/30 rounded-lg overflow-hidden mt-4" style={{ backgroundColor: `${reportColor}05` }}>
-                  <div className="bg-emerald-800 text-white text-[10px] font-bold text-center py-1 uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
+                <div className="border-2 border-black bg-emerald-50/30 rounded-lg overflow-hidden mt-2" style={{ backgroundColor: `${reportColor}05` }}>
+                  <div className="bg-emerald-800 text-white text-[10px] font-bold text-center py-0.5 uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
                     Financial Standing & Fee Status
                   </div>
                   <div className="p-3 grid grid-cols-4 gap-4 text-center divide-x divide-black/10">
@@ -715,7 +715,7 @@ const ReportCard = () => {
               {/* REMARKS SECTION */}
               {/* AI PERFORMANCE NARRATIVE */}
               {(reportData.aiNarrative || (!reportData.isPublished && (schoolSettings?.packageType === 'premium' || schoolSettings?.packageType === 'standard'))) && (
-                <div className="mt-4 border-2 border-emerald-800 bg-emerald-50/20 rounded-lg overflow-hidden relative" style={{ borderColor: schoolSettings?.primaryColor }}>
+                <div className="mt-2 border-2 border-emerald-800 bg-emerald-50/20 rounded-lg overflow-hidden relative" style={{ borderColor: schoolSettings?.primaryColor }}>
                   <div className="bg-emerald-800 text-white text-[10px] font-bold py-1 px-4 flex justify-between items-center uppercase tracking-widest" style={{ backgroundColor: schoolSettings?.primaryColor }}>
                     <span>Personalized Academic Performance Narrative</span>
                     <span className="bg-white/20 px-2 rounded text-[8px]">AI POWERED</span>
@@ -755,7 +755,7 @@ const ReportCard = () => {
                 </div>
               )}
 
-              <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-4">
+              <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-2">
                 <div className="grid grid-cols-2 divide-x-2 divide-black">
                   <div className="p-2 space-y-1">
                     <p className="text-[10px] font-black uppercase text-gray-500">Form Master's Remark</p>
@@ -792,7 +792,7 @@ const ReportCard = () => {
               </div>
 
               {/* SIGNATURES & VERIFICATION */}
-              <div className="mt-4 grid grid-cols-3 gap-8 items-end print:mt-2">
+              <div className="mt-2 grid grid-cols-3 gap-8 items-end print:mt-1">
                 <div className="space-y-2">
                   <div className="w-full h-8 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-20 grayscale">
                     {[...Array(60)].map((_, i) => (

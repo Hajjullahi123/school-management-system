@@ -138,7 +138,7 @@ const BulkTestimonialView = () => {
           };
 
           return (
-            <div key={testimonial.id} className="testimonial-page bg-white relative overflow-hidden mx-auto my-4 shadow-xl md:shadow-none" style={{ width: '210mm', minWidth: '210mm', height: '297mm', padding: '20mm', fontFamily: testimonial.school?.testimFontFamily || 'sans-serif' }}>
+            <div key={testimonial.id} className="testimonial-page bg-white relative overflow-hidden mx-auto my-4 shadow-xl md:shadow-none print:emerald-print-A4" style={{ width: '210mm', minWidth: '210mm', height: '297mm', padding: '15mm', fontFamily: testimonial.school?.testimFontFamily || 'sans-serif' }}>
               {/* Border */}
               <div className="absolute inset-0 pointer-events-none z-20" style={{ border: getBorderStyle(testimonial.school?.testimBorderType, primaryCol, secondaryCol), opacity: testimonial.school?.testimBorderType === 'ornate' ? 0.15 : 0.9 }}></div>
               <div className="absolute inset-4 border border-gray-200 pointer-events-none z-20" style={{ display: testimonial.school?.testimBorderType === 'none' ? 'none' : 'block' }}></div>

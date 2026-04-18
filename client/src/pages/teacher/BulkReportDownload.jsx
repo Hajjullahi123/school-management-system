@@ -192,17 +192,25 @@ const BulkReportDownload = () => {
     documentTitle: `Bulk_Reports`,
     pageStyle: `
       @media print {
-        @page { size: A4; margin: 5mm; }
+        @page { size: A4; margin: 0 !important; }
         body { background: white !important; margin: 0; padding: 0; }
-        .print\\:break-after-page { break-after: page !important; }
-        .emerald-border-A4 { border: 8px solid #065f46 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .emerald-print-A4 {
+          width: 210mm !important;
+          height: 297mm !important;
+          min-height: 297mm !important;
+          max-height: 297mm !important;
+          padding: 10mm !important;
+          margin: 0 auto !important;
+          box-sizing: border-box !important;
+          overflow: hidden !important;
+          position: relative !important;
+          display: flex !important;
+          flex-direction: column !important;
+          page-break-after: always !important;
+        }
         table { border-collapse: collapse !important; width: 100% !important; }
-        td, th { border: 1px solid black !important; padding: 2px !important; }
+        td, th { border: 1px solid black !important; padding: 1px !important; }
         * { box-sizing: border-box !important; }
-        .bg-emerald-800 { background-color: #065f46 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .bg-gray-200 { background-color: #e5e7eb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .bg-gray-100 { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .bg-gray-50 { background-color: #f9fafb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .no-print { display: none !important; }
       }
       * { box-sizing: border-box !important; }
@@ -360,7 +368,7 @@ const BulkReportDownload = () => {
               const termNumber = data.term?.number || data.academic?.termNumber;
 
               return (
-                <div key={idx} className="relative bg-white p-8 print:p-4 my-8 print:my-0 shadow-2xl print:shadow-none print:break-after-page text-black font-serif border-[12px] border-emerald-800 print:emerald-border-A4 max-w-[210mm] mx-auto">
+                <div key={idx} className="relative bg-white p-8 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black font-serif border-[12px] border-emerald-800 print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm]">
 
                   {/* PROTECTION WATERMARK */}
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
@@ -412,34 +420,34 @@ const BulkReportDownload = () => {
                     <table className="w-full border-2 border-black border-collapse text-xs font-bold uppercase">
                       <tbody>
                         <tr className="border-b border-black">
-                          <td className="border-r border-black p-1 w-1/6">NAME:</td>
-                          <td className="border-r border-black p-1 w-2/3 text-emerald-800 font-black" style={{ color: schoolSettings?.primaryColor }}>{data.student?.name}</td>
-                          <td className="border-r border-black p-1 w-1/6">GENDER:</td>
-                          <td className="p-1">{data.student?.gender}</td>
+                          <td className="border-r border-black p-0.5 w-1/6">NAME:</td>
+                          <td className="border-r border-black p-0.5 w-2/3 text-emerald-800 font-black" style={{ color: schoolSettings?.primaryColor }}>{data.student?.name}</td>
+                          <td className="border-r border-black p-0.5 w-1/6">GENDER:</td>
+                          <td className="p-0.5">{data.student?.gender}</td>
                         </tr>
                         <tr className="border-b border-black">
-                          <td className="border-r border-black p-1">CLASS:</td>
-                          <td className="border-r border-black p-1">{data.student?.class}</td>
-                          <td className="border-r border-black p-1">SESSION:</td>
-                          <td className="p-1">{data.term?.session}</td>
+                          <td className="border-r border-black p-0.5">CLASS:</td>
+                          <td className="border-r border-black p-0.5">{data.student?.class}</td>
+                          <td className="border-r border-black p-0.5">SESSION:</td>
+                          <td className="p-0.5">{data.term?.session}</td>
                         </tr>
                         <tr className="border-b border-black">
-                          <td className="border-r border-black p-1">ADM NO:</td>
-                          <td className="border-r border-black p-1">{data.student?.admissionNumber}</td>
-                          <td className="border-r border-black p-1">D.O.B:</td>
-                          <td className="p-1">{data.student?.dateOfBirth ? new Date(data.student.dateOfBirth).toLocaleDateString() : 'N/A'}</td>
+                          <td className="border-r border-black p-0.5">ADM NO:</td>
+                          <td className="border-r border-black p-0.5">{data.student?.admissionNumber}</td>
+                          <td className="border-r border-black p-0.5">D.O.B:</td>
+                          <td className="p-0.5">{data.student?.dateOfBirth ? new Date(data.student.dateOfBirth).toLocaleDateString() : 'N/A'}</td>
                         </tr>
                         <tr className="border-b border-black">
-                          <td className="border-r border-black p-1">AGE:</td>
-                          <td className="border-r border-black p-1">{data.student?.age || '-'}</td>
-                          <td className="border-r border-black p-1">CLUB:</td>
-                          <td className="p-1">{data.student?.clubs !== 'None Assigned' ? data.student?.clubs : 'N/A'}</td>
+                          <td className="border-r border-black p-0.5">AGE:</td>
+                          <td className="border-r border-black p-0.5">{data.student?.age || '-'}</td>
+                          <td className="border-r border-black p-0.5">CLUB:</td>
+                          <td className="p-0.5">{data.student?.clubs !== 'None Assigned' ? data.student?.clubs : 'N/A'}</td>
                         </tr>
                         <tr>
-                          <td className="border-r border-black p-1">ATTENDANCE:</td>
-                          <td className="border-r border-black p-1 text-emerald-700" style={{ color: schoolSettings?.primaryColor }}>{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
-                          <td className="border-r border-black p-1">TERM:</td>
-                          <td className="p-1">{data.term?.name}</td>
+                          <td className="border-r border-black p-0.5">ATTENDANCE:</td>
+                          <td className="border-r border-black p-0.5 text-emerald-700" style={{ color: schoolSettings?.primaryColor }}>{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
+                          <td className="border-r border-black p-0.5">TERM:</td>
+                          <td className="p-0.5">{data.term?.name}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -588,8 +596,8 @@ const BulkReportDownload = () => {
 
                     {/* FINANCIAL STANDING SECTION */}
                     {data.feeSummary && (
-                      <div className="border-2 border-black bg-emerald-50/30 rounded-lg overflow-hidden mt-4" style={{ backgroundColor: `${schoolSettings?.primaryColor}05` }}>
-                        <div className="bg-emerald-800 text-white text-[10px] font-bold text-center py-1 uppercase tracking-widest" style={{ backgroundColor: schoolSettings?.primaryColor }}>
+                      <div className="border-2 border-black bg-emerald-50/30 rounded-lg overflow-hidden mt-2" style={{ backgroundColor: `${schoolSettings?.primaryColor}05` }}>
+                        <div className="bg-emerald-800 text-white text-[10px] font-bold text-center py-0.5 uppercase tracking-widest" style={{ backgroundColor: schoolSettings?.primaryColor }}>
                           Financial Standing & Fee Status
                         </div>
                         <div className="p-3 grid grid-cols-4 gap-4 text-center divide-x divide-black/10">
@@ -625,7 +633,7 @@ const BulkReportDownload = () => {
                     )}
 
                     {/* REMARKS SECTION */}
-                    <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-4">
+                    <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-2">
                       <div className="grid grid-cols-2 divide-x-2 divide-black">
                         <div className="p-2 space-y-1">
                           <p className="text-[10px] font-black uppercase text-gray-500">Form Master's Remark</p>
@@ -662,7 +670,7 @@ const BulkReportDownload = () => {
                     </div>
 
                     {/* SIGNATURES & VERIFICATION */}
-                    <div className="mt-4 grid grid-cols-3 gap-8 items-end print:mt-2">
+                    <div className="mt-2 grid grid-cols-3 gap-8 items-end print:mt-1">
                       <div className="space-y-2">
                         <div className="w-full h-8 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-20 grayscale">
                           {[...Array(60)].map((_, i) => (

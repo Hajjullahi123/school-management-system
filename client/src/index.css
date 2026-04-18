@@ -225,15 +225,63 @@ h3 {
 @media print {
   @page {
     size: A4;
-    margin: 8mm;
+    margin: 0 !important;
   }
 
-  /* Hide typical layout elements explicitly */
-  nav,
-  header,
-  footer,
-  .sidebar,
-  .no-print {
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Strict A4 Container */
+  .emerald-print-A4 {
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    padding: 10mm !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important; /* Never exceed 1 page */
+    position: relative !important;
+    background: white !important;
+    display: flex !important;
+    flex-direction: column !important;
+    page-break-after: always !important;
+  }
+
+  .emerald-print-A4-landscape {
+    width: 297mm !important;
+    height: 210mm !important;
+    min-height: 210mm !important;
+    max-height: 210mm !important;
+    padding: 10mm !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    position: relative !important;
+    background: white !important;
+    display: flex !important;
+    flex-direction: column !important;
+    page-break-after: always !important;
+  }
+
+  /* Force shrink tables if they exceed space */
+  .emerald-print-A4 table {
+    table-layout: auto !important;
+  }
+
+  /* Compress padding/margins for print to fit content */
+  .emerald-print-A4 p, 
+  .emerald-print-A4 div, 
+  .emerald-print-A4 td {
+    margin-top: 1px !important;
+    margin-bottom: 1px !important;
+  }
+
+  nav, header, footer, .sidebar, .no-print, .print-hidden {
     display: none !important;
   }
 
@@ -243,8 +291,5 @@ h3 {
     visibility: visible !important;
   }
 
-  /* Reset background colors for printing */
-  .bg-white {
-    background-color: white !important;
-  }
+  .bg-white { background-color: white !important; }
 }

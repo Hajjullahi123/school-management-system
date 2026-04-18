@@ -407,7 +407,7 @@ const ProgressiveReport = () => {
                 : null;
 
               return (
-                <div key={data.student.id} className="report-card-page bg-white mx-auto shadow-2xl relative overflow-hidden" style={{ width: '210mm', minWidth: '210mm', minHeight: '297mm', padding: '15mm', boxSizing: 'border-box', pageBreakAfter: index < reports.length - 1 ? 'always' : 'auto', fontFamily: reportFont }}>
+                <div key={data.student.id} className="report-card-page bg-white mx-auto shadow-2xl relative overflow-hidden print:shadow-none print:emerald-print-A4" style={{ width: '210mm', minWidth: '210mm', height: '297mm', minHeight: '297mm', padding: '10mm', boxSizing: 'border-box', pageBreakAfter: index < reports.length - 1 ? 'always' : 'auto', fontFamily: reportFont }}>
 
                   {logoUri && (
                     <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] z-0">
@@ -415,9 +415,9 @@ const ProgressiveReport = () => {
                     </div>
                   )}
 
-                  <div className="relative z-10 print-safe-content font-sans text-gray-900 border-4 border-double border-gray-800 p-4 min-h-[265mm] flex flex-col">
+                  <div className="relative z-10 print-safe-content font-sans text-gray-900 border-4 border-double border-gray-800 p-3 min-h-[275mm] flex flex-col">
 
-                    <div className="flex items-center justify-between border-b-[3px] border-emerald-800 pb-4 mb-6" style={{ borderColor: reportColor }}>
+                    <div className="flex items-center justify-between border-b-[3px] border-emerald-800 pb-2 mb-3" style={{ borderColor: reportColor }}>
                       {logoUri ? (
                         <img src={logoUri} alt="School Logo" className="w-24 h-24 object-contain" />
                       ) : (
@@ -442,7 +442,7 @@ const ProgressiveReport = () => {
                     </div>
 
                     {rs.reportLayout === 'modern' ? (
-                      <div className="grid grid-cols-4 gap-2 text-[10px] uppercase font-bold mb-6">
+                      <div className="grid grid-cols-4 gap-2 text-[10px] uppercase font-bold mb-3">
                         <div className="col-span-1 bg-gray-50/50 p-2 rounded-xl border border-gray-100 flex flex-col items-center justify-center">
                           {(() => {
                             const photo = data.student.user?.photoUrl || data.student.photoUrl;
@@ -476,7 +476,7 @@ const ProgressiveReport = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-0 border-2 border-black mb-6 divide-y divide-black lg:divide-y-0 lg:divide-x bg-gray-50/50">
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-0 border-2 border-black mb-3 divide-y divide-black lg:divide-y-0 lg:divide-x bg-gray-50/50">
                         <div className="col-span-2 lg:col-span-2 p-2 border-b lg:border-b-0 border-black flex flex-col justify-center">
                           <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Name of Student</p>
                           <p className="font-bold text-sm uppercase">{data.student.name}</p>
@@ -515,7 +515,7 @@ const ProgressiveReport = () => {
                     )}
 
                     <div className="flex-1">
-                      <table className="w-full border-collapse border-2 border-black mb-6 text-xs bg-white">
+                      <table className="w-full border-collapse border-2 border-black mb-3 text-xs bg-white">
                         <thead>
                           <tr className="bg-emerald-800 text-white uppercase text-[10px] tracking-wider" style={{ backgroundColor: ss?.reportColorScheme || ss?.primaryColor || '#065f46' }}>
                             <th className="border border-black p-2 text-left w-1/4">Subjects</th>

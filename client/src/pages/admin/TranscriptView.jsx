@@ -96,12 +96,13 @@ const TranscriptView = () => {
         <div className="overflow-x-auto md:overflow-visible no-scrollbar">
           <div
             ref={componentRef}
-            className="mx-auto bg-white shadow-2xl rounded-none relative overflow-hidden transcript-container print:shadow-none"
+            className="mx-auto bg-white shadow-2xl rounded-none relative overflow-hidden transcript-container print:shadow-none print:emerald-print-A4"
             style={{
               width: '210mm',
               minWidth: '210mm',
+              height: '297mm',
               minHeight: '297mm',
-              padding: '20mm'
+              padding: '10mm'
             }}
           >
             {/* Subtle Watermark */}
@@ -112,7 +113,7 @@ const TranscriptView = () => {
             </div>
 
             {/* Header */}
-            <div className="flex justify-between items-start border-b-4 border-primary pb-8 mb-8 relative z-10">
+            <div className="flex justify-between items-start border-b-4 border-primary pb-4 mb-4 relative z-10">
               <div className="flex gap-6 items-center">
                 {schoolSettings?.logoUrl && (
                   <img
@@ -166,8 +167,8 @@ const TranscriptView = () => {
             </div>
 
             {/* Student Info Grid */}
-            <div className="grid grid-cols-2 gap-12 mb-10 text-sm relative z-10">
-              <div className="space-y-3 bg-gray-50 p-6 rounded-lg border border-gray-100">
+            <div className="grid grid-cols-2 gap-4 mb-4 text-[13px] relative z-10">
+              <div className="space-y-1 bg-gray-50 p-4 rounded-lg border border-gray-100">
                 <h3 className="font-bold uppercase text-xs text-gray-500 tracking-widest border-b pb-2">Student Particulars</h3>
                 <p><span className="text-gray-500 font-medium inline-block w-32">Full Name:</span> <span className="font-bold text-gray-900 uppercase">{student.user.firstName} {student.middleName || ''} {student.user.lastName}</span></p>
                 <p><span className="text-gray-500 font-medium inline-block w-32">Admission No:</span> <span className="font-bold font-mono">{student.admissionNumber}</span></p>
@@ -175,7 +176,7 @@ const TranscriptView = () => {
                 <p><span className="text-gray-500 font-medium inline-block w-32">Gender:</span> <span>{student.gender}</span></p>
                 <p><span className="text-gray-500 font-medium inline-block w-32">Date of Birth:</span> <span>{new Date(student.dateOfBirth).toLocaleDateString()}</span></p>
               </div>
-              <div className="space-y-3 bg-gray-50 p-6 rounded-lg border border-gray-100">
+              <div className="space-y-1 bg-gray-50 p-4 rounded-lg border border-gray-100">
                 <h3 className="font-bold uppercase text-xs text-gray-500 tracking-widest border-b pb-2">Academic Record Summary</h3>
                 <p className="flex items-center gap-2 flex-wrap">
                   <span className="text-gray-500 font-medium inline-block w-40">Year of Entry:</span>
@@ -231,7 +232,7 @@ const TranscriptView = () => {
             </div>
 
             {/* Academic History Table */}
-            <div className="space-y-8 relative z-10 mb-12">
+            <div className="space-y-2 relative z-10 mb-4 flex-1">
               {Object.entries(academicHistory).length > 0 ? Object.entries(academicHistory).flatMap(([sessionName, terms]) =>
                 Object.entries(terms).map(([termName, termData]) => (
                   <div key={`${sessionName}-${termName}`} className="page-break-inside-avoid border rounded-lg overflow-hidden bg-white shadow-sm">
@@ -243,7 +244,7 @@ const TranscriptView = () => {
                         Performance Report
                       </div>
                     </div>
-                    <div className="p-4">
+                    <div className="p-2">
                       <table className="min-w-full text-[11px] border-collapse">
                         <thead>
                           <tr className="bg-gray-50 text-gray-400 font-black uppercase tracking-widest text-[9px]">
@@ -285,7 +286,7 @@ const TranscriptView = () => {
             </div>
 
             {/* Authentication Footer */}
-            <div className="mt-auto pt-10 border-t-2 border-gray-100 flex justify-between items-end relative z-10 page-break-inside-avoid">
+            <div className="mt-auto pt-4 border-t-2 border-gray-100 flex justify-between items-end relative z-10 page-break-inside-avoid">
               <div className="w-1/3 flex flex-col items-center">
                 <div className="h-24 w-40 relative flex items-center justify-center">
                   {/* Seal/Stamp Simulation */}
