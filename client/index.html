@@ -17,52 +17,185 @@
   <script type="module" src="/error-logger.js"></script>
 </head>
 
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg-gradient);
+      overflow: hidden;
+    }
+
+    #loading-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      width: 100vw;
+      transition: opacity 0.5s ease-out;
+    }
+
+    .loader {
+      width: 48px;
+      height: 48px;
+      border: 5px solid #fff;
+      border-bottom-color: var(--primary);
+      border-radius: 50%;
+      display: inline-block;
+      box-sizing: border-box;
+      animation: rotation 1s linear infinite;
+      margin-bottom: 24px;
+    }
+
+    @keyframes rotation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      color: #1e293b;
+      font-weight: 600;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    p {
+      color: #64748b;
+      font-size: 0.95rem;
+      text-align: center;
+      max-width: 300px;
+      line-height: 1.5;
+    }
+
+    #critical-error-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(8px);
+      z-index: 99999;
+      padding: 24px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .error-card {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      border-top: 6px solid #ef4444;
+    }
+
+    .error-card h2 {
+      color: #991b1b;
+      margin: 0 0 12px 0;
+      font-size: 1.25rem;
+    }
+
+    .error-card p {
+      color: #4b5563;
+      text-align: left;
+      margin-bottom: 24px;
+      max-width: none;
+    }
+
+    .btn-fix {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+
+    .btn-fix:hover {
+      background: #dc2626;
+    }
+  </style>
+</head>
+
 <body>
   <div id="root">
-    <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
-      <h1>Loading School Management System...</h1>
-      <p>If this message doesn't disappear in a few seconds, there is a problem.</p>
+    <div id="loading-screen">
+      <span class="loader"></span>
+      <h1>System Initializing...</h1>
+      <p>Sit tight while we prepare your school dashboard.</p>
     </div>
   </div>
+
+  <div id="critical-error-overlay">
+    <div class="error-card">
+      <h2>System Alert</h2>
+      <p id="error-message">A critical component failed to load. This usually happens after a system update.</p>
+      <button class="btn-fix" onclick="window.location.reload(true)">Clear Cache & Refresh</button>
+    </div>
+  </div>
+
   <script>
-    // Handle dynamic import failures (common after new deployments)
+    // Robust error handling for asset resolution
     window.addEventListener('error', function (e) {
-      if (e.message && e.message.includes('Failed to fetch dynamically imported module')) {
-        console.warn('Dynamic import failed. Potential new deployment. Refreshing...');
+      // 1. Handle dynamic import failures (Auto-refresh)
+      if (e.message && (
+          e.message.includes('Failed to fetch dynamically imported module') || 
+          e.message.includes('Importing a module script failed')
+      )) {
+        console.warn('Deployment update detected. Refreshing...');
         window.location.reload();
         return;
       }
 
-      // Ignore image/resource load errors
-      if (e.target && (e.target.tagName === 'IMG' || e.target.tagName === 'LINK')) {
-        return;
-      }
-
-      // Show critical JavaScript errors
-      if (e.target && e.target.tagName === 'SCRIPT') {
-        var msg = 'Critical Script Failed to Load: ' + (e.target.src || 'Unknown source') + '. Please refresh your browser.';
-        console.error(msg);
+      // 2. Handle script load failures (Show UI)
+      if (e.target && e.target.tagName === 'SCRIPT' && !e.target.src.includes('error-logger')) {
+        const overlay = document.getElementById('critical-error-overlay');
+        const msgEl = document.getElementById('error-message');
         
-        // Use DOM methods instead of innerHTML += to avoid destroying the existing app state
-        var errorDiv = document.createElement('div');
-        errorDiv.id = 'critical-script-error';
-        errorDiv.style.cssText = 'color:white; background:red; padding:20px; border:2px solid black; margin:20px; z-index:9999; position:fixed; bottom:0; left:0; right:0; font-family:sans-serif; pointer-events:none; shadow: 0 0 20px rgba(0,0,0,0.5);';
-        errorDiv.innerHTML = '<strong style="display:block;margin-bottom:5px;">SYSTEM ALERT</strong>' + msg;
-        document.body.appendChild(errorDiv);
+        msgEl.textContent = 'Failed to load system resource: ' + (e.target.src.split('/').pop() || 'Core Module') + '. Please refresh to fetch the latest version.';
+        overlay.style.display = 'flex';
       }
     }, true);
 
-    // Also catch unhandled promise rejections (where dynamic imports often fail)
+    // Also catch promise rejections (Vite uses these for lazy loads)
     window.addEventListener('unhandledrejection', function (event) {
-      if (event.reason && (
-        event.reason.message && event.reason.message.includes('Failed to fetch dynamically imported module') ||
+      const isChunkError = event.reason && (
+        (event.reason.message && event.reason.message.includes('Failed to fetch dynamically imported module')) ||
         event.reason.name === 'ChunkLoadError' ||
         event.reason.toString().includes('Loading chunk')
-      )) {
-        console.warn('Chunk load failed. Refreshing to get latest version...');
+      );
+      
+      if (isChunkError) {
+        console.warn('Chunk load failed. Auto-refreshing...');
         window.location.reload();
       }
     });
+
+    // Remove loading screen when root content arrives
+    const observer = new MutationObserver(function(mutations, me) {
+      const root = document.getElementById('root');
+      if (root.children.length > 1 || (root.children[0] && root.children[0].id !== 'loading-screen')) {
+        const loader = document.getElementById('loading-screen');
+        if (loader) loader.style.opacity = '0';
+        setTimeout(() => loader && loader.remove(), 500);
+        me.disconnect();
+      }
+    });
+    observer.observe(document.getElementById('root'), { childList: true });
   </script>
   <script type="module" src="/src/main.jsx"></script>
 </body>
