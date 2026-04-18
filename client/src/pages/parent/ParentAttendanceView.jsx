@@ -163,8 +163,7 @@ const ParentAttendanceView = () => {
 
     const weekendDays = (schoolSettings?.weekendDays ?? '0,6').split(',').map(d => parseInt(d.trim())).filter(d => !isNaN(d));
 
-    // Calculate Expected Working Days in Range
-    const workDays = [];
+    // 1. Calculate Expected Working Days (Calendar Baseline)
     if (filters.startDate && filters.endDate) {
       let current = new Date(filters.startDate);
       current.setHours(0,0,0,0);
@@ -178,33 +177,38 @@ const ParentAttendanceView = () => {
 
         if (!isWeekend && !isHoliday) {
           stats.expected++;
-          workDays.push(current.getTime());
         }
         current.setDate(current.getDate() + 1);
       }
     }
 
-    // Build a set of dates the student actually has records for
+    // 2. Count ACTUAL records (Prioritize data over calendar rules)
     const studentRecordDates = new Set();
     attendanceRecords.forEach(record => {
       const recordDate = new Date(record.date);
       recordDate.setHours(0,0,0,0);
+      
+      const status = (record.status || '').toLowerCase();
+      studentRecordDates.add(recordDate.getTime());
+
+      if (status === 'present') stats.present++;
+      else if (status === 'absent') stats.absent++;
+      else if (status === 'late') { stats.present++; stats.late++; }
+      else if (status === 'excused') stats.excused++;
+      
+      // If we have a record on a day that wasn't "Expected" (e.g. weekend class)
+      // we increase the expected count to keep the math consistent
       const isWeekend = weekendDays.includes(recordDate.getDay());
       const isHoliday = holidayDates.has(recordDate.getTime());
-
-      if (!isHoliday && !isWeekend) {
-        studentRecordDates.add(recordDate.getTime());
-        if (record.status === 'present') stats.present++;
-        else if (record.status === 'absent') stats.absent++;
-        else if (record.status === 'late') { stats.present++; stats.late++; }
-        else if (record.status === 'excused') stats.excused++;
+      if (isWeekend || isHoliday) {
+        stats.expected++;
       }
     });
 
-    // Unmarked = Expected Days - (Present + Absent + Excused)
-    // This effectively treats any day without a positive/negative mark as "Unmarked"
-    // This includes both class unmarked and school untracked days.
-    stats.unmarked = stats.expected - (stats.present + stats.absent + stats.excused);
+    // 3. Reconcile Unmarked
+    // Unmarked should only be count if the day was "expected" but no record exists.
+    // If stats.expected is higher than our recorded items, the gap is unmarked.
+    stats.unmarked = Math.max(0, stats.expected - (stats.present + stats.absent + stats.excused));
 
     const percentage = stats.expected > 0 ? ((stats.present / stats.expected) * 100).toFixed(1) : 0;
     return { ...stats, percentage };
