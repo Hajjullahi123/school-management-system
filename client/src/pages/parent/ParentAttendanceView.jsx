@@ -164,6 +164,7 @@ const ParentAttendanceView = () => {
     const weekendDays = (schoolSettings?.weekendDays ?? '0,6').split(',').map(d => parseInt(d.trim())).filter(d => !isNaN(d));
 
     // Calculate Expected Working Days in Range
+    const workDays = [];
     if (filters.startDate && filters.endDate) {
       let current = new Date(filters.startDate);
       current.setHours(0,0,0,0);
@@ -177,6 +178,7 @@ const ParentAttendanceView = () => {
 
         if (!isWeekend && !isHoliday) {
           stats.expected++;
+          workDays.push(current.getTime());
         }
         current.setDate(current.getDate() + 1);
       }
@@ -199,16 +201,10 @@ const ParentAttendanceView = () => {
       }
     });
 
-    // Count unmarked days: class had attendance taken but this student has no record
-    classAttendanceDates.forEach(dateStr => {
-      const d = new Date(dateStr);
-      d.setHours(0,0,0,0);
-      const isWeekend = weekendDays.includes(d.getDay());
-      const isHoliday = holidayDates.has(d.getTime());
-      if (!isHoliday && !isWeekend && !studentRecordDates.has(d.getTime())) {
-        stats.unmarked++;
-      }
-    });
+    // Unmarked = Expected Days - (Present + Absent + Excused)
+    // This effectively treats any day without a positive/negative mark as "Unmarked"
+    // This includes both class unmarked and school untracked days.
+    stats.unmarked = stats.expected - (stats.present + stats.absent + stats.excused);
 
     const percentage = stats.expected > 0 ? ((stats.present / stats.expected) * 100).toFixed(1) : 0;
     return { ...stats, percentage };
