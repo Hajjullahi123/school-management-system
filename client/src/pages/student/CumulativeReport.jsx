@@ -210,35 +210,44 @@ const CumulativeReport = () => {
             <img src={logoUri} alt="" className="w-[800px] h-auto grayscale filter blur-[1px]" />
         </div>
 
-        <div className="relative z-10 space-y-2 print:space-y-1">
-          {/* HEADER */}
-          <div className="flex justify-between items-start gap-4">
+        <div className="relative z-10 space-y-2 print:space-y-1">          {/* HEADER */}
+          <div className="grid grid-cols-[96px_1fr_96px] items-start gap-4 mb-2">
             <div className="w-24 h-24 flex-shrink-0">
-              {logoUri ? (
-                <img src={logoUri} alt="Logo" className="w-full h-full object-contain object-left" />
-              ) : (
-                <div className="w-full h-full border-2 border-emerald-800 rounded-full flex items-center justify-center text-[9px] text-gray-400 font-bold uppercase">No Logo</div>
+              {ss?.logoUrl && (
+                <img
+                  src={ss.logoUrl.startsWith('data:') || ss.logoUrl.startsWith('http') ? ss.logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${ss.logoUrl.startsWith('/') ? ss.logoUrl : '/' + ss.logoUrl}`}
+                  alt="Logo"
+                  className="w-full h-full object-contain"
+                />
               )}
             </div>
 
-            <div className="flex-1 text-center">
-              <h1 className="text-xl font-black uppercase tracking-widest leading-none text-emerald-900 mb-1" style={{ color: reportColor }}>
+            <div className="text-center flex flex-col items-center justify-center">
+              <h1 className="text-xl font-black uppercase tracking-wider leading-none text-emerald-900 mb-1" style={{ color: reportColor }}>
                 {ss?.name || 'SCHOOL NAME'}
               </h1>
-              <p className="text-[10px] font-black italic text-gray-800 mb-1 uppercase tracking-wide">{ss?.motto || 'Excellence and Dedication'}</p>
-              <p className="text-[8px] font-black text-gray-600 max-w-[500px] mx-auto leading-tight">{ss?.address || 'School Address Location'} | TEL: {ss?.phone || '000'} | Email: {ss?.email || 'email@school.com'}</p>
+              <p className="text-[10px] font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{ss?.motto || 'Excellence and Dedication'}</p>
+              <p className="text-[8px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{ss?.address || 'School Address Location'} | TEL: {ss?.phone || '000'} | Email: {ss?.email || 'email@school.com'}</p>
 
               <div className="mt-1 border-b-2 inline-block px-4 pb-0" style={{ borderColor: reportColor }}>
-                <h2 className="text-base font-black uppercase tracking-widest">ANNUAL CUMULATIVE PERFORMANCE REPORT</h2>
+                <h2 className="text-base font-black uppercase tracking-wider">ANNUAL CUMULATIVE PERFORMANCE REPORT</h2>
               </div>
             </div>
 
-            <div className="w-24 h-24 border-2 border-emerald-800 flex-shrink-0 bg-gray-50 flex items-center justify-center overflow-hidden">
-              {photoUri ? (
-                <img src={photoUri} className="w-full h-full object-cover" alt="Student" />
-              ) : (
-                <span className="text-[10px] text-gray-400 font-bold uppercase">PASSPORT</span>
-              )}
+            <div className="w-24 h-28 border-2 border-black bg-gray-50 flex-shrink-0 relative overflow-hidden">
+              {(() => {
+                const photo = data.student?.user?.photoUrl || data.student?.photoUrl;
+                return photo ? (
+                  <img src={photo.startsWith('http') || photo.startsWith('data:') ? photo : `${API_BASE_URL}${photo}`} alt="Student" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-[8px] text-gray-400">
+                    <svg className="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    NO PHOTO
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

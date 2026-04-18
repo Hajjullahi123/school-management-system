@@ -510,26 +510,26 @@ const TermReportCard = () => {
 
                 <div className="relative z-10 space-y-2 print:space-y-1">
                   {/* HEAD SECTION */}
-                  <div className="flex justify-between items-start gap-4">
+                  <div className="grid grid-cols-[96px_1fr_96px] items-start gap-4 mb-2">
                     <div className="w-24 h-24 flex-shrink-0">
                       {schoolSettings?.logoUrl && (
                         <img
                           src={schoolSettings.logoUrl.startsWith('data:') || schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${schoolSettings.logoUrl.startsWith('/') ? schoolSettings.logoUrl : '/' + schoolSettings.logoUrl}`}
                           alt="Logo"
-                          className="w-full h-full object-contain object-left"
+                          className="w-full h-full object-contain"
                         />
                       )}
                     </div>
 
-                    <div className="flex-1 text-center">
-                      <h1 className="text-xl font-black uppercase tracking-widest leading-none text-emerald-900 mb-1" style={{ color: reportColor }}>
+                    <div className="text-center flex flex-col items-center justify-center">
+                      <h1 className="text-xl font-black uppercase tracking-wider leading-none text-emerald-900 mb-1" style={{ color: reportColor }}>
                         {schoolSettings?.schoolName || 'SCHOOL NAME'}
                       </h1>
-                      <p className="text-[10px] font-black italic text-gray-800 mb-1 uppercase tracking-wide">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
-                      <p className="text-[8px] font-black text-gray-600 max-w-[500px] mx-auto leading-tight">{schoolSettings?.address || 'School Address Location'} | TEL: {schoolSettings?.phone || '000'} | Email: {schoolSettings?.email || 'email@school.com'}</p>
+                      <p className="text-[10px] font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
+                      <p className="text-[8px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{schoolSettings?.address || 'School Address Location'} | TEL: {schoolSettings?.phone || '000'} | Email: {schoolSettings?.email || 'email@school.com'}</p>
 
                       <div className="mt-1 border-b-2 inline-block px-4 pb-0" style={{ borderColor: reportColor }}>
-                        <h2 className="text-base font-black uppercase tracking-widest">
+                        <h2 className="text-base font-black uppercase tracking-wider">
                           {data.term?.name?.toUpperCase()} PERFORMANCE REPORT
                         </h2>
                       </div>

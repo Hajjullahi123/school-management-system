@@ -413,16 +413,18 @@ const ProgressiveReport = () => {
 
                   <div className={`relative z-10 print-safe-content font-sans text-gray-900 ${borderStyleCss} p-2 flex-1 flex flex-col`} style={{ borderColor: layout !== 'minimal' ? reportColor : '#d1d5db' }}>
 
-                    <div className="flex items-center justify-between border-b-[2px] border-emerald-800 pb-1 mb-2" style={{ borderColor: reportColor }}>
-                      {logoUri ? (
-                        <img src={logoUri} alt="School Logo" className="w-24 h-24 object-contain" />
-                      ) : (
-                        <div className="w-24 h-24 bg-gray-200 flex items-center justify-center rounded-full text-xs text-gray-500">No Logo</div>
-                      )}
-                      <div className="text-center flex-1 px-4">
-                        <h1 className="text-xl font-black uppercase mb-1 tracking-widest leading-none text-emerald-800" style={{ color: reportColor }}>{ss?.name || 'School Name'}</h1>
-                        <p className="text-[10px] font-black italic text-gray-800 mb-1 uppercase tracking-wide">{ss?.motto || 'Knowledge for Prosperity'}</p>
-                        <p className="text-[8px] font-black text-gray-600 max-w-[500px] mx-auto leading-tight">{ss?.address || 'School Address'} | TEL: {ss?.phone} | Email: {ss?.email}</p>
+                    <div className="grid grid-cols-[96px_1fr_96px] items-start gap-4 mb-2">
+                      <div className="w-24 h-24 flex-shrink-0">
+                        {logoUri ? (
+                          <img src={logoUri} alt="School Logo" className="w-full h-full object-contain" />
+                        ) : (
+                          <div className="w-24 h-24 bg-gray-200 flex items-center justify-center rounded-full text-xs text-gray-500">No Logo</div>
+                        )}
+                      </div>
+                      <div className="text-center flex flex-col items-center justify-center">
+                        <h1 className="text-xl font-black uppercase mb-1 tracking-wider leading-none text-emerald-800" style={{ color: reportColor }}>{ss?.name || 'School Name'}</h1>
+                        <p className="text-[10px] font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{ss?.motto || 'Knowledge for Prosperity'}</p>
+                        <p className="text-[8px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{ss?.address || 'School Address'} | TEL: {ss?.phone} | Email: {ss?.email}</p>
                         <div className="mt-1 inline-block bg-emerald-800 text-white px-6 py-0.5 rounded-full font-bold uppercase tracking-widest text-[11px] shadow-sm" style={{ backgroundColor: reportColor }}>
                           PROGRESSIVE REPORT
                         </div>
@@ -430,9 +432,9 @@ const ProgressiveReport = () => {
                       {(() => {
                         const photo = data.student.user?.photoUrl || data.student.photoUrl;
                         return photo ? (
-                          <img src={photo.startsWith('http') || photo.startsWith('data:') ? photo : `${API_BASE_URL}${photo}`} alt="Student" className="w-24 h-28 object-cover border-2 border-gray-300 rounded shadow-sm" />
+                          <img src={photo.startsWith('http') || photo.startsWith('data:') ? photo : `${API_BASE_URL}${photo}`} alt="Student" className="w-24 h-28 object-cover border-2 border-black rounded shadow-sm" />
                         ) : (
-                          <div className="w-24 h-28 bg-gray-100 flex items-center justify-center border-2 border-gray-300 rounded text-xs text-gray-400">Photo</div>
+                          <div className="w-24 h-28 bg-gray-100 flex items-center justify-center border-2 border-black rounded text-xs text-gray-400">Photo</div>
                         );
                       })()}
                     </div>
