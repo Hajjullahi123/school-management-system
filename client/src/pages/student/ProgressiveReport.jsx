@@ -411,9 +411,9 @@ const ProgressiveReport = () => {
                     </div>
                   )}
 
-                  <div className={`relative z-10 print-safe-content font-sans text-gray-900 ${borderStyleCss} p-3 min-h-[275mm] flex flex-col`} style={{ borderColor: layout !== 'minimal' ? reportColor : '#d1d5db' }}>
+                  <div className={`relative z-10 print-safe-content font-sans text-gray-900 ${borderStyleCss} p-2 flex-1 flex flex-col`} style={{ borderColor: layout !== 'minimal' ? reportColor : '#d1d5db' }}>
 
-                    <div className="flex items-center justify-between border-b-[3px] border-emerald-800 pb-2 mb-3" style={{ borderColor: reportColor }}>
+                    <div className="flex items-center justify-between border-b-[2px] border-emerald-800 pb-1 mb-2" style={{ borderColor: reportColor }}>
                       {logoUri ? (
                         <img src={logoUri} alt="School Logo" className="w-24 h-24 object-contain" />
                       ) : (
@@ -450,8 +450,8 @@ const ProgressiveReport = () => {
                           })()}
                         </div>
                         <div className="col-span-3 grid grid-cols-2 gap-2">
-                           <div className="bg-gray-50/50 p-2 rounded-xl border border-gray-100">
-                             <p className="text-[8px] text-gray-400 mb-0.5">FULL NAME</p>
+                           <div className="bg-gray-50/50 p-1.5 rounded-xl border border-gray-100">
+                             <p className="text-[8px] text-gray-400 mb-0.5 uppercase">Full Name</p>
                              <p className="text-xs truncate font-black" style={{ color: reportColor }}>{data.student.name}</p>
                            </div>
                            <div className="bg-gray-50/50 p-2 rounded-xl border border-gray-100">
@@ -544,7 +544,7 @@ const ProgressiveReport = () => {
                     <div className="grid grid-cols-2 gap-6 mt-auto">
                       {showAttendance && (
                       <div className="border border-black h-fit">
-                        <div className="bg-gray-200 border-b border-black p-1 text-center font-bold uppercase text-[10px] tracking-wider">Attendance Profile</div>
+                        <div className="bg-gray-100 border-b border-black p-1 text-center font-bold uppercase text-[9px] tracking-wider">Attendance Profile</div>
                         <div className="grid grid-cols-3 divide-x divide-black p-2 text-center">
                           <div>
                             <p className="text-[9px] uppercase text-gray-500 mb-1">Days Present</p>

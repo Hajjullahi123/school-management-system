@@ -508,7 +508,7 @@ const TermReportCard = () => {
                     )}
                 </div>
 
-                <div className="relative z-10 space-y-3 print:space-y-2">
+                <div className="relative z-10 space-y-2 print:space-y-1">
                   {/* HEAD SECTION */}
                   <div className="flex justify-between items-start gap-4">
                     <div className="w-24 h-24 flex-shrink-0">
@@ -528,7 +528,7 @@ const TermReportCard = () => {
                       <p className="text-sm font-bold italic text-gray-700">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
                       <p className="text-xs font-bold">{schoolSettings?.address || 'School Address Location'}, TEL: {schoolSettings?.phone || '000000'}, Email: {schoolSettings?.email || 'email@school.com'}</p>
 
-                      <div className="mt-4 border-b-2 inline-block px-4 pb-1" style={{ borderColor: reportColor }}>
+                      <div className="mt-2 border-b-2 inline-block px-4 pb-0.5" style={{ borderColor: reportColor }}>
                         <h2 className="text-lg font-bold uppercase tracking-wide">
                           {data.term?.name?.toUpperCase()} PERFORMANCE REPORT
                         </h2>
@@ -793,10 +793,10 @@ const TermReportCard = () => {
                   {/* FINANCIAL STANDING SECTION */}
                   {showFees && data.feeSummary && (
                     <div className="border-2 border-black bg-emerald-50/30 rounded-lg overflow-hidden mt-2" style={{ backgroundColor: `${reportColor}05` }}>
-                      <div className="bg-emerald-800 text-white text-[10px] font-bold text-center py-0.5 uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
+                      <div className="bg-emerald-800 text-white text-[9px] font-bold text-center py-0 uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
                         Financial Standing & Fee Status
                       </div>
-                      <div className="p-3 grid grid-cols-4 gap-4 text-center divide-x divide-black/10">
+                      <div className="p-1 px-3 grid grid-cols-4 gap-4 text-center divide-x divide-black/10">
                         <div className="space-y-1">
                           <p className="text-[8px] font-black text-gray-500 uppercase">Arrears (Opening)</p>
                           <p className={`text-sm font-black ${data.feeSummary.openingBalance > 0 ? 'text-red-600' : 'text-gray-900'}`}>
@@ -822,8 +822,8 @@ const TermReportCard = () => {
                           </p>
                         </div>
                       </div>
-                      <div className="px-3 pb-2 text-[8px] text-center italic text-gray-500 border-t border-black/5 pt-1">
-                        Note: Full payment of all outstanding balances is required for continued access to student portal and future term results.
+                      <div className="px-3 pb-1 text-[7px] text-center italic text-gray-500 border-t border-black/5 pt-0.5">
+                        Note: Full payment is required for continued portal access.
                       </div>
                     </div>
                   )}
@@ -833,7 +833,7 @@ const TermReportCard = () => {
                     <div className="grid grid-cols-2 divide-x-2 divide-black">
                       <div className="p-2 space-y-1">
                         <p className="text-[10px] font-black uppercase text-gray-500">Form Master's Remark</p>
-                        <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
+                        <p className="text-xs font-medium italic leading-none min-h-[25px] flex items-center">
                           "{data.formMasterRemark || 'No specific remark recorded.'}"
                         </p>
                         <div className="pt-1 border-t border-black/10 flex justify-between items-center">
@@ -848,7 +848,7 @@ const TermReportCard = () => {
                       </div>
                       <div className="p-2 space-y-1">
                         <p className="text-[10px] font-black uppercase text-gray-500">Principal's Remark</p>
-                        <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
+                        <p className="text-xs font-medium italic leading-none min-h-[25px] flex items-center">
                           "{data.principalRemark || 'Satisfactory result. Keep striving for excellence.'}"
                         </p>
                         <div className="pt-1 border-t border-black/10 flex justify-between items-center text-[9px] font-bold">
@@ -866,27 +866,28 @@ const TermReportCard = () => {
                   </div>
 
                   {/* SIGNATURES & VERIFICATION */}
-                  <div className="mt-2 grid grid-cols-2 gap-8 items-end p-1 print:mt-1">
-                    <div className="space-y-2 text-center">
-                      <div className="border-b-2 border-black py-1 min-h-[30px] flex items-center justify-center">
+                  <div className="mt-1 grid grid-cols-2 gap-8 items-end p-1">
+                    <div className="space-y-1 text-center">
+                      <div className="border-b-2 border-black py-0.5 min-h-[20px] flex items-center justify-center">
                         {data.student?.formMasterSignatureUrl ? (
-                          <img src={data.student.formMasterSignatureUrl.startsWith('data:') || data.student.formMasterSignatureUrl.startsWith('http') ? data.student.formMasterSignatureUrl : `${API_BASE_URL}${data.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-[40px] w-auto mix-blend-multiply" />
+                          <img src={data.student.formMasterSignatureUrl.startsWith('data:') || data.student.formMasterSignatureUrl.startsWith('http') ? data.student.formMasterSignatureUrl : `${API_BASE_URL}${data.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-[35px] w-auto mix-blend-multiply" />
                         ) : (
                           <span className="font-signature italic text-lg">{data.student?.formMaster}</span>
                         )}
                       </div>
-                      <span className="text-[9px] font-black block uppercase text-gray-600">CLASS TEACHER'S SIGNATURE</span>
+                      <span className="text-[8px] font-black block uppercase text-gray-600">CLASS TEACHER'S SIGNATURE</span>
                     </div>
-                    <div className="space-y-2 text-center">
-                      <div className="border-b-2 border-black py-1 min-h-[30px] flex items-center justify-center">
+                    <div className="space-y-1 text-center">
+                      <div className="border-b-2 border-black py-0.5 min-h-[20px] flex items-center justify-center">
                         {data.term?.principalSignatureUrl ? (
-                          <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-[50px] w-auto mix-blend-multiply" />
+                          <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-[40px] w-auto mix-blend-multiply" />
                         ) : (
                           <span className="text-[8px] text-gray-300 italic opacity-50 underline decoration-dotted">FOR OFFICIAL USE - PRINCIPAL</span>
                         )}
                       </div>
-                      <span className="text-[9px] font-black block uppercase text-gray-600">PRINCIPAL'S SIGNATURE</span>
+                      <span className="text-[8px] font-black block uppercase text-gray-600">PRINCIPAL'S SIGNATURE</span>
                     </div>
+                  </div>
                   </div>
 
                   {/* DOCUMENT VERIFICATION FOOTER */}

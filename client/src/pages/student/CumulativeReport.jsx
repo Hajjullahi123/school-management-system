@@ -210,7 +210,7 @@ const CumulativeReport = () => {
             <img src={logoUri} alt="" className="w-[800px] h-auto grayscale filter blur-[1px]" />
         </div>
 
-        <div className="relative z-10 space-y-3 print:space-y-2">
+        <div className="relative z-10 space-y-2 print:space-y-1">
           {/* HEADER */}
           <div className="flex justify-between items-start gap-4">
             <div className="w-24 h-24 flex-shrink-0">
@@ -227,7 +227,7 @@ const CumulativeReport = () => {
               </h1>
               <p className="text-sm font-bold italic text-gray-700">{ss?.motto || 'Excellence and Dedication'}</p>
               <p className="text-xs font-bold">{ss?.address || 'School Address'}, TEL: {ss?.phone || '---'}, Email: {ss?.email || '---'}</p>
-              <div className="mt-4 border-b-2 inline-block px-4 pb-1" style={{ borderColor: reportColor }}>
+              <div className="mt-2 border-b-2 inline-block px-4 pb-0.5" style={{ borderColor: reportColor }}>
                 <h2 className="text-lg font-bold uppercase tracking-wide">ANNUAL CUMULATIVE PERFORMANCE REPORT</h2>
               </div>
             </div>
@@ -258,7 +258,7 @@ const CumulativeReport = () => {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black text-[10px] font-bold uppercase bg-gray-50 mb-2">
+            <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black text-[9px] font-bold uppercase bg-gray-50 mb-1">
               <div className="p-1"><span className="text-gray-500">NAME:</span> {data.student?.name}</div>
               <div className="p-1"><span className="text-gray-500">ADM NO:</span> {data.student?.admissionNumber}</div>
               <div className="p-1"><span className="text-gray-500">CLASS:</span> {data.student?.class}</div>
