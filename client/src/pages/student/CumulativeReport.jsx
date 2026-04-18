@@ -389,6 +389,7 @@ const CumulativeReport = () => {
   const hasReports = reportData || bulkReports.length > 0;
   const allReports = bulkReports.length > 0 ? bulkReports : (reportData ? [reportData] : []);
 
+  return (
     <div className="space-y-6 pb-20">
 
 

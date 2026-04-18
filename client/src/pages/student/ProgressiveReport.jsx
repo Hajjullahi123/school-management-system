@@ -192,6 +192,7 @@ const ProgressiveReport = () => {
     documentTitle: `Progressive_Reports_${terms.find(t => t.id.toString() === termId)?.name || 'Term'}`,
   });
 
+  return (
     <div className="space-y-6 pb-20">
 
 
