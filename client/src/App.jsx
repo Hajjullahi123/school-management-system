@@ -326,7 +326,7 @@ function App() {
                   <ExamCardSwitch />
                 </ProtectedRoute>
               } />
-              <Route path="quran-progress" element={
+              <Route path="student/quran" element={
                 <ProtectedRoute roles={['student']}>
                   <QuranProgress />
                 </ProtectedRoute>
