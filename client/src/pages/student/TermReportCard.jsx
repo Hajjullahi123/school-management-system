@@ -522,14 +522,14 @@ const TermReportCard = () => {
                     </div>
 
                     <div className="flex-1 text-center">
-                      <h1 className="text-2xl font-extrabold uppercase tracking-wider leading-tight text-emerald-900" style={{ color: reportColor }}>
+                      <h1 className="text-xl font-black uppercase tracking-widest leading-none text-emerald-900 mb-1" style={{ color: reportColor }}>
                         {schoolSettings?.schoolName || 'SCHOOL NAME'}
                       </h1>
-                      <p className="text-sm font-bold italic text-gray-700">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
-                      <p className="text-xs font-bold">{schoolSettings?.address || 'School Address Location'}, TEL: {schoolSettings?.phone || '000000'}, Email: {schoolSettings?.email || 'email@school.com'}</p>
+                      <p className="text-[10px] font-bold italic text-gray-600 mb-1 uppercase tracking-tighter">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
+                      <p className="text-[8px] font-bold text-gray-400 max-w-[500px] mx-auto leading-tight">{schoolSettings?.address || 'School Address Location'} | TEL: {schoolSettings?.phone || '000'} | Email: {schoolSettings?.email || 'email@school.com'}</p>
 
-                      <div className="mt-2 border-b-2 inline-block px-4 pb-0.5" style={{ borderColor: reportColor }}>
-                        <h2 className="text-lg font-bold uppercase tracking-wide">
+                      <div className="mt-1 border-b-2 inline-block px-4 pb-0" style={{ borderColor: reportColor }}>
+                        <h2 className="text-base font-black uppercase tracking-widest">
                           {data.term?.name?.toUpperCase()} PERFORMANCE REPORT
                         </h2>
                       </div>

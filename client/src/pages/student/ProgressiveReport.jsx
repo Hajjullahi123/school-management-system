@@ -420,10 +420,10 @@ const ProgressiveReport = () => {
                         <div className="w-24 h-24 bg-gray-200 flex items-center justify-center rounded-full text-xs text-gray-500">No Logo</div>
                       )}
                       <div className="text-center flex-1 px-4">
-                        <h1 className="text-3xl font-black uppercase mb-1 tracking-wider text-emerald-800" style={{ color: reportColor }}>{ss?.name || 'School Name'}</h1>
-                        <p className="text-sm font-semibold text-gray-700 uppercase">{ss?.address || 'School Address'}</p>
-                        <p className="text-xs text-gray-600 mb-2">{ss?.phone} | {ss?.email}</p>
-                        <div className="inline-block bg-emerald-800 text-white px-6 py-1.5 rounded-full font-bold uppercase tracking-widest text-sm shadow-sm" style={{ backgroundColor: reportColor }}>
+                        <h1 className="text-xl font-black uppercase mb-1 tracking-widest leading-none text-emerald-800" style={{ color: reportColor }}>{ss?.name || 'School Name'}</h1>
+                        <p className="text-[10px] font-bold italic text-gray-400 mb-1 uppercase tracking-tighter">{ss?.motto || 'Knowledge for Prosperity'}</p>
+                        <p className="text-[8px] font-bold text-gray-500 max-w-[500px] mx-auto leading-tight">{ss?.address || 'School Address'} | TEL: {ss?.phone} | Email: {ss?.email}</p>
+                        <div className="mt-1 inline-block bg-emerald-800 text-white px-6 py-0.5 rounded-full font-bold uppercase tracking-widest text-[11px] shadow-sm" style={{ backgroundColor: reportColor }}>
                           PROGRESSIVE REPORT
                         </div>
                       </div>
