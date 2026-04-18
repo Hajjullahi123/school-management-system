@@ -921,66 +921,46 @@ const TermReportCard = () => {
                     <div className="text-right">
                       <div className="text-[8px] font-black text-slate-900 uppercase tracking-tighter">Academic Status</div>
                       <div className="text-[7px] font-bold text-gray-400">TERM: {data.term?.name?.toUpperCase()} • GEN: {new Date().toLocaleDateString('en-GB')}</div>
-                    </div>
-                  </div>
+                                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      );
-    })}
-  </>
-)}
+        );
+      })}
+    </>
+  )}
 
-
-
-
-      <style>{`
-        @media print {
-          @page { 
-            size: A4; 
-            margin: 0; 
-          }
-          body { background: white !important; margin: 0; padding: 0; }
-          
-          .emerald-border-A4 {
-            width: 210mm !important;
-            height: 297mm !important;
-            max-height: 297mm !important;
-            overflow: hidden !important;
-            margin: 0 auto !important;
-            padding: 8mm !important;
-            box-sizing: border-box !important;
-            page-break-after: always !important;
-            break-after: page !important;
-            border: 6px solid #065f46 !important; 
-            -webkit-print-color-adjust: exact; 
-          }
-
-          .max-w-[210mm] { max-width: 100% !important; margin: 0 !important; }
-
-          table { border-collapse: collapse !important; width: 100% !important; }
-          td, th { border: 1px solid black !important; padding: 2px !important; }
-          * { box-sizing: border-box !important; }
-          .bg-emerald-800 { background-color: #065f46 !important; -webkit-print-color-adjust: exact; }
-          .bg-gray-200 { background-color: #e5e7eb !important; -webkit-print-color-adjust: exact; }
-          .bg-gray-100 { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
-          .bg-gray-50 { background-color: #f9fafb !important; -webkit-print-color-adjust: exact; }
-        }
-        
-        * { box-sizing: border-box !important; }
-        .border-black { border-color: black !important; }
-
-        @media screen and (max-width: 794px) {
-          .report-card-wrapper {
-            margin: 0 -1rem;
-            padding: 0 1rem;
-            display: flex;
-      `}</style>
-    </div>
-  );
+  <style>{`
+    @media (max-width: 640px) {
+      .report-card-mobile-wrapper {
+         min-height: 500px;
+         padding-bottom: 40px;
+      }
+      .report-card-scaler {
+         width: 210mm;
+         margin-left: 0;
+      }
+      @media (max-width: 400px) { .report-card-scaler { transform: scale(0.42); } }
+      @media (min-width: 401px) and (max-width: 500px) { .report-card-scaler { transform: scale(0.52); } }
+      @media (min-width: 501px) and (max-width: 639px) { .report-card-scaler { transform: scale(0.7); } }
+    }
+    
+    @media print {
+      .report-card-scaler { 
+        transform: none !important; 
+        width: auto !important;
+        margin: 0 !important;
+      }
+      .report-card-mobile-wrapper {
+        overflow: visible !important;
+        padding: 0 !important;
+      }
+    }
+  `}</style>
+</div>
+);
 };
 
 export default TermReportCard;
