@@ -562,12 +562,12 @@ router.get('/student-attendance', authenticate, authorize(['parent', 'admin', 'p
     if (startDate || endDate) {
       where.date = {};
       if (startDate) {
-        where.date.gte = new Date(startDate);
+        const [sy, sm, sd] = startDate.split('-');
+        where.date.gte = new Date(Date.UTC(parseInt(sy), parseInt(sm) - 1, parseInt(sd), 0, 0, 0));
       }
       if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        where.date.lte = end;
+        const [ey, em, ed] = endDate.split('-');
+        where.date.lte = new Date(Date.UTC(parseInt(ey), parseInt(em) - 1, parseInt(ed), 23, 59, 59, 999));
       }
     }
 
@@ -598,11 +598,13 @@ router.get('/student-attendance', authenticate, authorize(['parent', 'admin', 'p
       if (termId) classWhere.termId = parseInt(termId);
       if (startDate || endDate) {
         classWhere.date = {};
-        if (startDate) classWhere.date.gte = new Date(startDate);
+        if (startDate) {
+          const [sy, sm, sd] = startDate.split('-');
+          classWhere.date.gte = new Date(Date.UTC(parseInt(sy), parseInt(sm) - 1, parseInt(sd), 0, 0, 0));
+        }
         if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          classWhere.date.lte = end;
+          const [ey, em, ed] = endDate.split('-');
+          classWhere.date.lte = new Date(Date.UTC(parseInt(ey), parseInt(em) - 1, parseInt(ed), 23, 59, 59, 999));
         }
       }
 

@@ -165,41 +165,39 @@ const ParentAttendanceView = () => {
 
     // 1. Calculate Expected Working Days (Calendar Baseline)
     if (filters.startDate && filters.endDate) {
-      let current = new Date(filters.startDate);
-      current.setHours(0,0,0,0);
-      const end = new Date(filters.endDate);
-      end.setHours(0,0,0,0);
+      const [sy, sm, sd] = filters.startDate.split('-');
+      let current = new Date(Date.UTC(parseInt(sy), parseInt(sm) - 1, parseInt(sd), 0, 0, 0));
+      const [ey, em, ed] = filters.endDate.split('-');
+      const end = new Date(Date.UTC(parseInt(ey), parseInt(em) - 1, parseInt(ed), 0, 0, 0));
 
       while (current <= end) {
-        const dayOfWeek = current.getDay();
+        const dayOfWeek = current.getUTCDay();
         const isWeekend = weekendDays.includes(dayOfWeek);
         const isHoliday = holidayDates.has(current.getTime());
 
         if (!isWeekend && !isHoliday) {
           stats.expected++;
         }
-        current.setDate(current.getDate() + 1);
+        current.setUTCDate(current.getUTCDate() + 1);
       }
     }
 
     // 2. Count ACTUAL records (Prioritize data over calendar rules)
-    const studentRecordDates = new Set();
     attendanceRecords.forEach(record => {
       const recordDate = new Date(record.date);
-      recordDate.setHours(0,0,0,0);
+      // Ensure recordDate is at UTC midnight for accurate comparisons
+      const utcTime = Date.UTC(recordDate.getUTCFullYear(), recordDate.getUTCMonth(), recordDate.getUTCDate(), 0,0,0);
       
       const status = (record.status || '').toLowerCase();
-      studentRecordDates.add(recordDate.getTime());
 
       if (status === 'present') stats.present++;
       else if (status === 'absent') stats.absent++;
       else if (status === 'late') { stats.present++; stats.late++; }
       else if (status === 'excused') stats.excused++;
       
-      // If we have a record on a day that wasn't "Expected" (e.g. weekend class)
-      // we increase the expected count to keep the math consistent
-      const isWeekend = weekendDays.includes(recordDate.getDay());
-      const isHoliday = holidayDates.has(recordDate.getTime());
+      const dayOfWeek = recordDate.getUTCDay();
+      const isWeekend = weekendDays.includes(dayOfWeek);
+      const isHoliday = holidayDates.has(utcTime);
       if (isWeekend || isHoliday) {
         stats.expected++;
       }

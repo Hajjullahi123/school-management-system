@@ -194,11 +194,12 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal', '
     // SERVER-SIDE LOCK CHECK
     let targetDate;
     if (date) {
+      // Create UTC date from YYYY-MM-DD to avoid timezone shifting
       const [year, month, day] = date.split('-');
       targetDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0));
     } else {
-      targetDate = new Date();
-      targetDate.setUTCHours(0, 0, 0, 0);
+      const now = new Date();
+      targetDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
     }
 
     const dateDiff = (new Date() - targetDate) / (1000 * 60 * 60);
@@ -258,7 +259,7 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal', '
       return res.status(400).json({ error: 'No active academic session or term found' });
     }
 
-    targetDate.setHours(0, 0, 0, 0);
+    // targetDate is already normalized to UTC midnight above
 
     // TERM DATE BOUNDARY CHECK: Ensure targetDate is within the current term's date range
     const termStart = new Date(term.startDate);
