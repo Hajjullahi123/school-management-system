@@ -119,10 +119,10 @@ const Attendance = () => {
         info: data?.holidayInfo || null
       });
 
-      // Initialize status to 'absent' if it's 'pending'
+      // Students are 'pending' if not marked by teacher yet on this date
       const initializedStudents = studentsData.map(s => ({
         ...s,
-        status: s.status === 'pending' ? 'absent' : s.status
+        status: s.status || 'pending'
       }));
 
       setStudents(initializedStudents);
@@ -165,7 +165,7 @@ const Attendance = () => {
   };
 
   const calculateStats = (studentList) => {
-    const newStats = { present: 0, absent: 0, late: 0, excused: 0 };
+    const newStats = { present: 0, absent: 0, late: 0, excused: 0, pending: 0 };
     studentList.forEach(s => {
       if (newStats[s.status] !== undefined) newStats[s.status]++;
     });
@@ -327,7 +327,7 @@ const Attendance = () => {
         </div>
         
         {students.length > 0 && !error && (
-          <div className="grid grid-cols-2 sm:flex sm:flex-row items-center gap-2 sm:gap-4 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
+          <div className="grid grid-cols-2 sm:flex sm:flex-row items-center gap-2 sm:gap-3 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
             <div className="flex items-center justify-between sm:justify-start gap-2 px-3 py-2 bg-emerald-50 rounded-xl border border-emerald-100 flex-1">
               <span className="text-[10px] sm:text-xs font-black text-emerald-600 uppercase">Present</span>
               <span className="text-sm sm:text-base font-black text-emerald-700">{holidayCheck.isHoliday ? 0 : stats.present}</span>
@@ -340,9 +340,9 @@ const Attendance = () => {
               <span className="text-[10px] sm:text-xs font-black text-amber-600 uppercase">Late</span>
               <span className="text-sm sm:text-base font-black text-amber-700">{holidayCheck.isHoliday ? 0 : stats.late}</span>
             </div>
-            <div className="flex items-center justify-between sm:justify-start gap-2 px-3 py-2 bg-indigo-50 rounded-xl border border-indigo-100 flex-1">
-              <span className="text-[10px] sm:text-xs font-black text-indigo-600 uppercase">Excused</span>
-              <span className="text-sm sm:text-base font-black text-indigo-700">{holidayCheck.isHoliday ? 0 : stats.excused}</span>
+            <div className="flex items-center justify-between sm:justify-start gap-2 px-3 py-2 bg-slate-100 rounded-xl border border-slate-200 flex-1">
+              <span className="text-[10px] sm:text-xs font-black text-slate-500 uppercase">Unmarked</span>
+              <span className="text-sm sm:text-base font-black text-slate-600">{holidayCheck.isHoliday ? 0 : stats.pending}</span>
             </div>
           </div>
         )}
@@ -523,8 +523,8 @@ const Attendance = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {students.map((student, idx) => (
-                      <tr key={student.studentId} className={student.status === 'absent' ? 'bg-red-50' : idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}>
-                        <td className="px-6 py-4 whitespace-nowrap sticky left-0 z-10 border-r" style={{ backgroundColor: student.status === 'absent' ? '#fef2f2' : idx % 2 === 0 ? 'white' : '#f9fafb' }}>
+                      <tr key={student.studentId} className={student.status === 'absent' ? 'bg-red-50' : student.status === 'pending' ? 'bg-slate-50/50' : idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}>
+                        <td className="px-6 py-4 whitespace-nowrap sticky left-0 z-10 border-r" style={{ backgroundColor: student.status === 'absent' ? '#fef2f2' : student.status === 'pending' ? '#f8fafc' : idx % 2 === 0 ? 'white' : '#f9fafb' }}>
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border-2 border-white shadow-sm shrink-0">
                               {student.photoUrl ? (
@@ -596,7 +596,7 @@ const Attendance = () => {
                 {/* Mobile Card View */}
                 <div className="md:hidden bg-gray-50 p-4 space-y-4">
                    {students.map((student, idx) => (
-                     <div key={student.studentId} className={`bg-white rounded-2xl shadow-sm border p-4 space-y-4 ${student.status === 'absent' ? 'border-rose-200 bg-rose-50/20' : 'border-gray-100'}`}>
+                     <div key={student.studentId} className={`bg-white rounded-2xl shadow-sm border p-4 space-y-4 ${student.status === 'absent' ? 'border-rose-200 bg-rose-50/20' : student.status === 'pending' ? 'border-slate-100 bg-slate-50/10' : 'border-gray-100'}`}>
                         <div className="flex items-center gap-3">
                            <div className="w-12 h-12 rounded-2xl bg-gray-100 overflow-hidden border shadow-sm shrink-0">
                               {student.photoUrl ? (
@@ -615,9 +615,10 @@ const Attendance = () => {
                                student.status === 'present' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                                student.status === 'absent' ? 'bg-rose-50 text-rose-700 border-rose-200' :
                                student.status === 'late' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                               student.status === 'pending' ? 'bg-slate-50 text-slate-500 border-slate-200' :
                                'bg-indigo-50 text-indigo-700 border-indigo-200'
                             }`}>
-                               {student.status}
+                               {student.status === 'pending' ? 'unmarked' : student.status}
                            </div>
                         </div>
 
