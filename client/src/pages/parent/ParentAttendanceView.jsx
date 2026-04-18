@@ -148,19 +148,39 @@ const ParentAttendanceView = () => {
       case 'late': return 'bg-yellow-100 text-yellow-800';
       case 'excused': return 'bg-blue-100 text-blue-800';
       case 'unmarked': return 'bg-gray-200 text-gray-600';
+      case 'untracked': return 'bg-amber-100 text-amber-600 border-amber-200';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const calculateStats = () => {
-    const stats = { present: 0, absent: 0, late: 0, excused: 0, unmarked: 0, total: 0 };
+    const stats = { present: 0, absent: 0, late: 0, excused: 0, unmarked: 0, expected: 0 };
     const holidayDates = new Set(holidays.map(h => {
       const d = new Date(h.date);
       d.setHours(0,0,0,0);
       return d.getTime();
     }));
 
-    const weekendDays = (schoolSettings?.weekendDays ?? '').split(',').map(d => parseInt(d.trim()));
+    const weekendDays = (schoolSettings?.weekendDays ?? '0,6').split(',').map(d => parseInt(d.trim())).filter(d => !isNaN(d));
+
+    // Calculate Expected Working Days in Range
+    if (filters.startDate && filters.endDate) {
+      let current = new Date(filters.startDate);
+      current.setHours(0,0,0,0);
+      const end = new Date(filters.endDate);
+      end.setHours(0,0,0,0);
+
+      while (current <= end) {
+        const dayOfWeek = current.getDay();
+        const isWeekend = weekendDays.includes(dayOfWeek);
+        const isHoliday = holidayDates.has(current.getTime());
+
+        if (!isWeekend && !isHoliday) {
+          stats.expected++;
+        }
+        current.setDate(current.getDate() + 1);
+      }
+    }
 
     // Build a set of dates the student actually has records for
     const studentRecordDates = new Set();
@@ -190,10 +210,7 @@ const ParentAttendanceView = () => {
       }
     });
 
-    // Total = recorded days + unmarked days
-    stats.total = studentRecordDates.size + stats.unmarked;
-
-    const percentage = stats.total > 0 ? ((stats.present / stats.total) * 100).toFixed(1) : 0;
+    const percentage = stats.expected > 0 ? ((stats.present / stats.expected) * 100).toFixed(1) : 0;
     return { ...stats, percentage };
   };
 
@@ -258,7 +275,7 @@ const ParentAttendanceView = () => {
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
          <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-gray-100 text-center">
             <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Total Days</p>
-            <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.expected}</p>
          </div>
          <div className="bg-green-50 p-3 sm:p-4 rounded-lg border border-green-100 text-center">
             <p className="text-[10px] font-black uppercase text-green-600 mb-1">Present</p>
@@ -336,29 +353,57 @@ const ParentAttendanceView = () => {
                         return !holidayDates.has(rd.getTime()) && !weekendDays.includes(rd.getDay());
                       }).map(r => ({ ...r, _type: 'recorded' }));
 
-                      // Synthesize unmarked day records
+                      // Synthesize unmarked and untracked days
                       const studentDates = new Set(filteredRecords.map(r => {
                         const d = new Date(r.date);
                         d.setHours(0,0,0,0);
                         return d.getTime();
                       }));
 
-                      const unmarkedRecords = classAttendanceDates
-                        .filter(dateStr => {
-                          const d = new Date(dateStr);
-                          d.setHours(0,0,0,0);
-                          return !holidayDates.has(d.getTime()) && !weekendDays.includes(d.getDay()) && !studentDates.has(d.getTime());
-                        })
-                        .map(dateStr => ({
-                          id: `unmarked-${dateStr}`,
-                          date: dateStr,
-                          status: 'unmarked',
-                          notes: 'Not marked by teacher',
-                          _type: 'unmarked'
-                        }));
+                      const unmarkedDates = new Set(classAttendanceDates.map(dateStr => {
+                        const d = new Date(dateStr);
+                        d.setHours(0,0,0,0);
+                        return d.getTime();
+                      }));
+
+                      const synthesizedRecords = [];
+                      if (filters.startDate && filters.endDate) {
+                        let current = new Date(filters.startDate);
+                        current.setHours(0,0,0,0);
+                        const end = new Date(filters.endDate);
+                        end.setHours(0,0,0,0);
+
+                        while (current <= end) {
+                          const time = current.getTime();
+                          const dayOfWeek = current.getDay();
+                          const isWeekend = weekendDays.includes(dayOfWeek);
+                          const isHoliday = holidayDates.has(time);
+
+                          if (!isWeekend && !isHoliday && !studentDates.has(time)) {
+                            if (unmarkedDates.has(time)) {
+                              synthesizedRecords.push({
+                                id: `unmarked-${time}`,
+                                date: new Date(time).toISOString(),
+                                status: 'unmarked',
+                                notes: 'Not marked by teacher',
+                                _type: 'unmarked'
+                              });
+                            } else {
+                              synthesizedRecords.push({
+                                id: `untracked-${time}`,
+                                date: new Date(time).toISOString(),
+                                status: 'untracked',
+                                notes: 'No school attendance data',
+                                _type: 'untracked'
+                              });
+                            }
+                          }
+                          current.setDate(current.getDate() + 1);
+                        }
+                      }
 
                       // Merge and sort by date descending
-                      const allRecords = [...filteredRecords, ...unmarkedRecords]
+                      const allRecords = [...filteredRecords, ...synthesizedRecords]
                         .sort((a, b) => new Date(b.date) - new Date(a.date));
 
                       return allRecords.map((record) => (
