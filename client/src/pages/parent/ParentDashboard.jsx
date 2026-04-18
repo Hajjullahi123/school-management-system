@@ -507,7 +507,6 @@ const ParentDashboard = () => {
                       </div>
                     </div>
                   </div>
-                </div>
 
                 <div className="p-6 sm:p-8 space-y-6 flex-1 bg-white">
                   {/* Financial Ledger Section */}
@@ -735,7 +734,6 @@ const ParentDashboard = () => {
                     )}
                   </div>
                 </div>
-              </div>
             );
           })}
         </div>
