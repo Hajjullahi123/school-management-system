@@ -925,11 +925,66 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       return age;
     };
 
+    // OPTIMIZATION: Fetch ALL fee records for these students in ONE go
+    const studentIds = students.map(s => s.id);
+    const allFeeRecords = await prisma.feeRecord.findMany({
+      where: { schoolId: req.schoolId, studentId: { in: studentIds } },
+      include: { term: { select: { id: true, startDate: true } } }
+    });
+
+    // Fetch fee structures to use as defaults if no record exists
+    const allFeeStructures = await prisma.classFeeStructure.findMany({
+      where: { schoolId: req.schoolId, classId: parseInt(classId), academicSessionId: term.academicSessionId }
+    });
+
+    // Map fee data for easy access
+    const feeMap = {};
+    students.forEach(student => {
+      const records = allFeeRecords.filter(r => r.studentId === student.id);
+      const currentRecord = records.find(r => r.termId === parseInt(termId));
+      
+      // Calculate previous outstanding (Arrears)
+      const prevRecords = records.filter(r => r.term?.startDate < term.startDate);
+      const prevExpected = prevRecords.reduce((sum, r) => sum + (parseFloat(r.expectedAmount) || 0), 0);
+      const prevPaid = prevRecords.reduce((sum, r) => sum + (parseFloat(r.paidAmount) || 0), 0);
+      const previousOutstanding = prevExpected - prevPaid;
+
+      // Default expected from structure
+      const structure = allFeeStructures.find(f => f.termId === parseInt(termId));
+      const defaultExpected = student.isScholarship ? 0 : (parseFloat(structure?.amount) || 0);
+
+      // Safe numeric parsing
+      const safeParse = (val, fallback = 0) => {
+        const parsed = parseFloat(val);
+        return isNaN(parsed) ? fallback : parsed;
+      };
+
+      const openingBalance = safeParse(currentRecord?.openingBalance, previousOutstanding);
+      const currentTermFee = safeParse(currentRecord?.expectedAmount, defaultExpected);
+      const totalExpected = openingBalance + currentTermFee;
+      const totalPaid = safeParse(currentRecord?.paidAmount, 0);
+      const currentBalance = currentRecord ? safeParse(currentRecord.balance, 0) : (totalExpected - totalPaid);
+
+      feeMap[student.id] = {
+        currentRecord: currentRecord || { id: null, expectedAmount: currentTermFee, paidAmount: 0, balance: currentBalance, isClearedForExam: false },
+        openingBalance,
+        previousOutstanding,
+        currentTermFee,
+        totalExpected,
+        totalPaid,
+        currentBalance,
+        grandTotal: currentBalance,
+        payments: [], // Skip payments for bulk to save memory/serialiation
+        expectedAmount: currentTermFee,
+        balance: currentBalance,
+        paidAmount: totalPaid
+      };
+    });
+
     // Generate reports for each student
-    const reports = await Promise.all(students.map(async (student) => {
+    const reports = students.map((student) => {
       const studentResults = allResults.filter(r => r.studentId === student.id);
       const reportExtras = extrasMap[student.id];
-      const presentDays = attendanceMap[student.id] || 0;
       const termAverage = (studentResults.reduce((sum, r) => sum + (r.totalScore || 0), 0)) / totalSubjectsCount;
       const termPosition = positionMap[student.id] || '-';
 
@@ -938,13 +993,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         ratings = reportExtras?.psychomotorRatings ? JSON.parse(reportExtras.psychomotorRatings) : [];
       } catch (e) { ratings = []; }
 
-      // Fetch fee summary for the financial section of the report
-      const feeSummary = await getStudentFeeSummary(
-        req.schoolId,
-        student.id,
-        term.academicSessionId,
-        parseInt(termId)
-      );
+      const feeSummary = feeMap[student.id];
 
       const studentAttendance = (classInfo?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport) ? {
         present: attendanceMap[student.id] || 0,
@@ -992,7 +1041,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         },
         attendance: studentAttendance,
         subjects: classSubjects.map(cs => {
-          const result = studentResults.find(r => r.subjectId === cs.subjectId);
+          const result = studentResults.filter(r => r.subjectId === cs.subjectId)[0];
           let t1Score = null, t2Score = null, cumulativeAvg = null;
           if (termNumber === 3) {
             const prevStudentResults = allPreviousResults.filter(r => r.studentId === student.id);
@@ -1039,7 +1088,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           reportFontFamily: schoolSettings.reportFontFamily
         }
       };
-    }));
+    });
 
     res.json({ reports, totalStudents: reports.length });
 
