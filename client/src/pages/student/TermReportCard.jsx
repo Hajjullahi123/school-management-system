@@ -590,10 +590,10 @@ const TermReportCard = () => {
                     <table className="w-full border-2 border-black border-collapse text-xs font-bold uppercase">
                       <tbody>
                         <tr className="border-b border-black">
-                          <td className="border-r border-black p-1 w-1/6">NAME:</td>
-                          <td className="border-r border-black p-1 w-2/3 text-emerald-800 font-black" style={{ color: reportColor }}>{data.student?.name}</td>
-                          <td className="border-r border-black p-0.5 w-1/6">GENDER:</td>
-                          <td className="p-0.5">{data.student?.gender}</td>
+                          <td className="border-r border-black p-1 w-[12%] text-[9px]">NAME:</td>
+                          <td className="border-r border-black p-1 w-[43%] text-emerald-800 font-black" style={{ color: reportColor }}>{data.student?.name}</td>
+                          <td className="border-r border-black p-1 w-[15%] text-[9px]">GENDER:</td>
+                          <td className="p-1 w-[30%]">{data.student?.gender}</td>
                         </tr>
                         <tr className="border-b border-black">
                           <td className="border-r border-black p-0.5">CLASS:</td>
