@@ -591,7 +591,7 @@ const TermReportCard = () => {
                       <tbody>
                         <tr className="border-b border-black">
                           <td className="border-r border-black p-1 w-[12%] text-[9px]">NAME:</td>
-                          <td className="border-r border-black p-1 w-[43%] text-emerald-800 font-black" style={{ color: reportColor }}>{data.student?.name}</td>
+                          <td className="border-r border-black p-1 w-[43%] font-black text-black">{data.student?.name}</td>
                           <td className="border-r border-black p-1 w-[15%] text-[9px]">GENDER:</td>
                           <td className="p-1 w-[30%]">{data.student?.gender}</td>
                         </tr>
@@ -616,7 +616,7 @@ const TermReportCard = () => {
                         {showAttendance && (
                         <tr>
                           <td className="border-r border-black p-1">ATTENDANCE:</td>
-                          <td className="border-r border-black p-1 text-emerald-700" style={{ color: reportColor }}>{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
+                          <td className="border-r border-black p-1 text-black">{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
                           <td className="border-r border-black p-1">TERM:</td>
                           <td className="p-1">{data.term?.name}</td>
                         </tr>
