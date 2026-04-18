@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
+import { QRCodeSVG } from 'qrcode.react';
 
 const TermReportCard = () => {
   const { user } = useAuth();
@@ -492,24 +493,25 @@ const TermReportCard = () => {
 
                 <div className="report-card-wrapper overflow-x-auto no-scrollbar pb-4 print:overflow-visible">
             {(() => {
-            const reportColor = (data.schoolSettings || schoolSettings)?.reportColorScheme || (data.schoolSettings || schoolSettings)?.primaryColor;
-            const reportFont = (data.schoolSettings || schoolSettings)?.reportFontFamily || 'serif';
-            const showPosition = (data.schoolSettings || schoolSettings)?.showPositionOnReport !== false;
-            const showFees = (data.schoolSettings || schoolSettings)?.showFeesOnReport !== false;
-            const showAttendance = (data.schoolSettings || schoolSettings)?.showAttendanceOnReport !== false;
-            const layout = (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
+            const reportColor = data.reportSettings?.reportColorScheme || (data.schoolSettings || schoolSettings)?.reportColorScheme || (data.schoolSettings || schoolSettings)?.primaryColor;
+            const reportFont = data.reportSettings?.reportFontFamily || (data.schoolSettings || schoolSettings)?.reportFontFamily || 'serif';
+            const showPosition = data.reportSettings?.showPositionOnReport !== undefined ? data.reportSettings.showPositionOnReport : ((data.schoolSettings || schoolSettings)?.showPositionOnReport !== false);
+            const showFees = data.reportSettings?.showFeesOnReport !== undefined ? data.reportSettings.showFeesOnReport : ((data.schoolSettings || schoolSettings)?.showFeesOnReport !== false);
+            const showAttendance = data.reportSettings?.showAttendanceOnReport !== undefined ? data.reportSettings.showAttendanceOnReport : ((data.schoolSettings || schoolSettings)?.showAttendanceOnReport !== false);
+            const layout = data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
             const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
             return (
                   <div key={idx} className={`relative bg-white p-8 print:p-4 my-8 print:my-0 shadow-2xl print:shadow-none print:break-after-page text-black ${borderStyle} print:emerald-border-A4 mx-auto w-[210mm] min-w-[210mm] md:min-w-0`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
 
                 {/* PROTECTION WATERMARK */}
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
-                  <div className="text-[100px] font-black uppercase text-gray-900 leading-[0.8] text-center">
-                    {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
-                    {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
-                    {schoolSettings?.schoolName || 'OFFICIAL RESULT'}<br />
-                    {schoolSettings?.schoolName || 'OFFICIAL RESULT'}
-                  </div>
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] rotate-[-35deg] overflow-hidden z-0 print:opacity-[0.05]">
+                    {schoolSettings?.logoUrl && (
+                      <img 
+                        src={schoolSettings.logoUrl.startsWith('data:') || schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${schoolSettings.logoUrl.startsWith('/') ? schoolSettings.logoUrl : '/' + schoolSettings.logoUrl}`} 
+                        alt="" 
+                        className="w-[800px] h-auto grayscale filter blur-[1px]" 
+                      />
+                    )}
                 </div>
 
                 <div className="relative z-10 space-y-3 print:space-y-2">
@@ -552,48 +554,88 @@ const TermReportCard = () => {
                   </div>
 
                   {/* STUDENT INFO TABLE */}
-                  <table className="w-full border-2 border-black border-collapse text-xs font-bold uppercase">
-                    <tbody>
-                      <tr className="border-b border-black">
-                        <td className="border-r border-black p-1 w-1/6">NAME:</td>
-                        <td className="border-r border-black p-1 w-2/3 text-emerald-800 font-black" style={{ color: reportColor }}>{data.student?.name}</td>
-                        <td className="border-r border-black p-1 w-1/6">GENDER:</td>
-                        <td className="p-1">{data.student?.gender}</td>
-                      </tr>
-                      <tr className="border-b border-black">
-                        <td className="border-r border-black p-1">CLASS:</td>
-                        <td className="border-r border-black p-1">{data.student?.class}</td>
-                        <td className="border-r border-black p-1">SESSION:</td>
-                        <td className="p-1">{data.term?.session}</td>
-                      </tr>
-                      <tr className="border-b border-black">
-                        <td className="border-r border-black p-1">ADM NO:</td>
-                        <td className="border-r border-black p-1">{data.student?.admissionNumber}</td>
-                        <td className="border-r border-black p-1">D.O.B:</td>
-                        <td className="p-1">{data.student?.dateOfBirth ? new Date(data.student.dateOfBirth).toLocaleDateString() : 'N/A'}</td>
-                      </tr>
-                      <tr className="border-b border-black">
-                        <td className="border-r border-black p-1">AGE:</td>
-                        <td className="border-r border-black p-1">{data.student?.age || '-'}</td>
-                        <td className="border-r border-black p-1">CLUB:</td>
-                        <td className="p-1">{data.student?.clubs !== 'None Assigned' ? data.student?.clubs : 'N/A'}</td>
-                      </tr>
-                      {showAttendance && (
-                      <tr>
-                        <td className="border-r border-black p-1">ATTENDANCE:</td>
-                        <td className="border-r border-black p-1 text-emerald-700" style={{ color: reportColor }}>{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
-                        <td className="border-r border-black p-1">TERM:</td>
-                        <td className="p-1">{data.term?.name}</td>
-                      </tr>
-                      )}
-                      {!showAttendance && (
-                      <tr>
-                        <td className="border-r border-black p-1">TERM:</td>
-                        <td className="p-1" colSpan="3">{data.term?.name}</td>
-                      </tr>
-                      )}
-                    </tbody>
-                  </table>
+                  {layout === 'modern' ? (
+                    <div className="grid grid-cols-4 gap-2 text-[10px] uppercase font-bold">
+                      <div className="col-span-1 bg-gray-50 p-2 rounded-xl border border-gray-100 flex flex-col items-center justify-center">
+                        {photoUri ? (
+                          <img src={photoUri} className="w-16 h-16 rounded-full object-cover border-2 shadow-sm" style={{ borderColor: reportColor }} alt="Student" />
+                        ) : (
+                          <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-[8px] text-gray-400">NO PHOTO</div>
+                        )}
+                      </div>
+                      <div className="col-span-3 grid grid-cols-3 gap-2">
+                         <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                           <p className="text-[8px] text-gray-400 mb-0.5">FULL NAME</p>
+                           <p className="text-xs truncate text-emerald-800" style={{ color: reportColor }}>{data.student?.name}</p>
+                         </div>
+                         <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                           <p className="text-[8px] text-gray-400 mb-0.5">ADMISSION NO</p>
+                           <p className="text-xs">{data.student?.admissionNumber}</p>
+                         </div>
+                         <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                           <p className="text-[8px] text-gray-400 mb-0.5">DATE OF BIRTH</p>
+                           <p className="text-xs">{data.student?.dateOfBirth ? new Date(data.student.dateOfBirth).toLocaleDateString() : 'N/A'}</p>
+                         </div>
+                         <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                           <p className="text-[8px] text-gray-400 mb-0.5">CLASS LEVEL</p>
+                           <p className="text-xs">{data.student?.class}</p>
+                         </div>
+                         <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                           <p className="text-[8px] text-gray-400 mb-0.5">AGE / GENDER</p>
+                           <p className="text-xs">{data.student?.age || '-'} / {data.student?.gender || '-'}</p>
+                         </div>
+                         {showAttendance && (
+                         <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                           <p className="text-[8px] text-gray-400 mb-0.5">ATTENDANCE</p>
+                           <p className="text-xs text-emerald-700" style={{ color: reportColor }}>{data.attendance?.present}/{data.attendance?.total}</p>
+                         </div>
+                         )}
+                      </div>
+                    </div>
+                  ) : (
+                    <table className="w-full border-2 border-black border-collapse text-xs font-bold uppercase">
+                      <tbody>
+                        <tr className="border-b border-black">
+                          <td className="border-r border-black p-1 w-1/6">NAME:</td>
+                          <td className="border-r border-black p-1 w-2/3 text-emerald-800 font-black" style={{ color: reportColor }}>{data.student?.name}</td>
+                          <td className="border-r border-black p-1 w-1/6">GENDER:</td>
+                          <td className="p-1">{data.student?.gender}</td>
+                        </tr>
+                        <tr className="border-b border-black">
+                          <td className="border-r border-black p-1">CLASS:</td>
+                          <td className="border-r border-black p-1">{data.student?.class}</td>
+                          <td className="border-r border-black p-1">SESSION:</td>
+                          <td className="p-1">{data.term?.session}</td>
+                        </tr>
+                        <tr className="border-b border-black">
+                          <td className="border-r border-black p-1">ADM NO:</td>
+                          <td className="border-r border-black p-1">{data.student?.admissionNumber}</td>
+                          <td className="border-r border-black p-1">D.O.B:</td>
+                          <td className="p-1">{data.student?.dateOfBirth ? new Date(data.student.dateOfBirth).toLocaleDateString() : 'N/A'}</td>
+                        </tr>
+                        <tr className="border-b border-black">
+                          <td className="border-r border-black p-1">AGE:</td>
+                          <td className="border-r border-black p-1">{data.student?.age || '-'}</td>
+                          <td className="border-r border-black p-1">CLUB:</td>
+                          <td className="p-1">{data.student?.clubs !== 'None Assigned' ? data.student?.clubs : 'N/A'}</td>
+                        </tr>
+                        {showAttendance && (
+                        <tr>
+                          <td className="border-r border-black p-1">ATTENDANCE:</td>
+                          <td className="border-r border-black p-1 text-emerald-700" style={{ color: reportColor }}>{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
+                          <td className="border-r border-black p-1">TERM:</td>
+                          <td className="p-1">{data.term?.name}</td>
+                        </tr>
+                        )}
+                        {!showAttendance && (
+                        <tr>
+                          <td className="border-r border-black p-1">TERM:</td>
+                          <td className="p-1" colSpan="3">{data.term?.name}</td>
+                        </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  )}
 
                   {/* ACADEMIC SECTION */}
                   <div className="grid grid-cols-[68%_31%] gap-2 items-stretch">
@@ -830,49 +872,55 @@ const TermReportCard = () => {
                   </div>
 
                   {/* SIGNATURES & VERIFICATION */}
-                  <div className="mt-4 grid grid-cols-3 gap-8 items-end print:mt-2">
-                    <div className="space-y-2">
-                      <div className="w-full h-8 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-20 grayscale">
-                        {[...Array(60)].map((_, i) => (
-                          <div key={i} className="bg-black" style={{ height: (i % 8 === 0 ? '100%' : '80%'), width: (i % 5 === 0 ? '2px' : '1px') }}></div>
-                        ))}
-                      </div>
-                      <p className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400">
-                        Verification ID: {data.student?.admissionNumber?.toString().replace(String.fromCharCode(47), '-')}-{data.term?.id?.toString().slice(-4)}
-                      </p>
-                    </div>
-
-                    <div className="text-center flex flex-col items-center">
-                      <div className="h-[45px] flex items-end justify-center mb-1">
+                  <div className="mt-4 grid grid-cols-2 gap-8 items-end p-2 print:mt-2">
+                    <div className="space-y-2 text-center">
+                      <div className="border-b-2 border-black py-1 min-h-[30px] flex items-center justify-center">
                         {data.student?.formMasterSignatureUrl ? (
                           <img src={data.student.formMasterSignatureUrl.startsWith('data:') || data.student.formMasterSignatureUrl.startsWith('http') ? data.student.formMasterSignatureUrl : `${API_BASE_URL}${data.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-[40px] w-auto mix-blend-multiply" />
                         ) : (
-                          <svg width="50" height="50" viewBox="0 0 100 100" className="opacity-15">
-                            <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
-                            <text x="50" y="45" textAnchor="middle" fontSize="8" fontWeight="bold">OFFICIAL</text>
-                            <text x="50" y="55" textAnchor="middle" fontSize="10" fontWeight="black">SEAL</text>
-                          </svg>
+                          <span className="font-signature italic text-lg">{data.student?.formMaster}</span>
                         )}
                       </div>
-                      <div className="border-b-2 border-black w-full mb-1 opacity-80"></div>
-                      <p className="text-[10px] font-black uppercase">Teacher's Signature</p>
-                      <p className="text-[8px] text-gray-400 uppercase mt-0.5">{data.student?.formMasterSignatureUrl ? 'Digitally Signed' : 'Automated Seal'}</p>
+                      <span className="text-[9px] font-black block uppercase text-gray-600">CLASS TEACHER'S SIGNATURE</span>
+                    </div>
+                    <div className="space-y-2 text-center">
+                      <div className="border-b-2 border-black py-1 min-h-[30px] flex items-center justify-center">
+                        {data.term?.principalSignatureUrl ? (
+                          <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-[50px] w-auto mix-blend-multiply" />
+                        ) : (
+                          <span className="text-[8px] text-gray-300 italic opacity-50 underline decoration-dotted">FOR OFFICIAL USE - PRINCIPAL</span>
+                        )}
+                      </div>
+                      <span className="text-[9px] font-black block uppercase text-gray-600">PRINCIPAL'S SIGNATURE</span>
+                    </div>
+                  </div>
+
+                  {/* DOCUMENT VERIFICATION FOOTER */}
+                  <div className="mt-auto border-t border-gray-200 pt-3 flex justify-between items-center bg-transparent">
+                    <div className="flex items-center gap-4">
+                      <div className="group/qr relative bg-white p-1 rounded-lg shadow-sm border border-gray-100 transition-all hover:shadow-md">
+                        <QRCodeSVG 
+                          value={`${window.location.origin}/verify/term/${data.student?.id}/${selectedTerm}`}
+                          size={45}
+                          level="H"
+                          includeMargin={false}
+                          className="grayscale hover:grayscale-0 transition-all duration-500 cursor-help"
+                        />
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="text-[8px] font-black text-slate-900 flex items-center gap-1 uppercase tracking-tighter">
+                          <svg className="w-2.5 h-2.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M2.166 4.9L10 1.55l7.834 3.35a1 1 0 01.583.912v5.188a10 10 0 01-5.188 8.163l-3.229 1.737a1 1 0 01-.912 0l-3.229-1.737A10 10 0 011.583 11V5.812a1 1 0 01.583-.912z" clipRule="evenodd" />
+                          </svg>
+                          DIGITALLY VERIFIED REPORT
+                        </div>
+                        <div className="text-[7px] font-bold text-gray-400 tracking-tight uppercase">Authentic Educational Credential</div>
+                      </div>
                     </div>
 
-                    <div className="text-center flex flex-col items-center">
-                      <div className="h-[45px] flex items-end justify-center mb-1">
-                        {data.term?.principalSignatureUrl ? (
-                          <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-[40px] w-auto mix-blend-multiply" />
-                        ) : (
-                          <svg width="60" height="60" viewBox="0 0 100 100" className="opacity-20" style={{ color: schoolSettings?.primaryColor }}>
-                            <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
-                            <text x="50" y="52" textAnchor="middle" fontSize="6" fontWeight="bold" transform="rotate(-15 50 50)">CERTIFIED OFFICIAL</text>
-                          </svg>
-                        )}
-                      </div>
-                      <div className="border-b-2 w-full mb-1" style={{ borderColor: schoolSettings?.primaryColor || '#065f46' }}></div>
-                      <p className="text-[10px] font-black uppercase" style={{ color: schoolSettings?.primaryColor || '#065f46' }}>Principal's Signature</p>
-                      <p className="text-[8px] text-gray-400 uppercase mt-0.5">{data.term?.principalSignatureUrl ? 'Digitally Signed' : 'Automated Seal'}</p>
+                    <div className="text-right">
+                      <div className="text-[8px] font-black text-slate-900 uppercase tracking-tighter">Academic Status</div>
+                      <div className="text-[7px] font-bold text-gray-400">TERM: {data.term?.name?.toUpperCase()} • GEN: {new Date().toLocaleDateString('en-GB')}</div>
                     </div>
                   </div>
                 </div>

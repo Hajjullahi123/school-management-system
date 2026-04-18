@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useReactToPrint } from 'react-to-print';
+import { QRCodeSVG } from 'qrcode.react';
 
 const CumulativeReport = () => {
   const { user } = useAuth();
@@ -188,20 +189,27 @@ const CumulativeReport = () => {
   // Renders a single report card — works for single or bulk
   const renderCard = (data, index, total) => {
     const ss = data.schoolSettings || schoolSettings;
+    const rs = data.reportSettings || {};
     const logoUri = buildLogoUrl(ss?.logoUrl);
     const photoUri = buildPhotoUrl(data.student?.user?.photoUrl || data.student?.photoUrl);
     const isLast = index === total - 1;
-    const reportColor = ss?.reportColorScheme || ss?.primaryColor;
-    const reportFont = ss?.reportFontFamily || 'serif';
-    const layout = ss?.reportLayout || 'classic';
+    const reportColor = rs.reportColorScheme || ss?.reportColorScheme || ss?.primaryColor;
+    const reportFont = rs.reportFontFamily || ss?.reportFontFamily || 'serif';
+    const layout = rs.reportLayout || ss?.reportLayout || 'classic';
+    const showPosition = rs.showPositionOnReport !== undefined ? rs.showPositionOnReport : ss?.showPositionOnReport !== false;
     const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
     return (
       <div
         key={data.student?.id || index}
-        className={`relative bg-white p-8 print:p-4 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-border-A4`}
+        className={`relative bg-white p-8 print:p-4 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-border-A4 overflow-hidden`}
         style={{ pageBreakAfter: !isLast ? 'always' : 'auto', breakAfter: !isLast ? 'page' : 'auto', fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}
       >
+        {/* BACKGROUND WATERMARK */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] rotate-[-35deg] overflow-hidden z-0 print:opacity-[0.05]">
+            <img src={logoUri} alt="" className="w-[800px] h-auto grayscale filter blur-[1px]" />
+        </div>
+
         <div className="relative z-10 space-y-3 print:space-y-2">
           {/* HEADER */}
           <div className="flex justify-between items-start gap-4">
@@ -234,12 +242,29 @@ const CumulativeReport = () => {
           </div>
 
           {/* STUDENT BIO */}
-          <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black text-[10px] font-bold uppercase bg-gray-50">
-            <div className="p-1.5"><span className="text-gray-500">NAME:</span> {data.student?.name}</div>
-            <div className="p-1.5"><span className="text-gray-500">ADM NO:</span> {data.student?.admissionNumber}</div>
-            <div className="p-1.5"><span className="text-gray-500">CLASS:</span> {data.student?.class}</div>
-            <div className="p-1.5"><span className="text-gray-500">SESSION:</span> {data.session?.name}</div>
-          </div>
+          {layout === 'modern' ? (
+            <div className="grid grid-cols-4 gap-2 mb-4">
+              <div className="col-span-1 bg-gray-50 p-2 rounded-xl border-l-4" style={{ borderLeftColor: reportColor }}>
+                <p className="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5">Full Name</p>
+                <p className="text-[11px] font-black leading-none truncate">{data.student?.name}</p>
+              </div>
+              <div className="col-span-1 bg-gray-50 p-2 rounded-xl">
+                <p className="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5">Admission No</p>
+                <p className="text-[11px] font-black leading-none">{data.student?.admissionNumber}</p>
+              </div>
+              <div className="col-span-1 bg-gray-50 p-2 rounded-xl">
+                <p className="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5">Academic Session</p>
+                <p className="text-[11px] font-black leading-none">{data.session?.name}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black text-[10px] font-bold uppercase bg-gray-50 mb-2">
+              <div className="p-1.5"><span className="text-gray-500">NAME:</span> {data.student?.name}</div>
+              <div className="p-1.5"><span className="text-gray-500">ADM NO:</span> {data.student?.admissionNumber}</div>
+              <div className="p-1.5"><span className="text-gray-500">CLASS:</span> {data.student?.class}</div>
+              <div className="p-1.5"><span className="text-gray-500">SESSION:</span> {data.session?.name}</div>
+            </div>
+          )}
 
           {/* CUMULATIVE SCORE TABLE */}
           <div className="border-2 border-black rounded-sm overflow-hidden">
@@ -329,14 +354,32 @@ const CumulativeReport = () => {
           </div>
 
           {/* FOOTER */}
-          <div className="pt-2 border-t border-gray-200 flex justify-between items-center opacity-60">
-            <div className="text-[8px] font-bold text-gray-500 flex items-center gap-1 italic">
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M2.166 4.9L10 1.55l7.834 3.35a1 1 0 01.583.912v5.188a10 10 0 01-5.188 8.163l-3.229 1.737a1 1 0 01-.912 0l-3.229-1.737A10 10 0 011.583 11V5.812a1 1 0 01.583-.912z" clipRule="evenodd" />
-              </svg>
-              VALID FOR ACADEMIC SESSION: {data.session?.name}
+          <div className="pt-2 border-t border-gray-200 flex justify-between items-center bg-transparent">
+            <div className="flex items-center gap-4">
+              <div className="group/qr relative bg-white p-1 rounded-lg shadow-sm border border-gray-100 transition-all hover:shadow-md">
+                <QRCodeSVG 
+                  value={`${window.location.origin}/verify/cumulative/${data.student?.id}/${data.session?.id}`}
+                  size={45}
+                  level="H"
+                  includeMargin={false}
+                  className="grayscale hover:grayscale-0 transition-all duration-500 cursor-help"
+                />
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-[8px] font-black text-slate-900 flex items-center gap-1 uppercase tracking-tighter">
+                  <svg className="w-2.5 h-2.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M2.166 4.9L10 1.55l7.834 3.35a1 1 0 01.583.912v5.188a10 10 0 01-5.188 8.163l-3.229 1.737a1 1 0 01-.912 0l-3.229-1.737A10 10 0 011.583 11V5.812a1 1 0 01.583-.912z" clipRule="evenodd" />
+                  </svg>
+                  DIGITALLY VERIFIED REPORT
+                </div>
+                <div className="text-[7px] font-bold text-gray-400 tracking-tight">SCAN TO AUTHENTICATE THIS DOCUMENT</div>
+              </div>
             </div>
-            <div className="text-[8px] font-bold text-gray-400">DATE GENERATED: {new Date().toLocaleDateString('en-GB')}</div>
+
+            <div className="text-right">
+              <div className="text-[8px] font-black text-slate-900 uppercase tracking-tighter">Academic Session</div>
+              <div className="text-[7px] font-bold text-gray-400">{data.session?.name} • GEN: {new Date().toLocaleDateString('en-GB')}</div>
+            </div>
           </div>
         </div>
       </div>

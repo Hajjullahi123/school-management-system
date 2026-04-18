@@ -116,6 +116,7 @@ const HistoryBulkTestimonialView = lazyRetry(() => import('./pages/admin/History
 const TranscriptVerification = lazyRetry(() => import('./pages/TranscriptVerification'));
 const CertificateVerification = lazyRetry(() => import('./pages/CertificateVerification'));
 const TestimonialVerification = lazyRetry(() => import('./pages/TestimonialVerification'));
+const ReportVerification = lazyRetry(() => import('./pages/ReportVerification'));
 
 // Global Loading Fallback
 const LoadingFallback = () => (
@@ -169,6 +170,7 @@ function App() {
             <Route path="/verify/transcript/:studentId" element={<TranscriptVerification />} />
             <Route path="/verify/certificate/:certificateNumber" element={<CertificateVerification />} />
             <Route path="/verify/testimonial/:testimonialNumber" element={<TestimonialVerification />} />
+            <Route path="/verify/:type/:studentId/:targetId" element={<ReportVerification />} />
             <Route path="/superadmin" element={<Navigate to="/dashboard/superadmin" replace />} />
 
             {/* 404 Catch-all */}

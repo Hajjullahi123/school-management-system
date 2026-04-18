@@ -214,7 +214,11 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
         name,
         arm: arm || null,
         classTeacherId: classTeacherId ? parseInt(classTeacherId) : null,
-        expectedSubjects: req.body.expectedSubjects ? parseInt(req.body.expectedSubjects) : 0
+        expectedSubjects: req.body.expectedSubjects ? parseInt(req.body.expectedSubjects) : 0,
+        showPositionOnReport: req.body.showPositionOnReport !== undefined ? req.body.showPositionOnReport : true,
+        showFeesOnReport: req.body.showFeesOnReport !== undefined ? req.body.showFeesOnReport : true,
+        showAttendanceOnReport: req.body.showAttendanceOnReport !== undefined ? req.body.showAttendanceOnReport : true,
+        reportLayout: req.body.reportLayout || 'classic'
       },
       include: {
         classTeacher: {
@@ -287,7 +291,11 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
         name,
         arm,
         classTeacherId: classTeacherId ? parseInt(classTeacherId) : null,
-        expectedSubjects: req.body.expectedSubjects ? parseInt(req.body.expectedSubjects) : 0
+        expectedSubjects: req.body.expectedSubjects ? parseInt(req.body.expectedSubjects) : 0,
+        showPositionOnReport: req.body.showPositionOnReport !== undefined ? req.body.showPositionOnReport : undefined,
+        showFeesOnReport: req.body.showFeesOnReport !== undefined ? req.body.showFeesOnReport : undefined,
+        showAttendanceOnReport: req.body.showAttendanceOnReport !== undefined ? req.body.showAttendanceOnReport : undefined,
+        reportLayout: req.body.reportLayout !== undefined ? req.body.reportLayout : undefined
       },
       include: {
         classTeacher: {

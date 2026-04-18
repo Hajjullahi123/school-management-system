@@ -5,7 +5,16 @@ import { Link } from 'react-router-dom';
 const ClassManagement = () => {
   const [classes, setClasses] = useState([]);
   const [teachers, setTeachers] = useState([]);
-  const [classForm, setClassForm] = useState({ name: '', arm: '', classTeacherId: '', expectedSubjects: 0 });
+  const [classForm, setClassForm] = useState({ 
+    name: '', 
+    arm: '', 
+    classTeacherId: '', 
+    expectedSubjects: 0,
+    showPositionOnReport: true,
+    showFeesOnReport: true,
+    showAttendanceOnReport: true,
+    reportLayout: 'classic'
+  });
   const [editingClass, setEditingClass] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
   const [classStudents, setClassStudents] = useState([]);
@@ -188,7 +197,16 @@ const ClassManagement = () => {
 
       if (response.ok) {
         alert(editingClass ? 'Class updated!' : 'Class created!');
-        setClassForm({ name: '', arm: '', classTeacherId: '', expectedSubjects: 0 });
+        setClassForm({ 
+          name: '', 
+          arm: '', 
+          classTeacherId: '', 
+          expectedSubjects: 0,
+          showPositionOnReport: true,
+          showFeesOnReport: true,
+          showAttendanceOnReport: true,
+          reportLayout: 'classic'
+        });
         setEditingClass(null);
         setShowClassForm(false);
         fetchClasses();
@@ -289,12 +307,30 @@ const ClassManagement = () => {
               if (showClassForm && editingClass) {
                 // If editing, clicking "+ Create" should switch to create mode
                 setEditingClass(null);
-                setClassForm({ name: '', arm: '', classTeacherId: '', expectedSubjects: 0 });
+                setClassForm({ 
+                  name: '', 
+                  arm: '', 
+                  classTeacherId: '', 
+                  expectedSubjects: 0,
+                  showPositionOnReport: true,
+                  showFeesOnReport: true,
+                  showAttendanceOnReport: true,
+                  reportLayout: 'classic'
+                });
               } else {
                 setShowClassForm(!showClassForm);
                 if (!showClassForm) {
                   setEditingClass(null);
-                  setClassForm({ name: '', arm: '', classTeacherId: '', expectedSubjects: 0 });
+                  setClassForm({ 
+                    name: '', 
+                    arm: '', 
+                    classTeacherId: '', 
+                    expectedSubjects: 0,
+                    showPositionOnReport: true,
+                    showFeesOnReport: true,
+                    showAttendanceOnReport: true,
+                    reportLayout: 'classic'
+                  });
                 }
               }
             }}
@@ -349,7 +385,11 @@ const ClassManagement = () => {
                             name: cls.name,
                             arm: cls.arm || '',
                             classTeacherId: cls.classTeacherId || '',
-                            expectedSubjects: cls.expectedSubjects || 0
+                            expectedSubjects: cls.expectedSubjects || 0,
+                            showPositionOnReport: cls.showPositionOnReport ?? true,
+                            showFeesOnReport: cls.showFeesOnReport ?? true,
+                            showAttendanceOnReport: cls.showAttendanceOnReport ?? true,
+                            reportLayout: cls.reportLayout ?? 'classic'
                           });
                           setShowClassForm(true);
                         }}
@@ -398,7 +438,16 @@ const ClassManagement = () => {
                     onClick={() => {
                       setShowClassForm(false);
                       setEditingClass(null);
-                      setClassForm({ name: '', arm: '', classTeacherId: '', expectedSubjects: 0 });
+                      setClassForm({ 
+                        name: '', 
+                        arm: '', 
+                        classTeacherId: '', 
+                        expectedSubjects: 0,
+                        showPositionOnReport: true,
+                        showFeesOnReport: true,
+                        showAttendanceOnReport: true,
+                        reportLayout: 'classic'
+                      });
                     }}
                     className="text-gray-400 hover:text-gray-600 p-1"
                   >
@@ -482,6 +531,56 @@ const ClassManagement = () => {
                       min="0"
                     />
                   </div>
+                  
+                  {/* Report Card Customization Toggles */}
+                  <div className="pt-4 border-t space-y-4">
+                    <h4 className="text-xs font-black uppercase tracking-widest text-primary">Report Customization</h4>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <label className="text-xs font-bold text-gray-700">Display Class Position</label>
+                        <input
+                          type="checkbox"
+                          checked={classForm.showPositionOnReport}
+                          onChange={(e) => setClassForm({ ...classForm, showPositionOnReport: e.target.checked })}
+                          className="w-4 h-4 text-primary rounded focus:ring-primary"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <label className="text-xs font-bold text-gray-700">Show Financial Standing</label>
+                        <input
+                          type="checkbox"
+                          checked={classForm.showFeesOnReport}
+                          onChange={(e) => setClassForm({ ...classForm, showFeesOnReport: e.target.checked })}
+                          className="w-4 h-4 text-primary rounded focus:ring-primary"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <label className="text-xs font-bold text-gray-700">Show Attendance Record</label>
+                        <input
+                          type="checkbox"
+                          checked={classForm.showAttendanceOnReport}
+                          onChange={(e) => setClassForm({ ...classForm, showAttendanceOnReport: e.target.checked })}
+                          className="w-4 h-4 text-primary rounded focus:ring-primary"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Report Template</label>
+                        <select
+                          value={classForm.reportLayout}
+                          onChange={(e) => setClassForm({ ...classForm, reportLayout: e.target.value })}
+                          className="w-full border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
+                        >
+                          <option value="classic">Classic Professional</option>
+                          <option value="modern">Modern Gradient</option>
+                          <option value="minimal">Minimalist Business</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
 
                   <div className="pt-4 flex flex-col gap-3">
                     <button
@@ -495,7 +594,16 @@ const ClassManagement = () => {
                         type="button"
                         onClick={() => {
                           setEditingClass(null);
-                          setClassForm({ name: '', arm: '', classTeacherId: '', expectedSubjects: 0 });
+                          setClassForm({ 
+                            name: '', 
+                            arm: '', 
+                            classTeacherId: '', 
+                            expectedSubjects: 0,
+                            showPositionOnReport: true,
+                            showFeesOnReport: true,
+                            showAttendanceOnReport: true,
+                            reportLayout: 'classic'
+                          });
                           setShowClassForm(false);
                         }}
                         className="w-full bg-gray-100 text-gray-600 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-all"

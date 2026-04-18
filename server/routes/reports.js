@@ -54,7 +54,16 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
           }
         },
         classModel: {
-          include: {
+          select: {
+            id: true,
+            schoolId: true,
+            name: true,
+            arm: true,
+            showPositionOnReport: true,
+            showFeesOnReport: true,
+            showAttendanceOnReport: true,
+            reportLayout: true,
+            classTeacherId: true,
             classTeacher: {
               select: {
                 firstName: true,
@@ -392,7 +401,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
           exam: schoolSettings.examWeight
         }
       },
-      attendance: schoolSettings.showAttendanceOnReport ? {
+      attendance: (student.classModel?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport) ? {
         present: presentAttendanceDays,
         absent: absentAttendanceDays,
         unmarked: unmarkedAttendanceDays > 0 ? unmarkedAttendanceDays : 0,
@@ -456,7 +465,15 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         };
       }),
       feeSummary: feeSummary,
-      aiNarrative: reportExtras?.aiNarrative || null
+      aiNarrative: reportExtras?.aiNarrative || null,
+      reportSettings: {
+        showPositionOnReport: student.classModel?.showPositionOnReport ?? schoolSettings.showPositionOnReport,
+        showFeesOnReport: student.classModel?.showFeesOnReport ?? schoolSettings.showFeesOnReport,
+        showAttendanceOnReport: student.classModel?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport,
+        reportLayout: student.classModel?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
+        reportColorScheme: schoolSettings.reportColorScheme,
+        reportFontFamily: schoolSettings.reportFontFamily
+      }
     };
 
     res.json(reportData);
@@ -673,7 +690,13 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     if (req.user.role === 'teacher') {
       const classInfo = await prisma.class.findFirst({
         where: { id: parseInt(classId), schoolId: req.schoolId },
-        select: { classTeacherId: true }
+        select: { 
+          classTeacherId: true,
+          showPositionOnReport: true,
+          showFeesOnReport: true,
+          showAttendanceOnReport: true,
+          reportLayout: true
+        }
       });
       if (!classInfo || classInfo.classTeacherId !== req.user.id) {
         return res.status(403).json({ error: 'You are not the class teacher for this class' });
@@ -923,7 +946,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         parseInt(termId)
       );
 
-      const studentAttendance = schoolSettings.showAttendanceOnReport ? {
+      const studentAttendance = (classInfo?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport) ? {
         present: attendanceMap[student.id] || 0,
         absent: absentMap[student.id] || 0,
         unmarked: Math.max(0, totalAttendanceDays - (totalRecordedMap[student.id] || 0)),
@@ -1006,7 +1029,15 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           const rating = ratings.find(r => r.domainId === d.id);
           return { name: d.name, score: rating ? rating.score : null, maxScore: d.maxScore || 5 };
         }),
-        feeSummary: feeSummary
+        feeSummary: feeSummary,
+        reportSettings: {
+          showPositionOnReport: classInfo?.showPositionOnReport ?? schoolSettings.showPositionOnReport,
+          showFeesOnReport: classInfo?.showFeesOnReport ?? schoolSettings.showFeesOnReport,
+          showAttendanceOnReport: classInfo?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport,
+          reportLayout: classInfo?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
+          reportColorScheme: schoolSettings.reportColorScheme,
+          reportFontFamily: schoolSettings.reportFontFamily
+        }
       };
     }));
 
@@ -1032,7 +1063,17 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
     // Fetch school settings
     const schoolSettings = await prisma.school.findUnique({
       where: { id: req.schoolId },
-      select: { gradingSystem: true, passThreshold: true, principalSignatureUrl: true }
+      select: { 
+        gradingSystem: true, 
+        passThreshold: true, 
+        principalSignatureUrl: true,
+        reportColorScheme: true,
+        reportFontFamily: true,
+        reportLayout: true,
+        showPositionOnReport: true,
+        showFeesOnReport: true,
+        showAttendanceOnReport: true
+      }
     });
 
     // Fetch student
@@ -1067,26 +1108,22 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       return res.status(404).json({ error: 'Student not found' });
     }
 
+    // Fetch last term in session to get the latest fee record/standing
+    const lastTermInSession = await prisma.term.findFirst({
+      where: {
+        academicSessionId: parseInt(sessionId),
+        schoolId: req.schoolId
+      },
+      orderBy: { startDate: 'desc' }
+    });
+
+    if (!lastTermInSession) {
+      return res.status(404).json({ error: 'No terms found for this session.' });
+    }
+
     // Check permissions
     if (req.user.role === 'student' || req.user.role === 'parent') {
       if (student.classModel) {
-        // Cumulative report requires the LAST term (3rd term) in the session to be published.
-        // Find the last term in this session
-        const lastTermInSession = await prisma.term.findFirst({
-          where: {
-            academicSessionId: parseInt(sessionId),
-            schoolId: req.schoolId
-          },
-          orderBy: { startDate: 'desc' }
-        });
-
-        if (!lastTermInSession) {
-          return res.status(403).json({
-            error: 'Result Not Published',
-            message: 'No terms found for this session.'
-          });
-        }
-
         // Check if the last term's result is published for this class
         const lastTermPublication = await prisma.resultPublication.findUnique({
           where: {
@@ -1215,6 +1252,31 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       totalSubjectsCount * session.terms.length
     );
 
+    // Attendance (Session-wide)
+    const sessionAttendance = await prisma.attendanceRecord.count({
+      where: {
+        schoolId: req.schoolId,
+        studentId: parseInt(studentId),
+        term: { academicSessionId: parseInt(sessionId) }
+      }
+    });
+
+    const sessionPresent = await prisma.attendanceRecord.count({
+      where: {
+        schoolId: req.schoolId,
+        studentId: parseInt(studentId),
+        term: { academicSessionId: parseInt(sessionId) },
+        status: { in: ['present', 'late'] }
+      }
+    });
+
+    // Financial Standing
+    const rawFeeSummary = await getStudentFeeSummary(req.schoolId, parseInt(studentId), parseInt(sessionId), lastTermInSession.id);
+    const feeSummary = {
+      ...rawFeeSummary,
+      status: rawFeeSummary.currentBalance <= 0 ? 'Cleared' : 'Owing'
+    };
+
     // Determine promotion status
     const isPromoted = sessionAverage >= (schoolSettings.passThreshold || 40);
     const nextClass = isPromoted ? 'Promoted' : 'Repeat Class';
@@ -1233,6 +1295,12 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
           : 'Not Assigned',
         formMasterSignatureUrl: student.classModel?.classTeacher?.signatureUrl || null
       },
+      attendance: {
+         total: sessionAttendance,
+         present: sessionPresent,
+         absent: sessionAttendance - sessionPresent
+      },
+      feeSummary,
       session: {
         name: session.name,
         principalSignatureUrl: schoolSettings.principalSignatureUrl || null
@@ -1243,7 +1311,15 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       overallGrade: getGrade(sessionAverage, schoolSettings.gradingSystem),
       overallRemark: getRemark(getGrade(sessionAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
       isPromoted: isPromoted,
-      nextClass: nextClass
+      nextClass: nextClass,
+      reportSettings: {
+        showPositionOnReport: student.classModel?.showPositionOnReport ?? schoolSettings.showPositionOnReport,
+        showFeesOnReport: student.classModel?.showFeesOnReport ?? schoolSettings.showFeesOnReport,
+        showAttendanceOnReport: student.classModel?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport,
+        reportLayout: student.classModel?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
+        reportColorScheme: schoolSettings.reportColorScheme,
+        reportFontFamily: schoolSettings.reportFontFamily
+      }
     });
 
     // Log the action
@@ -1286,7 +1362,23 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
       select: {
         name: true, address: true, logoUrl: true, phone: true, email: true,
         motto: true, primaryColor: true, gradingSystem: true, passThreshold: true,
-        principalSignatureUrl: true
+        principalSignatureUrl: true,
+        reportColorScheme: true,
+        reportFontFamily: true,
+        reportLayout: true,
+        showPositionOnReport: true,
+        showFeesOnReport: true,
+        showAttendanceOnReport: true
+      }
+    });
+
+    const classInfo = await prisma.class.findUnique({
+      where: { id: parseInt(classId) },
+      select: {
+        showPositionOnReport: true,
+        showFeesOnReport: true,
+        showAttendanceOnReport: true,
+        reportLayout: true
       }
     });
 
@@ -1360,6 +1452,22 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
       const sessionAverage = sessionTotalScore / (totalSubjectsCount * session.terms.length);
       const isPromoted = sessionAverage >= (schoolSettings.passThreshold || 40);
 
+      // Attendance (Bulk Session-wide)
+      const sessionAttendance = await prisma.attendanceRecord.count({
+        where: { schoolId: req.schoolId, studentId: student.id, term: { academicSessionId: parseInt(sessionId) } }
+      });
+      const sessionPresent = await prisma.attendanceRecord.count({
+        where: { schoolId: req.schoolId, studentId: student.id, term: { academicSessionId: parseInt(sessionId) }, status: { in: ['present', 'late'] } }
+      });
+
+      // Financial Standing (Bulk)
+      const lastTermId = session.terms[session.terms.length - 1]?.id;
+      const rawFeeSummary = await getStudentFeeSummary(req.schoolId, student.id, parseInt(sessionId), lastTermId);
+      const feeSummary = {
+        ...rawFeeSummary,
+        status: rawFeeSummary.currentBalance <= 0 ? 'Cleared' : 'Owing'
+      };
+
       const cumulativeSubjects = Object.values(subjectsMap).map(s => {
         const avg = s.count > 0 ? s.total / session.terms.length : 0;
         return { ...s, average: avg, grade: getGrade(avg, schoolSettings.gradingSystem) };
@@ -1375,11 +1483,17 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
           dateOfBirth: student.dateOfBirth,
           gender: student.gender,
           photoUrl: student.user?.photoUrl || student.photoUrl,
-          formMaster: student.classModel?.classTeacher
-            ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}`
-            : 'Not Assigned',
+          formMaster: student.classModel?.classTeacher ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}` : 'Not Assigned',
           formMasterSignatureUrl: student.classModel?.classTeacher?.signatureUrl || null
         },
+        attendance: { total: sessionAttendance, present: sessionPresent, absent: sessionAttendance - sessionPresent },
+        feeSummary,
+        aiNarrative: schoolSettings.geminiApiKey || schoolSettings.groqApiKey ? await generateAINarrative({
+          student: { name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`, gender: student.gender },
+          subjects: cumulativeSubjects,
+          attendance: { present: sessionPresent, total: sessionAttendance, percentage: ((sessionPresent / (sessionAttendance || 1)) * 100).toFixed(1) },
+          termAverage: sessionAverage
+        }, schoolSettings).catch(e => null) : null,
         session: { name: session.name, principalSignatureUrl: schoolSettings.principalSignatureUrl || null },
         terms: termsData,
         subjects: cumulativeSubjects,
@@ -1387,7 +1501,15 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
         overallGrade: getGrade(sessionAverage, schoolSettings.gradingSystem),
         overallRemark: getRemark(getGrade(sessionAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
         isPromoted,
-        nextClass: isPromoted ? 'Promoted' : 'Repeat Class'
+        nextClass: isPromoted ? 'Promoted' : 'Repeat Class',
+        reportSettings: {
+          showPositionOnReport: classInfo?.showPositionOnReport ?? schoolSettings.showPositionOnReport,
+          showFeesOnReport: classInfo?.showFeesOnReport ?? schoolSettings.showFeesOnReport,
+          showAttendanceOnReport: classInfo?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport,
+          reportLayout: classInfo?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
+          reportColorScheme: schoolSettings.reportColorScheme,
+          reportFontFamily: schoolSettings.reportFontFamily
+        }
       });
     }
 
@@ -1575,7 +1697,13 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
         assignment2Weight: true,
         test1Weight: true,
         test2Weight: true,
-        principalSignatureUrl: true
+        principalSignatureUrl: true,
+        reportColorScheme: true,
+        reportFontFamily: true,
+        reportLayout: true,
+        showPositionOnReport: true,
+        showFeesOnReport: true,
+        showAttendanceOnReport: true
       }
     });
 
@@ -1594,6 +1722,13 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
         }
       }
     });
+
+    const classSettings = student?.classModel ? {
+      showPositionOnReport: student.classModel.showPositionOnReport,
+      showFeesOnReport: student.classModel.showFeesOnReport,
+      showAttendanceOnReport: student.classModel.showAttendanceOnReport,
+      reportLayout: student.classModel.reportLayout
+    } : null;
 
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
@@ -1823,7 +1958,15 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
         grade: getGrade(caAverage, schoolSettings.gradingSystem),
         remark: getRemark(getGrade(caAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem)
       },
-      subjects: finalSubjectsData
+      subjects: finalSubjectsData,
+      reportSettings: {
+        showPositionOnReport: classSettings?.showPositionOnReport ?? schoolSettings.showPositionOnReport,
+        showFeesOnReport: classSettings?.showFeesOnReport ?? schoolSettings.showFeesOnReport,
+        showAttendanceOnReport: classSettings?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport,
+        reportLayout: classSettings?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
+        reportColorScheme: schoolSettings.reportColorScheme,
+        reportFontFamily: schoolSettings.reportFontFamily
+      }
     });
   } catch (error) {
     console.error('Error generating enhanced progressive report:', error);
@@ -1853,7 +1996,23 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
         assignment2Weight: true,
         test1Weight: true,
         test2Weight: true,
-        principalSignatureUrl: true
+        principalSignatureUrl: true,
+        reportColorScheme: true,
+        reportFontFamily: true,
+        reportLayout: true,
+        showPositionOnReport: true,
+        showFeesOnReport: true,
+        showAttendanceOnReport: true
+      }
+    });
+
+    const classInfo = await prisma.class.findUnique({
+      where: { id: parseInt(classId) },
+      select: {
+        showPositionOnReport: true,
+        showFeesOnReport: true,
+        showAttendanceOnReport: true,
+        reportLayout: true
       }
     });
 
@@ -2018,7 +2177,15 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
           totalScore: currentStudentOverallScore, average: caAverage, position: currentStudentOverallPosition, outOf: numStudentsInClass,
           grade: getGrade(caAverage, schoolSettings.gradingSystem), remark: getRemark(getGrade(caAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem)
         },
-        subjects: finalSubjectsData
+        subjects: finalSubjectsData,
+        reportSettings: {
+          showPositionOnReport: classInfo?.showPositionOnReport ?? schoolSettings.showPositionOnReport,
+          showFeesOnReport: classInfo?.showFeesOnReport ?? schoolSettings.showFeesOnReport,
+          showAttendanceOnReport: classInfo?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport,
+          reportLayout: classInfo?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
+          reportColorScheme: schoolSettings.reportColorScheme,
+          reportFontFamily: schoolSettings.reportFontFamily
+        }
       });
     }
 
@@ -2414,6 +2581,115 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
   } catch (error) {
     console.error('Error generating bulk reports:', error);
     res.status(500).json({ error: 'Failed to generate bulk reports' });
+  }
+});
+
+// Public verification endpoint for all report types
+router.get('/verify/:type/:studentId/:targetId', async (req, res) => {
+  try {
+    const { type, studentId, targetId } = req.params;
+
+    // Fetch student with basics
+    const student = await prisma.student.findUnique({
+      where: { id: parseInt(studentId) },
+      include: {
+        user: { select: { firstName: true, lastName: true, photoUrl: true } },
+        classModel: true,
+        school: { select: { id: true, name: true, logoUrl: true, address: true, primaryColor: true, gradingSystem: true } }
+      }
+    });
+
+    if (!student) return res.status(404).json({ error: 'Verification Failed: Student record not found.' });
+
+    let performance = { totalScore: 0, average: 0, grade: 'N/A', remark: 'Invalid' };
+    const gradingSystem = student.school.gradingSystem;
+
+    if (type === 'term') {
+      const results = await prisma.result.findMany({
+        where: { studentId: parseInt(studentId), termId: parseInt(targetId) }
+      });
+      if (results.length === 0) return res.status(404).json({ error: 'No results found for this term.' });
+
+      const totalScore = results.reduce((sum, r) => sum + (r.totalScore || 0), 0);
+      const average = totalScore / (results.length || 1);
+      performance = {
+        totalScore,
+        average,
+        grade: getGrade(average, gradingSystem),
+        remark: getRemark(getGrade(average, gradingSystem), gradingSystem)
+      };
+    } else if (type === 'progressive') {
+      const results = await prisma.result.findMany({
+        where: { studentId: parseInt(studentId), termId: parseInt(targetId) }
+      });
+      if (results.length === 0) return res.status(404).json({ error: 'No results found for this period.' });
+
+      const caTotal = results.reduce((sum, r) => sum + (r.assignment1Score || 0) + (r.assignment2Score || 0) + (r.test1Score || 0) + (r.test2Score || 0), 0);
+      const caAverage = caTotal / (results.length || 1);
+      performance = {
+        totalScore: caTotal,
+        average: caAverage,
+        grade: getGrade(caAverage, gradingSystem),
+        remark: getRemark(getGrade(caAverage, gradingSystem), gradingSystem)
+      };
+    } else if (type === 'cumulative') {
+      const results = await prisma.result.findMany({
+        where: { studentId: parseInt(studentId), term: { academicSessionId: parseInt(targetId) } }
+      });
+      if (results.length === 0) return res.status(404).json({ error: 'No results found for this session.' });
+
+      const totalScore = results.reduce((sum, r) => sum + (r.totalScore || 0), 0);
+      const average = totalScore / (results.length || 1);
+      performance = {
+        totalScore,
+        average,
+        grade: getGrade(average, gradingSystem),
+        remark: getRemark(getGrade(average, gradingSystem), gradingSystem)
+      };
+    }
+
+    // Determine session and term for fee verification
+    let feeSessionId = type === 'cumulative' ? parseInt(targetId) : undefined;
+    let feeTermId = (type === 'term' || type === 'progressive') ? parseInt(targetId) : undefined;
+
+    if (!feeSessionId && feeTermId) {
+      const termInfo = await prisma.term.findUnique({ where: { id: feeTermId } });
+      feeSessionId = termInfo?.academicSessionId;
+    } else if (feeSessionId && !feeTermId) {
+      const lastTerm = await prisma.term.findFirst({
+        where: { academicSessionId: feeSessionId, schoolId: student.schoolId },
+        orderBy: { startDate: 'desc' }
+      });
+      feeTermId = lastTerm?.id;
+    }
+
+    // Financial Standing (Public Verification)
+    const rawFeeStatus = await getStudentFeeSummary(student.schoolId, parseInt(studentId), feeSessionId, feeTermId);
+    const feeStatus = rawFeeStatus ? {
+      ...rawFeeStatus,
+      status: rawFeeStatus.currentBalance <= 0 ? 'Cleared' : 'Owing'
+    } : null;
+
+    res.json({
+      verified: true,
+      student: {
+        name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
+        admissionNumber: student.admissionNumber,
+        class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
+        photoUrl: student.user?.photoUrl || student.photoUrl
+      },
+      performance,
+      attendance: {
+         present: (await prisma.attendanceRecord.count({ where: { studentId: parseInt(studentId), status: { in: ['present', 'late'] } } })),
+         total: (await prisma.attendanceRecord.count({ where: { studentId: parseInt(studentId) } }))
+      },
+      feeStatus,
+      school: student.school
+    });
+
+  } catch (error) {
+    console.error('Verification Error:', error);
+    res.status(500).json({ error: 'System error during verification.' });
   }
 });
 
