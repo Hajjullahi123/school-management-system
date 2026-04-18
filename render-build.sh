@@ -2,6 +2,9 @@
 # exit on error
 set -o errexit
 
+# Set Node Memory Options for the entire build process
+export NODE_OPTIONS=--max-old-space-size=2048
+
 echo ">>> Build started..."
 
 # 1. Install Client Dependencies & Build
@@ -32,7 +35,5 @@ echo ">>> Generation complete!"
 echo ">>> Synchronizing database schema..."
 npx prisma db push --accept-data-loss --schema=prisma/schema.prisma
 
-# 6. Set Node Memory Options for Build
-export NODE_OPTIONS=--max-old-space-size=4096
-
+# 6. Database sync complete
 echo ">>> Build complete!"
