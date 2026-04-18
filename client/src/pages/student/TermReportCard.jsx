@@ -925,15 +925,15 @@ const TermReportCard = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-            );
+              );
             })()}
-              </div>
-            </div>
-          );
-        })}
-      </>
-    )}
+          </div>
+        </div>
+      </div>
+    );
+  })}
+</>
+)}
 
 
 
