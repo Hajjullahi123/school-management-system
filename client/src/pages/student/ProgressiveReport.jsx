@@ -421,8 +421,8 @@ const ProgressiveReport = () => {
                       )}
                       <div className="text-center flex-1 px-4">
                         <h1 className="text-xl font-black uppercase mb-1 tracking-widest leading-none text-emerald-800" style={{ color: reportColor }}>{ss?.name || 'School Name'}</h1>
-                        <p className="text-[10px] font-bold italic text-gray-400 mb-1 uppercase tracking-tighter">{ss?.motto || 'Knowledge for Prosperity'}</p>
-                        <p className="text-[8px] font-bold text-gray-500 max-w-[500px] mx-auto leading-tight">{ss?.address || 'School Address'} | TEL: {ss?.phone} | Email: {ss?.email}</p>
+                        <p className="text-[10px] font-black italic text-gray-800 mb-1 uppercase tracking-wide">{ss?.motto || 'Knowledge for Prosperity'}</p>
+                        <p className="text-[8px] font-black text-gray-600 max-w-[500px] mx-auto leading-tight">{ss?.address || 'School Address'} | TEL: {ss?.phone} | Email: {ss?.email}</p>
                         <div className="mt-1 inline-block bg-emerald-800 text-white px-6 py-0.5 rounded-full font-bold uppercase tracking-widest text-[11px] shadow-sm" style={{ backgroundColor: reportColor }}>
                           PROGRESSIVE REPORT
                         </div>

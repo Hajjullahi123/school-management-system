@@ -225,8 +225,8 @@ const CumulativeReport = () => {
               <h1 className="text-xl font-black uppercase tracking-widest leading-none text-emerald-900 mb-1" style={{ color: reportColor }}>
                 {ss?.name || 'SCHOOL NAME'}
               </h1>
-              <p className="text-[10px] font-bold italic text-gray-400 mb-1 uppercase tracking-tighter">{ss?.motto || 'Excellence and Dedication'}</p>
-              <p className="text-[8px] font-bold text-gray-500 max-w-[500px] mx-auto leading-tight">{ss?.address || 'School Address Location'} | TEL: {ss?.phone || '000'} | Email: {ss?.email || 'email@school.com'}</p>
+              <p className="text-[10px] font-black italic text-gray-800 mb-1 uppercase tracking-wide">{ss?.motto || 'Excellence and Dedication'}</p>
+              <p className="text-[8px] font-black text-gray-600 max-w-[500px] mx-auto leading-tight">{ss?.address || 'School Address Location'} | TEL: {ss?.phone || '000'} | Email: {ss?.email || 'email@school.com'}</p>
 
               <div className="mt-1 border-b-2 inline-block px-4 pb-0" style={{ borderColor: reportColor }}>
                 <h2 className="text-base font-black uppercase tracking-widest">ANNUAL CUMULATIVE PERFORMANCE REPORT</h2>
