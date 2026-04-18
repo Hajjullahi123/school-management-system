@@ -722,8 +722,8 @@ const TermReportCard = () => {
                   </div>
 
                   {/* SUMMARY & GRADING KEY */}
-                  <div className="grid grid-cols-[68%_31%] gap-2 mt-1">
-                    <div className="grid grid-cols-2 gap-0 border-2 border-black rounded-lg overflow-hidden divide-x-2 divide-black">
+                  <div className="grid grid-cols-[62%_37%] gap-2 mt-1">
+                    <div className="grid grid-cols-[60%_40%] gap-0 border-2 border-black rounded-lg overflow-hidden divide-x-2 divide-black">
                       {/* DYNAMIC GRADE INFO */}
                       <div className="p-2 text-[9px] bg-gray-50/50 leading-tight flex flex-col justify-center">
                         <p className="font-black border-b border-black mb-1 uppercase text-gray-500 text-[8px]">Grading Legend</p>
