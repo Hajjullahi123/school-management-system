@@ -277,6 +277,28 @@ const StudentDashboard = ({ user, currentTerm, currentSession }) => {
           <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">Charts</span>
         </Link>
       </div>
+
+      <Link
+        to="/dashboard/student/quran"
+        className="block bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-5 rounded-2xl shadow-lg hover:brightness-110 active:scale-[0.98] transition-all border border-white/10 group"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="bg-white/20 p-2 rounded-xl group-hover:rotate-12 transition-transform">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Academic & Spiritual</p>
+              <h3 className="text-lg font-black tracking-tight">Qur'an Progress Tracker</h3>
+            </div>
+          </div>
+          <svg className="w-6 h-6 opacity-40 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </Link>
     </div>
   );
 };
