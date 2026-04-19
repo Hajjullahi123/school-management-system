@@ -29,12 +29,8 @@ router.post('/identify', async (req, res) => {
       }
     }
 
-    // Perform lookups in parallel to save time
-    // Selective fields to reduce DB load
-    // Perform lookups sequentially but stop early if we find a unique match for school-slugged requests
-    // or use optimized parallel lookups for global identification.
-    
-    const [users, students, teachers] = await Promise.all([
+    // Perform all lookups in parallel to save time
+    const [users, students, teachers, superadmins] = await Promise.all([
       prisma.user.findMany({
         where: {
           AND: [
@@ -51,23 +47,18 @@ router.post('/identify', async (req, res) => {
       prisma.teacher.findMany({
         where: { ...schoolFilter, staffId: searchId },
         select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
+      }),
+      prisma.user.findMany({
+        where: { 
+          role: 'superadmin', 
+          schoolId: null, 
+          OR: [{ username: searchId }, { email: searchId }] 
+        },
+        select: { role: true, schoolId: true }
       })
     ]);
-    
-    // ALWAYS check for superadmin specifically to allow global access from any domain
-    let finalUsers = [...users];
-    
-    const superadmins = await prisma.user.findMany({
-      where: { 
-        role: 'superadmin', 
-        schoolId: null, 
-        OR: [{ username: searchId }, { email: searchId }] 
-      },
-      select: { role: true, schoolId: true }
-    });
 
     if (superadmins.length > 0) {
-      // If we found a global admin, we return immediately with globalAccess flag
       return res.json({ schools: [], count: 0, globalAccess: true, message: 'Global admin detected' });
     }
 

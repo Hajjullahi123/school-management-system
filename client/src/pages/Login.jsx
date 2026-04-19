@@ -476,14 +476,37 @@ const Login = () => {
                 className={`w-full py-4 bg-gray-900 text-white rounded-2xl font-black shadow-xl transform transition-all hover:scale-[1.02] active:scale-[0.98] ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary'}`}
               >
                 {loading ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>{step === 1 ? 'Identifying...' : 'Authenticating...'}</span>
+                  <div className="flex flex-col items-center justify-center py-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>{step === 1 ? 'Identifying...' : 'Authenticating...'}</span>
+                    </div>
+                    {slowLoading && (
+                      <p className="text-[9px] font-bold text-white/60 mt-2 uppercase tracking-widest animate-pulse">
+                        Server is warming up, please wait...
+                      </p>
+                    )}
                   </div>
                 ) : (
                   step === 1 ? "Identify Account" : "Access Your Portal"
                 )}
               </button>
+            )}
+
+            {slowLoading && loading && (
+              <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-start gap-3 animate-fadeIn">
+                <div className="p-2 bg-blue-100 rounded-lg shrink-0">
+                  <svg className="w-4 h-4 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v4m0 8v4M4 12h4m8 0h4" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-blue-900 uppercase tracking-widest leading-none mb-1">Cold Start Detected</h4>
+                  <p className="text-[10px] text-blue-700 leading-relaxed font-medium">
+                    The portal server is waking up after a period of inactivity. This usually takes 30-60 seconds on the first load. Thank you for your patience!
+                  </p>
+                </div>
+              </div>
             )}
           </form>
 
