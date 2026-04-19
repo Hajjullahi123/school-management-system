@@ -428,7 +428,7 @@ const BulkReportDownload = () => {
                       <tbody>
                         <tr className="border-b border-black">
                           <td className="border-r border-black p-0.5 w-1/6">NAME:</td>
-                          <td className="border-r border-black p-0.5 text-emerald-800 font-black" style={{ color: reportColor }}>{data.student?.name}</td>
+                          <td className="border-r border-black p-0.5">{data.student?.name}</td>
                           <td className="border-r border-black p-0.5 w-1/6">GENDER:</td>
                           <td className="p-0.5">{data.student?.gender}</td>
                         </tr>
@@ -452,7 +452,7 @@ const BulkReportDownload = () => {
                         </tr>
                         <tr>
                           <td className="border-r border-black p-0.5">ATTENDANCE:</td>
-                          <td className="border-r border-black p-0.5 text-emerald-700 font-bold" style={{ color: reportColor }}>{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
+                          <td className="border-r border-black p-0.5">{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
                           <td className="border-r border-black p-0.5">TERM:</td>
                           <td className="p-0.5">{data.term?.name}</td>
                         </tr>
