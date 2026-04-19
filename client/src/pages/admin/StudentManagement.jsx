@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import PhotoUpload from '../../components/PhotoUpload';
@@ -19,6 +20,7 @@ const loadImage = (url) => {
 
 const StudentManagement = () => {
   const { settings: schoolSettings } = useSchoolSettings();
+  const navigate = useNavigate();
   const { isDemo } = useAuth();
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -796,6 +798,16 @@ Note: Password must be changed on first login.
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
             Download Form
+          </button>
+          <button
+            onClick={() => navigate('/dashboard/credential-repository')}
+            className="sm:flex-none bg-emerald-50 border border-emerald-100 text-emerald-600 px-3 py-2 rounded-xl hover:bg-emerald-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+            title="View All Student Credentials"
+          >
+            <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            </svg>
+            Credential Repo
           </button>
           <label className="sm:flex-none bg-white border border-gray-200 text-emerald-600 px-3 py-2 rounded-xl hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm cursor-pointer">
             <svg className="w-4 h-4 text-emerald-500 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">

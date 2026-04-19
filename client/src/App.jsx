@@ -108,6 +108,7 @@ const TranscriptView = lazyRetry(() => import('./pages/admin/TranscriptView'));
 const CertificateView = lazyRetry(() => import('./pages/admin/CertificateView'));
 const TestimonialView = lazyRetry(() => import('./pages/admin/TestimonialView'));
 const DocumentBranding = lazyRetry(() => import('./pages/admin/DocumentBranding'));
+const CredentialRepository = lazyRetry(() => import('./pages/admin/CredentialRepository'));
 const StaffAttendanceConfig = lazyRetry(() => import('./pages/admin/StaffAttendanceConfig'));
 const BulkCertificateView = lazyRetry(() => import('./pages/admin/BulkCertificateView'));
 const BulkTestimonialView = lazyRetry(() => import('./pages/admin/BulkTestimonialView'));
@@ -436,6 +437,11 @@ function App() {
               <Route path="student-management" element={
                 <ProtectedRoute roles={['admin', 'principal']}>
                   <StudentManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="credential-repository" element={
+                <ProtectedRoute roles={['admin', 'principal']}>
+                  <CredentialRepository />
                 </ProtectedRoute>
               } />
               <Route path="promotions" element={
