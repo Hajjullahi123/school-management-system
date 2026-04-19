@@ -64,7 +64,7 @@ router.post('/identify', async (req, res) => {
 
     // Collect distinct schools efficiently
     const schoolsMap = new Map();
-    [...finalUsers, ...students, ...teachers].forEach(entry => {
+    [...users, ...students, ...teachers].forEach(entry => {
       if (entry && entry.school) {
         schoolsMap.set(entry.school.id, entry.school);
       }
