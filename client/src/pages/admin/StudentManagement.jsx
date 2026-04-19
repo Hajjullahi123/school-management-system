@@ -775,7 +775,7 @@ Note: Password must be changed on first login.
             <svg className="w-4 h-4 text-gray-400 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            Template
+            Download Template
           </button>
           <button
             onClick={handleDownloadGuidancePDF}
@@ -785,7 +785,7 @@ Note: Password must be changed on first login.
             <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Guide
+            Download Guide
           </button>
           <button
             onClick={handleDownloadPrintableForm}
@@ -795,13 +795,13 @@ Note: Password must be changed on first login.
             <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
-            Form
+            Download Form
           </button>
           <label className="flex-1 sm:flex-none bg-white border border-gray-200 text-emerald-600 px-3 py-2 rounded-xl hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm cursor-pointer">
             <svg className="w-4 h-4 text-emerald-500 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
-            Import
+            Import Students
             <input
               type="file"
               className="hidden"
@@ -828,6 +828,27 @@ Note: Password must be changed on first login.
             </svg>
             {showForm ? 'Cancel' : (isDemo ? 'Add Student (Demo)' : 'Add Student')}
           </button>
+        </div>
+      </div>
+      
+      {/* Action Guidance */}
+      <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 mb-2">
+        <div className="flex gap-4 items-start">
+          <div className="bg-emerald-100 p-2 rounded-xl">
+            <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-sm font-black text-emerald-900 uppercase tracking-tight">Onboarding Students</h3>
+            <p className="text-xs text-emerald-800 leading-relaxed font-medium">
+              You can add students in two ways: 
+              <br />
+              <span className="font-bold underline">1. Bulk Upload (Recommended):</span> Download the <span className="font-bold italic">Excel Template</span>, fill it with your student records using the numeric IDs found in the <span className="font-bold italic text-amber-700">Download Guide</span>, and use the <span className="font-bold italic">Import Students</span> button to upload.
+              <br />
+              <span className="font-bold underline">2. Manual Entry:</span> Click the <span className="font-bold italic text-primary">+ Add Student</span> button to register a single student manually.
+            </p>
+          </div>
         </div>
       </div>
 
