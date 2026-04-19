@@ -382,7 +382,7 @@ const StudentManagement = () => {
         startY += 15;
         doc.setFontSize(10);
         doc.setTextColor(217, 119, 6); // amber-600
-        doc.text('âš ï¸ Student will be required to change this password on first login.', 105, startY, { align: 'center' });
+        doc.text('Note: Student will be required to change this password on first login.', 105, startY, { align: 'center' });
       }
 
       // Footer
@@ -1387,10 +1387,9 @@ Note: Password must be changed on first login.
                 <p className="flex justify-between"><span className="font-semibold text-gray-600">Admission No:</span> <span className="font-mono bg-white px-2 rounded border">{newStudentCredentials.admissionNumber}</span></p>
                 <p className="flex justify-between"><span className="font-semibold text-gray-600">Username:</span> <span className="font-mono bg-white px-2 rounded border">{newStudentCredentials.username}</span></p>
                 <p className="flex justify-between"><span className="font-semibold text-gray-600">Password:</span> <span className="font-mono bg-white px-2 rounded border">{newStudentCredentials.password}</span></p>
-
                 {newStudentCredentials.mustChangePassword && (
                   <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-2 rounded">
-                    âš ï¸ Student will be required to change this password on first login.
+                    ALERT: Student will be required to change this password on first login.
                   </div>
                 )}
               </div>
