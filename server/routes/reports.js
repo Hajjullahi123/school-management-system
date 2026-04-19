@@ -686,19 +686,24 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     const { classId, termId } = req.params;
     const { startAdmission, endAdmission } = req.query;
 
+    const classInfo = await prisma.class.findFirst({
+      where: { id: parseInt(classId), schoolId: req.schoolId },
+      select: { 
+        classTeacherId: true,
+        showPositionOnReport: true,
+        showFeesOnReport: true,
+        showAttendanceOnReport: true,
+        reportLayout: true
+      }
+    });
+
+    if (!classInfo) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
     // Verify teacher permission
     if (req.user.role === 'teacher') {
-      const classInfo = await prisma.class.findFirst({
-        where: { id: parseInt(classId), schoolId: req.schoolId },
-        select: { 
-          classTeacherId: true,
-          showPositionOnReport: true,
-          showFeesOnReport: true,
-          showAttendanceOnReport: true,
-          reportLayout: true
-        }
-      });
-      if (!classInfo || classInfo.classTeacherId !== req.user.id) {
+      if (classInfo.classTeacherId !== req.user.id) {
         return res.status(403).json({ error: 'You are not the class teacher for this class' });
       }
     }
@@ -709,10 +714,14 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       select: {
         gradingSystem: true, passThreshold: true,
         assignment1Weight: true, assignment2Weight: true,
+        test1Weight: true, test2Weight: true,
         examWeight: true,
         principalSignatureUrl: true,
         weekendDays: true,
-        showAttendanceOnReport: true
+        showAttendanceOnReport: true,
+        reportLayout: true,
+        reportColorScheme: true,
+        reportFontFamily: true
       }
     });
 
