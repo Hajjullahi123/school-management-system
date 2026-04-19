@@ -373,7 +373,7 @@ const BulkReportDownload = () => {
               const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
               return (
-                <div key={idx} className={`relative bg-white p-8 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm]`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
+                <div key={idx} className={`relative bg-white p-8 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] break-after-page`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
 
                   {/* PROTECTION WATERMARK */}
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
@@ -641,7 +641,7 @@ const BulkReportDownload = () => {
                     )}
 
                     {/* REMARKS SECTION */}
-                    <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-2">
+                    <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-1">
                       <div className="grid grid-cols-2 divide-x-2 divide-black">
                         <div className="p-2 space-y-1">
                           <p className="text-[10px] font-black uppercase text-gray-500">Form Master's Remark</p>
@@ -678,7 +678,7 @@ const BulkReportDownload = () => {
                     </div>
 
                     {/* SIGNATURES & VERIFICATION */}
-                    <div className="mt-1 grid grid-cols-2 gap-8 items-end p-1">
+                    <div className="mt-0.5 grid grid-cols-2 gap-8 items-end p-1">
                       <div className="space-y-1 text-center">
                         <div className="border-b-2 border-black py-0.5 min-h-[20px] flex items-center justify-center">
                           {data.student?.formMasterSignatureUrl ? (
@@ -702,7 +702,7 @@ const BulkReportDownload = () => {
                     </div>
 
                     {/* DOCUMENT VERIFICATION FOOTER */}
-                    <div className="mt-auto border-t border-gray-200 pt-2 flex justify-between items-center bg-transparent">
+                    <div className="mt-auto border-t border-gray-200 pt-1 flex justify-between items-center bg-transparent">
                       <div className="flex items-center gap-4">
                         <div className="bg-white p-1 rounded-lg shadow-sm border border-gray-100">
                           <QRCodeSVG 
