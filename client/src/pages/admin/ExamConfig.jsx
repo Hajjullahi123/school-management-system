@@ -258,8 +258,8 @@ const ExamConfig = () => {
             </button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto pb-4">
+            <table className="w-full min-w-[700px] text-sm">
               <thead>
                 <tr className="text-left text-slate-400 font-bold uppercase tracking-widest text-[10px]">
                   <th className="pb-4 pr-4">Grade</th>
@@ -319,7 +319,7 @@ const ExamConfig = () => {
                           setSettings({ ...settings, gradingSystem: JSON.stringify(current) });
                         }}
                         placeholder="Excellent"
-                        className="w-full bg-slate-50 border-0 rounded-lg px-3 py-2 focus:ring-1 ring-primary"
+                        className="w-full min-w-[150px] bg-slate-50 border-0 rounded-lg px-3 py-2 focus:ring-1 ring-primary"
                       />
                     </td>
                     <td className="py-3 px-4 text-center">
