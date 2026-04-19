@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { useReactToPrint } from 'react-to-print';
 
 const ParentQuranView = () => {
@@ -357,9 +357,9 @@ const ParentQuranView = () => {
           <div className="bg-gradient-to-br from-primary to-primary-600 rounded-3xl p-8 text-white shadow-xl shadow-primary/20">
             <h3 className="text-lg font-black mb-2">Teacher Contact</h3>
             <p className="text-sm opacity-80 mb-6">Have questions about your child's progress? Reach out to the assigned teacher.</p>
-            <button className="w-full py-4 bg-white text-primary font-black rounded-2xl hover:scale-[1.02] transition">
+            <Link to={`/dashboard/parent/messages${selectedChild ? '?studentId=' + selectedChild.id : ''}`} className="w-full py-4 bg-white text-primary font-black rounded-2xl hover:scale-[1.02] transition block text-center">
               Message Teacher
-            </button>
+            </Link>
           </div>
         </div>
       </div>
