@@ -167,6 +167,10 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials or inactive account' });
     }
 
+    if (user.schoolId && user.school && user.school.isActivated === false && user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Your school account has been deactivated. Please contact your school administrator or platform support.' });
+    }
+
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -271,6 +275,10 @@ router.get('/me', authenticate, async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.schoolId && user.school && user.school.isActivated === false && user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Your school account has been deactivated. Please contact your administrator.' });
     }
 
     res.json({
