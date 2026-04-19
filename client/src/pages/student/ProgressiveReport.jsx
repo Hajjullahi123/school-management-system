@@ -396,6 +396,7 @@ const ProgressiveReport = () => {
               const reportColor = rs.reportColorScheme || ss?.reportColorScheme || ss?.primaryColor || '#065f46';
               const reportFont = rs.reportFontFamily || ss?.reportFontFamily || 'sans-serif';
               const showPosition = rs.showPositionOnReport !== undefined ? rs.showPositionOnReport : ss?.showPositionOnReport !== false;
+              const showAttendance = rs.showAttendanceOnReport !== undefined ? rs.showAttendanceOnReport : ss?.showAttendanceOnReport !== false;
               const layout = rs.reportLayout || ss?.reportLayout || 'classic';
               const borderStyleCss = layout === 'minimal' ? 'border-[1px] border-gray-300' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-4 border-double';
               const logoUri = ss?.logoUrl
