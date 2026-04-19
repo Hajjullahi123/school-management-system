@@ -231,6 +231,8 @@ model User {
 
   @@unique([schoolId, username]) // Username unique PER school
   @@unique([schoolId, email])    // Email unique PER school
+  @@index([schoolId])            // Fast lookups by school
+  @@index([role])                // Fast superadmin lookup
 }
 
 model Parent {
@@ -301,6 +303,7 @@ model Student {
 
   @@unique([schoolId, admissionNumber])
   @@unique([schoolId, rollNo])
+  @@index([schoolId])   // Fast student lookups by school
 }
 
 model Teacher {
@@ -317,6 +320,7 @@ model Teacher {
   availabilities TeacherAvailability[]
 
   @@unique([schoolId, staffId])
+  @@index([schoolId])   // Fast teacher lookups by school
 }
 
 model TeacherAvailability {

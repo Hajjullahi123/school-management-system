@@ -15,43 +15,32 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem('token');
-        console.log('Checking auth, token:', token ? 'exists' : 'missing');
 
         if (!token) {
           if (isMounted) {
-            console.log('No token found, setting user to null');
             setUser(null);
             setLoading(false);
           }
           return;
         }
 
-        // Create a promise that rejects after 20 seconds
+        // Race the API call against an 8-second timeout
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Auth check timed out')), 20000)
+          setTimeout(() => reject(new Error('Auth check timed out')), 8000)
         );
 
-        // Race the API call against the timeout
         const response = await Promise.race([
           api.get('/api/auth/me'),
           timeoutPromise
         ]);
 
-        console.log('Auth check response status:', response.status);
-
         if (response.ok) {
           const userData = await response.json();
-          if (isMounted) {
-            console.log('User authenticated:', userData.role);
-            setUser(userData);
-          }
+          if (isMounted) setUser(userData);
         } else {
-          // Explicitly clear token only on 401/403 (unauthorized/forbidden)
           if (isMounted) {
-            console.log('Auth check failed with status:', response.status);
             setUser(null);
             if (response.status === 401 || response.status === 403) {
-              console.log('Clearing invalid token');
               localStorage.removeItem('token');
               sessionStorage.removeItem('dashboardUnlocked');
             }
@@ -59,29 +48,21 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (error) {
         if (isMounted) {
-          console.error('Auth check error:', error);
           setUser(null);
-          
-          // DO NOT remove token on timeout or network error (e.g. cold start)
-          // This allows the user to still be logged in once the server wakes up
+          // Keep token on timeout/network errors so user stays logged in after cold start
           if (error.message !== 'Auth check timed out' && !error.message.includes('FetchError') && !error.message.includes('Network Error')) {
-            console.log('Clearing token due to hard error');
             localStorage.removeItem('token');
             sessionStorage.removeItem('dashboardUnlocked');
           }
         }
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     };
 
     checkAuth();
 
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
   const demoLogin = async () => {

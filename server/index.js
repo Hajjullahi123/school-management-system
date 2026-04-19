@@ -140,9 +140,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   immutable: true
 }));
 
-// Debug middleware to log all requests
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+// Lightweight request logger — API routes only (avoids logging every static asset)
+app.use('/api', (req, res, next) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[API] ${req.method} ${req.url}`);
+  }
   next();
 });
 

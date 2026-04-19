@@ -9,75 +9,87 @@ const { logAction } = require('../utils/audit');
 // Identify school based on username/email/admissionNumber
 router.post('/identify', async (req, res) => {
   try {
-    let { identifier, schoolSlug } = req.body;
+    const { identifier, schoolSlug } = req.body;
     if (!identifier) {
       return res.status(400).json({ error: 'Username or Email is required' });
     }
 
     const searchId = identifier.trim();
 
-    // PERFORMANCE OPTIMIZATION: If schoolSlug is provided (from URL), narrow the search
-    // This reduces the search space from all schools to just one.
-    let schoolFilter = {};
-    if (schoolSlug && schoolSlug !== 'undefined' && schoolSlug !== 'null' && schoolSlug !== '') {
+    // Superadmin fast-path (no schoolSlug needed)
+    const superadmin = await prisma.user.findFirst({
+      where: {
+        role: 'superadmin',
+        schoolId: null,
+        OR: [{ username: searchId }, { email: searchId }]
+      },
+      select: { role: true }
+    });
+    if (superadmin) {
+      return res.json({ schools: [], count: 0, globalAccess: true, message: 'Global admin detected' });
+    }
+
+    // If no schoolSlug, do a global user lookup and return their school
+    if (!schoolSlug) {
+      const globalUser = await prisma.user.findFirst({
+        where: { OR: [{ username: searchId }, { email: searchId }] },
+        select: { school: { select: { id: true, name: true, slug: true } } }
+      });
+      if (globalUser?.school) {
+        return res.json({ schools: [globalUser.school], count: 1 });
+      }
+      return res.status(404).json({ error: 'Account not found. Check your credentials.' });
+    }
+
+    // Cache school slug → id lookup
+    const schoolCache = global.__schoolCache || (global.__schoolCache = {});
+    let schoolId;
+    if (schoolCache[schoolSlug]) {
+      schoolId = schoolCache[schoolSlug];
+    } else {
       const school = await prisma.school.findUnique({
         where: { slug: schoolSlug },
         select: { id: true }
       });
-      if (school) {
-        schoolFilter = { schoolId: school.id };
+      if (!school) {
+        return res.status(404).json({ error: 'Invalid school domain' });
       }
+      schoolId = school.id;
+      schoolCache[schoolSlug] = schoolId;
     }
 
-    // Perform all lookups in parallel to save time
-    const [users, students, teachers, superadmins] = await Promise.all([
-      prisma.user.findMany({
+    const schoolFilter = { schoolId };
+
+    // Parallel lookups – all scoped to this school
+    const [user, student, teacher] = await Promise.all([
+      prisma.user.findFirst({
         where: {
           AND: [
-             schoolFilter,
-             { OR: [{ username: searchId }, { email: searchId }] }
+            schoolFilter,
+            { OR: [{ username: searchId }, { email: searchId }] }
           ]
         },
-        select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } }, role: true, schoolId: true }
+        select: { school: { select: { id: true, name: true, slug: true } } }
       }),
-      prisma.student.findMany({
+      prisma.student.findFirst({
         where: { ...schoolFilter, admissionNumber: searchId },
-        select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
+        select: { school: { select: { id: true, name: true, slug: true } } }
       }),
-      prisma.teacher.findMany({
+      prisma.teacher.findFirst({
         where: { ...schoolFilter, staffId: searchId },
-        select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
-      }),
-      prisma.user.findMany({
-        where: { 
-          role: 'superadmin', 
-          schoolId: null, 
-          OR: [{ username: searchId }, { email: searchId }] 
-        },
-        select: { role: true, schoolId: true }
+        select: { school: { select: { id: true, name: true, slug: true } } }
       })
     ]);
 
-    if (superadmins.length > 0) {
-      return res.json({ schools: [], count: 0, globalAccess: true, message: 'Global admin detected' });
-    }
-
-    // Collect distinct schools efficiently
+    // Collect distinct schools from the matches
     const schoolsMap = new Map();
-    [...users, ...students, ...teachers].forEach(entry => {
-      if (entry && entry.school) {
-        schoolsMap.set(entry.school.id, entry.school);
-      }
+    [user, student, teacher].forEach(entry => {
+      if (entry?.school) schoolsMap.set(entry.school.id, entry.school);
     });
-
     const matchedSchools = Array.from(schoolsMap.values());
     if (matchedSchools.length === 0) {
       return res.status(404).json({ error: 'Account not found. Check your credentials.' });
     }
-
-    // PERFORMANCE OPTIMIZATION: If we only found ONE school and we have a schoolSlug context,
-    // we can return faster without the client needing to pick.
-    
     res.json({ schools: matchedSchools, count: matchedSchools.length });
   } catch (error) {
     console.error('Identify error:', error);
@@ -246,22 +258,38 @@ router.post('/logout', authenticate, (req, res) => {
 // GET /api/auth/me - Get current user data
 router.get('/me', authenticate, async (req, res) => {
   try {
-    const include = { school: true };
     const role = req.user.role;
 
-    // Only include relevant data to speed up the query
+    // Build a minimal select to avoid loading heavy JSON columns (gradingSystem etc.)
+    const schoolSelect = {
+      id: true, slug: true, name: true, logoUrl: true,
+      motto: true, isActivated: true, packageType: true
+    };
+
+    // Role-specific includes — only what's actually needed
+    let include = { school: { select: schoolSelect } };
     if (role === 'teacher') {
-      include.teacher = true;
-      include.classesAsTeacher = true;
+      include.teacher = { select: { id: true, staffId: true, specialization: true, photoUrl: true } };
+      include.classesAsTeacher = { select: { id: true, name: true, arm: true } };
     } else if (role === 'student') {
-      include.student = { include: { classModel: true } };
+      include.student = {
+        select: {
+          id: true, admissionNumber: true, photoUrl: true,
+          classModel: { select: { id: true, name: true, arm: true } }
+        }
+      };
     } else if (role === 'parent') {
-      include.parent = true;
+      include.parent = { select: { id: true, phone: true } };
     }
 
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      include
+      select: {
+        id: true, username: true, role: true, schoolId: true,
+        firstName: true, lastName: true, email: true,
+        signatureUrl: true, mustChangePassword: true, photoUrl: true,
+        ...include
+      }
     });
 
     if (!user) {

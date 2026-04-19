@@ -11,10 +11,6 @@ export const apiCall = async (endpoint, options = {}) => {
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${baseURL}${path}`;
 
-  console.log(`[API DEBUG] ${options.method || 'GET'} ${url} - Token: ${localStorage.getItem('token') ? 'Yes' : 'No'}`);
-  if (!localStorage.getItem('token')) {
-    console.warn(`[API WARNING] Request to ${endpoint} is being sent WITHOUT a token.`);
-  }
 
   const isFormData = options.body instanceof FormData;
   
@@ -99,7 +95,6 @@ export const api = {
     const baseURL = API_BASE_URL || window.location.origin;
     const url = `${baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
     const token = localStorage.getItem('token');
-    console.log(`[API POST] ${url} - Token: ${token ? 'Yes' : 'No'}`);
 
     const isFormData = data instanceof FormData;
     const headers = { ...options.headers };
