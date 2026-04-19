@@ -373,7 +373,7 @@ const BulkReportDownload = () => {
               const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
               return (
-                <div key={idx} className={`relative bg-white p-8 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] break-after-page`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
+                <div key={idx} className={`relative bg-white p-6 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] break-after-page`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
 
                   {/* PROTECTION WATERMARK */}
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
@@ -470,28 +470,28 @@ const BulkReportDownload = () => {
                         <table className="w-full border-2 border-black border-collapse">
                           <thead>
                             <tr className="bg-gray-200">
-                              <th className="border border-black p-1 text-left">SUBJECTS</th>
-                              <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">1ST CA<br />{data.term?.weights?.assignment1 || 5}</th>
-                              <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">2ND CA<br />{data.term?.weights?.assignment2 || 5}</th>
-                              <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">1ST TST<br />{data.term?.weights?.test1 || 10}</th>
-                              <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">2ND TST<br />{data.term?.weights?.test2 || 10}</th>
-                              <th className="border border-black p-1 text-center w-8">EXM<br />{data.term?.weights?.exam || 70}</th>
-                              <th className="border border-black p-1 text-center w-8 font-black">TOT<br />100</th>
+                              <th className="border border-black p-0.5 text-left">SUBJECTS</th>
+                              <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">1ST CA<br />{data.term?.weights?.assignment1 || 5}</th>
+                              <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">2ND CA<br />{data.term?.weights?.assignment2 || 5}</th>
+                              <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">1ST TST<br />{data.term?.weights?.test1 || 10}</th>
+                              <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">2ND TST<br />{data.term?.weights?.test2 || 10}</th>
+                              <th className="border border-black p-0.5 text-center w-8">EXM<br />{data.term?.weights?.exam || 70}</th>
+                              <th className="border border-black p-0.5 text-center w-8 font-black">TOT<br />100</th>
                               {data.term?.number === 3 && (
                                 <>
-                                  <th className="border border-black p-1 text-center w-6 text-[7px]">T1</th>
-                                  <th className="border border-black p-1 text-center w-6 text-[7px]">T2</th>
-                                  <th className="border border-black p-1 text-center w-8 text-[7px] font-bold">CUM</th>
+                                  <th className="border border-black p-0.5 text-center w-6 text-[7px]">T1</th>
+                                  <th className="border border-black p-0.5 text-center w-6 text-[7px]">T2</th>
+                                  <th className="border border-black p-0.5 text-center w-8 text-[7px] font-bold">CUM</th>
                                 </>
                               )}
-                              <th className="border border-black p-1 text-center w-6">GRD</th>
-                              <th className="border border-black p-1 text-center w-6 text-[7px]">POS</th>
-                              <th className="border border-black p-1 text-left px-1 text-[8px]">REMARKS</th>
+                              <th className="border border-black p-0.5 text-center w-6">GRD</th>
+                              <th className="border border-black p-0.5 text-center w-6 text-[7px]">POS</th>
+                              <th className="border border-black p-0.5 text-left px-1 text-[8px]">REMARKS</th>
                             </tr>
                           </thead>
                           <tbody>
                             {(data.subjects || []).map((sub, i) => (
-                              <tr key={i} className="font-bold uppercase h-6">
+                              <tr key={i} className="font-bold uppercase h-5">
                                 <td className="border border-black px-1 leading-tight text-[11px] font-black">{sub.name}</td>
                                 <td className="border border-black text-center text-[10px]">{sub.assignment1 || '0'}</td>
                                 <td className="border border-black text-center text-[10px]">{sub.assignment2 || '0'}</td>
@@ -532,14 +532,14 @@ const BulkReportDownload = () => {
                             </thead>
                             <tbody>
                               {(data.psychomotorRatings || []).map((item, i) => (
-                                <tr key={i} className="h-5">
+                                <tr key={i} className="h-4">
                                   <td className="border border-black px-1 truncate font-bold uppercase">{item.name}</td>
                                   {renderRatingTicks(item.score)}
                                 </tr>
                               ))}
                               {/* Fill empty spaces if needed */}
                               {Array.from({ length: Math.max(0, 9 - (data.psychomotorRatings?.length || 0)) }).map((_, i) => (
-                                <tr key={`empty-${i}`} className="h-5">
+                                <tr key={i} className="h-4">
                                   <td className="border border-black px-1 font-bold text-gray-200 italic">-</td>
                                   <td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td>
                                 </tr>
@@ -608,7 +608,7 @@ const BulkReportDownload = () => {
                         <div className="bg-emerald-800 text-white text-[10px] font-bold text-center py-0.5 uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
                           Financial Standing & Fee Status
                         </div>
-                        <div className="p-3 grid grid-cols-4 gap-4 text-center divide-x divide-black/10">
+                        <div className="p-1.5 grid grid-cols-4 gap-2 text-center divide-x divide-black/10">
                           <div className="space-y-1">
                             <p className="text-[8px] font-black text-gray-500 uppercase">Arrears (Opening)</p>
                             <p className={`text-sm font-black ${data.feeSummary.openingBalance > 0 ? 'text-red-600' : 'text-gray-900'}`}>
@@ -702,7 +702,7 @@ const BulkReportDownload = () => {
                     </div>
 
                     {/* DOCUMENT VERIFICATION FOOTER */}
-                    <div className="mt-auto border-t border-gray-200 pt-1 flex justify-between items-center bg-transparent">
+                    <div className="mt-2 border-t border-gray-200 pt-1 flex justify-between items-center bg-transparent">
                       <div className="flex items-center gap-4">
                         <div className="bg-white p-1 rounded-lg shadow-sm border border-gray-100">
                           <QRCodeSVG 
