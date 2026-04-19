@@ -399,14 +399,14 @@ const BulkReportDownload = () => {
                       </div>
 
                       <div className="text-center flex flex-col items-center justify-center">
-                        <h1 className="text-xl font-black uppercase tracking-wider leading-none text-emerald-900 mb-1" style={{ color: reportColor }}>
+                        <h1 className="text-2xl font-black uppercase tracking-wider leading-none text-emerald-900 mb-1" style={{ color: reportColor }}>
                           {schoolSettings?.schoolName || 'SCHOOL NAME'}
                         </h1>
-                        <p className="text-[10px] font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
-                        <p className="text-[8px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{schoolSettings?.address || 'School Address Location'} | TEL: {schoolSettings?.phone || '000'} | Email: {schoolSettings?.email || 'email@school.com'}</p>
+                        <p className="text-xs font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
+                        <p className="text-[9px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{schoolSettings?.address || 'School Address Location'} | TEL: {schoolSettings?.phone || '000'} | Email: {schoolSettings?.email || 'email@school.com'}</p>
 
                         <div className="mt-1 border-b-2 inline-block px-4 pb-0" style={{ borderColor: reportColor }}>
-                          <h2 className="text-base font-black uppercase tracking-wider">
+                          <h2 className="text-lg font-black uppercase tracking-wider">
                             {data.term?.name?.toUpperCase()} PERFORMANCE REPORT
                           </h2>
                         </div>
@@ -425,7 +425,7 @@ const BulkReportDownload = () => {
                     </div>
 
                     {/* STUDENT INFO TABLE */}
-                    <table className="w-full border-2 border-black border-collapse text-xs font-bold uppercase">
+                    <table className="w-full border-2 border-black border-collapse text-sm font-bold uppercase">
                       <tbody>
                         <tr className="border-b border-black">
                           <td className="border-r border-black p-0.5 w-1/6">NAME:</td>
@@ -464,7 +464,7 @@ const BulkReportDownload = () => {
                     <div className="grid grid-cols-[68%_31%] gap-2 items-stretch">
                       {/* LEFT: COGNITIVE */}
                       <div className="space-y-0 text-[10px] md:text-sm h-full flex flex-col">
-                        <div className="bg-emerald-800 text-white text-center font-bold py-1 text-sm border-2 border-b-0 border-black" style={{ backgroundColor: reportColor }}>
+                        <div className="bg-emerald-800 text-white text-center font-bold py-1 text-base border-2 border-b-0 border-black" style={{ backgroundColor: reportColor }}>
                           COGNITIVE DOMAIN PERFORMANCE
                         </div>
                         <table className="w-full border-2 border-black border-collapse">
@@ -573,19 +573,19 @@ const BulkReportDownload = () => {
 
                         {/* POSITION & AVG */}
                         <div className="p-0 flex flex-col">
-                          <div className="bg-emerald-800 text-white text-[9px] font-bold text-center py-0.5 uppercase tracking-tighter" style={{ backgroundColor: reportColor }}>Status Summary</div>
+                          <div className="bg-emerald-800 text-white text-[11px] font-bold text-center py-0.5 uppercase tracking-tighter" style={{ backgroundColor: reportColor }}>Status Summary</div>
                           <div className="bg-white flex-1 grid grid-cols-2 divide-x divide-black/10">
                             <div className="flex flex-col items-center justify-center p-1">
                               <span className="text-[7px] text-gray-400 uppercase font-black">Position</span>
                               <span className="text-sm font-black italic">{data.termPosition || '-'} / {data.totalStudents || '-'}</span>
                             </div>
                             <div className="flex flex-col items-center justify-center p-1">
-                              <span className="text-[7px] text-gray-400 uppercase font-black">Average</span>
+                              <span className="text-[8px] text-gray-400 uppercase font-black">Average</span>
                               <span className="text-sm font-black italic">{data.termAverage?.toFixed(1)}%</span>
                             </div>
                           </div>
                           <div className="border-t border-black p-1 flex items-center justify-between bg-emerald-50" style={{ backgroundColor: `${reportColor}10` }}>
-                            <span className="text-[9px] font-black uppercase text-gray-500">Overall Grade:</span>
+                            <span className="text-[10px] font-black uppercase text-gray-500">Overall Grade:</span>
                             <span className="text-lg font-black text-emerald-800" style={{ color: reportColor }}>{data.overallGrade}</span>
                           </div>
                         </div>
@@ -605,7 +605,7 @@ const BulkReportDownload = () => {
                     {/* FINANCIAL STANDING SECTION */}
                     {data.feeSummary && (
                       <div className="border-2 border-black bg-emerald-50/30 rounded-lg overflow-hidden mt-2" style={{ backgroundColor: `${reportColor}05` }}>
-                        <div className="bg-emerald-800 text-white text-[10px] font-bold text-center py-0.5 uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
+                        <div className="bg-emerald-800 text-white text-xs font-bold text-center py-0.5 uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
                           Financial Standing & Fee Status
                         </div>
                         <div className="p-1.5 grid grid-cols-4 gap-2 text-center divide-x divide-black/10">
