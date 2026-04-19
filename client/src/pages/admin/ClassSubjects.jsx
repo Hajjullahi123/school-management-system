@@ -168,53 +168,54 @@ const ClassSubjects = () => {
       {/* Class Selection Grid - Shown only when no class is selected */}
       {!selectedClass && (
         <div className="space-y-6">
-          {/* Info Box moved up for context */}
-          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 shadow-sm">
-            <div className="flex gap-4">
-              <div className="p-3 bg-blue-100 rounded-xl h-fit">
-                <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div>
-                <h4 className="text-base font-bold text-blue-900 mb-1">How it works</h4>
-                <p className="text-sm text-blue-700 leading-relaxed font-medium">
-                  Select a class below to define which subjects they will offer. 
-                  After assignment, you can use the <span className="font-bold underline">Teacher Assignments</span> page to designate instructors for each subject.
-                  The system tracks completion automatically.
-                </p>
-              </div>
+          {/* Info Box — inline width so it hugs the text */}
+          <div className="inline-flex gap-4 bg-blue-50 border border-blue-100 rounded-2xl p-5 shadow-sm max-w-xl w-full">
+            <div className="p-2.5 bg-blue-100 rounded-xl h-fit shrink-0">
+              <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-blue-900 mb-1 uppercase tracking-wide">How it works</h4>
+              <p className="text-sm text-blue-700 leading-relaxed">
+                Select a class below to define which subjects they will offer.
+                After assignment, use the{' '}
+                <span className="font-bold underline">Teacher Assignments</span>{' '}
+                page to designate instructors. The system tracks completion automatically.
+              </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {/* Class Cards Grid */}
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
             {classes.map((cls) => (
               <button
                 key={cls.id}
                 onClick={() => setSelectedClass(cls)}
-                className="group bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:border-primary hover:shadow-md transition-all text-left relative overflow-hidden"
+                className="group bg-slate-50 p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-primary hover:bg-indigo-50 hover:shadow-md transition-all text-left relative overflow-hidden"
               >
-                <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-bl-full -mr-4 -mt-4 group-hover:bg-primary/10 transition-colors"></div>
-                
-                <h3 className="text-xl font-black text-gray-900 mb-1 group-hover:text-primary transition-colors">
+                {/* Decorative corner accent */}
+                <div className="absolute top-0 right-0 w-14 h-14 bg-indigo-100/60 rounded-bl-full -mr-3 -mt-3 group-hover:bg-primary/10 transition-colors"></div>
+
+                <h3 className="text-base sm:text-xl font-black text-gray-800 mb-1 group-hover:text-primary transition-colors leading-tight">
                   {cls.name} {cls.arm || ''}
                 </h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">
+                <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 sm:mb-4">
                   {cls.section || 'Academic'} Section
                 </p>
 
                 <div className="flex items-center justify-between mt-auto">
-                   <div className="flex items-center gap-2">
-                     <span className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 group-hover:text-primary group-hover:bg-primary/5 transition-all">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
-                     </span>
-                     <span className="text-xs font-bold text-gray-600">Click to Manage</span>
-                   </div>
-                   <svg className="w-5 h-5 text-gray-300 group-hover:text-primary transform translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                   </svg>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-gray-400 group-hover:text-primary group-hover:border-primary/30 group-hover:bg-primary/5 transition-all">
+                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                    </span>
+                    <span className="text-[11px] sm:text-xs font-bold text-gray-500">Click to Manage</span>
+                  </div>
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-300 group-hover:text-primary transform translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                  </svg>
                 </div>
               </button>
             ))}
