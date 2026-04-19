@@ -522,14 +522,14 @@ const TermReportCard = () => {
                     </div>
 
                     <div className="text-center flex flex-col items-center justify-center">
-                      <h1 className="text-xl font-black uppercase tracking-wider leading-none text-emerald-900 mb-1" style={{ color: reportColor }}>
+                      <h1 className="text-2xl font-black uppercase tracking-wider leading-none text-emerald-900 mb-1" style={{ color: reportColor }}>
                         {schoolSettings?.schoolName || 'SCHOOL NAME'}
                       </h1>
-                      <p className="text-[10px] font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
-                      <p className="text-[8px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{schoolSettings?.address || 'School Address Location'} | TEL: {schoolSettings?.phone || '000'} | Email: {schoolSettings?.email || 'email@school.com'}</p>
+                      <p className="text-xs font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
+                      <p className="text-[9px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{schoolSettings?.address || 'School Address Location'} | TEL: {schoolSettings?.phone || '000'} | Email: {schoolSettings?.email || 'email@school.com'}</p>
 
                       <div className="mt-1 border-b-2 inline-block px-4 pb-0" style={{ borderColor: reportColor }}>
-                        <h2 className="text-base font-black uppercase tracking-wider">
+                        <h2 className="text-lg font-black uppercase tracking-wider">
                           {data.term?.name?.toUpperCase()} PERFORMANCE REPORT
                         </h2>
                       </div>
@@ -587,7 +587,7 @@ const TermReportCard = () => {
                       </div>
                     </div>
                   ) : (
-                    <table className="w-full border-2 border-black border-collapse text-xs font-bold uppercase">
+                    <table className="w-full border-2 border-black border-collapse text-sm font-bold uppercase">
                       <tbody>
                         <tr className="border-b border-black">
                           <td className="border-r border-black p-1 w-[12%] text-[9px]">NAME:</td>
@@ -616,7 +616,7 @@ const TermReportCard = () => {
                         {showAttendance && (
                         <tr>
                           <td className="border-r border-black p-1">ATTENDANCE:</td>
-                          <td className="border-r border-black p-1 text-black">{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
+                          <td className="border-r border-black p-1 font-black text-black">{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
                           <td className="border-r border-black p-1">TERM:</td>
                           <td className="p-1">{data.term?.name}</td>
                         </tr>
@@ -635,34 +635,34 @@ const TermReportCard = () => {
                   <div className="grid grid-cols-[68%_31%] gap-2 items-stretch">
                     {/* LEFT: COGNITIVE */}
                     <div className="space-y-0 text-[10px] md:text-sm h-full flex flex-col">
-                      <div className="bg-emerald-800 text-white text-center font-bold py-1 text-sm border-2 border-b-0 border-black" style={{ backgroundColor: reportColor }}>
+                      <div className="bg-emerald-800 text-white text-center font-bold py-1 text-base border-2 border-b-0 border-black" style={{ backgroundColor: reportColor }}>
                         COGNITIVE DOMAIN PERFORMANCE
                       </div>
                       <table className="w-full border-2 border-black border-collapse">
                         <thead>
                           <tr className="bg-gray-200">
-                            <th className="border border-black p-1 text-left">SUBJECTS</th>
-                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">1ST CA<br />{data.term?.weights?.assignment1 || 5}</th>
-                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">2ND CA<br />{data.term?.weights?.assignment2 || 5}</th>
-                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">1ST TST<br />{data.term?.weights?.test1 || 10}</th>
-                            <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">2ND TST<br />{data.term?.weights?.test2 || 10}</th>
-                            <th className="border border-black p-1 text-center w-8">EXM<br />{data.term?.weights?.exam || 70}</th>
-                            <th className="border border-black p-1 text-center w-8 font-black">TOT<br />100</th>
+                            <th className="border border-black p-0.5 text-left">SUBJECTS</th>
+                            <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">1ST CA<br />{data.term?.weights?.assignment1 || 5}</th>
+                            <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">2ND CA<br />{data.term?.weights?.assignment2 || 5}</th>
+                            <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">1ST TST<br />{data.term?.weights?.test1 || 10}</th>
+                            <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">2ND TST<br />{data.term?.weights?.test2 || 10}</th>
+                            <th className="border border-black p-0.5 text-center w-8">EXM<br />{data.term?.weights?.exam || 70}</th>
+                            <th className="border border-black p-0.5 text-center w-8 font-black">TOT<br />100</th>
                             {termNumber === 3 && (
                               <>
-                                <th className="border border-black p-1 text-center w-6 text-[7px]">T1</th>
-                                <th className="border border-black p-1 text-center w-6 text-[7px]">T2</th>
-                                <th className="border border-black p-1 text-center w-8 text-[7px] font-bold">CUM</th>
+                                <th className="border border-black p-0.5 text-center w-6 text-[7px]">T1</th>
+                                <th className="border border-black p-0.5 text-center w-6 text-[7px]">T2</th>
+                                <th className="border border-black p-0.5 text-center w-8 text-[7px] font-bold">CUM</th>
                               </>
                             )}
-                            <th className="border border-black p-1 text-center w-6">GRD</th>
-                            {showPosition && <th className="border border-black p-1 text-center w-6 text-[7px]">POS</th>}
-                            <th className="border border-black p-1 text-left px-1 text-[8px]">REMARKS</th>
+                            <th className="border border-black p-0.5 text-center w-6">GRD</th>
+                            {showPosition && <th className="border border-black p-0.5 text-center w-6 text-[7px]">POS</th>}
+                            <th className="border border-black p-0.5 text-left px-1 text-[8px]">REMARKS</th>
                           </tr>
                         </thead>
                         <tbody>
                           {(data.subjects || []).map((sub, i) => (
-                            <tr key={i} className="font-bold uppercase h-6">
+                            <tr key={i} className="font-bold uppercase h-5">
                               <td className="border border-black px-1 leading-tight text-[11px] font-black">{sub.name}</td>
                               <td className="border border-black text-center text-[10px]">{sub.assignment1 || '0'}</td>
                               <td className="border border-black text-center text-[10px]">{sub.assignment2 || '0'}</td>
@@ -703,14 +703,14 @@ const TermReportCard = () => {
                           </thead>
                           <tbody>
                             {(data.psychomotorRatings || []).map((item, i) => (
-                              <tr key={i} className="h-5">
+                              <tr key={i} className="h-4">
                                 <td className="border border-black px-1 truncate font-bold uppercase">{item.name}</td>
                                 {renderRatingTicks(item.score)}
                               </tr>
                             ))}
                             {/* Fill empty spaces if needed */}
                             {Array.from({ length: Math.max(0, 9 - (data.psychomotorRatings?.length || 0)) }).map((_, i) => (
-                              <tr key={`empty-${i}`} className="h-5">
+                              <tr key={`empty-${i}`} className="h-4">
                                 <td className="border border-black px-1 font-bold text-gray-200 italic">-</td>
                                 <td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td><td className="border border-black"></td>
                               </tr>
@@ -744,7 +744,7 @@ const TermReportCard = () => {
 
                       {/* POSITION & AVG */}
                       <div className="p-0 flex flex-col">
-                        <div className="bg-emerald-800 text-white text-[9px] font-bold text-center py-0.5 uppercase tracking-tighter" style={{ backgroundColor: reportColor }}>Status Summary</div>
+                        <div className="bg-emerald-800 text-white text-[11px] font-bold text-center py-0.5 uppercase tracking-tighter" style={{ backgroundColor: reportColor }}>Status Summary</div>
                         <div className="bg-white flex-1 grid grid-cols-2 divide-x divide-black/10">
                           {showPosition && (
                           <div className="flex flex-col items-center justify-center p-1">
@@ -760,7 +760,7 @@ const TermReportCard = () => {
 
                         {/* PASS/FAIL SUMMARY SECTION */}
                         {data.passFailSummary?.show && (
-                          <div className="border-t border-black grid grid-cols-2 divide-x divide-black/10 bg-white items-center h-8">
+                          <div className="border-t border-black grid grid-cols-2 divide-x divide-black/10 bg-white items-center py-0.5">
                              <div className="flex items-center justify-between px-2 h-full">
                                 <span className="text-[7px] font-black text-gray-400 uppercase">Passed</span>
                                 <span className="text-[10px] font-black text-emerald-700">{data.passFailSummary.totalPassed}</span>
@@ -773,7 +773,7 @@ const TermReportCard = () => {
                         )}
 
                         <div className="border-t border-black p-1 flex items-center justify-between bg-emerald-50" style={{ backgroundColor: `${reportColor}10` }}>
-                          <span className="text-[9px] font-black uppercase text-gray-500">Overall Grade:</span>
+                          <span className="text-[10px] font-black uppercase text-gray-500">Overall Grade:</span>
                           <span className="text-lg font-black text-emerald-800" style={{ color: reportColor }}>{data.overallGrade}</span>
                         </div>
                       </div>
@@ -793,10 +793,10 @@ const TermReportCard = () => {
                   {/* FINANCIAL STANDING SECTION */}
                   {showFees && data.feeSummary && (
                     <div className="border-2 border-black bg-emerald-50/30 rounded-lg overflow-hidden mt-2" style={{ backgroundColor: `${reportColor}05` }}>
-                      <div className="bg-emerald-800 text-white text-[9px] font-bold text-center py-0 uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
+                      <div className="bg-emerald-800 text-white text-xs font-bold text-center py-0.5 uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
                         Financial Standing & Fee Status
                       </div>
-                      <div className="p-1 px-3 grid grid-cols-4 gap-4 text-center divide-x divide-black/10">
+                      <div className="p-1.5 px-3 grid grid-cols-4 gap-2 text-center divide-x divide-black/10">
                         <div className="space-y-1">
                           <p className="text-[8px] font-black text-gray-500 uppercase">Arrears (Opening)</p>
                           <p className={`text-sm font-black ${data.feeSummary.openingBalance > 0 ? 'text-red-600' : 'text-gray-900'}`}>
@@ -890,7 +890,7 @@ const TermReportCard = () => {
                   </div>
 
                   {/* DOCUMENT VERIFICATION FOOTER */}
-                  <div className="mt-auto border-t border-gray-200 pt-2 flex justify-between items-center bg-transparent">
+                  <div className="mt-2 border-t border-gray-200 pt-1 flex justify-between items-center bg-transparent">
                     <div className="flex items-center gap-4">
                       <div className="group/qr relative bg-white p-1 rounded-lg shadow-sm border border-gray-100 transition-all hover:shadow-md">
                         <QRCodeSVG 

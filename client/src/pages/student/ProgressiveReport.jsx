@@ -404,7 +404,7 @@ const ProgressiveReport = () => {
                 : null;
 
               return (
-                <div key={data.student.id} className="report-card-page bg-white mx-auto shadow-2xl relative overflow-hidden print:shadow-none print:emerald-print-A4" style={{ width: '210mm', minWidth: '210mm', height: '297mm', minHeight: '297mm', padding: '10mm', boxSizing: 'border-box', pageBreakAfter: index < reports.length - 1 ? 'always' : 'auto', fontFamily: reportFont }}>
+                <div key={data.student.id} className="report-card-page bg-white mx-auto shadow-2xl relative overflow-hidden print:shadow-none print:emerald-print-A4" style={{ width: '210mm', minWidth: '210mm', height: '297mm', minHeight: '297mm', padding: '8mm', boxSizing: 'border-box', pageBreakAfter: index < reports.length - 1 ? 'always' : 'auto', fontFamily: reportFont }}>
 
                   {logoUri && (
                     <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] z-0">
@@ -423,10 +423,10 @@ const ProgressiveReport = () => {
                         )}
                       </div>
                       <div className="text-center flex flex-col items-center justify-center">
-                        <h1 className="text-xl font-black uppercase mb-1 tracking-wider leading-none text-emerald-800" style={{ color: reportColor }}>{ss?.name || 'School Name'}</h1>
-                        <p className="text-[10px] font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{ss?.motto || 'Knowledge for Prosperity'}</p>
-                        <p className="text-[8px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{ss?.address || 'School Address'} | TEL: {ss?.phone} | Email: {ss?.email}</p>
-                        <div className="mt-1 inline-block bg-emerald-800 text-white px-6 py-0.5 rounded-full font-bold uppercase tracking-widest text-[11px] shadow-sm" style={{ backgroundColor: reportColor }}>
+                        <h1 className="text-2xl font-black uppercase mb-1 tracking-wider leading-none text-emerald-800" style={{ color: reportColor }}>{ss?.name || 'School Name'}</h1>
+                        <p className="text-xs font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{ss?.motto || 'Knowledge for Prosperity'}</p>
+                        <p className="text-[9px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{ss?.address || 'School Address'} | TEL: {ss?.phone} | Email: {ss?.email}</p>
+                        <div className="mt-1 inline-block bg-emerald-800 text-white px-6 py-0.5 rounded-full font-bold uppercase tracking-widest text-lg shadow-sm" style={{ backgroundColor: reportColor }}>
                           PROGRESSIVE REPORT
                         </div>
                       </div>
@@ -475,10 +475,10 @@ const ProgressiveReport = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-0 border-2 border-black mb-3 divide-y divide-black lg:divide-y-0 lg:divide-x bg-gray-50/50">
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-0 border-2 border-black mb-3 divide-y divide-black lg:divide-y-0 lg:divide-x bg-gray-50/50 text-sm">
                         <div className="col-span-2 lg:col-span-2 p-2 border-b lg:border-b-0 border-black flex flex-col justify-center">
                           <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Name of Student</p>
-                          <p className="font-bold text-sm uppercase">{data.student.name}</p>
+                          <p className="font-black text-black text-sm uppercase">{data.student.name}</p>
                         </div>
                         <div className="p-2 border-b lg:border-b-0 border-r border-black flex flex-col justify-center">
                           <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Admission Number</p>
@@ -517,27 +517,27 @@ const ProgressiveReport = () => {
                       <table className="w-full border-collapse border-2 border-black mb-3 text-xs bg-white">
                         <thead>
                           <tr className="bg-emerald-800 text-white uppercase text-[10px] tracking-wider" style={{ backgroundColor: ss?.reportColorScheme || ss?.primaryColor || '#065f46' }}>
-                            <th className="border border-black p-2 text-left w-1/4">Subjects</th>
-                            <th className="border border-black p-1 text-center font-normal px-2">Ass. 1<br /><span className="text-[8px] opacity-75">({weights.assignment1})</span></th>
-                            <th className="border border-black p-1 text-center font-normal px-2">Ass. 2<br /><span className="text-[8px] opacity-75">({weights.assignment2})</span></th>
-                            <th className="border border-black p-1 text-center font-normal px-2">Test 1<br /><span className="text-[8px] opacity-75">({weights.test1})</span></th>
-                            <th className="border border-black p-1 text-center font-normal px-2">Test 2<br /><span className="text-[8px] opacity-75">({weights.test2})</span></th>
-                            <th className="border border-black p-2 text-center bg-black/20 font-bold w-16">Total<br /><span className="text-[8px] opacity-75">({weights.assignment1 + weights.assignment2 + weights.test1 + weights.test2})</span></th>
-                            <th className="border border-black p-2 text-center w-20">Class Avg</th>
-                            {showPosition && <th className="border border-black p-2 text-center font-bold">Position</th>}
+                            <th className="border border-black p-1 text-left w-1/4">Subjects</th>
+                            <th className="border border-black p-0.5 text-center font-normal px-1">Ass. 1<br /><span className="text-[8px] opacity-75">({weights.assignment1})</span></th>
+                            <th className="border border-black p-0.5 text-center font-normal px-1">Ass. 2<br /><span className="text-[8px] opacity-75">({weights.assignment2})</span></th>
+                            <th className="border border-black p-0.5 text-center font-normal px-1">Test 1<br /><span className="text-[8px] opacity-75">({weights.test1})</span></th>
+                            <th className="border border-black p-0.5 text-center font-normal px-1">Test 2<br /><span className="text-[8px] opacity-75">({weights.test2})</span></th>
+                            <th className="border border-black p-1 text-center bg-black/20 font-bold w-16">Total<br /><span className="text-[8px] opacity-75">({weights.assignment1 + weights.assignment2 + weights.test1 + weights.test2})</span></th>
+                            <th className="border border-black p-1 text-center w-20 tracking-tighter">Avg</th>
+                            {showPosition && <th className="border border-black p-1 text-center font-bold">Pos</th>}
                           </tr>
                         </thead>
                         <tbody>
                           {data.subjects?.map((sub, i) => (
-                            <tr key={i} className="hover:bg-gray-50 border-b border-gray-300">
-                              <td className="border-x border-black p-2 font-bold text-gray-800 uppercase text-[11px]">{sub.subject.name}</td>
-                              <td className="border-x border-gray-400 p-2 text-center">{sub.assignment1Score ?? '-'}</td>
-                              <td className="border-x border-gray-400 p-2 text-center">{sub.assignment2Score ?? '-'}</td>
-                              <td className="border-x border-gray-400 p-2 text-center">{sub.test1Score ?? '-'}</td>
-                              <td className="border-x border-gray-400 p-2 text-center">{sub.test2Score ?? '-'}</td>
-                              <td className="border-x border-black p-2 text-center font-bold bg-gray-100 text-sm text-emerald-800" style={{ color: reportColor }}>{sub.totalScore ?? '-'}</td>
-                              <td className="border-x border-gray-400 p-2 text-center italic text-gray-600">{sub.averageInClass ? sub.averageInClass.toFixed(1) : '-'}</td>
-                              {showPosition && <td className="border-x border-black p-2 text-center font-black text-emerald-800 bg-emerald-50/50">{getSuffix(sub.position)}</td>}
+                            <tr key={i} className="hover:bg-gray-50 border-b border-gray-300 h-5">
+                              <td className="border-x border-black p-1 font-bold text-gray-800 uppercase text-[10px]">{sub.subject.name}</td>
+                              <td className="border-x border-gray-400 p-1 text-center">{sub.assignment1Score ?? '-'}</td>
+                              <td className="border-x border-gray-400 p-1 text-center">{sub.assignment2Score ?? '-'}</td>
+                              <td className="border-x border-gray-400 p-1 text-center">{sub.test1Score ?? '-'}</td>
+                              <td className="border-x border-gray-400 p-1 text-center">{sub.test2Score ?? '-'}</td>
+                              <td className="border-x border-black p-1 text-center font-black bg-gray-100 text-sm text-emerald-800" style={{ color: reportColor }}>{sub.totalScore ?? '-'}</td>
+                              <td className="border-x border-gray-400 p-1 text-center italic text-gray-600">{sub.averageInClass ? sub.averageInClass.toFixed(1) : '-'}</td>
+                              {showPosition && <td className="border-x border-black p-1 text-center font-black text-emerald-800 bg-emerald-50/50">{getSuffix(sub.position)}</td>}
                             </tr>
                           ))}
                         </tbody>
@@ -587,7 +587,7 @@ const ProgressiveReport = () => {
                     </div>
 
                     {/* DOCUMENT VERIFICATION FOOTER */}
-                    <div className="mt-auto border-t border-gray-200 pt-3 flex justify-between items-center bg-transparent">
+                    <div className="mt-2 border-t border-gray-200 pt-1 flex justify-between items-center bg-transparent">
                       <div className="flex items-center gap-4">
                         <div className="group/qr relative bg-white p-1 rounded-lg shadow-sm border border-gray-100 transition-all hover:shadow-md">
                           <QRCodeSVG 

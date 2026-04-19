@@ -202,8 +202,8 @@ const CumulativeReport = () => {
     return (
       <div
         key={data.student?.id || index}
-        className={`relative bg-white p-8 print:p-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm]`}
-        style={{ pageBreakAfter: 'always', breakAfter: 'page', fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}
+        className={`relative bg-white p-6 print:p-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm]`}
+        style={{ pageBreakAfter: 'always', breakAfter: 'page', padding: '8mm', fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}
       >
         {/* BACKGROUND WATERMARK */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] rotate-[-35deg] overflow-hidden z-0 print:opacity-[0.05]">
@@ -223,14 +223,14 @@ const CumulativeReport = () => {
             </div>
 
             <div className="text-center flex flex-col items-center justify-center">
-              <h1 className="text-xl font-black uppercase tracking-wider leading-none text-emerald-900 mb-1" style={{ color: reportColor }}>
+              <h1 className="text-2xl font-black uppercase tracking-wider leading-none text-emerald-900 mb-1" style={{ color: reportColor }}>
                 {ss?.name || 'SCHOOL NAME'}
               </h1>
-              <p className="text-[10px] font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{ss?.motto || 'Excellence and Dedication'}</p>
-              <p className="text-[8px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{ss?.address || 'School Address Location'} | TEL: {ss?.phone || '000'} | Email: {ss?.email || 'email@school.com'}</p>
+              <p className="text-xs font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{ss?.motto || 'Excellence and Dedication'}</p>
+              <p className="text-[9px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{ss?.address || 'School Address Location'} | TEL: {ss?.phone || '000'} | Email: {ss?.email || 'email@school.com'}</p>
 
               <div className="mt-1 border-b-2 inline-block px-4 pb-0" style={{ borderColor: reportColor }}>
-                <h2 className="text-base font-black uppercase tracking-wider">ANNUAL CUMULATIVE PERFORMANCE REPORT</h2>
+                <h2 className="text-lg font-black uppercase tracking-wider">ANNUAL CUMULATIVE PERFORMANCE REPORT</h2>
               </div>
             </div>
 
@@ -268,8 +268,8 @@ const CumulativeReport = () => {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black text-[9px] font-bold uppercase bg-gray-50 mb-1">
-              <div className="p-1"><span className="text-gray-500">NAME:</span> {data.student?.name}</div>
+            <div className="grid grid-cols-4 border-2 border-black divide-x-2 divide-black text-sm font-bold uppercase bg-gray-50 mb-1">
+              <div className="p-1"><span className="text-gray-500">NAME:</span> <span className="font-black text-black">{data.student?.name}</span></div>
               <div className="p-1"><span className="text-gray-500">ADM NO:</span> {data.student?.admissionNumber}</div>
               <div className="p-1"><span className="text-gray-500">CLASS:</span> {data.student?.class}</div>
               <div className="p-1"><span className="text-gray-500">SESSION:</span> {data.session?.name}</div>
@@ -281,12 +281,12 @@ const CumulativeReport = () => {
             <table className="w-full text-[10px] uppercase font-bold text-center border-collapse">
               <thead className="bg-emerald-800 text-white border-b-2 border-black" style={{ backgroundColor: reportColor }}>
                 <tr className="divide-x divide-white/20">
-                  <th className="p-1 text-left w-[35%] bg-emerald-900 border-r-2 border-black">SUBJECT</th>
-                  <th className="p-1 w-[12%]">1st TERM</th>
-                  <th className="p-1 w-[12%]">2nd TERM</th>
-                  <th className="p-1 w-[12%]">3rd TERM</th>
-                  <th className="p-1 w-[15%] bg-emerald-700">ANNUAL AVG</th>
-                  <th className="p-1 w-[14%] bg-gray-900 border-l border-white/20">GRADE</th>
+                  <th className="p-0.5 text-left w-[35%] bg-emerald-900 border-r-2 border-black tracking-tight">SUBJECT</th>
+                  <th className="p-0.5 w-[12%] tracking-tight">1st TERM</th>
+                  <th className="p-0.5 w-[12%] tracking-tight">2nd TERM</th>
+                  <th className="p-0.5 w-[12%] tracking-tight">3rd TERM</th>
+                  <th className="p-0.5 w-[15%] bg-emerald-700 tracking-tight">ANNUAL AVG</th>
+                  <th className="p-0.5 w-[14%] bg-gray-900 border-l border-white/20 tracking-tight">GRADE</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-300">
@@ -364,7 +364,7 @@ const CumulativeReport = () => {
           </div>
 
           {/* FOOTER */}
-          <div className="pt-2 border-t border-gray-200 flex justify-between items-center bg-transparent">
+          <div className="pt-1 border-t border-gray-200 flex justify-between items-center bg-transparent">
             <div className="flex items-center gap-4">
               <div className="group/qr relative bg-white p-1 rounded-lg shadow-sm border border-gray-100 transition-all hover:shadow-md">
                 <QRCodeSVG 
