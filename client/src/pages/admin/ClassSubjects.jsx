@@ -165,28 +165,103 @@ const ClassSubjects = () => {
         <h1 className="text-2xl font-bold text-gray-900">Class Subject Management</h1>
       </div>
 
-      {/* Class Selection */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Select Class
-        </label>
-        <select
-          value={selectedClass?.id || ''}
-          onChange={(e) => {
-            const classId = parseInt(e.target.value);
-            const cls = classes.find(c => c.id === classId);
-            setSelectedClass(cls);
-          }}
-          className="w-full md:w-1/3 border rounded-md px-3 py-2"
-        >
-          <option value="">-- Select a Class --</option>
-          {classes.map((cls) => (
-            <option key={cls.id} value={cls.id}>
-              {cls.name} {cls.arm || ''}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Class Selection Grid - Shown only when no class is selected */}
+      {!selectedClass && (
+        <div className="space-y-6">
+          {/* Info Box moved up for context */}
+          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 shadow-sm">
+            <div className="flex gap-4">
+              <div className="p-3 bg-blue-100 rounded-xl h-fit">
+                <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-base font-bold text-blue-900 mb-1">How it works</h4>
+                <p className="text-sm text-blue-700 leading-relaxed font-medium">
+                  Select a class below to define which subjects they will offer. 
+                  After assignment, you can use the <span className="font-bold underline">Teacher Assignments</span> page to designate instructors for each subject.
+                  The system tracks completion automatically.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {classes.map((cls) => (
+              <button
+                key={cls.id}
+                onClick={() => setSelectedClass(cls)}
+                className="group bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:border-primary hover:shadow-md transition-all text-left relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-bl-full -mr-4 -mt-4 group-hover:bg-primary/10 transition-colors"></div>
+                
+                <h3 className="text-xl font-black text-gray-900 mb-1 group-hover:text-primary transition-colors">
+                  {cls.name} {cls.arm || ''}
+                </h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">
+                  {cls.section || 'Academic'} Section
+                </p>
+
+                <div className="flex items-center justify-between mt-auto">
+                   <div className="flex items-center gap-2">
+                     <span className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 group-hover:text-primary group-hover:bg-primary/5 transition-all">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                     </span>
+                     <span className="text-xs font-bold text-gray-600">Click to Manage</span>
+                   </div>
+                   <svg className="w-5 h-5 text-gray-300 group-hover:text-primary transform translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                   </svg>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Class Selection Dropdown - Always visible for quick switching when a class is selected */}
+      {selectedClass && (
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setSelectedClass(null)}
+              className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+              title="Back to Class List"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Now Managing</p>
+              <h2 className="text-lg font-bold text-gray-900">{selectedClass.name} {selectedClass.arm}</h2>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Switch Class:</label>
+            <select
+              value={selectedClass?.id || ''}
+              onChange={(e) => {
+                const classId = parseInt(e.target.value);
+                const cls = classes.find(c => c.id === classId);
+                setSelectedClass(cls);
+              }}
+              className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold text-gray-700 focus:ring-2 focus:ring-primary/20 outline-none min-w-[200px]"
+            >
+              <option value="">-- Select a Class --</option>
+              {classes.map((cls) => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.name} {cls.arm || ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       {/* Class Subjects Display */}
       {selectedClass && (
@@ -338,21 +413,6 @@ const ClassSubjects = () => {
         </div>
       )}
 
-      {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex">
-          <svg className="w-5 h-5 text-blue-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-          </svg>
-          <div>
-            <h4 className="text-sm font-medium text-blue-900">How it works</h4>
-            <p className="text-sm text-blue-700 mt-1">
-              First, define which subjects each class will offer. Then, use the Teacher Assignments page to assign teachers to these subjects.
-              The system will track how many subjects still need teachers assigned.
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
