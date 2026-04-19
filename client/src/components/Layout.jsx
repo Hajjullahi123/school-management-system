@@ -1206,8 +1206,8 @@ const Layout = () => {
       {/* Sidebar */}
       <div
         className={`
-          fixed lg:static inset-y-0 left-0 z-[60]
-          w-64 text-white shadow-2xl flex flex-col transition-all duration-500 ease-in-out
+          fixed lg:sticky lg:top-0 lg:h-screen lg:shrink-0 inset-y-0 left-0 z-[60]
+          w-64 text-white shadow-2xl flex flex-col transition-all duration-500 ease-in-out lg:overflow-hidden
           ${user?.role === 'superadmin' ? 'bg-gradient-to-b from-slate-800 to-slate-900 border-r border-slate-700' : 'bg-gradient-to-b from-secondary to-primary'} 
           print:hidden
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
