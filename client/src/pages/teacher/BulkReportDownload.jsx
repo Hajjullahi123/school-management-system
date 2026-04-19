@@ -473,7 +473,7 @@ const BulkReportDownload = () => {
                               <th className="border border-black p-1 text-center w-6 text-[7px] leading-tight">2ND TST<br />{data.term?.weights?.test2 || 10}</th>
                               <th className="border border-black p-1 text-center w-8">EXM<br />{data.term?.weights?.exam || 70}</th>
                               <th className="border border-black p-1 text-center w-8 font-black">TOT<br />100</th>
-                              {termNumber === 3 && (
+                              {data.term?.number === 3 && (
                                 <>
                                   <th className="border border-black p-1 text-center w-6 text-[7px]">T1</th>
                                   <th className="border border-black p-1 text-center w-6 text-[7px]">T2</th>
@@ -495,7 +495,7 @@ const BulkReportDownload = () => {
                                 <td className="border border-black text-center text-[10px]">{sub.test2 || '0'}</td>
                                 <td className="border border-black text-center text-[10px]">{sub.exam || '0'}</td>
                                 <td className="border border-black text-center bg-gray-50 text-[10px] font-black">{sub.total?.toFixed(0)}</td>
-                                {termNumber === 3 && (
+                                {data.term?.number === 3 && (
                                   <>
                                     <td className="border border-black text-center text-[9px]">{sub.term1Score ?? '0'}</td>
                                     <td className="border border-black text-center text-[9px]">{sub.term2Score ?? '0'}</td>
