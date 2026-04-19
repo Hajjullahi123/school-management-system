@@ -209,7 +209,7 @@ const MyClass = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div className="flex items-center gap-4">
           {schoolSettings?.logoUrl && (
             <img src={schoolSettings.logoUrl} alt="Logo" className="h-12 w-12 object-contain" />
@@ -221,7 +221,7 @@ const MyClass = () => {
             </p>
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 w-full md:w-auto">
           <button
             onClick={async () => {
               if (!confirm(`Are you sure you want to ${publication.isProgressivePublished ? 'unpublish' : 'publish'} PROGRESSIVE results for this class?`)) return;
