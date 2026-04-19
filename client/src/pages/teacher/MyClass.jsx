@@ -334,7 +334,7 @@ const MyClass = () => {
       {gradingStudent && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] overflow-hidden">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl h-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
+            <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
                   <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -354,7 +354,7 @@ const MyClass = () => {
             <div className="flex-1 overflow-hidden">
               <div className="h-full grid grid-cols-1 lg:grid-cols-[1fr,380px] divide-x divide-gray-100">
                 {/* LEFT: Assessment Form */}
-                <div className="overflow-y-auto p-8 space-y-10 custom-scrollbar">
+                <div className="overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-8 sm:space-y-10 custom-scrollbar">
                   {/* Performance Breakdown Section */}
                   <div className="space-y-6">
                     <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
@@ -537,7 +537,7 @@ const MyClass = () => {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-100 bg-white flex justify-between items-center shrink-0">
+            <div className="p-4 sm:p-6 border-t border-gray-100 bg-white flex justify-between items-center shrink-0">
                <p className="text-xs text-gray-400 font-bold max-w-md italic">
                  Note: Remarks and assessments are only visible to parents once the results have been officially published.
                </p>
