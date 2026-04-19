@@ -769,10 +769,10 @@ Note: Password must be changed on first login.
             {students.length} Total Students • {Object.keys(grouped).length} Classes
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           <button
             onClick={handleDownloadTemplate}
-            className="sm:flex-none bg-white border border-gray-200 text-gray-600 px-3 py-2 rounded-xl hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+            className="flex-1 sm:flex-none bg-white border border-gray-200 text-gray-600 px-3 py-2 rounded-xl hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
           >
             <svg className="w-4 h-4 text-gray-400 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -781,7 +781,7 @@ Note: Password must be changed on first login.
           </button>
           <button
             onClick={handleDownloadGuidancePDF}
-            className="sm:flex-none bg-amber-50 border border-amber-100 text-amber-600 px-3 py-2 rounded-xl hover:bg-amber-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+            className="flex-1 sm:flex-none bg-amber-50 border border-amber-100 text-amber-600 px-3 py-2 rounded-xl hover:bg-amber-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
             title="Download Upload Guide & Class IDs"
           >
             <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -791,7 +791,7 @@ Note: Password must be changed on first login.
           </button>
           <button
             onClick={handleDownloadPrintableForm}
-            className="sm:flex-none bg-indigo-50 border border-indigo-100 text-indigo-600 px-3 py-2 rounded-xl hover:bg-indigo-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+            className="flex-1 sm:flex-none bg-indigo-50 border border-indigo-100 text-indigo-600 px-3 py-2 rounded-xl hover:bg-indigo-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
             title="Download Printable Admission Form"
           >
             <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -801,7 +801,7 @@ Note: Password must be changed on first login.
           </button>
           <button
             onClick={() => navigate('/dashboard/credential-repository')}
-            className="sm:flex-none bg-emerald-50 border border-emerald-100 text-emerald-600 px-3 py-2 rounded-xl hover:bg-emerald-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+            className="flex-1 sm:flex-none bg-emerald-50 border border-emerald-100 text-emerald-600 px-3 py-2 rounded-xl hover:bg-emerald-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
             title="View All Student Credentials"
           >
             <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -809,7 +809,7 @@ Note: Password must be changed on first login.
             </svg>
             Credential Repo
           </button>
-          <label className="sm:flex-none bg-white border border-gray-200 text-emerald-600 px-3 py-2 rounded-xl hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm cursor-pointer">
+          <label className="flex-1 sm:flex-none bg-white border border-gray-200 text-emerald-600 px-3 py-2 rounded-xl hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm cursor-pointer">
             <svg className="w-4 h-4 text-emerald-500 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
@@ -829,7 +829,7 @@ Note: Password must be changed on first login.
               }
               setShowForm(!showForm);
             }}
-            className={`sm:w-auto ${isDemo ? 'opacity-75 cursor-not-allowed bg-gray-400' : 'bg-primary'} text-white px-5 py-3 rounded-xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest`}
+            className={`w-full sm:w-auto ${isDemo ? 'opacity-75 cursor-not-allowed bg-gray-400' : 'bg-primary'} text-white px-5 py-3 rounded-xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest`}
           >
             <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {showForm ? (

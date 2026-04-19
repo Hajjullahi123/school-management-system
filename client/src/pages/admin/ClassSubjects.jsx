@@ -224,41 +224,48 @@ const ClassSubjects = () => {
 
       {/* Class Selection Dropdown - Always visible for quick switching when a class is selected */}
       {selectedClass && (
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-white p-3 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setSelectedClass(null)}
-              className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+              className="p-2 sm:p-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-primary transition-all active:scale-95 border border-gray-100"
               title="Back to Class List"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Now Managing</p>
-              <h2 className="text-lg font-bold text-gray-900">{selectedClass.name} {selectedClass.arm}</h2>
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-0.5">Now Managing</p>
+              <h2 className="text-base sm:text-xl font-black text-gray-900 truncate leading-tight">{selectedClass.name} {selectedClass.arm}</h2>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Switch Class:</label>
-            <select
-              value={selectedClass?.id || ''}
-              onChange={(e) => {
-                const classId = parseInt(e.target.value);
-                const cls = classes.find(c => c.id === classId);
-                setSelectedClass(cls);
-              }}
-              className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold text-gray-700 focus:ring-2 focus:ring-primary/20 outline-none min-w-[200px]"
-            >
-              <option value="">-- Select a Class --</option>
-              {classes.map((cls) => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name} {cls.arm || ''}
-                </option>
-              ))}
-            </select>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-100">
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Switch Class:</label>
+            <div className="relative w-full sm:w-auto">
+              <select
+                value={selectedClass?.id || ''}
+                onChange={(e) => {
+                  const classId = parseInt(e.target.value);
+                  const cls = classes.find(c => c.id === classId);
+                  setSelectedClass(cls);
+                }}
+                className="w-full sm:w-[220px] bg-white border border-gray-200 rounded-lg px-4 py-2 text-xs sm:text-sm font-bold text-gray-700 focus:ring-2 focus:ring-primary/20 outline-none appearance-none transition-all shadow-sm pr-10"
+              >
+                <option value="">-- Choose Class --</option>
+                {classes.map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.name} {cls.arm || ''}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
       )}
