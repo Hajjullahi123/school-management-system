@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../../api';
-import { useAuth } from '../../../context/AuthContext';
+import { api } from '../../api';
+import { useAuth } from '../../context/AuthContext';
 import * as XLSX from 'xlsx';
 import { Download } from 'lucide-react';
 import toast from 'react-hot-toast';
