@@ -4,6 +4,7 @@ import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useReactToPrint } from 'react-to-print';
 import { Printer } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 const BulkReportDownload = () => {
   const { user } = useAuth();
@@ -677,56 +678,53 @@ const BulkReportDownload = () => {
                     </div>
 
                     {/* SIGNATURES & VERIFICATION */}
-                    <div className="mt-2 grid grid-cols-3 gap-8 items-end print:mt-1">
-                      <div className="space-y-2">
-                        <div className="w-full h-8 bg-white border-b border-gray-300 flex items-end gap-[0.5px] opacity-20 grayscale">
-                          {[...Array(60)].map((_, i) => (
-                            <div key={i} className="bg-black" style={{ height: (i % 8 === 0 ? '100%' : '80%'), width: (i % 5 === 0 ? '2px' : '1px') }}></div>
-                          ))}
-                        </div>
-                        <p className="text-[7px] font-mono font-bold uppercase tracking-[0.2em] text-gray-400">
-                          Verification ID: {data.student?.admissionNumber?.toString().replace('/', '-')}-{data.term?.id?.toString().slice(-4)}
-                        </p>
-                      </div>
-
-                      <div className="text-center flex flex-col justify-end h-full">
-                        <div className="h-[45px] w-full flex items-end justify-center mb-1 overflow-hidden">
+                    <div className="mt-1 grid grid-cols-2 gap-8 items-end p-1">
+                      <div className="space-y-1 text-center">
+                        <div className="border-b-2 border-black py-0.5 min-h-[20px] flex items-center justify-center">
                           {data.student?.formMasterSignatureUrl ? (
-                            <img src={data.student.formMasterSignatureUrl.startsWith('data:') || data.student.formMasterSignatureUrl.startsWith('http') ? data.student.formMasterSignatureUrl : `${API_BASE_URL}${data.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                            <img src={data.student.formMasterSignatureUrl.startsWith('data:') || data.student.formMasterSignatureUrl.startsWith('http') ? data.student.formMasterSignatureUrl : `${API_BASE_URL}${data.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-[35px] w-auto mix-blend-multiply" />
                           ) : (
-                            <div className="flex justify-center items-end opacity-20 pointer-events-none mb-1">
-                              <svg width="50" height="50" viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
-                                <text x="50" y="45" textAnchor="middle" fontSize="8" fontWeight="bold">OFFICIAL</text>
-                                <text x="50" y="55" textAnchor="middle" fontSize="10" fontWeight="black">SEAL</text>
-                              </svg>
-                            </div>
+                            <span className="font-signature italic text-lg opacity-30">{data.student?.formMaster || 'Form Master'}</span>
                           )}
                         </div>
+                        <span className="text-[8px] font-black block uppercase text-gray-600 tracking-tight">CLASS TEACHER'S SIGNATURE</span>
+                      </div>
+                      <div className="space-y-1 text-center">
+                        <div className="border-b-2 border-black py-0.5 min-h-[20px] flex items-center justify-center">
+                          {data.term?.principalSignatureUrl ? (
+                            <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-[40px] w-auto mix-blend-multiply" />
+                          ) : (
+                            <span className="text-[8px] text-gray-300 italic opacity-50 underline decoration-dotted">FOR OFFICIAL USE - PRINCIPAL</span>
+                          )}
+                        </div>
+                        <span className="text-[8px] font-black block uppercase text-gray-600 tracking-tight">PRINCIPAL'S SIGNATURE</span>
+                      </div>
+                    </div>
 
-                        <div className="border-b-2 border-black w-full mb-1 opacity-80"></div>
-                        <p className="text-[10px] font-black uppercase">Teacher's Signature</p>
-                        <p className="text-[8px] text-gray-400 uppercase mt-0.5">{data.student?.formMasterSignatureUrl ? 'Digitally Signed' : 'Automated Seal'}</p>
+                    {/* DOCUMENT VERIFICATION FOOTER */}
+                    <div className="mt-auto border-t border-gray-200 pt-2 flex justify-between items-center bg-transparent">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-white p-1 rounded-lg shadow-sm border border-gray-100">
+                          <QRCodeSVG 
+                            value={`${window.location.origin}/verify/term/${data.student?.id}/${selectedTerm}`}
+                            size={45}
+                            level="H"
+                          />
+                        </div>
+                        <div className="space-y-0.5">
+                          <div className="text-[8px] font-black text-slate-900 flex items-center gap-1 uppercase tracking-tighter">
+                            <svg className="w-2.5 h-2.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M2.166 4.9L10 1.55l7.834 3.35a1 1 0 01.583.912v5.188a10 10 0 01-5.188 8.163l-3.229 1.737a1 1 0 01-.912 0l-3.229-1.737A10 10 0 011.583 11V5.812a1 1 0 01.583-.912z" clipRule="evenodd" />
+                            </svg>
+                            DIGITALLY VERIFIED REPORT
+                          </div>
+                          <div className="text-[7px] font-bold text-gray-400 tracking-tight uppercase">Authentic Educational Credential</div>
+                        </div>
                       </div>
 
-                      <div className="text-center flex flex-col justify-end h-full">
-                        <div className="h-[45px] w-full flex items-end justify-center mb-1 overflow-hidden">
-                          {data.term?.principalSignatureUrl ? (
-                            <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="max-h-full max-w-full object-contain mix-blend-multiply" />
-                          ) : (
-                            <div className="flex justify-center items-end opacity-30 pointer-events-none mb-1">
-                              <svg width="70" height="70" viewBox="0 0 100 100" style={{ color: schoolSettings?.primaryColor }}>
-                                <path d="M20 50 Q 50 10, 80 50 T 20 80" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.5" />
-                                <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
-                                <text x="50" y="52" textAnchor="middle" fontSize="6" fontWeight="bold" transform="rotate(-15 50 50)">CERTIFIED OFFICIAL</text>
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="border-b-2 border-emerald-800 w-full mb-1" style={{ borderColor: schoolSettings?.primaryColor }}></div>
-                        <p className="text-[10px] font-black uppercase text-emerald-800" style={{ color: schoolSettings?.primaryColor }}>Principal's Signature</p>
-                        <p className="text-[8px] text-gray-400 uppercase mt-0.5">{data.term?.principalSignatureUrl ? 'Digitally Signed' : 'Automated Seal'}</p>
+                      <div className="text-right">
+                        <div className="text-[8px] font-black text-slate-900 uppercase tracking-tighter">Academic Status</div>
+                        <div className="text-[7px] font-bold text-gray-400 uppercase">TERM: {data.term?.name?.toUpperCase()} • GEN: {new Date().toLocaleDateString('en-GB')}</div>
                       </div>
                     </div>
                   </div>
