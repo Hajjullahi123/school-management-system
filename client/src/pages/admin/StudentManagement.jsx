@@ -770,7 +770,7 @@ Note: Password must be changed on first login.
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <button
             onClick={handleDownloadTemplate}
-            className="flex-1 sm:flex-none bg-white border border-gray-200 text-gray-600 px-3 py-2 rounded-xl hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+            className="sm:flex-none bg-white border border-gray-200 text-gray-600 px-3 py-2 rounded-xl hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
           >
             <svg className="w-4 h-4 text-gray-400 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -779,7 +779,7 @@ Note: Password must be changed on first login.
           </button>
           <button
             onClick={handleDownloadGuidancePDF}
-            className="flex-1 sm:flex-none bg-amber-50 border border-amber-100 text-amber-600 px-3 py-2 rounded-xl hover:bg-amber-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+            className="sm:flex-none bg-amber-50 border border-amber-100 text-amber-600 px-3 py-2 rounded-xl hover:bg-amber-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
             title="Download Upload Guide & Class IDs"
           >
             <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -789,7 +789,7 @@ Note: Password must be changed on first login.
           </button>
           <button
             onClick={handleDownloadPrintableForm}
-            className="flex-1 sm:flex-none bg-indigo-50 border border-indigo-100 text-indigo-600 px-3 py-2 rounded-xl hover:bg-indigo-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+            className="sm:flex-none bg-indigo-50 border border-indigo-100 text-indigo-600 px-3 py-2 rounded-xl hover:bg-indigo-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
             title="Download Printable Admission Form"
           >
             <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -797,7 +797,7 @@ Note: Password must be changed on first login.
             </svg>
             Download Form
           </button>
-          <label className="flex-1 sm:flex-none bg-white border border-gray-200 text-emerald-600 px-3 py-2 rounded-xl hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm cursor-pointer">
+          <label className="sm:flex-none bg-white border border-gray-200 text-emerald-600 px-3 py-2 rounded-xl hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm cursor-pointer">
             <svg className="w-4 h-4 text-emerald-500 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
@@ -817,7 +817,7 @@ Note: Password must be changed on first login.
               }
               setShowForm(!showForm);
             }}
-            className={`w-full sm:w-auto ${isDemo ? 'opacity-75 cursor-not-allowed bg-gray-400' : 'bg-primary'} text-white px-5 py-3 rounded-xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest`}
+            className={`sm:w-auto ${isDemo ? 'opacity-75 cursor-not-allowed bg-gray-400' : 'bg-primary'} text-white px-5 py-3 rounded-xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest`}
           >
             <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {showForm ? (
@@ -832,22 +832,29 @@ Note: Password must be changed on first login.
       </div>
       
       {/* Action Guidance */}
-      <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 mb-2">
-        <div className="flex gap-4 items-start">
-          <div className="bg-emerald-100 p-2 rounded-xl">
-            <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-6 mb-2 w-full">
+        <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+          <div className="bg-emerald-100 p-3 rounded-2xl flex-shrink-0">
+            <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <div className="space-y-1">
-            <h3 className="text-sm font-black text-emerald-900 uppercase tracking-tight">Onboarding Students</h3>
-            <p className="text-xs text-emerald-800 leading-relaxed font-medium">
-              You can add students in two ways: 
-              <br />
-              <span className="font-bold underline">1. Bulk Upload (Recommended):</span> Download the <span className="font-bold italic">Excel Template</span>, fill it with your student records using the numeric IDs found in the <span className="font-bold italic text-amber-700">Download Guide</span>, and use the <span className="font-bold italic">Import Students</span> button to upload.
-              <br />
-              <span className="font-bold underline">2. Manual Entry:</span> Click the <span className="font-bold italic text-primary">+ Add Student</span> button to register a single student manually.
-            </p>
+          <div className="space-y-2 flex-1 text-center sm:text-left">
+            <h3 className="text-base font-black text-emerald-900 uppercase tracking-widest">Student Onboarding Instructions</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              <div className="bg-white/50 p-4 rounded-xl border border-emerald-100/50">
+                <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase mb-3">Option 1: Bulk Import</span>
+                <p className="text-xs text-emerald-800 leading-relaxed font-medium">
+                  Download the <span className="font-bold italic">Excel Template</span>, fill it with student records using the numeric IDs from the <span className="font-bold italic text-amber-700 text-[10px]">Download Guide</span>, and click <span className="font-bold italic">Import Students</span> to finish.
+                </p>
+              </div>
+              <div className="bg-white/50 p-4 rounded-xl border border-emerald-100/50">
+                <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase mb-3">Option 2: Manual Registration</span>
+                <p className="text-xs text-emerald-800 leading-relaxed font-medium">
+                  Click the <span className="font-bold italic text-primary">+ Add Student</span> button above to register students one by one through the digital enrollment form.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
