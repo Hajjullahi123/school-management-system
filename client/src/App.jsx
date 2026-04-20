@@ -97,7 +97,6 @@ const ParentQuranView = lazyRetry(() => import('./pages/parent/ParentQuranView')
 const Billing = lazyRetry(() => import('./pages/admin/Billing'));
 const ExamConfig = lazyRetry(() => import('./pages/admin/ExamConfig'));
 const DemoRedirect = lazyRetry(() => import('./pages/DemoRedirect'));
-const PsychomotorDomains = lazyRetry(() => import('./pages/admin/PsychomotorDomains'));
 const ExamRepository = lazyRetry(() => import('./pages/admin/ExamRepository'));
 const LessonWorkspace = lazyRetry(() => import('./pages/teacher/LessonWorkspace'));
 const CurriculumManagement = lazyRetry(() => import('./pages/admin/CurriculumManagement'));
@@ -492,11 +491,6 @@ function App() {
               <Route path="class-subjects" element={
                 <ProtectedRoute roles={['admin', 'principal']}>
                   <ClassSubjects />
-                </ProtectedRoute>
-              } />
-              <Route path="psychomotor-domains" element={
-                <ProtectedRoute roles={['admin', 'principal']}>
-                  <PsychomotorDomains />
                 </ProtectedRoute>
               } />
 
