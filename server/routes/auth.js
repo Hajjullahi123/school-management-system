@@ -127,12 +127,27 @@ router.post('/login', async (req, res) => {
       });
       if (!school) return res.status(404).json({ error: 'Invalid school domain' });
 
-      // Fire all 3 lookups in parallel — username, admission number, staff ID
-      const userInclude = {
-        school: true,
-        teacher: true,
-        student: { include: { classModel: true } },
-        classesAsTeacher: true
+      // Minimal payload selection for faster queries
+      const userSelect = {
+        id: true,
+        username: true,
+        passwordHash: true,
+        role: true,
+        firstName: true,
+        lastName: true,
+        schoolId: true,
+        signatureUrl: true,
+        mustChangePassword: true,
+        photoUrl: true,
+        isActive: true,
+        school: {
+          select: {
+            name: true,
+            slug: true,
+            logoUrl: true,
+            isActivated: true
+          }
+        }
       };
 
       const [userByUsername, studentByAdmission, teacherByStaffId] = await Promise.all([
@@ -142,7 +157,7 @@ router.post('/login', async (req, res) => {
             username: { equals: searchId },
             schoolId: school.id
           },
-          include: userInclude
+          select: userSelect
         }),
         // 2. Lookup by admission number (students)
         prisma.student.findFirst({
@@ -150,7 +165,7 @@ router.post('/login', async (req, res) => {
             admissionNumber: { equals: searchId },
             schoolId: school.id
           },
-          select: { user: { include: userInclude } }
+          select: { user: { select: userSelect } }
         }),
         // 3. Lookup by staff ID (teachers)
         prisma.teacher.findFirst({
@@ -158,7 +173,7 @@ router.post('/login', async (req, res) => {
             staffId: { equals: searchId },
             schoolId: school.id
           },
-          select: { user: { include: userInclude } }
+          select: { user: { select: userSelect } }
         })
       ]);
 
