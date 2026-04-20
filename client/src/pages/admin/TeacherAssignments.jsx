@@ -38,11 +38,6 @@ const TeacherAssignments = () => {
     }
   };
 
-  useEffect(() => {
-    if (formData.selectedClassId) {
-      fetchClassSubjectsForClass(formData.selectedClassId);
-    }
-  }, [formData.selectedClassId]);
 
   const fetchAssignments = async () => {
     try {
@@ -89,15 +84,6 @@ const TeacherAssignments = () => {
     }
   };
 
-  const fetchClassSubjectsForClass = async (classId) => {
-    try {
-      const response = await api.get(`/api/class-subjects/class/${classId}`);
-      const data = await response.json();
-      setClassSubjects(data);
-    } catch (error) {
-      console.error('Error fetching class subjects:', error);
-    }
-  };
 
   const fetchUnassignedCount = async (classId) => {
     try {
