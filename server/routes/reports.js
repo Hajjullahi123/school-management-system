@@ -786,9 +786,13 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     });
     const totalSubjectsCount = classSubjects.length || 1;
 
-    // Fetch ALL results for the class+term at once (efficient)
+    // Fetch ALL results for these students at once (efficient and consistent)
     const allResults = await prisma.result.findMany({
-      where: { classId: parseInt(classId), termId: parseInt(termId), schoolId: req.schoolId },
+      where: { 
+        studentId: { in: students.map(s => s.id) }, 
+        termId: parseInt(termId), 
+        schoolId: req.schoolId 
+      },
       include: { subject: true }
     });
 
@@ -915,7 +919,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     if (termNumber === 3) {
       allPreviousResults = await prisma.result.findMany({
         where: {
-          classId: parseInt(classId),
+          studentId: { in: studentIds },
           academicSessionId: term.academicSessionId,
           termId: { in: allTermsInSession.slice(0, 2).map(t => t.id) },
           schoolId: req.schoolId
@@ -1079,6 +1083,11 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         termAverage,
         termPosition,
         totalStudents,
+        passFailSummary: {
+          totalPassed: studentResults.filter(r => r.totalScore >= schoolSettings.passThreshold).length,
+          totalFailed: studentResults.filter(r => r.totalScore < schoolSettings.passThreshold).length,
+          show: schoolSettings.showPassFailStats
+        },
         overallGrade: getGrade(termAverage, schoolSettings.gradingSystem),
         overallRemark: getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
         formMasterRemark: reportExtras?.formMasterRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),

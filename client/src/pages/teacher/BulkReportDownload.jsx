@@ -364,12 +364,12 @@ const BulkReportDownload = () => {
             {reports.map((data, idx) => {
               if (!data || !data.student) return null;
 
-              const reportColor = schoolSettings?.reportColorScheme || schoolSettings?.primaryColor;
-              const reportFont = schoolSettings?.reportFontFamily || 'serif';
-              const showPosition = schoolSettings?.showPositionOnReport !== false;
-              const showFees = schoolSettings?.showFeesOnReport !== false;
-              const showAttendance = schoolSettings?.showAttendanceOnReport !== false;
-              const layout = schoolSettings?.reportLayout || 'classic';
+              const reportColor = data.reportSettings?.reportColorScheme || schoolSettings?.reportColorScheme || schoolSettings?.primaryColor;
+              const reportFont = data.reportSettings?.reportFontFamily || schoolSettings?.reportFontFamily || 'serif';
+              const showPosition = data.reportSettings?.showPositionOnReport !== undefined ? data.reportSettings.showPositionOnReport : (schoolSettings?.showPositionOnReport !== false);
+              const showFees = data.reportSettings?.showFeesOnReport !== undefined ? data.reportSettings.showFeesOnReport : (schoolSettings?.showFeesOnReport !== false);
+              const showAttendance = data.reportSettings?.showAttendanceOnReport !== undefined ? data.reportSettings.showAttendanceOnReport : (schoolSettings?.showAttendanceOnReport !== false);
+              const layout = data.reportSettings?.reportLayout || schoolSettings?.reportLayout || 'classic';
               const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
               return (
@@ -428,10 +428,10 @@ const BulkReportDownload = () => {
                     <table className="w-full border-2 border-black border-collapse text-sm font-bold uppercase">
                       <tbody>
                         <tr className="border-b border-black">
-                          <td className="border-r border-black p-0.5 w-1/6">NAME:</td>
-                          <td className="border-r border-black p-0.5">{data.student?.name}</td>
-                          <td className="border-r border-black p-0.5 w-1/6">GENDER:</td>
-                          <td className="p-0.5">{data.student?.gender}</td>
+                          <td className="border-r border-black p-0.5 w-[12%] text-[9px]">NAME:</td>
+                          <td className="border-r border-black p-0.5 w-[43%] font-black text-black">{data.student?.name}</td>
+                          <td className="border-r border-black p-0.5 w-[15%] text-[9px]">GENDER:</td>
+                          <td className="p-0.5 w-[30%]">{data.student?.gender}</td>
                         </tr>
                         <tr className="border-b border-black">
                           <td className="border-r border-black p-0.5">CLASS:</td>
@@ -451,12 +451,20 @@ const BulkReportDownload = () => {
                           <td className="border-r border-black p-0.5">CLUB:</td>
                           <td className="p-0.5">{data.student?.clubs !== 'None Assigned' ? data.student?.clubs : 'N/A'}</td>
                         </tr>
-                        <tr>
-                          <td className="border-r border-black p-0.5">ATTENDANCE:</td>
-                          <td className="border-r border-black p-0.5">{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
-                          <td className="border-r border-black p-0.5">TERM:</td>
-                          <td className="p-0.5">{data.term?.name}</td>
-                        </tr>
+                        {showAttendance && (
+                          <tr>
+                            <td className="border-r border-black p-1">ATTENDANCE:</td>
+                            <td className="border-r border-black p-1 font-black text-black">{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
+                            <td className="border-r border-black p-1">TERM:</td>
+                            <td className="p-1">{data.term?.name}</td>
+                          </tr>
+                        )}
+                        {!showAttendance && (
+                          <tr>
+                            <td className="border-r border-black p-1">TERM:</td>
+                            <td className="p-1" colSpan="3">{data.term?.name}</td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
 
@@ -484,8 +492,8 @@ const BulkReportDownload = () => {
                                   <th className="border border-black p-0.5 text-center w-8 text-[7px] font-bold">CUM</th>
                                 </>
                               )}
-                              <th className="border border-black p-0.5 text-center w-6">GRD</th>
-                              <th className="border border-black p-0.5 text-center w-6 text-[7px]">POS</th>
+                              <th className="border border-black p-0.5 text-center w-6 text-[7px]">GRD</th>
+                              {showPosition && <th className="border border-black p-0.5 text-center w-6 text-[7px]">POS</th>}
                               <th className="border border-black p-0.5 text-left px-1 text-[8px]">REMARKS</th>
                             </tr>
                           </thead>
@@ -507,7 +515,7 @@ const BulkReportDownload = () => {
                                   </>
                                 )}
                                 <td className="border border-black text-center text-[10px] font-black">{sub.grade}</td>
-                                <td className="border border-black text-center text-[10px]">{sub.position}</td>
+                                {showPosition && <td className="border border-black text-center text-[10px]">{sub.position}</td>}
                                 <td className="border border-black px-1 text-[8px] leading-tight italic font-medium">{sub.remark}</td>
                               </tr>
                             ))}
@@ -551,8 +559,8 @@ const BulkReportDownload = () => {
                     </div>
 
                     {/* SUMMARY & GRADING KEY */}
-                    <div className="grid grid-cols-[68%_31%] gap-2 mt-1">
-                      <div className="grid grid-cols-2 gap-0 border-2 border-black rounded-lg overflow-hidden divide-x-2 divide-black">
+                    <div className="grid grid-cols-[62%_37%] gap-2 mt-1">
+                      <div className="grid grid-cols-[60%_40%] gap-0 border-2 border-black rounded-lg overflow-hidden divide-x-2 divide-black">
                         {/* DYNAMIC GRADE INFO */}
                         <div className="p-2 text-[9px] bg-gray-50/50 leading-tight flex flex-col justify-center">
                           <p className="font-black border-b border-black mb-1 uppercase text-gray-500 text-[8px]">Grading Legend</p>
@@ -575,15 +583,32 @@ const BulkReportDownload = () => {
                         <div className="p-0 flex flex-col">
                           <div className="bg-emerald-800 text-white text-[11px] font-bold text-center py-0.5 uppercase tracking-tighter" style={{ backgroundColor: reportColor }}>Status Summary</div>
                           <div className="bg-white flex-1 grid grid-cols-2 divide-x divide-black/10">
-                            <div className="flex flex-col items-center justify-center p-1">
-                              <span className="text-[7px] text-gray-400 uppercase font-black">Position</span>
-                              <span className="text-sm font-black italic">{data.termPosition || '-'} / {data.totalStudents || '-'}</span>
-                            </div>
+                            {showPosition && (
+                              <div className="flex flex-col items-center justify-center p-1">
+                                <span className="text-[7px] text-gray-400 uppercase font-black">Position</span>
+                                <span className="text-sm font-black italic">{data.termPosition || '-'} / {data.totalStudents || '-'}</span>
+                              </div>
+                            )}
                             <div className="flex flex-col items-center justify-center p-1">
                               <span className="text-[8px] text-gray-400 uppercase font-black">Average</span>
                               <span className="text-sm font-black italic">{data.termAverage?.toFixed(1)}%</span>
                             </div>
                           </div>
+
+                          {/* PASS/FAIL SUMMARY SECTION */}
+                          {data.passFailSummary?.show && (
+                            <div className="border-t border-black grid grid-cols-2 divide-x divide-black/10 bg-white items-center py-0.5">
+                              <div className="flex items-center justify-between px-2 h-full">
+                                <span className="text-[7px] font-black text-gray-400 uppercase">Passed</span>
+                                <span className="text-[10px] font-black text-emerald-700">{data.passFailSummary.totalPassed}</span>
+                              </div>
+                              <div className="flex items-center justify-between px-2 h-full">
+                                <span className="text-[7px] font-black text-gray-400 uppercase">Failed</span>
+                                <span className="text-[10px] font-black text-red-600">{data.passFailSummary.totalFailed}</span>
+                              </div>
+                            </div>
+                          )}
+
                           <div className="border-t border-black p-1 flex items-center justify-between bg-emerald-50" style={{ backgroundColor: `${reportColor}10` }}>
                             <span className="text-[10px] font-black uppercase text-gray-500">Overall Grade:</span>
                             <span className="text-lg font-black text-emerald-800" style={{ color: reportColor }}>{data.overallGrade}</span>
@@ -641,11 +666,11 @@ const BulkReportDownload = () => {
                     )}
 
                     {/* REMARKS SECTION */}
-                    <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-1">
+                    <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-2">
                       <div className="grid grid-cols-2 divide-x-2 divide-black">
                         <div className="p-2 space-y-1">
                           <p className="text-[10px] font-black uppercase text-gray-500">Form Master's Remark</p>
-                          <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
+                          <p className="text-xs font-medium italic leading-none min-h-[25px] flex items-center">
                             "{data.formMasterRemark || 'No specific remark recorded.'}"
                           </p>
                           <div className="pt-1 border-t border-black/10 flex justify-between items-center">
@@ -660,7 +685,7 @@ const BulkReportDownload = () => {
                         </div>
                         <div className="p-2 space-y-1">
                           <p className="text-[10px] font-black uppercase text-gray-500">Principal's Remark</p>
-                          <p className="text-xs font-medium italic leading-snug min-h-[40px] flex items-center">
+                          <p className="text-xs font-medium italic leading-none min-h-[25px] flex items-center">
                             "{data.principalRemark || 'Satisfactory result. Keep striving for excellence.'}"
                           </p>
                           <div className="pt-1 border-t border-black/10 flex justify-between items-center text-[9px] font-bold">
