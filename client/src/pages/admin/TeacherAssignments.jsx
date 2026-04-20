@@ -319,24 +319,6 @@ const TeacherAssignments = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Teacher <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.teacherId}
-                  onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
-                  className="w-full border rounded-md px-3 py-2"
-                  required
-                >
-                  <option value="">Select Teacher</option>
-                  {teachers.map((teacher) => (
-                    <option key={teacher.id} value={teacher.id}>
-                      {teacher.firstName} {teacher.lastName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Class <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -376,6 +358,24 @@ const TeacherAssignments = () => {
                     No unassigned subjects available for this class
                   </p>
                 )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Teacher <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.teacherId}
+                  onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
+                  className="w-full border rounded-md px-3 py-2"
+                  required
+                >
+                  <option value="">Select Teacher</option>
+                  {teachers.map((teacher) => (
+                    <option key={teacher.id} value={teacher.id}>
+                      {teacher.firstName} {teacher.lastName}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="flex gap-2">
