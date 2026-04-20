@@ -1284,7 +1284,7 @@ const QuranReportCard = ({ student, records, type, schoolSettings, teacher }) =>
   );
 };
 
-export default QuranTracker;
+
 
 <style>{`
   .report-card-scaler {

@@ -517,7 +517,7 @@ const QuranReportCard = ({ student, records, type, schoolSettings }) => {
   );
 };
 
-export default QuranProgress;
+
 
 <style>{`
   .report-card-scaler {
