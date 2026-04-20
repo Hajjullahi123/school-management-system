@@ -6,7 +6,10 @@ const TeacherAssignments = () => {
   const [teachers, setTeachers] = useState([]);
   const [classes, setClasses] = useState([]);
   const [classSubjects, setClassSubjects] = useState([]);
+  const [terms, setTerms] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [showRollover, setShowRollover] = useState(false);
+  const [selectedRolloverTermId, setSelectedRolloverTermId] = useState('');
 
   const [formData, setFormData] = useState({
     teacherId: '',
@@ -22,7 +25,18 @@ const TeacherAssignments = () => {
     fetchTeachers();
     fetchClasses();
     fetchAllClassSubjects();
+    fetchTerms();
   }, []);
+
+  const fetchTerms = async () => {
+    try {
+      const response = await api.get('/api/terms');
+      const data = await response.json();
+      setTerms(data);
+    } catch (error) {
+      console.error('Error fetching terms:', error);
+    }
+  };
 
   useEffect(() => {
     if (formData.selectedClassId) {
@@ -159,6 +173,25 @@ const TeacherAssignments = () => {
     }
   };
 
+  const handleRollover = async () => {
+    if (!selectedRolloverTermId) return alert('Please select a source term to duplicate from.');
+    if (!confirm('Are you sure you want to duplicate all assignments from this term into the CURRENT active term?')) return;
+
+    try {
+      const response = await api.post('/api/teacher-assignments/rollover', { sourceTermId: selectedRolloverTermId });
+      const result = await response.json();
+      if (response.ok) {
+        alert(result.message);
+        setShowRollover(false);
+        fetchAssignments();
+      } else {
+        alert(result.error);
+      }
+    } catch (error) {
+       alert('Failed to execute rollover process');
+    }
+  };
+
   // Group assignments based on selection
   const groupedAssignments = assignments.reduce((acc, assignment) => {
     if (groupBy === 'teacher') {
@@ -223,8 +256,15 @@ const TeacherAssignments = () => {
             </button>
           </div>
           <button
+            onClick={() => setShowRollover(!showRollover)}
+            className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-md hover:bg-indigo-100 font-bold border border-indigo-200"
+          >
+            Clone from Previous Term
+          </button>
+          <button
             onClick={() => {
               setShowForm(!showForm);
+              setShowRollover(false);
               if (showForm) {
                 setEditingId(null);
                 setFormData({ teacherId: '', classSubjectId: '', selectedClassId: '' });
@@ -236,6 +276,40 @@ const TeacherAssignments = () => {
           </button>
         </div>
       </div>
+
+      {/* Rollover Utility Box */}
+      {showRollover && (
+        <div className="bg-white p-6 rounded-lg shadow border border-indigo-100">
+           <h3 className="text-lg font-bold text-indigo-900 mb-2">Clone Previous Term Assignments</h3>
+           <p className="text-sm text-gray-500 mb-4">Select an older term to duplicate its teacher assignments into the current active term. This will not duplicate assignments that already exist in the active term.</p>
+           <div className="flex flex-col md:flex-row gap-4">
+             <select 
+               value={selectedRolloverTermId}
+               onChange={(e) => setSelectedRolloverTermId(e.target.value)}
+               className="border border-gray-300 rounded-md px-4 py-2 min-w-[300px]"
+             >
+               <option value="">Select a Source Term...</option>
+               {terms.filter(t => !t.isCurrent).map(term => (
+                 <option key={term.id} value={term.id}>
+                   {term.name} ({term.academicSession?.name || 'Session'})
+                 </option>
+               ))}
+             </select>
+             <button 
+               onClick={handleRollover}
+               className="bg-indigo-600 text-white font-bold px-6 py-2 rounded-md hover:bg-indigo-700"
+             >
+               Clone Assignments
+             </button>
+             <button 
+               onClick={() => setShowRollover(false)}
+               className="bg-gray-100 text-gray-600 font-bold px-6 py-2 rounded-md hover:bg-gray-200"
+             >
+               Cancel
+             </button>
+           </div>
+        </div>
+      )}
 
       {/* Assignment Form */}
       {showForm && (

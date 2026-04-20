@@ -38,18 +38,18 @@ model GlobalSettings {
   apkDownloadUrl   String?
 
   // AI Configuration (Platform Level Fallback)
-  geminiApiKey     String?
-  groqApiKey       String?
+  geminiApiKey String?
+  groqApiKey   String?
 
   // WhatsApp Platform Fallback
-  whatsappProvider    String? @default("twilio")
-  whatsappPhoneNumber String?
-  twilioAccountSid    String?
-  twilioAuthToken     String?
-  metaAccessToken     String?
-  metaPhoneNumberId   String?
+  whatsappProvider      String? @default("twilio")
+  whatsappPhoneNumber   String?
+  twilioAccountSid      String?
+  twilioAuthToken       String?
+  metaAccessToken       String?
+  metaPhoneNumberId     String?
   metaBusinessAccountId String?
-  metaVerifyToken     String?
+  metaVerifyToken       String?
 
   updatedAt DateTime @updatedAt
 }
@@ -92,17 +92,17 @@ model School {
   enableSMS     Boolean @default(false)
 
   // WhatsApp Bot Configuration
-  whatsappBotEnabled  Boolean @default(false)
-  whatsappProvider    String? @default("twilio")
-  whatsappPhoneNumber String?
-  twilioAccountSid    String?
-  twilioAuthToken     String?
-  metaAccessToken     String?
-  metaPhoneNumberId   String?
+  whatsappBotEnabled    Boolean @default(false)
+  whatsappProvider      String? @default("twilio")
+  whatsappPhoneNumber   String?
+  twilioAccountSid      String?
+  twilioAuthToken       String?
+  metaAccessToken       String?
+  metaPhoneNumberId     String?
   metaBusinessAccountId String?
-  metaVerifyToken     String?
-  geminiApiKey        String?
-  groqApiKey          String?
+  metaVerifyToken       String?
+  geminiApiKey          String?
+  groqApiKey            String?
 
   // Portal Links
   facebookUrl           String?
@@ -148,25 +148,25 @@ model School {
   weekendDays   String? // No default - admin must set this during setup
 
   // Report Card Customization
-  reportFontFamily          String?  @default("serif")   // serif, sans-serif, Georgia, Times New Roman, Inter, Roboto
-  reportColorScheme         String?  @default("")         // custom hex color for report accents (empty = use primaryColor)
-  showPositionOnReport      Boolean  @default(true)       // whether subject/overall positions appear on report
-  showFeesOnReport          Boolean  @default(true)       // whether Financial Standing section appears on report
-  showAttendanceOnReport    Boolean  @default(true)       // whether Attendance section appears on report
-  showPassFailStats         Boolean  @default(true)       // whether Pass/Fail summary section appears on report
-  reportLayout              String?  @default("classic")  // classic, modern, minimal
+  reportFontFamily       String? @default("serif") // serif, sans-serif, Georgia, Times New Roman, Inter, Roboto
+  reportColorScheme      String? @default("") // custom hex color for report accents (empty = use primaryColor)
+  showPositionOnReport   Boolean @default(true) // whether subject/overall positions appear on report
+  showFeesOnReport       Boolean @default(true) // whether Financial Standing section appears on report
+  showAttendanceOnReport Boolean @default(true) // whether Attendance section appears on report
+  showPassFailStats      Boolean @default(true) // whether Pass/Fail summary section appears on report
+  reportLayout           String? @default("classic") // classic, modern, minimal
 
   // Document Customization (Certificates)
-  certFontFamily      String?  @default("serif")      // Options: serif, sans-serif, cursive
-  certBorderType      String?  @default("ornate")     // Options: ornate, modern, minimal, solid, none
-  certPrimaryColor    String?  @default("")           // Custom color for certs (empty = fallback to school primary)
-  certSecondaryColor  String?  @default("")           // Custom secondary color
+  certFontFamily     String? @default("serif") // Options: serif, sans-serif, cursive
+  certBorderType     String? @default("ornate") // Options: ornate, modern, minimal, solid, none
+  certPrimaryColor   String? @default("") // Custom color for certs (empty = fallback to school primary)
+  certSecondaryColor String? @default("") // Custom secondary color
 
   // Document Customization (Testimonials)
-  testimFontFamily      String?  @default("sans-serif")
-  testimBorderType      String?  @default("modern")
-  testimPrimaryColor    String?  @default("")
-  testimSecondaryColor  String?  @default("")
+  testimFontFamily     String? @default("sans-serif")
+  testimBorderType     String? @default("modern")
+  testimPrimaryColor   String? @default("")
+  testimSecondaryColor String? @default("")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -422,6 +422,7 @@ model AcademicSession {
   homeworks         Homework[]
   learningResources LearningResource[]
   miscellaneousFees MiscellaneousFee[]
+  TeacherAssignment TeacherAssignment[]
 
   @@unique([schoolId, name])
 }
@@ -452,6 +453,7 @@ model Term {
   academicSession    AcademicSession     @relation(fields: [academicSessionId], references: [id])
   interventions      Intervention[]
   resultPublications ResultPublication[]
+  TeacherAssignment  TeacherAssignment[]
 
   @@unique([schoolId, academicSessionId, name])
 }
@@ -556,17 +558,21 @@ model ClassSubject {
 }
 
 model TeacherAssignment {
-  id             Int      @id @default(autoincrement())
-  schoolId       Int
-  teacherId      Int
-  classSubjectId Int
-  createdAt      DateTime @default(now())
+  id                Int      @id @default(autoincrement())
+  schoolId          Int
+  teacherId         Int
+  classSubjectId    Int
+  termId            Int?
+  academicSessionId Int?
+  createdAt         DateTime @default(now())
 
-  school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  teacher      User         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  classSubject ClassSubject @relation(fields: [classSubjectId], references: [id], onDelete: Cascade)
+  school          School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacher         User             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  classSubject    ClassSubject     @relation(fields: [classSubjectId], references: [id], onDelete: Cascade)
+  term            Term?            @relation(fields: [termId], references: [id])
+  academicSession AcademicSession? @relation(fields: [academicSessionId], references: [id])
 
-  @@unique([schoolId, teacherId, classSubjectId])
+  @@unique([schoolId, teacherId, classSubjectId, termId])
 }
 
 model Result {
@@ -1420,10 +1426,11 @@ model Curriculum {
 
   @@unique([schoolId, subjectId, classId])
 }
+
 model Counter {
   id        Int      @id @default(autoincrement())
   schoolId  Int
-  entity    String   // "STUDENT", "STAFF", "ALUMNI", "INVOICE"
+  entity    String // "STUDENT", "STAFF", "ALUMNI", "INVOICE"
   lastValue Int      @default(0)
   updatedAt DateTime @updatedAt
 

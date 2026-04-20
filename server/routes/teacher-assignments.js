@@ -7,8 +7,13 @@ const { logAction } = require('../utils/audit');
 // Get all teacher assignments with class and subject details
 router.get('/', authenticate, async (req, res) => {
   try {
+    const activeTerm = await prisma.term.findFirst({
+      where: { schoolId: req.schoolId, isCurrent: true }
+    });
+    const filterData = activeTerm ? { termId: activeTerm.id } : {};
+
     const assignments = await prisma.teacherAssignment.findMany({
-      where: { schoolId: req.schoolId },
+      where: { schoolId: req.schoolId, ...filterData },
       include: {
         teacher: {
           select: {
@@ -63,10 +68,16 @@ router.get('/', authenticate, async (req, res) => {
 // Get assignments for a specific teacher
 router.get('/teacher/:teacherId', authenticate, async (req, res) => {
   try {
+    const activeTerm = await prisma.term.findFirst({
+      where: { schoolId: req.schoolId, isCurrent: true }
+    });
+    const filterData = activeTerm ? { termId: activeTerm.id } : {};
+
     const assignments = await prisma.teacherAssignment.findMany({
       where: {
         teacherId: parseInt(req.params.teacherId),
-        schoolId: req.schoolId
+        schoolId: req.schoolId,
+        ...filterData
       },
       include: {
         classSubject: {
@@ -119,12 +130,19 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
       return res.status(400).json({ error: 'Teacher and class subject are required' });
     }
 
-    // Check if assignment already exists
+    const activeTerm = await prisma.term.findFirst({
+      where: { schoolId: req.schoolId, isCurrent: true }
+    });
+    const termId = activeTerm?.id || null;
+    const academicSessionId = activeTerm?.academicSessionId || null;
+
+    // Check if assignment already exists for this term
     const existing = await prisma.teacherAssignment.findFirst({
       where: {
         teacherId: parseInt(teacherId),
         classSubjectId: parseInt(classSubjectId),
-        schoolId: req.schoolId
+        schoolId: req.schoolId,
+        termId: termId
       }
     });
 
@@ -153,7 +171,9 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
       data: {
         teacherId: parseInt(teacherId),
         classSubjectId: parseInt(classSubjectId),
-        schoolId: req.schoolId
+        schoolId: req.schoolId,
+        termId: termId,
+        academicSessionId: academicSessionId
       },
       include: {
         teacher: {
@@ -406,6 +426,77 @@ router.post('/batch', authenticate, authorize(['admin', 'principal']), async (re
     });
   } catch (error) {
     console.error('Error batch creating assignments:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Rollover assignments from a previous term
+router.post('/rollover', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const { sourceTermId } = req.body;
+    if (!sourceTermId) {
+      return res.status(400).json({ error: 'Source term ID is required' });
+    }
+
+    const activeTerm = await prisma.term.findFirst({
+      where: { schoolId: req.schoolId, isCurrent: true }
+    });
+
+    if (!activeTerm) {
+      return res.status(400).json({ error: 'No currently active term found in the system' });
+    }
+
+    if (activeTerm.id === parseInt(sourceTermId)) {
+      return res.status(400).json({ error: 'Source term cannot be the same as the active term' });
+    }
+
+    const oldAssignments = await prisma.teacherAssignment.findMany({
+      where: {
+        schoolId: req.schoolId,
+        termId: parseInt(sourceTermId)
+      }
+    });
+
+    let clonedCount = 0;
+
+    for (const old of oldAssignments) {
+      const existing = await prisma.teacherAssignment.findFirst({
+        where: {
+          teacherId: old.teacherId,
+          classSubjectId: old.classSubjectId,
+          termId: activeTerm.id,
+          schoolId: req.schoolId
+        }
+      });
+
+      if (!existing) {
+        await prisma.teacherAssignment.create({
+          data: {
+            teacherId: old.teacherId,
+            classSubjectId: old.classSubjectId,
+            schoolId: req.schoolId,
+            termId: activeTerm.id,
+            academicSessionId: activeTerm.academicSessionId
+          }
+        });
+        clonedCount++;
+      }
+    }
+
+    res.json({ message: `Successfully cloned ${clonedCount} assignments to the active term.`, clonedCount });
+    
+    // Log the action
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'ROLLOVER',
+      resource: 'TEACHER_ASSIGNMENT',
+      details: { sourceTermId: parseInt(sourceTermId), clonedCount },
+      ipAddress: req.ip
+    });
+
+  } catch (error) {
+    console.error('Error rolling over assignments:', error);
     res.status(500).json({ error: error.message });
   }
 });
