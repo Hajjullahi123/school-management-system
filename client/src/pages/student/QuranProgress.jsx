@@ -360,6 +360,7 @@ const QuranProgress = () => {
             </div>
           </div>
         </div>
+      )}
     </div>
   );
 };
