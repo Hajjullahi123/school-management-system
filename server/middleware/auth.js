@@ -56,6 +56,11 @@ const authorize = (...roles) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
+    // Superadmins always have access
+    if (req.user.role === 'superadmin') {
+      return next();
+    }
+
     if (!allowedRoles.includes(req.user.role)) {
       console.log(`Authorization failed. User ID: ${req.user.id}, Role: ${req.user.role}, Required: ${allowedRoles.join(', ')}`);
       return res.status(403).json({ error: 'Insufficient permissions' });

@@ -102,7 +102,7 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
 
 
 // 2. Register Parent (Admin/Principal only)
-router.post('/register', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.post('/register', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const { firstName, lastName, email, phone, address, studentIds } = req.body;
 
@@ -241,7 +241,7 @@ router.post('/register', authenticate, authorize(['admin', 'principal']), async 
 });
 
 // 3. Link Student to Parent (Admin/Principal)
-router.post('/link-student', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.post('/link-student', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const { parentId, studentId } = req.body;
 
@@ -299,7 +299,7 @@ router.post('/link-student', authenticate, authorize(['admin', 'principal']), as
 });
 
 // 4. Get Parent Details (Admin/Principal)
-router.get('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const enhancedParents = await prisma.parent.findMany({
       where: { schoolId: req.schoolId },
@@ -455,7 +455,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
 });
 
 // 7. Unlink Student from Parent (Admin/Principal)
-router.post('/unlink-student', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.post('/unlink-student', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const { studentId } = req.body;
 
