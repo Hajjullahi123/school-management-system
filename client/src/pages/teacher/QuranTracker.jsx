@@ -1326,3 +1326,5 @@ export default QuranTracker;
     }
   }
 `}</style>
+
+export default QuranTracker;

@@ -559,4 +559,4 @@ export default QuranProgress;
     }
   }
 `}</style>
-ault QuranProgress;
+export default QuranProgress;
