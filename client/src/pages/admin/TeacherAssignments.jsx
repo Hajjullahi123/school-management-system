@@ -504,6 +504,52 @@ const TeacherAssignments = () => {
                 <p className="text-gray-500 text-center py-4">No assignments yet</p>
               )}
             </div>
+
+            {/* Unassigned Subjects for Class View */}
+            {groupBy === 'class' && data.classId && (
+              <div className="px-4 pb-4">
+                {classSubjects
+                  .filter(cs => cs.classId === data.classId && 
+                    !assignments.some(a => a.classSubjectId === cs.id))
+                  .length > 0 && (
+                  <div className="mt-2 pt-4 border-t border-gray-100">
+                    <h4 className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-3">
+                      Pending Teacher Assignment ({
+                        classSubjects.filter(cs => cs.classId === data.classId && 
+                          !assignments.some(a => a.classSubjectId === cs.id)).length
+                      })
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {classSubjects
+                        .filter(cs => cs.classId === data.classId && 
+                          !assignments.some(a => a.classSubjectId === cs.id))
+                        .map(cs => (
+                          <div key={cs.id} className="border border-orange-100 bg-orange-50/50 rounded-md p-2.5 flex justify-between items-center group hover:border-orange-200 transition-colors">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold text-gray-800">{cs.subject.name}</span>
+                              <span className="text-[10px] text-orange-500 font-bold uppercase">No Teacher</span>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setFormData({ 
+                                  ...formData, 
+                                  selectedClassId: cs.classId.toString(), 
+                                  classSubjectId: cs.id.toString() 
+                                });
+                                setShowForm(true);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              className="bg-white text-primary border border-primary/20 p-1.5 rounded hover:bg-primary hover:text-white transition-all text-[10px] font-bold shadow-sm"
+                            >
+                              ASSIGN
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
         {Object.keys(groupedAssignments).length === 0 && (

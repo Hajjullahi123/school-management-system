@@ -32,11 +32,32 @@ async function check() {
         console.log(`Term ID ${twa.termId} (${term?.name} ${term?.academicSession?.name}): ${twa._count.id} assignments`);
     }
 
-    const availableTermsToCloneFrom = await prisma.term.findMany({
-        where: { schoolId: school.id, isCurrent: false },
-        include: { academicSession: true }
+    const classes = await prisma.class.findMany({
+        where: { schoolId: school.id },
+        include: { 
+            classSubjects: {
+                include: { subject: true }
+            },
+            _count: {
+                select: { students: true }
+            }
+        }
     });
-    console.log('Available Terms to clone FROM:', availableTermsToCloneFrom.map(t => `${t.name} ${t.academicSession.name} (ID: ${t.id})`));
+
+    console.log('\nClasses and Subjects:');
+    for (const cls of classes) {
+        const assignmentsCount = await prisma.teacherAssignment.count({
+            where: {
+                schoolId: school.id,
+                classSubject: { classId: cls.id },
+                termId: activeTerm?.id || null
+            }
+        });
+        console.log(`${cls.name} ${cls.arm || ''}: ${cls.classSubjects.length} subjects total, ${assignmentsCount} assigned in current term. (${cls._count.students} students)`);
+        if (cls.classSubjects.length > assignmentsCount) {
+            console.log(`  -> MISSING: ${cls.classSubjects.length - assignmentsCount} assignments`);
+        }
+    }
   }
 }
 
