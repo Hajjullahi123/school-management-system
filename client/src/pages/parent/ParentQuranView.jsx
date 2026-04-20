@@ -582,21 +582,63 @@ const QuranReportCard = ({ student, records, type, schoolSettings }) => {
 export default ParentQuranView;
 
 <style>{`
+  .report-card-scaler {
+    width: 210mm;
+    transform-origin: top center;
+    margin: 0 auto;
+    transition: transform 0.3s ease-out;
+  }
+
+  @media (max-width: 1024px) {
+    .report-card-scaler {
+      transform: scale(0.85);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .report-card-scaler {
+      transform: scale(0.7);
+    }
+  }
+
   @media (max-width: 640px) {
     .report-card-scaler {
-       width: 210mm;
-       margin-left: 0;
+      transform: scale(0.55);
+      transform-origin: top left;
+      margin-left: 0;
     }
-    @media (max-width: 400px) { .report-card-scaler { transform: scale(0.42); } }
-    @media (min-width: 401px) and (max-width: 500px) { .report-card-scaler { transform: scale(0.52); } }
-    @media (min-width: 501px) and (max-width: 639px) { .report-card-scaler { transform: scale(0.7); } }
+  }
+
+  @media (max-width: 480px) {
+    .report-card-scaler {
+      transform: scale(0.42);
+    }
+  }
+
+  @media (max-width: 380px) {
+    .report-card-scaler {
+      transform: scale(0.35);
+    }
   }
   
   @media print {
     .report-card-scaler { 
       transform: none !important; 
-      width: auto !important;
+      width: 210mm !important;
       margin: 0 !important;
+      padding: 0 !important;
     }
+  }
+
+  /* Custom Scrollbar for the preview container */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.1);
+    border-radius: 10px;
   }
 `}</style>

@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useSchoolSettings } from '../../hooks/useSchoolSettings';
-import { api } from '../../api';
+import useSchoolSettings from '../../hooks/useSchoolSettings';
+import { api, API_BASE_URL } from '../../api';
 import { toast } from '../../utils/toast';
+import { useReactToPrint } from 'react-to-print';
+import { QRCodeSVG } from 'qrcode.react';
 
 const SURAH_LIST = [
   "Al-Fatihah", "Al-Baqarah", "Aali 'Imran", "An-Nisa'", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Tawbah", "Yunus",
@@ -39,6 +41,16 @@ const QuranTracker = () => {
   const [studentRecords, setStudentRecords] = useState([]);
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [isBulkMode, setIsBulkMode] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printType, setPrintType] = useState('weekly');
+  const [printStudent, setPrintStudent] = useState(null);
+  const [printRecords, setPrintRecords] = useState([]);
+
+  const componentRef = useRef();
+  const handlePrint = useReactToPrint({
+    contentRef: componentRef,
+    documentTitle: `${printStudent?.user?.firstName || 'Student'}_Quran_Report`,
+  });
 
   const [targetForm, setTargetForm] = useState({
     classId: '',
@@ -204,6 +216,19 @@ const QuranTracker = () => {
       comments: record.comments || ''
     });
     setShowRecordModal(true);
+  };
+
+  const handleOpenPrint = (student) => {
+    setPrintStudent(student);
+    if (activeTab === 'records' && student.id === selectedStudent?.id) {
+       setPrintRecords(studentRecords);
+    } else {
+       // student summary might already have some records if passed from backend summary
+       // but safer to fetch or use student.quranRecords if loaded
+       setPrintRecords(student.quranRecords || []);
+    }
+    setPrintType('weekly');
+    setShowPrintModal(true);
   };
 
   const handleDeleteRecord = async (id, studentId) => {
@@ -521,6 +546,14 @@ const QuranTracker = () => {
                         ))}
                       </select>
                     </div>
+                    <div className="flex gap-2">
+                       <button
+                        onClick={() => handleOpenPrint(selectedStudent)}
+                        className="bg-white text-gray-700 border border-gray-200 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition flex items-center gap-2"
+                      >
+                        🖨️ Report
+                      </button>
+                    </div>
                   </div>
 
                   {loading ? (
@@ -686,6 +719,12 @@ const QuranTracker = () => {
                                   className="text-primary hover:text-primary/80 font-bold text-xs uppercase tracking-wider bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/20"
                                 >
                                   + Record
+                                </button>
+                                <button
+                                  onClick={() => handleOpenPrint(student)}
+                                  className="ml-2 text-gray-500 hover:text-gray-700 font-bold text-xs uppercase tracking-wider bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200"
+                                >
+                                  🖨️ Report
                                 </button>
                               </td>
                             </tr>
@@ -1030,4 +1069,262 @@ const QuranTracker = () => {
   );
 };
 
+      {/* Print Report Modal */}
+      {showPrintModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <div>
+                <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Generate Student Report</h2>
+                <div className="flex gap-2 mt-2">
+                  {['daily', 'weekly', 'monthly', 'session'].map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setPrintType(t)}
+                      className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                        printType === t ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-white text-gray-400 border border-gray-200'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => handlePrint()}
+                  className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all flex items-center gap-2"
+                >
+                  Confirm & Print
+                </button>
+                <button 
+                  onClick={() => setShowPrintModal(false)}
+                  className="p-2.5 bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition-all"
+                >
+                  Close View
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-8 bg-slate-100 custom-scrollbar">
+              <div className="md:hidden flex items-center justify-center gap-2 py-4 text-emerald-600 font-black text-[10px] uppercase tracking-widest animate-pulse">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+                Pinch or scroll to see whole report
+              </div>
+
+              <div className="overflow-x-auto pb-12 flex justify-center no-scrollbar">
+                <div ref={componentRef} className="report-card-scaler origin-top scale-[0.42] xs:scale-[0.55] md:scale-90 lg:scale-100 transition-transform duration-500 shadow-2xl">
+                  <QuranReportCard 
+                    student={printStudent} 
+                    records={printRecords} 
+                    type={printType} 
+                    schoolSettings={settings} 
+                    teacher={user}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Printable Report Component
+const QuranReportCard = ({ student, records, type, schoolSettings, teacher }) => {
+  const filteredRecords = records.filter(r => {
+    const rDate = new Date(r.date);
+    const now = new Date();
+    if (type === 'daily') return rDate.toDateString() === now.toDateString();
+    if (type === 'weekly') {
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return rDate >= weekAgo;
+    }
+    if (type === 'monthly') {
+      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      return rDate >= monthAgo;
+    }
+    // 'session' or anything else returns all
+    return true;
+  });
+
+  const reportColor = schoolSettings?.reportColorScheme || schoolSettings?.primaryColor || '#064e3b';
+  const reportFont = schoolSettings?.reportFontFamily || 'serif';
+
+  return (
+    <div className="p-8 bg-white text-black min-h-[297mm] border-[12px] print:border-8 print:p-4 mx-auto w-[210mm]" style={{ fontFamily: reportFont, borderColor: reportColor }}>
+      {/* Official Header */}
+      <div className="grid grid-cols-[96px_1fr_96px] items-start gap-4 mb-6 pb-4 border-b-2 border-slate-200">
+        <div className="w-24 h-24 flex-shrink-0">
+          {schoolSettings?.logoUrl && (
+            <img
+              src={schoolSettings.logoUrl.startsWith('data:') || schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl.startsWith('/') ? schoolSettings.logoUrl : '/' + schoolSettings.logoUrl}`}
+              alt="Logo"
+              className="w-full h-full object-contain"
+            />
+          )}
+        </div>
+
+        <div className="text-center flex flex-col items-center justify-center">
+          <h1 className="text-2xl font-black uppercase tracking-wider leading-none text-emerald-900 mb-1" style={{ color: reportColor }}>
+            {schoolSettings?.schoolName || 'SCHOOL NAME'}
+          </h1>
+          <p className="text-xs font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
+          <p className="text-[9px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{schoolSettings?.address || 'School Address Location'} | TEL: {schoolSettings?.phone || '000'} | Email: {schoolSettings?.email || 'email@school.com'}</p>
+
+          <div className="mt-2 border-b-2 inline-block px-4 pb-0" style={{ borderColor: reportColor }}>
+            <h2 className="text-lg font-black uppercase tracking-wider italic">
+              Official Qur'an Progress Report
+            </h2>
+          </div>
+        </div>
+
+        <div className="w-24 h-28 border-2 border-black bg-gray-50 flex-shrink-0 relative overflow-hidden">
+          {(() => {
+            const photo = student?.user?.photoUrl || student?.photoUrl;
+            return photo ? (
+              <img src={photo.startsWith('data:') || photo.startsWith('http') ? photo : `${API_BASE_URL}${photo}`} alt="Student" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 font-bold text-gray-300">PHOTO</div>
+            );
+          })()}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-8 mb-8 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+        <div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Student Particulars</p>
+          <p className="text-xl font-black text-slate-900 uppercase tracking-tight">{student?.user?.firstName} {student?.user?.lastName}</p>
+          <p className="text-sm font-bold text-emerald-700 uppercase">{student?.classModel?.name} {student?.classModel?.arm}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Registration No</p>
+          <p className="text-xl font-bold italic tracking-tighter">{student?.admissionNumber}</p>
+          <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">{type} review • {new Date().toLocaleDateString()}</p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-900 mb-4 flex items-center gap-2">
+          Chronological Summary
+          <span className="h-0.5 flex-1 bg-emerald-100"></span>
+        </h3>
+        
+        {filteredRecords.length === 0 ? (
+          <p className="text-center py-12 text-slate-400 italic font-medium">No progress entries recorded for this {type} period.</p>
+        ) : (
+          <table className="w-full border-collapse border-2 border-black">
+            <thead>
+              <tr className="bg-emerald-900 text-white text-[10px] font-black uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
+                <th className="p-3 text-left border border-black">Date</th>
+                <th className="p-3 text-left border border-black">Content</th>
+                <th className="p-3 text-left border border-black">Verses</th>
+                <th className="p-3 text-center border border-black">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 italic">
+              {filteredRecords.map(record => (
+                <tr key={record.id} className="text-sm font-bold">
+                  <td className="p-3 text-slate-600 border border-black">{new Date(record.date).toLocaleDateString()}</td>
+                  <td className="p-3 text-slate-900 border border-black">{record.surah || `Juz ${record.juz}`} ({record.type})</td>
+                  <td className="p-3 text-slate-500 border border-black">{record.ayahStart}-{record.ayahEnd || record.ayahStart}</td>
+                  <td className="p-3 text-center border border-black">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                      record.status === 'Excellent' ? 'text-green-700' :
+                      record.status === 'Good' ? 'text-blue-700' :
+                      record.status === 'Fair' ? 'text-yellow-700' : 'text-red-700'
+                    }`}>
+                      {record.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="mt-12 grid grid-cols-2 gap-12 items-end">
+        <div className="text-center">
+          <div className="h-10 flex flex-col items-center justify-center mb-1">
+             {teacher?.teacher?.signatureUrl ? (
+                <img 
+                  src={teacher.teacher.signatureUrl.startsWith('data:') || teacher.teacher.signatureUrl.startsWith('http') ? teacher.teacher.signatureUrl : `${API_BASE_URL}${teacher.teacher.signatureUrl}`} 
+                  alt="Teacher Signature" 
+                  className="h-10 w-auto mix-blend-multiply" 
+                />
+             ) : (
+                <div className="h-[1px] w-full bg-slate-400"></div>
+             )}
+          </div>
+          <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Quran Teacher's Signature</p>
+          <p className="text-[8px] font-bold text-slate-400 capitalize">{teacher?.firstName} {teacher?.lastName}</p>
+        </div>
+        <div className="text-center">
+          <div className="h-10 flex flex-col items-center justify-end mb-1">
+              <div className="h-[1px] w-full bg-slate-400"></div>
+          </div>
+          <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Registrar Seal</p>
+          <div className="mt-2 flex justify-center">
+            <QRCodeSVG 
+              value={`${window.location.origin}/dashboard/quran-progress?studentId=${student?.id}`}
+              size={40}
+              level="H"
+            />
+          </div>
+        </div>
+      </div>
+      
+      <div className="mt-auto pt-16 flex justify-between items-center text-[8px] font-black text-slate-300 uppercase tracking-widest">
+        <span>Official school document • strictly for internal monitoring</span>
+        <span>Generated by {schoolSettings?.schoolName || 'Kuntau Academy'}</span>
+      </div>
+    </div>
+  );
+};
+
 export default QuranTracker;
+
+<style>{`
+  .report-card-scaler {
+    width: 210mm;
+    transform-origin: top center;
+    margin: 0 auto;
+    transition: transform 0.3s ease-out;
+  }
+
+  @media (max-width: 1024px) {
+    .report-card-scaler { transform: scale(0.85); }
+  }
+
+  @media (max-width: 768px) {
+    .report-card-scaler { transform: scale(0.7); }
+  }
+
+  @media (max-width: 640px) {
+    .report-card-scaler {
+       transform: scale(0.55);
+       transform-origin: top left;
+       margin-left: 0;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .report-card-scaler { transform: scale(0.42); }
+  }
+
+  @media (max-width: 380px) {
+    .report-card-scaler { transform: scale(0.35); }
+  }
+  
+  @media print {
+    .report-card-scaler { 
+      transform: none !important; 
+      width: 210mm !important;
+      margin: 0 !important;
+    }
+  }
+`}</style>
