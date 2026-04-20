@@ -1720,7 +1720,7 @@ export default function FeeManagement() {
                 View Fee Records
               </h3>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '15px', alignItems: 'end' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                 <div>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>
                     Academic Session
@@ -1877,9 +1877,9 @@ export default function FeeManagement() {
                   </div>
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between">
+              <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between overflow-hidden">
                 <p className="text-sm font-bold text-emerald-100 uppercase tracking-wider mb-2">Total Collected</p>
-                <p className="text-3xl font-black">₦{formatNumber(summary.totalPaid)}</p>
+                <p className="text-3xl font-black break-words">₦{formatNumber(summary.totalPaid)}</p>
                 <div className="mt-4 pt-3 border-t border-white/20">
                   <div className="flex items-center gap-2">
                     <div className="flex-1 bg-white/20 rounded-full h-2">
@@ -1891,9 +1891,9 @@ export default function FeeManagement() {
                   </div>
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between">
+              <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between overflow-hidden">
                 <p className="text-sm font-bold text-red-100 uppercase tracking-wider mb-2">Outstanding</p>
-                <p className="text-3xl font-black">₦{formatNumber(summary.totalBalance)}</p>
+                <p className="text-3xl font-black break-words">₦{formatNumber(summary.totalBalance)}</p>
                 <div className="mt-4 pt-3 border-t border-white/20">
                   <div className="flex items-center gap-2">
                     <div className="flex-1 bg-white/20 rounded-full h-2">
