@@ -7,7 +7,7 @@ const TeacherAssignments = () => {
   const [classes, setClasses] = useState([]);
   const [classSubjects, setClassSubjects] = useState([]);
   const [terms, setTerms] = useState([]);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(true);
   const [showRollover, setShowRollover] = useState(false);
   const [selectedRolloverTermId, setSelectedRolloverTermId] = useState('');
 
