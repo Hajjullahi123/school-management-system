@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
 
         // Race the API call against an 8-second timeout
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Auth check timed out')), 8000)
+          setTimeout(() => reject(new Error('Auth check timed out')), 15000)
         );
 
         const response = await Promise.race([
