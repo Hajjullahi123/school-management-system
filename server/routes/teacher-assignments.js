@@ -504,4 +504,38 @@ router.post('/rollover', authenticate, authorize(['admin', 'principal']), async 
   }
 });
 
+// Bulk delete all assignments for the active term
+router.delete('/reset/active-term', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const activeTerm = await prisma.term.findFirst({
+      where: { schoolId: req.schoolId, isCurrent: true }
+    });
+
+    if (!activeTerm) {
+      return res.status(400).json({ error: 'No active term found' });
+    }
+
+    const { count } = await prisma.teacherAssignment.deleteMany({
+      where: {
+        schoolId: req.schoolId,
+        termId: activeTerm.id
+      }
+    });
+
+    res.json({ message: `Successfully removed all ${count} assignments for the current term.` });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'RESET_ASSIGNMENTS',
+      resource: 'TEACHER_ASSIGNMENT',
+      details: { termId: activeTerm.id, count },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error resetting assignments:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

@@ -193,6 +193,25 @@ const TeacherAssignments = () => {
     }
   };
 
+  const handleReset = async () => {
+    if (!confirm(`DANGER: This will permanently delete ALL teacher assignments for the ${activeTerm?.name || 'current'} term. \n\nAre you absolutely sure?`)) return;
+    
+    try {
+      const response = await api.delete('/api/teacher-assignments/reset/active-term');
+      const result = await response.json();
+      if (response.ok) {
+        alert(result.message);
+        fetchAssignments();
+        fetchAllClassSubjects();
+        fetchClasses();
+      } else {
+        alert(result.error);
+      }
+    } catch (error) {
+      alert('Failed to reset assignments');
+    }
+  };
+
   // Group assignments based on selection
   const groupedAssignments = assignments.reduce((acc, assignment) => {
     if (groupBy === 'teacher') {
@@ -263,6 +282,12 @@ const TeacherAssignments = () => {
               By Teacher
             </button>
           </div>
+          <button
+            onClick={handleReset}
+            className="text-red-600 hover:text-red-700 font-bold px-3 py-2 text-xs border border-red-200 rounded-md bg-red-50"
+          >
+            Reset Term
+          </button>
           <button
             onClick={() => setShowRollover(!showRollover)}
             className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-md hover:bg-indigo-100 font-bold border border-indigo-200"
