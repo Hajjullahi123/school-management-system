@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { api } from '../../api';
 import { useLocation, Link } from 'react-router-dom';
 import { useReactToPrint } from 'react-to-print';
+import { QRCodeSVG } from 'qrcode.react';
+import { api, API_BASE_URL } from '../../api';
+import useSchoolSettings from '../../hooks/useSchoolSettings';
 
 const ParentQuranView = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const { settings: schoolSettings } = useSchoolSettings();
   const queryParams = new URLSearchParams(location.search);
   const studentIdParam = queryParams.get('studentId');
 
@@ -412,8 +415,8 @@ const ParentQuranView = () => {
               </div>
 
               <div className="overflow-x-auto pb-12 px-4 flex justify-center no-scrollbar">
-                <div ref={componentRef} className="origin-top scale-[0.42] xs:scale-[0.55] md:scale-90 lg:scale-100 transition-transform duration-500 shadow-2xl">
-                  <QuranReportCard student={selectedChild} records={records} type={printType} />
+                <div ref={componentRef} className="report-card-scaler origin-top scale-[0.42] xs:scale-[0.55] md:scale-90 lg:scale-100 transition-transform duration-500 shadow-2xl">
+                  <QuranReportCard student={selectedChild} records={records} type={printType} schoolSettings={schoolSettings} />
                 </div>
               </div>
             </div>
@@ -425,7 +428,7 @@ const ParentQuranView = () => {
 };
 
 // Printable Report Component
-const QuranReportCard = ({ student, records, type }) => {
+const QuranReportCard = ({ student, records, type, schoolSettings }) => {
   const filteredRecords = records.filter(r => {
     const rDate = new Date(r.date);
     const now = new Date();
@@ -441,11 +444,47 @@ const QuranReportCard = ({ student, records, type }) => {
     return true;
   });
 
+  const reportColor = schoolSettings?.reportColorScheme || schoolSettings?.primaryColor || '#064e3b';
+  const reportFont = schoolSettings?.reportFontFamily || 'serif';
+
   return (
-    <div className="p-8 bg-white text-black min-h-[297mm] border-[12px] border-emerald-900 print:border-8 print:p-4">
-      <div className="text-center border-b-2 border-slate-200 pb-6 mb-8">
-        <h1 className="text-3xl font-black uppercase tracking-tighter text-emerald-900 italic">Official Qur'an Progress Report</h1>
-        <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-widest">{type} review • generated {new Date().toLocaleDateString()}</p>
+    <div className="p-8 bg-white text-black min-h-[297mm] border-[12px] print:border-8 print:p-4 mx-auto w-[210mm]" style={{ fontFamily: reportFont, borderColor: reportColor }}>
+      {/* Official Header */}
+      <div className="grid grid-cols-[96px_1fr_96px] items-start gap-4 mb-6 pb-4 border-b-2 border-slate-200">
+        <div className="w-24 h-24 flex-shrink-0">
+          {schoolSettings?.logoUrl && (
+            <img
+              src={schoolSettings.logoUrl.startsWith('data:') || schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl.startsWith('/') ? schoolSettings.logoUrl : '/' + schoolSettings.logoUrl}`}
+              alt="Logo"
+              className="w-full h-full object-contain"
+            />
+          )}
+        </div>
+
+        <div className="text-center flex flex-col items-center justify-center">
+          <h1 className="text-2xl font-black uppercase tracking-wider leading-none text-emerald-900 mb-1" style={{ color: reportColor }}>
+            {schoolSettings?.schoolName || 'SCHOOL NAME'}
+          </h1>
+          <p className="text-xs font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
+          <p className="text-[9px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{schoolSettings?.address || 'School Address Location'} | TEL: {schoolSettings?.phone || '000'} | Email: {schoolSettings?.email || 'email@school.com'}</p>
+
+          <div className="mt-2 border-b-2 inline-block px-4 pb-0" style={{ borderColor: reportColor }}>
+            <h2 className="text-lg font-black uppercase tracking-wider italic">
+              Official Qur'an Progress Report
+            </h2>
+          </div>
+        </div>
+
+        <div className="w-24 h-28 border-2 border-black bg-gray-50 flex-shrink-0 relative overflow-hidden">
+          {(() => {
+            const photo = student?.user?.photoUrl || student?.photoUrl;
+            return photo ? (
+              <img src={photo.startsWith('data:') || photo.startsWith('http') ? photo : `${API_BASE_URL}${photo}`} alt="Student" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 font-bold text-gray-300">PHOTO</div>
+            );
+          })()}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-8 mb-8 bg-slate-50 p-6 rounded-2xl border border-slate-100">
@@ -457,6 +496,7 @@ const QuranReportCard = ({ student, records, type }) => {
         <div className="text-right">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Registration No</p>
           <p className="text-xl font-bold italic tracking-tighter">{student.admissionNumber}</p>
+          <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">{type} review • {new Date().toLocaleDateString()}</p>
         </div>
       </div>
 
@@ -469,26 +509,26 @@ const QuranReportCard = ({ student, records, type }) => {
         {filteredRecords.length === 0 ? (
           <p className="text-center py-12 text-slate-400 italic font-medium">No progress entries recorded for this {type} period.</p>
         ) : (
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse border-2 border-black">
             <thead>
-              <tr className="bg-emerald-900 text-white text-[10px] font-black uppercase tracking-widest">
-                <th className="p-3 text-left">Date</th>
-                <th className="p-3 text-left">Content</th>
-                <th className="p-3 text-left">Verses</th>
-                <th className="p-3 text-center">Status</th>
+              <tr className="bg-emerald-900 text-white text-[10px] font-black uppercase tracking-widest" style={{ backgroundColor: reportColor }}>
+                <th className="p-3 text-left border border-black">Date</th>
+                <th className="p-3 text-left border border-black">Content</th>
+                <th className="p-3 text-left border border-black">Verses</th>
+                <th className="p-3 text-center border border-black">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 italic">
               {filteredRecords.map(record => (
-                <tr key={record.id} className="text-sm">
-                  <td className="p-3 font-bold text-slate-600">{new Date(record.date).toLocaleDateString()}</td>
-                  <td className="p-3 font-black text-slate-900 min-w-[180px]">{record.surah || `Juz ${record.juz}`} ({record.type})</td>
-                  <td className="p-3 font-bold text-slate-500 min-w-[100px]">{record.ayahStart}-{record.ayahEnd || record.ayahStart}</td>
-                  <td className="p-3 text-center">
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                      record.status === 'Excellent' ? 'bg-green-100 text-green-700' :
-                      record.status === 'Good' ? 'bg-blue-100 text-blue-700' :
-                      record.status === 'Fair' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                <tr key={record.id} className="text-sm font-bold">
+                  <td className="p-3 text-slate-600 border border-black">{new Date(record.date).toLocaleDateString()}</td>
+                  <td className="p-3 text-slate-900 border border-black">{record.surah || `Juz ${record.juz}`} ({record.type})</td>
+                  <td className="p-3 text-slate-500 border border-black">{record.ayahStart}-{record.ayahEnd || record.ayahStart}</td>
+                  <td className="p-3 text-center border border-black">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                      record.status === 'Excellent' ? 'text-green-700' :
+                      record.status === 'Good' ? 'text-blue-700' :
+                      record.status === 'Fair' ? 'text-yellow-700' : 'text-red-700'
                     }`}>
                       {record.status}
                     </span>
@@ -500,22 +540,63 @@ const QuranReportCard = ({ student, records, type }) => {
         )}
       </div>
 
-      <div className="mt-12 pt-12 border-t-2 border-slate-100 grid grid-cols-2 gap-12">
+      <div className="mt-12 grid grid-cols-2 gap-12 items-end">
         <div className="text-center">
-          <div className="h-1 bg-slate-200 mb-2"></div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quran Coordinator Signature</p>
+          <div className="h-10 flex flex-col items-center justify-center mb-1">
+             {student?.classModel?.classTeacher?.signatureUrl ? (
+                <img 
+                  src={student.classModel.classTeacher.signatureUrl.startsWith('data:') || student.classModel.classTeacher.signatureUrl.startsWith('http') ? student.classModel.classTeacher.signatureUrl : `${API_BASE_URL}${student.classModel.classTeacher.signatureUrl}`} 
+                  alt="Form Master Signature" 
+                  className="h-10 w-auto mix-blend-multiply" 
+                />
+             ) : (
+                <div className="h-1 w-full bg-slate-200"></div>
+             )}
+          </div>
+          <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Form Master's Signature</p>
+          <p className="text-[8px] font-bold text-slate-400 capitalize">{student?.classModel?.classTeacher?.firstName} {student?.classModel?.classTeacher?.lastName}</p>
         </div>
         <div className="text-center">
-          <div className="h-1 bg-slate-200 mb-2"></div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">School Authority Seal</p>
+          <div className="h-10 flex flex-col items-center justify-end mb-1">
+              <div className="h-[1px] w-full bg-slate-400"></div>
+          </div>
+          <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Quran Coordinator Signature</p>
+          <div className="mt-2 flex justify-center">
+            <QRCodeSVG 
+              value={`${window.location.origin}/dashboard/quran-progress?studentId=${student.id}`}
+              size={40}
+              level="H"
+            />
+          </div>
         </div>
       </div>
       
-      <div className="mt-auto pt-16 text-center text-[8px] font-black text-slate-300 uppercase tracking-widest">
-        Integrated spiritual monitoring system • strictly for internal school use
+      <div className="mt-auto pt-16 flex justify-between items-center text-[8px] font-black text-slate-300 uppercase tracking-widest">
+        <span>Integrated spiritual monitoring system • strictly for internal school use</span>
+        <span>Generated by {schoolSettings?.schoolName || 'Kuntau-Pay Portal'}</span>
       </div>
     </div>
   );
 };
 
 export default ParentQuranView;
+
+<style>{`
+  @media (max-width: 640px) {
+    .report-card-scaler {
+       width: 210mm;
+       margin-left: 0;
+    }
+    @media (max-width: 400px) { .report-card-scaler { transform: scale(0.42); } }
+    @media (min-width: 401px) and (max-width: 500px) { .report-card-scaler { transform: scale(0.52); } }
+    @media (min-width: 501px) and (max-width: 639px) { .report-card-scaler { transform: scale(0.7); } }
+  }
+  
+  @media print {
+    .report-card-scaler { 
+      transform: none !important; 
+      width: auto !important;
+      margin: 0 !important;
+    }
+  }
+`}</style>

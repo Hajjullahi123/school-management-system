@@ -265,7 +265,18 @@ router.get('/me', authenticate, async (req, res) => {
       include.student = {
         select: {
           id: true, admissionNumber: true, photoUrl: true,
-          classModel: { select: { id: true, name: true, arm: true } }
+          classModel: { 
+            select: { 
+              id: true, name: true, arm: true,
+              classTeacher: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  signatureUrl: true
+                }
+              }
+            } 
+          }
         }
       };
     } else if (role === 'parent') {
