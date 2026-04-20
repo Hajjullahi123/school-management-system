@@ -60,32 +60,23 @@ router.post('/identify', async (req, res) => {
 
     const schoolFilter = { schoolId };
 
-    // Parallel lookups – all scoped to this school
-    const [user, student, teacher] = await Promise.all([
-      prisma.user.findFirst({
-        where: {
-          AND: [
-            schoolFilter,
-            { OR: [{ username: searchId }, { email: searchId }] }
-          ]
-        },
-        select: { school: { select: { id: true, name: true, slug: true } } }
-      }),
-      prisma.student.findFirst({
-        where: { ...schoolFilter, admissionNumber: searchId },
-        select: { school: { select: { id: true, name: true, slug: true } } }
-      }),
-      prisma.teacher.findFirst({
-        where: { ...schoolFilter, staffId: searchId },
-        select: { school: { select: { id: true, name: true, slug: true } } }
-      })
-    ]);
+    // Single fast lookup utilizing relational OR queries
+    const userMatch = await prisma.user.findFirst({
+      where: {
+        schoolId,
+        OR: [
+          { username: searchId },
+          { email: searchId },
+          { student: { admissionNumber: searchId } },
+          { teacher: { staffId: searchId } }
+        ]
+      },
+      select: { school: { select: { id: true, name: true, slug: true } } }
+    });
 
     // Collect distinct schools from the matches
     const schoolsMap = new Map();
-    [user, student, teacher].forEach(entry => {
-      if (entry?.school) schoolsMap.set(entry.school.id, entry.school);
-    });
+    if (userMatch?.school) schoolsMap.set(userMatch.school.id, userMatch.school);
     const matchedSchools = Array.from(schoolsMap.values());
     if (matchedSchools.length === 0) {
       return res.status(404).json({ error: 'Account not found. Check your credentials.' });
@@ -150,35 +141,18 @@ router.post('/login', async (req, res) => {
         }
       };
 
-      const [userByUsername, studentByAdmission, teacherByStaffId] = await Promise.all([
-        // 1. Lookup by username
-        prisma.user.findFirst({
-          where: {
-            username: { equals: searchId },
-            schoolId: school.id
-          },
-          select: userSelect
-        }),
-        // 2. Lookup by admission number (students)
-        prisma.student.findFirst({
-          where: {
-            admissionNumber: { equals: searchId },
-            schoolId: school.id
-          },
-          select: { user: { select: userSelect } }
-        }),
-        // 3. Lookup by staff ID (teachers)
-        prisma.teacher.findFirst({
-          where: {
-            staffId: { equals: searchId },
-            schoolId: school.id
-          },
-          select: { user: { select: userSelect } }
-        })
-      ]);
-
-      // Pick the first match found (username takes priority)
-      user = userByUsername || studentByAdmission?.user || teacherByStaffId?.user || null;
+      // Unified single query for fast login resolution
+      user = await prisma.user.findFirst({
+        where: {
+          schoolId: school.id,
+          OR: [
+            { username: searchId },
+            { student: { admissionNumber: searchId } },
+            { teacher: { staffId: searchId } }
+          ]
+        },
+        select: userSelect
+      });
     }
 
     if (!user || user.isActive === false) {
@@ -194,15 +168,16 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Performance Optimization: If the hash uses 12 rounds (slow in JS), re-hash to 10
-    if (user.passwordHash.startsWith('$2a$12$') || user.passwordHash.startsWith('$2b$12$')) {
+    // Performance Optimization: If the hash uses 12 rounds (slow in JS), re-hash to 8 for speed
+    if (user.passwordHash.startsWith('$2a$12$') || user.passwordHash.startsWith('$2b$12$') || 
+        user.passwordHash.startsWith('$2a$10$') || user.passwordHash.startsWith('$2b$10$')) {
       try {
-        const newHash = await bcrypt.hash(password, 10);
+        const newHash = await bcrypt.hash(password, 8);
         await prisma.user.update({
           where: { id: user.id },
           data: { passwordHash: newHash }
         });
-        console.log(`[Auth] Migrated user ${user.username} to faster password hash (10 rounds)`);
+        console.log(`[Auth] Migrated user ${user.username} to faster password hash (8 rounds)`);
       } catch (err) {
         console.error('[Auth] Failed to migrate password hash:', err);
       }
