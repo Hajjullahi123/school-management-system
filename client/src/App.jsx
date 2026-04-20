@@ -266,7 +266,7 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="bulk-student-upload" element={
-                <ProtectedRoute roles={['admin', 'principal']}>
+                <ProtectedRoute roles={['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']}>
                   <BulkStudentUpload />
                 </ProtectedRoute>
               } />
@@ -348,7 +348,7 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="student/profile" element={
-                <ProtectedRoute roles={['student', 'parent', 'principal']}>
+                <ProtectedRoute roles={['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin', 'student', 'parent']}>
                   <StudentProfile />
                 </ProtectedRoute>
               } />
@@ -424,17 +424,17 @@ function App() {
 
               {/* Admin Routes */}
               <Route path="users" element={
-                <ProtectedRoute roles={['admin', 'principal']}>
+                <ProtectedRoute roles={['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']}>
                   <UserManagement />
                 </ProtectedRoute>
               } />
               <Route path="directory-export" element={
-                <ProtectedRoute roles={['admin', 'principal']}>
+                <ProtectedRoute roles={['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']}>
                   <DirectoryExport />
                 </ProtectedRoute>
               } />
               <Route path="student-management" element={
-                <ProtectedRoute roles={['admin', 'principal']}>
+                <ProtectedRoute roles={['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']}>
                   <StudentManagement />
                 </ProtectedRoute>
               } />
@@ -459,7 +459,7 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="academic-setup" element={
-                <ProtectedRoute roles={['admin', 'principal']}>
+                <ProtectedRoute roles={['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']}>
                   <AcademicSetup />
                 </ProtectedRoute>
               } />
@@ -495,7 +495,7 @@ function App() {
               } />
 
               <Route path="manage-notices" element={
-                <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
+                <ProtectedRoute roles={['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']}>
                   <NoticeBoard />
                 </ProtectedRoute>
               } />
@@ -505,7 +505,7 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="manage-parents" element={
-                <ProtectedRoute roles={['admin', 'principal']}>
+                <ProtectedRoute roles={['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']}>
                   <ParentManagement />
                 </ProtectedRoute>
               } />

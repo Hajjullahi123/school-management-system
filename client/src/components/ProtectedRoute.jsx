@@ -24,7 +24,7 @@ const ProtectedRoute = ({ children, roles = [] }) => {
   // No longer use double-auth layer as requested.
   // One-time login is sufficient.
 
-  if (roles.length > 0 && !roles.includes(user.role)) {
+  if (roles.length > 0 && user.role !== 'superadmin' && !roles.includes(user.role)) {
     return <Navigate to="/dashboard" replace />; // This might cycle if not careful, but dashboard is protected now.
     // If user role is invalid but they are unlocked, they go to /dashboard (which they are allowed to see generally, but maybe not the sub-route?)
     // Actually, if they are invalid role, they shouldn't go to dashboard.

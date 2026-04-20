@@ -187,7 +187,7 @@ router.get('/:id', authenticate, async (req, res) => {
 });
 
 // Create class (Admin/Principal only)
-router.post('/', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const { name, arm, classTeacherId } = req.body;
 
@@ -260,7 +260,7 @@ router.post('/', authenticate, authorize(['admin', 'principal']), async (req, re
 });
 
 // Update class (Admin/Principal only)
-router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, arm, classTeacherId } = req.body;
@@ -336,7 +336,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
 });
 
 // Delete class (Admin/Principal only)
-router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const { id } = req.params;
     const classId = parseInt(id);

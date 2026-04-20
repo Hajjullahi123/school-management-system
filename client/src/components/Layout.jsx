@@ -184,7 +184,7 @@ const Layout = () => {
   // Academic Setup Group
   if (user?.role === 'admin' || user?.role === 'principal' || user?.role === 'examination_officer' || user?.role === 'attendance_admin') {
     // Academic Setup Group - NOT for examination officer or attendance admin
-    if (!['examination_officer', 'attendance_admin'].includes(user?.role)) {
+    if (true) { // Allow all admin-level roles to see items in this group
       menuItems.push({
         type: 'group',
         label: 'Academic Setup',
@@ -289,7 +289,7 @@ const Layout = () => {
 
 
     // User Management Group - NOT for examination officer or attendance admin
-    if (!['examination_officer', 'attendance_admin'].includes(user?.role)) {
+    if (true) { // Allow all admin-level roles to see items in this group
       menuItems.push({
         type: 'group',
         label: 'User Management',
@@ -776,7 +776,7 @@ const Layout = () => {
       });
     }
 
-    if (!['examination_officer', 'attendance_admin'].includes(user?.role)) {
+    if (true) { // Allow all admin-level roles to see items in this group
       menuItems.push({
         type: 'group',
         label: 'Academic Management',
@@ -827,7 +827,7 @@ const Layout = () => {
     }
 
     // Timetable & Scheduling Group - NOT for examination officer or attendance admin
-    if (!['examination_officer', 'attendance_admin'].includes(user?.role)) {
+    if (true) { // Allow all admin-level roles to see items in this group
       menuItems.push({
         type: 'group',
         label: 'Timetable & Scheduling',
@@ -986,7 +986,7 @@ const Layout = () => {
 
 
     // Promotion & Graduation Group - NOT for examination officer or attendance admin
-    if (!['examination_officer', 'attendance_admin'].includes(user?.role)) {
+    if (true) { // Allow all admin-level roles to see items in this group
       menuItems.push({
         type: 'group',
         label: 'Promotion & Graduation',
@@ -1028,7 +1028,7 @@ const Layout = () => {
     } // end promotion guard
 
     // Content Management Group - NOT for examination officer or attendance admin
-    if (!['examination_officer', 'attendance_admin'].includes(user?.role)) {
+    if (true) { // Allow all admin-level roles to see items in this group
       menuItems.push({
         type: 'group',
         label: 'Content Management',
@@ -1105,7 +1105,7 @@ const Layout = () => {
     });
     } // end analytics guard
 
-    if (!['examination_officer', 'attendance_admin'].includes(user?.role)) {
+    if (true) { // Allow all admin-level roles to see items in this group
       menuItems.push({
         path: '/dashboard/id-card', icon: (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
