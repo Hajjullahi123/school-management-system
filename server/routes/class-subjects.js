@@ -7,6 +7,10 @@ const { logAction } = require('../utils/audit');
 // Get all class-subject associations
 router.get('/', authenticate, async (req, res) => {
   try {
+    const activeTerm = await prisma.term.findFirst({
+      where: { schoolId: req.schoolId, isCurrent: true }
+    });
+
     const classSubjects = await prisma.classSubject.findMany({
       where: { schoolId: req.schoolId },
       include: {
@@ -25,7 +29,10 @@ router.get('/', authenticate, async (req, res) => {
           }
         },
         teacherAssignments: {
-          where: { schoolId: req.schoolId },
+          where: { 
+            schoolId: req.schoolId,
+            ...(activeTerm ? { termId: activeTerm.id } : {})
+          },
           include: {
             teacher: {
               select: {
@@ -54,6 +61,10 @@ router.get('/class/:classId', authenticate, async (req, res) => {
   try {
     const classId = parseInt(req.params.classId);
 
+    const activeTerm = await prisma.term.findFirst({
+      where: { schoolId: req.schoolId, isCurrent: true }
+    });
+
     const classSubjects = await prisma.classSubject.findMany({
       where: {
         classId,
@@ -68,7 +79,10 @@ router.get('/class/:classId', authenticate, async (req, res) => {
           }
         },
         teacherAssignments: {
-          where: { schoolId: req.schoolId },
+          where: { 
+            schoolId: req.schoolId,
+            ...(activeTerm ? { termId: activeTerm.id } : {})
+          },
           include: {
             teacher: {
               select: {
@@ -105,6 +119,10 @@ router.get('/class/:classId/unassigned-count', authenticate, async (req, res) =>
   try {
     const classId = parseInt(req.params.classId);
 
+    const activeTerm = await prisma.term.findFirst({
+      where: { schoolId: req.schoolId, isCurrent: true }
+    });
+
     const classSubjects = await prisma.classSubject.findMany({
       where: {
         classId,
@@ -112,7 +130,10 @@ router.get('/class/:classId/unassigned-count', authenticate, async (req, res) =>
       },
       include: {
         teacherAssignments: {
-          where: { schoolId: req.schoolId }
+          where: { 
+            schoolId: req.schoolId,
+            ...(activeTerm ? { termId: activeTerm.id } : {})
+          }
         }
       }
     });
