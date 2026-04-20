@@ -1065,9 +1065,6 @@ const QuranTracker = () => {
           </div>
         </div>
       )}
-    </div>
-  );
-};
 
       {/* Print Report Modal */}
       {showPrintModal && (
@@ -1132,6 +1129,7 @@ const QuranTracker = () => {
     </div>
   );
 };
+
 
 // Printable Report Component
 const QuranReportCard = ({ student, records, type, schoolSettings, teacher }) => {

@@ -360,8 +360,11 @@ const QuranProgress = () => {
             </div>
           </div>
         </div>
-      )}
-    <// Printable Report Component
+    </div>
+  );
+};
+
+// Printable Report Component
 const QuranReportCard = ({ student, records, type, schoolSettings }) => {
   const filteredRecords = records.filter(r => {
     const rDate = new Date(r.date);
