@@ -453,7 +453,10 @@ router.post('/rollover', authenticate, authorize(['admin', 'principal']), async 
     const oldAssignments = await prisma.teacherAssignment.findMany({
       where: {
         schoolId: req.schoolId,
-        termId: parseInt(sourceTermId)
+        OR: [
+          { termId: parseInt(sourceTermId) },
+          { termId: null }
+        ]
       }
     });
 

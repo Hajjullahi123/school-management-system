@@ -175,7 +175,8 @@ const TeacherAssignments = () => {
 
   const handleRollover = async () => {
     if (!selectedRolloverTermId) return alert('Please select a source term to duplicate from.');
-    if (!confirm('Are you sure you want to duplicate all assignments from this term into the CURRENT active term?')) return;
+    const sourceTerm = terms.find(t => t.id === parseInt(selectedRolloverTermId));
+    if (!confirm(`Are you sure you want to duplicate all assignments from ${sourceTerm?.name} into the ${activeTerm?.name || 'current'} term?`)) return;
 
     try {
       const response = await api.post('/api/teacher-assignments/rollover', { sourceTermId: selectedRolloverTermId });
@@ -236,10 +237,17 @@ const TeacherAssignments = () => {
     return !cs.isAssigned;
   });
 
+  const activeTerm = terms.find(t => t.isCurrent);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">Teacher-Subject-Class Assignments</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Teacher-Subject-Class Assignments</h1>
+          <p className="text-sm text-gray-500 font-medium">
+            Currently configuring: <span className="text-primary font-bold">{activeTerm ? `${activeTerm.name} (${activeTerm.academicSession?.name})` : 'No Active Term Set'}</span>
+          </p>
+        </div>
         <div className="flex gap-2">
           <div className="bg-gray-100 p-1 rounded-md flex">
             <button
