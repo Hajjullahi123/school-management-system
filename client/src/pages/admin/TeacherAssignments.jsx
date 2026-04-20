@@ -260,50 +260,54 @@ const TeacherAssignments = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Teacher-Subject-Class Assignments</h1>
-          <p className="text-sm text-gray-500 font-medium">
-            Currently configuring: <span className="text-primary font-bold">{activeTerm ? `${activeTerm.name} (${activeTerm.academicSession?.name})` : 'No Active Term Set'}</span>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Teacher-Subject Assignments</h1>
+          <p className="text-[12px] md:text-sm text-gray-500 font-medium">
+            Configuring: <span className="text-primary font-bold">{activeTerm ? `${activeTerm.name} (${activeTerm.academicSession?.name})` : 'No Active Term Set'}</span>
           </p>
         </div>
-        <div className="flex gap-2">
-          <div className="bg-gray-100 p-1 rounded-md flex">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <div className="bg-gray-100 p-1 rounded-md flex flex-1 md:flex-none">
             <button
               onClick={() => setGroupBy('class')}
-              className={`px-4 py-1.5 text-sm rounded-md transition-all ${groupBy === 'class' ? 'bg-white shadow text-primary font-medium' : 'text-gray-600 hover:text-gray-900'}`}
+              className={`flex-1 px-3 py-1.5 text-xs md:text-sm rounded-md transition-all ${groupBy === 'class' ? 'bg-white shadow text-primary font-medium' : 'text-gray-600 hover:text-gray-900'}`}
             >
               By Class
             </button>
             <button
               onClick={() => setGroupBy('teacher')}
-              className={`px-4 py-1.5 text-sm rounded-md transition-all ${groupBy === 'teacher' ? 'bg-white shadow text-primary font-medium' : 'text-gray-600 hover:text-gray-900'}`}
+              className={`flex-1 px-3 py-1.5 text-xs md:text-sm rounded-md transition-all ${groupBy === 'teacher' ? 'bg-white shadow text-primary font-medium' : 'text-gray-600 hover:text-gray-900'}`}
             >
               By Teacher
             </button>
           </div>
           <button
             onClick={handleReset}
-            className="text-red-600 hover:text-red-700 font-bold px-3 py-2 text-xs border border-red-200 rounded-md bg-red-50"
+            className="text-red-600 hover:text-red-700 font-bold px-2.5 py-1.5 text-[10px] md:text-xs border border-red-200 rounded-md bg-red-50 flex-none"
           >
             Reset Term
           </button>
           <button
             onClick={() => setShowRollover(!showRollover)}
-            className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-md hover:bg-indigo-100 font-bold border border-indigo-200"
+            className="flex-1 md:flex-none bg-indigo-50 text-indigo-700 px-4 py-2 rounded-md hover:bg-indigo-100 font-bold border border-indigo-200 text-sm"
           >
-            Clone from Previous Term
+            {showRollover ? 'Hide' : 'Clone from Previous Term'}
           </button>
           <button
             onClick={() => {
-              setShowForm(!showForm);
-              setShowRollover(false);
+              if (showForm) {
+                setShowForm(false);
+              } else {
+                setShowForm(true);
+                setShowRollover(false);
+              }
               if (showForm) {
                 setEditingId(null);
                 setFormData({ teacherId: '', classSubjectId: '', selectedClassId: '' });
               }
             }}
-            className="bg-primary text-white px-6 py-2 rounded-md hover:brightness-90"
+            className="flex-1 md:flex-none bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 text-sm font-bold shadow-sm"
           >
             {showForm ? 'Cancel' : '+ Assign Teacher'}
           </button>
@@ -437,11 +441,11 @@ const TeacherAssignments = () => {
       {/* Assignments List - Grouped */}
       <div className="space-y-4">
         {Object.entries(groupedAssignments).sort().map(([key, data]) => (
-          <div key={key} className="bg-white rounded-lg shadow">
-            <div className="p-4 bg-primary/5 border-b border-primary/20 flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-semibold text-primary">{data.title}</h3>
-                <p className="text-sm text-primary/80">
+          <div key={key} className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-3 md:p-4 bg-primary/5 border-b border-primary/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div className="flex flex-col">
+                <h3 className="text-md md:text-lg font-bold text-primary leading-tight">{data.title}</h3>
+                <p className="text-[11px] md:text-sm text-primary/70 font-medium">
                   {data.subtitle}
                   {groupBy === 'class' && data.unassignedCount !== undefined && (
                     <span className={`ml-3 px-2 py-0.5 rounded text-xs font-bold ${data.unassignedCount === 0
@@ -519,15 +523,15 @@ const TeacherAssignments = () => {
                           !assignments.some(a => a.classSubjectId === cs.id)).length
                       })
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3">
                       {classSubjects
                         .filter(cs => cs.classId === data.classId && 
                           !assignments.some(a => a.classSubjectId === cs.id))
                         .map(cs => (
-                          <div key={cs.id} className="border border-orange-100 bg-orange-50/50 rounded-md p-2.5 flex justify-between items-center group hover:border-orange-200 transition-colors">
-                            <div className="flex flex-col">
-                              <span className="text-sm font-semibold text-gray-800">{cs.subject.name}</span>
-                              <span className="text-[10px] text-orange-500 font-bold uppercase">No Teacher</span>
+                          <div key={cs.id} className="border border-orange-100 bg-orange-50/50 rounded-lg p-2.5 flex justify-between items-center group hover:border-orange-200 transition-colors">
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[13px] font-bold text-gray-800 truncate">{cs.subject.name}</span>
+                              <span className="text-[9px] text-orange-500 font-bold uppercase">Unassigned</span>
                             </div>
                             <button
                               onClick={() => {
@@ -539,9 +543,10 @@ const TeacherAssignments = () => {
                                 setShowForm(true);
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                               }}
-                              className="bg-white text-primary border border-primary/20 p-1.5 rounded hover:bg-primary hover:text-white transition-all text-[10px] font-bold shadow-sm"
+                              className="bg-white text-primary border border-primary/20 w-8 h-8 flex items-center justify-center rounded-full hover:bg-primary hover:text-white transition-all text-[10px] font-bold shadow-sm shrink-0 ml-2"
+                              title="Assign Teacher"
                             >
-                              ASSIGN
+                              +
                             </button>
                           </div>
                         ))}
