@@ -344,22 +344,24 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       return age;
     };
 
-    // Determine term sequence (1, 2, or 3)
+    // Determine term sequence and total terms in session
     const allTerms = await prisma.term.findMany({
       where: { academicSessionId: term.academicSessionId, schoolId: req.schoolId },
       orderBy: { startDate: 'asc' }
     });
+    const totalTerms = allTerms.length;
     const termIndex = allTerms.findIndex(t => t.id === parseInt(termId));
     const termNumber = termIndex + 1;
+    const isFinalTerm = termIndex === totalTerms - 1;
 
-    // Fetch previous terms' results if it's the 3rd term
+    // Fetch previous terms' results if it's the final term
     let previousTermsResults = [];
-    if (termNumber === 3) {
+    if (isFinalTerm && totalTerms > 1) {
       previousTermsResults = await prisma.result.findMany({
         where: {
           studentId: parseInt(studentId),
           academicSessionId: term.academicSessionId,
-          termId: { in: allTerms.slice(0, 2).map(t => t.id) },
+          termId: { in: allTerms.slice(0, termIndex).map(t => t.id) },
           schoolId: req.schoolId
         }
       });
@@ -411,17 +413,28 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       subjects: classSubjects.map(cs => {
         const result = results.find(r => r.subjectId === cs.subjectId);
 
-        // Cumulative data for term 3
+        // Cumulative data for dynamic final term
         let t1Score = null;
         let t2Score = null;
         let cumulativeAvg = null;
 
-        if (termNumber === 3) {
-          const t1 = previousTermsResults.find(r => r.subjectId === cs.subjectId && r.termId === allTerms[0].id);
-          const t2 = previousTermsResults.find(r => r.subjectId === cs.subjectId && r.termId === allTerms[1].id);
-          t1Score = t1 ? t1.totalScore : 0;
-          t2Score = t2 ? t2.totalScore : 0;
-          cumulativeAvg = (t1Score + t2Score + (result ? result.totalScore : 0)) / 3;
+        if (isFinalTerm && totalTerms > 1) {
+          // Map scores from previous terms dynamically
+          // t1Score = term 1, t2Score = term 2 (if exists)
+          const firstTerm = allTerms[0];
+          const secondTerm = totalTerms > 2 ? allTerms[1] : null;
+          
+          const r1 = previousTermsResults.find(r => r.subjectId === cs.subjectId && r.termId === firstTerm.id);
+          t1Score = r1 ? r1.totalScore : 0;
+          
+          if (secondTerm) {
+            const r2 = previousTermsResults.find(r => r.subjectId === cs.subjectId && r.termId === secondTerm.id);
+            t2Score = r2 ? r2.totalScore : 0;
+          }
+
+          const currentTotal = result ? result.totalScore : 0;
+          const sessionTotal = t1Score + (t2Score || 0) + currentTotal;
+          cumulativeAvg = sessionTotal / totalTerms;
         }
 
         return {
@@ -914,14 +927,17 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     const extrasMap = {};
     allReportExtras.forEach(e => { extrasMap[e.studentId] = e; });
 
-    // Fetch previous terms results if term 3
+    // Fetch previous terms results if it's the final term
     let allPreviousResults = [];
-    if (termNumber === 3) {
+    const isFinalTerm = termIndex === allTermsInSession.length - 1;
+    const totalTerms = allTermsInSession.length;
+
+    if (isFinalTerm && totalTerms > 1) {
       allPreviousResults = await prisma.result.findMany({
         where: {
           studentId: { in: studentIds },
           academicSessionId: term.academicSessionId,
-          termId: { in: allTermsInSession.slice(0, 2).map(t => t.id) },
+          termId: { in: allTermsInSession.slice(0, termIndex).map(t => t.id) },
           schoolId: req.schoolId
         }
       });
@@ -1056,13 +1072,24 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         subjects: classSubjects.map(cs => {
           const result = studentResults.filter(r => r.subjectId === cs.subjectId)[0];
           let t1Score = null, t2Score = null, cumulativeAvg = null;
-          if (termNumber === 3) {
-            const prevStudentResults = allPreviousResults.filter(r => r.studentId === student.id);
-            const t1 = prevStudentResults.find(r => r.subjectId === cs.subjectId && r.termId === allTermsInSession[0].id);
-            const t2 = prevStudentResults.find(r => r.subjectId === cs.subjectId && r.termId === allTermsInSession[1].id);
-            t1Score = t1 ? t1.totalScore : 0;
-            t2Score = t2 ? t2.totalScore : 0;
-            cumulativeAvg = (t1Score + t2Score + (result ? result.totalScore : 0)) / 3;
+          if (isFinalTerm && totalTerms > 1) {
+            const prevTermScores = allPreviousResults.filter(r => r.studentId === student.id);
+            
+            // Map scores from previous terms
+            const firstTerm = allTermsInSession[0];
+            const secondTerm = totalTerms > 2 ? allTermsInSession[1] : null;
+            
+            const r1 = prevTermScores.find(r => r.subjectId === cs.subjectId && r.termId === firstTerm.id);
+            t1Score = r1 ? r1.totalScore : 0;
+            
+            if (secondTerm) {
+              const r2 = prevTermScores.find(r => r.subjectId === cs.subjectId && r.termId === secondTerm.id);
+              t2Score = r2 ? r2.totalScore : 0;
+            }
+
+            const currentTotal = result ? result.totalScore : 0;
+            const sessionTotal = t1Score + (t2Score || 0) + currentTotal;
+            cumulativeAvg = sessionTotal / totalTerms;
           }
           return {
             id: cs.subjectId,
@@ -1188,6 +1215,8 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       return res.status(404).json({ error: 'No terms found for this session.' });
     }
 
+    const isFinalTerm = lastTermInSession.isCurrent || (new Date() >= new Date(lastTermInSession.startDate));
+
     // Check permissions
     if (req.user.role === 'student' || req.user.role === 'parent') {
       if (student.classModel) {
@@ -1205,7 +1234,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
         if (!lastTermPublication || !lastTermPublication.isPublished) {
           return res.status(403).json({
             error: 'Result Not Published',
-            message: 'The cumulative report is only available after the third term results have been published.'
+            message: 'The cumulative report is only available after the final term results have been published.'
           });
         }
       }
@@ -1252,9 +1281,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       subjectsMap[cs.subjectId] = {
         id: cs.subjectId,
         name: cs.subject?.name || 'Unknown Subject',
-        term1: 0,
-        term2: 0,
-        term3: 0,
+        termScores: session.terms.map(() => 0), // Dynamic array for scores
         total: 0,
         count: 0
       };
@@ -1287,7 +1314,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       results.forEach(r => {
         if (subjectsMap[r.subjectId]) {
           const score = r.totalScore || 0;
-          subjectsMap[r.subjectId][`term${termIdx}`] = score;
+          subjectsMap[r.subjectId].termScores[i] = score;
           subjectsMap[r.subjectId].total += score;
           subjectsMap[r.subjectId].count += 1;
         }
@@ -1302,7 +1329,12 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
 
     // Convert subjects map to array and calculate cumulative averages
     const cumulativeSubjects = Object.values(subjectsMap).map(s => {
-      const avg = s.count > 0 ? s.total / session.terms.length : 0; // Average over the session's terms
+      // Progressive Average Logic: 
+      // If it's not the final term yet, average by terms-to-date (s.count).
+      // If it's the final term, average by the total session length.
+      const divisor = isFinalTerm ? session.terms.length : (s.count > 0 ? s.count : session.terms.length);
+      const avg = s.count > 0 ? s.total / divisor : 0; 
+      
       return {
         ...s,
         average: avg,
