@@ -19,6 +19,10 @@ const Layout = () => {
   const [isFormMasterDynamic, setIsFormMasterDynamic] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const userId = user?.id;
+  const userRole = user?.role;
+  const studentClassId = user?.student?.classId;
+
   // Check if user has access to Quran features
   useEffect(() => {
     let isMounted = true;
@@ -96,9 +100,6 @@ const Layout = () => {
     };
 
     let interval;
-    const userId = user?.id;
-    const userRole = user?.role;
-    const studentClassId = user?.student?.classId;
 
     if (user?.id) {
       checkQuranAccess();
