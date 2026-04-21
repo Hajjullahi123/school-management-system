@@ -94,6 +94,10 @@ const Layout = () => {
     };
 
     let interval;
+    const userId = user?.id;
+    const userRole = user?.role;
+    const studentClassId = user?.student?.classId;
+
     if (user?.id) {
       checkQuranAccess();
       checkFormMasterStatus();
@@ -116,7 +120,7 @@ const Layout = () => {
       isMounted = false;
       if (interval) clearInterval(interval);
     };
-  }, [user && user.id, user && user.role, user && user.student && user.student.classId]);
+  }, [userId, userRole, studentClassId]);
 
   const handleDashboardExit = () => {
     // Navigate to school home instead of logging out
