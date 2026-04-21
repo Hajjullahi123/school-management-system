@@ -388,22 +388,31 @@ const Attendance = () => {
           <p className="mt-4 text-gray-500 font-medium">Verifying authorization...</p>
         </div>
       ) : user?.role === 'teacher' && classes.length === 0 ? (
-        <div className="bg-white p-12 rounded-lg shadow text-center border border-gray-200">
-          <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <div className="flex flex-col items-center justify-center py-20 px-4 bg-white rounded-2xl shadow-sm border border-gray-100 text-center space-y-6">
+          <div className="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center text-amber-500">
+            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h3 className="text-xl font-bold text-gray-900">Access Restricted</h3>
-          <p className="text-gray-600 mt-2">You are not assigned as a Form Master for any class. Attendance management is reserved for Form Masters and Administrators.</p>
-          <div className="mt-6">
-            <button
-              onClick={() => window.location.href = '/dashboard'}
-              className="text-primary font-bold hover:underline"
-            >
-              Back to Dashboard
-            </button>
+          <div className="max-w-md space-y-2">
+            <h2 className="text-2xl font-black text-gray-900">Attendance Inactive</h2>
+            <p className="text-gray-600 font-medium">
+              You are not currently assigned as a <strong>Form Master</strong>. Attendance management is available once you are assigned to a class.
+            </p>
+            <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100 text-sm text-blue-700">
+              <p className="font-bold mb-1">Information:</p>
+              <ul className="text-left list-disc list-inside space-y-1">
+                <li>Admins must link your profile to a class to enable roll-calls</li>
+                <li>Contact Administration for class teacher assignment</li>
+              </ul>
+            </div>
           </div>
+          <button
+            onClick={() => window.location.href = '/dashboard'}
+            className="px-8 py-3 bg-gray-900 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-gray-800 transition-all active:scale-95"
+          >
+            Return to Dashboard
+          </button>
         </div>
       ) : (
         <>

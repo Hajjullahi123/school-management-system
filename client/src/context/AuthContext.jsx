@@ -9,61 +9,51 @@ export const AuthProvider = ({ children }) => {
 
   const [dashboardUnlocked] = useState(true);
 
-  useEffect(() => {
-    let isMounted = true;
+  const checkAuth = React.useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
 
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('token');
-
-        if (!token) {
-          if (isMounted) {
-            setUser(null);
-            setLoading(false);
-          }
-          return;
-        }
-
-        // Race the API call against an 8-second timeout
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Auth check timed out')), 15000)
-        );
-
-        const response = await Promise.race([
-          api.get('/api/auth/me'),
-          timeoutPromise
-        ]);
-
-        if (response.ok) {
-          const userData = await response.json();
-          if (isMounted) setUser(userData);
-        } else {
-          if (isMounted) {
-            setUser(null);
-            if (response.status === 401 || response.status === 403) {
-              localStorage.removeItem('token');
-              sessionStorage.removeItem('dashboardUnlocked');
-            }
-          }
-        }
-      } catch (error) {
-        if (isMounted) {
-          setUser(null);
-          // Keep token on timeout/network errors so user stays logged in after cold start
-          if (error.message !== 'Auth check timed out' && !error.message.includes('FetchError') && !error.message.includes('Network Error')) {
-            localStorage.removeItem('token');
-            sessionStorage.removeItem('dashboardUnlocked');
-          }
-        }
-      } finally {
-        if (isMounted) setLoading(false);
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
       }
-    };
 
-    checkAuth();
+      // Race the API call against an 8-second timeout
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Auth check timed out')), 15000)
+      );
 
-    return () => { isMounted = false; };
+      const response = await Promise.race([
+        api.get('/api/auth/me'),
+        timeoutPromise
+      ]);
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+      } else {
+        setUser(null);
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem('token');
+          sessionStorage.removeItem('dashboardUnlocked');
+        }
+      }
+    } catch (error) {
+      setUser(null);
+      // Keep token on timeout/network errors so user stays logged in after cold start
+      if (error.message !== 'Auth check timed out' && !error.message.includes('FetchError') && !error.message.includes('Network Error')) {
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('dashboardUnlocked');
+      }
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const demoLogin = async () => {
     // In a real app, this would call a special endpoint or use a guest account
@@ -142,8 +132,12 @@ export const AuthProvider = ({ children }) => {
 
   const isDemo = user?.username === 'demo_admin';
 
+  const refreshUser = async () => {
+    return checkAuth();
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isDemo, login, demoLogin, logout, lockDashboard, unlockDashboard, dashboardUnlocked, loading }}>
+    <AuthContext.Provider value={{ user, isDemo, login, demoLogin, logout, lockDashboard, unlockDashboard, dashboardUnlocked, loading, refreshUser }}>
       {loading ? (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white">
           <div className="w-16 h-16 border-4 border-indigo-500 border-t-white rounded-full animate-spin mb-6"></div>

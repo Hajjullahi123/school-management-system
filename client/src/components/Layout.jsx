@@ -16,6 +16,7 @@ const Layout = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [hasQuranAccess, setHasQuranAccess] = useState(false);
+  const [isFormMasterDynamic, setIsFormMasterDynamic] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   // Check if user has access to Quran features
@@ -65,6 +66,18 @@ const Layout = () => {
           setHasQuranAccess(false);
         }
       }
+    const checkFormMasterStatus = async () => {
+      if (user?.role !== 'teacher') return;
+      try {
+        const response = await api.get('/api/classes/my-class');
+        if (response.ok && isMounted) {
+          const data = await response.json();
+          // If class data is returned, they are a form master
+          setIsFormMasterDynamic(!!data && !!data.id);
+        }
+      } catch (error) {
+        console.error('Error checking Form Master status:', error);
+      }
     };
 
     // Fetch unread messages count
@@ -83,6 +96,7 @@ const Layout = () => {
     let interval;
     if (user?.id) {
       checkQuranAccess();
+      checkFormMasterStatus();
 
       // Secondary role detection
       const hasParentProfile = !!(user?.role === 'parent' || user?.parent);
@@ -115,7 +129,7 @@ const Layout = () => {
   };
 
   const menuItems = [];
-  const isFormMaster = user?.role === 'teacher' && user?.classesAsTeacher && user.classesAsTeacher.length > 0;
+  const isFormMaster = (user?.role === 'teacher' && user?.classesAsTeacher && user.classesAsTeacher.length > 0) || isFormMasterDynamic;
 
 
   // Logic-based Dashboard Link
@@ -387,26 +401,24 @@ const Layout = () => {
       label: 'My Profile'
     });
 
-    if (isFormMaster || user?.role === 'principal' || user?.role === 'admin') {
-      teacherItems.push({
-        path: '/dashboard/my-class',
-        icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-        ),
-        label: 'My Class'
-      });
-      teacherItems.push({
-        path: '/dashboard/attendance',
-        icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h.01M16 12h.01M8 12h.01M8 16h.01M16 16h.01" />
-          </svg>
-        ),
-        label: 'Class Attendance'
-      });
-    }
+    teacherItems.push({
+      path: '/dashboard/my-class',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      ),
+      label: 'My Class'
+    });
+    teacherItems.push({
+      path: '/dashboard/attendance',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h.01M16 12h.01M8 12h.01M8 16h.01M16 16h.01" />
+        </svg>
+      ),
+      label: 'Class Attendance'
+    });
 
     teacherItems.push({
       path: '/dashboard/result-entry',

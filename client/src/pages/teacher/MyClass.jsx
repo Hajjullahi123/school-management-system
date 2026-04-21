@@ -173,20 +173,48 @@ const MyClass = () => {
     );
   }
 
+  if (error && error.includes('not currently assigned')) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4 bg-white rounded-2xl shadow-sm border border-gray-100 text-center space-y-6">
+        <div className="w-24 h-24 bg-primary/5 rounded-full flex items-center justify-center text-primary">
+          <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        </div>
+        <div className="max-w-md space-y-2">
+          <h2 className="text-2xl font-black text-gray-900">No Class Assigned</h2>
+          <p className="text-gray-600 font-medium">
+            You are currently not assigned as a <strong>Form Master</strong> for any class.
+          </p>
+          <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100 text-sm text-blue-700">
+            <p className="font-bold mb-1">How to proceed:</p>
+            <ul className="text-left list-disc list-inside space-y-1">
+              <li>Contact the Principal or Admin to assign you a class</li>
+              <li>Once assigned, you can manage students, results, and remarks here</li>
+              <li>You can still use Result Entry for your specific subjects</li>
+            </ul>
+          </div>
+        </div>
+        <button
+          onClick={() => window.location.href = '/dashboard'}
+          className="px-8 py-3 bg-gray-900 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-gray-800 transition-all active:scale-95"
+        >
+          Return to Hub
+        </button>
+      </div>
+    );
+  }
+
   if (error) {
     return (
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+      <div className="bg-rose-50 border-l-4 border-rose-400 p-4 rounded-xl">
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0 text-rose-400">
+            <svg className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
           </div>
-          <div className="ml-3">
-            <p className="text-sm text-yellow-700">
-              {error}
-            </p>
-          </div>
+          <p className="text-sm text-rose-700 font-bold">{error}</p>
         </div>
       </div>
     );
