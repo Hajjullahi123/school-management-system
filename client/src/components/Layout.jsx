@@ -116,7 +116,7 @@ const Layout = () => {
       isMounted = false;
       if (interval) clearInterval(interval);
     };
-  }, [user?.id, user?.role, user?.student?.classId]);
+  }, [user && user.id, user && user.role, user && user.student && user.student.classId]);
 
   const handleDashboardExit = () => {
     // Navigate to school home instead of logging out
