@@ -66,6 +66,8 @@ const Layout = () => {
           setHasQuranAccess(false);
         }
       }
+    };
+
     const checkFormMasterStatus = async () => {
       if (user?.role !== 'teacher') return;
       try {
