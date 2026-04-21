@@ -14,7 +14,8 @@ export const lazyRetry = (componentImport) => {
 
     try {
       const component = await componentImport();
-      window.sessionStorage.setItem('page-has-been-reloaded', 'false');
+      // DO NOT reset the flag here. If we already reloaded once this session,
+      // we must not reload again for any subsequent chunk failure.
       return component;
     } catch (error) {
       if (!pageHasAlreadyBeenReloaded) {
