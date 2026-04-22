@@ -226,6 +226,7 @@ model School {
   lessonNotes           LessonNote[]
   curriculums           Curriculum[]
   counters              Counter[]
+  departments           Department[]
 }
 
 model AuditLog {
@@ -283,6 +284,11 @@ model User {
   ExamRepository     ExamRepository[]
   LessonPlan         LessonPlan[]
   LessonNote         LessonNote[]
+  departmentId       Int?
+  department         Department?          @relation("DepartmentStaff", fields: [departmentId], references: [id])
+  departmentAsHead   Department?          @relation("DepartmentHead")
+  sentNudges         Nudge[]              @relation("NudgeSender")
+  receivedNudges     Nudge[]              @relation("NudgeReceiver")
 
   @@unique([schoolId, username]) // Username unique PER school
   @@unique([schoolId, email]) // Email unique PER school
@@ -1456,4 +1462,34 @@ model Advert {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+model Department {
+  id        Int      @id @default(autoincrement())
+  schoolId  Int
+  name      String
+  headId    Int?     @unique // Every department can have ONE head
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  head   User?  @relation("DepartmentHead", fields: [headId], references: [id])
+  staff  User[] @relation("DepartmentStaff")
+  nudges Nudge[]
+
+  @@unique([schoolId, name])
+}
+
+model Nudge {
+  id           Int        @id @default(autoincrement())
+  senderId     Int
+  sender       User       @relation("NudgeSender", fields: [senderId], references: [id])
+  receiverId   Int
+  receiver     User       @relation("NudgeReceiver", fields: [receiverId], references: [id])
+  departmentId Int
+  department   Department @relation(fields: [departmentId], references: [id])
+  type         String     // "TARGET_MISSING", "PROGRESS_LAGGING", "GENERAL"
+  message      String?
+  isRead       Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }

@@ -113,6 +113,9 @@ const BulkCertificateView = lazyRetry(() => import('./pages/admin/BulkCertificat
 const BulkTestimonialView = lazyRetry(() => import('./pages/admin/BulkTestimonialView'));
 const HistoryBulkCertificateView = lazyRetry(() => import('./pages/admin/HistoryBulkCertificateView'));
 const HistoryBulkTestimonialView = lazyRetry(() => import('./pages/admin/HistoryBulkTestimonialView'));
+const DepartmentManagement = lazyRetry(() => import('./pages/admin/DepartmentManagement'));
+const DepartmentMonitoring = lazyRetry(() => import('./pages/teacher/DepartmentMonitoring'));
+
 
 const TranscriptVerification = lazyRetry(() => import('./pages/TranscriptVerification'));
 const CertificateVerification = lazyRetry(() => import('./pages/CertificateVerification'));
@@ -589,6 +592,21 @@ function App() {
                   <ExamConfig />
                 </ProtectedRoute>
               } />
+              <Route path="departments" element={
+                <ProtectedRoute roles={['admin', 'principal']}>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <DepartmentManagement />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
+              <Route path="department-monitoring" element={
+                <ProtectedRoute>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <DepartmentMonitoring />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
+
 
               <Route path="superadmin" element={
                 <ProtectedRoute roles={['superadmin']}>

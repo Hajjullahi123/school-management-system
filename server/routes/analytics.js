@@ -692,4 +692,55 @@ router.post('/nudge-attendance', authenticate, authorize(['admin', 'principal', 
   }
 });
 
+// GET /api/analytics/teacher-precision-stats
+router.get('/teacher-precision-stats', authenticate, async (req, res) => {
+  try {
+    const { teacherId } = req.query;
+    if (!teacherId) return res.status(400).json({ error: 'Teacher ID required' });
+
+    const currentTerm = await prisma.term.findFirst({
+      where: { schoolId: req.schoolId, isCurrent: true }
+    });
+
+    // 1. Get classes assigned to teacher
+    const classes = await prisma.class.findMany({
+      where: { schoolId: req.schoolId, classTeacherId: parseInt(teacherId) },
+      include: {
+        students: {
+          select: {
+            id: true,
+            user: { select: { firstName: true, lastName: true } },
+            quranRecords: {
+              where: { schoolId: req.schoolId },
+              orderBy: { createdAt: 'desc' },
+              take: 1
+            }
+          }
+        },
+        _count: {
+          select: {
+            quranTargets: {
+              where: { termId: currentTerm?.id || 0, schoolId: req.schoolId }
+            }
+          }
+        }
+      }
+    });
+
+    const stats = classes.map(cls => ({
+      className: `${cls.name} ${cls.arm || ''}`.trim(),
+      totalStudents: cls.students.length,
+      hasTargets: cls._count.quranTargets > 0,
+      students: cls.students.map(s => ({
+        name: `${s.user.firstName} ${s.user.lastName}`,
+        lastUpdate: s.quranRecords[0]?.createdAt || null
+      }))
+    }));
+
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

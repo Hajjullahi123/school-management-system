@@ -131,6 +131,7 @@ router.post('/login', async (req, res) => {
         mustChangePassword: true,
         photoUrl: true,
         isActive: true,
+        departmentAsHead: { select: { id: true, name: true } },
         school: {
           select: {
             name: true,
@@ -212,7 +213,8 @@ router.post('/login', async (req, res) => {
         schoolName: user.school?.name,
         signatureUrl: user.signatureUrl,
         mustChangePassword: user.mustChangePassword,
-        photoUrl: user.photoUrl
+        photoUrl: user.photoUrl,
+        departmentAsHead: user.departmentAsHead
       }
     });
 
@@ -289,6 +291,7 @@ router.get('/me', authenticate, async (req, res) => {
         id: true, username: true, role: true, schoolId: true,
         firstName: true, lastName: true, email: true,
         signatureUrl: true, mustChangePassword: true, photoUrl: true,
+        departmentAsHead: { select: { id: true, name: true } },
         ...include
       }
     });

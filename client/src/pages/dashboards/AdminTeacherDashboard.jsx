@@ -18,11 +18,50 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
   const [selectedDashboardSession, setSelectedDashboardSession] = useState(null);
   const [alumniCount, setAlumniCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [deptAlerts, setDeptAlerts] = useState(null);
+  const [nudges, setNudges] = useState([]);
 
   useEffect(() => {
     fetchMainData();
     fetchNotices();
+    if (user?.role === 'teacher') {
+      fetchDeptStatus();
+      fetchNudges();
+    }
   }, [user]);
+
+  const fetchNudges = async () => {
+    try {
+      const res = await api.get('/api/departments/my-nudges');
+      if (res.ok) setNudges(await res.json());
+    } catch (e) {}
+  };
+
+  const fetchDeptStatus = async () => {
+    try {
+      const res = await api.get('/api/departments/my-department/status');
+      if (res.ok) {
+        const data = await res.json();
+        const me = data.staff.find(s => s.id === user.id);
+        if (me && (me.needsUpdate || !me.hasTargets)) {
+          setDeptAlerts({
+            deptName: data.departmentName,
+            needsUpdate: me.needsUpdate,
+            noTargets: !me.hasTargets
+          });
+        }
+      }
+    } catch (e) {}
+  };
+
+  const handleClearNudge = async (nudgeId) => {
+    try {
+      const res = await api.post(`/api/departments/nudges/${nudgeId}/read`);
+      if (res.ok) {
+        setNudges(prev => prev.filter(n => n.id !== nudgeId));
+      }
+    } catch (e) {}
+  };
 
   const fetchNotices = async () => {
     try {
@@ -171,6 +210,69 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
           </div>
         </div>
       </div>
+
+      {/* Persistent HOD Nudges */}
+      {nudges.length > 0 && (
+        <div className="space-y-3">
+          {nudges.map(nudge => (
+            <div key={nudge.id} className="bg-amber-50 border-2 border-amber-100 rounded-3xl p-5 shadow-xl shadow-amber-200/20 relative group animate-in slide-in-from-right-4 duration-500">
+               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-amber-500 text-white rounded-2xl flex-shrink-0 shadow-lg">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-[10px] sm:text-xs font-black text-amber-900 uppercase tracking-tight">HOD Direct Instruction</h4>
+                      <p className="text-[8px] sm:text-[10px] font-bold text-amber-700 uppercase mb-1">{nudge.department.name} • {nudge.sender.firstName} {nudge.sender.lastName}</p>
+                      <p className="text-sm font-bold text-gray-800 leading-tight">{nudge.message}</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => handleClearNudge(nudge.id)}
+                    className="w-full sm:w-auto px-6 py-3 bg-white border-2 border-amber-200 text-amber-700 text-[10px] font-black uppercase rounded-2xl hover:bg-amber-100 transition-all shadow-sm active:scale-95 whitespace-nowrap"
+                  >
+                    Acknowledge
+                  </button>
+               </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Department Alerts for Teachers */}
+      {deptAlerts && (
+        <div className="bg-rose-50 border-2 border-rose-100 rounded-3xl p-5 shadow-lg shadow-rose-200/20 relative overflow-hidden animate-bounce-slow">
+           <div className="absolute top-0 right-0 w-24 h-24 bg-rose-200/20 rounded-full -mr-12 -mt-12"></div>
+           <div className="flex items-start gap-4 relative z-10">
+              <div className="p-3 bg-rose-600 text-white rounded-2xl shadow-lg">
+                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                 </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-rose-900 uppercase tracking-tight mb-1">HOD Performance Notice</h3>
+                <p className="text-[10px] font-bold text-rose-700 uppercase tracking-widest mb-3">{deptAlerts.deptName} Oversight Hub</p>
+                
+                <div className="flex flex-wrap gap-2">
+                   {deptAlerts.noTargets && (
+                     <div className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-rose-200">
+                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+                        <span className="text-[9px] font-black text-rose-600 uppercase">Missing Targets</span>
+                     </div>
+                   )}
+                   {deptAlerts.needsUpdate && (
+                     <div className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-rose-200">
+                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+                        <span className="text-[9px] font-black text-rose-600 uppercase">Input Lagging</span>
+                     </div>
+                   )}
+                </div>
+              </div>
+           </div>
+        </div>
+      )}
 
       {/* Grid Stats */}
       <div className={`grid gap-4 ${
