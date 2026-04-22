@@ -876,6 +876,7 @@ Note: Password must be changed on first login.
               </h4>
               <ul className="text-[10px] font-bold text-red-600 space-y-1 list-disc list-inside uppercase tracking-tight">
                 <li>Classes must be created before students can be added</li>
+                <li>Parent/Guardian Name is required</li>
                 <li>Parent/Guardian phone number is recommended for automated account creation</li>
               </ul>
             </div>
@@ -1098,13 +1099,13 @@ Note: Password must be changed on first login.
                 <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">Parent/Guardian Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Parent/Guardian Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Parent/Guardian Name <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       value={formData.parentGuardianName}
                       onChange={(e) => setFormData({ ...formData, parentGuardianName: e.target.value })}
                       className="w-full border rounded-md px-3 py-2"
-                      placeholder="Optional"
+                      required
                     />
                   </div>
                   <div>
@@ -1340,7 +1341,7 @@ Note: Password must be changed on first login.
                                   >
                                     Credentials
                                   </button>
-                                  {!student.parentId && student.parentGuardianPhone && (
+                                  {!student.parentId && (
                                     <button
                                       onClick={() => handleAutoCreateParent(student)}
                                       className="text-green-600 hover:text-green-800 mr-4"

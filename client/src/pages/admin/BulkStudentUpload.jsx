@@ -371,7 +371,7 @@ const BulkStudentUpload = () => {
         <h3 className="font-semibold text-blue-900 mb-3">📋 Upload Instructions</h3>
         <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800">
           <li>Download the Excel (.xlsx) template below</li>
-          <li>Fill in student information (First Name, Last Name, and Class ID are required)</li>
+          <li>Fill in student information (First Name, Last Name, Class ID, and Parent Name are required)</li>
           <li>New: Use the drop-down menus for <strong>Class ID, Gender, Genotype, Disability, and Scholarship</strong></li>
           <li>For the "Class ID" column, simply select the mapped class from the dropdown list menu.</li>
           <li>Upload the Excel file (.xlsx) using the form below (saving as .csv will remove dropdowns)</li>
@@ -562,6 +562,7 @@ const BulkStudentUpload = () => {
               <li><code className="bg-gray-100 px-1">First Name</code></li>
               <li><code className="bg-gray-100 px-1">Last Name</code></li>
               <li><code className="bg-gray-100 px-1">Class ID</code> (select from dropdown)</li>
+              <li><code className="bg-gray-100 px-1">Parent Name</code></li>
             </ul>
           </div>
           <div>

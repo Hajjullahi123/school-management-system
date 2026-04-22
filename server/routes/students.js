@@ -490,9 +490,9 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
     } = req.body;
 
     // Validate required fields
-    if (!firstName || !lastName || !classId) {
+    if (!firstName || !lastName || !classId || !parentGuardianName) {
       console.error('Validation error: Missing required fields');
-      return res.status(400).json({ error: 'First name, last name, and class are required' });
+      return res.status(400).json({ error: 'First name, last name, class, and parent name are required' });
     }
 
     // Validate blood group if provided
