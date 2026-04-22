@@ -36,8 +36,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       { header: 'Genotype (Drop-down)', key: 'genotype', width: 20 },
       { header: 'Disability (Drop-down)', key: 'disability', width: 25 },
       { header: 'Email', key: 'email', width: 25 },
-      { header: 'Parent Name*', key: 'parentName', width: 25 },
-      { header: 'Parent Phone*', key: 'parentPhone', width: 20 },
+      { header: 'Parent Name', key: 'parentName', width: 25 },
+      { header: 'Parent Phone', key: 'parentPhone', width: 20 },
       { header: 'Address', key: 'address', width: 40 },
       { header: 'Date of Birth (YYYY-MM-DD)', key: 'dob', width: 25 },
       { header: 'Scholarship (Yes/No)', key: 'isScholarship', width: 20 }
@@ -134,7 +134,7 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
     [
       '1. Use the "Students Template" sheet to fill in student information.',
       '2. In the "Class ID" column, select the class from the dropdown menu (e.g., "1 - Class Name").',
-      '3. Fields marked with * are required.',
+      '3. Fields marked with * are required (First Name, Last Name, Class ID).',
       '4. Date of Birth must follow the format YYYY-MM-DD (e.g., 2012-10-25).',
       '5. Use the drop-down menus for columns with selections (Class ID, Gender, Genotype, Disability, Scholarship).',
       '6. Save this file as .xlsx before uploading (CSV might lose dropdowns).'
