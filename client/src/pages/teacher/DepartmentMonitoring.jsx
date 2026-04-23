@@ -14,11 +14,13 @@ const DepartmentMonitoring = () => {
   const [customMessage, setCustomMessage] = useState('');
   const [nudgeType, setNudgeType] = useState('GENERAL');
 
-  const [activeTab, setActiveTab] = useState('oversight'); // oversight, resources
+  const [activeTab, setActiveTab] = useState('oversight'); // oversight, resources, subjects
   const [resources, setResources] = useState([]);
   const [resourceLoading, setResourceLoading] = useState(false);
-  const [showResourceModal, setShowResourceModal] = useState(false);
   const [resourceForm, setResourceForm] = useState({ title: '', category: 'CURRICULUM', description: '', fileUrl: '' });
+  
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
+  const [allSubjects, setAllSubjects] = useState([]);
 
   useEffect(() => {
     fetchStatus();
@@ -31,14 +33,25 @@ const DepartmentMonitoring = () => {
   const fetchStatus = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/departments/my-department/status');
-      if (response.ok) {
-        setData(await response.json());
+      const [statusRes, resourceRes, allSubRes] = await Promise.all([
+        api.get('/api/departments/my-department/status'),
+        api.get('/api/departments/resources'),
+        api.get('/api/subjects')
+      ]);
+
+      if (statusRes.ok) {
+        const status = await statusRes.json();
+        setData(status);
+        setSelectedSubjectIds(status.subjects?.map(s => s.id) || []);
       } else {
-        const err = await response.json();
+        const err = await statusRes.json();
         toast.error(err.error || 'Identity Verification Failed');
         setData(null);
       }
+
+      if (resourceRes.ok) setResources(await resourceRes.json());
+      if (allSubRes.ok) setAllSubjects(await allSubRes.json());
+
     } catch (error) {
       toast.error('Strategic Link Interrupted');
       setData(null);
@@ -196,6 +209,10 @@ const DepartmentMonitoring = () => {
                    onClick={() => setActiveTab('resources')}
                    className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'resources' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
                  >Resource Library</button>
+                  <button 
+                    onClick={() => setActiveTab('subjects')}
+                    className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'subjects' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+                  >Subject Jurisdiction</button>
               </div>
 
               {/* AI Insights Bar - Only in Oversight */}
@@ -364,6 +381,60 @@ const DepartmentMonitoring = () => {
                 ))
               )}
            </div>
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="subjects"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-6"
+          >
+            <div className="bg-white p-8 sm:p-10 rounded-[3rem] shadow-xl border border-gray-100">
+               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
+                  <div>
+                     <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">Subject Jurisdiction</h2>
+                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Select which subjects fall under this department's oversight</p>
+                  </div>
+                  <button 
+                    onClick={async () => {
+                       try {
+                          const res = await api.post(`/api/departments/${data.id}/subjects`, { subjectIds: selectedSubjectIds });
+                          if (res.ok) {
+                             toast.success('Department jurisdiction updated successfully');
+                             fetchData();
+                          }
+                       } catch (e) { toast.error('Sync failed'); }
+                    }}
+                    className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all"
+                  >Sync Jurisdiction</button>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {allSubjects.map(sub => (
+                     <label key={sub.id} className={`flex items-center justify-between p-5 rounded-3xl border-2 transition-all cursor-pointer ${selectedSubjectIds.includes(sub.id) ? 'border-indigo-600 bg-indigo-50 shadow-md scale-[1.02]' : 'border-gray-50 hover:border-gray-200 bg-white'}`}>
+                        <div className="flex items-center gap-4">
+                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${selectedSubjectIds.includes(sub.id) ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                              {sub.code || sub.name[0]}
+                           </div>
+                           <div>
+                              <p className="font-black text-gray-900 uppercase tracking-tight text-sm">{sub.name}</p>
+                              <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{sub.code || 'NO CODE'}</p>
+                           </div>
+                        </div>
+                        <input 
+                           type="checkbox"
+                           checked={selectedSubjectIds.includes(sub.id)}
+                           onChange={(e) => {
+                              if (e.target.checked) setSelectedSubjectIds([...selectedSubjectIds, sub.id]);
+                              else setSelectedSubjectIds(selectedSubjectIds.filter(id => id !== sub.id));
+                           }}
+                           className="w-5 h-5 accent-indigo-600 rounded-lg"
+                        />
+                     </label>
+                  ))}
+               </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -80,30 +80,87 @@ router.post('/:id/staff', authenticate, authorize(['admin', 'principal', 'supera
   try {
     const { id } = req.params;
     const { staffIds } = req.body; // Array of user IDs
+    const departmentId = parseInt(id);
+
+    // 1. Get subjects belonging to this department
+    const deptSubjects = await prisma.subject.findMany({
+      where: { departmentId: departmentId },
+      select: { id: true, name: true }
+    });
     
+    if (deptSubjects.length === 0) {
+      return res.status(400).json({ error: 'This department has no subjects assigned yet. Please assign subjects to the department first so we can validate staff eligibility.' });
+    }
+
+    const deptSubjectIds = deptSubjects.map(s => s.id);
+
+    // 2. Validate each staff member's academic load
+    const invalidStaff = [];
+    for (const sid of staffIds) {
+      const assignmentCount = await prisma.teacherAssignment.count({
+        where: {
+          teacherId: sid,
+          classSubject: {
+            subjectId: { in: deptSubjectIds }
+          }
+        }
+      });
+
+      if (assignmentCount === 0) {
+        const user = await prisma.user.findUnique({ 
+          where: { id: sid }, 
+          select: { firstName: true, lastName: true } 
+        });
+        invalidStaff.push(`${user.firstName} ${user.lastName}`);
+      }
+    }
+
+    if (invalidStaff.length > 0) {
+      return res.status(400).json({ 
+        error: `Strategic Assignment Failure: The following teachers are not assigned to any subjects within this department's jurisdiction: ${invalidStaff.join(', ')}. Please assign them to the relevant subjects first.` 
+      });
+    }
+
+    // 3. Perform the update
     await prisma.user.updateMany({
       where: { id: { in: staffIds }, schoolId: req.schoolId },
-      data: { departmentId: parseInt(id) }
+      data: { departmentId: departmentId }
     });
 
-    res.json({ message: 'Staff assigned successfully' });
+    res.json({ message: 'Staff pool successfully synchronized with departmental subjects' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Assign subjects to department
-router.post('/:id/subjects', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
+// Assign subjects to department (Admin/Principal/HOD)
+router.post('/:id/subjects', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { subjectIds } = req.body; // Array of subject IDs
+    const departmentId = parseInt(id);
+
+    // If not admin/principal, check if user is the HOD of THIS department
+    if (!['admin', 'principal', 'superadmin'].includes(req.user.role)) {
+       const department = await prisma.department.findUnique({ where: { id: departmentId } });
+       if (!department || department.headId !== req.user.id) {
+          return res.status(403).json({ error: 'Access denied. You can only manage subjects for your own department.' });
+       }
+    }
     
+    // Unset department for subjects that were previously in this department but not in the new list
     await prisma.subject.updateMany({
-      where: { id: { in: subjectIds }, schoolId: req.schoolId },
-      data: { departmentId: parseInt(id) }
+      where: { departmentId: departmentId, schoolId: req.schoolId, NOT: { id: { in: subjectIds.map(sid => parseInt(sid)) } } },
+      data: { departmentId: null }
     });
 
-    res.json({ message: 'Subjects assigned successfully' });
+    // Set department for new subjects
+    await prisma.subject.updateMany({
+      where: { id: { in: subjectIds.map(sid => parseInt(sid)) }, schoolId: req.schoolId },
+      data: { departmentId: departmentId }
+    });
+
+    res.json({ message: 'Department subjects successfully updated' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -242,10 +299,14 @@ router.post('/auto-nudge/execute', authenticate, async (req, res) => {
          }) : 0;
          const hasTargets = classIds.length === 0 || targetsCount >= classIds.length;
          
-         const lastRecord = await prisma.quranRecord.findFirst({
-            where: { teacherId: teacher.id, schoolId: req.schoolId },
+          const lastRecord = await prisma.quranRecord.findFirst({
+            where: { 
+               teacherId: teacher.id, 
+               schoolId: req.schoolId,
+               subject: { departmentId: department.id }
+            },
             orderBy: { createdAt: 'desc' }
-         });
+          });
          const needsUpdate = lastRecord ? (new Date() - new Date(lastRecord.createdAt) > 86400000 * 3) : true;
 
          if (!hasTargets || needsUpdate) {
@@ -305,7 +366,11 @@ router.get('/benchmarking', authenticate, authorize(['admin', 'principal']), asy
         
         const hasTargets = classIds.length === 0 || targetsCount >= classIds.length;
         const lastRecord = await prisma.quranRecord.findFirst({
-          where: { teacherId: teacher.id, schoolId: req.schoolId },
+          where: { 
+            teacherId: teacher.id, 
+            schoolId: req.schoolId,
+            subject: { departmentId: dept.id } // Only count activity in department subjects
+          },
           orderBy: { createdAt: 'desc' }
         });
         const isUpToDate = lastRecord ? (new Date() - new Date(lastRecord.createdAt) < 86400000 * 3) : false;
@@ -359,12 +424,16 @@ async function fetchDepartmentStatus(headId, schoolId) {
       select: { classId: true }
    }) : [];
 
-   // 2. Fetch Latest records for all staff
-   const latestRecords = await prisma.quranRecord.findMany({
-      where: { teacherId: { in: staffIds }, schoolId },
-      orderBy: { createdAt: 'desc' },
-      distinct: ['teacherId']
-   });
+    // 2. Fetch Latest records for all staff (Filtered by department subjects)
+    const latestRecords = await prisma.quranRecord.findMany({
+       where: { 
+          teacherId: { in: staffIds }, 
+          schoolId,
+          subject: { departmentId: department.id }
+       },
+       orderBy: { createdAt: 'desc' },
+       distinct: ['teacherId']
+    });
 
    const staffStatus = department.staff.map((teacher) => {
       const teacherClassIds = teacher.classesAsTeacher.map(c => c.id);
