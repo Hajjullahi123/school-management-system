@@ -264,12 +264,17 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
     for (const studentData of studentsRaw) {
       try {
         // Validate required fields
-        if (!studentData.firstName || !studentData.lastName || !studentData.classId || !studentData.parentGuardianName) {
+        if (!studentData.firstName || !studentData.lastName || !studentData.classId) {
           results.failed.push({
             data: studentData,
-            error: `Missing required fields: ${!studentData.firstName ? 'firstName ' : ''}${!studentData.lastName ? 'lastName ' : ''}${!studentData.classId ? 'classId ' : ''}${!studentData.parentGuardianName ? 'parentGuardianName' : ''}`.trim()
+            error: `Missing required fields: ${!studentData.firstName ? 'firstName ' : ''}${!studentData.lastName ? 'lastName ' : ''}${!studentData.classId ? 'classId' : ''}`.trim()
           });
           continue;
+        }
+
+        // Fallback for parentGuardianName if missing
+        if (!studentData.parentGuardianName) {
+          studentData.parentGuardianName = `${studentData.lastName} Family`;
         }
 
         let classIdVal = studentData.classId.toString().trim();
@@ -479,12 +484,17 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'princi
     for (const studentData of students) {
       try {
         // Validate required fields
-        if (!studentData.firstName || !studentData.lastName || !studentData.classId || !studentData.parentGuardianName) {
+        if (!studentData.firstName || !studentData.lastName || !studentData.classId) {
           results.failed.push({
             data: studentData,
-            error: 'Missing required fields (firstName, lastName, classId, or parentGuardianName)'
+            error: 'Missing required fields (firstName, lastName, or classId)'
           });
           continue;
+        }
+
+        // Fallback for parentGuardianName if missing
+        if (!studentData.parentGuardianName) {
+          studentData.parentGuardianName = `${studentData.lastName} Family`;
         }
 
         // Check permission for teacher

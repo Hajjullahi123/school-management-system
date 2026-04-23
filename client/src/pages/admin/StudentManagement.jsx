@@ -581,7 +581,7 @@ Note: Password must be changed on first login.
   const handleDownloadPrintableForm = async () => {
     const doc = new jsPDF();
     const primaryColor = schoolSettings?.primaryColor || '#1e40af';
-    
+
     // Add Logo if available
     if (schoolSettings?.logoUrl) {
       try {
@@ -597,12 +597,12 @@ Note: Password must be changed on first login.
     doc.setFontSize(20);
     doc.setTextColor(primaryColor);
     doc.text(schoolSettings?.schoolName || 'SCHOOL NAME', 105, 20, { align: 'center' });
-    
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100);
     doc.text(schoolSettings?.schoolMotto || 'Motto goes here', 105, 26, { align: 'center' });
-    
+
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.text(schoolSettings?.schoolAddress || 'Address, City, State', 105, 32, { align: 'center' });
@@ -615,7 +615,7 @@ Note: Password must be changed on first login.
     // Passport Photo Box
     doc.setDrawColor(180);
     doc.setLineWidth(0.2);
-    doc.rect(160, 7, 30, 32); 
+    doc.rect(160, 7, 30, 32);
     doc.setFontSize(6);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(150);
@@ -628,7 +628,7 @@ Note: Password must be changed on first login.
     doc.setFontSize(14);
     doc.setTextColor(0);
     doc.text('STUDENT ADMISSION / ENROLLMENT FORM', 105, 52, { align: 'center' });
-    
+
     // Instruction
     doc.setFontSize(8);
     doc.setFont('helvetica', 'italic');
@@ -661,20 +661,20 @@ Note: Password must be changed on first login.
     y = drawField('First Name:', y, 170);
     y = drawField('Last Name:', y, 170);
     y = drawField('Middle Name:', y, 170);
-    
+
     // Row 1: Gender & DOB
     doc.setFont('helvetica', 'bold');
     doc.text('Gender (Male/Female):', 20, y);
-    doc.line(20, y+2, 90, y+2);
+    doc.line(20, y + 2, 90, y + 2);
     doc.text('Date of Birth (YYYY-MM-DD):', 100, y);
-    doc.line(100, y+2, 190, y+2);
+    doc.line(100, y + 2, 190, y + 2);
     y += 12;
 
     // Row 2: Genotype & Disability
     doc.text('Genotype (AA, AS, SS, etc):', 20, y);
-    doc.line(20, y+2, 90, y+2);
+    doc.line(20, y + 2, 90, y + 2);
     doc.text('Disability (if any):', 100, y);
-    doc.line(100, y+2, 190, y+2);
+    doc.line(100, y + 2, 190, y + 2);
     y += 12;
 
     y = drawField('Student Email (Optional):', y, 170);
@@ -692,9 +692,9 @@ Note: Password must be changed on first login.
     y += 5;
     y = drawSectionHeader('ACADEMIC INFORMATION', y);
     y = drawField("Intended Class:", y, 170);
-    
+
     doc.text('Scholarship Eligibility (Yes/No):', 20, y);
-    doc.line(20, y+2, 90, y+2);
+    doc.line(20, y + 2, 90, y + 2);
     y += 20;
 
     // Consent section
@@ -702,11 +702,11 @@ Note: Password must be changed on first login.
     doc.setFont('helvetica', 'italic');
     doc.text('Declaration: I hereby certify that the information provided above is true and correct to the best of my knowledge.', 20, y);
     y += 15;
-    
+
     doc.setFont('helvetica', 'bold');
     doc.text('Parent/Guardian Signature: ___________________________', 20, y);
     doc.text('Date: _______________', 140, y);
-    
+
     y += 25;
     doc.setDrawColor(0);
     doc.setLineWidth(0.5);
@@ -842,7 +842,7 @@ Note: Password must be changed on first login.
           </button>
         </div>
       </div>
-      
+
       {/* Action Guidance */}
       <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-6 mb-2 w-full">
         <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
@@ -1099,7 +1099,19 @@ Note: Password must be changed on first login.
                 <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">Parent/Guardian Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Parent/Guardian Name <span className="text-red-500">*</span></label>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Parent/Guardian Name <span className="text-red-500">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, parentGuardianName: formData.lastName })}
+                        className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors"
+                        title="Autofill with student's last name"
+                      >
+                        Same as Surname
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={formData.parentGuardianName}

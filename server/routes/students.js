@@ -490,10 +490,13 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
     } = req.body;
 
     // Validate required fields
-    if (!firstName || !lastName || !classId || !parentGuardianName) {
+    if (!firstName || !lastName || !classId) {
       console.error('Validation error: Missing required fields');
-      return res.status(400).json({ error: 'First name, last name, class, and parent name are required' });
+      return res.status(400).json({ error: 'First name, last name, and class are required' });
     }
+
+    // Fallback for parentGuardianName
+    const effectiveParentName = parentGuardianName || `${lastName} Family`;
 
     // Validate blood group if provided
     if (bloodGroup && !isValidBloodGroup(bloodGroup)) {
@@ -588,7 +591,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
         stateOfOrigin,
         nationality: nationality || 'Nigerian',
         address,
-        parentGuardianName,
+        parentGuardianName: effectiveParentName,
         parentGuardianPhone,
         parentEmail,
         bloodGroup,
