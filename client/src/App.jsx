@@ -11,6 +11,7 @@ import AppUpdateNotifier from './components/AppUpdateNotifier';
 import MarketingHome from './pages/MarketingHome';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import BenchmarkingDashboard from './pages/admin/BenchmarkingDashboard';
 import { lazyRetry } from './utils/lazyRetry';
 
 // Lazy load almost everything else to drastically reduce initial bundle size
@@ -459,6 +460,11 @@ function App() {
               <Route path="promotion-history" element={
                 <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
                   <PromotionHistory />
+                </ProtectedRoute>
+              } />
+              <Route path="benchmarking" element={
+                <ProtectedRoute roles={['admin', 'principal']}>
+                  <BenchmarkingDashboard />
                 </ProtectedRoute>
               } />
               <Route path="academic-setup" element={

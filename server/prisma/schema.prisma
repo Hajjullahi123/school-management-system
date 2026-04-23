@@ -227,6 +227,7 @@ model School {
   curriculums           Curriculum[]
   counters              Counter[]
   departments           Department[]
+  departmentResources   DepartmentResource[]
 }
 
 model AuditLog {
@@ -289,6 +290,7 @@ model User {
   departmentAsHead   Department?          @relation("DepartmentHead")
   sentNudges         Nudge[]              @relation("NudgeSender")
   receivedNudges     Nudge[]              @relation("NudgeReceiver")
+  departmentResources DepartmentResource[]
 
   @@unique([schoolId, username]) // Username unique PER school
   @@unique([schoolId, email]) // Email unique PER school
@@ -1441,6 +1443,24 @@ model Curriculum {
   @@unique([schoolId, subjectId, classId])
 }
 
+model DepartmentResource {
+  id           Int        @id @default(autoincrement())
+  schoolId     Int
+  departmentId Int
+  uploaderId   Int
+  title        String
+  description  String?
+  fileUrl      String
+  fileType     String     // "PDF", "DOCX", "LINK", etc.
+  category     String     @default("OTHER") // "CURRICULUM", "LESSON_PLAN", "PAST_PAPER", "OTHER"
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  school      School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  department  Department @relation(fields: [departmentId], references: [id])
+  uploader    User       @relation(fields: [uploaderId], references: [id])
+}
+
 model Counter {
   id        Int      @id @default(autoincrement())
   schoolId  Int
@@ -1484,6 +1504,7 @@ model Department {
   staff  User[] @relation("DepartmentStaff")
   subjects Subject[]
   nudges Nudge[]
+  resources DepartmentResource[]
 
   @@unique([schoolId, name])
 }

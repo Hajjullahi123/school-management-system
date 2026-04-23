@@ -331,7 +331,7 @@ router.get('/benchmarking', authenticate, authorize(['admin', 'principal']), asy
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-// Centralized helper for status logic (Hardened)
+// Centralized helper for status logic (Hardened & Optimized)
 async function fetchDepartmentStatus(headId, schoolId) {
    const department = await prisma.department.findFirst({
       where: { headId, schoolId },
@@ -346,28 +346,282 @@ async function fetchDepartmentStatus(headId, schoolId) {
    if (!department) return null;
 
    const currentTerm = await prisma.term.findFirst({ where: { schoolId, isCurrent: true } });
-   
-   const staffStatus = await Promise.all(department.staff.map(async (teacher) => {
-      const classIds = teacher.classesAsTeacher.map(c => c.id);
-      const targetsCount = (currentTerm && classIds.length > 0) ? await prisma.quranTarget.count({
-        where: { schoolId, termId: currentTerm.id, classId: { in: classIds } }
-      }) : 0;
-      const lastRecord = await prisma.quranRecord.findFirst({
-        where: { teacherId: teacher.id, schoolId },
-        orderBy: { createdAt: 'desc' }
-      });
+   const now = new Date();
+   const threeDaysAgo = new Date(now.getTime() - 86400000 * 3);
+
+   // Batch fetch all relevant data for the entire staff pool
+   const staffIds = department.staff.map(s => s.id);
+   const classIds = [...new Set(department.staff.flatMap(s => s.classesAsTeacher.map(c => c.id)))];
+
+   // 1. Fetch Targets count per class
+   const targets = currentTerm ? await prisma.quranTarget.findMany({
+      where: { schoolId, termId: currentTerm.id, classId: { in: classIds } },
+      select: { classId: true }
+   }) : [];
+
+   // 2. Fetch Latest records for all staff
+   const latestRecords = await prisma.quranRecord.findMany({
+      where: { teacherId: { in: staffIds }, schoolId },
+      orderBy: { createdAt: 'desc' },
+      distinct: ['teacherId']
+   });
+
+   const staffStatus = department.staff.map((teacher) => {
+      const teacherClassIds = teacher.classesAsTeacher.map(c => c.id);
+      const hasTargets = teacherClassIds.length === 0 || teacherClassIds.every(cid => targets.some(t => t.classId === cid));
+      const lastRecord = latestRecords.find(r => r.teacherId === teacher.id);
+
       return {
         id: teacher.id,
         firstName: teacher.firstName,
         lastName: teacher.lastName,
         photoUrl: teacher.photoUrl,
         role: teacher.role,
-        hasTargets: classIds.length === 0 || targetsCount >= classIds.length,
+        hasTargets,
         lastUpdate: lastRecord ? lastRecord.createdAt : null,
-        needsUpdate: lastRecord ? (new Date() - new Date(lastRecord.createdAt) > 86400000 * 3) : true
+        needsUpdate: lastRecord ? (now - new Date(lastRecord.createdAt) > 86400000 * 3) : true
       };
-   }));
-   return { departmentName: department.name, staff: staffStatus };
+   });
+
+   // Calculate Academic Momentum (Progress vs Time)
+   let momentumScore = 0;
+   let insights = [];
+
+   if (currentTerm && currentTerm.startDate && currentTerm.endDate) {
+     const start = new Date(currentTerm.startDate);
+     const end = new Date(currentTerm.endDate);
+     const termDuration = end - start;
+     const timeElapsed = now - start;
+     const termProgress = Math.min(100, Math.max(0, (timeElapsed / termDuration) * 100));
+
+     // Fetch aggregate activity for department subjects
+     const departmentSubjects = await prisma.subject.findMany({
+        where: { departmentId: department.id },
+        select: { id: true }
+     });
+     const subjectIds = departmentSubjects.map(s => s.id);
+
+     const stats = await prisma.quranRecord.aggregate({
+        where: { 
+          schoolId, 
+          subjectId: { in: subjectIds },
+          createdAt: { gte: start }
+        },
+        _count: { _all: true },
+        _sum: { pages: true }
+     });
+
+     // Strategy: Calculate momentum based on record frequency vs expected frequency
+     // Expected: 1 record per student per week (roughly)
+     const studentCount = await prisma.student.count({ where: { schoolId, classId: { in: classIds } } });
+     const weeksElapsed = Math.max(1, timeElapsed / (86400000 * 7));
+     const expectedRecords = studentCount * weeksElapsed;
+     const actualRecords = stats._count._all || 0;
+     
+     // Activity Momentum Score (0-100)
+     momentumScore = Math.min(100, Math.round((actualRecords / Math.max(1, expectedRecords)) * 100));
+
+     if (momentumScore < 70) {
+        insights.push({
+           type: 'CRITICAL',
+           message: `Academic momentum is lagging at ${momentumScore}%. Staff are recording ${Math.round(expectedRecords - actualRecords)} fewer entries than predicted for this term phase.`
+        });
+     } else if (momentumScore >= 95) {
+        insights.push({
+           type: 'POSITIVE',
+           message: `Department is operating at peak velocity (${momentumScore}%). Consistency in student tracking is exceptional.`
+        });
+     }
+   }
+
+   return { 
+     departmentName: department.name, 
+     staff: staffStatus,
+     momentumScore,
+     insights
+   };
 }
+
+// --- RESOURCE HUB ROUTES ---
+
+// Get resources for a department
+router.get('/:id/resources', authenticate, async (req, res) => {
+  try {
+    const departmentId = parseInt(req.params.id);
+    if (isNaN(departmentId)) return res.status(400).json({ error: 'Invalid department ID' });
+    
+    // Security: Check if user is in department or is admin/principal
+    const user = await prisma.user.findUnique({
+       where: { id: req.user.id },
+       select: { role: true, departmentId: true }
+    });
+    
+    if (user.role !== 'admin' && user.role !== 'principal' && user.departmentId !== departmentId) {
+       return res.status(403).json({ error: 'Access denied to this department\'s resource hub' });
+    }
+
+    const resources = await prisma.departmentResource.findMany({
+      where: { departmentId, schoolId: req.schoolId },
+      include: {
+        uploader: { select: { firstName: true, lastName: true, photoUrl: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(resources);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch departmental library' });
+  }
+});
+
+// Create a resource
+router.post('/:id/resources', authenticate, async (req, res) => {
+  try {
+    const departmentId = parseInt(req.params.id);
+    if (isNaN(departmentId)) return res.status(400).json({ error: 'Invalid department ID' });
+
+    const { title, description, fileUrl, fileType, category } = req.body;
+
+    if (!title || !fileUrl) {
+       return res.status(400).json({ error: 'Resource title and file destination are required' });
+    }
+
+    // Security: Only HOD or Admin/Principal can upload
+    const department = await prisma.department.findFirst({
+       where: { id: departmentId, schoolId: req.schoolId }
+    });
+
+    if (!department) return res.status(404).json({ error: 'Department sequence not found' });
+    
+    if (req.user.role !== 'admin' && req.user.role !== 'principal' && department.headId !== req.user.id) {
+       return res.status(403).json({ error: 'Upload restricted to HOD or Strategic Administrators' });
+    }
+
+    const resource = await prisma.departmentResource.create({
+      data: {
+        schoolId: req.schoolId,
+        departmentId,
+        uploaderId: req.user.id,
+        title,
+        description,
+        fileUrl,
+        fileType: fileType || 'LINK',
+        category: category || 'OTHER'
+      }
+    });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'CREATE_RESOURCE',
+      resource: 'DEPARTMENT_RESOURCE',
+      details: { id: resource.id, title },
+      ipAddress: req.ip
+    });
+
+    res.json(resource);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to synchronize resource' });
+  }
+});
+
+// Delete a resource
+router.delete('/resources/:id', authenticate, async (req, res) => {
+  try {
+    const resourceId = parseInt(req.params.id);
+    if (isNaN(resourceId)) return res.status(400).json({ error: 'Invalid resource ID' });
+    
+    const resource = await prisma.departmentResource.findUnique({
+       where: { id: resourceId }
+    });
+
+    if (!resource || resource.schoolId !== req.schoolId) {
+       return res.status(404).json({ error: 'Resource location invalid' });
+    }
+
+    // Security: Only uploader, HOD, or Admin can delete
+    const department = await prisma.department.findUnique({ where: { id: resource.departmentId } });
+    
+    if (req.user.role !== 'admin' && req.user.role !== 'principal' && resource.uploaderId !== req.user.id && department.headId !== req.user.id) {
+       return res.status(403).json({ error: 'Erasure protocol unauthorized' });
+    }
+
+    await prisma.departmentResource.delete({ where: { id: resourceId } });
+
+    res.json({ message: 'Resource successfully purged from library' });
+  } catch (error) {
+    res.status(500).json({ error: 'Resource erasure failed' });
+  }
+});
+
+// Get benchmarking data for all departments (Principal/Admin only)
+router.get('/benchmarking/all', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const departments = await prisma.department.findMany({
+      where: { schoolId: req.schoolId },
+      include: {
+        head: { select: { firstName: true, lastName: true } },
+        staff: { select: { id: true } },
+        _count: { select: { resources: true } }
+      }
+    });
+
+    const currentTerm = await prisma.term.findFirst({ where: { schoolId: req.schoolId, isCurrent: true } });
+    const now = new Date();
+    const threeDaysAgo = new Date(now.getTime() - 86400000 * 3);
+
+    // 1. Batch fetch ALL recent records for the school to calculate compliance
+    const allStaffIds = departments.flatMap(d => d.staff.map(s => s.id));
+    const recentRecords = await prisma.quranRecord.findMany({
+       where: { 
+         schoolId: req.schoolId, 
+         teacherId: { in: allStaffIds },
+         createdAt: { gte: threeDaysAgo }
+       },
+       select: { teacherId: true },
+       distinct: ['teacherId']
+    });
+
+    // 2. Batch fetch ALL term activity volume
+    const allDepartmentSubjects = await prisma.subject.findMany({
+       where: { schoolId: req.schoolId, departmentId: { not: null } },
+       select: { id: true, departmentId: true }
+    });
+
+    const termActivity = await prisma.quranRecord.groupBy({
+       by: ['subjectId'],
+       where: { 
+         schoolId: req.schoolId,
+         createdAt: currentTerm ? { gte: currentTerm.startDate } : undefined
+       },
+       _count: { _all: true }
+    });
+
+    const benchmarks = departments.map((dept) => {
+       const deptStaffIds = dept.staff.map(s => s.id);
+       const compliantStaffCount = recentRecords.filter(r => deptStaffIds.includes(r.teacherId)).length;
+       const complianceRate = dept.staff.length > 0 ? Math.round((compliantStaffCount / dept.staff.length) * 100) : 100;
+
+       const deptSubjectIds = allDepartmentSubjects.filter(s => s.departmentId === dept.id).map(s => s.id);
+       const activityVolume = termActivity
+          .filter(a => deptSubjectIds.includes(a.subjectId))
+          .reduce((sum, a) => sum + a._count._all, 0);
+
+       return {
+          id: dept.id,
+          name: dept.name,
+          head: dept.head ? `${dept.head.firstName} ${dept.head.lastName}` : 'N/A',
+          staffCount: dept.staff.length,
+          resourceCount: dept._count.resources,
+          complianceRate,
+          activityVolume,
+          status: complianceRate > 80 ? 'OPTIMUM' : (complianceRate > 50 ? 'WARNING' : 'CRITICAL')
+       };
+    });
+
+    res.json(benchmarks);
+  } catch (error) {
+    res.status(500).json({ error: 'Benchmarking engine failure' });
+  }
+});
 
 module.exports = router;
