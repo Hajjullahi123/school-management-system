@@ -21,7 +21,10 @@ router.post('/identify', async (req, res) => {
       where: {
         role: 'superadmin',
         schoolId: null,
-        OR: [{ username: searchId }, { email: searchId }]
+        OR: [
+          { username: { equals: searchId, mode: 'insensitive' } },
+          { email: { equals: searchId, mode: 'insensitive' } }
+        ]
       },
       select: { role: true }
     });
@@ -32,7 +35,12 @@ router.post('/identify', async (req, res) => {
     // If no schoolSlug, do a global user lookup and return their school
     if (!schoolSlug) {
       const globalUser = await prisma.user.findFirst({
-        where: { OR: [{ username: searchId }, { email: searchId }] },
+        where: { 
+          OR: [
+            { username: { equals: searchId, mode: 'insensitive' } }, 
+            { email: { equals: searchId, mode: 'insensitive' } }
+          ] 
+        },
         select: { school: { select: { id: true, name: true, slug: true } } }
       });
       if (globalUser?.school) {
@@ -65,10 +73,10 @@ router.post('/identify', async (req, res) => {
       where: {
         schoolId,
         OR: [
-          { username: searchId },
-          { email: searchId },
-          { student: { admissionNumber: searchId } },
-          { teacher: { staffId: searchId } }
+          { username: { equals: searchId, mode: 'insensitive' } },
+          { email: { equals: searchId, mode: 'insensitive' } },
+          { student: { admissionNumber: { equals: searchId, mode: 'insensitive' } } },
+          { teacher: { staffId: { equals: searchId, mode: 'insensitive' } } }
         ]
       },
       select: { school: { select: { id: true, name: true, slug: true } } }
@@ -104,7 +112,7 @@ router.post('/login', async (req, res) => {
       // Global login (superadmin)
       user = await prisma.user.findFirst({
         where: {
-          username: { equals: searchId },
+          username: { equals: searchId, mode: 'insensitive' },
           schoolId: null,
           role: 'superadmin'
         },
@@ -147,9 +155,10 @@ router.post('/login', async (req, res) => {
         where: {
           schoolId: school.id,
           OR: [
-            { username: searchId },
-            { student: { admissionNumber: searchId } },
-            { teacher: { staffId: searchId } }
+            { username: { equals: searchId, mode: 'insensitive' } },
+            { email: { equals: searchId, mode: 'insensitive' } },
+            { student: { admissionNumber: { equals: searchId, mode: 'insensitive' } } },
+            { teacher: { staffId: { equals: searchId, mode: 'insensitive' } } }
           ]
         },
         select: userSelect
