@@ -17,8 +17,8 @@ const DepartmentMonitoring = () => {
   const [activeTab, setActiveTab] = useState('oversight'); // oversight, resources, subjects
   const [resources, setResources] = useState([]);
   const [resourceLoading, setResourceLoading] = useState(false);
+  const [showResourceModal, setShowResourceModal] = useState(false);
   const [resourceForm, setResourceForm] = useState({ title: '', category: 'CURRICULUM', description: '', fileUrl: '' });
-  
   const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
   const [allSubjects, setAllSubjects] = useState([]);
 
@@ -253,11 +253,11 @@ const DepartmentMonitoring = () => {
                  Execute Compliance Protocol
                </button>
             </div>
-          </div>iv>
+          </div>
       </div>
 
       <AnimatePresence mode="wait">
-        {activeTab === 'oversight' ? (
+        {activeTab === 'oversight' && (
           <motion.div 
             key="oversight"
             initial={{ opacity: 0, y: 20 }}
@@ -322,7 +322,9 @@ const DepartmentMonitoring = () => {
               ))
             )}
           </motion.div>
-        ) : (
+        )}
+
+        {activeTab === 'resources' && (
           <motion.div 
             key="resources"
             initial={{ opacity: 0, y: 20 }}
@@ -382,7 +384,9 @@ const DepartmentMonitoring = () => {
               )}
            </div>
           </motion.div>
-        ) : (
+        )}
+
+        {activeTab === 'subjects' && (
           <motion.div 
             key="subjects"
             initial={{ opacity: 0, y: 20 }}
@@ -399,10 +403,10 @@ const DepartmentMonitoring = () => {
                   <button 
                     onClick={async () => {
                        try {
-                          const res = await api.post(`/api/departments/${data.id}/subjects`, { subjectIds: selectedSubjectIds });
+                          const res = await api.post(`/api/departments/${data.departmentId}/subjects`, { subjectIds: selectedSubjectIds });
                           if (res.ok) {
                              toast.success('Department jurisdiction updated successfully');
-                             fetchData();
+                             fetchStatus();
                           }
                        } catch (e) { toast.error('Sync failed'); }
                     }}
