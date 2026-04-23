@@ -60,7 +60,8 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
       data: {
         schoolId: req.schoolId,
         name: name.trim(),
-        code: code?.trim() === '' ? null : code?.trim()
+        code: code?.trim() === '' ? null : code?.trim(),
+        departmentId: req.body.departmentId ? parseInt(req.body.departmentId) : null
       }
     });
 
@@ -99,7 +100,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
 router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, code } = req.body;
+    const { name, code, departmentId } = req.body;
     const subject = await prisma.subject.update({
       where: {
         id: parseInt(id),
@@ -107,7 +108,8 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
       },
       data: {
         name,
-        code: code?.trim() === '' ? null : code
+        code: code?.trim() === '' ? null : code,
+        departmentId: departmentId ? parseInt(departmentId) : null
       }
     });
     res.json(subject);

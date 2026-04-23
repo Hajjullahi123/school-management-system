@@ -231,7 +231,14 @@ const QuranProgress = () => {
                       <span className="px-3 py-1 bg-white/20 rounded-full text-[9px] font-black uppercase tracking-widest">{target.period}</span>
                       <span className="text-[9px] font-bold opacity-60">{new Date(target.endDate).toLocaleDateString()}</span>
                     </div>
-                    <h3 className="text-lg font-bold mb-4">{target.surahStart || `Juz ${target.juzStart}`} to {target.surahEnd || 'End'}</h3>
+                    <h3 className="text-lg font-bold mb-4">
+                      {target.surahStart || `Juz ${target.juzStart}`} to {target.surahEnd || 'End'}
+                      {target.subject && (
+                        <span className="ml-2 px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded text-[9px] uppercase font-black">
+                          {target.subject.name}
+                        </span>
+                      )}
+                    </h3>
                     <div className="space-y-4">
                       <div className="flex justify-between text-[10px] font-black uppercase opacity-60">
                          <span>Progress</span>
@@ -276,7 +283,14 @@ const QuranProgress = () => {
                        <div className="flex justify-between items-start mb-4">
                          <div>
                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{new Date(record.date).toLocaleDateString()}</p>
-                           <h3 className="text-lg font-black text-slate-900 mt-1">{record.surah || `Juz ${record.juz}`}</h3>
+                           <h3 className="text-lg font-black text-slate-900 mt-1">
+                             {record.surah || `Juz ${record.juz}`}
+                             {record.subject && (
+                               <span className="ml-2 px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[9px] uppercase font-black border border-emerald-100">
+                                 {record.subject.name}
+                               </span>
+                             )}
+                           </h3>
                          </div>
                          <span className={`px-4 py-1 rounded-full text-[10px] font-black uppercase ${getStatusColor(record.status)}`}>
                            {record.status}
@@ -460,7 +474,12 @@ const QuranReportCard = ({ student, records, type, schoolSettings }) => {
               {filteredRecords.map(record => (
                 <tr key={record.id} className="text-sm font-bold">
                   <td className="p-3 text-slate-600 border border-black">{new Date(record.date).toLocaleDateString()}</td>
-                  <td className="p-3 text-slate-900 border border-black">{record.surah || `Juz ${record.juz}`} ({record.type})</td>
+                  <td className="p-3 text-slate-900 border border-black">
+                    {record.surah || `Juz ${record.juz}`} ({record.type})
+                    {record.subject && (
+                      <div className="text-[9px] uppercase font-black text-emerald-600">[{record.subject.name}]</div>
+                    )}
+                  </td>
                   <td className="p-3 text-slate-500 border border-black">{record.ayahStart}-{record.ayahEnd || record.ayahStart}</td>
                   <td className="p-3 text-center border border-black">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${

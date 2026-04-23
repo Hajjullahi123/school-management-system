@@ -18,6 +18,9 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'superadmin']), a
         },
         staff: {
           select: { id: true, firstName: true, lastName: true, departmentId: true }
+        },
+        subjects: {
+          select: { id: true, name: true, code: true }
         }
       }
     });
@@ -30,7 +33,7 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'superadmin']), a
 // Create a new department
 router.post('/', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
-    const { name, headId } = req.body;
+    const { name, headId, subjectIds } = req.body;
     
     // Check if name exists
     const existing = await prisma.department.findFirst({
@@ -50,7 +53,10 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'superadmin']), 
       data: {
         name,
         headId: headId ? parseInt(headId) : null,
-        schoolId: req.schoolId
+        schoolId: req.schoolId,
+        subjects: subjectIds && subjectIds.length > 0 ? {
+          connect: subjectIds.map(id => ({ id: parseInt(id) }))
+        } : undefined
       }
     });
 
@@ -81,6 +87,67 @@ router.post('/:id/staff', authenticate, authorize(['admin', 'principal', 'supera
     });
 
     res.json({ message: 'Staff assigned successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Assign subjects to department
+router.post('/:id/subjects', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subjectIds } = req.body; // Array of subject IDs
+    
+    await prisma.subject.updateMany({
+      where: { id: { in: subjectIds }, schoolId: req.schoolId },
+      data: { departmentId: parseInt(id) }
+    });
+
+    res.json({ message: 'Subjects assigned successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update a department
+router.put('/:id', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, headId, subjectIds } = req.body;
+
+    // Check if staff is already an HOD elsewhere
+    if (headId) {
+      const existingHOD = await prisma.department.findFirst({
+        where: { 
+          schoolId: req.schoolId, 
+          headId: parseInt(headId),
+          NOT: { id: parseInt(id) }
+        }
+      });
+      if (existingHOD) return res.status(400).json({ error: 'Selected staff is already an HOD of another department' });
+    }
+
+    const department = await prisma.department.update({
+      where: { id: parseInt(id), schoolId: req.schoolId },
+      data: {
+        name,
+        headId: headId ? parseInt(headId) : null,
+        subjects: subjectIds ? {
+          set: subjectIds.map(sid => ({ id: parseInt(sid) }))
+        } : undefined
+      }
+    });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'UPDATE_DEPARTMENT',
+      resource: 'DEPARTMENT',
+      details: { id, name, headId },
+      ipAddress: req.ip
+    });
+
+    res.json(department);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

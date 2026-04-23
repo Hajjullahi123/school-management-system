@@ -190,8 +190,14 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const handleDeleteSchool = async (id, name) => {
-    if (!window.confirm(`Are you absolutely sure you want to delete ${name}? This will wipe ALL data for this school.`)) return;
+  const handleDeleteSchool = async (id, name, slug) => {
+    const confirmation = window.prompt(`Are you absolutely sure you want to delete ${name}? This will wipe ALL data for this school.\n\nType the school slug "${slug}" to confirm:`);
+    
+    if (confirmation !== slug) {
+      if (confirmation !== null) toast.error('Incorrect slug. Deletion cancelled.');
+      return;
+    }
+
     try {
       await apiCall(`/api/superadmin/schools/${id}`, { method: 'DELETE' });
       toast.success('School deleted');
@@ -378,7 +384,7 @@ const SuperAdminDashboard = () => {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={() => window.location.href = '/dashboard/license-management'}
+            onClick={() => navigate('/dashboard/license-management')}
             className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200"
           >
             <FiKey className="mr-2" /> License <span className="hidden sm:inline">Management</span>
@@ -627,7 +633,7 @@ const SuperAdminDashboard = () => {
                         <FiPower className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteSchool(s.id, s.name)}
+                        onClick={() => handleDeleteSchool(s.id, s.name, s.slug)}
                         className="flex-1 min-w-[40px] p-2.5 flex items-center justify-center text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-100 shadow-sm transition-all"
                         title="Delete"
                       >
@@ -738,7 +744,7 @@ const SuperAdminDashboard = () => {
                               <FiPower className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDeleteSchool(s.id, s.name)}
+                              onClick={() => handleDeleteSchool(s.id, s.name, s.slug)}
                               className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-rose-100"
                               title="Delete School"
                             >

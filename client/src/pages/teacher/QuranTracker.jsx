@@ -32,6 +32,7 @@ const QuranTracker = () => {
   const [targets, setTargets] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [terms, setTerms] = useState([]);
+  const [quranSubjects, setQuranSubjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showTargetModal, setShowTargetModal] = useState(false);
   const [showRecordModal, setShowRecordModal] = useState(false);
@@ -67,7 +68,8 @@ const QuranTracker = () => {
     pagesCount: '',
     description: '',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    subjectId: ''
   });
 
   const [recordForm, setRecordForm] = useState({
@@ -80,13 +82,28 @@ const QuranTracker = () => {
     ayahEnd: '',
     pages: '',
     status: 'Good',
-    comments: ''
+    comments: '',
+    subjectId: ''
   });
 
   useEffect(() => {
     fetchClasses();
     fetchCurrentSessionAndTerm();
+    fetchQuranSubjects();
   }, []);
+
+  const fetchQuranSubjects = async () => {
+    try {
+      const resp = await api.get('/api/subjects');
+      if (resp.ok) {
+        const allSubjects = await resp.json();
+        // Look for subjects that are in a department named "Quran" or just show all for flexibility
+        setQuranSubjects(allSubjects);
+      }
+    } catch (error) {
+      console.error('Error fetching Quran subjects:', error);
+    }
+  };
 
   const fetchCurrentSessionAndTerm = async () => {
     try {
@@ -213,7 +230,8 @@ const QuranTracker = () => {
       ayahEnd: record.ayahEnd || '',
       pages: record.pages || '',
       status: record.status,
-      comments: record.comments || ''
+      comments: record.comments || '',
+      subjectId: record.subjectId || ''
     });
     setShowRecordModal(true);
   };
@@ -331,7 +349,8 @@ const QuranTracker = () => {
       pagesCount: '',
       description: '',
       startDate: '',
-      endDate: ''
+      endDate: '',
+      subjectId: ''
     });
   };
 
@@ -346,7 +365,8 @@ const QuranTracker = () => {
       ayahEnd: '',
       pages: '',
       status: 'Good',
-      comments: ''
+      comments: '',
+      subjectId: ''
     });
   };
 
@@ -498,6 +518,13 @@ const QuranTracker = () => {
                               </svg>
                             </button>
                           </div>
+                          {target.subject && (
+                            <div className="mb-2">
+                              <span className="text-[10px] font-black bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                                {target.subject.name}
+                              </span>
+                            </div>
+                          )}
                           <div className="space-y-2 text-sm">
                             {target.surahStart && (
                               <p><span className="font-medium">Surah:</span> {target.surahStart} {target.surahEnd && `- ${target.surahEnd}`}</p>
@@ -581,6 +608,11 @@ const QuranTracker = () => {
                               <span className="text-[10px] text-gray-400 font-medium px-2 py-0.5 bg-gray-50 rounded-full border">
                                 {record.type}
                               </span>
+                              {record.subject && (
+                                <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full uppercase tracking-tighter border border-emerald-100">
+                                  {record.subject.name}
+                                </span>
+                              )}
                             </div>
                             <div className="text-sm text-gray-700">
                               {record.surah && <span className="mr-3">Surah: <span className="font-medium">{record.surah}</span></span>}
@@ -707,6 +739,11 @@ const QuranTracker = () => {
                                     {student.quranRecords[0].status}
                                   </span>
                                 )}
+                                {student.quranRecords[0]?.subject && (
+                                  <div className="mt-1 text-[9px] font-black text-gray-400 uppercase tracking-tighter">
+                                    {student.quranRecords[0].subject.name}
+                                  </div>
+                                )}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-right">
                                 <button
@@ -822,6 +859,20 @@ const QuranTracker = () => {
                     <option value="termly">Termly</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Subject (Optional)</label>
+                <select
+                  value={targetForm.subjectId}
+                  onChange={(e) => setTargetForm({ ...targetForm, subjectId: e.target.value })}
+                  className="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 outline-none"
+                >
+                  <option value="">-- Generic Quran Tracking --</option>
+                  {quranSubjects.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="bg-gray-50 p-6 rounded-2xl space-y-4">
@@ -983,6 +1034,20 @@ const QuranTracker = () => {
                       {SURAH_LIST.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Subject (Optional)</label>
+                  <select
+                    value={recordForm.subjectId}
+                    onChange={(e) => setRecordForm({ ...recordForm, subjectId: e.target.value })}
+                    className="w-full border-0 rounded-xl px-4 py-3 bg-white shadow-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                  >
+                    <option value="">-- Generic Quran Tracking --</option>
+                    {quranSubjects.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
@@ -1227,7 +1292,12 @@ const QuranReportCard = ({ student, records, type, schoolSettings, teacher }) =>
               {filteredRecords.map(record => (
                 <tr key={record.id} className="text-sm font-bold">
                   <td className="p-3 text-slate-600 border border-black">{new Date(record.date).toLocaleDateString()}</td>
-                  <td className="p-3 text-slate-900 border border-black">{record.surah || `Juz ${record.juz}`} ({record.type})</td>
+                  <td className="p-3 text-slate-900 border border-black">
+                    {record.surah || `Juz ${record.juz}`} ({record.type})
+                    {record.subject && (
+                      <div className="text-[9px] uppercase font-black text-emerald-600">[{record.subject.name}]</div>
+                    )}
+                  </td>
                   <td className="p-3 text-slate-500 border border-black">{record.ayahStart}-{record.ayahEnd || record.ayahStart}</td>
                   <td className="p-3 text-center border border-black">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${

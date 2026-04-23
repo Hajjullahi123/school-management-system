@@ -20,6 +20,9 @@ router.get('/targets/:classId', authenticate, async (req, res) => {
 
     const targets = await prisma.quranTarget.findMany({
       where,
+      include: {
+        subject: { select: { name: true } }
+      },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -33,7 +36,7 @@ router.get('/targets/:classId', authenticate, async (req, res) => {
 // Create a target (Admin or Teacher)
 router.post('/targets', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
   try {
-    const { classId, sessionId, termId, targetType, period, juzStart, juzEnd, surahStart, surahEnd, ayahStart, ayahEnd, pagesCount, description, startDate, endDate } = req.body;
+    const { classId, sessionId, termId, targetType, period, juzStart, juzEnd, surahStart, surahEnd, ayahStart, ayahEnd, pagesCount, description, startDate, endDate, subjectId } = req.body;
 
     if (!classId || !sessionId || !termId || !targetType || !period || !startDate || !endDate) {
       return res.status(400).json({ error: 'Missing required configuration fields' });
@@ -56,7 +59,8 @@ router.post('/targets', authenticate, authorize(['admin', 'teacher']), async (re
         pagesCount: pagesCount ? parseInt(pagesCount) : null,
         description,
         startDate: new Date(startDate),
-        endDate: new Date(endDate)
+        endDate: new Date(endDate),
+        subjectId: subjectId ? parseInt(subjectId) : null
       }
     });
 
@@ -104,6 +108,9 @@ router.get('/records/:studentId', authenticate, async (req, res) => {
       include: {
         teacher: {
           select: { firstName: true, lastName: true }
+        },
+        subject: {
+          select: { name: true }
         }
       },
       orderBy: { date: 'desc' }
@@ -119,7 +126,7 @@ router.get('/records/:studentId', authenticate, async (req, res) => {
 // Add a progress record (Teacher)
 router.post('/records', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
   try {
-    const { studentId, date, type, juz, surah, ayahStart, ayahEnd, pages, status, comments } = req.body;
+    const { studentId, date, type, juz, surah, ayahStart, ayahEnd, pages, status, comments, subjectId } = req.body;
 
     if (!studentId || !date || !type || !status) {
       return res.status(400).json({ error: 'Student, date, type and status are required' });
@@ -138,7 +145,8 @@ router.post('/records', authenticate, authorize(['admin', 'teacher']), async (re
         ayahEnd: ayahEnd ? parseInt(ayahEnd) : null,
         pages: pages ? parseFloat(pages) : null,
         status,
-        comments
+        comments,
+        subjectId: subjectId ? parseInt(subjectId) : null
       }
     });
 
@@ -161,7 +169,7 @@ router.post('/records', authenticate, authorize(['admin', 'teacher']), async (re
 // Add bulk progress records (Teacher)
 router.post('/records/bulk', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
   try {
-    const { studentIds, date, type, juz, surah, ayahStart, ayahEnd, pages, status, comments } = req.body;
+    const { studentIds, date, type, juz, surah, ayahStart, ayahEnd, pages, status, comments, subjectId } = req.body;
 
     if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0 || !date || !type || !status) {
       return res.status(400).json({ error: 'Students, date, type and status are required' });
@@ -179,7 +187,8 @@ router.post('/records/bulk', authenticate, authorize(['admin', 'teacher']), asyn
       ayahEnd: ayahEnd ? parseInt(ayahEnd) : null,
       pages: pages ? parseFloat(pages) : null,
       status,
-      comments
+      comments,
+      subjectId: subjectId ? parseInt(subjectId) : null
     }));
 
     const records = await prisma.quranRecord.createMany({
@@ -225,6 +234,9 @@ router.get('/class-summary/:classId', authenticate, async (req, res) => {
               lte: endDate ? new Date(endDate) : undefined
             }
           },
+          include: {
+            subject: { select: { name: true } }
+          },
           orderBy: { date: 'desc' }
         }
       }
@@ -241,7 +253,7 @@ router.get('/class-summary/:classId', authenticate, async (req, res) => {
 router.put('/records/:id', authenticate, authorize(['admin', 'teacher']), async (req, res) => {
   try {
     const { id } = req.params;
-    const { type, juz, surah, ayahStart, ayahEnd, pages, status, comments, date } = req.body;
+    const { type, juz, surah, ayahStart, ayahEnd, pages, status, comments, date, subjectId } = req.body;
 
     const record = await prisma.quranRecord.update({
       where: { 
@@ -257,7 +269,8 @@ router.put('/records/:id', authenticate, authorize(['admin', 'teacher']), async 
         ayahEnd: ayahEnd ? parseInt(ayahEnd) : undefined,
         pages: pages ? parseFloat(pages) : undefined,
         status,
-        comments
+        comments,
+        subjectId: subjectId ? parseInt(subjectId) : undefined
       }
     });
 

@@ -7,12 +7,16 @@ const DepartmentManagement = () => {
   const [departments, setDepartments] = useState([]);
   const [benchmarks, setBenchmarks] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showStaffModal, setShowStaffModal] = useState(false);
+  const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [currentDept, setCurrentDept] = useState(null);
-  const [formData, setFormData] = useState({ name: '', headId: '' });
+  const [formData, setFormData] = useState({ name: '', headId: '', subjectIds: [] });
   const [selectedStaffIds, setSelectedStaffIds] = useState([]);
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -22,9 +26,10 @@ const DepartmentManagement = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [deptRes, staffRes] = await Promise.all([
+      const [deptRes, staffRes, subRes] = await Promise.all([
         api.get('/api/departments'),
-        api.get('/api/users?role=teacher')
+        api.get('/api/users?role=teacher'),
+        api.get('/api/subjects')
       ]);
 
       if (deptRes.ok) {
@@ -37,6 +42,14 @@ const DepartmentManagement = () => {
               return { ...s, currentDept: dept ? dept.name : null };
             });
             setStaff(enrichedStaff);
+         }
+         if (subRes.ok) {
+            const subjectsData = await subRes.json();
+            const enrichedSubjects = subjectsData.map(s => {
+              const dept = depts.find(d => d.subjects.some(m => m.id === s.id));
+              return { ...s, currentDept: dept ? dept.name : null };
+            });
+            setSubjects(enrichedSubjects);
          }
       }
     } catch (error) {
@@ -56,19 +69,33 @@ const DepartmentManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post('/api/departments', formData);
+      const url = isEditing ? `/api/departments/${currentDept.id}` : '/api/departments';
+      const method = isEditing ? 'put' : 'post';
+      const response = await api[method](url, formData);
       if (response.ok) {
-        toast.success('Department created successfully');
+        toast.success(isEditing ? 'Department updated successfully' : 'Department created successfully');
         setShowModal(false);
-        setFormData({ name: '', headId: '' });
+        setFormData({ name: '', headId: '', subjectIds: [] });
+        setIsEditing(false);
         fetchData();
       } else {
         const err = await response.json();
-        toast.error(err.error || 'Failed to create department');
+        toast.error(err.error || 'Failed to process department');
       }
     } catch (error) {
       toast.error('Network error');
     }
+  };
+
+  const handleEdit = (dept) => {
+    setCurrentDept(dept);
+    setFormData({
+      name: dept.name,
+      headId: dept.headId || '',
+      subjectIds: dept.subjects.map(s => s.id) || []
+    });
+    setIsEditing(true);
+    setShowModal(true);
   };
 
   const handleAssignStaff = async () => {
@@ -83,6 +110,21 @@ const DepartmentManagement = () => {
       }
     } catch (error) {
       toast.error('Failed to assign staff');
+    }
+  };
+
+  const handleAssignSubjects = async () => {
+    try {
+      const response = await api.post(`/api/departments/${currentDept.id}/subjects`, {
+        subjectIds: selectedSubjectIds
+      });
+      if (response.ok) {
+        toast.success('Subjects assigned successfully');
+        setShowSubjectModal(false);
+        fetchData();
+      }
+    } catch (error) {
+      toast.error('Failed to assign subjects');
     }
   };
 
@@ -111,7 +153,11 @@ const DepartmentManagement = () => {
               <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Structure & Oversight Control</p>
             </div>
             <button
-              onClick={() => setShowModal(true)}
+              onClick={() => {
+                setIsEditing(false);
+                setFormData({ name: '', headId: '', subjectIds: [] });
+                setShowModal(true);
+              }}
               className="bg-primary text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
             >
               Create Department
@@ -163,17 +209,48 @@ const DepartmentManagement = () => {
                           <p className="text-sm font-bold text-gray-700">{dept._count?.staff || 0} Members</p>
                         </div>
                       </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.168.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Subjects</p>
+                          <p className="text-sm font-bold text-gray-700">{dept.subjects?.length || 0} Managed</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                      <button
+                        onClick={() => {
+                          setCurrentDept(dept);
+                          setSelectedStaffIds(dept.staff.map(m => m.id) || []);
+                          setShowStaffModal(true);
+                        }}
+                        className="bg-gray-50 text-gray-600 py-3 rounded-2xl font-black text-[10px] uppercase tracking-tighter hover:bg-primary hover:text-white transition-all border border-gray-100"
+                      >
+                        Team
+                      </button>
+                      <button
+                        onClick={() => {
+                          setCurrentDept(dept);
+                          setSelectedSubjectIds(dept.subjects.map(s => s.id) || []);
+                          setShowSubjectModal(true);
+                        }}
+                        className="bg-gray-50 text-gray-600 py-3 rounded-2xl font-black text-[10px] uppercase tracking-tighter hover:bg-emerald-600 hover:text-white transition-all border border-gray-100"
+                      >
+                        Subjects
+                      </button>
                     </div>
 
                     <button
-                      onClick={() => {
-                        setCurrentDept(dept);
-                        setSelectedStaffIds(dept.staff.map(m => m.id) || []);
-                        setShowStaffModal(true);
-                      }}
-                      className="w-full bg-gray-50 text-gray-600 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-primary hover:text-white transition-all border border-gray-100"
+                      onClick={() => handleEdit(dept)}
+                      className="w-full bg-gray-900 text-white py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:brightness-125 transition-all"
                     >
-                      Manage Membership
+                      Configure Hub
                     </button>
                    </div>
                 </div>
@@ -227,7 +304,7 @@ const DepartmentManagement = () => {
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl relative border border-gray-100">
-            <h2 className="text-2xl font-black text-gray-900 mb-8 uppercase tracking-tighter">New Department</h2>
+            <h2 className="text-2xl font-black text-gray-900 mb-8 uppercase tracking-tighter">{isEditing ? 'Configure' : 'New'} Department</h2>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Dept Name</label>
@@ -256,8 +333,8 @@ const DepartmentManagement = () => {
               </div>
 
               <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 font-black uppercase text-xs tracking-widest text-gray-400">Cancel</button>
-                <button type="submit" className="flex-2 bg-primary text-white py-4 px-8 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-105">Create Hub</button>
+                <button type="button" onClick={() => { setShowModal(false); setIsEditing(false); }} className="flex-1 py-4 font-black uppercase text-xs tracking-widest text-gray-400">Cancel</button>
+                <button type="submit" className="flex-2 bg-primary text-white py-4 px-8 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-105">{isEditing ? 'Update Hub' : 'Create Hub'}</button>
               </div>
             </form>
           </div>
@@ -299,6 +376,46 @@ const DepartmentManagement = () => {
             <div className="flex gap-4 border-t border-gray-100 pt-8">
               <button type="button" onClick={() => setShowStaffModal(false)} className="flex-1 py-4 font-black uppercase text-xs tracking-widest text-gray-400">Close</button>
               <button onClick={handleAssignStaff} className="flex-2 bg-primary text-white py-4 px-8 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-105">Sync Members</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSubjectModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-2xl p-10 shadow-2xl relative border border-gray-100 max-h-[90vh] flex flex-col">
+            <h2 className="text-2xl font-black text-gray-900 mb-2 uppercase tracking-tighter">Assign Subjects</h2>
+            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mb-8">Department: {currentDept?.name}</p>
+             <div className="flex-1 overflow-y-auto mb-8 pr-2 space-y-2 p-2">
+               {subjects.map(s => (
+                 <label key={s.id} className={`flex items-center justify-between p-3 sm:p-4 rounded-2xl border-2 transition-all cursor-pointer ${selectedSubjectIds.includes(s.id) ? 'border-emerald-500 bg-emerald-50 shadow-md scale-[1.02]' : 'border-gray-50 hover:border-gray-200 bg-white'}`}>
+                   <div className="flex items-center gap-3 sm:gap-4">
+                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-[10px] sm:text-xs">
+                       {s.code || s.name[0]}
+                     </div>
+                     <div>
+                       <p className="font-black text-gray-900 uppercase text-[10px] sm:text-xs tracking-tight">{s.name}</p>
+                       <div className="flex items-center gap-2">
+                         <p className="text-[8px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Code: {s.code || 'N/A'}</p>
+                         {s.currentDept && <span className="text-[7px] sm:text-[8px] font-black bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-tighter">In: {s.currentDept}</span>}
+                       </div>
+                     </div>
+                   </div>
+                   <input
+                     type="checkbox"
+                     checked={selectedSubjectIds.includes(s.id)}
+                     onChange={(e) => {
+                       if (e.target.checked) setSelectedSubjectIds([...selectedSubjectIds, s.id]);
+                       else setSelectedSubjectIds(selectedSubjectIds.filter(id => id !== s.id));
+                     }}
+                     className="w-5 h-5 sm:w-6 sm:h-6 accent-emerald-500 rounded-lg"
+                   />
+                 </label>
+               ))}
+             </div>
+            <div className="flex gap-4 border-t border-gray-100 pt-8">
+              <button type="button" onClick={() => setShowSubjectModal(false)} className="flex-1 py-4 font-black uppercase text-xs tracking-widest text-gray-400">Close</button>
+              <button onClick={handleAssignSubjects} className="flex-2 bg-emerald-600 text-white py-4 px-8 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-emerald-600/20 transition-all hover:scale-105">Sync Subjects</button>
             </div>
           </div>
         </div>

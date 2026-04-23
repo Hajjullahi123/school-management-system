@@ -19,6 +19,7 @@ The Qur'an Memorization Tracker is a comprehensive feature that enables Qur'an t
   - Page count
 - Set target duration with start and end dates
 - Add optional descriptions for context
+- **Subject Categorization**: Link targets to specific subjects (e.g., Hifz, Tajweed, Qira'at)
 
 #### Progress Recording
 - Record daily student progress
@@ -105,6 +106,7 @@ model QuranTarget {
   description       String?
   startDate         DateTime
   endDate           DateTime
+  subjectId         Int?      // Link to specific Quran subject (Hifz, Tajweed, etc.)
   createdAt         DateTime
   updatedAt         DateTime
 }
@@ -126,6 +128,7 @@ model QuranRecord {
   pages      Float?
   status     String    // Excellent, Good, Fair, Poor
   comments   String?
+  subjectId  Int?      // Link to specific Quran subject
   createdAt  DateTime
   updatedAt  DateTime
 }

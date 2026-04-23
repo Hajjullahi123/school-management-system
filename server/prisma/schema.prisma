@@ -543,6 +543,10 @@ model Subject {
   LessonPlan      LessonPlan[]
   LessonNote      LessonNote[]
   Curriculum      Curriculum[]
+  departmentId    Int?
+  department      Department? @relation(fields: [departmentId], references: [id])
+  quranTargets    QuranTarget[]
+  quranRecords    QuranRecord[]
 
   @@unique([schoolId, code])
 }
@@ -1273,6 +1277,8 @@ model QuranTarget {
   description       String?
   startDate         DateTime
   endDate           DateTime
+  subjectId         Int?
+  subject           Subject? @relation(fields: [subjectId], references: [id])
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -1296,6 +1302,8 @@ model QuranRecord {
   pages     Float?
   status    String // Excellent, Good, Fair, Poor
   comments  String?
+  subjectId Int?
+  subject   Subject? @relation(fields: [subjectId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1474,6 +1482,7 @@ model Department {
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   head   User?  @relation("DepartmentHead", fields: [headId], references: [id])
   staff  User[] @relation("DepartmentStaff")
+  subjects Subject[]
   nudges Nudge[]
 
   @@unique([schoolId, name])

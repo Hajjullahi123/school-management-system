@@ -18,10 +18,15 @@ const ShowcaseSchoolsManagement = () => {
   const fetchSchools = async () => {
     try {
       const res = await api.get('/api/showcase');
-      const data = await res.json();
-      setSchools(data);
+      if (res.ok) {
+        const data = await res.json();
+        setSchools(Array.isArray(data) ? data : []);
+      } else {
+        setSchools([]);
+      }
     } catch (error) {
       toast.error('Failed to load showcase schools');
+      setSchools([]);
     } finally {
       setLoading(false);
     }

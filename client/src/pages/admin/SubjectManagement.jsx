@@ -3,13 +3,24 @@ import { api } from '../../api';
 
 const SubjectManagement = () => {
   const [subjects, setSubjects] = useState([]);
-  const [subjectForm, setSubjectForm] = useState({ name: '', code: '' });
+  const [departments, setDepartments] = useState([]);
+  const [subjectForm, setSubjectForm] = useState({ name: '', code: '', departmentId: '' });
   const [editingSubject, setEditingSubject] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchSubjects();
+    fetchDepartments();
   }, []);
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await api.get('/api/departments');
+      if (response.ok) {
+        setDepartments(await response.json());
+      }
+    } catch (error) {}
+  };
 
   const fetchSubjects = async () => {
     try {
@@ -41,7 +52,7 @@ const SubjectManagement = () => {
 
       if (response.ok) {
         alert(editingSubject ? 'Subject updated!' : 'Subject created!');
-        setSubjectForm({ name: '', code: '' });
+        setSubjectForm({ name: '', code: '', departmentId: '' });
         setEditingSubject(null);
         fetchSubjects();
       } else {
@@ -111,6 +122,21 @@ const SubjectManagement = () => {
                 placeholder="MATH101"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Department
+              </label>
+              <select
+                value={subjectForm.departmentId}
+                onChange={(e) => setSubjectForm({ ...subjectForm, departmentId: e.target.value })}
+                className="w-full border rounded-md px-3 py-2"
+              >
+                <option value="">No Department</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="flex gap-2">
             <button
@@ -124,7 +150,7 @@ const SubjectManagement = () => {
                 type="button"
                 onClick={() => {
                   setEditingSubject(null);
-                  setSubjectForm({ name: '', code: '' });
+                  setSubjectForm({ name: '', code: '', departmentId: '' });
                 }}
                 className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600"
               >
@@ -168,6 +194,11 @@ const SubjectManagement = () => {
                     {subject.code && (
                       <p className="text-sm text-gray-600 mt-1">Code: {subject.code}</p>
                     )}
+                    {subject.departmentId && (
+                      <p className="text-xs font-bold text-primary mt-1 uppercase tracking-tighter">
+                        Dept: {departments.find(d => d.id === subject.departmentId)?.name || 'Loading...'}
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -175,7 +206,8 @@ const SubjectManagement = () => {
                         setEditingSubject(subject);
                         setSubjectForm({
                           name: subject.name,
-                          code: subject.code || ''
+                          code: subject.code || '',
+                          departmentId: subject.departmentId || ''
                         });
                       }}
                       className="text-blue-600 hover:text-blue-900"

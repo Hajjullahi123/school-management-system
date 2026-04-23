@@ -32,6 +32,8 @@ Thumbs.db
 # Database
 server/prisma/dev.db
 server/prisma/dev.db-journal
+server/prisma/dev.db-shm
+server/prisma/dev.db-wal
 server/uploads/*
 !server/uploads/.gitkeep
 
