@@ -24,6 +24,8 @@ const Login = () => {
   const [step, setStep] = useState(1); // 1: Identifier, 2: School Selection, 3: Password
   const [matchedSchools, setMatchedSchools] = useState([]);
   const [selectedSchool, setSelectedSchool] = useState(null);
+  const [serverWarm, setServerWarm] = useState(false);
+  const [warmingUp, setWarmingUp] = useState(false);
 
   useEffect(() => {
     fetchGlobalSettings();
@@ -40,6 +42,31 @@ const Login = () => {
       }
     }
   }, [urlSlug]);
+
+  // PRE-WARM: Fire /ping immediately when login page loads.
+  // This wakes the Render server BEFORE the user tries to authenticate,
+  // so by the time they submit, the server is already ready.
+  useEffect(() => {
+    const prewarm = async () => {
+      setWarmingUp(true);
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 60000);
+        await fetch(`${API_BASE_URL.replace(/\/$/, '')}/ping`, {
+          method: 'GET',
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+        setServerWarm(true);
+      } catch (e) {
+        // Still mark as done so UI doesn't stay in warming state forever
+        setServerWarm(true);
+      } finally {
+        setWarmingUp(false);
+      }
+    };
+    prewarm();
+  }, []);
 
   // Sync selectedSchool with schoolSettings when branding is loaded from URL slug
   useEffect(() => {
@@ -88,10 +115,10 @@ const Login = () => {
     setLoading(true);
     setSlowLoading(false);
     
-    // Timer to detect if Render is "Sleeping"
+    // Show slow-loading message after 5s (shorter since server should be pre-warmed)
     const slowTimer = setTimeout(() => {
       setSlowLoading(true);
-    }, 3500);
+    }, 5000);
 
     try {
       let res;
@@ -159,7 +186,7 @@ const Login = () => {
 
     const loginSlowTimer = setTimeout(() => {
       setSlowLoading(true);
-    }, 3500);
+    }, 5000);
 
     try {
       const result = await login(username, password, schoolSlug);
@@ -298,6 +325,19 @@ const Login = () => {
           <div className="mb-10 text-center md:text-left">
             <h3 className="text-3xl font-black text-gray-900 mb-2">Welcome Back</h3>
             <p className="text-gray-500 font-medium font-inter">Enter your portal credentials to continue.</p>
+            {/* Server warm-up status indicator */}
+            {warmingUp && (
+              <div className="mt-3 flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+                <div className="w-3 h-3 border-2 border-amber-400 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+                <span className="text-xs font-bold">Connecting to server... Please wait before logging in.</span>
+              </div>
+            )}
+            {serverWarm && !warmingUp && (
+              <div className="mt-3 flex items-center gap-2 text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></div>
+                <span className="text-xs font-bold">Server ready — login will be fast</span>
+              </div>
+            )}
           </div>
 
           <form className="space-y-6" onSubmit={step === 1 ? handleIdentify : handleSubmit}>
@@ -472,16 +512,27 @@ const Login = () => {
             {step !== 2 && (
               <button
                 type="submit"
-                disabled={loading}
-                className={`w-full py-4 bg-gray-900 text-white rounded-2xl font-black shadow-xl transform transition-all hover:scale-[1.02] active:scale-[0.98] ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary'}`}
+                disabled={loading || warmingUp}
+                className={`w-full py-4 bg-gray-900 text-white rounded-2xl font-black shadow-xl transform transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                  loading || warmingUp ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary'
+                }`}
               >
-                {loading ? (
+                {warmingUp ? (
                   <div className="flex items-center justify-center gap-3 py-2">
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>{step === 1 ? 'Identifying...' : 'Authenticating...'}</span>
+                    <span>Connecting to server...</span>
+                  </div>
+                ) : loading ? (
+                  <div className="flex items-center justify-center gap-3 py-2">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span>
+                      {slowLoading
+                        ? step === 1 ? 'Server waking up — please wait...' : 'Almost there — verifying...'
+                        : step === 1 ? 'Identifying...' : 'Authenticating...'}
+                    </span>
                   </div>
                 ) : (
-                  step === 1 ? "Identify Account" : "Access Your Portal"
+                  step === 1 ? 'Identify Account' : 'Access Your Portal'
                 )}
               </button>
             )}

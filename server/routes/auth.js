@@ -41,7 +41,7 @@ router.post('/identify', async (req, res) => {
             { email: { equals: searchId, mode: 'insensitive' } }
           ] 
         },
-        select: { school: { select: { id: true, name: true, slug: true } } }
+        select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
       });
       if (globalUser?.school) {
         return res.json({ schools: [globalUser.school], count: 1 });
@@ -75,7 +75,7 @@ router.post('/identify', async (req, res) => {
           username: searchId
         }
       },
-      select: { school: { select: { id: true, name: true, slug: true } } }
+      select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
     });
 
     if (directUser?.school) {
@@ -87,15 +87,15 @@ router.post('/identify', async (req, res) => {
     const [userByEmail, studentMatch, teacherMatch] = await Promise.all([
       prisma.user.findFirst({
         where: { schoolId, email: { equals: searchId, mode: 'insensitive' } },
-        select: { school: { select: { id: true, name: true, slug: true } } }
+        select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
       }),
       prisma.student.findFirst({
         where: { schoolId, admissionNumber: { equals: searchId, mode: 'insensitive' } },
-        select: { school: { select: { id: true, name: true, slug: true } } }
+        select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
       }),
       prisma.teacher.findFirst({
         where: { schoolId, staffId: { equals: searchId, mode: 'insensitive' } },
-        select: { school: { select: { id: true, name: true, slug: true } } }
+        select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
       })
     ]);
 
