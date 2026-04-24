@@ -19,9 +19,9 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      // Race the API call against an 8-second timeout
+      // Race the API call against a 30-second timeout (accommodate slow Render cold starts)
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Auth check timed out')), 15000)
+        setTimeout(() => reject(new Error('Auth check timed out')), 30000)
       );
 
       const response = await Promise.race([
@@ -33,23 +33,27 @@ export const AuthProvider = ({ children }) => {
         const userData = await response.json();
         setUser(userData);
       } else {
-        setUser(null);
+        // ONLY clear session on explicit authentication failure
         if (response.status === 401 || response.status === 403) {
+          setUser(null);
           localStorage.removeItem('token');
           sessionStorage.removeItem('dashboardUnlocked');
         }
+        // For other server errors (500, etc.), we stay in the current state to prevent logout
       }
     } catch (error) {
-      setUser(null);
-      // Keep token on timeout/network errors so user stays logged in after cold start or deploy restart
+      // NETWORK/TIMEOUT ERROR: Keep the current user state if possible
+      // This prevents logging out when internet flickers or server is restarting
+      console.warn('[Auth] Auth check failed but keeping session:', error.message);
+      
       if (
         error.message !== 'Auth check timed out' && 
         !error.message.includes('FetchError') && 
         !error.message.includes('Network Error') &&
         !error.message.includes('Failed to fetch')
       ) {
-        localStorage.removeItem('token');
-        sessionStorage.removeItem('dashboardUnlocked');
+        // If it's a weird error that's NOT network related, maybe log out? 
+        // Actually, safer to stay logged in unless server says NO.
       }
     } finally {
       setLoading(false);

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
+import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 
 const DepartmentManagement = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('management'); // 'management' or 'intelligence'
   const [departments, setDepartments] = useState([]);
   const [benchmarks, setBenchmarks] = useState([]);
@@ -98,11 +100,14 @@ const DepartmentManagement = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm(`CRITICAL ACTION: Are you sure you want to permanently purge the ${currentDept?.name} department? This will disconnect all staff, subjects, and erase departmental intelligence.`)) return;
+  const handleDelete = async (dept) => {
+    const targetDept = dept || currentDept;
+    if (!targetDept) return;
+
+    if (!window.confirm(`CRITICAL ACTION: Are you sure you want to permanently purge the ${targetDept.name} department? This will disconnect all staff, subjects, and erase departmental intelligence.`)) return;
     
     try {
-      const response = await api.delete(`/api/departments/${currentDept.id}`);
+      const response = await api.delete(`/api/departments/${targetDept.id}`);
       if (response.ok) {
         toast.success('Department purged successfully');
         setShowModal(false);
@@ -200,6 +205,17 @@ const DepartmentManagement = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
                       </div>
+                      {user?.role === 'admin' && (
+                        <button
+                          onClick={() => handleDelete(dept)}
+                          className="p-2 text-gray-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                          title="Delete Department"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
 
                     <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter mb-2">{dept.name}</h3>

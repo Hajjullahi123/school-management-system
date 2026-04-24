@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api, API_BASE_URL } from '../../api';
 
@@ -36,6 +36,7 @@ const UserManagement = () => {
   });
 
   const { user: currentUser } = useAuth();
+  const location = useLocation();
   const [classes, setClasses] = useState([]);
   const [expandedRoles, setExpandedRoles] = useState({});
   const [filter, setFilter] = useState('all'); // all, student, teacher, admin
@@ -55,7 +56,15 @@ const UserManagement = () => {
   useEffect(() => {
     fetchUsers();
     fetchClasses();
-  }, []);
+
+    // Read role from URL if present
+    const params = new URLSearchParams(location.search);
+    const roleParam = params.get('role');
+    if (roleParam) {
+      setFilter(roleParam);
+      setExpandedRoles(prev => ({ ...prev, [roleParam]: true }));
+    }
+  }, [location.search]);
 
   const fetchClasses = async () => {
     try {
