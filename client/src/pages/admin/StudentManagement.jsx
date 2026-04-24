@@ -34,6 +34,7 @@ const StudentManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [bulkUploadResults, setBulkUploadResults] = useState(null);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -735,6 +736,7 @@ Note: Password must be changed on first login.
 
     const token = localStorage.getItem('token');
     try {
+      setIsUploading(true);
       const response = await fetch(`${API_BASE_URL}/api/bulk-upload/upload`, {
         method: 'POST',
         headers: {
@@ -755,6 +757,7 @@ Note: Password must be changed on first login.
       console.error('Upload error:', error);
       alert('Failed to upload file');
     } finally {
+      setIsUploading(false);
       e.target.value = '';
     }
   };
@@ -809,18 +812,22 @@ Note: Password must be changed on first login.
             </svg>
             Credential Repo
           </button>
-          <label className="flex-1 sm:flex-none bg-white border border-gray-200 text-emerald-600 px-3 py-2 rounded-xl hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm cursor-pointer">
-            <svg className="w-4 h-4 text-emerald-500 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            Import Students
-            <input
-              type="file"
-              className="hidden"
-              accept=".csv,.xlsx"
-              onChange={handleBulkUpload}
-            />
-          </label>
+          <div className="relative group w-full sm:w-auto">
+            <button className={`w-full sm:w-auto px-3 py-2 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm transition-all ${isUploading ? 'bg-emerald-600 text-white cursor-wait' : 'bg-white border border-gray-200 text-emerald-600 hover:bg-emerald-50'}`} disabled={isUploading}>
+              <svg className={`w-4 h-4 font-bold ${isUploading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              {isUploading ? 'Uploading...' : 'Import Students'}
+            </button>
+            {!isUploading && (
+              <input
+                type="file"
+                className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+                accept=".csv,.xlsx"
+                onChange={handleBulkUpload}
+              />
+            )}
+          </div>
           <button
             onClick={() => {
               if (isDemo) {

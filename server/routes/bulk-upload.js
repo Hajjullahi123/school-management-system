@@ -321,6 +321,27 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
           continue;
         }
 
+        // Prevent duplicate student creation (same name and class)
+        const existingStudentCheck = await prisma.user.findFirst({
+          where: {
+            schoolId: schoolIdInt,
+            firstName: studentData.firstName,
+            lastName: studentData.lastName,
+            role: 'student',
+            student: {
+              classId: classIdIntToUse
+            }
+          }
+        });
+
+        if (existingStudentCheck) {
+          results.failed.push({
+            data: studentData,
+            error: `Student ${studentData.firstName} ${studentData.lastName} already exists in this class. Skipping to prevent duplicates.`
+          });
+          continue;
+        }
+
         const admissionYear = new Date().getFullYear();
         const admissionNumber = await generateStudentUsername(
           schoolIdInt,

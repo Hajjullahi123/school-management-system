@@ -206,6 +206,48 @@ router.put('/my-profile', authenticate, async (req, res) => {
   }
 });
 
+// Delete Student
+router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Ensure the student exists and belongs to the school
+    const student = await prisma.student.findUnique({
+      where: {
+        id: parseInt(id),
+        schoolId: req.schoolId
+      }
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Use a transaction to safely delete Student and User
+    await prisma.$transaction([
+      prisma.student.delete({
+        where: { id: parseInt(id) }
+      }),
+      prisma.user.delete({
+        where: { id: student.userId }
+      })
+    ]);
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'DELETE',
+      resource: 'STUDENT',
+      details: { studentId: id, admissionNumber: student.admissionNumber }
+    });
+
+    res.json({ message: 'Student and associated account deleted successfully' });
+  } catch (error) {
+    console.error('Delete student error:', error);
+    res.status(500).json({ error: 'Failed to delete student' });
+  }
+});
+
 // Upload my photo (for logged-in student) — Base64 DB storage
 router.post('/my-photo', authenticate, (req, res, next) => {
   upload.single('photo')(req, res, (err) => {
