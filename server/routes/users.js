@@ -638,29 +638,31 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
             }
           });
         }
-      } else if (user.role === 'teacher') {
+      } else if (user.role === 'teacher' || user.teacher) {
         const teacherId = user.teacher?.id;
         if (teacherId) {
           await prisma.teacherAssignment.deleteMany({
-            where: {
-              teacherId: user.id,
-              schoolId: req.schoolId
-            }
+            where: { teacherId: userId, schoolId: req.schoolId }
           });
           await prisma.teacher.delete({
-            where: {
-              id: teacherId,
-              schoolId: req.schoolId
-            }
+            where: { id: teacherId, schoolId: req.schoolId }
           });
         }
-        await prisma.teacherAssignment.deleteMany({
+      } else if (user.role === 'parent' || user.parent) {
+        await prisma.parent.deleteMany({
           where: {
-            teacherId: userId,
+            userId: userId,
             schoolId: req.schoolId
           }
         });
       }
+
+      // Cleanup user-created records that might block deletion
+      await prisma.newsEvent.deleteMany({ where: { authorId: userId, schoolId: req.schoolId } });
+      await prisma.notice.deleteMany({ where: { authorId: userId, schoolId: req.schoolId } });
+      await prisma.galleryImage.deleteMany({ where: { uploadedBy: userId, schoolId: req.schoolId } });
+      await prisma.nudge.deleteMany({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } });
+      await prisma.department.updateMany({ where: { headId: userId }, data: { headId: null } });
 
       // Delete User
       await prisma.user.delete({

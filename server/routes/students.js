@@ -250,12 +250,20 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
       await prisma.testimonial.deleteMany({ where: { studentId } });
       await prisma.alumni.deleteMany({ where: { studentId, schoolId: req.schoolId } });
 
+      // Cleanup user-created records that might block deletion of the User account
+      const userId = student.userId;
+      await prisma.newsEvent.deleteMany({ where: { authorId: userId, schoolId: req.schoolId } });
+      await prisma.notice.deleteMany({ where: { authorId: userId, schoolId: req.schoolId } });
+      await prisma.galleryImage.deleteMany({ where: { uploadedBy: userId, schoolId: req.schoolId } });
+      await prisma.nudge.deleteMany({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } });
+      await prisma.department.updateMany({ where: { headId: userId }, data: { headId: null } });
+
       await prisma.student.delete({
         where: { id: studentId }
       });
       
       await prisma.user.delete({
-        where: { id: student.userId }
+        where: { id: userId }
       });
     });
 

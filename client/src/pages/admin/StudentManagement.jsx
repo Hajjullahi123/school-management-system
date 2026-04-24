@@ -171,6 +171,9 @@ const StudentManagement = () => {
       if (response.ok) {
         alert('Student deleted successfully!');
         fetchStudents();
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to delete student');
       }
     } catch (error) {
       console.error('Error deleting student:', error);
