@@ -928,6 +928,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     allReportExtras.forEach(e => { extrasMap[e.studentId] = e; });
 
     // Fetch previous terms results if it's the final term
+    const studentIds = students.map(s => s.id);
     let allPreviousResults = [];
     const isFinalTerm = termIndex === allTermsInSession.length - 1;
     const totalTerms = allTermsInSession.length;
@@ -955,7 +956,6 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     };
 
     // OPTIMIZATION: Fetch ALL fee records for these students in ONE go
-    const studentIds = students.map(s => s.id);
     const allFeeRecords = await prisma.feeRecord.findMany({
       where: { schoolId: req.schoolId, studentId: { in: studentIds } },
       include: { term: { select: { id: true, startDate: true } } }

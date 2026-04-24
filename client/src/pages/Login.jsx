@@ -43,24 +43,25 @@ const Login = () => {
     }
   }, [urlSlug]);
 
-  // PRE-WARM: Fire /ping immediately when login page loads.
-  // This wakes the Render server BEFORE the user tries to authenticate,
-  // so by the time they submit, the server is already ready.
+  // PRE-WARM: Fire /ping in the background as soon as the login page loads.
+  // This is PURELY informational — it never blocks the user from logging in.
   useEffect(() => {
     const prewarm = async () => {
       setWarmingUp(true);
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 60000);
+        // 15s max — if server doesn't respond, user can still attempt login
+        const timeout = setTimeout(() => controller.abort(), 15000);
         await fetch(`${API_BASE_URL.replace(/\/$/, '')}/ping`, {
           method: 'GET',
-          signal: controller.signal
+          signal: controller.signal,
+          cache: 'no-store'
         });
         clearTimeout(timeout);
         setServerWarm(true);
       } catch (e) {
-        // Still mark as done so UI doesn't stay in warming state forever
-        setServerWarm(true);
+        // Even on failure/timeout, allow login to proceed normally
+        setServerWarm(false);
       } finally {
         setWarmingUp(false);
       }
@@ -325,11 +326,11 @@ const Login = () => {
           <div className="mb-10 text-center md:text-left">
             <h3 className="text-3xl font-black text-gray-900 mb-2">Welcome Back</h3>
             <p className="text-gray-500 font-medium font-inter">Enter your portal credentials to continue.</p>
-            {/* Server warm-up status indicator */}
+            {/* Server warm-up status — informational only, never blocks login */}
             {warmingUp && (
               <div className="mt-3 flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
                 <div className="w-3 h-3 border-2 border-amber-400 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
-                <span className="text-xs font-bold">Connecting to server... Please wait before logging in.</span>
+                <span className="text-xs font-bold">Warming up server in background — you can still log in now.</span>
               </div>
             )}
             {serverWarm && !warmingUp && (
@@ -512,22 +513,17 @@ const Login = () => {
             {step !== 2 && (
               <button
                 type="submit"
-                disabled={loading || warmingUp}
+                disabled={loading}
                 className={`w-full py-4 bg-gray-900 text-white rounded-2xl font-black shadow-xl transform transition-all hover:scale-[1.02] active:scale-[0.98] ${
-                  loading || warmingUp ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary'
+                  loading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary'
                 }`}
               >
-                {warmingUp ? (
-                  <div className="flex items-center justify-center gap-3 py-2">
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Connecting to server...</span>
-                  </div>
-                ) : loading ? (
+                {loading ? (
                   <div className="flex items-center justify-center gap-3 py-2">
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                     <span>
                       {slowLoading
-                        ? step === 1 ? 'Server waking up — please wait...' : 'Almost there — verifying...'
+                        ? step === 1 ? 'Searching...' : 'Verifying...'
                         : step === 1 ? 'Identifying...' : 'Authenticating...'}
                     </span>
                   </div>
