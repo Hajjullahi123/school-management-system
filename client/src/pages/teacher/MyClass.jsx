@@ -72,11 +72,21 @@ const MyClass = () => {
     } catch (e) { console.error("Failed to fetch publication status", e); }
   };
 
+  const [modalTab, setModalTab] = useState('assessment'); // 'assessment' or 'preview'
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const openGradingModal = async (student) => {
     if (!currentTerm) {
       alert("No current term found. Please contact admin.");
       return;
     }
+    setModalTab('assessment');
     setGradingStudent(student);
     setLoading(true);
     setFetchingPreview(true);
@@ -379,10 +389,26 @@ const MyClass = () => {
               </button>
             </div>
 
-            <div className="flex-1 overflow-hidden">
-              <div className="h-full grid grid-cols-1 lg:grid-cols-[1fr,380px] divide-x divide-gray-100">
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {/* Mobile Tabs */}
+              <div className="lg:hidden flex border-b border-gray-100 bg-gray-50/50 shrink-0">
+                <button
+                  onClick={() => setModalTab('assessment')}
+                  className={`flex-1 py-3 text-xs font-black uppercase tracking-widest transition-all ${modalTab === 'assessment' ? 'text-primary bg-white border-b-2 border-primary' : 'text-gray-400'}`}
+                >
+                  Assessment Form
+                </button>
+                <button
+                  onClick={() => setModalTab('preview')}
+                  className={`flex-1 py-3 text-xs font-black uppercase tracking-widest transition-all ${modalTab === 'preview' ? 'text-primary bg-white border-b-2 border-primary' : 'text-gray-400'}`}
+                >
+                  Report Preview
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr,380px] divide-x divide-gray-100">
                 {/* LEFT: Assessment Form */}
-                <div className="overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-8 sm:space-y-10 custom-scrollbar">
+                <div className={`${isMobile && modalTab !== 'assessment' ? 'hidden' : 'block'} overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-8 sm:space-y-10 custom-scrollbar`}>
                   {/* Performance Breakdown Section */}
                   <div className="space-y-6">
                     <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
@@ -483,7 +509,7 @@ const MyClass = () => {
                 </div>
 
                 {/* RIGHT: LIVE REPORT PREVIEW */}
-                <div className="bg-gray-50/50 flex flex-col overflow-hidden">
+                <div className={`${isMobile && modalTab !== 'preview' ? 'hidden' : 'flex'} bg-gray-50/50 flex flex-col overflow-hidden`}>
                   <div className="p-4 bg-white border-b border-gray-100 shrink-0">
                     <h4 className="font-black text-gray-900 text-xs uppercase tracking-widest flex items-center gap-2">
                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -513,7 +539,7 @@ const MyClass = () => {
                            </div>
                            <div className="flex gap-2">
                               <span className="px-2 py-1 bg-white/20 rounded-lg text-[10px] font-bold uppercase tracking-wider">
-                                Grade: {reportPreview.overallGrade || 'N/A'}
+                                 Grade: {reportPreview.overallGrade || 'N/A'}
                               </span>
                            </div>
                         </div>

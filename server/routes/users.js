@@ -606,10 +606,21 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
       if (user.role === 'student') {
         const studentId = user.student?.id;
         if (studentId) {
+          // Comprehensive manual cascade delete for student records
+          await prisma.attendanceRecord.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+          await prisma.quranRecord.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+          await prisma.quranTarget.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+          await prisma.cbtResult.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+          await prisma.homeworkSubmission.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+          await prisma.psychomotorDomain.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+          await prisma.studentReportCard.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+          await prisma.intervention.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+          await prisma.miscellaneousFeePayment.deleteMany({ where: { studentId, schoolId: req.schoolId } });
           await prisma.result.deleteMany({ where: { studentId, schoolId: req.schoolId } });
           await prisma.feePayment.deleteMany({ where: { feeRecord: { studentId }, schoolId: req.schoolId } });
           await prisma.feeRecord.deleteMany({ where: { studentId, schoolId: req.schoolId } });
           await prisma.examCard.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+          
           await prisma.student.delete({
             where: {
               id: studentId,

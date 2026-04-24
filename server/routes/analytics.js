@@ -436,17 +436,25 @@ router.get('/submission-tracking', authenticate, authorize(['admin', 'principal'
         if (target === 'assignment2') return r.assignment2Score !== null;
         if (target === 'test1') return r.test1Score !== null;
         if (target === 'test2') return r.test2Score !== null;
-        if (target === 'examination') return r.examScore !== null;
-        return r.isSubmitted;
+        if (target === 'examination' || target === 'exam') return r.examScore !== null;
+        
+        // If target is none or unrecognized, count as "matched" if any score is present
+        return r.assignment1Score !== null || r.assignment2Score !== null || r.test1Score !== null || r.test2Score !== null || r.examScore !== null || r.isSubmitted;
       }).length;
 
-      // Detailed Tracking based on examModeType
-      let isTargetFilled = protocolCount >= totalStudents && totalStudents > 0;
-      const hasAnyScore = protocolCount > 0;
+      const hasAnyScore = classResults.some(r =>
+        r.assignment1Score !== null ||
+        r.assignment2Score !== null ||
+        r.test1Score !== null ||
+        r.test2Score !== null ||
+        r.examScore !== null
+      );
 
-      let status = 'Not Started';
+      let status = 'Pending';
+      let isTargetFilled = protocolCount >= totalStudents && totalStudents > 0;
+
       if (isTargetFilled) status = 'Completed';
-      else if (hasAnyScore) status = 'Partial';
+      else if (hasAnyScore || protocolCount > 0) status = 'Partial';
 
       trackingData.push({
         id: a.id,
