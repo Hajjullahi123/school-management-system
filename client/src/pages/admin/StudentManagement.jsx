@@ -1018,9 +1018,6 @@ Note: Password must be changed on first login.
                   </div>
                 </div>
 
-                  </div>
-                </div>
-              </div>
 
                 {/* Parent */}
                 <div className="space-y-4">
