@@ -228,43 +228,59 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
       const studentId = parseInt(id);
       
       // Comprehensive manual cascade delete for student records
-      await prisma.attendanceRecord.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.quranRecord.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.quranTarget.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.cbtResult.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+      const userId = student.userId;
+
+      // 1. Delete all student-linked activity
+      await prisma.attendanceRecord.deleteMany({ where: { studentId } });
+      await prisma.quranRecord.deleteMany({ where: { studentId } });
+      await prisma.quranTarget.deleteMany({ where: { studentId } });
+      await prisma.cbtResult.deleteMany({ where: { studentId } });
       await prisma.homeworkSubmission.deleteMany({ where: { studentId } });
-      await prisma.psychomotorDomain.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.studentReportCard.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.intervention.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.miscellaneousFeePayment.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.result.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      // Delete Fee Payments first (requires fetching fee record IDs)
-      const feeRecords = await prisma.feeRecord.findMany({ where: { studentId, schoolId: req.schoolId }, select: { id: true } });
+      await prisma.psychomotorDomain.deleteMany({ where: { studentId } });
+      await prisma.studentReportCard.deleteMany({ where: { studentId } });
+      await prisma.intervention.deleteMany({ where: { studentId } });
+      await prisma.miscellaneousFeePayment.deleteMany({ where: { studentId } });
+      await prisma.result.deleteMany({ where: { studentId } });
+      
+      // 2. Delete Fee Records & Payments
+      const feeRecords = await prisma.feeRecord.findMany({ where: { studentId }, select: { id: true } });
       const feeRecordIds = feeRecords.map(fr => fr.id);
-      await prisma.feePayment.deleteMany({ where: { feeRecordId: { in: feeRecordIds }, schoolId: req.schoolId } });
-      await prisma.feeRecord.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.examCard.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.promotionHistory.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.onlinePayment.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+      await prisma.feePayment.deleteMany({ where: { feeRecordId: { in: feeRecordIds } } });
+      await prisma.feeRecord.deleteMany({ where: { studentId } });
+      
+      await prisma.examCard.deleteMany({ where: { studentId } });
+      await prisma.promotionHistory.deleteMany({ where: { studentId } });
+      await prisma.onlinePayment.deleteMany({ where: { studentId } });
       await prisma.certificate.deleteMany({ where: { studentId } });
       await prisma.testimonial.deleteMany({ where: { studentId } });
-      await prisma.alumni.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+      await prisma.alumni.deleteMany({ where: { studentId } });
 
-      // Cleanup user-created records that might block deletion of the User account
-      const userId = student.userId;
-      await prisma.newsEvent.deleteMany({ where: { authorId: userId, schoolId: req.schoolId } });
-      await prisma.notice.deleteMany({ where: { authorId: userId, schoolId: req.schoolId } });
-      await prisma.galleryImage.deleteMany({ where: { uploadedBy: userId, schoolId: req.schoolId } });
+      // 3. Cleanup User-linked records (where student user is author/sender)
+      await prisma.newsEvent.deleteMany({ where: { authorId: userId } });
+      await prisma.notice.deleteMany({ where: { authorId: userId } });
+      await prisma.galleryImage.deleteMany({ where: { uploadedBy: userId } });
       await prisma.nudge.deleteMany({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } });
       await prisma.department.updateMany({ where: { headId: userId }, data: { headId: null } });
 
-      await prisma.student.delete({
-        where: { id: studentId }
+      // 4. Check if User has other profiles (Teacher/Parent) before deleting User record
+      const fullUser = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { teacher: true, parent: true }
       });
+
+      if (fullUser?.teacher) {
+        await prisma.teacherAssignment.deleteMany({ where: { teacherId: userId } });
+        await prisma.teacher.delete({ where: { id: fullUser.teacher.id } });
+      }
+      if (fullUser?.parent) {
+        await prisma.parent.delete({ where: { id: fullUser.parent.id } });
+      }
+
+      // 5. Delete Student Profile
+      await prisma.student.delete({ where: { id: studentId } });
       
-      await prisma.user.delete({
-        where: { id: userId }
-      });
+      // 6. Delete User Account
+      await prisma.user.delete({ where: { id: userId } });
     });
 
     logAction({
@@ -278,7 +294,17 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
     res.json({ message: 'Student and associated account deleted successfully' });
   } catch (error) {
     console.error('Delete student error:', error);
-    res.status(500).json({ error: 'Failed to delete student' });
+    let errorMessage = 'Failed to delete student';
+    if (error.code === 'P2003') {
+      errorMessage = `Constraint Error: This student is linked to other records (Code: ${error.code}). Please check for historical records like messages or logs.`;
+    } else {
+      errorMessage = `Server Error: ${error.message || 'Unknown Error'}`;
+    }
+    res.status(500).json({ 
+      error: errorMessage,
+      code: error.code,
+      meta: error.meta
+    });
   }
 });
 
