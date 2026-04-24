@@ -160,8 +160,8 @@ const ResultEntry = () => {
 
       // Sort students alphabetically
       const loadedStudents = (classData.students || []).sort((a, b) => {
-        const nameA = `${a.user?.firstName} ${a.user?.lastName}`.toLowerCase();
-        const nameB = `${b.user?.firstName} ${b.user?.lastName}`.toLowerCase();
+        const nameA = `${a.user?.firstName} ${a.user?.lastName} ${a.middleName || ''}`.trim().toLowerCase();
+        const nameB = `${b.user?.firstName} ${b.user?.lastName} ${b.middleName || ''}`.trim().toLowerCase();
         return nameA.localeCompare(nameB);
       });
       setStudents(loadedStudents);
@@ -621,7 +621,7 @@ const ResultEntry = () => {
                         style={{ backgroundColor: index % 2 === 0 ? 'white' : '#fcfcfd' }}
                       >
                         <div className="truncate max-w-[120px] md:max-w-none">
-                          {student.user?.firstName} {student.user?.lastName}
+                          {student.user?.firstName} {student.user?.lastName} {student.middleName}
                         </div>
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-center">

@@ -28,8 +28,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
 
     worksheet.columns = [
       { header: 'First Name*', key: 'firstName', width: 20 },
-      { header: 'Last Name*', key: 'lastName', width: 20 },
-      { header: 'Middle Name', key: 'middleName', width: 20 },
+      { header: 'Surname*', key: 'lastName', width: 20 },
+      { header: 'Other Name', key: 'middleName', width: 20 },
       { header: 'Class ID*', key: 'classId', width: 12 },
       { header: 'Class Name (Optional)', key: 'className', width: 25 },
       { header: 'Gender (Male/Female)', key: 'gender', width: 20 },
@@ -134,7 +134,7 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
     [
       '1. Use the "Students Template" sheet to fill in student information.',
       '2. In the "Class ID" column, select the class from the dropdown menu (e.g., "1 - Class Name").',
-      '3. Fields marked with * are required (First Name, Last Name, Class ID, Parent Name).',
+      '3. Fields marked with * are required (First Name, Surname, Class ID, Parent Name).',
       '4. Date of Birth must follow the format YYYY-MM-DD (e.g., 2012-10-25).',
       '5. Use the drop-down menus for columns with selections (Class ID, Gender, Genotype, Disability, Scholarship).',
       '6. Save this file as .xlsx before uploading (CSV might lose dropdowns).'
@@ -171,8 +171,8 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
         
         headerRow.forEach((header, colNumber) => {
           if (header.includes('first name')) headers.firstName = colNumber;
-          else if (header.includes('last name')) headers.lastName = colNumber;
-          else if (header.includes('middle name')) headers.middleName = colNumber;
+          else if (header.includes('surname') || header.includes('last name')) headers.lastName = colNumber;
+          else if (header.includes('other name') || header.includes('middle name')) headers.middleName = colNumber;
           else if (header.includes('class id')) headers.classId = colNumber;
           else if (header.includes('gender')) headers.gender = colNumber;
           else if (header.includes('genotype')) headers.genotype = colNumber;
@@ -329,7 +329,8 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
             lastName: studentData.lastName,
             role: 'student',
             student: {
-              classId: classIdIntToUse
+              classId: classIdIntToUse,
+              middleName: studentData.middleName || null
             }
           }
         });
@@ -337,7 +338,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
         if (existingStudentCheck) {
           results.failed.push({
             data: studentData,
-            error: `Student ${studentData.firstName} ${studentData.lastName} already exists in this class. Skipping to prevent duplicates.`
+            error: `Student ${studentData.firstName} ${studentData.lastName} ${studentData.middleName || ''} already exists in this class. Skipping to prevent duplicates.`
           });
           continue;
         }

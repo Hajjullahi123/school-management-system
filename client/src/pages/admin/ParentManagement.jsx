@@ -344,7 +344,7 @@ const ParentManagement = () => {
                     value={createData.firstName} onChange={e => setCreateData({ ...createData, firstName: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Last Name *</label>
+                  <label className="block text-sm font-medium mb-1">Surname *</label>
                   <input type="text" className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:border-transparent" required
                     value={createData.lastName} onChange={e => setCreateData({ ...createData, lastName: e.target.value })} />
                 </div>
@@ -395,7 +395,7 @@ const ParentManagement = () => {
                     value={editData.firstName} onChange={e => setEditData({ ...editData, firstName: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Last Name *</label>
+                  <label className="block text-sm font-medium mb-1">Surname *</label>
                   <input type="text" className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:border-transparent" required
                     value={editData.lastName} onChange={e => setEditData({ ...editData, lastName: e.target.value })} />
                 </div>

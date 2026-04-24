@@ -79,9 +79,14 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
         id: true,
         admissionNumber: true,
         photoUrl: true,
+        middleName: true,
         user: { select: { firstName: true, lastName: true, photoUrl: true } }
       },
-      orderBy: { user: { lastName: 'asc' } }
+      orderBy: [
+        { user: { firstName: 'asc' } },
+        { user: { lastName: 'asc' } },
+        { middleName: 'asc' }
+      ]
     });
 
     // Get existing attendance for these students on this date
@@ -103,7 +108,7 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
       const record = recordMap.get(student.id);
       return {
         studentId: student.id,
-        name: `${student.user.firstName} ${student.user.lastName}`,
+        name: `${student.user.firstName} ${student.user.lastName} ${student.middleName || ''}`.trim(),
         admissionNumber: student.admissionNumber,
         photoUrl: student.user.photoUrl || student.photoUrl,
         status: record ? record.status : 'pending', // 'pending' means not marked yet
@@ -339,7 +344,7 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal', '
                   const { sendAbsenceAlert } = require('../services/emailService');
                   await sendAbsenceAlert({
                     parentEmail: student.parent.user.email,
-                    studentName: `${student.user.firstName} ${student.user.lastName}`,
+                    studentName: `${student.user.firstName} ${student.user.lastName} ${student.middleName || ''}`.trim(),
                     date: targetDate.toLocaleDateString(),
                     className: `${student.classModel?.name} ${student.classModel?.arm || ''}`.trim(),
                     schoolName
@@ -367,7 +372,7 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal', '
                       senderRole: req.user.role,
                       studentId: student.id,
                       subject: 'Absence Notification',
-                      message: `Automatic Alert: ${student.user.firstName} ${student.user.lastName} was marked ABSENT today (${targetDate.toLocaleDateString()}).`,
+                      message: `Automatic Alert: ${student.user.firstName} ${student.user.lastName} ${student.middleName || ''}`.trim() + ` was marked ABSENT today (${targetDate.toLocaleDateString()}).`,
                       messageType: 'attendance',
                       isRead: false
                     }
@@ -607,7 +612,7 @@ router.get('/download', authenticate, authorize(['admin', 'teacher', 'principal'
 
     const csvRows = records.map(record => {
       const date = record.date.toISOString().split('T')[0];
-      const studentName = `${record.student.user.firstName} ${record.student.user.lastName}`;
+      const studentName = `${record.student.user.firstName} ${record.student.user.lastName} ${record.student.middleName || ''}`.trim();
       const admissionNumber = record.student.admissionNumber || '';
       const className = `${record.class.name} ${record.class.arm || ''}`.trim();
       const session = record.academicSession.name;

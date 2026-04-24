@@ -113,7 +113,7 @@ const StudentManagement = () => {
         } else {
           // Show credentials modal for new student
           setNewStudentCredentials({
-            name: `${formData.firstName} ${formData.lastName}`,
+            name: `${formData.firstName} ${formData.lastName} ${formData.middleName || ''}`.trim(),
             admissionNumber: result.credentials.admissionNumber,
             username: result.credentials.username,
             password: result.credentials.password,
@@ -469,6 +469,15 @@ Note: Password must be changed on first login.
       grouped[classKey].push(student);
     });
 
+    // Sort students alphabetically within each class
+    Object.keys(grouped).forEach(classKey => {
+      grouped[classKey].sort((a, b) => {
+        const nameA = `${a.user.firstName} ${a.user.lastName} ${a.middleName || ''}`.trim().toLowerCase();
+        const nameB = `${b.user.firstName} ${b.user.lastName} ${b.middleName || ''}`.trim().toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+    });
+
     return grouped;
   };
 
@@ -476,7 +485,7 @@ Note: Password must be changed on first login.
   const filteredStudents = students.filter(student => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
-    const fullName = `${student.user.firstName} ${student.user.lastName}`.toLowerCase();
+    const fullName = `${student.user.firstName} ${student.user.lastName} ${student.middleName || ''}`.toLowerCase();
     const admissionNumber = student.admissionNumber?.toLowerCase() || '';
     return fullName.includes(query) || admissionNumber.includes(query);
   });
@@ -549,7 +558,7 @@ Note: Password must be changed on first login.
     const instructions = [
       '1. Download the Excel (.xlsx) template from the Student Management header.',
       '2. Open the template in Excel or Google Sheets.',
-      '3. Fill in the student data. First Name, Last Name, and Class ID are REQUIRED.',
+      '3. Fill in the student data. First Name, Surname, and Class ID are REQUIRED.',
       '4. The "Class ID" column MUST use the Numeric ID from the table below.',
       '5. For the "Scholarship" column, use "Yes" for scholarship students and "No" for others.',
       '6. Save your file as Excel (.xlsx) or Comma Separated Values (.csv).',
@@ -660,8 +669,8 @@ Note: Password must be changed on first login.
     // Personal Information
     y = drawSectionHeader('PERSONAL INFORMATION', y);
     y = drawField('First Name:', y, 170);
-    y = drawField('Last Name:', y, 170);
-    y = drawField('Middle Name:', y, 170);
+    y = drawField('Surname:', y, 170);
+    y = drawField('Other Name:', y, 170);
 
     // Row 1: Gender & DOB
     doc.setFont('helvetica', 'bold');
@@ -900,7 +909,7 @@ Note: Password must be changed on first login.
                   </div>
                   <div className="space-y-1">
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      Middle Name
+                      Other Name
                     </label>
                     <input
                       type="text"
@@ -912,7 +921,7 @@ Note: Password must be changed on first login.
                   </div>
                   <div className="space-y-1">
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      Last Name <span className="text-red-500 font-black">*</span>
+                      Surname <span className="text-red-500 font-black">*</span>
                     </label>
                     <input
                       type="text"
@@ -1251,7 +1260,7 @@ Note: Password must be changed on first login.
                                       );
                                     })()}
                                     <div className="text-sm font-medium text-gray-900">
-                                      {student.user.lastName} {student.user.firstName} {student.middleName}
+                                      {student.user.firstName} {student.user.lastName} {student.middleName}
                                     </div>
                                   </div>
                                 </td>

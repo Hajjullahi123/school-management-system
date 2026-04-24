@@ -166,6 +166,16 @@ const MyClass = () => {
       }
 
       const data = await response.json();
+      
+      // Sort students alphabetically
+      if (data.students && Array.isArray(data.students)) {
+        data.students.sort((a, b) => {
+          const nameA = `${a.user?.firstName} ${a.user?.lastName} ${a.middleName || ''}`.trim().toLowerCase();
+          const nameB = `${b.user?.firstName} ${b.user?.lastName} ${b.middleName || ''}`.trim().toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+      }
+      
       setClassData(data);
     } catch (err) {
       console.error('Error fetching my class:', err);
@@ -379,10 +389,10 @@ const MyClass = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </div>
-                <div>
-                   <h3 className="text-xl font-black text-gray-900 leading-none mb-1">Continuous Assessment & Remark</h3>
-                   <p className="text-sm font-medium text-gray-500">Student: <span className="text-primary font-bold">{gradingStudent.user.firstName} {gradingStudent.user.lastName}</span></p>
-                </div>
+                 <div>
+                    <h3 className="text-xl font-black text-gray-900 leading-none mb-1">Continuous Assessment & Remark</h3>
+                    <p className="text-sm font-medium text-gray-500">Student: <span className="text-primary font-bold">{gradingStudent.user.firstName} {gradingStudent.user.lastName} {gradingStudent.middleName || ''}</span></p>
+                 </div>
               </div>
               <button onClick={() => setGradingStudent(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-gray-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -663,7 +673,7 @@ const MyClass = () => {
                     {student.admissionNumber}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {student.user.firstName} {student.user.lastName}
+                    {student.user.firstName} {student.user.lastName} {student.middleName || ''}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${student.user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'

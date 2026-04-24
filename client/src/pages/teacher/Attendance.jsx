@@ -125,6 +125,13 @@ const Attendance = () => {
         status: s.status || 'pending'
       }));
 
+      // Sort students alphabetically
+      initializedStudents.sort((a, b) => {
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+
       setStudents(initializedStudents);
       calculateStats(initializedStudents);
 
