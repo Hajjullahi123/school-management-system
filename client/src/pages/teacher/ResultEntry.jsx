@@ -237,6 +237,31 @@ const ResultEntry = () => {
     return unique.sort((a, b) => a.name.localeCompare(b.name));
   }, [user, subjects, teacherAssignments, selectedClass]);
 
+  // Computed display names for the header
+  const currentSubjectName = useMemo(() => {
+    if (subjects.length > 0) {
+      const found = subjects.find(s => s.id === parseInt(selectedSubject));
+      if (found) return found.name;
+    }
+    if (teacherAssignments.length > 0) {
+      const found = teacherAssignments.find(ta => ta.subject.id === parseInt(selectedSubject));
+      if (found) return found.subject.name;
+    }
+    return '';
+  }, [subjects, teacherAssignments, selectedSubject]);
+
+  const currentClassName = useMemo(() => {
+    if (classes.length > 0) {
+      const found = classes.find(c => c.id === parseInt(selectedClass));
+      if (found) return `${found.name} ${found.arm || ''}`;
+    }
+    if (teacherAssignments.length > 0) {
+      const found = teacherAssignments.find(ta => ta.class.id === parseInt(selectedClass));
+      if (found) return `${found.class.name} ${found.class.arm || ''}`;
+    }
+    return '';
+  }, [classes, teacherAssignments, selectedClass]);
+
   // --- Handlers ---
 
   const handleScoreChange = (studentId, field, value) => {
@@ -371,16 +396,24 @@ const ResultEntry = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="p-2 text-gray-600 hover:text-primary bg-gray-100 hover:bg-primary/10 rounded-full transition-colors flex items-center justify-center"
-            title="Back to Dashboard"
+          <button 
+            onClick={() => navigate(-1)} 
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors flex items-center gap-2 group"
+            aria-label="Go back"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 text-gray-600 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
+            <span className="md:hidden text-xs font-black text-gray-500 group-hover:text-primary tracking-widest uppercase">Back</span>
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">Result Entry</h1>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black text-gray-900 leading-none">Result Entry</h1>
+            {currentSubjectName && (
+              <p className="text-[10px] sm:text-xs text-primary font-black uppercase tracking-widest mt-1">
+                {currentSubjectName} {currentClassName && `• ${currentClassName}`}
+              </p>
+            )}
+          </div>
         </div>
         <div className="flex gap-2">
           <button
