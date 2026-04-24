@@ -617,10 +617,10 @@ const ResultEntry = () => {
                   return (
                     <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                       <td 
-                        className="px-4 py-4 whitespace-nowrap text-sm font-bold text-gray-900 sticky left-0 z-20 border-r border-gray-100 shadow-[2px_0_5px_rgba(0,0,0,0.03)]" 
+                        className="px-4 py-4 text-sm font-bold text-gray-900 sticky left-0 z-20 border-r border-gray-100 shadow-[2px_0_5px_rgba(0,0,0,0.03)]" 
                         style={{ backgroundColor: index % 2 === 0 ? 'white' : '#fcfcfd' }}
                       >
-                        <div className="truncate max-w-[120px] md:max-w-none">
+                        <div className="min-w-[140px] md:min-w-0 break-words leading-tight">
                           {student.user?.firstName} {student.user?.lastName} {student.middleName}
                         </div>
                       </td>

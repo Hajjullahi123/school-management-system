@@ -655,7 +655,7 @@ const Attendance = () => {
                               )}
                            </div>
                            <div className="flex-1 min-w-0">
-                              <div className="text-base font-black text-gray-900 truncate">{student.name}</div>
+                              <div className="text-base font-black text-gray-900 leading-tight break-words">{student.name}</div>
                               <div className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">{student.admissionNumber}</div>
                            </div>
                            <div className={`shrink-0 h-6 px-3 flex items-center justify-center rounded-xl text-[9px] font-black uppercase tracking-widest border ${
