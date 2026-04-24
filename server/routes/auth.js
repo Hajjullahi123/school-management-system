@@ -68,23 +68,41 @@ router.post('/identify', async (req, res) => {
 
     const schoolFilter = { schoolId };
 
-    // Single fast lookup utilizing relational OR queries
-    const userMatch = await prisma.user.findFirst({
-      where: {
-        schoolId,
-        OR: [
-          { username: { equals: searchId, mode: 'insensitive' } },
-          { email: { equals: searchId, mode: 'insensitive' } },
-          { student: { admissionNumber: { equals: searchId, mode: 'insensitive' } } },
-          { teacher: { staffId: { equals: searchId, mode: 'insensitive' } } }
-        ]
-      },
-      select: { school: { select: { id: true, name: true, slug: true } } }
-    });
+    // Parallel lookups utilizing separate indexes for extreme speed
+    const [userMatch, studentMatch, teacherMatch] = await Promise.all([
+      prisma.user.findFirst({
+        where: {
+          schoolId,
+          OR: [
+            { username: { equals: searchId, mode: 'insensitive' } },
+            { email: { equals: searchId, mode: 'insensitive' } }
+          ]
+        },
+        select: { school: { select: { id: true, name: true, slug: true } } }
+      }),
+      prisma.student.findFirst({
+        where: {
+          schoolId,
+          admissionNumber: { equals: searchId, mode: 'insensitive' }
+        },
+        select: { school: { select: { id: true, name: true, slug: true } } }
+      }),
+      prisma.teacher.findFirst({
+        where: {
+          schoolId,
+          staffId: { equals: searchId, mode: 'insensitive' }
+        },
+        select: { school: { select: { id: true, name: true, slug: true } } }
+      })
+    ]);
+
+    const userMatchResult = userMatch || studentMatch || teacherMatch;
+
 
     // Collect distinct schools from the matches
     const schoolsMap = new Map();
-    if (userMatch?.school) schoolsMap.set(userMatch.school.id, userMatch.school);
+    if (userMatchResult?.school) schoolsMap.set(userMatchResult.school.id, userMatchResult.school);
+
     const matchedSchools = Array.from(schoolsMap.values());
     if (matchedSchools.length === 0) {
       return res.status(404).json({ error: 'Account not found. Check your credentials.' });
@@ -150,19 +168,36 @@ router.post('/login', async (req, res) => {
         }
       };
 
-      // Unified single query for fast login resolution
-      user = await prisma.user.findFirst({
-        where: {
-          schoolId: school.id,
-          OR: [
-            { username: { equals: searchId, mode: 'insensitive' } },
-            { email: { equals: searchId, mode: 'insensitive' } },
-            { student: { admissionNumber: { equals: searchId, mode: 'insensitive' } } },
-            { teacher: { staffId: { equals: searchId, mode: 'insensitive' } } }
-          ]
-        },
-        select: userSelect
-      });
+      // Parallel lookup for login resolution
+      const [uByUname, uByStudent, uByTeacher] = await Promise.all([
+        prisma.user.findFirst({
+          where: {
+            schoolId: school.id,
+            OR: [
+              { username: { equals: searchId, mode: 'insensitive' } },
+              { email: { equals: searchId, mode: 'insensitive' } }
+            ]
+          },
+          select: userSelect
+        }),
+        prisma.student.findFirst({
+          where: {
+            schoolId: school.id,
+            admissionNumber: { equals: searchId, mode: 'insensitive' }
+          },
+          select: { user: { select: userSelect } }
+        }),
+        prisma.teacher.findFirst({
+          where: {
+            schoolId: school.id,
+            staffId: { equals: searchId, mode: 'insensitive' }
+          },
+          select: { user: { select: userSelect } }
+        })
+      ]);
+
+      user = uByUname || uByStudent?.user || uByTeacher?.user;
+
     }
 
     if (!user || user.isActive === false) {

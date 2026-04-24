@@ -98,6 +98,25 @@ const DepartmentManagement = () => {
     setShowModal(true);
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm(`CRITICAL ACTION: Are you sure you want to permanently purge the ${currentDept?.name} department? This will disconnect all staff, subjects, and erase departmental intelligence.`)) return;
+    
+    try {
+      const response = await api.delete(`/api/departments/${currentDept.id}`);
+      if (response.ok) {
+        toast.success('Department purged successfully');
+        setShowModal(false);
+        fetchData();
+      } else {
+        const err = await response.json();
+        toast.error(err.error || 'Deletion failed');
+      }
+    } catch (error) {
+      toast.error('Network error during deletion');
+    }
+  };
+
+
   const handleAssignStaff = async () => {
     try {
       const response = await api.post(`/api/departments/${currentDept.id}/staff`, {
@@ -332,9 +351,21 @@ const DepartmentManagement = () => {
                 </select>
               </div>
 
-              <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => { setShowModal(false); setIsEditing(false); }} className="flex-1 py-4 font-black uppercase text-xs tracking-widest text-gray-400">Cancel</button>
-                <button type="submit" className="flex-2 bg-primary text-white py-4 px-8 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-105">{isEditing ? 'Update Hub' : 'Create Hub'}</button>
+              <div className="flex flex-col gap-3 pt-4">
+                <div className="flex gap-4">
+                  <button type="button" onClick={() => { setShowModal(false); setIsEditing(false); }} className="flex-1 py-4 font-black uppercase text-xs tracking-widest text-gray-400">Cancel</button>
+                  <button type="submit" className="flex-2 bg-primary text-white py-4 px-8 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-105">{isEditing ? 'Update Hub' : 'Create Hub'}</button>
+                </div>
+                
+                {isEditing && (
+                  <button 
+                    type="button" 
+                    onClick={handleDelete}
+                    className="w-full py-3 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 rounded-xl transition-all mt-2"
+                  >
+                    Purge Department
+                  </button>
+                )}
               </div>
             </form>
           </div>

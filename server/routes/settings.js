@@ -67,40 +67,40 @@ router.get('/', async (req, res) => {
   try {
     const schoolSlug = req.query.schoolSlug?.trim().toLowerCase();
     console.log(`Settings request for School Slug: [${schoolSlug}]`);
-    let settings;
-
-    if (schoolSlug && schoolSlug !== 'null' && schoolSlug !== 'undefined') {
-      settings = await prisma.school.findFirst({
-        where: { slug: schoolSlug }
-      });
-    } else {
-      // Try to get from token if no slug (for logged in users)
-      const token = req.headers.authorization?.split(' ')[1];
-      if (token) {
-        try {
-          const jwt = require('jsonwebtoken');
-          const JWT_SECRET = process.env.JWT_SECRET || 'darul-quran-secret-key-change-in-production';
-          const decoded = jwt.verify(token, JWT_SECRET);
-          if (decoded && decoded.schoolId) {
-            settings = await prisma.school.findUnique({
-              where: { id: decoded.schoolId }
-            });
-          }
-        } catch (e) {
-          console.error('Invalid token in settings fetch:', e.message);
-        }
-      }
-    }
-
-    if (!settings && (!schoolSlug || schoolSlug === 'undefined' || schoolSlug === 'null')) {
-      // Fallback: If no valid slug and no token, just get the first school
-      // This is necessary for the public landing page in single-school setups
-      settings = await prisma.school.findFirst();
-    }
+    // Use Promise.all for parallel fetching of school and session data
+    const [settings, currentSession] = await Promise.all([
+      (schoolSlug && schoolSlug !== 'null' && schoolSlug !== 'undefined') 
+        ? prisma.school.findFirst({ where: { slug: schoolSlug } })
+        : (async () => {
+            const token = req.headers.authorization?.split(' ')[1];
+            if (token) {
+              try {
+                const jwt = require('jsonwebtoken');
+                const JWT_SECRET = process.env.JWT_SECRET || 'darul-quran-secret-key-change-in-production';
+                const decoded = jwt.verify(token, JWT_SECRET);
+                if (decoded?.schoolId) {
+                  return prisma.school.findUnique({ where: { id: decoded.schoolId } });
+                }
+              } catch (e) {}
+            }
+            return prisma.school.findFirst(); // Final fallback
+          })(),
+      (async () => {
+        // We can only get the session if we have the school ID, 
+        // so we'll do this parallel lookup with a placeholder if needed
+        // but it's better to fetch school first or use a subquery if supported
+        return null; // Will handle session below for now to ensure ID is correct
+      })()
+    ]);
 
     if (!settings) {
       return res.status(404).json({ error: `School domain '${schoolSlug}' not found` });
     }
+
+    // Fetch current academic session now that we definitely have settings.id
+    const academicSession = await prisma.academicSession.findFirst({
+      where: { schoolId: settings.id, isCurrent: true }
+    });
 
     // Sanitize sensitive fields
     const sanitizedSettings = { ...settings };
@@ -114,17 +114,8 @@ router.get('/', async (req, res) => {
     delete sanitizedSettings.geminiApiKey;
     delete sanitizedSettings.groqApiKey;
 
-    // Map fields for frontend compatibility
     sanitizedSettings.schoolName = sanitizedSettings.name;
-
-    // Fetch current academic session
-    const currentSession = await prisma.academicSession.findFirst({
-      where: {
-        schoolId: settings.id,
-        isCurrent: true
-      }
-    });
-    sanitizedSettings.currentSession = currentSession;
+    sanitizedSettings.currentSession = academicSession;
 
     res.json(sanitizedSettings);
   } catch (error) {

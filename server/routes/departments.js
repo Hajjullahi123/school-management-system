@@ -693,4 +693,52 @@ router.get('/benchmarking/all', authenticate, authorize(['admin', 'principal']),
   }
 });
 
+// Delete a department
+router.delete('/:id', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const departmentId = parseInt(id);
+
+    // 1. Unset department for staff
+    await prisma.user.updateMany({
+      where: { departmentId: departmentId, schoolId: req.schoolId },
+      data: { departmentId: null }
+    });
+
+    // 2. Unset department for subjects
+    await prisma.subject.updateMany({
+      where: { departmentId: departmentId, schoolId: req.schoolId },
+      data: { departmentId: null }
+    });
+
+    // 3. Delete associated nudges
+    await prisma.nudge.deleteMany({
+      where: { departmentId: departmentId }
+    });
+
+    // 4. Delete associated resources
+    await prisma.departmentResource.deleteMany({
+      where: { departmentId: departmentId, schoolId: req.schoolId }
+    });
+
+    // 5. Delete the department
+    await prisma.department.delete({
+      where: { id: departmentId, schoolId: req.schoolId }
+    });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'DELETE_DEPARTMENT',
+      resource: 'DEPARTMENT',
+      details: { id },
+      ipAddress: req.ip
+    });
+
+    res.json({ message: 'Department successfully purged from the system' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
