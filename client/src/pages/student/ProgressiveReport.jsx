@@ -423,10 +423,10 @@ const ProgressiveReport = () => {
                         )}
                       </div>
                       <div className="text-center flex flex-col items-center justify-center">
-                        <h1 className="text-2xl font-black uppercase mb-1 tracking-wider leading-none text-emerald-800" style={{ color: reportColor }}>{ss?.name || 'School Name'}</h1>
+                        <h1 className="text-2xl font-black uppercase mb-1 tracking-wider leading-none" style={{ color: '#000000' }}>{ss?.name || 'School Name'}</h1>
                         <p className="text-xs font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{ss?.motto || 'Knowledge for Prosperity'}</p>
                         <p className="text-[9px] font-black text-gray-600 max-w-[500px] leading-tight text-center">{ss?.address || 'School Address'} | TEL: {ss?.phone} | Email: {ss?.email}</p>
-                        <div className="mt-1 inline-block bg-emerald-800 text-white px-6 py-0.5 rounded-full font-bold uppercase tracking-widest text-lg shadow-sm" style={{ backgroundColor: reportColor }}>
+                        <div className="mt-1 inline-block bg-black text-white px-6 py-0.5 rounded-full font-bold uppercase tracking-widest text-lg shadow-sm" style={{ backgroundColor: '#000000' }}>
                           PROGRESSIVE REPORT
                         </div>
                       </div>
@@ -516,7 +516,7 @@ const ProgressiveReport = () => {
                     <div className="flex-1">
                       <table className="w-full border-collapse border-2 border-black mb-3 text-xs bg-white">
                         <thead>
-                          <tr className="bg-emerald-800 text-white uppercase text-[10px] tracking-wider" style={{ backgroundColor: ss?.reportColorScheme || ss?.primaryColor || '#065f46' }}>
+                          <tr className="bg-black text-white uppercase text-[10px] tracking-wider" style={{ backgroundColor: '#000000' }}>
                             <th className="border border-black p-1 text-left w-1/4">Subjects</th>
                             <th className="border border-black p-0.5 text-center font-normal px-1">Ass. 1<br /><span className="text-[8px] opacity-75">({weights.assignment1})</span></th>
                             <th className="border border-black p-0.5 text-center font-normal px-1">Ass. 2<br /><span className="text-[8px] opacity-75">({weights.assignment2})</span></th>

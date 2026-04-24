@@ -450,7 +450,7 @@ const ReportCard = () => {
                 </div>
 
                 <div className="flex-1 text-center">
-                  <h1 className="text-2xl font-extrabold uppercase tracking-wider leading-tight text-emerald-900" style={{ color: reportColor }}>
+                  <h1 className="text-2xl font-extrabold uppercase tracking-wider leading-tight" style={{ color: '#000000' }}>
                     {schoolSettings?.schoolName || 'SCHOOL NAME'}
                   </h1>
                   <p className="text-sm font-bold italic text-gray-700">{schoolSettings?.schoolMotto || 'Excellence and Dedication'}</p>
@@ -523,7 +523,7 @@ const ReportCard = () => {
               <div className="grid grid-cols-[68%_31%] gap-2 items-stretch">
                 {/* LEFT: COGNITIVE */}
                 <div className="space-y-0 text-[10px] md:text-sm h-full flex flex-col">
-                  <div className="bg-emerald-800 text-white text-center font-bold py-1 text-sm border-2 border-b-0 border-black" style={{ backgroundColor: reportColor }}>
+                  <div className="bg-black text-white text-center font-bold py-1 text-sm border-2 border-b-0 border-black" style={{ backgroundColor: '#000000' }}>
                     COGNITIVE DOMAIN PERFORMANCE
                   </div>
                   <table className="w-full border-2 border-black border-collapse">

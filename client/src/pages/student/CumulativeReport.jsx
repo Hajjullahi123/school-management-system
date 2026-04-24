@@ -223,7 +223,7 @@ const CumulativeReport = () => {
             </div>
 
             <div className="text-center flex flex-col items-center justify-center">
-              <h1 className="text-2xl font-black uppercase tracking-wider leading-none text-emerald-900 mb-1" style={{ color: reportColor }}>
+              <h1 className="text-2xl font-black uppercase tracking-wider leading-none mb-1" style={{ color: '#000000' }}>
                 {ss?.name || 'SCHOOL NAME'}
               </h1>
               <p className="text-xs font-black italic text-gray-800 mb-1 uppercase tracking-normal w-full text-center">{ss?.motto || 'Excellence and Dedication'}</p>
@@ -279,7 +279,7 @@ const CumulativeReport = () => {
           {/* CUMULATIVE SCORE TABLE */}
           <div className="border-2 border-black rounded-sm overflow-hidden">
             <table className="w-full text-[10px] uppercase font-bold text-center border-collapse">
-              <thead className="bg-emerald-800 text-white border-b-2 border-black" style={{ backgroundColor: reportColor }}>
+              <thead className="bg-black text-white border-b-2 border-black" style={{ backgroundColor: '#000000' }}>
                 <tr className="divide-x divide-white/20">
                   <th className="p-0.5 text-left w-[35%] bg-emerald-900 border-r-2 border-black tracking-tight">SUBJECT</th>
                   <th className="p-0.5 w-[12%] tracking-tight">1st TERM</th>
