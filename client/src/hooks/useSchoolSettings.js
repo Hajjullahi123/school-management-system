@@ -78,6 +78,7 @@ export const useSchoolSettings = () => {
             test2Weight: data.test2Weight || 10,
             examWeight: data.examWeight || 70,
             currentSession: data.currentSession || null,
+            currentTerm: data.currentTerm || null,
             isSetupComplete: data.isSetupComplete ?? true,
             principalSignatureUrl: data.principalSignatureUrl ? (data.principalSignatureUrl.startsWith('data:') || data.principalSignatureUrl.startsWith('http') ? data.principalSignatureUrl : `${API_BASE_URL}${data.principalSignatureUrl}`) : null,
             weekendDays: data.weekendDays ?? "",

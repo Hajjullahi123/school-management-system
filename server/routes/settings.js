@@ -98,9 +98,15 @@ router.get('/', async (req, res) => {
     }
 
     // Fetch current academic session now that we definitely have settings.id
-    const academicSession = await prisma.academicSession.findFirst({
-      where: { schoolId: settings.id, isCurrent: true }
-    });
+    // Fetch current academic session and term in parallel
+    const [academicSession, currentTerm] = await Promise.all([
+      prisma.academicSession.findFirst({
+        where: { schoolId: settings.id, isCurrent: true }
+      }),
+      prisma.term.findFirst({
+        where: { schoolId: settings.id, isCurrent: true }
+      })
+    ]);
 
     // Sanitize sensitive fields
     const sanitizedSettings = { ...settings };
@@ -116,6 +122,7 @@ router.get('/', async (req, res) => {
 
     sanitizedSettings.schoolName = sanitizedSettings.name;
     sanitizedSettings.currentSession = academicSession;
+    sanitizedSettings.currentTerm = currentTerm;
 
     res.json(sanitizedSettings);
   } catch (error) {

@@ -317,7 +317,7 @@ router.get('/me', authenticate, async (req, res) => {
     } else if (role === 'student') {
       include.student = {
         select: {
-          id: true, admissionNumber: true, photoUrl: true,
+          id: true, admissionNumber: true, photoUrl: true, classId: true,
           classModel: { 
             select: { 
               id: true, name: true, arm: true,
@@ -347,6 +347,14 @@ router.get('/me', authenticate, async (req, res) => {
       }
     });
 
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.schoolId && user.school && user.school.isActivated === false && user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Your school account has been deactivated. Please contact your administrator.' });
+    }
+
     // Perform essential lookups in parallel for the /me response
     const [unreadCount, formMasterClass, hasQuranAccess] = await Promise.all([
       // Unread message count
@@ -361,6 +369,11 @@ router.get('/me', authenticate, async (req, res) => {
       // Quran access check
       (async () => {
         if (role === 'admin' || role === 'principal' || role === 'superadmin') return true;
+        
+        // For students: check if their class has Quran as a subject
+        // We use user.student.classModel.id or classId if we have it
+        const studentClassId = user?.student?.classId || user?.student?.classModel?.id;
+        
         if (role === 'teacher') {
           const assignments = await prisma.teacherAssignment.findMany({
             where: { teacherId: req.user.id, schoolId: req.schoolId },
@@ -371,9 +384,10 @@ router.get('/me', authenticate, async (req, res) => {
             return name.includes('quran') || name.includes("qur'an");
           });
         }
-        if (role === 'student' && user?.student?.classId) {
+        
+        if (role === 'student' && studentClassId) {
           const subjects = await prisma.classSubject.findMany({
-            where: { classId: user.student.classId, schoolId: req.schoolId },
+            where: { classId: studentClassId, schoolId: req.schoolId },
             include: { subject: { select: { name: true } } }
           });
           return subjects.some(s => {

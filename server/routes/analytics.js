@@ -412,12 +412,20 @@ router.get('/submission-tracking', authenticate, authorize(['admin', 'principal'
     const studentCountsMap = {};
     studentCounts.forEach(c => studentCountsMap[c.classId] = c._count.id);
 
-    // 4. Track progress
-    const trackingData = assignments.map(a => {
+    // 4. Track progress (Deduplicated by Class + Subject)
+    const processedPairs = new Set();
+    const trackingData = [];
+
+    for (const a of assignments) {
       const classId = a.classSubject.class.id;
       const subjectId = a.classSubject.subject.id;
-      const totalStudents = studentCountsMap[classId] || 0;
+      const pairKey = `${classId}-${subjectId}`;
 
+      // Skip if we've already processed this class-subject pair for this teacher
+      if (processedPairs.has(pairKey)) continue;
+      processedPairs.add(pairKey);
+
+      const totalStudents = studentCountsMap[classId] || 0;
       const classResults = results.filter(r => r.classId === classId && r.subjectId === subjectId);
       const gradedCount = classResults.length;
 
@@ -440,11 +448,11 @@ router.get('/submission-tracking', authenticate, authorize(['admin', 'principal'
       if (isTargetFilled) status = 'Completed';
       else if (hasAnyScore) status = 'Partial';
 
-      return {
+      trackingData.push({
         id: a.id,
         teacherId: a.teacherId,
-        classId: a.classSubject.class.id,
-        subjectId: a.classSubject.subject.id,
+        classId,
+        subjectId,
         className: `${a.classSubject.class.name} ${a.classSubject.class.arm || ''}`.trim(),
         subjectName: a.classSubject.subject.name,
         teacherName: `${a.teacher.firstName} ${a.teacher.lastName}`,
@@ -454,8 +462,8 @@ router.get('/submission-tracking', authenticate, authorize(['admin', 'principal'
         status,
         submissionDate: classResults.length > 0 ? classResults[0].submittedAt : null,
         isSubmitted: classResults.every(r => r.isSubmitted) && gradedCount >= totalStudents && totalStudents > 0
-      };
-    });
+      });
+    }
 
     res.json({
       tracking: trackingData,
