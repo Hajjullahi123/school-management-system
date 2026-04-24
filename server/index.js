@@ -140,6 +140,22 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   immutable: true
 }));
 
+// Server-side request timeout — prevents infinite hangs on slow DB queries
+app.use('/api', (req, res, next) => {
+  const TIMEOUT_MS = 25000; // 25 seconds
+  const timer = setTimeout(() => {
+    if (!res.headersSent) {
+      console.error(`[TIMEOUT] ${req.method} ${req.originalUrl} exceeded ${TIMEOUT_MS}ms`);
+      res.status(504).json({ error: 'Request timed out. The server is under heavy load. Please try again.' });
+    }
+  }, TIMEOUT_MS);
+
+  // Clear timeout when response finishes
+  res.on('finish', () => clearTimeout(timer));
+  res.on('close', () => clearTimeout(timer));
+  next();
+});
+
 // Lightweight request logger — API routes only (avoids logging every static asset)
 app.use('/api', (req, res, next) => {
   if (process.env.NODE_ENV !== 'production') {
@@ -395,6 +411,29 @@ const startServer = (portToTry, retryCount = 0) => {
 
   activeServer = app.listen(portToTry, () => {
     console.log(`[Server] SUCCESSFULLY RUNNING ON PORT ${portToTry}`);
+
+    // KEEP-ALIVE: Prevent Render free-tier from sleeping (15min idle threshold)
+    // Self-ping every 13 minutes to maintain warm state
+    if (process.env.RENDER_EXTERNAL_URL || process.env.NODE_ENV === 'production') {
+      const KEEP_ALIVE_MS = 13 * 60 * 1000; // 13 minutes
+      const pingUrl = process.env.RENDER_EXTERNAL_URL
+        ? `${process.env.RENDER_EXTERNAL_URL}/ping`
+        : `http://localhost:${portToTry}/ping`;
+
+      setInterval(async () => {
+        try {
+          const https = pingUrl.startsWith('https') ? require('https') : require('http');
+          https.get(pingUrl, (res) => {
+            console.log(`[KeepAlive] Ping OK (${res.statusCode}) at ${new Date().toISOString()}`);
+          }).on('error', (err) => {
+            console.warn('[KeepAlive] Ping failed:', err.message);
+          });
+        } catch (e) {
+          console.warn('[KeepAlive] Ping error:', e.message);
+        }
+      }, KEEP_ALIVE_MS);
+      console.log(`[KeepAlive] Self-ping enabled every ${KEEP_ALIVE_MS / 60000} minutes`);
+    }
   }).on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       console.warn(`[Server] Port ${portToTry} is in use.`);

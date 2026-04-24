@@ -366,34 +366,39 @@ router.get('/me', authenticate, async (req, res) => {
         where: { classTeacherId: req.user.id, schoolId: req.schoolId },
         select: { id: true, name: true }
       }) : null,
-      // Quran access check
+      // Quran access check — lightweight: use findFirst to short-circuit instead of loading all records
       (async () => {
         if (role === 'admin' || role === 'principal' || role === 'superadmin') return true;
         
-        // For students: check if their class has Quran as a subject
-        // We use user.student.classModel.id or classId if we have it
         const studentClassId = user?.student?.classId || user?.student?.classModel?.id;
         
         if (role === 'teacher') {
-          const assignments = await prisma.teacherAssignment.findMany({
-            where: { teacherId: req.user.id, schoolId: req.schoolId },
-            include: { subject: { select: { name: true } } }
+          // Find ANY single Quran-related assignment — stops at first match
+          const quranAssignment = await prisma.teacherAssignment.findFirst({
+            where: {
+              teacherId: req.user.id,
+              schoolId: req.schoolId,
+              subject: {
+                name: { contains: 'quran', mode: 'insensitive' }
+              }
+            },
+            select: { id: true }
           });
-          return assignments.some(a => {
-            const name = a.subject?.name?.toLowerCase() || '';
-            return name.includes('quran') || name.includes("qur'an");
-          });
+          return !!quranAssignment;
         }
         
         if (role === 'student' && studentClassId) {
-          const subjects = await prisma.classSubject.findMany({
-            where: { classId: studentClassId, schoolId: req.schoolId },
-            include: { subject: { select: { name: true } } }
+          const quranSubject = await prisma.classSubject.findFirst({
+            where: {
+              classId: studentClassId,
+              schoolId: req.schoolId,
+              subject: {
+                name: { contains: 'quran', mode: 'insensitive' }
+              }
+            },
+            select: { id: true }
           });
-          return subjects.some(s => {
-            const name = s.subject?.name?.toLowerCase() || '';
-            return name.includes('quran') || name.includes("qur'an");
-          });
+          return !!quranSubject;
         }
         return false;
       })()
