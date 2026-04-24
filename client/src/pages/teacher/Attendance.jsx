@@ -551,12 +551,48 @@ const Attendance = () => {
                           </div>
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap">
-                          <div className="flex justify-center items-center bg-gray-100 p-1 rounded-xl w-fit mx-auto lg:w-full max-w-[280px]">
+                          <div className="flex justify-center items-center bg-gray-50/50 p-1 rounded-2xl w-full max-w-[320px] mx-auto border border-gray-100">
                             {[
-                              { id: 'present', label: 'Present', short: 'P', color: 'peer-checked:bg-emerald-600 peer-checked:text-white text-emerald-700 bg-emerald-50' },
-                              { id: 'absent', label: 'Absent', short: 'A', color: 'peer-checked:bg-rose-600 peer-checked:text-white text-rose-700 bg-rose-50' },
-                              { id: 'late', label: 'Late', short: 'L', color: 'peer-checked:bg-amber-500 peer-checked:text-white text-amber-700 bg-amber-50' },
-                              { id: 'excused', label: 'Excused', short: 'E', color: 'peer-checked:bg-indigo-600 peer-checked:text-white text-indigo-700 bg-indigo-50' }
+                              { 
+                                id: 'present', 
+                                label: 'Present', 
+                                color: 'peer-checked:bg-emerald-600 peer-checked:text-white text-emerald-700 bg-emerald-50 peer-checked:border-emerald-600',
+                                icon: (
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                )
+                              },
+                              { 
+                                id: 'absent', 
+                                label: 'Absent', 
+                                color: 'peer-checked:bg-rose-600 peer-checked:text-white text-rose-700 bg-rose-50 peer-checked:border-rose-600',
+                                icon: (
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                )
+                              },
+                              { 
+                                id: 'late', 
+                                label: 'Late', 
+                                color: 'peer-checked:bg-amber-500 peer-checked:text-white text-amber-700 bg-amber-50 peer-checked:border-amber-500',
+                                icon: (
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                )
+                              },
+                              { 
+                                id: 'excused', 
+                                label: 'Excused', 
+                                color: 'peer-checked:bg-indigo-600 peer-checked:text-white text-indigo-700 bg-indigo-50 peer-checked:border-indigo-600',
+                                icon: (
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                )
+                              }
                             ].map(s => (
                               <label key={s.id} className="relative flex-1 cursor-pointer group">
                                 <input
@@ -569,19 +605,14 @@ const Attendance = () => {
                                   disabled={isPastDate}
                                 />
                                 <div className={`
-                                  flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all duration-200
+                                  flex items-center gap-2 justify-center py-2 px-1 rounded-xl transition-all duration-200 border-2
                                   ${s.color} hover:brightness-95 mx-0.5
-                                  ${student.status === s.id ? 'shadow-md scale-105 z-10' : 'opacity-40 grayscale-[0.5]'}
-                                  ${isPastDate ? 'cursor-not-allowed opacity-30 shadow-none scale-100' : ''}
+                                  ${student.status === s.id ? 'shadow-md scale-105 z-10 border-transparent' : 'opacity-40 grayscale-[0.5] border-transparent'}
+                                  ${isPastDate ? 'cursor-not-allowed opacity-30 shadow-none scale-100' : 'active:scale-95'}
                                 `}>
-                                  <span className="text-sm font-black md:hidden">{s.short}</span>
-                                  <span className="text-[10px] font-bold uppercase hidden md:inline tracking-tighter">{s.label}</span>
+                                  {s.icon}
+                                  <span className="text-[10px] font-black uppercase tracking-tighter hidden lg:inline">{s.label}</span>
                                 </div>
-                                {student.status === s.id && (
-                                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full border-2 border-current flex items-center justify-center animate-bounce">
-                                    <div className="w-1 h-1 bg-current rounded-full" />
-                                  </div>
-                                )}
                               </label>
                             ))}
                           </div>
@@ -632,14 +663,50 @@ const Attendance = () => {
                         </div>
 
                         {/* Status Grid */}
-                        <div className="grid grid-cols-4 gap-1.5">
+                        <div className="grid grid-cols-4 gap-2">
                            {[
-                              { id: 'present', label: 'Present', sub: 'On Time', icon: '✅', color: 'peer-checked:bg-emerald-600 peer-checked:text-white bg-emerald-50 text-emerald-700 border-emerald-100' },
-                              { id: 'absent', label: 'Absent', sub: 'Missing', icon: '❌', color: 'peer-checked:bg-rose-600 peer-checked:text-white bg-rose-50 text-rose-700 border-rose-100' },
-                              { id: 'late', label: 'Late', sub: 'Delayed', icon: '⏰', color: 'peer-checked:bg-amber-500 peer-checked:text-white bg-amber-50 text-amber-700 border-amber-100' },
-                              { id: 'excused', label: 'Excused', sub: 'Permit', icon: '📝', color: 'peer-checked:bg-indigo-600 peer-checked:text-white bg-indigo-50 text-indigo-700 border-indigo-100' }
+                                                            { 
+                                id: 'present', 
+                                label: 'Present', 
+                                color: 'peer-checked:bg-emerald-600 peer-checked:text-white bg-emerald-50 text-emerald-700 border-emerald-100 peer-checked:border-emerald-600',
+                                icon: (
+                                  <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                )
+                              },
+                                                            { 
+                                id: 'absent', 
+                                label: 'Absent', 
+                                color: 'peer-checked:bg-rose-600 peer-checked:text-white bg-rose-50 text-rose-700 border-rose-100 peer-checked:border-rose-600',
+                                icon: (
+                                  <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                )
+                              },
+                                                            { 
+                                id: 'late', 
+                                label: 'Late', 
+                                color: 'peer-checked:bg-amber-500 peer-checked:text-white bg-amber-50 text-amber-700 border-amber-100 peer-checked:border-amber-500',
+                                icon: (
+                                  <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                )
+                              },
+                                                            { 
+                                id: 'excused', 
+                                label: 'Excused', 
+                                color: 'peer-checked:bg-indigo-600 peer-checked:text-white bg-indigo-50 text-indigo-700 border-indigo-100 peer-checked:border-indigo-600',
+                                icon: (
+                                  <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                )
+                              }
                            ].map(s => (
-                              <label key={s.id} className="relative flex-1 cursor-pointer">
+                              <label key={s.id} className="relative flex-1 cursor-pointer group">
                                  <input
                                    type="radio"
                                    name={`mobile-status-${student.studentId}`}
@@ -650,13 +717,16 @@ const Attendance = () => {
                                    disabled={isPastDate}
                                  />
                                  <div className={`
-                                    flex flex-col items-center justify-center py-3 rounded-xl border transition-all duration-300
+                                    flex flex-col items-center justify-center py-3.5 rounded-2xl border-2 transition-all duration-300
                                     ${s.color}
-                                    ${student.status === s.id ? 'shadow-lg border-transparent' : 'opacity-40'}
-                                    ${isPastDate ? 'cursor-not-allowed grayscale' : ''}
+                                    ${student.status === s.id ? 'shadow-xl shadow-gray-200/50 scale-105' : 'opacity-50 grayscale-[0.2] border-transparent hover:opacity-100 hover:border-gray-100'}
+                                    ${isPastDate ? 'cursor-not-allowed grayscale' : 'active:scale-90'}
                                  `}>
-                                    <span className="text-base mb-1">{s.icon}</span>
-                                    <span className="text-[9px] font-black uppercase tracking-tighter">{s.label}</span>
+                                    {s.icon}
+                                    <span className="text-[9px] font-black uppercase tracking-widest">{s.label}</span>
+                                    {student.status === s.id && (
+                                      <div className="absolute top-1 right-1 w-2 h-2 bg-white rounded-full animate-pulse shadow-sm"></div>
+                                    )}
                                  </div>
                               </label>
                            ))}
