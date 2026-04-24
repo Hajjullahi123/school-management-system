@@ -15,78 +15,29 @@ const Layout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [hasQuranAccess, setHasQuranAccess] = useState(false);
-  const [isFormMasterDynamic, setIsFormMasterDynamic] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [hasQuranAccess, setHasQuranAccess] = useState(user?.hasQuranAccess || false);
+  const [isFormMasterDynamic, setIsFormMasterDynamic] = useState(user?.isFormMaster || false);
+  const [unreadCount, setUnreadCount] = useState(user?.unreadMessageCount || 0);
 
   const userId = user?.id;
   const userRole = user?.role;
   const studentClassId = user?.student?.classId;
 
-  // Check if user has access to Quran features
+  // Update local state when user object changes (e.g. after fresh /me fetch)
+  useEffect(() => {
+    if (user) {
+      setHasQuranAccess(user.hasQuranAccess || false);
+      setIsFormMasterDynamic(user.isFormMaster || false);
+      setUnreadCount(user.unreadMessageCount || 0);
+    }
+  }, [user]);
+
+  // Handle polling for dynamic updates (like unread messages) if necessary
   useEffect(() => {
     let isMounted = true;
+    let interval;
 
-    const checkQuranAccess = async () => {
-      try {
-        // Admins and Principals always have access
-        if (user?.role === 'admin' || user?.role === 'principal') {
-          setHasQuranAccess(true);
-          return;
-        }
-
-        // For teachers: check if they teach Quran
-        if (user?.role === 'teacher') {
-          const response = await api.get(`/api/teacher-assignments/teacher/${user.id}`);
-          if (response.ok && isMounted) {
-            const assignments = await response.json();
-            const teachesQuran = assignments.some(
-              assignment => {
-                const name = assignment.subject?.name?.toLowerCase() || '';
-                return name.includes('quran') || name.includes("qur'an");
-              }
-            );
-            setHasQuranAccess(teachesQuran);
-          }
-        }
-
-        // For students: check if their class has Quran as a subject
-        if (user?.role === 'student' && user?.student?.classId) {
-          const response = await api.get(`/api/class-subjects/class/${user.student.classId}`);
-          if (response.ok && isMounted) {
-            const classSubjects = await response.json();
-            const hasQuran = classSubjects.some(
-              cs => {
-                const name = cs.subject?.name?.toLowerCase() || '';
-                return name.includes('quran') || name.includes("qur'an");
-              }
-            );
-            setHasQuranAccess(hasQuran);
-          }
-        }
-      } catch (error) {
-        console.error('Error checking Quran access:', error);
-        if (isMounted) {
-          setHasQuranAccess(false);
-        }
-      }
-    };
-
-    const checkFormMasterStatus = async () => {
-      if (user?.role !== 'teacher') return;
-      try {
-        const response = await api.get('/api/classes/my-class');
-        if (response.ok && isMounted) {
-          const data = await response.json();
-          // If class data is returned, they are a form master
-          setIsFormMasterDynamic(!!data && !!data.id);
-        }
-      } catch (error) {
-        console.error('Error checking Form Master status:', error);
-      }
-    };
-
-    // Fetch unread messages count
+    // Fetch unread messages count periodically
     const fetchUnreadCount = async () => {
       try {
         const response = await api.get('/api/messages/unread-count');
@@ -99,21 +50,13 @@ const Layout = () => {
       }
     };
 
-    let interval;
-
     if (user?.id) {
-      checkQuranAccess();
-      checkFormMasterStatus();
-
-      // Secondary role detection
+      // Secondary role detection for polling
       const hasParentProfile = !!(user?.role === 'parent' || user?.parent);
       const hasTeacherProfile = !!(user?.role === 'teacher' || user?.teacher);
 
-      console.log(`[SIDEBAR DEBUG] User: ${user.username}, Role: ${user.role}, HasParent: ${hasParentProfile}, HasTeacher: ${hasTeacherProfile}`);
-
-      // Only fetch unread count for roles that use messaging
+      // Only poll for new messages for relevant roles
       if (hasParentProfile || hasTeacherProfile) {
-        fetchUnreadCount();
         // Polling for new messages every 2 minutes
         interval = setInterval(fetchUnreadCount, 120000);
       }
