@@ -41,8 +41,13 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       setUser(null);
-      // Keep token on timeout/network errors so user stays logged in after cold start
-      if (error.message !== 'Auth check timed out' && !error.message.includes('FetchError') && !error.message.includes('Network Error')) {
+      // Keep token on timeout/network errors so user stays logged in after cold start or deploy restart
+      if (
+        error.message !== 'Auth check timed out' && 
+        !error.message.includes('FetchError') && 
+        !error.message.includes('Network Error') &&
+        !error.message.includes('Failed to fetch')
+      ) {
         localStorage.removeItem('token');
         sessionStorage.removeItem('dashboardUnlocked');
       }

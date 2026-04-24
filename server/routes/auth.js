@@ -22,8 +22,8 @@ router.post('/identify', async (req, res) => {
         role: 'superadmin',
         schoolId: null,
         OR: [
-          { username: { equals: searchId, mode: 'insensitive' } },
-          { email: { equals: searchId, mode: 'insensitive' } }
+          { username: { equals: searchId } },
+          { email: { equals: searchId } }
         ]
       },
       select: { role: true }
@@ -37,8 +37,8 @@ router.post('/identify', async (req, res) => {
       const globalUser = await prisma.user.findFirst({
         where: { 
           OR: [
-            { username: { equals: searchId, mode: 'insensitive' } }, 
-            { email: { equals: searchId, mode: 'insensitive' } }
+            { username: { equals: searchId } }, 
+            { email: { equals: searchId } }
           ] 
         },
         select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
@@ -86,15 +86,15 @@ router.post('/identify', async (req, res) => {
     // We only do this if the direct lookup fails to save CPU/IO
     const [userByEmail, studentMatch, teacherMatch] = await Promise.all([
       prisma.user.findFirst({
-        where: { schoolId, email: { equals: searchId, mode: 'insensitive' } },
+        where: { schoolId, email: { equals: searchId } },
         select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
       }),
       prisma.student.findFirst({
-        where: { schoolId, admissionNumber: { equals: searchId, mode: 'insensitive' } },
+        where: { schoolId, admissionNumber: { equals: searchId } },
         select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
       }),
       prisma.teacher.findFirst({
-        where: { schoolId, staffId: { equals: searchId, mode: 'insensitive' } },
+        where: { schoolId, staffId: { equals: searchId } },
         select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
       })
     ]);
@@ -128,7 +128,7 @@ router.post('/login', async (req, res) => {
       // Global login (superadmin)
       user = await prisma.user.findFirst({
         where: {
-          username: { equals: searchId, mode: 'insensitive' },
+          username: { equals: searchId },
           schoolId: null,
           role: 'superadmin'
         },
@@ -181,7 +181,7 @@ router.post('/login', async (req, res) => {
       if (!user) {
         const [uByEmail, uByStudent, uByTeacher] = await Promise.all([
           prisma.user.findFirst({
-            where: { schoolId: school.id, email: { equals: searchId, mode: 'insensitive' } },
+            where: { schoolId: school.id, email: { equals: searchId } },
             select: userSelect
           }),
           prisma.student.findUnique({
@@ -379,7 +379,7 @@ router.get('/me', authenticate, async (req, res) => {
               teacherId: req.user.id,
               schoolId: req.schoolId,
               subject: {
-                name: { contains: 'quran', mode: 'insensitive' }
+                name: { contains: 'quran' }
               }
             },
             select: { id: true }
@@ -393,7 +393,7 @@ router.get('/me', authenticate, async (req, res) => {
               classId: studentClassId,
               schoolId: req.schoolId,
               subject: {
-                name: { contains: 'quran', mode: 'insensitive' }
+                name: { contains: 'quran' }
               }
             },
             select: { id: true }
