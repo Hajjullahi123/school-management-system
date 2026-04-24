@@ -83,23 +83,28 @@ router.post('/identify', async (req, res) => {
     }
 
     // Secondary lookups for email or non-synced admission/staff IDs
-    // We only do this if the direct lookup fails to save CPU/IO
-    const [userByEmail, studentMatch, teacherMatch] = await Promise.all([
-      prisma.user.findFirst({
+    // SMART ROUTING: Reduce search width based on identifier pattern
+    let finalMatch = null;
+    const isEmail = searchId.includes('@');
+    
+    if (isEmail) {
+      finalMatch = await prisma.user.findFirst({
         where: { schoolId, email: { equals: searchId } },
         select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
-      }),
-      prisma.student.findFirst({
-        where: { schoolId, admissionNumber: { equals: searchId } },
-        select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
-      }),
-      prisma.teacher.findFirst({
-        where: { schoolId, staffId: { equals: searchId } },
-        select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
-      })
-    ]);
-
-    const finalMatch = userByEmail || studentMatch || teacherMatch;
+      });
+    } else {
+      const [studentMatch, teacherMatch] = await Promise.all([
+        prisma.student.findFirst({
+          where: { schoolId, admissionNumber: { equals: searchId } },
+          select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
+        }),
+        prisma.teacher.findFirst({
+          where: { schoolId, staffId: { equals: searchId } },
+          select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
+        })
+      ]);
+      finalMatch = studentMatch || teacherMatch;
+    }
 
     if (!finalMatch?.school) {
       return res.status(404).json({ error: 'Account not found. Check your credentials.' });
@@ -177,33 +182,38 @@ router.post('/login', async (req, res) => {
         select: userSelect
       });
 
-      // SLOW PATH: If not found by username, check email, student ID, and teacher ID in parallel
+      // SLOW PATH: If not found by username, check conditionally based on format
       if (!user) {
-        const [uByEmail, uByStudent, uByTeacher] = await Promise.all([
-          prisma.user.findFirst({
+        const isEmail = searchId.includes('@');
+        
+        if (isEmail) {
+          user = await prisma.user.findFirst({
             where: { schoolId: school.id, email: { equals: searchId } },
             select: userSelect
-          }),
-          prisma.student.findUnique({
-            where: {
-              schoolId_admissionNumber: {
-                schoolId: school.id,
-                admissionNumber: searchId
-              }
-            },
-            select: { user: { select: userSelect } }
-          }),
-          prisma.teacher.findUnique({
-            where: {
-              schoolId_staffId: {
-                schoolId: school.id,
-                staffId: searchId
-              }
-            },
-            select: { user: { select: userSelect } }
-          })
-        ]);
-        user = uByEmail || uByStudent?.user || uByTeacher?.user;
+          });
+        } else {
+          const [uByStudent, uByTeacher] = await Promise.all([
+            prisma.student.findUnique({
+              where: {
+                schoolId_admissionNumber: {
+                  schoolId: school.id,
+                  admissionNumber: searchId
+                }
+              },
+              select: { user: { select: userSelect } }
+            }),
+            prisma.teacher.findUnique({
+              where: {
+                schoolId_staffId: {
+                  schoolId: school.id,
+                  staffId: searchId
+                }
+              },
+              select: { user: { select: userSelect } }
+            })
+          ]);
+          user = uByStudent?.user || uByTeacher?.user;
+        }
       }
     }
 
