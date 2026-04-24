@@ -828,6 +828,9 @@ Note: Password must be changed on first login.
                 return;
               }
               setShowForm(!showForm);
+              if (!showForm) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
             }}
             className={`w-full sm:w-auto ${isDemo ? 'opacity-75 cursor-not-allowed bg-gray-400' : 'bg-primary'} text-white px-5 py-3 rounded-xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest`}
           >
@@ -838,10 +841,231 @@ Note: Password must be changed on first login.
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
               )}
             </svg>
-            {showForm ? 'Cancel' : (isDemo ? 'Add Student (Demo)' : 'Add Student')}
+            {showForm ? 'Cancel Registration' : (isDemo ? 'Add Student (Demo)' : 'Add Student')}
           </button>
         </div>
       </div>
+
+      {/* Student Registration Form - Moved to TOP for visibility */}
+      {
+        showForm && (
+          <div className="bg-white p-6 rounded-2xl shadow-xl border-2 border-primary/10 mb-8 animate-in slide-in-from-top duration-500 overflow-hidden relative">
+             {/* Decorative Background Element */}
+            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl"></div>
+            
+            <div className="flex justify-between items-center mb-8 pb-4 border-b relative z-10">
+              <div>
+                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">
+                  {editingStudent ? 'Update Student Record' : 'Register New Student'}
+                </h3>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Please fill in all required fields marked with *</p>
+              </div>
+              <button 
+                onClick={resetForm}
+                className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-xl transition-all"
+                title="Discard Changes"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-10 relative z-10">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-primary font-black uppercase text-[10px] tracking-widest mb-6">
+                   <div className="w-8 h-px bg-primary/20"></div>
+                   Basic Identification
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      First Name <span className="text-red-500 font-black">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Middle Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.middleName || ''}
+                      onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Last Name <span className="text-red-500 font-black">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      placeholder="Auto-generated if empty"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Personal Information */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-indigo-600 font-black uppercase text-[10px] tracking-widest mb-6">
+                   <div className="w-8 h-px bg-indigo-600/20"></div>
+                   Personal Background
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Date of Birth</label>
+                    <input
+                      type="date"
+                      value={formData.dateOfBirth}
+                      onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Gender</label>
+                    <select
+                      value={formData.gender}
+                      onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700 appearance-none"
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">State of Origin</label>
+                    <input
+                      type="text"
+                      value={formData.stateOfOrigin}
+                      onChange={(e) => setFormData({ ...formData, stateOfOrigin: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                    />
+                  </div>
+                  <div className="space-y-1 lg:col-span-2">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Home Address</label>
+                    <input
+                      type="text"
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Academic & Parent Info */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                {/* Academic */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-emerald-600 font-black uppercase text-[10px] tracking-widest mb-6">
+                     <div className="w-8 h-px bg-emerald-600/20"></div>
+                     Academic Placement
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Class Placement <span className="text-red-500 font-black">*</span>
+                      </label>
+                      <select
+                        value={formData.classId}
+                        onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700 appearance-none"
+                        required
+                      >
+                        <option value="">Select Class</option>
+                        {classes.map((cls) => (
+                          <option key={cls.id} value={cls.id}>
+                            {cls.name} {cls.arm || ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Admission Year</label>
+                      <input
+                        type="number"
+                        value={formData.admissionYear}
+                        onChange={(e) => setFormData({ ...formData, admissionYear: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Parent */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-amber-600 font-black uppercase text-[10px] tracking-widest mb-6">
+                     <div className="w-8 h-px bg-amber-600/20"></div>
+                     Parent/Guardian Details
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Full Name</label>
+                      <input
+                        type="text"
+                        value={formData.parentGuardianName}
+                        onChange={(e) => setFormData({ ...formData, parentGuardianName: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Phone Number</label>
+                      <input
+                        type="text"
+                        value={formData.parentGuardianPhone}
+                        onChange={(e) => setFormData({ ...formData, parentGuardianPhone: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-4 pt-8 border-t">
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="px-8 py-3 rounded-xl border border-gray-200 text-gray-500 font-black uppercase text-[10px] tracking-widest hover:bg-gray-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-10 py-4 rounded-xl bg-primary text-white font-black uppercase text-[10px] tracking-widest hover:brightness-110 shadow-xl shadow-primary/20 active:scale-95 transition-all"
+                >
+                  {editingStudent ? 'Update Student Record' : 'Complete Registration'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )
+      }
 
       {/* Action Guidance */}
       <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-6 mb-2 w-full">
@@ -914,283 +1138,6 @@ Note: Password must be changed on first login.
         )
       }
 
-      {/* Student Registration Form */}
-      {
-        showForm && (
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-4">
-              {editingStudent ? 'Edit Student' : 'Register New Student'}
-            </h3>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Basic Information */}
-              <div>
-                <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">Basic Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      First Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.firstName}
-                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Middle Name / Other Name
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.middleName || ''}
-                      onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                      placeholder="Optional"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Last Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email (Optional)
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                      placeholder="Auto-generated if empty"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Personal Information */}
-              <div>
-                <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">Personal Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
-                    <input
-                      type="date"
-                      value={formData.dateOfBirth}
-                      onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
-                    <select
-                      value={formData.gender}
-                      onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                    >
-                      <option value="">Select Gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">State of Origin</label>
-                    <input
-                      type="text"
-                      value={formData.stateOfOrigin}
-                      onChange={(e) => setFormData({ ...formData, stateOfOrigin: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                      placeholder="e.g., Lagos"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nationality</label>
-                    <input
-                      type="text"
-                      value={formData.nationality}
-                      onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
-                    <input
-                      type="text"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                      placeholder="Full residential address"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Academic Information */}
-              <div>
-                <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">Academic Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Class <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.classId}
-                      onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                      required
-                    >
-                      <option value="">Select Class</option>
-                      {classes.map((cls) => (
-                        <option key={cls.id} value={cls.id}>
-                          {cls.name} {cls.arm || ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Admission Year</label>
-                    <input
-                      type="number"
-                      value={formData.admissionYear}
-                      onChange={(e) => setFormData({ ...formData, admissionYear: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                      min="2000"
-                      max={new Date().getFullYear() + 1}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Used for admission number generation</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Club / Society</label>
-                    <input
-                      list="clubs-list"
-                      type="text"
-                      value={formData.clubs || ''}
-                      onChange={(e) => setFormData({ ...formData, clubs: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                      placeholder="Select or type..."
-                    />
-                    <datalist id="clubs-list">
-                      <option value="Press Club" />
-                      <option value="JETS Club" />
-                      <option value="Debating Club" />
-                      <option value="Literary & Debating Society" />
-                      <option value="Young Farmers Club" />
-                      <option value="Red Cross" />
-                      <option value="Scouts" />
-                      <option value="Muslim Students Society" />
-                      <option value="Christian Fellowship" />
-                      <option value="Drama Club" />
-                    </datalist>
-                  </div>
-                </div>
-              </div>
-
-              {/* Parent/Guardian Information */}
-              <div>
-                <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">Parent/Guardian Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Parent/Guardian Name <span className="text-red-500">*</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, parentGuardianName: formData.lastName })}
-                        className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors"
-                        title="Autofill with student's last name"
-                      >
-                        Same as Surname
-                      </button>
-                    </div>
-                    <input
-                      type="text"
-                      value={formData.parentGuardianName}
-                      onChange={(e) => setFormData({ ...formData, parentGuardianName: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Parent/Guardian Phone</label>
-                    <input
-                      type="tel"
-                      value={formData.parentGuardianPhone}
-                      onChange={(e) => setFormData({ ...formData, parentGuardianPhone: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                      placeholder="Optional"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Parent Email</label>
-                    <input
-                      type="email"
-                      value={formData.parentEmail}
-                      onChange={(e) => setFormData({ ...formData, parentEmail: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Medical Information */}
-              <div>
-                <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">Medical Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Blood Group</label>
-                    <select
-                      value={formData.bloodGroup}
-                      onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                    >
-                      <option value="">Select Blood Group</option>
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
-                      <option value="O+">O+</option>
-                      <option value="O-">O-</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Genotype</label>
-                    <select
-                      value={formData.genotype}
-                      onChange={(e) => setFormData({ ...formData, genotype: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                    >
-                      <option value="">Select Genotype</option>
-                      <option value="AA">AA</option>
-                      <option value="AS">AS</option>
-                      <option value="SS">SS</option>
-                      <option value="AC">AC</option>
-                      <option value="SC">SC</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Disability</label>
-                    <select
-                      value={formData.disability}
-                      onChange={(e) => setFormData({ ...formData, disability: e.target.value })}
-                      className="w-full border rounded-md px-3 py-2"
-                    >
-                      <option value="None">None</option>
-                      <option value="Physical">Physical</option>
-                      <option value="Visual">Visual</option>
-                      <option value="Hearing">Hearing</option>
-                      <option value="Learning">Learning</option>
                       <option value="Other">Other</option>
                     </select>
                   </div>
