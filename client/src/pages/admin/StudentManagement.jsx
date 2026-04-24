@@ -1018,6 +1018,10 @@ Note: Password must be changed on first login.
                   </div>
                 </div>
 
+                  </div>
+                </div>
+              </div>
+
                 {/* Parent */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-amber-600 font-black uppercase text-[10px] tracking-widest mb-6">
@@ -1044,6 +1048,47 @@ Note: Password must be changed on first login.
                       />
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Administrative & Media Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-rose-600 font-black uppercase text-[10px] tracking-widest mb-6">
+                   <div className="w-8 h-px bg-rose-600/20"></div>
+                   Administrative & Media
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                  <div className="space-y-4">
+                    <label className="flex items-center space-x-3 cursor-pointer group p-4 bg-rose-50/30 border border-rose-100 rounded-2xl hover:bg-rose-50 transition-all">
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={formData.isScholarship}
+                          onChange={(e) => setFormData({ ...formData, isScholarship: e.target.checked })}
+                          className="peer sr-only"
+                        />
+                        <div className="w-10 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-rose-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black text-rose-900 uppercase tracking-tight">Scholarship Status</span>
+                        <span className="text-[10px] text-rose-600 font-bold uppercase tracking-widest">Exempt student from all tuition fees</span>
+                      </div>
+                    </label>
+                  </div>
+
+                  {editingStudent && (
+                    <div className="bg-gray-50/50 p-4 rounded-2xl border border-dashed border-gray-200">
+                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Update Student Photo</h4>
+                      <PhotoUpload
+                        studentId={editingStudent.id}
+                        currentPhotoUrl={editingStudent.photoUrl}
+                        onPhotoUpload={(photoUrl) => {
+                          setEditingStudent({ ...editingStudent, photoUrl });
+                          fetchStudents();
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1138,68 +1183,7 @@ Note: Password must be changed on first login.
         )
       }
 
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
 
-              {/* Photo Upload (only when editing) */}
-              {/* Administrative Controls */}
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">Administrative Actions</h4>
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col md:flex-row gap-6">
-                    <label className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.isScholarship}
-                        onChange={(e) => setFormData({ ...formData, isScholarship: e.target.checked })}
-                        className="rounded text-primary focus:ring-primary h-4 w-4"
-                      />
-                      <span className="text-sm font-medium text-gray-700">Scholarship Student (Exempt from fees)</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {editingStudent && (
-                <div>
-                  <h4 className="font-medium text-gray-700 mb-3 border-b pb-2">Student Photo</h4>
-                  <PhotoUpload
-                    studentId={editingStudent.id}
-                    currentPhotoUrl={editingStudent.photoUrl}
-                    onPhotoUpload={(photoUrl) => {
-                      // Update local state
-                      setEditingStudent({ ...editingStudent, photoUrl });
-                      // Refresh student list
-                      fetchStudents();
-                    }}
-                  />
-                </div>
-              )}
-
-              {/* Form Actions */}
-              <div className="flex gap-2 pt-4 border-t">
-                <button
-                  type="submit"
-                  disabled={isDemo}
-                  className={`${isDemo ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:brightness-90'} text-white px-6 py-2 rounded-md transition-colors`}
-                >
-                  {isDemo ? 'Action Restricted (Demo)' : (editingStudent ? 'Update Student' : 'Register Student')}
-                </button>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        )
-      }
 
       {/* Class-Based Student Cards */}
       {
