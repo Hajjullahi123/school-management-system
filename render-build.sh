@@ -58,6 +58,17 @@ WHERE id NOT IN (
 ALTER TABLE "Student" ADD COLUMN IF NOT EXISTS "admissionNumber" TEXT;
 UPDATE "Student" SET "admissionNumber" = 'LEGACY-ADM-' || id WHERE "admissionNumber" IS NULL OR "admissionNumber" = '';
 ALTER TABLE "Student" ALTER COLUMN "admissionNumber" SET NOT NULL;
+
+-- Fix NewsEvent authorId foreign key (if @default(1) is invalid)
+ALTER TABLE "NewsEvent" ADD COLUMN IF NOT EXISTS "authorId" INTEGER;
+UPDATE "NewsEvent" SET "authorId" = (SELECT id FROM "User" LIMIT 1) WHERE "authorId" IS NULL OR "authorId" NOT IN (SELECT id FROM "User");
+
+-- Fix Alumni studentId foreign key (if @default(1) is invalid)
+ALTER TABLE "Alumni" ADD COLUMN IF NOT EXISTS "studentId" INTEGER;
+UPDATE "Alumni" SET "studentId" = (SELECT id FROM "Student" LIMIT 1) WHERE "studentId" IS NULL OR "studentId" NOT IN (SELECT id FROM "Student");
+
+-- Clear QuranTarget test data as it has multiple new required foreign keys that cannot easily be backfilled
+DELETE FROM "QuranTarget";
 SQL
 
 # 6. Synchronize Database (Force push for Dev/Stage)
