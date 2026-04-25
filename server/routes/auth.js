@@ -192,7 +192,8 @@ router.post('/login', async (req, res) => {
             select: userSelect
           });
         } else {
-          const [uByStudent, uByTeacher] = await Promise.all([
+          // Look up student or teacher by their ID numbers
+          const [studentRecord, teacherRecord] = await Promise.all([
             prisma.student.findUnique({
               where: {
                 schoolId_admissionNumber: {
@@ -200,7 +201,7 @@ router.post('/login', async (req, res) => {
                   admissionNumber: searchId
                 }
               },
-              select: { user: { select: userSelect } }
+              select: { userId: true, user: { select: userSelect } }
             }),
             prisma.teacher.findUnique({
               where: {
@@ -209,10 +210,21 @@ router.post('/login', async (req, res) => {
                   staffId: searchId
                 }
               },
-              select: { user: { select: userSelect } }
+              select: { userId: true, user: { select: userSelect } }
             })
           ]);
-          user = uByStudent?.user || uByTeacher?.user;
+
+          // Get user from linked record
+          user = studentRecord?.user || teacherRecord?.user;
+
+          // If student/teacher found but userId is null (not linked to a User account yet),
+          // return a specific error to avoid the misleading "Invalid credentials" message
+          if (!user && (studentRecord || teacherRecord)) {
+            console.error('[Auth] Login failed: Student/Teacher found but has no linked User account. admissionNumber/staffId:', searchId);
+            return res.status(401).json({ 
+              error: 'Your account has not been fully set up yet. Please contact your school administrator to activate your portal access.' 
+            });
+          }
         }
       }
     }
@@ -225,7 +237,29 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ error: 'Your school account has been deactivated. Please contact your school administrator or platform support.' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    // Compare password — handle both bcrypt hashes and plain-text defaults
+    let isMatch = false;
+    const isBcryptHash = user.passwordHash && (user.passwordHash.startsWith('$2a$') || user.passwordHash.startsWith('$2b$'));
+    
+    if (isBcryptHash) {
+      isMatch = await bcrypt.compare(password, user.passwordHash);
+    } else {
+      // Plain-text password (schema default or legacy). Compare directly.
+      isMatch = (password === user.passwordHash);
+      if (isMatch) {
+        // Immediately upgrade to a proper bcrypt hash on first successful login
+        try {
+          const upgradedHash = await bcrypt.hash(password, 10);
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { passwordHash: upgradedHash }
+          });
+          console.log(`[Auth] Upgraded plain-text password to bcrypt hash for user ${user.username}`);
+        } catch (upgradeErr) {
+          console.error('[Auth] Failed to upgrade plain-text password hash:', upgradeErr);
+        }
+      }
+    }
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
