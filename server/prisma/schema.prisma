@@ -139,6 +139,9 @@ model School {
   holidays          Holiday[]
   miscFees          MiscFee[]
   adverts           Advert[]
+  payrollVouchers   PayrollVoucher[]
+  leaveRequests     LeaveRequest[]
+  materialRequests  MaterialRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -180,6 +183,11 @@ model User {
   staffAttendance  StaffAttendance[]
   uploadedResources DepartmentResource[]
   auditedActions   AuditLog[]
+  classSubjects    ClassSubject[]
+  payrollRecords   PayrollRecord[]
+  loanRequests     LoanRequest[]
+  leaveRequests    LeaveRequest[]
+  materialRequests MaterialRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -238,6 +246,7 @@ model Subject {
   curriculums Curriculum[]
   quranTargets QuranTarget[]
   quranRecords QuranRecord[]
+  interventions Intervention[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -263,6 +272,8 @@ model Class {
   lessonNotes      LessonNote[]
   curriculums      Curriculum[]
   cumulativeResults CumulativeResult[]
+  attendance       Attendance[]
+  interventions    Intervention[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -328,9 +339,9 @@ model Term {
   school            School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id])
   results           Result[]
+  academicRemarks   AcademicRemark[]
   payments          Payment[]
   examRepo          ExamRepository[]
-  academicRemarks   AcademicRemark[]
   cumulativeResults CumulativeResult[]
 
   createdAt DateTime @default(now())
@@ -691,6 +702,8 @@ model Advert {
   imageUrl  String
   targetUrl String?
   isActive  Boolean  @default(true)
+  schoolId  Int?
+  school    School?  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -815,6 +828,7 @@ model Intervention {
   studentId   Int
   teacherId   Int?
   subjectId   Int?
+  classId     Int?
   issue       String
   actionPlan  String
   status      String   @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED
@@ -822,6 +836,7 @@ model Intervention {
   school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   student     Student  @relation(fields: [studentId], references: [id])
   subject     Subject? @relation(fields: [subjectId], references: [id])
+  class       Class?   @relation(fields: [classId], references: [id])
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -850,4 +865,117 @@ model Holiday {
   description String?
   
   school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+// ================= HR & PAYROLL MODULE =================
+
+model PayrollVoucher {
+  id           Int           @id @default(autoincrement())
+  schoolId     Int
+  month        Int           // 1-12
+  year         Int
+  status       String        @default("DRAFT") // DRAFT, FINALIZED, PAID
+  totalGross   Float         @default(0)
+  totalNet     Float         @default(0)
+  totalDeductions Float      @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  school       School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  records      PayrollRecord[]
+
+  @@unique([schoolId, month, year])
+}
+
+model PayrollRecord {
+  id              Int               @id @default(autoincrement())
+  staffId         Int
+  voucherId       Int
+  baseSalary      Float
+  totalAllowances Float             @default(0)
+  totalDeductions Float             @default(0)
+  netPay          Float
+  status          String            @default("PENDING") // PENDING, PAID
+  
+  staff           User              @relation(fields: [staffId], references: [id])
+  voucher         PayrollVoucher    @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  allowances      PayrollAllowance[]
+  deductions      PayrollDeduction[]
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([staffId, voucherId])
+}
+
+model PayrollAllowance {
+  id              Int           @id @default(autoincrement())
+  payrollRecordId Int
+  type            String        // BONUS, TRANSPORT, HOUSING, etc.
+  amount          Float
+  description     String?
+  
+  payrollRecord   PayrollRecord @relation(fields: [payrollRecordId], references: [id], onDelete: Cascade)
+}
+
+model PayrollDeduction {
+  id              Int           @id @default(autoincrement())
+  payrollRecordId Int
+  amount          Float
+  reason          String        // TAX, LOAN_REPAYMENT, LATE_COMING, etc.
+  
+  payrollRecord   PayrollRecord @relation(fields: [payrollRecordId], references: [id], onDelete: Cascade)
+}
+
+model LoanRequest {
+  id             Int       @id @default(autoincrement())
+  staffId        Int
+  amount         Float
+  reason         String
+  repaymentMonths Int      @default(1)
+  repaidMonths   Int      @default(0)
+  status         String    @default("PENDING") // PENDING, APPROVED, REJECTED, COMPLETED
+  processedById  Int?
+  processedAt    DateTime?
+  
+  staff          User      @relation(fields: [staffId], references: [id])
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model LeaveRequest {
+  id             Int       @id @default(autoincrement())
+  schoolId       Int
+  staffId        Int
+  type           String    // SICK, ANNUAL, EXCUSE, MATERNITY
+  startDate      DateTime
+  endDate        DateTime
+  reason         String
+  status         String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  processedById  Int?
+  processedAt    DateTime?
+  
+  school         School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staff          User      @relation(fields: [staffId], references: [id])
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model MaterialRequest {
+  id             Int       @id @default(autoincrement())
+  schoolId       Int
+  staffId        Int
+  items          String    // JSON string of items requested
+  priority       String    @default("NORMAL") // NORMAL, URGENT
+  status         String    @default("PENDING") // PENDING, APPROVED, DISBURSED, REJECTED
+  processedById  Int?
+  processedAt    DateTime?
+  
+  school         School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staff          User      @relation(fields: [staffId], references: [id])
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }

@@ -116,6 +116,8 @@ const HistoryBulkCertificateView = lazyRetry(() => import('./pages/admin/History
 const HistoryBulkTestimonialView = lazyRetry(() => import('./pages/admin/HistoryBulkTestimonialView'));
 const DepartmentManagement = lazyRetry(() => import('./pages/admin/DepartmentManagement'));
 const DepartmentMonitoring = lazyRetry(() => import('./pages/teacher/DepartmentMonitoring'));
+const StaffHRDashboard = lazyRetry(() => import('./pages/hr/StaffHRDashboard'));
+const HRAdminDashboard = lazyRetry(() => import('./pages/hr/HRAdminDashboard'));
 
 
 const TranscriptVerification = lazyRetry(() => import('./pages/TranscriptVerification'));
@@ -307,6 +309,16 @@ function App() {
               <Route path="curriculum-management" element={
                 <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
                   <CurriculumManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="hr-center" element={
+                <ProtectedRoute>
+                  <StaffHRDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="hr-admin" element={
+                <ProtectedRoute roles={['admin', 'hr_admin', 'superadmin', 'principal']}>
+                  <HRAdminDashboard />
                 </ProtectedRoute>
               } />
 

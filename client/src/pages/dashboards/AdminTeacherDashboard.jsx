@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../../api';
+import { api, API_BASE_URL } from '../../api';
 import { formatNumber } from '../../utils/formatters';
 import StaffAttendanceWidget from '../../components/StaffAttendanceWidget';
 
@@ -358,6 +358,31 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
               </Link>
             </div>
           )}
+
+          {/* HR & Personnel Finance Hub - Accessible to all Staff */}
+          <Link 
+            to="/dashboard/hr-center" 
+            className="group relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-[2.5rem] shadow-2xl border border-white/5 transition-all hover:scale-[1.01] active:scale-95"
+          >
+            <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+            <div className="relative z-10 flex items-center justify-between">
+              <div className="flex items-center gap-5">
+                <div className="p-4 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-white font-black uppercase tracking-widest text-sm italic">HR & Personnel Finance</h3>
+                  <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em] mt-0.5">Payroll • Loans • Requisitions • Leaves</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                 <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Enter Hub</span>
+                 <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
+          </Link>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Your Assigned Subjects</h3>
               <div className="px-2 py-1 bg-primary/10 rounded-lg">
@@ -427,7 +452,10 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
           <Link to="/dashboard/users" className="bg-indigo-600 text-white p-4 rounded-xl text-center">
              <span className="text-[11px] font-black uppercase tracking-widest">Users</span>
           </Link>
-          <Link to="/dashboard/settings" className="bg-slate-700 text-white p-4 rounded-xl text-center">
+          <Link to="/dashboard/hr-admin" className="bg-rose-600 text-white p-4 rounded-xl text-center">
+             <span className="text-[11px] font-black uppercase tracking-widest">HR Command</span>
+          </Link>
+          <Link to="/dashboard/settings" className="bg-slate-700 text-white p-4 rounded-xl text-center sm:col-span-2 lg:col-span-1">
              <span className="text-[11px] font-black uppercase tracking-widest">System</span>
           </Link>
         </div>
