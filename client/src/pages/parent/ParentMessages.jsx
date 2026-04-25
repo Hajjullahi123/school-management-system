@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import { formatDateVerbose } from '../../utils/formatters';
 import { formatWhatsAppNumber } from '../../utils/formatters';
 
 const ParentMessages = () => {
@@ -534,7 +535,7 @@ const ParentMessages = () => {
                     </div>
                     <div className="flex flex-col items-end gap-2 ml-2 sm:ml-4 flex-shrink-0">
                       <div className="text-[10px] text-gray-400 font-medium uppercase">
-                        {new Date(msg.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                        {formatDateVerbose(msg.createdAt)}
                       </div>
                       {msg.senderId === user.id && (
                         <button

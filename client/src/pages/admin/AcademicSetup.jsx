@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../api';
 import { toast } from '../../utils/toast';
+import { formatDateVerbose } from '../../utils/formatters';
 
 const AcademicSetup = () => {
   const [activeTab, setActiveTab] = useState('sessions');
@@ -448,7 +449,7 @@ const AcademicSetup = () => {
                         <div>
                           <h4 className="font-semibold text-lg">{session.name}</h4>
                           <p className="text-sm text-gray-600">
-                            {new Date(session.startDate).toLocaleDateString()} - {new Date(session.endDate).toLocaleDateString()}
+                            {formatDateVerbose(session.startDate)} - {formatDateVerbose(session.endDate)}
                           </p>
                           {session.isCurrent && (
                             <span className="inline-block mt-1 px-2 py-1 bg-primary text-white text-xs rounded">
@@ -613,7 +614,7 @@ const AcademicSetup = () => {
                             Session: {term.academicSession?.name}
                           </p>
                           <p className="text-sm text-gray-600">
-                            {new Date(term.startDate).toLocaleDateString()} - {new Date(term.endDate).toLocaleDateString()}
+                            {formatDateVerbose(term.startDate)} - {formatDateVerbose(term.endDate)}
                           </p>
                           {term.isCurrent && (
                             <span className="inline-block mt-1 px-2 py-1 bg-primary text-white text-xs rounded">

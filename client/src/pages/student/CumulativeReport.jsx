@@ -5,6 +5,7 @@ import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useReactToPrint } from 'react-to-print';
 import { QRCodeSVG } from 'qrcode.react';
+import { formatDateVerbose } from '../../utils/formatters';
 
 const CumulativeReport = () => {
   const { user } = useAuth();
@@ -388,7 +389,7 @@ const CumulativeReport = () => {
 
             <div className="text-right">
               <div className="text-[8px] font-black text-slate-900 uppercase tracking-tighter">Academic Session</div>
-              <div className="text-[7px] font-bold text-gray-400">{data.session?.name} • GEN: {new Date().toLocaleDateString('en-GB')}</div>
+              <div className="text-[7px] font-bold text-gray-400">{data.session?.name} • GEN: {formatDateVerbose(new Date())}</div>
             </div>
           </div>
         </div>

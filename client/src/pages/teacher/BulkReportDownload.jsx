@@ -5,6 +5,7 @@ import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useReactToPrint } from 'react-to-print';
 import { Printer } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { formatDateVerbose } from '../../utils/formatters';
 
 const BulkReportDownload = () => {
   const { user } = useAuth();
@@ -443,7 +444,7 @@ const BulkReportDownload = () => {
                           <td className="border-r border-black p-0.5">ADM NO:</td>
                           <td className="border-r border-black p-0.5">{data.student?.admissionNumber}</td>
                           <td className="border-r border-black p-0.5">D.O.B:</td>
-                          <td className="p-0.5">{data.student?.dateOfBirth ? new Date(data.student.dateOfBirth).toLocaleDateString() : 'N/A'}</td>
+                          <td className="p-0.5">{data.student?.dateOfBirth ? formatDateVerbose(data.student.dateOfBirth) : 'N/A'}</td>
                         </tr>
                         <tr className="border-b border-black">
                           <td className="border-r border-black p-0.5">AGE:</td>
@@ -691,11 +692,11 @@ const BulkReportDownload = () => {
                           <div className="pt-1 border-t border-black/10 flex justify-between items-center text-[9px] font-bold">
                             <div>
                               <span className="mr-1">Term Ends:</span>
-                              <span className="underline font-black">{data.term?.endDate ? new Date(data.term.endDate).toLocaleDateString() : '....................'}</span>
+                              <span className="underline font-black">{data.term?.endDate ? formatDateVerbose(data.term.endDate) : '....................'}</span>
                             </div>
                             <div>
                               <span className="mr-1">Next Term Begins:</span>
-                              <span className="underline font-black">{data.term?.nextTermBegins ? new Date(data.term.nextTermBegins).toLocaleDateString() : '....................'}</span>
+                              <span className="underline font-black">{data.term?.nextTermBegins ? formatDateVerbose(data.term.nextTermBegins) : '....................'}</span>
                             </div>
                           </div>
                         </div>
@@ -749,7 +750,7 @@ const BulkReportDownload = () => {
 
                       <div className="text-right">
                         <div className="text-[8px] font-black text-slate-900 uppercase tracking-tighter">Academic Status</div>
-                        <div className="text-[7px] font-bold text-gray-400 uppercase">TERM: {data.term?.name?.toUpperCase()} • GEN: {new Date().toLocaleDateString('en-GB')}</div>
+                        <div className="text-[7px] font-bold text-gray-400 uppercase">TERM: {data.term?.name?.toUpperCase()} • GEN: {formatDateVerbose(new Date())}</div>
                       </div>
                     </div>
                   </div>

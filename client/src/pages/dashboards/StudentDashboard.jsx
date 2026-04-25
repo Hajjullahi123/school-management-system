@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api, API_BASE_URL } from '../../api';
-import { formatNumber } from '../../utils/formatters';
+import { formatNumber, formatDateVerbose } from '../../utils/formatters';
 
 const StudentDashboard = ({ user, currentTerm, currentSession }) => {
   const [studentData, setStudentData] = useState(null);
@@ -181,7 +181,7 @@ const StudentDashboard = ({ user, currentTerm, currentSession }) => {
                 <h4 className="font-bold text-gray-900 text-sm">{notice.title}</h4>
                 <p className="text-xs text-gray-500 mt-1 line-clamp-2">{notice.content}</p>
                 <div className="mt-2 text-[10px] text-gray-400 font-bold uppercase tracking-wider flex justify-between">
-                  <span>{new Date(notice.createdAt).toLocaleDateString()}</span>
+                  <span>{formatDateVerbose(notice.createdAt)}</span>
                 </div>
               </div>
             ))}
@@ -203,7 +203,7 @@ const StudentDashboard = ({ user, currentTerm, currentSession }) => {
           <div>
             <p className="text-gray-400 font-bold uppercase tracking-tighter mb-0.5">Birth Ledger</p>
             <p className="font-black text-gray-900">
-              {studentData?.dateOfBirth ? new Date(studentData.dateOfBirth).toLocaleDateString() : 'N/A'}
+              {studentData?.dateOfBirth ? formatDateVerbose(studentData.dateOfBirth) : 'N/A'}
             </p>
           </div>
           <div>

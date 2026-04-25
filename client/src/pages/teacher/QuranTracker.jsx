@@ -5,6 +5,7 @@ import { api, API_BASE_URL } from '../../api';
 import { toast } from '../../utils/toast';
 import { useReactToPrint } from 'react-to-print';
 import { QRCodeSVG } from 'qrcode.react';
+import { formatDateVerbose } from '../../utils/formatters';
 
 const SURAH_LIST = [
   "Al-Fatihah", "Al-Baqarah", "Aali 'Imran", "An-Nisa'", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Tawbah", "Yunus",
@@ -542,7 +543,7 @@ const QuranTracker = () => {
                               <p className="text-gray-600 italic">{target.description}</p>
                             )}
                             <p className="text-gray-500 text-xs">
-                              {new Date(target.startDate).toLocaleDateString()} - {new Date(target.endDate).toLocaleDateString()}
+                              {formatDateVerbose(target.startDate)} - {formatDateVerbose(target.endDate)}
                             </p>
                           </div>
                         </div>
@@ -601,7 +602,7 @@ const QuranTracker = () => {
                         <div key={record.id} className="bg-white border rounded-xl p-4 hover:shadow-sm transition flex justify-between items-center">
                           <div>
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm font-bold text-gray-900">{new Date(record.date).toLocaleDateString()}</span>
+                              <span className="text-sm font-bold text-gray-900">{formatDateVerbose(record.date)}</span>
                               <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold ${getStatusColor(record.status)}`}>
                                 {record.status}
                               </span>
@@ -731,7 +732,7 @@ const QuranTracker = () => {
                                 <span className="bg-gray-100 px-2 py-0.5 rounded-full font-medium">{student.quranRecords.length} entries</span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {student.quranRecords[0] ? new Date(student.quranRecords[0].date).toLocaleDateString() : '—'}
+                                {student.quranRecords[0] ? formatDateVerbose(student.quranRecords[0].date) : '—'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 {student.quranRecords[0] && (
@@ -1266,7 +1267,7 @@ const QuranReportCard = ({ student, records, type, schoolSettings, teacher }) =>
         <div className="text-right">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Registration No</p>
           <p className="text-xl font-bold italic tracking-tighter">{student?.admissionNumber}</p>
-          <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">{type} review • {new Date().toLocaleDateString()}</p>
+          <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">{type} review • {formatDateVerbose(new Date())}</p>
         </div>
       </div>
 
@@ -1291,7 +1292,7 @@ const QuranReportCard = ({ student, records, type, schoolSettings, teacher }) =>
             <tbody className="divide-y divide-slate-100 italic">
               {filteredRecords.map(record => (
                 <tr key={record.id} className="text-sm font-bold">
-                  <td className="p-3 text-slate-600 border border-black">{new Date(record.date).toLocaleDateString()}</td>
+                  <td className="p-3 text-slate-600 border border-black">{formatDateVerbose(record.date)}</td>
                   <td className="p-3 text-slate-900 border border-black">
                     {record.surah || `Juz ${record.juz}`} ({record.type})
                     {record.subject && (

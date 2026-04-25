@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../../api';
-import { formatCurrency, formatWhatsAppNumber } from '../../utils/formatters';
+import { formatCurrency, formatWhatsAppNumber, formatDateVerbose } from '../../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
@@ -326,7 +326,7 @@ const ParentDashboard = () => {
                           <div key={p.id} className="flex justify-between items-center p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
                             <div>
                               <p className="text-xs font-black text-slate-800">{formatCurrency(p.amount)}</p>
-                              <p className="text-[9px] text-slate-400 font-bold">{new Date(p.paymentDate).toLocaleDateString()} - {p.paymentMethod}</p>
+                              <p className="text-[9px] text-slate-400 font-bold">{formatDateVerbose(p.paymentDate)} - {p.paymentMethod}</p>
                             </div>
                             <button
                               onClick={() => { setReceiptPayment(p); setReceiptModalOpen(true); }}

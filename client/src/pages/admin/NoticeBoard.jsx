@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import { formatDateVerbose } from '../../utils/formatters';
 
 const NoticeBoard = () => {
   const { user } = useAuth();
@@ -117,7 +118,7 @@ const NoticeBoard = () => {
             </div>
             <h3 className="font-bold text-gray-900">{notice.title}</h3>
             <p className="text-sm text-gray-600 mt-2 mb-4">{notice.content}</p>
-            <p className="text-xs text-gray-400">Posted on {new Date(notice.createdAt).toLocaleDateString()}</p>
+            <p className="text-xs text-gray-400">Posted on {formatDateVerbose(notice.createdAt)}</p>
           </div>
         ))}
       </div>

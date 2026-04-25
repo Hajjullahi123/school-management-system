@@ -4,6 +4,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { api, API_BASE_URL } from '../api';
 import { toast } from '../utils/toast';
 import useSchoolSettings from '../hooks/useSchoolSettings';
+import { formatDateVerbose } from '../utils/formatters';
 
 const IDCard = ({ data, type, schoolSettings }) => {
   const isStudent = type === 'student';
@@ -193,7 +194,7 @@ const IDCard = ({ data, type, schoolSettings }) => {
                   </div>
                   <div className="text-right">
                     <p className="text-[8px] font-bold text-gray-400 uppercase">Registered Date</p>
-                    <p className="text-[10px] font-black text-gray-900">{new Date().toLocaleDateString()}</p>
+                    <p className="text-[10px] font-black text-gray-900">{formatDateVerbose(new Date())}</p>
                   </div>
                </div>
             </div>

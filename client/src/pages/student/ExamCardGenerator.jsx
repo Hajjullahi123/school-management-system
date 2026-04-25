@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
+import { formatDateVerbose } from '../../utils/formatters';
 
 export default function ExamCardGenerator() {
   const { settings: schoolSettings } = useSchoolSettings();
@@ -308,7 +309,7 @@ export default function ExamCardGenerator() {
                 <div className="flex-1 text-[8px] text-gray-600 leading-tight">
                   <p className="font-bold text-red-600 mb-0.5 uppercase tracking-tighter">Security Notice:</p>
                   <p>Must be presented for entry.</p>
-                  <p className="mt-1">Issued: {new Date(examCard.issuedAt).toLocaleDateString()}</p>
+                  <p className="mt-1">Issued: {formatDateVerbose(examCard.issuedAt)}</p>
                 </div>
                 <div className="flex flex-col items-center">
                   {schoolSettings?.principalSignatureUrl ? (

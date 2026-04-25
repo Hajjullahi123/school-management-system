@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../../api';
+import { formatDateVerbose } from '../../utils/formatters';
 
 const StudentProfile = () => {
   const [student, setStudent] = useState(null);
@@ -523,7 +524,7 @@ const StudentProfile = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-500 mb-1">Date of Birth</label>
-                  <p className="text-gray-900">{student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : '-'}</p>
+                  <p className="text-gray-900">{student.dateOfBirth ? formatDateVerbose(student.dateOfBirth) : '-'}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-500 mb-1">Nationality</label>

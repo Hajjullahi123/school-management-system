@@ -40,6 +40,31 @@ export const formatDate = (date, options = { dateStyle: 'medium' }) => {
 };
 
 /**
+ * Formats a date in a verbose way (e.g., 4th April, 2026)
+ */
+export const formatDateVerbose = (date) => {
+  if (!date) return null;
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return null;
+
+    const day = d.getDate();
+    const month = d.toLocaleString('en-US', { month: 'long' });
+    const year = d.getFullYear();
+
+    const getOrdinal = (n) => {
+      const s = ["th", "st", "nd", "rd"];
+      const v = n % 100;
+      return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    };
+
+    return `${getOrdinal(day)} ${month}, ${year}`;
+  } catch (e) {
+    return null;
+  }
+};
+
+/**
  * Safely formats a date-time string or object.
  */
 export const formatDateTime = (date, options = { dateStyle: 'medium', timeStyle: 'short' }) => {

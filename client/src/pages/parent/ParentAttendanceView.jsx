@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { api, API_BASE_URL } from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import { formatDateVerbose } from '../../utils/formatters';
 
 const ParentAttendanceView = () => {
   const { user } = useAuth();
@@ -408,7 +409,7 @@ const ParentAttendanceView = () => {
                         <tr key={record.id} className={`hover:bg-gray-50 transition-colors ${record._type === 'unmarked' ? 'bg-gray-50/50' : ''}`}>
                           <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                             <div className="text-[11px] sm:text-sm font-bold text-gray-900">
-                              {new Date(record.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                              {formatDateVerbose(record.date)}
                             </div>
                           </td>
                           <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center">

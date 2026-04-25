@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
+import { formatDateVerbose } from '../../utils/formatters';
 import { toast } from '../../utils/toast';
 
 const StaffAttendanceReport = () => {
@@ -405,7 +406,7 @@ const StaffAttendanceReport = () => {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-gray-800">
-                        {new Date(report.date).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+                        {formatDateVerbose(report.date)}
                       </h3>
                       {reportIdx === 0 && (
                         <span className="bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded-full mt-1 inline-block uppercase">Today / Selected</span>

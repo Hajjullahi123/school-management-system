@@ -3,6 +3,7 @@ import EmailConfig from '../components/EmailConfig';
 import { api, API_BASE_URL } from '../api';
 import useSchoolSettings from '../hooks/useSchoolSettings';
 import { toast } from '../utils/toast';
+import { formatDateVerbose } from '../utils/formatters';
 
 const ReportCard = () => {
   const { settings: schoolSettings } = useSchoolSettings();
@@ -494,7 +495,7 @@ const ReportCard = () => {
                     <td className="border-r border-black p-0.5">ADM NO:</td>
                     <td className="border-r border-black p-0.5">{reportData.student?.admissionNumber}</td>
                     <td className="border-r border-black p-0.5">D.O.B:</td>
-                    <td className="p-0.5">{reportData.student?.dateOfBirth ? new Date(reportData.student.dateOfBirth).toLocaleDateString() : 'N/A'}</td>
+                    <td className="p-0.5">{reportData.student?.dateOfBirth ? formatDateVerbose(reportData.student.dateOfBirth) : 'N/A'}</td>
                   </tr>
                   <tr className="border-b border-black">
                     <td className="border-r border-black p-0.5">AGE:</td>
@@ -780,11 +781,11 @@ const ReportCard = () => {
                     <div className="pt-1 border-t border-black/10 flex justify-between items-center text-[9px] font-bold">
                       <div>
                         <span className="mr-1">Term Ends:</span>
-                        <span className="underline font-black">{reportData.term?.endDate ? new Date(reportData.term.endDate).toLocaleDateString() : '....................'}</span>
+                        <span className="underline font-black">{reportData.term?.endDate ? formatDateVerbose(reportData.term.endDate) : '....................'}</span>
                       </div>
                       <div>
                         <span className="mr-1">Next Term Begins:</span>
-                        <span className="underline font-black">{reportData.term?.nextTermBegins ? new Date(reportData.term.nextTermBegins).toLocaleDateString() : '....................'}</span>
+                        <span className="underline font-black">{reportData.term?.nextTermBegins ? formatDateVerbose(reportData.term.nextTermBegins) : '....................'}</span>
                       </div>
                     </div>
                   </div>

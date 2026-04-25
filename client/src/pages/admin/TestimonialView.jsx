@@ -6,6 +6,7 @@ import { Printer, Shield, ChevronLeft } from 'lucide-react';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { toast } from '../../utils/toast';
 import { useSchoolSettings } from '../../hooks/useSchoolSettings';
+import { formatDateVerbose } from '../../utils/formatters';
 
 const TestimonialView = () => {
   const { studentId } = useParams();
@@ -148,11 +149,7 @@ const TestimonialView = () => {
 
   const studentName = `${testimonial.student?.user?.firstName || ''} ${testimonial.student?.user?.middleName || ''} ${testimonial.student?.user?.lastName || ''}`.trim();
   const verificationUrl = `${window.location.origin}/verify/testimonial/${testimonial.testimonialNumber}`;
-  const currentDate = new Date(testimonial.dateIssued).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  const currentDate = formatDateVerbose(testimonial.dateIssued);
 
   const primaryCol = schoolSettings?.testimPrimaryColor || testimonial.school?.testimPrimaryColor || schoolSettings?.primaryColor || testimonial.school?.primaryColor || '#1e40af';
   const secondaryCol = schoolSettings?.testimSecondaryColor || testimonial.school?.testimSecondaryColor || schoolSettings?.secondaryColor || testimonial.school?.secondaryColor || '#3b82f6';

@@ -5,6 +5,7 @@ import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 import { useReactToPrint } from 'react-to-print';
 import { QRCodeSVG } from 'qrcode.react';
 import { Loader2, Printer, ChevronLeft, ShieldCheck, Award, Pencil, Check } from 'lucide-react';
+import { formatDateVerbose } from '../../utils/formatters';
 
 const TranscriptView = () => {
   const { studentId } = useParams();
@@ -161,7 +162,7 @@ const TranscriptView = () => {
                     <p className="text-[8px] font-bold text-primary uppercase tracking-wide">Transcript ID</p>
                     <p className="text-[9px] font-mono text-primary break-all leading-tight">{student.user.username?.toUpperCase() || 'N/A'}</p>
                   </div>
-                  <p className="text-[9px] text-gray-400">Issued: {new Date().toLocaleDateString()}</p>
+                  <p className="text-[9px] text-gray-400">Issued: {formatDateVerbose(new Date())}</p>
                 </div>
               </div>
             </div>
@@ -174,7 +175,7 @@ const TranscriptView = () => {
                 <p><span className="text-gray-500 font-medium inline-block w-32">Admission No:</span> <span className="font-bold font-mono">{student.admissionNumber}</span></p>
                 <p><span className="text-gray-500 font-medium inline-block w-32">Alumni ID:</span> <span className="font-bold font-mono">{student.alumni?.alumniId || student.alumniId || 'N/A'}</span></p>
                 <p><span className="text-gray-500 font-medium inline-block w-32">Gender:</span> <span>{student.gender}</span></p>
-                <p><span className="text-gray-500 font-medium inline-block w-32">Date of Birth:</span> <span>{new Date(student.dateOfBirth).toLocaleDateString()}</span></p>
+                <p><span className="text-gray-500 font-medium inline-block w-32">Date of Birth:</span> <span>{formatDateVerbose(student.dateOfBirth)}</span></p>
               </div>
               <div className="space-y-1 bg-gray-50 p-4 rounded-lg border border-gray-100">
                 <h3 className="font-bold uppercase text-xs text-gray-500 tracking-widest border-b pb-2">Academic Record Summary</h3>

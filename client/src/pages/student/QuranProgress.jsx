@@ -4,6 +4,7 @@ import { useReactToPrint } from 'react-to-print';
 import { QRCodeSVG } from 'qrcode.react';
 import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
+import { formatDateVerbose } from '../../utils/formatters';
 
 const QuranProgress = () => {
   const { user } = useAuth();
@@ -229,7 +230,7 @@ const QuranProgress = () => {
                   <div key={target.id} className="p-6 bg-slate-900 rounded-[28px] text-white">
                     <div className="flex justify-between items-center mb-4">
                       <span className="px-3 py-1 bg-white/20 rounded-full text-[9px] font-black uppercase tracking-widest">{target.period}</span>
-                      <span className="text-[9px] font-bold opacity-60">{new Date(target.endDate).toLocaleDateString()}</span>
+                      <span className="text-[9px] font-bold opacity-60">{formatDateVerbose(target.endDate)}</span>
                     </div>
                     <h3 className="text-lg font-bold mb-4">
                       {target.surahStart || `Juz ${target.juzStart}`} to {target.surahEnd || 'End'}
@@ -282,7 +283,7 @@ const QuranProgress = () => {
                     <div className="bg-slate-50 rounded-[24px] p-6 hover:shadow-lg transition-all group">
                        <div className="flex justify-between items-start mb-4">
                          <div>
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{new Date(record.date).toLocaleDateString()}</p>
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{formatDateVerbose(record.date)}</p>
                            <h3 className="text-lg font-black text-slate-900 mt-1">
                              {record.surah || `Juz ${record.juz}`}
                              {record.subject && (
@@ -448,7 +449,7 @@ const QuranReportCard = ({ student, records, type, schoolSettings }) => {
         <div className="text-right">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Registration No</p>
           <p className="text-xl font-bold italic tracking-tighter">{student.admissionNumber}</p>
-          <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">{type} review • {new Date().toLocaleDateString()}</p>
+          <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">{type} review • {formatDateVerbose(new Date())}</p>
         </div>
       </div>
 
@@ -473,7 +474,7 @@ const QuranReportCard = ({ student, records, type, schoolSettings }) => {
             <tbody className="divide-y divide-slate-100 italic">
               {filteredRecords.map(record => (
                 <tr key={record.id} className="text-sm font-bold">
-                  <td className="p-3 text-slate-600 border border-black">{new Date(record.date).toLocaleDateString()}</td>
+                  <td className="p-3 text-slate-600 border border-black">{formatDateVerbose(record.date)}</td>
                   <td className="p-3 text-slate-900 border border-black">
                     {record.surah || `Juz ${record.juz}`} ({record.type})
                     {record.subject && (
