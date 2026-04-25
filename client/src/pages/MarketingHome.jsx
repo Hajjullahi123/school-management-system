@@ -15,6 +15,8 @@ const MarketingHome = () => {
   const [loading, setLoading] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [prices, setPrices] = useState({ basic: 15000, standard: 45000, premium: 0 });
+  const [managedSchools, setManagedSchools] = useState([]);
+  const [loadingSchools, setLoadingSchools] = useState(true);
 
   useEffect(() => {
     fetch('/api/platform-billing/public-pricing')
@@ -29,6 +31,17 @@ const MarketingHome = () => {
         }
       })
       .catch(() => { });
+
+    // Fetch Managed Schools (Showcase)
+    fetch('/api/showcase/public')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setManagedSchools(data);
+        }
+      })
+      .catch(err => console.error('Error fetching schools:', err))
+      .finally(() => setLoadingSchools(false));
 
     // PWA Bypass: If running in standalone mode, go directly to login
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
@@ -219,17 +232,55 @@ const MarketingHome = () => {
         </div>
       </header>
 
-      {/* Trust Bar */}
-      <div className="py-16 bg-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6">
-          <p className="text-center text-gray-400 text-[10px] font-black uppercase tracking-[0.5em] mb-12">The Engine Behind Elite Institutions</p>
-          <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-30 grayscale group hover:grayscale-0 transition-all duration-1000">
-            <div className="flex items-center gap-3 font-black text-2xl tracking-tighter group-hover:text-indigo-600 transition-colors"><FiShield /> AL-QALAM</div>
-            <div className="flex items-center gap-3 font-black text-2xl tracking-tighter group-hover:text-blue-600 transition-colors"><FiGlobe /> GLOBAL ACADEMY</div>
-            <div className="flex items-center gap-3 font-black text-2xl tracking-tighter group-hover:text-emerald-600 transition-colors"><FiActivity /> EXCELLENCE</div>
-            <div className="flex items-center gap-3 font-black text-2xl tracking-tighter group-hover:text-amber-600 transition-colors"><FiZap /> SMART SCHOOLS</div>
-            <div className="flex items-center gap-3 font-black text-2xl tracking-tighter group-hover:text-purple-600 transition-colors"><FiCheck /> PREMIER INT'L</div>
-          </div>
+      {/* Managed Schools Section */}
+      <div className="py-24 bg-white overflow-hidden border-t border-gray-50">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <p className="text-indigo-600 text-xs font-black uppercase tracking-[0.5em] mb-4">Our Ecosystem</p>
+          <h2 className="text-3xl md:text-5xl font-black text-gray-900 mb-16 tracking-tight">Schools that Patronize Us</h2>
+          
+          {loadingSchools ? (
+            <div className="flex justify-center gap-12 animate-pulse opacity-50">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="w-32 h-12 bg-gray-200 rounded-lg"></div>
+              ))}
+            </div>
+          ) : managedSchools.length > 0 ? (
+            <div className="relative group">
+              {/* Marquee Effect for School Logos */}
+              <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
+                {managedSchools.map((school) => (
+                  <motion.div 
+                    key={school.id}
+                    whileHover={{ scale: 1.1, filter: "grayscale(0%)" }}
+                    className="flex flex-col items-center gap-4 group/school"
+                  >
+                    <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-3xl shadow-xl shadow-indigo-100/20 p-4 border border-gray-50 flex items-center justify-center transition-all duration-500 grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100">
+                      <img 
+                        src={school.logoUrl} 
+                        alt={school.name}
+                        className="max-w-full max-h-full object-contain"
+                        onError={(e) => {
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(school.name)}&background=random&color=fff&size=128`;
+                        }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-0 group-hover/school:opacity-100 transition-opacity">
+                      {school.name}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            /* Fallback static list if no schools in DB */
+            <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-30 grayscale group hover:grayscale-0 transition-all duration-1000">
+              <div className="flex items-center gap-3 font-black text-2xl tracking-tighter group-hover:text-indigo-600 transition-colors"><FiShield /> AL-QALAM</div>
+              <div className="flex items-center gap-3 font-black text-2xl tracking-tighter group-hover:text-blue-600 transition-colors"><FiGlobe /> GLOBAL ACADEMY</div>
+              <div className="flex items-center gap-3 font-black text-2xl tracking-tighter group-hover:text-emerald-600 transition-colors"><FiActivity /> EXCELLENCE</div>
+              <div className="flex items-center gap-3 font-black text-2xl tracking-tighter group-hover:text-amber-600 transition-colors"><FiZap /> SMART SCHOOLS</div>
+              <div className="flex items-center gap-3 font-black text-2xl tracking-tighter group-hover:text-purple-600 transition-colors"><FiCheck /> PREMIER INT'L</div>
+            </div>
+          )}
         </div>
       </div>
 
