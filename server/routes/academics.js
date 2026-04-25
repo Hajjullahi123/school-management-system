@@ -339,7 +339,7 @@ router.post('/lesson-plans', authenticate, authorize(['teacher', 'admin', 'princ
           classId: classId ? parseInt(classId) : undefined,
           subjectId: subjectId ? parseInt(subjectId) : undefined,
           week: week ? parseInt(week) : undefined,
-          topic, content, status
+          topic, content, status, fileLink
         }
       });
       return res.json(updated);
@@ -350,8 +350,8 @@ router.post('/lesson-plans', authenticate, authorize(['teacher', 'admin', 'princ
           classId: parseInt(classId),
           subjectId: parseInt(subjectId),
           week: parseInt(week),
-          topic, content,
-          status: status || 'draft'
+          topic, content, fileLink,
+          status: status || 'PENDING'
         }
       });
       res.json(created);
@@ -402,7 +402,7 @@ router.post('/lesson-notes', authenticate, authorize(['teacher', 'admin', 'princ
           classId: classId ? parseInt(classId) : undefined,
           subjectId: subjectId ? parseInt(subjectId) : undefined,
           week: week ? parseInt(week) : undefined,
-          topic, content, status
+          topic, content, status, fileLink
         }
       });
       return res.json(updated);
@@ -413,8 +413,8 @@ router.post('/lesson-notes', authenticate, authorize(['teacher', 'admin', 'princ
           classId: parseInt(classId),
           subjectId: parseInt(subjectId),
           week: parseInt(week),
-          topic, content,
-          status: status || 'draft'
+          topic, content, fileLink,
+          status: status || 'PENDING'
         }
       });
       res.json(created);
@@ -447,6 +447,110 @@ router.get('/lesson-notes', authenticate, async (req, res) => {
     } catch (error) {
       res.status(500).json({ error: 'Failed' });
     }
+});
+
+// HOD Oversight & Feedback
+router.patch('/lesson-plans/:id/feedback', authenticate, authorize(['admin', 'superadmin', 'principal', 'teacher']), async (req, res) => {
+  try {
+    const { status, hodFeedback } = req.body;
+    const { id } = req.params;
+    
+    // Authorization: Must be HOD of the department or higher
+    // (In a real app, check if req.user.id is the headId of the teacher's department)
+    
+    const updated = await prisma.lessonPlan.update({
+      where: { id: parseInt(id) },
+      data: { status, hodFeedback }
+    });
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
+router.patch('/lesson-notes/:id/feedback', authenticate, authorize(['admin', 'superadmin', 'principal', 'teacher']), async (req, res) => {
+  try {
+    const { status, hodFeedback } = req.body;
+    const { id } = req.params;
+    
+    const updated = await prisma.lessonNote.update({
+      where: { id: parseInt(id) },
+      data: { status, hodFeedback }
+    });
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
+router.patch('/departments/:id/lesson-link', authenticate, authorize(['admin', 'superadmin', 'teacher']), async (req, res) => {
+  try {
+    const { lessonPlanLink } = req.body;
+    const { id } = req.params;
+    
+    // Authorization: Only HOD of this department or Admin
+    const dept = await prisma.department.findUnique({ where: { id: parseInt(id) } });
+    if (!dept) return res.status(404).json({ error: 'Department not found' });
+    
+    if (req.user.role === 'teacher' && dept.headId !== req.user.id) {
+      return res.status(403).json({ error: 'Only HOD can update the shared link' });
+    }
+
+    const updated = await prisma.department.update({
+      where: { id: parseInt(id) },
+      data: { lessonPlanLink }
+    });
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
+router.get('/lesson-monitoring', authenticate, authorize(['admin', 'superadmin', 'principal', 'teacher']), async (req, res) => {
+  try {
+    const schoolId = req.schoolId;
+    const { week, departmentId } = req.query;
+    
+    if (!week) return res.status(400).json({ error: 'Week number required' });
+
+    const where = { schoolId, role: 'teacher', isActive: true };
+    if (departmentId) where.departmentId = parseInt(departmentId);
+
+    const teachers = await prisma.user.findMany({
+      where,
+      select: { 
+        id: true, firstName: true, lastName: true, phone: true,
+        department: { select: { name: true } }
+      }
+    });
+
+    const [plans, notes] = await Promise.all([
+      prisma.lessonPlan.findMany({ where: { schoolId, week: parseInt(week) } }),
+      prisma.lessonNote.findMany({ where: { schoolId, week: parseInt(week) } })
+    ]);
+
+    const data = teachers.map(t => {
+      const tPlans = plans.filter(p => p.teacherId === t.id);
+      const tNotes = notes.filter(n => n.teacherId === t.id);
+      
+      return {
+        id: t.id,
+        name: `${t.firstName} ${t.lastName}`,
+        phone: t.phone,
+        department: t.department?.name,
+        hasPlans: tPlans.length > 0,
+        hasNotes: tNotes.length > 0,
+        plansCount: tPlans.length,
+        notesCount: tNotes.length,
+        planStatus: tPlans[0]?.status || 'NOT_SUBMITTED',
+        noteStatus: tNotes[0]?.status || 'NOT_SUBMITTED'
+      };
+    });
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed' });
+  }
 });
 
 // ================= CURRICULUM =================

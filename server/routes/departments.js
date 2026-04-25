@@ -21,7 +21,8 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'superadmin']), a
         },
         subjects: {
           select: { id: true, name: true, code: true }
-        }
+        },
+        lessonPlanLink: true
       }
     });
     res.json(departments);
@@ -433,12 +434,19 @@ router.get('/benchmarking', authenticate, authorize(['admin', 'principal']), asy
 async function fetchDepartmentStatus(headId, schoolId) {
    const department = await prisma.department.findFirst({
       where: { headId, schoolId },
-      include: { 
-        staff: { 
-          include: { 
-            classesAsTeacher: { select: { id: true } } 
           } 
         } 
+      },
+      select: {
+        id: true,
+        name: true,
+        headId: true,
+        lessonPlanLink: true,
+        staff: {
+          include: {
+            classesAsTeacher: { select: { id: true } }
+          }
+        }
       }
    });
    if (!department) return null;
@@ -555,6 +563,8 @@ async function fetchDepartmentStatus(headId, schoolId) {
 
    return { 
      departmentName: department.name, 
+     departmentId: department.id,
+     lessonPlanLink: department.lessonPlanLink,
      staff: staffStatus,
      momentumScore,
      insights

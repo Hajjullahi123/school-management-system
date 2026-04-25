@@ -14,7 +14,17 @@ const DepartmentMonitoring = () => {
   const [customMessage, setCustomMessage] = useState('');
   const [nudgeType, setNudgeType] = useState('GENERAL');
 
-  const [activeTab, setActiveTab] = useState('oversight'); // oversight, resources, subjects
+  // Lesson Oversight State
+  const [oversightData, setOversightData] = useState([]);
+  const [oversightLoading, setOversightLoading] = useState(false);
+  const [currentWeek, setCurrentWeek] = useState(1);
+  const [lessonPlanLink, setLessonPlanLink] = useState('');
+  const [isUpdatingLink, setIsUpdatingLink] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [feedbackForm, setFeedbackForm] = useState({ status: 'APPROVED', hodFeedback: '' });
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+
+  const [activeTab, setActiveTab] = useState('oversight'); // oversight, resources, subjects, lessons
   const [resources, setResources] = useState([]);
   const [resourceLoading, setResourceLoading] = useState(false);
   const [showResourceModal, setShowResourceModal] = useState(false);
@@ -28,7 +38,46 @@ const DepartmentMonitoring = () => {
 
   useEffect(() => {
     if (activeTab === 'resources') fetchResources();
-  }, [activeTab]);
+    if (activeTab === 'lessons') fetchLessonOversight();
+  }, [activeTab, currentWeek]);
+
+  const fetchLessonOversight = async () => {
+    try {
+      setOversightLoading(true);
+      const res = await api.get(`/api/academics/lesson-monitoring?week=${currentWeek}&departmentId=${data.departmentId}`);
+      if (res.ok) setOversightData(await res.json());
+    } catch (err) { toast.error('Oversight link unstable'); }
+    finally { setOversightLoading(false); }
+  };
+
+  const updateLessonLink = async () => {
+    try {
+      setIsUpdatingLink(true);
+      const res = await api.patch(`/api/academics/departments/${data.departmentId}/lesson-link`, { lessonPlanLink });
+      if (res.ok) {
+        toast.success('Departmental submission hub synchronized');
+        setData({ ...data, lessonPlanLink });
+      }
+    } catch (err) { toast.error('Sync failed'); }
+    finally { setIsUpdatingLink(false); }
+  };
+
+  const handleFeedback = async () => {
+    try {
+      setSubmittingFeedback(true);
+      const endpoint = selectedSubmission.type === 'plan' 
+        ? `/api/academics/lesson-plans/${selectedSubmission.id}/feedback`
+        : `/api/academics/lesson-notes/${selectedSubmission.id}/feedback`;
+      
+      const res = await api.patch(endpoint, feedbackForm);
+      if (res.ok) {
+        toast.success('Feedback transmitted');
+        setSelectedSubmission(null);
+        fetchLessonOversight();
+      }
+    } catch (err) { toast.error('Feedback failed'); }
+    finally { setSubmittingFeedback(false); }
+  };
 
   const fetchStatus = async () => {
     try {
@@ -42,6 +91,7 @@ const DepartmentMonitoring = () => {
       if (statusRes.ok) {
         const status = await statusRes.json();
         setData(status);
+        setLessonPlanLink(status.lessonPlanLink || '');
         setSelectedSubjectIds(status.subjects?.map(s => s.id) || []);
       } else {
         const err = await statusRes.json();
@@ -213,6 +263,10 @@ const DepartmentMonitoring = () => {
                     onClick={() => setActiveTab('subjects')}
                     className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'subjects' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
                   >Subject Jurisdiction</button>
+                  <button 
+                    onClick={() => setActiveTab('lessons')}
+                    className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'lessons' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+                  >Lesson Oversight</button>
               </div>
 
               {/* AI Insights Bar - Only in Oversight */}
@@ -441,7 +495,204 @@ const DepartmentMonitoring = () => {
             </div>
           </motion.div>
         )}
+
+        {activeTab === 'lessons' && (
+          <motion.div 
+            key="lessons"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-6"
+          >
+            {/* HOD Shared Link Configuration */}
+            <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-gray-100">
+               <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter mb-2">Departmental Submission Hub</h2>
+               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-8">Set the Google Drive folder link where your staff will submit academic materials</p>
+               <div className="flex gap-4">
+                  <input 
+                    type="text"
+                    value={lessonPlanLink}
+                    onChange={(e) => setLessonPlanLink(e.target.value)}
+                    placeholder="https://drive.google.com/drive/folders/..."
+                    className="flex-1 border-2 border-gray-100 rounded-2xl py-4 px-6 focus:ring-4 focus:ring-primary/10 outline-none font-bold text-xs transition-all"
+                  />
+                  <button 
+                    onClick={updateLessonLink}
+                    disabled={isUpdatingLink}
+                    className="bg-primary text-white px-8 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all disabled:opacity-50"
+                  >
+                    {isUpdatingLink ? 'Syncing...' : 'Update Hub'}
+                  </button>
+               </div>
+            </div>
+
+            {/* Monitoring Grid */}
+            <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-gray-100">
+               <div className="flex justify-between items-center mb-8">
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">Academic Compliance</h2>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tracking Lesson Plan & Note submissions for the current week</p>
+                  </div>
+                  <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-2xl border border-gray-100">
+                    <button onClick={() => setCurrentWeek(Math.max(1, currentWeek - 1))} className="p-2 hover:bg-white rounded-xl text-gray-400 hover:text-gray-900 transition-all font-black">←</button>
+                    <span className="text-[10px] font-black uppercase tracking-widest px-4">Week {currentWeek}</span>
+                    <button onClick={() => setCurrentWeek(currentWeek + 1)} className="p-2 hover:bg-white rounded-xl text-gray-400 hover:text-gray-900 transition-all font-black">→</button>
+                  </div>
+               </div>
+
+               <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left border-b border-gray-50">
+                        <th className="pb-4 text-[9px] font-black text-gray-400 uppercase tracking-widest">Teacher</th>
+                        <th className="pb-4 text-[9px] font-black text-gray-400 uppercase tracking-widest">Department</th>
+                        <th className="pb-4 text-[9px] font-black text-gray-400 uppercase tracking-widest">Lesson Plans</th>
+                        <th className="pb-4 text-[9px] font-black text-gray-400 uppercase tracking-widest">Lesson Notes</th>
+                        <th className="pb-4 text-[9px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {oversightLoading ? (
+                        <tr><td colSpan="5" className="py-20 text-center animate-pulse text-[10px] font-black text-gray-300 uppercase tracking-[0.5em]">Fetching submissions...</td></tr>
+                      ) : oversightData.length === 0 ? (
+                        <tr><td colSpan="5" className="py-20 text-center text-[10px] font-black text-gray-300 uppercase tracking-widest">No staff identified</td></tr>
+                      ) : oversightData.map(teacher => (
+                        <tr key={teacher.id} className="group hover:bg-gray-50/50 transition-all">
+                          <td className="py-6">
+                            <div className="font-black text-gray-900 uppercase tracking-tight text-sm">{teacher.name}</div>
+                            <div className="text-[8px] font-bold text-gray-400 uppercase">{teacher.phone || 'NO CONTACT'}</div>
+                          </td>
+                          <td className="py-6 text-[10px] font-bold text-gray-500 uppercase">{teacher.department}</td>
+                          <td className="py-6">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-2 h-2 rounded-full ${teacher.hasPlans ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                              <span className={`text-[9px] font-black uppercase ${teacher.hasPlans ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {teacher.hasPlans ? `Submitted (${teacher.plansCount})` : 'Missing'}
+                              </span>
+                            </div>
+                            {teacher.hasPlans && (
+                              <span className="text-[8px] font-bold text-gray-400 uppercase ml-4">Status: {teacher.planStatus}</span>
+                            )}
+                          </td>
+                          <td className="py-6">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-2 h-2 rounded-full ${teacher.hasNotes ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                              <span className={`text-[9px] font-black uppercase ${teacher.hasNotes ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {teacher.hasNotes ? `Submitted (${teacher.notesCount})` : 'Missing'}
+                              </span>
+                            </div>
+                            {teacher.hasNotes && (
+                              <span className="text-[8px] font-bold text-gray-400 uppercase ml-4">Status: {teacher.noteStatus}</span>
+                            )}
+                          </td>
+                          <td className="py-6 text-right">
+                            <div className="flex justify-end gap-2">
+                              {!teacher.hasPlans && !teacher.hasNotes ? (
+                                <button 
+                                  onClick={() => handleOpenNudge(teacher)}
+                                  className="bg-rose-50 text-rose-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all shadow-sm"
+                                >
+                                  Nudge
+                                </button>
+                              ) : (
+                                <button 
+                                  onClick={async () => {
+                                    // Fetch submissions for this teacher/week to give feedback
+                                    const res = await api.get(`/api/academics/lesson-plans?teacherId=${teacher.id}&week=${currentWeek}`);
+                                    if (res.ok) {
+                                      const plans = await res.json();
+                                      if (plans.length > 0) {
+                                        setSelectedSubmission({ ...plans[0], type: 'plan' });
+                                        setFeedbackForm({ status: plans[0].status, hodFeedback: plans[0].hodFeedback || '' });
+                                      } else {
+                                        const noteRes = await api.get(`/api/academics/lesson-notes?teacherId=${teacher.id}&week=${currentWeek}`);
+                                        if (noteRes.ok) {
+                                          const notes = await noteRes.json();
+                                          if (notes.length > 0) {
+                                            setSelectedSubmission({ ...notes[0], type: 'note' });
+                                            setFeedbackForm({ status: notes[0].status, hodFeedback: notes[0].hodFeedback || '' });
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }}
+                                  className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                                >
+                                  Review
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+               </div>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
+
+      {/* Feedback Modal */}
+      {selectedSubmission && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-xl p-10 shadow-2xl relative border border-gray-100">
+             <div className="flex justify-between items-start mb-8">
+               <div>
+                 <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter leading-none mb-2">Submission Review</h2>
+                 <p className="text-[10px] font-black text-primary uppercase tracking-widest">Reviewing: {selectedSubmission.topic} (Week {selectedSubmission.week})</p>
+               </div>
+               {selectedSubmission.fileLink && (
+                 <a 
+                   href={selectedSubmission.fileLink} 
+                   target="_blank" 
+                   rel="noreferrer"
+                   className="flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                 >
+                   View Link
+                 </a>
+               )}
+             </div>
+             
+             <div className="space-y-6">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Submission Status</label>
+                  <select 
+                    value={feedbackForm.status}
+                    onChange={(e) => setFeedbackForm({...feedbackForm, status: e.target.value})}
+                    className="w-full border-2 border-gray-100 rounded-2xl py-4 px-6 focus:ring-4 focus:ring-primary/10 outline-none font-black text-xs transition-all bg-gray-50"
+                  >
+                    <option value="APPROVED">Approved (Compliant)</option>
+                    <option value="PENDING">Pending Review</option>
+                    <option value="REJECTED">Rejected (Requires Fix)</option>
+                    <option value="COMMENTED">Feedback Provided</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Strategic Feedback</label>
+                  <textarea 
+                    value={feedbackForm.hodFeedback}
+                    onChange={(e) => setFeedbackForm({...feedbackForm, hodFeedback: e.target.value})}
+                    placeholder="Enter professional feedback for the teacher..."
+                    className="w-full border-2 border-gray-100 rounded-2xl py-4 px-6 focus:ring-4 focus:ring-primary/10 outline-none font-bold text-xs transition-all h-32 resize-none"
+                  ></textarea>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button onClick={() => setSelectedSubmission(null)} className="flex-1 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400">Abort</button>
+                  <button 
+                    onClick={handleFeedback}
+                    disabled={submittingFeedback}
+                    className="flex-2 bg-indigo-600 text-white py-4 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-600/20 transition-all hover:scale-105 disabled:opacity-50"
+                  >
+                    {submittingFeedback ? 'Transmitting...' : 'Transmit Feedback'}
+                  </button>
+                </div>
+             </div>
+          </div>
+        </div>
+      )}
 
       {/* Resource Upload Modal */}
       {showResourceModal && (

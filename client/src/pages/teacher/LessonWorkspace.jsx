@@ -39,7 +39,8 @@ const LessonWorkspace = () => {
         week: '',
         topic: '',
         content: '',
-        status: 'draft'
+        fileLink: '',
+        status: 'PENDING'
     });
 
     // AI Generation State
@@ -64,11 +65,23 @@ const LessonWorkspace = () => {
     const [noteContent, setNoteContent] = useState('');
     const [generatedQuestions, setGeneratedQuestions] = useState([]); // Raw data for CSV
     const [isQuestionView, setIsQuestionView] = useState(false); // Sub-view for CBT content
+    const [deptLink, setDeptLink] = useState('');
 
     useEffect(() => {
         fetchItems();
         fetchTeacherData();
+        fetchDeptLink();
     }, [view]);
+
+    const fetchDeptLink = async () => {
+        try {
+            const res = await api.get('/api/departments/my-department/status');
+            if (res.ok) {
+                const data = await res.json();
+                setDeptLink(data.lessonPlanLink || '');
+            }
+        } catch (e) {}
+    };
 
     const fetchItems = async () => {
         setLoading(true);
@@ -195,7 +208,7 @@ const LessonWorkspace = () => {
             if (resp.ok) {
                 toast.success(`${view === 'plans' ? 'Lesson Plan' : 'Lesson Note'} saved!`);
                 setEditingItem(null);
-                setFormData({ classId: '', subjectId: '', week: '', topic: '', content: '', status: 'draft' });
+                setFormData({ classId: '', subjectId: '', week: '', topic: '', content: '', fileLink: '', status: 'PENDING' });
                 fetchItems();
             }
         } catch (err) {
@@ -210,7 +223,8 @@ const LessonWorkspace = () => {
             subjectId: item.subjectId.toString(),
             week: item.week.toString(),
             topic: item.topic,
-            content: item.content,
+            content: item.content || '',
+            fileLink: item.fileLink || '',
             status: item.status
         });
         
@@ -634,6 +648,33 @@ const LessonWorkspace = () => {
                                 onChange={e => setFormData({...formData, content: e.target.value})}
                                 className="w-full min-h-[400px] text-lg text-gray-700 border-none resize-none outline-none font-mono bg-gray-50/10 p-4 rounded-xl placeholder:text-gray-300 focus:bg-white transition-colors duration-300"
                             />
+
+                            {/* External Link Submission */}
+                            <div className="pt-6 border-t border-gray-100">
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                                    <div>
+                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-tight">External Link Submission</h4>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Provide a direct link to your document (e.g. Google Drive, OneDrive)</p>
+                                    </div>
+                                    {deptLink && (
+                                        <a 
+                                            href={deptLink} 
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            className="text-[10px] font-black text-indigo-600 uppercase border-2 border-indigo-50 px-4 py-2 rounded-xl hover:bg-indigo-50 transition-all"
+                                        >
+                                            View Department Shared Folder →
+                                        </a>
+                                    )}
+                                </div>
+                                <input 
+                                    type="text"
+                                    placeholder="Paste your file link here (optional if content is written above)"
+                                    value={formData.fileLink}
+                                    onChange={e => setFormData({...formData, fileLink: e.target.value})}
+                                    className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-50 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 outline-none font-bold text-sm transition-all"
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -699,7 +740,13 @@ const LessonWorkspace = () => {
                                 </div>
                                 <h4 className="font-bold text-gray-900 line-clamp-1 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{item.topic || 'Untitled Document'}</h4>
                                 <p className="text-xs text-indigo-500 font-bold mb-3">{item.class?.name} - {item.subject?.name}</p>
-                                <p className="text-sm text-gray-500 line-clamp-3 mb-4 leading-relaxed">{item.content || 'No content provided.'}</p>
+                                <p className="text-sm text-gray-500 line-clamp-3 mb-4 leading-relaxed">{item.content || 'External Link Submission'}</p>
+                                {item.hodFeedback && (
+                                    <div className="mb-4 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                                        <p className="text-[9px] font-black text-amber-600 uppercase mb-1">HOD Feedback</p>
+                                        <p className="text-[10px] text-amber-800 font-medium italic">"{item.hodFeedback}"</p>
+                                    </div>
+                                )}
                                 <div className="flex items-center justify-between text-[11px] font-bold text-gray-400 pt-3 border-t border-gray-50">
                                     <span>WEEK {item.week}</span>
                                     <span>{new Date(item.createdAt).toLocaleDateString()}</span>
