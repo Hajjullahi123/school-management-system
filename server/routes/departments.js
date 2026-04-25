@@ -434,14 +434,7 @@ router.get('/benchmarking', authenticate, authorize(['admin', 'principal']), asy
 async function fetchDepartmentStatus(headId, schoolId) {
    const department = await prisma.department.findFirst({
       where: { headId, schoolId },
-          } 
-        } 
-      },
-      select: {
-        id: true,
-        name: true,
-        headId: true,
-        lessonPlanLink: true,
+      include: {
         staff: {
           include: {
             classesAsTeacher: { select: { id: true } }
@@ -449,6 +442,7 @@ async function fetchDepartmentStatus(headId, schoolId) {
         }
       }
    });
+
    if (!department) return null;
 
    const currentTerm = await prisma.term.findFirst({ where: { schoolId, isCurrent: true } });
@@ -460,32 +454,32 @@ async function fetchDepartmentStatus(headId, schoolId) {
    const classIds = [...new Set(department.staff.flatMap(s => s.classesAsTeacher.map(c => c.id)))];
 
    // 1. Fetch Targets count per class
-   const targets = currentTerm ? await prisma.quranTarget.findMany({
+   const targets = (currentTerm && classIds.length > 0) ? await prisma.quranTarget.findMany({
       where: { schoolId, termId: currentTerm.id, classId: { in: classIds } },
       select: { classId: true }
    }) : [];
 
-    // 2. Fetch Latest records for all staff (Unified Results + Quran Records)
-    const [latestQuranRecords, latestResults] = await Promise.all([
-       prisma.quranRecord.findMany({
-          where: { 
-             teacherId: { in: staffIds }, 
-             schoolId,
-             subject: { departmentId: department.id }
-          },
-          orderBy: { createdAt: 'desc' },
-          distinct: ['teacherId']
-       }),
-       prisma.result.findMany({
-          where: {
-             teacherId: { in: staffIds },
-             schoolId,
-             subject: { departmentId: department.id }
-          },
-          orderBy: { updatedAt: 'desc' },
-          distinct: ['teacherId']
-       })
-    ]);
+   // 2. Fetch Latest records for all staff (Unified Results + Quran Records)
+   const [latestQuranRecords, latestResults] = await Promise.all([
+      prisma.quranRecord.findMany({
+         where: { 
+            teacherId: { in: staffIds }, 
+            schoolId,
+            subject: { departmentId: department.id }
+         },
+         orderBy: { createdAt: 'desc' },
+         distinct: ['teacherId']
+      }),
+      prisma.result.findMany({
+         where: {
+            teacherId: { in: staffIds },
+            schoolId,
+            subject: { departmentId: department.id }
+         },
+         orderBy: { updatedAt: 'desc' },
+         distinct: ['teacherId']
+      })
+   ]);
 
    const staffStatus = department.staff.map((teacher) => {
       const teacherClassIds = teacher.classesAsTeacher.map(c => c.id);
@@ -500,10 +494,13 @@ async function fetchDepartmentStatus(headId, schoolId) {
 
       return {
         id: teacher.id,
+        name: `${teacher.firstName} ${teacher.lastName}`,
         firstName: teacher.firstName,
         lastName: teacher.lastName,
         photoUrl: teacher.photoUrl,
         role: teacher.role,
+        phone: teacher.phone,
+        department: department.name,
         hasTargets,
         lastUpdate: lastActivity || null,
         needsUpdate: lastActivity ? (now - new Date(lastActivity) > 86400000 * 3) : true
@@ -533,19 +530,16 @@ async function fetchDepartmentStatus(headId, schoolId) {
           schoolId, 
           subjectId: { in: subjectIds },
           createdAt: { gte: start }
-        },
+         },
         _count: { _all: true },
         _sum: { pages: true }
      });
 
-     // Strategy: Calculate momentum based on record frequency vs expected frequency
-     // Expected: 1 record per student per week (roughly)
      const studentCount = await prisma.student.count({ where: { schoolId, classId: { in: classIds } } });
      const weeksElapsed = Math.max(1, timeElapsed / (86400000 * 7));
      const expectedRecords = studentCount * weeksElapsed;
      const actualRecords = stats._count._all || 0;
      
-     // Activity Momentum Score (0-100)
      momentumScore = Math.min(100, Math.round((actualRecords / Math.max(1, expectedRecords)) * 100));
 
      if (momentumScore < 70) {
