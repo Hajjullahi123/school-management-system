@@ -391,7 +391,7 @@ const MiscFeePayments = () => {
             <div class="section-title">Student Details</div>
             <div class="info-group">
               <div class="info-label">Student Name</div>
-              <div class="info-value">${payment.student.user.firstName} ${payment.student.user.lastName}</div>
+              <div class="info-value">${payment.student.user.firstName} ${payment.student.user.lastName} ${payment.student.middleName || ''}</div>
             </div>
             <div class="info-row">
               <div class="info-group">
@@ -494,7 +494,7 @@ const MiscFeePayments = () => {
   };
 
   const filteredStudents = students.filter(student => {
-    const name = `${student.user.firstName} ${student.user.lastName}`.toLowerCase();
+    const name = `${student.user.firstName} ${student.user.lastName} ${student.middleName || ''}`.toLowerCase();
     const admission = student.admissionNumber.toLowerCase();
     return name.includes(searchTerm.toLowerCase()) || admission.includes(searchTerm.toLowerCase());
   });
@@ -529,7 +529,7 @@ const MiscFeePayments = () => {
                     className={`p-3 border rounded cursor-pointer hover:bg-gray-50 transition-colors ${selectedStudent?.id === student.id ? 'bg-blue-50 border-blue-500' : ''
                       }`}
                   >
-                    <div className="font-bold text-gray-900">{student.user.firstName} {student.user.lastName}</div>
+                    <div className="font-bold text-gray-900">{student.user.firstName} {student.user.lastName} {student.middleName || ''}</div>
                     <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">{student.admissionNumber}</div>
                     <div className="text-[10px] text-gray-400 mt-1">{student.classModel?.name || 'No Class'}</div>
                   </div>
@@ -550,7 +550,7 @@ const MiscFeePayments = () => {
               <div className="bg-white rounded-lg shadow-md p-6 mb-4">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="font-semibold text-lg">
-                    {selectedStudent.user.firstName} {selectedStudent.user.lastName}'s Fees
+                    {selectedStudent.user.firstName} {selectedStudent.user.lastName} {selectedStudent.middleName || ''}'s Fees
                   </h2>
                   <button
                     onClick={() => setShowPaymentForm(!showPaymentForm)}

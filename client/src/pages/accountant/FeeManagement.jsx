@@ -11,6 +11,7 @@ import { API_BASE_URL } from '../../api';
 import ExcelJS from 'exceljs';
 
 export default function FeeManagement() {
+  const recordsRef = useRef(null);
   const { user: authUser } = useAuth();
   const { settings: schoolSettings } = useSchoolSettings();
   const [students, setStudents] = useState([]);
@@ -197,6 +198,12 @@ export default function FeeManagement() {
   const [selectedViewSession, setSelectedViewSession] = useState(null);
   const [viewAllTerms, setViewAllTerms] = useState(false);
   const [viewAllSessions, setViewAllSessions] = useState(false);
+
+  useEffect(() => {
+    if (selectedClassView) {
+      recordsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedClassView]);
 
   useEffect(() => {
     fetchData();
@@ -2093,7 +2100,7 @@ export default function FeeManagement() {
           </div>
 
           {/* Filters and Actions */}
-          <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <div ref={recordsRef} className="bg-white rounded-lg shadow p-4 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
@@ -2338,7 +2345,7 @@ export default function FeeManagement() {
                           <td className="px-3 py-4 border-b border-gray-100">
                             <div className="min-w-[140px]">
                               <div className="font-bold text-gray-900 leading-tight">
-                                {student.user.firstName} {student.user.lastName}
+                                {student.user.firstName} {student.user.lastName} {student.middleName || ''}
                               </div>
                               <div className="text-[10px] text-gray-400 font-medium">
                                 {student.admissionNumber}
@@ -2379,7 +2386,7 @@ export default function FeeManagement() {
                                       </span>
                                     </div>
                                     <p className="text-xs sm:text-sm font-medium leading-relaxed max-w-2xl text-white drop-shadow-sm">
-                                      This serves as official confirmation that <strong className="text-yellow-300 mx-1">{student.user.firstName} {student.user.lastName}</strong>
+                                      This serves as official confirmation that <strong className="text-yellow-300 mx-1">{student.user.firstName} {student.user.lastName} {student.middleName || ''}</strong>
                                       of <strong className="text-yellow-300 mx-1">{student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : ''}</strong>
                                       is exempted from paying school fees. Kindly take note and grant all necessary clearances.
                                     </p>
@@ -2500,7 +2507,7 @@ export default function FeeManagement() {
                           {student.user.firstName?.[0]}{student.user.lastName?.[0]}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-black text-sm truncate">{student.user.firstName} {student.user.lastName}</p>
+                          <p className="font-black text-sm truncate">{student.user.firstName} {student.user.lastName} {student.middleName || ''}</p>
                           <p className="text-emerald-100 text-xs font-medium">{student.admissionNumber}</p>
                         </div>
                         <span className="px-2 py-0.5 bg-yellow-400 text-yellow-900 text-[9px] font-black uppercase rounded-sm">Scholar</span>
@@ -2526,7 +2533,7 @@ export default function FeeManagement() {
                           {student.user.firstName?.[0]}{student.user.lastName?.[0]}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-gray-900 text-sm truncate">{student.user.firstName} {student.user.lastName}</p>
+                          <p className="font-bold text-gray-900 text-sm truncate">{student.user.firstName} {student.user.lastName} {student.middleName || ''}</p>
                           <p className="text-gray-400 text-xs font-medium">{student.admissionNumber}</p>
                         </div>
                         <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${
