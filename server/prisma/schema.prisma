@@ -144,14 +144,14 @@ model School {
   materialRequests  MaterialRequest[]
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model User {
   id               Int      @id @default(autoincrement())
-  schoolId         Int
+  schoolId         Int?
   username         String   @unique
-  password         String
+  password         String   @default("password123")
   role             String   // superadmin, admin, teacher, accountant, principal, examination_officer, parent, student, alumni
   firstName        String
   lastName         String
@@ -190,21 +190,21 @@ model User {
   materialRequests MaterialRequest[]
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model Student {
   id               Int      @id @default(autoincrement())
   schoolId         Int
-  studentId        String   @unique // e.g. "STU/2026/001"
-  firstName        String
-  lastName         String
+  studentId        String?  @unique // e.g. "STU/2026/001"
+  firstName        String   @default("")
+  lastName         String   @default("")
   middleName       String?
   gender           String
   dateOfBirth      DateTime?
   address          String?
   photoUrl         String?
-  classId          Int
+  classId          Int?
   parentId         Int?
   isActive         Boolean  @default(true)
 
@@ -224,7 +224,7 @@ model Student {
   miscFeePayments   MiscFeePayment[]
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model Subject {
@@ -249,7 +249,7 @@ model Subject {
   interventions Intervention[]
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([schoolId, name])
 }
@@ -258,7 +258,7 @@ model Class {
   id               Int      @id @default(autoincrement())
   schoolId         Int
   name             String   // e.g. "JSS 1"
-  arm              String   // e.g. "A"
+  arm              String?  // e.g. "A"
   level            String?  // primary, secondary
   
   // Relations
@@ -276,7 +276,7 @@ model Class {
   interventions    Intervention[]
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([schoolId, name, arm])
 }
@@ -322,7 +322,7 @@ model AcademicSession {
   cumulativeResults CumulativeResult[]
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([schoolId, name])
 }
@@ -345,7 +345,7 @@ model Term {
   cumulativeResults CumulativeResult[]
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([schoolId, academicSessionId, name])
 }
@@ -442,7 +442,7 @@ model Attendance {
 model StaffAttendance {
   id        Int      @id @default(autoincrement())
   schoolId  Int
-  staffId   Int
+  staffId   Int?
   date      DateTime
   status    String   // PRESENT, ABSENT, LATE
   clockIn   DateTime?
@@ -450,7 +450,7 @@ model StaffAttendance {
   remark    String?
   
   school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  staff     User     @relation(fields: [staffId], references: [id])
+  staff     User?    @relation(fields: [staffId], references: [id])
 
   @@unique([staffId, date])
 }
@@ -753,7 +753,7 @@ model QuranTarget {
   targetPage  Int?
   deadline    DateTime?
   
-  student     Student  @relation(fields: [studentId], references: [id])
+  student     Student? @relation(fields: [studentId], references: [id])
   subject     Subject? @relation(fields: [subjectId], references: [id])
   
   createdAt   DateTime @default(now())
@@ -810,14 +810,14 @@ model NewsEvent {
 model Alumni {
   id             Int      @id @default(autoincrement())
   schoolId       Int
-  userId         Int      @unique
+  userId         Int?     @unique
   graduationYear Int
   currentProfession String?
   location       String?
   isVerified     Boolean  @default(false)
   
   school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  user           User     @relation(fields: [userId], references: [id])
+  user           User?    @relation(fields: [userId], references: [id])
 
   createdAt      DateTime @default(now())
 }
