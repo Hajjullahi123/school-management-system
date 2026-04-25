@@ -305,7 +305,7 @@ model TeacherAssignment {
   teacher        User         @relation(fields: [teacherId], references: [id])
   classSubject   ClassSubject @relation(fields: [classSubjectId], references: [id], onDelete: Cascade)
 
-  @@unique([teacherId, classSubjectId])
+  // @@unique([teacherId, classSubjectId])
 }
 
 model AcademicSession {
