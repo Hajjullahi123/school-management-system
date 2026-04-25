@@ -103,7 +103,8 @@ model School {
   metaVerifyToken       String?
 
   // Subscription Management
-  package           String    @default("basic") // basic, standard, premium
+  packageType       String    @default("basic") // basic, standard, premium
+  isActivated       Boolean   @default(true)
   subscriptionEnds  DateTime?
   isSubscriptionActive Boolean   @default(true)
   paymentReference  String?
@@ -142,6 +143,7 @@ model School {
   payrollVouchers   PayrollVoucher[]
   leaveRequests     LeaveRequest[]
   materialRequests  MaterialRequest[]
+  teachers          Teacher[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -158,7 +160,9 @@ model User {
   phone            String?
   email            String?
   photoUrl         String?
+  signatureUrl     String?
   isActive         Boolean  @default(true)
+  mustChangePassword Boolean @default(false)
   
   // Specific for parents
   parentChildren   Student[] @relation("StudentParent")
@@ -178,6 +182,9 @@ model User {
   departmentAsHead Department? @relation("DepartmentHead")
   departmentId     Int?
   department       Department? @relation("DepartmentStaff", fields: [departmentId], references: [id])
+  
+  teacher          Teacher?
+  classesAsTeacher Class[] @relation("ClassTeacher")
   sentNudges       Nudge[] @relation("NudgeSender")
   receivedNudges   Nudge[] @relation("NudgeReceiver")
   staffAttendance  StaffAttendance[]
@@ -212,7 +219,7 @@ model Student {
 
   // Relations
   school           School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  class            Class?   @relation(fields: [classId], references: [id])
+  classModel       Class?   @relation(fields: [classId], references: [id])
   parent           User?    @relation("StudentParent", fields: [parentId], references: [id])
   results          Result[]
   attendance       Attendance[]
@@ -262,9 +269,11 @@ model Class {
   name             String   // e.g. "JSS 1"
   arm              String?  // e.g. "A"
   level            String?  // primary, secondary
+  classTeacherId   Int?     @unique
   
   // Relations
   school           School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classTeacher     User?    @relation("ClassTeacher", fields: [classTeacherId], references: [id])
   students         Student[]
   subjects         ClassSubject[]
   results          Result[]
@@ -980,4 +989,21 @@ model MaterialRequest {
   
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+}
+
+model Teacher {
+  id               Int      @id @default(autoincrement())
+  schoolId         Int
+  userId           Int      @unique
+  staffId          String?  @unique
+  specialization   String?
+  photoUrl         String?
+  
+  school           School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now()) @updatedAt
+
+  @@unique([schoolId, staffId])
 }
