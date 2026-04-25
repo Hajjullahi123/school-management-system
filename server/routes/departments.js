@@ -299,15 +299,32 @@ router.post('/auto-nudge/execute', authenticate, async (req, res) => {
          }) : 0;
          const hasTargets = classIds.length === 0 || targetsCount >= classIds.length;
          
-          const lastRecord = await prisma.quranRecord.findFirst({
-            where: { 
-               teacherId: teacher.id, 
-               schoolId: req.schoolId,
-               subject: { departmentId: department.id }
-            },
-            orderBy: { createdAt: 'desc' }
-          });
-         const needsUpdate = lastRecord ? (new Date() - new Date(lastRecord.createdAt) > 86400000 * 3) : true;
+          // Check for activity in both Quran Records AND Standard Results
+          const [lastQuranRecord, lastResult] = await Promise.all([
+            prisma.quranRecord.findFirst({
+              where: { 
+                 teacherId: teacher.id, 
+                 schoolId: req.schoolId,
+                 subject: { departmentId: department.id }
+              },
+              orderBy: { createdAt: 'desc' }
+            }),
+            prisma.result.findFirst({
+              where: {
+                teacherId: teacher.id,
+                schoolId: req.schoolId,
+                subject: { departmentId: department.id }
+              },
+              orderBy: { updatedAt: 'desc' }
+            })
+          ]);
+
+          const lastActivity = [
+            lastQuranRecord?.createdAt,
+            lastResult?.updatedAt
+          ].filter(Boolean).sort((a, b) => b - a)[0];
+
+          const needsUpdate = lastActivity ? (new Date() - new Date(lastActivity) > 86400000 * 3) : true;
 
          if (!hasTargets || needsUpdate) {
             await prisma.nudge.create({
@@ -365,15 +382,31 @@ router.get('/benchmarking', authenticate, authorize(['admin', 'principal']), asy
         }) : 0;
         
         const hasTargets = classIds.length === 0 || targetsCount >= classIds.length;
-        const lastRecord = await prisma.quranRecord.findFirst({
-          where: { 
-            teacherId: teacher.id, 
-            schoolId: req.schoolId,
-            subject: { departmentId: dept.id } // Only count activity in department subjects
-          },
-          orderBy: { createdAt: 'desc' }
-        });
-        const isUpToDate = lastRecord ? (new Date() - new Date(lastRecord.createdAt) < 86400000 * 3) : false;
+        const [lastQuranRecord, lastResult] = await Promise.all([
+          prisma.quranRecord.findFirst({
+            where: { 
+              teacherId: teacher.id, 
+              schoolId: req.schoolId,
+              subject: { departmentId: dept.id }
+            },
+            orderBy: { createdAt: 'desc' }
+          }),
+          prisma.result.findFirst({
+            where: {
+              teacherId: teacher.id,
+              schoolId: req.schoolId,
+              subject: { departmentId: dept.id }
+            },
+            orderBy: { updatedAt: 'desc' }
+          })
+        ]);
+
+        const lastActivity = [
+          lastQuranRecord?.createdAt,
+          lastResult?.updatedAt
+        ].filter(Boolean).sort((a, b) => b - a)[0];
+
+        const isUpToDate = lastActivity ? (new Date() - new Date(lastActivity) < 86400000 * 3) : false;
 
         return { hasTargets, isUpToDate };
       }));
@@ -424,21 +457,38 @@ async function fetchDepartmentStatus(headId, schoolId) {
       select: { classId: true }
    }) : [];
 
-    // 2. Fetch Latest records for all staff (Filtered by department subjects)
-    const latestRecords = await prisma.quranRecord.findMany({
-       where: { 
-          teacherId: { in: staffIds }, 
-          schoolId,
-          subject: { departmentId: department.id }
-       },
-       orderBy: { createdAt: 'desc' },
-       distinct: ['teacherId']
-    });
+    // 2. Fetch Latest records for all staff (Unified Results + Quran Records)
+    const [latestQuranRecords, latestResults] = await Promise.all([
+       prisma.quranRecord.findMany({
+          where: { 
+             teacherId: { in: staffIds }, 
+             schoolId,
+             subject: { departmentId: department.id }
+          },
+          orderBy: { createdAt: 'desc' },
+          distinct: ['teacherId']
+       }),
+       prisma.result.findMany({
+          where: {
+             teacherId: { in: staffIds },
+             schoolId,
+             subject: { departmentId: department.id }
+          },
+          orderBy: { updatedAt: 'desc' },
+          distinct: ['teacherId']
+       })
+    ]);
 
    const staffStatus = department.staff.map((teacher) => {
       const teacherClassIds = teacher.classesAsTeacher.map(c => c.id);
       const hasTargets = teacherClassIds.length === 0 || teacherClassIds.every(cid => targets.some(t => t.classId === cid));
-      const lastRecord = latestRecords.find(r => r.teacherId === teacher.id);
+      const lastQuran = latestQuranRecords.find(r => r.teacherId === teacher.id);
+      const lastRes = latestResults.find(r => r.teacherId === teacher.id);
+      
+      const lastActivity = [
+        lastQuran?.createdAt,
+        lastRes?.updatedAt
+      ].filter(Boolean).sort((a, b) => b - a)[0];
 
       return {
         id: teacher.id,
@@ -447,8 +497,8 @@ async function fetchDepartmentStatus(headId, schoolId) {
         photoUrl: teacher.photoUrl,
         role: teacher.role,
         hasTargets,
-        lastUpdate: lastRecord ? lastRecord.createdAt : null,
-        needsUpdate: lastRecord ? (now - new Date(lastRecord.createdAt) > 86400000 * 3) : true
+        lastUpdate: lastActivity || null,
+        needsUpdate: lastActivity ? (now - new Date(lastActivity) > 86400000 * 3) : true
       };
    });
 
