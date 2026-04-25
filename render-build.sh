@@ -31,7 +31,18 @@ npx prisma generate --schema=prisma/schema.prisma
 
 echo ">>> Generation complete!"
  
-# 5. Synchronize Database (Force push for Dev/Stage)
+# 5. Pre-migration: Drop stale unique indexes that conflict with new schema shape.
+#    This is safe — db push will recreate them correctly after.
+echo ">>> Dropping stale indexes before schema sync..."
+npx prisma db execute --schema=prisma/schema.prisma --stdin <<'SQL'
+DROP INDEX IF EXISTS "StaffAttendance_schoolId_userId_date_key";
+DROP INDEX IF EXISTS "Student_schoolId_admissionNumber_key";
+DROP INDEX IF EXISTS "Student_schoolId_rollNo_key";
+DROP INDEX IF EXISTS "Alumni_studentId_key";
+DROP INDEX IF EXISTS "QuranTarget_schoolId_classId_key";
+SQL
+
+# 6. Synchronize Database (Force push for Dev/Stage)
 echo ">>> Synchronizing database schema..."
 npx prisma db push --accept-data-loss --schema=prisma/schema.prisma
 
