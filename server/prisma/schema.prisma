@@ -224,7 +224,7 @@ model Student {
   schoolId            Int
   userId              Int?                @unique
   parentId            Int?
-  admissionNumber     String
+  admissionNumber     String              @default("")
   classId             Int?
   dateOfBirth         DateTime?
   gender              String?
@@ -571,7 +571,7 @@ model AttendanceRecord {
 model StaffAttendance {
   id            Int      @id @default(autoincrement())
   schoolId      Int
-  userId        Int
+  userId        Int      @default(1)
   date          DateTime
   checkInTime   DateTime?
   checkOutTime  DateTime?
@@ -579,7 +579,7 @@ model StaffAttendance {
   lateMinutes   Int?
   notes         String?
   createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  updatedAt     DateTime @default(now()) @updatedAt
 
   school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   user          User     @relation("StaffUser", fields: [userId], references: [id], onDelete: Cascade)
@@ -872,11 +872,11 @@ model Nudge {
 model QuranTarget {
   id                Int             @id @default(autoincrement())
   schoolId          Int
-  classId           Int
-  academicSessionId Int
-  termId            Int
-  targetType        String
-  period            String
+  classId           Int             @default(1)
+  academicSessionId Int             @default(1)
+  termId            Int             @default(1)
+  targetType        String          @default("memorization")
+  period            String          @default("term")
   juzStart          Int?
   juzEnd            Int?
   surahStart        String?
@@ -885,10 +885,10 @@ model QuranTarget {
   ayahEnd           Int?
   pagesCount        Int?
   description       String?
-  startDate         DateTime
-  endDate           DateTime
+  startDate         DateTime        @default(now())
+  endDate           DateTime        @default(now())
   createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  updatedAt         DateTime        @default(now()) @updatedAt
 
   school            School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   student           Student?        @relation(fields: [studentId], references: [id])
@@ -944,9 +944,9 @@ model NewsEvent {
   eventDate   DateTime?
   imageUrl    String?
   isPublished Boolean   @default(false)
-  authorId    Int
+  authorId    Int       @default(1)
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
   
   school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
@@ -954,11 +954,11 @@ model NewsEvent {
 model Alumni {
   id               Int      @id @default(autoincrement())
   schoolId         Int
-  studentId        Int      @unique
+  studentId        Int      @default(1) @unique
   graduationYear   Int
   currentJob       String?
   createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  updatedAt        DateTime @default(now()) @updatedAt
   
   school           School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   student          Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
