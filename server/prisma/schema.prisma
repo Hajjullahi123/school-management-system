@@ -175,7 +175,7 @@ model User {
   parentMessages   Message[] @relation("Sender")
   receivedMessages Message[] @relation("Receiver")
   notices          Notice[]  @relation("NoticeAuthor")
-  headOfDepartment Department? @relation("DepartmentHead")
+  departmentAsHead Department? @relation("DepartmentHead")
   departmentId     Int?
   department       Department? @relation("DepartmentStaff", fields: [departmentId], references: [id])
   sentNudges       Nudge[] @relation("NudgeSender")
