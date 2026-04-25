@@ -47,13 +47,11 @@ process.on('uncaughtException', (error) => {
   process.exit(1); // Exit so Render/PM2 can restart the process
 });
 
-const { repairDatabase } = require('./utils/repair');
-repairDatabase().then(() => {
-  console.log('[Server] Database healing complete. Relations are now safe.');
-}).catch(err => {
-  console.error('[Server] Database healing failed:', err.message);
-});
-
+/**
+ * CRITICAL SYSTEM INTEGRITY GUARD
+ * Verifies that essential security and auth exports exist before booting.
+ * This prevents "undefined" middleware errors from crashing requests.
+ */
 try {
   const auth = require('./middleware/auth');
   const requiredAuthMethods = ['authenticate', 'authorize', 'optionalAuth'];
