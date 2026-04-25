@@ -6,7 +6,7 @@ async function main() {
     where: {
       schoolId: { in: [1, 4] }
     },
-    select: { id: true, firstName: true, lastName: true, role: true, schoolId: true }
+    select: { id: true, username: true, firstName: true, lastName: true, role: true, schoolId: true }
   });
   console.log(JSON.stringify(users, null, 2));
 }
