@@ -182,7 +182,7 @@ model User {
   receivedNudges   Nudge[] @relation("NudgeReceiver")
   staffAttendance  StaffAttendance[]
   uploadedResources DepartmentResource[]
-  auditedActions   AuditLog[]
+  // auditedActions   AuditLog[]
   classSubjects    ClassSubject[]
   payrollRecords   PayrollRecord[]
   loanRequests     LoanRequest[]
