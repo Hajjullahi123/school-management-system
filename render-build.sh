@@ -43,6 +43,11 @@ DROP INDEX IF EXISTS "QuranTarget_schoolId_classId_key";
 -- These 16 rows lost their staffId during the schema rewrite and were populated 
 -- with userId=1, causing the P2002 unique constraint violation.
 DELETE FROM "StaffAttendance";
+
+-- Backfill admissionNumber for Student table to avoid unique constraint violations
+ALTER TABLE "Student" ADD COLUMN IF NOT EXISTS "admissionNumber" TEXT;
+UPDATE "Student" SET "admissionNumber" = 'LEGACY-ADM-' || id WHERE "admissionNumber" IS NULL OR "admissionNumber" = '';
+ALTER TABLE "Student" ALTER COLUMN "admissionNumber" SET NOT NULL;
 SQL
 
 # 6. Synchronize Database (Force push for Dev/Stage)
