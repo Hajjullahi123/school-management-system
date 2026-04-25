@@ -405,7 +405,7 @@ const ProgressiveReport = () => {
                 : null;
 
               return (
-                <div key={data.student.id} className="report-card-page bg-white mx-auto shadow-2xl relative overflow-hidden print:shadow-none print:emerald-print-A4" style={{ width: '210mm', minWidth: '210mm', height: '297mm', minHeight: '297mm', padding: '8mm', boxSizing: 'border-box', pageBreakAfter: index < reports.length - 1 ? 'always' : 'auto', fontFamily: reportFont }}>
+                <div key={data.student.id} className="report-card-page bg-white mx-auto mb-12 print:mb-0 shadow-2xl relative overflow-hidden print:shadow-none print:emerald-print-A4" style={{ width: '210mm', minWidth: '210mm', height: '297mm', minHeight: '297mm', padding: '8mm', boxSizing: 'border-box', pageBreakAfter: index < reports.length - 1 ? 'always' : 'auto', fontFamily: reportFont }}>
 
                   {logoUri && (
                     <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] z-0">

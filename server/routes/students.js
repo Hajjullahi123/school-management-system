@@ -233,10 +233,8 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
       // 1. Delete all student-linked activity
       await prisma.attendanceRecord.deleteMany({ where: { studentId } });
       await prisma.quranRecord.deleteMany({ where: { studentId } });
-      await prisma.quranTarget.deleteMany({ where: { studentId } });
       await prisma.cbtResult.deleteMany({ where: { studentId } });
       await prisma.homeworkSubmission.deleteMany({ where: { studentId } });
-      await prisma.psychomotorDomain.deleteMany({ where: { studentId } });
       await prisma.studentReportCard.deleteMany({ where: { studentId } });
       await prisma.intervention.deleteMany({ where: { studentId } });
       await prisma.miscellaneousFeePayment.deleteMany({ where: { studentId } });

@@ -203,7 +203,7 @@ const CumulativeReport = () => {
     return (
       <div
         key={data.student?.id || index}
-        className={`relative bg-white p-6 print:p-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm]`}
+        className={`relative bg-white p-6 mb-12 print:mb-0 print:p-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm]`}
         style={{ pageBreakAfter: 'always', breakAfter: 'page', padding: '8mm', fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}
       >
         {/* BACKGROUND WATERMARK */}
