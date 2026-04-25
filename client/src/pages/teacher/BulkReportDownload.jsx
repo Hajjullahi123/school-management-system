@@ -221,146 +221,129 @@ const BulkReportDownload = () => {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center no-print">
-        <h1 className="text-2xl font-bold text-gray-900">Bulk Report Card Download</h1>
+    <div className="space-y-6 pb-20">
+      {/* Header Section - Glassmorphism (Synced with Single Report) */}
+      <div className="relative group overflow-hidden rounded-[32px] p-1 bg-gradient-to-br from-indigo-600 via-primary to-emerald-600 shadow-2xl print:hidden">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"></div>
+        <div className="relative bg-white/5 backdrop-blur-sm p-6 sm:p-8 rounded-[31px] text-white flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="min-w-0 text-center sm:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-white/20 mb-3">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Mass Production Portal</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tighter italic mb-1 uppercase text-white">Bulk Report Download</h1>
+            <p className="text-xs sm:text-sm text-white/70 font-medium tracking-wide">High-Volume Academic Distribution System</p>
+          </div>
+          
+          {reports.length > 0 && (
+            <button 
+              onClick={handlePrint} 
+              className="group/btn bg-white text-primary px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white"
+            >
+              <Printer className="w-5 h-5 transition-transform group-hover/btn:rotate-12" />
+              Print All {reports.length} Reports
+            </button>
+          )}
+        </div>
       </div>
 
       {user.role === 'teacher' && classes.length === 0 ? (
-        <div className="bg-white p-12 rounded-lg shadow text-center no-print border border-gray-200">
-          <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-white p-12 rounded-[32px] shadow-2xl text-center border border-slate-100 print:hidden mb-6 group overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-50"></div>
+          <div className="w-24 h-24 bg-amber-100 rounded-[28px] flex items-center justify-center mx-auto mb-6 relative">
+            <svg className="w-12 h-12 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h3 className="text-lg font-bold text-gray-900">Access Restricted</h3>
-          <p className="text-gray-600 mt-2">You are not assigned as a Form Master for any class. Report generation is restricted to Form Masters only.</p>
+          <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight relative">Access Restricted</h3>
+          <p className="text-slate-500 mt-2 font-medium max-w-sm mx-auto relative text-sm">Form Master permission is required for mass report generation.</p>
         </div>
       ) : (
         <>
-          {/* Filters */}
-          <div className="bg-white p-6 rounded-lg shadow no-print border border-gray-200">
-            <h3 className="text-lg font-semibold mb-4">
-              {user.role === 'teacher' && classes.length === 1
-                ? `Academic Report Generation: ${classes[0].name} ${classes[0].arm || ''}`
-                : "Select Class and Term"}
-            </h3>
-            <div className={`grid grid-cols-1 ${user.role === 'teacher' && classes.length === 1 ? 'md:grid-cols-1' : 'md:grid-cols-2'} gap-4`}>
-              {!(user.role === 'teacher' && classes.length === 1) && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Class</label>
-                  <select
-                    value={selectedClass}
-                    onChange={(e) => setSelectedClass(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2"
-                  >
-                    <option value="">Select a class</option>
-                    {classes.map(cls => (
-                      <option key={cls.id} value={cls.id}>
-                        {cls.name} {cls.arm || ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+          {/* Filters (Synced Styling) */}
+          <div className="bg-white p-6 sm:p-8 rounded-[32px] shadow-xl border border-slate-100 mb-6 print:hidden">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 ml-2">Configuration & Range Filters</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Target Grade</label>
+                <select
+                  value={selectedClass}
+                  onChange={(e) => setSelectedClass(e.target.value)}
+                  className="w-full bg-slate-50 border-white rounded-2xl px-4 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-primary transition-all"
+                  disabled={user.role === 'teacher' && classes.length === 1}
+                >
+                  <option value="">Select Class</option>
+                  {classes.map(cls => <option key={cls.id} value={cls.id}>{cls.name} {cls.arm || ''}</option>)}
+                </select>
+              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Academic Term</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Target Term</label>
                 <select
                   value={selectedTerm}
                   onChange={(e) => setSelectedTerm(e.target.value)}
-                  className="w-full border rounded-md px-3 py-2"
+                  className="w-full bg-slate-50 border-white rounded-2xl px-4 py-4 text-sm font-bold shadow-inner focus:ring-2 focus:ring-primary transition-all"
                 >
-                  <option value="">Select a term</option>
-                  {terms.map(term => (
-                    <option key={term.id} value={term.id}>
-                      {term.name} - {term.academicSession?.name}
-                    </option>
-                  ))}
+                  <option value="">Select Academic Term</option>
+                  {terms.map(term => <option key={term.id} value={term.id}>{term.name} - {term.academicSession?.name}</option>)}
                 </select>
               </div>
             </div>
 
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="font-semibold text-blue-900">Optional: Filter by Student Range</h4>
-                {loadingStudents && <span className="text-xs text-blue-600 font-medium animate-pulse">Loading students...</span>}
+            <div className="mt-8 p-6 bg-slate-50/50 border border-slate-100 rounded-3xl">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Optional: Optimization Range</h4>
+                {loadingStudents && <span className="text-[8px] text-primary font-black uppercase tracking-widest animate-pulse">Syncing Roster...</span>}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Student</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Start Boundary</label>
                   <select
                     value={startAdmission}
                     onChange={(e) => setStartAdmission(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2"
+                    className="w-full bg-white border-slate-100 rounded-2xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-primary transition-all disabled:opacity-50"
                     disabled={loadingStudents || classStudents.length === 0}
                   >
-                    <option value="">-- Select Start Student --</option>
-                    {classStudents.map(student => (
-                      <option key={`start-${student.id}`} value={student.admissionNumber}>
-                        {student.name} ({student.admissionNumber})
-                      </option>
-                    ))}
+                    <option value="">-- All Students --</option>
+                    {classStudents.map(student => <option key={`start-${student.id}`} value={student.admissionNumber}>{student.name}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">End Student</label>
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">End Boundary</label>
                   <select
                     value={endAdmission}
                     onChange={(e) => setEndAdmission(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2"
+                    className="w-full bg-white border-slate-100 rounded-2xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-primary transition-all disabled:opacity-50"
                     disabled={loadingStudents || classStudents.length === 0}
                   >
-                    <option value="">-- Select End Student --</option>
-                    {classStudents.map(student => (
-                      <option key={`end-${student.id}`} value={student.admissionNumber}>
-                        {student.name} ({student.admissionNumber})
-                      </option>
-                    ))}
+                    <option value="">-- End of Roster --</option>
+                    {classStudents.map(student => <option key={`end-${student.id}`} value={student.admissionNumber}>{student.name}</option>)}
                   </select>
                 </div>
               </div>
-              <p className="text-sm text-gray-600 mt-2">
-                Leave blank to download all students in the class
-              </p>
             </div>
 
             <button
               onClick={fetchReports}
               disabled={!selectedClass || !selectedTerm || loading}
-              className="mt-4 bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 disabled:bg-gray-400 font-bold shadow"
+              className="mt-8 bg-slate-900 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 disabled:bg-slate-200 disabled:text-slate-400 transition-all w-full sm:w-auto"
             >
-              {loading ? 'Loading...' : 'Load Reports'}
+              {loading ? 'Processing Analytics...' : 'Initialize Mass Generation'}
             </button>
           </div>
 
-          {/* Action Bar */}
-          {reports.length > 0 && (
-            <div className="bg-white p-4 rounded-lg shadow no-print flex justify-between items-center border border-gray-200">
-              <div>
-                <h3 className="text-lg font-semibold text-emerald-800">Reports Ready for Printing</h3>
-                <p className="text-sm text-gray-600">{reports.length} student(s) loaded successfully.</p>
-              </div>
-              <button
-                onClick={handlePrint}
-                className="bg-emerald-600 text-white px-8 py-3 rounded-md hover:bg-emerald-700 font-bold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
-              >
-                <Printer size={20} />
-                Print All Reports Now
-              </button>
-            </div>
-          )}
-
           {!loading && reports.length === 0 && selectedClass && selectedTerm && (
-            <div className="bg-white p-12 rounded-lg shadow text-center no-print">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="mt-4 text-gray-600">No reports found for the selected criteria</p>
+            <div className="bg-white p-16 rounded-[32px] shadow-xl text-center border border-slate-100 no-print">
+              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                 <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">No records match the current boundary filters</p>
             </div>
           )}
 
-          {/* EXACT COPY: Report Card Print Container (Hidden on screen unless printing, or we can show them as preview) */}
+          {/* Optimized Report Container */}
           <div className="print-container mt-8" ref={componentRef}>
             {reports.map((data, idx) => {
               if (!data || !data.student) return null;
@@ -375,17 +358,17 @@ const BulkReportDownload = () => {
 
               return (
                 <div key={idx} className="mb-20 last:mb-0">
-                  {/* Mobile Scroll Hint */}
+                  {/* Mobile Scroll Hint (Synced with Single Report) */}
                   <div className="md:hidden flex items-center justify-center gap-2 mb-4 text-primary font-bold text-xs uppercase tracking-widest animate-pulse no-print">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                     </svg>
-                    Scroll to view full sheet
+                    Swipe to view full sheet
                   </div>
 
                   <div className="report-card-mobile-wrapper overflow-x-auto pb-8 print:overflow-visible">
                     <div className="report-card-scaler origin-top-left sm:origin-top scale-[0.45] xs:scale-[0.55] sm:scale-100 transition-transform duration-500">
-                      <div key={idx} className={`relative bg-white p-6 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] break-after-page`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
+                      <div key={idx} className={`relative bg-white p-8 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] break-after-page`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
 
                         {/* PROTECTION WATERMARK */}
                         <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
@@ -768,11 +751,12 @@ const BulkReportDownload = () => {
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </>
-        )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 };
