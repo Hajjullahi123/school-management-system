@@ -167,7 +167,7 @@ model User {
   alumniProfile    Alumni?
 
   // Relations
-  school           School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school           School?   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   assignments      TeacherAssignment[]
   createdExams     ExamRepository[]
   lessonPlans      LessonPlan[]
@@ -210,7 +210,7 @@ model Student {
 
   // Relations
   school           School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  class            Class    @relation(fields: [classId], references: [id])
+  class            Class?   @relation(fields: [classId], references: [id])
   parent           User?    @relation("StudentParent", fields: [parentId], references: [id])
   results          Result[]
   attendance       Attendance[]
