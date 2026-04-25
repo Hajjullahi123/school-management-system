@@ -191,6 +191,8 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([schoolId, username])
 }
 
 model Student {
