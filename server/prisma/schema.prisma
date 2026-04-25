@@ -571,7 +571,7 @@ model AttendanceRecord {
 model StaffAttendance {
   id            Int      @id @default(autoincrement())
   schoolId      Int
-  userId        Int      @default(1)
+  userId        Int?     // Nullable so existing rows migrate safely; new records always have userId set
   date          DateTime
   checkInTime   DateTime?
   checkOutTime  DateTime?
@@ -582,7 +582,7 @@ model StaffAttendance {
   updatedAt     DateTime @default(now()) @updatedAt
 
   school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  user          User     @relation("StaffUser", fields: [userId], references: [id], onDelete: Cascade)
+  user          User?    @relation("StaffUser", fields: [userId], references: [id], onDelete: Cascade)
   verifiedById  Int?
   verifiedAt    DateTime?
   verifier      User?    @relation("AttendanceVerifier", fields: [verifiedById], references: [id])
