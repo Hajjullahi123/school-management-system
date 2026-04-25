@@ -161,7 +161,7 @@ model User {
   isActive         Boolean  @default(true)
   
   // Specific for parents
-  parentChildren   Student[] @relation("StudentParent")
+  // parentChildren   Student[] @relation("StudentParent")
 
   // Specific for alumni
   alumniProfile    Alumni?
@@ -211,7 +211,7 @@ model Student {
   // Relations
   school           School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   class            Class?   @relation(fields: [classId], references: [id])
-  parent           User?    @relation("StudentParent", fields: [parentId], references: [id])
+  // parent           User?    @relation("StudentParent", fields: [parentId], references: [id])
   results          Result[]
   attendance       Attendance[]
   payments         Payment[]
