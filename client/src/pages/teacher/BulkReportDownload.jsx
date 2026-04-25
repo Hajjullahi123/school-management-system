@@ -374,7 +374,18 @@ const BulkReportDownload = () => {
               const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
               return (
-                <div key={idx} className={`relative bg-white p-6 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] break-after-page`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
+                <div key={idx} className="mb-20 last:mb-0">
+                  {/* Mobile Scroll Hint */}
+                  <div className="md:hidden flex items-center justify-center gap-2 mb-4 text-primary font-bold text-xs uppercase tracking-widest animate-pulse no-print">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                    Scroll to view full sheet
+                  </div>
+
+                  <div className="report-card-mobile-wrapper overflow-x-auto pb-8 print:overflow-visible">
+                    <div className="report-card-scaler origin-top-left sm:origin-top scale-[0.45] xs:scale-[0.55] sm:scale-100 transition-transform duration-500">
+                      <div key={idx} className={`relative bg-white p-6 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] break-after-page`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
 
                   {/* PROTECTION WATERMARK */}
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
@@ -753,14 +764,14 @@ const BulkReportDownload = () => {
                         <div className="text-[7px] font-bold text-gray-400 uppercase">TERM: {data.term?.name?.toUpperCase()} • GEN: {formatDateVerbose(new Date())}</div>
                       </div>
                     </div>
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
-
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 };

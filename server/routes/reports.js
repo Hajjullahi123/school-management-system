@@ -1149,6 +1149,183 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
   }
 });
 
+// Bulk cumulative reports for an entire class (Full Session)
+router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['admin', 'teacher', 'principal', 'superadmin', 'examination_officer']), async (req, res) => {
+  try {
+    const { classId, sessionId } = req.params;
+
+    const classInfo = await prisma.class.findFirst({
+      where: { id: parseInt(classId), schoolId: req.schoolId },
+      select: { classTeacherId: true }
+    });
+
+    if (!classInfo) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    // Verify teacher permission
+    if (req.user.role === 'teacher') {
+      if (classInfo.classTeacherId !== req.user.id) {
+        return res.status(403).json({ error: 'You are not the class teacher for this class' });
+      }
+    }
+
+    // Fetch school settings
+    const schoolSettings = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: {
+        gradingSystem: true,
+        passThreshold: true,
+        principalSignatureUrl: true,
+        reportLayout: true,
+        reportColorScheme: true,
+        reportFontFamily: true
+      }
+    });
+
+    // Fetch all terms in this session
+    const sessionTerms = await prisma.term.findMany({
+      where: { academicSessionId: parseInt(sessionId), schoolId: req.schoolId },
+      orderBy: { startDate: 'asc' }
+    });
+
+    if (sessionTerms.length === 0) {
+      return res.status(404).json({ error: 'No terms found for this session' });
+    }
+
+    // Fetch all active students in class
+    const students = await prisma.student.findMany({
+      where: { classId: parseInt(classId), schoolId: req.schoolId, status: 'active' },
+      include: {
+        user: { select: { firstName: true, lastName: true, photoUrl: true } },
+        classModel: {
+          include: { classTeacher: { select: { firstName: true, lastName: true, signatureUrl: true } } }
+        }
+      },
+      orderBy: { admissionNumber: 'asc' }
+    });
+
+    if (students.length === 0) return res.json({ reports: [] });
+
+    // Fetch all class subjects
+    const classSubjects = await prisma.classSubject.findMany({
+      where: { classId: parseInt(classId), schoolId: req.schoolId },
+      include: { subject: true }
+    });
+    const totalSubjectsCount = classSubjects.length || 1;
+
+    // Fetch ALL results for the whole session for these students
+    const allSessionResults = await prisma.result.findMany({
+      where: {
+        studentId: { in: students.map(s => s.id) },
+        academicSessionId: parseInt(sessionId),
+        schoolId: req.schoolId
+      }
+    });
+
+    // Calculate session averages and positions
+    const studentScores = students.map(student => {
+      const studentResults = allSessionResults.filter(r => r.studentId === student.id);
+      const sessionTotal = studentResults.reduce((sum, r) => sum + (r.totalScore || 0), 0);
+      return {
+        studentId: student.id,
+        sessionAverage: sessionTotal / (totalSubjectsCount * sessionTerms.length)
+      };
+    });
+
+    const sortedAverages = [...studentScores].sort((a, b) => b.sessionAverage - a.sessionAverage);
+    const positionMap = {};
+    let rank = 0;
+    let prevAvg = -1;
+    let currentPos = 1;
+    sortedAverages.forEach((s, i) => {
+      rank++;
+      if (s.sessionAverage !== prevAvg) currentPos = rank;
+      positionMap[s.studentId] = currentPos;
+      prevAvg = s.sessionAverage;
+    });
+
+    // Fetch psychomotor domains once
+    const psychomotorDomains = await prisma.psychomotorDomain.findMany({
+      where: { schoolId: req.schoolId, isActive: true },
+      orderBy: { name: 'asc' }
+    });
+
+    // Fetch report extras for the whole class
+    const allReportExtras = await prisma.studentReportCard.findMany({
+      where: { academicSessionId: parseInt(sessionId), schoolId: req.schoolId }
+    });
+
+    // Build the reports
+    const reports = students.map(student => {
+      const studentResults = allSessionResults.filter(r => r.studentId === student.id);
+      const studentExtras = allReportExtras.find(e => e.studentId === student.id) || {};
+      
+      const sessionAvg = studentScores.find(s => s.studentId === student.id).sessionAverage;
+      
+      let ratings = [];
+      try {
+        ratings = studentExtras.psychomotorRatings ? JSON.parse(studentExtras.psychomotorRatings) : [];
+      } catch (e) { ratings = []; }
+
+      return {
+        student: {
+          id: student.id,
+          name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
+          admissionNumber: student.admissionNumber,
+          class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
+          photoUrl: student.photoUrl,
+          formMaster: student.classModel?.classTeacher ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}` : 'N/A',
+          formMasterSignatureUrl: student.classModel?.classTeacher?.signatureUrl || null
+        },
+        session: {
+          name: sessionTerms[0]?.academicSession?.name || 'N/A',
+          totalTerms: sessionTerms.length,
+          principalSignatureUrl: schoolSettings.principalSignatureUrl || null
+        },
+        subjects: classSubjects.map(cs => {
+          const subjectResults = studentResults.filter(r => r.subjectId === cs.subjectId);
+          const termScores = sessionTerms.map(t => {
+            const r = subjectResults.find(res => res.termId === t.id);
+            return r ? r.totalScore : null;
+          });
+          const subjectTotal = termScores.reduce((a, b) => a + (b || 0), 0);
+          const subjectAvg = subjectTotal / sessionTerms.length;
+
+          return {
+            id: cs.subjectId,
+            name: cs.subject?.name || 'Unknown',
+            termScores,
+            sessionAverage: subjectAvg,
+            grade: getGrade(subjectAvg, schoolSettings.gradingSystem),
+            remark: getRemark(getGrade(subjectAvg, schoolSettings.gradingSystem), schoolSettings.gradingSystem)
+          };
+        }),
+        sessionAverage: sessionAvg,
+        sessionPosition: positionMap[student.id],
+        totalStudents: students.length,
+        overallGrade: getGrade(sessionAvg, schoolSettings.gradingSystem),
+        overallRemark: getRemark(getGrade(sessionAvg, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+        psychomotorRatings: psychomotorDomains.map(d => {
+          const r = ratings.find(rate => rate.domainId === d.id);
+          return { name: d.name, score: r ? r.score : null, maxScore: d.maxScore || 5 };
+        }),
+        reportSettings: {
+          reportLayout: student.classModel?.reportLayout || schoolSettings.reportLayout || 'classic',
+          reportColorScheme: schoolSettings.reportColorScheme,
+          reportFontFamily: schoolSettings.reportFontFamily
+        }
+      };
+    });
+
+    res.json({ reports });
+
+  } catch (error) {
+    console.error('Error generating bulk cumulative reports:', error);
+    res.status(500).json({ error: `Failed to generate bulk cumulative reports: ${error.message}` });
+  }
+});
+
 // Get cumulative report (all three terms)
 router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) => {
   try {

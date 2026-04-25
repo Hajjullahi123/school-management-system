@@ -318,9 +318,46 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
         <div className="space-y-4">
           <StaffAttendanceWidget />
 
+          {/* Form Master Quick Actions - DIRECT BULK DOWNLOADS */}
+          {user?.isFormMaster && user.formMasterClass && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Link 
+                to="/dashboard/bulk-report-download" 
+                className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-700 p-6 rounded-3xl shadow-xl shadow-emerald-200/40 transition-all hover:scale-[1.02] active:scale-95"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700"></div>
+                <div className="relative z-10 flex items-center gap-4">
+                  <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md text-white shadow-inner">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-black uppercase tracking-wider text-sm">Bulk Term Reports</h3>
+                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-0.5">Collect Entire {user.formMasterClass.name} Class</p>
+                  </div>
+                </div>
+              </Link>
 
-
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+              <Link 
+                to="/dashboard/cumulative-report?view=teacher" 
+                className="group relative overflow-hidden bg-gradient-to-br from-indigo-600 to-blue-700 p-6 rounded-3xl shadow-xl shadow-indigo-200/40 transition-all hover:scale-[1.02] active:scale-95"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700"></div>
+                <div className="relative z-10 flex items-center gap-4">
+                  <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md text-white shadow-inner">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-black uppercase tracking-wider text-sm">Bulk Cumulative</h3>
+                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-0.5">Full Academic Session Reports</p>
+                  </div>
+                </div>
+              </Link>
+            </div>
+          )}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Your Assigned Subjects</h3>
               <div className="px-2 py-1 bg-primary/10 rounded-lg">

@@ -35,25 +35,29 @@ export const AuthProvider = ({ children }) => {
         const userData = await response.json();
         setUser(userData);
         setLoading(false);
-        console.log('[Auth] Session restored successfully');
+        console.log('[Auth] Session restored successfully for:', userData.username);
       } else {
         // ONLY clear session on explicit authentication failure (Invalid Token)
         if (response.status === 401 || response.status === 403) {
-          console.warn('[Auth] Session invalid (401/403). Logging out.');
-          setUser(null);
-          localStorage.removeItem('token');
-          sessionStorage.removeItem('dashboardUnlocked');
+          const errorData = await response.json().catch(() => ({}));
+          console.warn(`[Auth] Session invalid (${response.status}). Reason: ${errorData.error || 'Unknown'}.`);
+          
+          // Don't nuke the token if it's a 403 (Forbidden) as the token might still be valid for other routes
+          // Only nuke on 401 (Unauthorized/Expired)
+          if (response.status === 401) {
+            setUser(null);
+            localStorage.removeItem('token');
+            sessionStorage.removeItem('dashboardUnlocked');
+            console.warn('[Auth] Token removed from storage.');
+          }
           setLoading(false);
         } else {
           // For 500 or other server errors, we might want to retry if it's the initial load
-          console.error(`[Auth] Server returned ${response.status}.`);
+          console.error(`[Auth] Server returned ${response.status} during auth check.`);
           if (retryCount < 2) {
-            console.log('[Auth] Retrying in 2s...');
+            console.log(`[Auth] Retrying checkAuth (Attempt ${retryCount + 2}) in 2s...`);
             setTimeout(() => checkAuth(retryCount + 1), 2000);
           } else {
-            // If we've exhausted retries and it's still failing with a non-auth error,
-            // we should probably let the app load but warn the user.
-            // Keeping loading=true here would hang the app, so we must proceed.
             setLoading(false);
           }
         }
