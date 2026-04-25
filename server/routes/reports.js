@@ -403,7 +403,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
           exam: schoolSettings.examWeight
         }
       },
-      attendance: (student.classModel?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport) ? {
+      attendance: (schoolSettings.showAttendanceOnReport && (student.classModel?.showAttendanceOnReport !== false)) ? {
         present: presentAttendanceDays,
         absent: absentAttendanceDays,
         unmarked: unmarkedAttendanceDays > 0 ? unmarkedAttendanceDays : 0,
@@ -480,9 +480,9 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       feeSummary: feeSummary,
       aiNarrative: reportExtras?.aiNarrative || null,
       reportSettings: {
-        showPositionOnReport: student.classModel?.showPositionOnReport ?? schoolSettings.showPositionOnReport,
-        showFeesOnReport: student.classModel?.showFeesOnReport ?? schoolSettings.showFeesOnReport,
-        showAttendanceOnReport: student.classModel?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport,
+        showPositionOnReport: schoolSettings.showPositionOnReport && (student.classModel?.showPositionOnReport !== false),
+        showFeesOnReport: schoolSettings.showFeesOnReport && (student.classModel?.showFeesOnReport !== false),
+        showAttendanceOnReport: schoolSettings.showAttendanceOnReport && (student.classModel?.showAttendanceOnReport !== false),
         reportLayout: student.classModel?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
         reportColorScheme: schoolSettings.reportColorScheme,
         reportFontFamily: schoolSettings.reportFontFamily
@@ -1024,7 +1024,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
 
       const feeSummary = feeMap[student.id];
 
-      const studentAttendance = (classInfo?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport) ? {
+      const studentAttendance = (schoolSettings.showAttendanceOnReport && (classInfo?.showAttendanceOnReport !== false)) ? {
         present: attendanceMap[student.id] || 0,
         absent: absentMap[student.id] || 0,
         unmarked: Math.max(0, totalAttendanceDays - (totalRecordedMap[student.id] || 0)),
@@ -1125,9 +1125,9 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         }),
         feeSummary: feeSummary,
         reportSettings: {
-          showPositionOnReport: classInfo?.showPositionOnReport ?? schoolSettings.showPositionOnReport,
-          showFeesOnReport: classInfo?.showFeesOnReport ?? schoolSettings.showFeesOnReport,
-          showAttendanceOnReport: classInfo?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport,
+          showPositionOnReport: schoolSettings.showPositionOnReport && (classInfo?.showPositionOnReport !== false),
+          showFeesOnReport: schoolSettings.showFeesOnReport && (classInfo?.showFeesOnReport !== false),
+          showAttendanceOnReport: schoolSettings.showAttendanceOnReport && (classInfo?.showAttendanceOnReport !== false),
           reportLayout: classInfo?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
           reportColorScheme: schoolSettings.reportColorScheme,
           reportFontFamily: schoolSettings.reportFontFamily
@@ -1412,9 +1412,9 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       isPromoted: isPromoted,
       nextClass: nextClass,
       reportSettings: {
-        showPositionOnReport: student.classModel?.showPositionOnReport ?? schoolSettings.showPositionOnReport,
-        showFeesOnReport: student.classModel?.showFeesOnReport ?? schoolSettings.showFeesOnReport,
-        showAttendanceOnReport: student.classModel?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport,
+        showPositionOnReport: schoolSettings.showPositionOnReport && (student.classModel?.showPositionOnReport !== false),
+        showFeesOnReport: schoolSettings.showFeesOnReport && (student.classModel?.showFeesOnReport !== false),
+        showAttendanceOnReport: schoolSettings.showAttendanceOnReport && (student.classModel?.showAttendanceOnReport !== false),
         reportLayout: student.classModel?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
         reportColorScheme: schoolSettings.reportColorScheme,
         reportFontFamily: schoolSettings.reportFontFamily
@@ -1602,9 +1602,9 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
         isPromoted,
         nextClass: isPromoted ? 'Promoted' : 'Repeat Class',
         reportSettings: {
-          showPositionOnReport: classInfo?.showPositionOnReport ?? schoolSettings.showPositionOnReport,
-          showFeesOnReport: classInfo?.showFeesOnReport ?? schoolSettings.showFeesOnReport,
-          showAttendanceOnReport: classInfo?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport,
+          showPositionOnReport: schoolSettings.showPositionOnReport && (classInfo?.showPositionOnReport !== false),
+          showFeesOnReport: schoolSettings.showFeesOnReport && (classInfo?.showFeesOnReport !== false),
+          showAttendanceOnReport: schoolSettings.showAttendanceOnReport && (classInfo?.showAttendanceOnReport !== false),
           reportLayout: classInfo?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
           reportColorScheme: schoolSettings.reportColorScheme,
           reportFontFamily: schoolSettings.reportFontFamily
@@ -2278,9 +2278,9 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
         },
         subjects: finalSubjectsData,
         reportSettings: {
-          showPositionOnReport: classInfo?.showPositionOnReport ?? schoolSettings.showPositionOnReport,
-          showFeesOnReport: classInfo?.showFeesOnReport ?? schoolSettings.showFeesOnReport,
-          showAttendanceOnReport: classInfo?.showAttendanceOnReport ?? schoolSettings.showAttendanceOnReport,
+          showPositionOnReport: schoolSettings.showPositionOnReport && (classInfo?.showPositionOnReport !== false),
+          showFeesOnReport: schoolSettings.showFeesOnReport && (classInfo?.showFeesOnReport !== false),
+          showAttendanceOnReport: schoolSettings.showAttendanceOnReport && (classInfo?.showAttendanceOnReport !== false),
           reportLayout: classInfo?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
           reportColorScheme: schoolSettings.reportColorScheme,
           reportFontFamily: schoolSettings.reportFontFamily

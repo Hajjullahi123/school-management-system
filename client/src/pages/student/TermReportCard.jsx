@@ -475,7 +475,7 @@ const TermReportCard = () => {
             const reportFont = data.reportSettings?.reportFontFamily || (data.schoolSettings || schoolSettings)?.reportFontFamily || 'serif';
             const showPosition = data.reportSettings?.showPositionOnReport !== undefined ? data.reportSettings.showPositionOnReport : ((data.schoolSettings || schoolSettings)?.showPositionOnReport !== false);
             const showFees = data.reportSettings?.showFeesOnReport !== undefined ? data.reportSettings.showFeesOnReport : ((data.schoolSettings || schoolSettings)?.showFeesOnReport !== false);
-            const showAttendance = data.reportSettings?.showAttendanceOnReport !== undefined ? data.reportSettings.showAttendanceOnReport : ((data.schoolSettings || schoolSettings)?.showAttendanceOnReport !== false);
+            const showAttendance = ((data.schoolSettings || schoolSettings)?.showAttendanceOnReport !== false) && (data.reportSettings?.showAttendanceOnReport !== false);
             const layout = data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
             const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
