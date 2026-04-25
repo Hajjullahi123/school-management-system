@@ -419,7 +419,6 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
               ))}
             </div>
           </div>
-        </div>
       )}
 
       {/* Admin Quick Links */}
