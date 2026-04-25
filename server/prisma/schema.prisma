@@ -148,8 +148,17 @@ model School {
   payrollVouchers   PayrollVoucher[]
   leaveRequests     LeaveRequest[]
   materialRequests  MaterialRequest[]
-  teachers          Teacher[]
+  teachers           Teacher[]
   resultPublications ResultPublication[]
+  quranRecords       QuranRecord[]
+  quranTargets       QuranTarget[]
+  studentReportCards StudentReportCard[]
+  promotionHistory   PromotionHistory[]
+  certificates       Certificate[]
+  testimonials       Testimonial[]
+  results            Result[]
+  classSubjects      ClassSubject[]
+  teacherAvailabilities TeacherAvailability[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -201,6 +210,7 @@ model User {
   loanRequests       LoanRequest[]
   leaveRequests      LeaveRequest[]
   materialRequests   MaterialRequest[]
+  interventions      Intervention[]
   quranRecords       QuranRecord[]       @relation("QuranTeacher")
   certificatesIssued Certificate[]       @relation("CertificateIssuer")
   testimonialsIssued Testimonial[]       @relation("TestimonialIssuer")
@@ -352,6 +362,7 @@ model Class {
   resultPublications ResultPublication[]
   fromPromotions   PromotionHistory[] @relation("FromClass")
   toPromotions     PromotionHistory[] @relation("ToClass")
+  quranTargets     QuranTarget[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -403,11 +414,12 @@ model AcademicSession {
   payments    Payment[]
   examRepo    ExamRepository[]
   cumulativeResults CumulativeResult[]
+  promotionHistory  PromotionHistory[]
+  interventions     Intervention[]
   attendanceRecords AttendanceRecord[]
   quranTargets      QuranTarget[]
   reportCards       StudentReportCard[]
-  promotionHistory  PromotionHistory[]
-  interventions     Intervention[]
+  examCards         ExamCard[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -432,11 +444,12 @@ model Term {
   payments          Payment[]
   examRepo          ExamRepository[]
   cumulativeResults CumulativeResult[]
+  interventions     Intervention[]
+  resultPublications ResultPublication[]
   attendanceRecords AttendanceRecord[]
   quranTargets      QuranTarget[]
   reportCards       StudentReportCard[]
-  interventions     Intervention[]
-  resultPublications ResultPublication[]
+  examCards         ExamCard[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -969,6 +982,10 @@ model Intervention {
   term              Term            @relation(fields: [termId], references: [id], onDelete: Cascade)
   academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id], onDelete: Cascade)
   teacher           User            @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  class             Class?          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId           Int?
+  subject           Subject?        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId         Int?
 }
 
 model AuditLog {
