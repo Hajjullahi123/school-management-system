@@ -44,6 +44,16 @@ DROP INDEX IF EXISTS "QuranTarget_schoolId_classId_key";
 -- with userId=1, causing the P2002 unique constraint violation.
 DELETE FROM "StaffAttendance";
 
+-- Deduplicate TeacherAssignment table
+-- The old schema allowed duplicate assignments. We must remove duplicates
+-- before applying the new unique constraint, keeping only the lowest ID.
+DELETE FROM "TeacherAssignment"
+WHERE id NOT IN (
+    SELECT MIN(id)
+    FROM "TeacherAssignment"
+    GROUP BY "schoolId", "teacherId", "classSubjectId"
+);
+
 -- Backfill admissionNumber for Student table to avoid unique constraint violations
 ALTER TABLE "Student" ADD COLUMN IF NOT EXISTS "admissionNumber" TEXT;
 UPDATE "Student" SET "admissionNumber" = 'LEGACY-ADM-' || id WHERE "admissionNumber" IS NULL OR "admissionNumber" = '';
