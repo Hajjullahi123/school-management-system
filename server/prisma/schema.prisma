@@ -150,7 +150,7 @@ model School {
 model User {
   id               Int      @id @default(autoincrement())
   schoolId         Int?
-  username         String   @unique
+  username         String
   passwordHash     String   @default("password123")
   role             String   // superadmin, admin, teacher, accountant, principal, examination_officer, parent, student, alumni
   firstName        String
