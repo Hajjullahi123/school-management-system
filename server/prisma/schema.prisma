@@ -853,7 +853,7 @@ model AuditLog {
   createdAt   DateTime @default(now())
 
   school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id])
+  // user        User     @relation(fields: [userId], references: [id])
 }
 
 model Holiday {
