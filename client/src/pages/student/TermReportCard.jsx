@@ -313,7 +313,7 @@ const TermReportCard = () => {
             <p className="text-xs sm:text-sm text-white/70 font-medium tracking-wide">Secure Student Performance & Analytics</p>
           </div>
           
-          {reportData && (
+          {(reportData || bulkReports.length > 0) && (
             <button 
               onClick={printReport} 
               className="group/btn bg-white text-primary px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white"
@@ -321,7 +321,7 @@ const TermReportCard = () => {
               <svg className="w-5 h-5 transition-transform group-hover/btn:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               </svg>
-              Print Master Report
+              Print {bulkReports.length > 1 ? 'All Reports' : 'Master Report'}
             </button>
           )}
         </div>
@@ -485,7 +485,7 @@ const TermReportCard = () => {
             const termNumber = data.term?.number || data.academic?.termNumber;
 
             return (
-              <div key={idx} className="mb-12 last:mb-0">
+              <div key={idx} className="mb-20 last:mb-0">
                 {/* Mobile Scroll Hint */}
                 <div className="md:hidden flex items-center justify-center gap-2 mb-4 text-primary font-bold text-xs uppercase tracking-widest animate-pulse no-print">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -496,7 +496,7 @@ const TermReportCard = () => {
 
                 <div className="report-card-mobile-wrapper overflow-x-auto pb-8 print:overflow-visible">
                   <div className="report-card-scaler origin-top-left sm:origin-top scale-[0.45] xs:scale-[0.55] sm:scale-100 transition-transform duration-500">
-                    <div key={idx} className={`relative bg-white p-8 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm]`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
+                    <div key={idx} className={`relative bg-white p-8 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm]`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined, pageBreakAfter: 'always', breakAfter: 'page' }}>
 
                 {/* PROTECTION WATERMARK */}
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] rotate-[-35deg] overflow-hidden z-0 print:opacity-[0.05]">

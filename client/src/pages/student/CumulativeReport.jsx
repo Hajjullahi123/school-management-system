@@ -585,10 +585,12 @@ const CumulativeReport = () => {
 
       {/* Report(s) Display */}
       {hasReports && (
-        <div className="report-card-mobile-wrapper overflow-x-auto pb-8 print:overflow-visible">
-          <div ref={printRef} className="report-card-scaler origin-top-left sm:origin-top scale-[0.45] xs:scale-[0.55] sm:scale-100 transition-transform duration-500">
-            {allReports.map((data, idx) => renderCard(data, idx, allReports.length))}
-          </div>
+        <div className="report-card-mobile-wrapper overflow-x-auto pb-8 print:overflow-visible" ref={printRef}>
+          {allReports.map((data, idx) => (
+            <div key={data.student?.id || idx} className="report-card-scaler origin-top-left sm:origin-top scale-[0.45] xs:scale-[0.55] sm:scale-100 transition-transform duration-500 mb-20 last:mb-0 print:mb-0">
+              {renderCard(data, idx, allReports.length)}
+            </div>
+          ))}
         </div>
       )}
 

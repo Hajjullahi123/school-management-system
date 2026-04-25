@@ -9,21 +9,23 @@ export const AuthProvider = ({ children }) => {
 
   const [dashboardUnlocked] = useState(true);
 
-  const checkAuth = React.useCallback(async () => {
+  const checkAuth = React.useCallback(async (retryCount = 0) => {
     try {
       const token = localStorage.getItem('token');
 
-      if (!token) {
+      if (!token || token === 'null' || token === 'undefined') {
         setUser(null);
         setLoading(false);
+        if (token) localStorage.removeItem('token'); // Clean up invalid strings
         return;
       }
 
-      // Race the API call against a 30-second timeout (accommodate slow Render cold starts)
+      // Race the API call against a 30-second timeout
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Auth check timed out')), 30000)
       );
 
+      console.log(`[Auth] Checking session (Attempt ${retryCount + 1})...`);
       const response = await Promise.race([
         api.get('/api/auth/me'),
         timeoutPromise
@@ -32,31 +34,43 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
+        setLoading(false);
+        console.log('[Auth] Session restored successfully');
       } else {
-        // ONLY clear session on explicit authentication failure
+        // ONLY clear session on explicit authentication failure (Invalid Token)
         if (response.status === 401 || response.status === 403) {
+          console.warn('[Auth] Session invalid (401/403). Logging out.');
           setUser(null);
           localStorage.removeItem('token');
           sessionStorage.removeItem('dashboardUnlocked');
+          setLoading(false);
+        } else {
+          // For 500 or other server errors, we might want to retry if it's the initial load
+          console.error(`[Auth] Server returned ${response.status}.`);
+          if (retryCount < 2) {
+            console.log('[Auth] Retrying in 2s...');
+            setTimeout(() => checkAuth(retryCount + 1), 2000);
+          } else {
+            // If we've exhausted retries and it's still failing with a non-auth error,
+            // we should probably let the app load but warn the user.
+            // Keeping loading=true here would hang the app, so we must proceed.
+            setLoading(false);
+          }
         }
-        // For other server errors (500, etc.), we stay in the current state to prevent logout
       }
     } catch (error) {
-      // NETWORK/TIMEOUT ERROR: Keep the current user state if possible
-      // This prevents logging out when internet flickers or server is restarting
-      console.warn('[Auth] Auth check failed but keeping session:', error.message);
+      console.warn('[Auth] Connection error during auth check:', error.message);
       
-      if (
-        error.message !== 'Auth check timed out' && 
-        !error.message.includes('FetchError') && 
-        !error.message.includes('Network Error') &&
-        !error.message.includes('Failed to fetch')
-      ) {
-        // If it's a weird error that's NOT network related, maybe log out? 
-        // Actually, safer to stay logged in unless server says NO.
+      // If it's a network error or timeout, retry up to 3 times
+      if (retryCount < 3) {
+        const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+        console.log(`[Auth] Retrying in ${delay}ms...`);
+        setTimeout(() => checkAuth(retryCount + 1), delay);
+      } else {
+        // If we really can't connect, we stop loading to let the app show its offline/error state
+        // but we DON'T necessarily clear the user if we had one (though on refresh user is null)
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
     }
   }, []);
 
