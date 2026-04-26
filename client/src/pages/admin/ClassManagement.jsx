@@ -1013,7 +1013,17 @@ const ClassManagement = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          {student.user ? `${student.user.firstName} ${student.user.lastName}` : 'N/A'}
+                          {(() => {
+                            const userName = student.user ? `${student.user.firstName || ''} ${student.user.lastName || ''}`.trim() : '';
+                            const legacyName = (student.name || '').trim();
+                            const middleName = (student.middleName || '').trim();
+                            let baseName = userName.length >= legacyName.length ? userName : legacyName;
+                            if (!baseName && middleName) baseName = middleName;
+                            if (!baseName) return `Unknown Student (${student.admissionNumber})`;
+                            return middleName && !baseName.toLowerCase().includes(middleName.toLowerCase()) 
+                              ? `${baseName} ${middleName}` 
+                              : baseName;
+                          })()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

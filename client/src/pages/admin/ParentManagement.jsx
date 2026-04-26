@@ -264,7 +264,17 @@ const ParentManagement = () => {
                     <div className="flex flex-wrap gap-2">
                       {p.students?.length > 0 ? p.students.map(s => (
                         <div key={s.id} className="group relative inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full border border-indigo-200 font-medium transition-all hover:bg-indigo-100">
-                          <span>{s.user?.firstName} ({s.classModel?.name})</span>
+                           <span>
+                             {(() => {
+                               const userName = s.user ? `${s.user.firstName || ''} ${s.user.lastName || ''}`.trim() : '';
+                               const legacyName = (s.name || '').trim();
+                               const middleName = (s.middleName || '').trim();
+                               let baseName = userName.length >= legacyName.length ? userName : legacyName;
+                               if (!baseName && middleName) baseName = middleName;
+                               if (!baseName) return `Wrd#${s.id}`;
+                               return baseName;
+                             })()} ({s.classModel?.name || 'No Class'})
+                           </span>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

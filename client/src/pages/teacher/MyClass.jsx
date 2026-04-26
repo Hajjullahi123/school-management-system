@@ -240,7 +240,7 @@ const MyClass = () => {
     );
   }
 
-  const activeStudents = classData?.students?.filter(s => s.user.isActive) || [];
+  const activeStudents = classData?.students?.filter(s => s.user?.isActive !== false) || [];
 
   const renderRatingTicks = (score) => {
     const rounded = Math.round(score);
@@ -664,7 +664,7 @@ const MyClass = () => {
                         />
                       ) : (
                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                          {student.user.firstName[0]}{student.user.lastName?.[0]}
+                          {(student.user?.firstName?.[0] || student.name?.[0] || student.middleName?.[0] || '?').toUpperCase()}
                         </div>
                       );
                     })()}
@@ -673,12 +673,22 @@ const MyClass = () => {
                     {student.admissionNumber}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 leading-tight">
-                    {student.user.firstName} {student.user.lastName} {student.middleName || ''}
+                    {(() => {
+                      const userName = student.user ? `${student.user.firstName || ''} ${student.user.lastName || ''}`.trim() : '';
+                      const legacyName = (student.name || '').trim();
+                      const middleName = (student.middleName || '').trim();
+                      let baseName = userName.length >= legacyName.length ? userName : legacyName;
+                      if (!baseName && middleName) baseName = middleName;
+                      if (!baseName) return `Unknown Student (${student.admissionNumber})`;
+                      return middleName && !baseName.toLowerCase().includes(middleName.toLowerCase()) 
+                        ? `${baseName} ${middleName}` 
+                        : baseName;
+                    })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${student.user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
-                      {student.user.isActive ? 'Active' : 'Inactive'}
+                      {student.user?.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
