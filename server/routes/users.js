@@ -33,7 +33,7 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'ex
         teacher: true,
         parent: {
           include: {
-            students: {
+            parentChildren: {
               include: {
                 user: { select: { firstName: true, lastName: true } }
               }
@@ -44,7 +44,21 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'ex
       orderBy: { createdAt: 'desc' }
     });
 
-    res.json(users);
+    const mappedUsers = users.map(u => {
+      if (u.parent) {
+        return {
+          ...u,
+          parent: {
+            ...u.parent,
+            students: u.parent.parentChildren,
+            parentChildren: undefined
+          }
+        };
+      }
+      return u;
+    });
+
+    res.json(mappedUsers);
   } catch (error) {
     console.error('Get users error:', error);
     res.status(500).json({ error: 'Failed to fetch users' });

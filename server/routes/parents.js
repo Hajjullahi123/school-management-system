@@ -10,7 +10,7 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
   try {
 
     const includeQuery = {
-      students: {
+      parentChildren: {
         include: {
           classModel: {
             include: {
@@ -78,7 +78,7 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
       parent = await prisma.parent.findFirst({
         where: {
           schoolId: req.schoolId,
-          students: { some: {} } // Parent must have at least one student
+          parentChildren: { some: {} } // Parent must have at least one student
         },
         include: includeQuery
       });
@@ -92,8 +92,8 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
       return res.status(404).json({ error: 'Parent profile not found' });
     }
 
-    console.log('Parent found:', parent.id, 'Students:', parent.students.length);
-    res.json(parent.students);
+    console.log('Parent found:', parent.id, 'Students:', parent.parentChildren.length);
+    res.json(parent.parentChildren);
   } catch (error) {
     console.error('Get wards error:', error);
     res.status(500).json({ error: 'Failed to fetch wards' });
@@ -179,7 +179,7 @@ router.post('/register', authenticate, authorize(['admin', 'principal', 'account
           phone,
           address,
           // Link students if provided
-          students: studentIds && studentIds.length > 0 ? {
+          parentChildren: studentIds && studentIds.length > 0 ? {
             connect: studentIds.map(id => ({ id: parseInt(id) }))
           } : undefined
         }
@@ -305,7 +305,7 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'ex
       where: { schoolId: req.schoolId },
       include: {
         user: { select: { firstName: true, lastName: true, email: true, username: true } },
-        students: {
+        parentChildren: {
           where: { schoolId: req.schoolId },
           include: {
             user: { select: { firstName: true, lastName: true, photoUrl: true } },
@@ -315,7 +315,12 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'ex
       }
     });
 
-    res.json(enhancedParents);
+    const mappedParents = enhancedParents.map(p => ({
+      ...p,
+      students: p.parentChildren,
+      parentChildren: undefined
+    }));
+    res.json(mappedParents);
   } catch (e) {
     res.status(500).json({ error: 'Failed' });
   }
@@ -400,12 +405,15 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
         id: parseInt(id),
         schoolId: req.schoolId
       },
-      include: { user: true, students: true }
+      include: { user: true, parentChildren: true }
     });
 
     if (!parent) {
       return res.status(404).json({ error: 'Parent not found' });
     }
+
+    // Map parentChildren back to students for consistency (though it's being deleted)
+    parent.students = parent.parentChildren;
 
     // Delete in transaction
     await prisma.$transaction(async (prisma) => {
@@ -529,7 +537,7 @@ router.get('/student-attendance', authenticate, authorize(['parent', 'admin', 'p
           schoolId: req.schoolId
         },
         include: {
-          students: {
+          parentChildren: {
             where: { schoolId: req.schoolId },
             select: { id: true }
           }
@@ -540,7 +548,7 @@ router.get('/student-attendance', authenticate, authorize(['parent', 'admin', 'p
         return res.status(404).json({ error: 'Parent profile not found' });
       }
 
-      const studentIds = parent.students.map(s => s.id);
+      const studentIds = parent.parentChildren.map(s => s.id);
       if (!studentIds.includes(parseInt(studentId))) {
         return res.status(403).json({ error: 'You can only view attendance for your own children' });
       }
