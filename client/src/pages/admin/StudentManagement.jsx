@@ -136,10 +136,11 @@ const StudentManagement = () => {
   const handleEdit = (student) => {
     setEditingStudent(student);
     setFormData({
-      firstName: student.user?.firstName || student.name?.split(' ')[0] || '',
+      firstName: student.user?.firstName || (student.name?.split(' ').length > 1 ? student.name.split(' ')[0] : ''),
       middleName: student.middleName || '',
-      lastName: student.user?.lastName || student.name?.split(' ').slice(1).join(' ') || '',
+      lastName: student.user?.lastName || (student.name?.split(' ').length > 1 ? student.name.split(' ').slice(1).join(' ') : (student.name || '')),
       email: student.user?.email || '',
+      admissionNumber: student.admissionNumber || '',
       password: '',
       classId: student.classId || '',
       admissionYear: new Date().getFullYear(),
@@ -950,6 +951,19 @@ Note: Password must be changed on first login.
                       placeholder="Auto-generated if empty"
                     />
                   </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Admission Number <span className="text-red-500 font-black">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.admissionNumber}
+                      onChange={(e) => setFormData({ ...formData, admissionNumber: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      required={!editingStudent}
+                      placeholder={editingStudent ? "Current: " + editingStudent.admissionNumber : "Auto-generated if empty"}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1267,9 +1281,25 @@ Note: Password must be changed on first login.
                                       );
                                     })()}
                                     <div className="text-sm font-medium text-gray-900">
-                                      {student.user ? 
-                                        `${student.user.firstName} ${student.user.lastName} ${student.middleName || ''}`.trim() :
-                                        (student.name || student.middleName || `Unknown Student (${student.admissionNumber})`)}
+                                      {(() => {
+                                        const userName = student.user ? `${student.user.firstName || ''} ${student.user.lastName || ''}`.trim() : '';
+                                        const legacyName = (student.name || '').trim();
+                                        const middleName = (student.middleName || '').trim();
+                                        
+                                        // Pick the longest available base name
+                                        let baseName = userName.length >= legacyName.length ? userName : legacyName;
+                                        
+                                        // If we still have nothing, fallback to middle name or unknown
+                                        if (!baseName && middleName) baseName = middleName;
+                                        if (!baseName) return `Unknown Student (${student.admissionNumber})`;
+                                        
+                                        // Append middle name if it's not already part of the base name
+                                        const finalName = middleName && !baseName.toLowerCase().includes(middleName.toLowerCase()) 
+                                          ? `${baseName} ${middleName}` 
+                                          : baseName;
+                                          
+                                        return finalName;
+                                      })()}
                                     </div>
                                   </div>
                                 </td>

@@ -855,7 +855,8 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
       isScholarship,
       isExamRestricted,
       examRestrictionReason,
-      clubs
+      clubs,
+      admissionNumber
     } = req.body;
 
     const studentId = parseInt(req.params.id);
@@ -901,6 +902,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
         schoolId: req.schoolId
       },
       data: {
+        ...(admissionNumber && { admissionNumber }),
         ...(classId && { classId: parseInt(classId) }),
         ...(dateOfBirth && { dateOfBirth: new Date(dateOfBirth) }),
         ...(gender && { gender }),
