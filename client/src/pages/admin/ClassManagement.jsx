@@ -143,9 +143,7 @@ const ClassManagement = () => {
 
   const fetchClasses = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/classes`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
+      const response = await api.get('/api/classes');
       const data = await response.json();
       setClasses(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -156,9 +154,7 @@ const ClassManagement = () => {
 
   const fetchTeachers = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users?role=teacher`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
+      const response = await api.get('/api/users?role=teacher');
       const data = await response.json();
       setTeachers(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -169,13 +165,13 @@ const ClassManagement = () => {
 
   const fetchClassStudents = async (classId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/students?classId=${classId}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await response.json();
-      setClassStudents(Array.isArray(data) ? data : []);
+      const response = await api.get(`/api/students?classId=${classId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setClassStudents(Array.isArray(data) ? data : []);
+      }
     } catch (error) {
-      console.error('Error fetching students:', error);
+      console.error('Error fetching class students:', error);
       setClassStudents([]);
     }
   };

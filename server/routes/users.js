@@ -31,7 +31,7 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'ex
           }
         },
         teacher: true,
-        parent: {
+        Parent: {
           include: {
             parentChildren: {
               include: {
@@ -45,14 +45,15 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'ex
     });
 
     const mappedUsers = users.map(u => {
-      if (u.parent) {
+      if (u.Parent) {
         return {
           ...u,
           parent: {
-            ...u.parent,
-            students: u.parent.parentChildren,
+            ...u.Parent,
+            students: u.Parent.parentChildren,
             parentChildren: undefined
-          }
+          },
+          Parent: undefined
         };
       }
       return u;
