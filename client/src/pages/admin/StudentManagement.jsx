@@ -1318,12 +1318,26 @@ Note: Password must be changed on first login.
                                                   Incomplete Profile (Missing {!fName ? 'Firstname' : 'Surname'})
                                                 </span>
                                               )}
+                                              {student.parentGuardianName && (
+                                                <span className="text-[10px] text-gray-500 italic">
+                                                  Parent: {student.parentGuardianName}
+                                                </span>
+                                              )}
                                             </div>
                                           );
                                         }
                                         
                                         // Fallback to legacy name
-                                        if (legacyName) return legacyName;
+                                        if (legacyName) return (
+                                          <div className="flex flex-col">
+                                            <span>{legacyName}</span>
+                                            {student.parentGuardianName && (
+                                              <span className="text-[10px] text-gray-500 italic">
+                                                Parent: {student.parentGuardianName}
+                                              </span>
+                                            )}
+                                          </div>
+                                        );
                                         
                                         // Final fallback to middle name only
                                         if (mName) return (
@@ -1332,6 +1346,11 @@ Note: Password must be changed on first login.
                                             <span className="text-[10px] text-red-500 font-bold uppercase tracking-tight">
                                               Only Middle Name Found
                                             </span>
+                                            {student.parentGuardianName && (
+                                              <span className="text-[10px] text-gray-500 italic">
+                                                Parent: {student.parentGuardianName}
+                                              </span>
+                                            )}
                                           </div>
                                         );
 
