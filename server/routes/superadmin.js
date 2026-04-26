@@ -182,12 +182,26 @@ router.post('/impersonate/:schoolId', authenticate, authorize(['superadmin']), a
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
 
     res.json({
+      success: true,
       token,
-      user: adminUser // Return the full user object to match what checkAuth expects
+      user: {
+        id: adminUser.id,
+        username: adminUser.username,
+        role: adminUser.role,
+        firstName: adminUser.firstName,
+        lastName: adminUser.lastName,
+        schoolId: adminUser.schoolId,
+        schoolSlug: adminUser.school?.slug,
+        schoolLogo: adminUser.school?.logoUrl,
+        schoolName: adminUser.school?.name,
+        signatureUrl: adminUser.signatureUrl,
+        photoUrl: adminUser.photoUrl
+      }
     });
 
     logAction({

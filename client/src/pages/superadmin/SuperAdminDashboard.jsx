@@ -262,8 +262,11 @@ const SuperAdminDashboard = () => {
       const res = await apiCall(`/api/superadmin/impersonate/${schoolId}`, { method: 'POST' });
       const { token, user } = res.data;
 
-      // Wipe and rebuild session
-      localStorage.clear();
+      // Targeted session rebuild instead of wiping EVERYTHING
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('schoolSlug');
+      
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 

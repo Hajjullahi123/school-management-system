@@ -37,11 +37,13 @@ const authenticate = (req, res, next) => {
         }
       }
     } catch (jwtError) {
+      console.error(`[Auth] JWT Verification failed: ${jwtError.message}. Token starts with: ${token?.substring(0, 10)}`);
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
     next();
   } catch (error) {
+    console.error(`[Auth] Fatal authentication error: ${error.message}`);
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 };
