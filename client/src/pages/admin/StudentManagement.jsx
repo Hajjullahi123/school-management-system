@@ -136,10 +136,10 @@ const StudentManagement = () => {
   const handleEdit = (student) => {
     setEditingStudent(student);
     setFormData({
-      firstName: student.user.firstName,
+      firstName: student.user?.firstName || student.name?.split(' ')[0] || '',
       middleName: student.middleName || '',
-      lastName: student.user.lastName,
-      email: student.user.email,
+      lastName: student.user?.lastName || student.name?.split(' ').slice(1).join(' ') || '',
+      email: student.user?.email || '',
       password: '',
       classId: student.classId || '',
       admissionYear: new Date().getFullYear(),
@@ -182,6 +182,10 @@ const StudentManagement = () => {
   };
 
   const handleResetCredentials = async (student) => {
+    if (!student.user) {
+      alert('This student does not have an active user account.');
+      return;
+    }
     if (!confirm(`Are you sure you want to regenerate credentials for ${student.user.firstName} ${student.user.lastName}? This will reset their password to '123456'.`)) return;
 
     try {
@@ -475,8 +479,8 @@ Note: Password must be changed on first login.
     // Sort students alphabetically within each class
     Object.keys(grouped).forEach(classKey => {
       grouped[classKey].sort((a, b) => {
-        const nameA = `${a.user.firstName} ${a.user.lastName} ${a.middleName || ''}`.trim().toLowerCase();
-        const nameB = `${b.user.firstName} ${b.user.lastName} ${b.middleName || ''}`.trim().toLowerCase();
+        const nameA = `${a.user?.firstName || ''} ${a.user?.lastName || ''} ${a.middleName || a.name || ''}`.trim().toLowerCase();
+        const nameB = `${b.user?.firstName || ''} ${b.user?.lastName || ''} ${b.middleName || b.name || ''}`.trim().toLowerCase();
         return nameA.localeCompare(nameB);
       });
     });
@@ -488,7 +492,7 @@ Note: Password must be changed on first login.
   const filteredStudents = students.filter(student => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
-    const fullName = `${student.user.firstName} ${student.user.lastName} ${student.middleName || ''}`.toLowerCase();
+    const fullName = `${student.user?.firstName || ''} ${student.user?.lastName || ''} ${student.middleName || student.name || ''}`.toLowerCase();
     const admissionNumber = student.admissionNumber?.toLowerCase() || '';
     return fullName.includes(query) || admissionNumber.includes(query);
   });
@@ -1263,7 +1267,7 @@ Note: Password must be changed on first login.
                                       );
                                     })()}
                                     <div className="text-sm font-medium text-gray-900">
-                                      {student.user.firstName} {student.user.lastName} {student.middleName}
+                                      {student.user?.firstName || student.name || 'Unknown Student'} {student.user?.lastName || ''} {student.middleName || ''}
                                     </div>
                                   </div>
                                 </td>
