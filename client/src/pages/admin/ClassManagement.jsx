@@ -131,8 +131,9 @@ const ClassManagement = () => {
       const response = await api.get('/api/terms');
       if (response.ok) {
         const data = await response.json();
-        setTerms(data);
-        const currentTerm = data.find(t => t.isCurrent);
+        const termsArray = Array.isArray(data) ? data : [];
+        setTerms(termsArray);
+        const currentTerm = termsArray.find(t => t.isCurrent);
         if (currentTerm) setSelectedTermId(currentTerm.id.toString());
       }
     } catch (error) {
@@ -146,9 +147,10 @@ const ClassManagement = () => {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await response.json();
-      setClasses(data);
+      setClasses(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching classes:', error);
+      setClasses([]);
     }
   };
 
@@ -158,9 +160,10 @@ const ClassManagement = () => {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await response.json();
-      setTeachers(data);
+      setTeachers(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching teachers:', error);
+      setTeachers([]);
     }
   };
 
@@ -170,9 +173,10 @@ const ClassManagement = () => {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await response.json();
-      setClassStudents(data);
+      setClassStudents(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching students:', error);
+      setClassStudents([]);
     }
   };
 
