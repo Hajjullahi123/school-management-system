@@ -18,6 +18,19 @@ const TermReportCard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const getStudentDisplayName = (student) => {
+    if (!student) return 'Unknown Student';
+    const fName = (student.user?.firstName || '').trim();
+    const mName = (student.middleName || '').trim();
+    const lName = (student.user?.lastName || '').trim();
+    const legacyName = (student.name || '').trim();
+
+    if (fName || lName) {
+      return `${fName} ${mName} ${lName}`.replace(/\s+/g, ' ').trim();
+    }
+    return legacyName || mName || `Student (${student.admissionNumber || student.id})`;
+  };
+
   // Selection states
   const [searchMode, setSearchMode] = useState('admission'); // 'admission', 'class'
   const [admissionNumber, setAdmissionNumber] = useState('');
@@ -365,7 +378,7 @@ const TermReportCard = () => {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Selected Ward</label>
                     {classStudents.length === 1 ? (
                       <div className="w-full bg-slate-100 border-white rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 shadow-inner">
-                        {classStudents[0].user.firstName} {classStudents[0].user.lastName}
+                        {getStudentDisplayName(classStudents[0])}
                       </div>
                     ) : (
                       <select
@@ -375,7 +388,7 @@ const TermReportCard = () => {
                       >
                         <option value="">Select Student</option>
                         {classStudents.map(s => (
-                          <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName}</option>
+                          <option key={s.id} value={s.id}>{getStudentDisplayName(s)}</option>
                         ))}
                       </select>
                     )}
@@ -449,7 +462,7 @@ const TermReportCard = () => {
                         >
                           <option value="">Choose Student</option>
                           <option value="all">-- COLLECT ENTIRE CLASS --</option>
-                          {classStudents.map(s => <option key={s.id} value={s.id}>{s.user.firstName} {s.user.lastName}</option>)}
+                          {classStudents.map(s => <option key={s.id} value={s.id}>{getStudentDisplayName(s)}</option>)}
                         </select>
                       </div>
                       <button onClick={fetchReport} disabled={loading || !selectedStudentId} className="h-[54px] bg-primary text-white px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl active:scale-95 disabled:bg-slate-200 transition-all">
@@ -561,7 +574,7 @@ const TermReportCard = () => {
                       <div className="col-span-3 grid grid-cols-3 gap-2">
                          <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
                            <p className="text-[8px] text-gray-400 mb-0.5">FULL NAME</p>
-                           <p className="text-xs truncate text-emerald-800" style={{ color: reportColor }}>{data.student?.name}</p>
+                           <p className="text-xs truncate text-emerald-800" style={{ color: reportColor }}>{getStudentDisplayName(data.student)}</p>
                          </div>
                          <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
                            <p className="text-[8px] text-gray-400 mb-0.5">ADMISSION NO</p>
@@ -592,7 +605,7 @@ const TermReportCard = () => {
                       <tbody>
                         <tr className="border-b border-black">
                           <td className="border-r border-black p-1 w-[12%] text-[9px]">NAME:</td>
-                          <td className="border-r border-black p-1 w-[43%] font-black text-black">{data.student?.name}</td>
+                          <td className="border-r border-black p-1 w-[43%] font-black text-black">{getStudentDisplayName(data.student)}</td>
                           <td className="border-r border-black p-1 w-[15%] text-[9px]">GENDER:</td>
                           <td className="p-1 w-[30%]">{data.student?.gender}</td>
                         </tr>
