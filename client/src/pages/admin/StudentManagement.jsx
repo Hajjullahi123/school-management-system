@@ -479,8 +479,8 @@ Note: Password must be changed on first login.
     // Sort students alphabetically within each class
     Object.keys(grouped).forEach(classKey => {
       grouped[classKey].sort((a, b) => {
-        const nameA = a.user ? `${a.user.firstName} ${a.user.lastName} ${a.middleName || ''}`.trim().toLowerCase() : (a.name || a.middleName || '').toLowerCase();
-        const nameB = b.user ? `${b.user.firstName} ${b.user.lastName} ${b.middleName || ''}`.trim().toLowerCase() : (b.name || b.middleName || '').toLowerCase();
+        const nameA = a.user ? `${a.user.firstName} ${a.user.lastName} ${a.middleName || ''}`.trim().toLowerCase() : (a.name || a.middleName || `unknown student (${a.admissionNumber})`).toLowerCase();
+        const nameB = b.user ? `${b.user.firstName} ${b.user.lastName} ${b.middleName || ''}`.trim().toLowerCase() : (b.name || b.middleName || `unknown student (${b.admissionNumber})`).toLowerCase();
         return nameA.localeCompare(nameB);
       });
     });
@@ -492,7 +492,7 @@ Note: Password must be changed on first login.
   const filteredStudents = students.filter(student => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
-    const fullName = student.user ? `${student.user.firstName} ${student.user.lastName} ${student.middleName || ''}`.toLowerCase() : (student.name || student.middleName || '').toLowerCase();
+    const fullName = student.user ? `${student.user.firstName} ${student.user.lastName} ${student.middleName || ''}`.toLowerCase() : (student.name || student.middleName || `unknown student (${student.admissionNumber})`).toLowerCase();
     const admissionNumber = student.admissionNumber?.toLowerCase() || '';
     return fullName.includes(query) || admissionNumber.includes(query);
   });
@@ -1269,7 +1269,7 @@ Note: Password must be changed on first login.
                                     <div className="text-sm font-medium text-gray-900">
                                       {student.user ? 
                                         `${student.user.firstName} ${student.user.lastName} ${student.middleName || ''}`.trim() :
-                                        (student.name || student.middleName || 'Unknown Student')}
+                                        (student.name || student.middleName || `Unknown Student (${student.admissionNumber})`)}
                                     </div>
                                   </div>
                                 </td>
