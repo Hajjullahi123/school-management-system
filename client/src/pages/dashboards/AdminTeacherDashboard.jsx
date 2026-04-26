@@ -120,10 +120,9 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
         let activeClassesCount = 0;
 
         if (user?.role === 'teacher') {
-          const myClasses = classes.filter(c => c.classTeacherId == user.id);
-          const myClassIds = myClasses.map(c => c.id);
-          totalStudentsCount = students.filter(s => myClassIds.includes(s.classId)).length;
-          activeClassesCount = myClasses.length;
+          // API already returns only classes relevant to this teacher (form master OR subject assignments)
+          totalStudentsCount = classes.reduce((acc, c) => acc + (c._count?.students || 0), 0);
+          activeClassesCount = classes.length;
         } else {
           if (students.length === 0 && classes.length > 0) {
             totalStudentsCount = classes.reduce((acc, curr) => acc + (curr._count?.students || 0), 0);

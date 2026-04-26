@@ -10,10 +10,10 @@ router.get('/', authenticate, async (req, res) => {
     const activeTerm = await prisma.term.findFirst({
       where: { schoolId: req.schoolId, isCurrent: true }
     });
-    const filterData = activeTerm ? { termId: activeTerm.id } : {};
+    const termFilter = activeTerm ? { OR: [{ termId: activeTerm.id }, { termId: null }] } : {};
 
     const assignments = await prisma.teacherAssignment.findMany({
-      where: { schoolId: req.schoolId, ...filterData },
+      where: { schoolId: req.schoolId, ...termFilter },
       include: {
         teacher: {
           select: {
@@ -71,13 +71,13 @@ router.get('/teacher/:teacherId', authenticate, async (req, res) => {
     const activeTerm = await prisma.term.findFirst({
       where: { schoolId: req.schoolId, isCurrent: true }
     });
-    const filterData = activeTerm ? { termId: activeTerm.id } : {};
+    const termFilter = activeTerm ? { OR: [{ termId: activeTerm.id }, { termId: null }] } : {};
 
     const assignments = await prisma.teacherAssignment.findMany({
       where: {
         teacherId: parseInt(req.params.teacherId),
         schoolId: req.schoolId,
-        ...filterData
+        ...termFilter
       },
       include: {
         classSubject: {
