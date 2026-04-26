@@ -178,8 +178,8 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
           else if (header.includes('genotype')) headers.genotype = colNumber;
           else if (header.includes('disability')) headers.disability = colNumber;
           else if (header === 'email' || header.includes('student email')) headers.email = colNumber;
-          else if (header.includes('parent name') || header.includes('guardian name')) headers.parentGuardianName = colNumber;
-          else if (header.includes('parent phone') || header.includes('guardian phone')) headers.parentGuardianPhone = colNumber;
+          else if (header.includes('parent name') || header.includes('guardian name') || header.includes('father') || header.includes('mother')) headers.parentGuardianName = colNumber;
+          else if (header.includes('parent phone') || header.includes('guardian phone') || header.includes('phone')) headers.parentGuardianPhone = colNumber;
           else if (header.includes('parent email') || header.includes('guardian email')) headers.parentEmail = colNumber;
           else if (header.includes('address')) headers.address = colNumber;
           else if (header.includes('date of birth') || header.includes('dob')) headers.dateOfBirth = colNumber;

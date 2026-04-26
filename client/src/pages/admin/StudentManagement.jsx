@@ -1377,9 +1377,13 @@ Note: Password must be changed on first login.
                                             <span className="text-[10px] text-red-500 font-bold uppercase tracking-tight">
                                               Only Middle Name Found
                                             </span>
-                                            {student.parentGuardianName && (
-                                              <span className="text-[10px] text-gray-500 italic">
-                                                Parent: {student.parentGuardianName}
+                                            {(student.parentGuardianName || student.parentGuardianPhone) ? (
+                                              <span className="text-[10px] text-gray-500 italic mt-0.5">
+                                                ID Clue: {student.parentGuardianName || ''} {student.parentGuardianPhone ? `(${student.parentGuardianPhone})` : ''}
+                                              </span>
+                                            ) : (
+                                              <span className="text-[10px] text-gray-400 italic mt-0.5">
+                                                Admitted: {student.admissionYear || 'N/A'} | ID: {student.id}
                                               </span>
                                             )}
                                           </div>
