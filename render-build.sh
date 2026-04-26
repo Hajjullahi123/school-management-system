@@ -69,6 +69,10 @@ UPDATE "Alumni" SET "studentId" = (SELECT id FROM "Student" LIMIT 1) WHERE "stud
 
 -- Clear QuranTarget test data as it has multiple new required foreign keys that cannot easily be backfilled
 DELETE FROM "QuranTarget";
+
+-- Fix orphaned parentId and userId in Student table to prevent foreign key constraint violations
+UPDATE "Student" SET "parentId" = NULL WHERE "parentId" IS NOT NULL AND "parentId" NOT IN (SELECT id FROM "Parent");
+UPDATE "Student" SET "userId" = NULL WHERE "userId" IS NOT NULL AND "userId" NOT IN (SELECT id FROM "User");
 SQL
 
 # 6. Synchronize Database (Force push for Dev/Stage)
