@@ -42,7 +42,7 @@ router.get('/', authenticate, async (req, res) => {
         _count: {
           select: {
             students: true,
-            classSubjects: true
+            subjects: true
           }
         }
       },
@@ -233,7 +233,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
         _count: {
           select: {
             students: true,
-            classSubjects: true
+            subjects: true
           }
         }
       }
@@ -310,7 +310,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
         _count: {
           select: {
             students: true,
-            classSubjects: true
+            subjects: true
           }
         }
       }
