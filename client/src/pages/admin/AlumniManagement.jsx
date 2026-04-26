@@ -411,13 +411,11 @@ const AlumniManagement = () => {
     }
   };
 
-  const filteredAlumni = alumniList.filter(a => {
-    const fName = (a.student?.user?.firstName || '').toLowerCase();
-    const lName = (a.student?.user?.lastName || '').toLowerCase();
-    const legName = (a.student?.name || '').toLowerCase();
-    const search = searchTerm.toLowerCase();
-    return fName.includes(search) || lName.includes(search) || legName.includes(search) || (a.alumniId?.toLowerCase() || '').includes(search);
-  });
+  const filteredAlumni = alumniList.filter(a =>
+    (a.student?.user?.firstName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (a.student?.user?.lastName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (a.alumniId?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+  );
 
   // Group alumni by graduation year
   const alumniByYear = filteredAlumni.reduce((groups, alumni) => {
@@ -562,26 +560,26 @@ const AlumniManagement = () => {
                                 <div className="flex items-center">
                                   <div className="h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center text-primary font-bold overflow-hidden shadow-sm flex-shrink-0">
                                     {(() => {
-                                      const photo = alumni.student?.user?.photoUrl || alumni.student?.photoUrl || alumni.profilePicture;
+                                      const photo = alumni.student?.user?.photoUrl || alumni.profilePicture;
                                       return photo ? (
                                         <img src={photo.startsWith('data:') || photo.startsWith('http') ? photo : `${API_BASE_URL}${photo}`} alt="" className="w-full h-full object-cover" />
                                       ) : (
-                                        <span>{(alumni.student?.user?.firstName?.[0] || alumni.student?.name?.[0] || '?').toUpperCase()}</span>
+                                        <span>{alumni.student?.user?.firstName?.[0]}{alumni.student?.user?.lastName?.[0]}</span>
                                       );
                                     })()}
                                   </div>
                                   <div className="ml-4">
                                     <div className="text-sm font-medium text-gray-900">
                                       {(() => {
-                                        const fName = alumni.student?.user?.firstName || '';
-                                        const mName = alumni.student?.middleName || '';
-                                        const lName = alumni.student?.user?.lastName || '';
-                                        const legName = alumni.student?.name || '';
-                                        
-                                        if (fName || lName) return `${fName} ${mName} ${lName}`.replace(/\s+/g, ' ').trim();
-                                        if (legName) return legName;
-                                        if (mName) return mName;
-                                        return `Alumni #${alumni.alumniId || alumni.id}`;
+                                        const fName = (alumni.student?.user?.firstName || '').trim();
+                                        const mName = (alumni.student?.middleName || '').trim();
+                                        const lName = (alumni.student?.user?.lastName || '').trim();
+                                        const legacyName = (alumni.student?.name || '').trim();
+
+                                        if (fName || lName) {
+                                          return `${fName} ${mName} ${lName}`.replace(/\s+/g, ' ').trim();
+                                        }
+                                        return legacyName || mName || `Alumni (${alumni.alumniId || alumni.id})`;
                                       })()}
                                     </div>
                                     <div className="text-sm text-gray-500">{alumni.currentJob || 'No job listed'}</div>
@@ -594,14 +592,14 @@ const AlumniManagement = () => {
                               <td className="px-6 py-4 whitespace-nowrap">
                                 {alumni.student?.user?.username && alumni.student.user.username === alumni.alumniId ? (
                                   <button
-                                    onClick={() => handleGenerateCredentials(alumni.student?.id)}
+                                    onClick={() => handleGenerateCredentials(alumni.student.id)}
                                     className="text-orange-600 hover:text-orange-900 text-sm font-medium"
                                   >
                                     Reset
                                   </button>
                                 ) : (
                                   <button
-                                    onClick={() => handleGenerateCredentials(alumni.student?.id)}
+                                    onClick={() => handleGenerateCredentials(alumni.student.id)}
                                     className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
                                   >
                                     Generate
@@ -616,7 +614,7 @@ const AlumniManagement = () => {
                                   Edit
                                 </button>
                                 <button
-                                  onClick={() => alumni.student?.id && navigate(`/dashboard/transcript/${alumni.student.id}`)}
+                                  onClick={() => navigate(`/dashboard/transcript/${alumni.student.id}`)}
                                   className="text-green-600 hover:text-green-900 mr-4"
                                 >
                                   Transcript
@@ -624,13 +622,13 @@ const AlumniManagement = () => {
                                 {!(alumni.programType === 'Transfer/Other' || alumni.programType === 'Expulsion') && (
                                   <>
                                     <button
-                                      onClick={() => alumni.student?.id && navigate(`/dashboard/certificate/${alumni.student.id}`)}
+                                      onClick={() => navigate(`/dashboard/certificate/${alumni.student.id}`)}
                                       className="text-amber-600 hover:text-amber-900 mr-4"
                                     >
                                       Certificate
                                     </button>
                                     <button
-                                      onClick={() => alumni.student?.id && navigate(`/dashboard/testimonial/${alumni.student.id}`)}
+                                      onClick={() => navigate(`/dashboard/testimonial/${alumni.student.id}`)}
                                       className="text-purple-600 hover:text-purple-900 mr-4"
                                     >
                                       Testimonial
@@ -1277,7 +1275,7 @@ const AlumniManagement = () => {
                       setDonationForm({
                         ...donationForm,
                         alumniId: id,
-                        donorName: `${alum.student.user.firstName} ${alum.student.user.lastName}`
+                        donorName: alum.student?.user ? `${alum.student.user.firstName} ${alum.student.user.lastName}` : (alum.student?.name || 'Alumni')
                       });
                     } else {
                       setDonationForm({ ...donationForm, alumniId: '', donorName: '' });
@@ -1285,9 +1283,13 @@ const AlumniManagement = () => {
                   }}
                 >
                   <option value="">-- External Donor / Not Listed --</option>
-                  {(Array.isArray(alumniList) ? [...alumniList] : []).sort((a, b) => a.student.user.firstName.localeCompare(b.student.user.firstName)).map(a => (
+                  {(Array.isArray(alumniList) ? [...alumniList] : []).sort((a, b) => {
+                    const nameA = a.student?.user?.firstName || a.student?.name || '';
+                    const nameB = b.student?.user?.firstName || b.student?.name || '';
+                    return nameA.localeCompare(nameB);
+                  }).map(a => (
                     <option key={a.id} value={a.id}>
-                      {a.student.user.firstName} {a.student.user.lastName} (Class of {a.graduationYear})
+                      {a.student?.user ? `${a.student.user.firstName} ${a.student.user.lastName}` : (a.student?.name || 'Alumni')} (Class of {a.graduationYear})
                     </option>
                   ))}
                 </select>
