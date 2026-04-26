@@ -32,7 +32,7 @@ const TeacherAssignments = () => {
     try {
       const response = await api.get('/api/terms');
       const data = await response.json();
-      setTerms(data);
+      setTerms(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching terms:', error);
     }
@@ -43,7 +43,7 @@ const TeacherAssignments = () => {
     try {
       const response = await api.get('/api/teacher-assignments');
       const data = await response.json();
-      setAssignments(data);
+      setAssignments(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching assignments:', error);
     }
@@ -53,7 +53,7 @@ const TeacherAssignments = () => {
     try {
       const response = await api.get('/api/users?role=teacher');
       const data = await response.json();
-      setTeachers(data);
+      setTeachers(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching teachers:', error);
     }
@@ -63,7 +63,7 @@ const TeacherAssignments = () => {
     try {
       const response = await api.get('/api/classes');
       const data = await response.json();
-      setClasses(data);
+      setClasses(Array.isArray(data) ? data : []);
 
       // Fetch unassigned counts for each class
       for (const cls of data) {
@@ -78,7 +78,7 @@ const TeacherAssignments = () => {
     try {
       const response = await api.get('/api/class-subjects');
       const data = await response.json();
-      setClassSubjects(data);
+      setClassSubjects(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching class subjects:', error);
     }
@@ -199,7 +199,7 @@ const TeacherAssignments = () => {
   };
 
   // Group assignments based on selection
-  const groupedAssignments = assignments.reduce((acc, assignment) => {
+  const groupedAssignments = (Array.isArray(assignments) ? assignments : []).reduce((acc, assignment) => {
     if (groupBy === 'teacher') {
       const teacherName = `${assignment.teacher.firstName} ${assignment.teacher.lastName}`;
       if (!acc[teacherName]) {
