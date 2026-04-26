@@ -383,6 +383,8 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
               </div>
             </div>
           </Link>
+          {/* Assigned Subjects Container */}
+          <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-gray-100 mt-2">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Your Assigned Subjects</h3>
               <div className="px-2 py-1 bg-primary/10 rounded-lg">
@@ -391,59 +393,66 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
             </div>
             
             <div className="space-y-6">
-              {Object.entries(
-                teacherAssignments.reduce((acc, curr) => {
-                  if (!acc[curr.className]) acc[curr.className] = [];
-                  acc[curr.className].push(curr);
-                  return acc;
-                }, {})
-              ).map(([className, subjects]) => (
-                <div key={className} className="space-y-2">
-                  <div className="flex items-center gap-2 px-1">
-                    <div className="w-1 h-3 bg-primary rounded-full"></div>
-                    <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-wider">{className}</h4>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2">
-                    {subjects.map(a => (
-                      <Link 
-                        key={a.id} 
-                        to={`/dashboard/result-entry?classId=${a.classId}&subjectId=${a.subjectId}`} 
-                        className="group flex items-center justify-between p-4 bg-gray-50 hover:bg-white hover:ring-2 hover:ring-primary/20 rounded-xl transition-all border border-transparent hover:border-primary/10 shadow-sm hover:shadow-md active:scale-[0.98]"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-primary border border-gray-100 group-hover:scale-110 transition-transform">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              {teacherAssignments.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No Subjects Assigned</p>
+                </div>
+              ) : (
+                Object.entries(
+                  teacherAssignments.reduce((acc, curr) => {
+                    if (!acc[curr.className]) acc[curr.className] = [];
+                    acc[curr.className].push(curr);
+                    return acc;
+                  }, {})
+                ).map(([className, subjects]) => (
+                  <div key={className} className="space-y-2">
+                    <div className="flex items-center gap-2 px-1">
+                      <div className="w-1 h-3 bg-primary rounded-full"></div>
+                      <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-wider">{className}</h4>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2">
+                      {subjects.map(a => (
+                        <Link 
+                          key={a.id} 
+                          to={`/dashboard/result-entry?classId=${a.classId}&subjectId=${a.subjectId}`} 
+                          className="group flex items-center justify-between p-4 bg-gray-50 hover:bg-white hover:ring-2 hover:ring-primary/20 rounded-xl transition-all border border-transparent hover:border-primary/10 shadow-sm hover:shadow-md active:scale-[0.98]"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-primary border border-gray-100 group-hover:scale-110 transition-transform">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-gray-900 group-hover:text-primary transition-colors">{a.subjectName}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Enter Result / Progress</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className="text-[10px] font-black text-primary leading-none">{Math.round((a.protocolCount / a.totalStudents) * 100) || 0}%</p>
+                              <div className="w-12 h-1 bg-gray-200 rounded-full mt-1 overflow-hidden">
+                                <div 
+                                  className="h-full bg-primary transition-all duration-1000" 
+                                  style={{ width: `${Math.round((a.protocolCount / a.totalStudents) * 100) || 0}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                            <svg className="w-4 h-4 text-gray-300 group-hover:text-primary transition-all transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />
                             </svg>
                           </div>
-                          <div>
-                            <p className="text-xs font-bold text-gray-900 group-hover:text-primary transition-colors">{a.subjectName}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Enter Result / Progress</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <p className="text-[10px] font-black text-primary leading-none">{Math.round((a.protocolCount / a.totalStudents) * 100)}%</p>
-                            <div className="w-12 h-1 bg-gray-200 rounded-full mt-1 overflow-hidden">
-                              <div 
-                                className="h-full bg-primary transition-all duration-1000" 
-                                style={{ width: `${Math.round((a.protocolCount / a.totalStudents) * 100)}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                          <svg className="w-4 h-4 text-gray-300 group-hover:text-primary transition-all transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                      </Link>
-                    ))}
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
+        </div>
       )}
 
       {/* Admin Quick Links */}

@@ -86,14 +86,12 @@ router.get('/my-class', authenticate, async (req, res) => {
               }
             },
             parent: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true
-                  }
-                }
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phone: true
               }
             }
           }
