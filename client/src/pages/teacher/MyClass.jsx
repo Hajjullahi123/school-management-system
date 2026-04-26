@@ -674,19 +674,64 @@ const MyClass = () => {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 leading-tight">
                     {(() => {
-                      const userName = student.user ? `${student.user.firstName || ''} ${student.user.lastName || ''}`.trim() : '';
+                      const fName = (student.user?.firstName || '').trim();
+                      const mName = (student.middleName || '').trim();
+                      const lName = (student.user?.lastName || '').trim();
                       const legacyName = (student.name || '').trim();
-                      const middleName = (student.middleName || '').trim();
-                      let baseName = userName.length >= legacyName.length ? userName : legacyName;
-                      if (!baseName && middleName) baseName = middleName;
-                      if (!baseName) return `Unknown Student (${student.admissionNumber})`;
-                      return middleName && !baseName.toLowerCase().includes(middleName.toLowerCase()) 
-                        ? `${baseName} ${middleName}` 
-                        : baseName;
+                      
+                      const showIdClue = () => (
+                        (student.parentGuardianName || student.parentGuardianPhone) ? (
+                          <span className="text-[10px] text-gray-400 italic mt-0.5 block">
+                            ID Clue: {student.parentGuardianName || ''} {student.parentGuardianPhone ? `(${student.parentGuardianPhone})` : ''}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-gray-400 italic mt-0.5 block">
+                            Admitted: {student.admissionYear || 'N/A'} | ID: {student.id}
+                          </span>
+                        )
+                      );
+
+                      if (fName || lName) {
+                        return (
+                          <div className="flex flex-col">
+                            <span>{`${fName} ${mName} ${lName}`.replace(/\s+/g, ' ').trim()}</span>
+                            {(!fName || !lName) && (
+                              <span className="text-[10px] text-orange-500 font-bold uppercase tracking-tight">
+                                Incomplete Profile
+                              </span>
+                            )}
+                            {showIdClue()}
+                          </div>
+                        );
+                      }
+                      
+                      if (legacyName) return (
+                        <div className="flex flex-col">
+                          <span>{legacyName}</span>
+                          {showIdClue()}
+                        </div>
+                      );
+                      
+                      if (mName) return (
+                        <div className="flex flex-col">
+                          <span>{mName}</span>
+                          <span className="text-[10px] text-red-500 font-bold uppercase tracking-tight">
+                            Only Middle Name Found
+                          </span>
+                          {showIdClue()}
+                        </div>
+                      );
+
+                      return (
+                        <div className="flex flex-col">
+                          <span>Unknown Student</span>
+                          {showIdClue()}
+                        </div>
+                      );
                     })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${student.user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${student.user?.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
                       {student.user?.isActive ? 'Active' : 'Inactive'}
                     </span>
@@ -701,7 +746,7 @@ const MyClass = () => {
                   </td>
                 </tr>
               ))}
-              {classData.students.length === 0 && (
+              {classData?.students?.length === 0 && (
                 <tr>
                   <td colSpan="6" className="px-6 py-10 text-center text-gray-500">
                     No students found in this class yet.

@@ -8,7 +8,7 @@ const path = require('path');
 const compression = require('compression');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-// Ensure required directories exist
+// Ensure requ ired directories exist
 [
   'logs',
   'uploads',
@@ -56,7 +56,7 @@ process.on('uncaughtException', (error) => {
 try {
   const auth = require('./middleware/auth');
   const requiredAuthMethods = ['authenticate', 'authorize', 'optionalAuth'];
-  
+
   requiredAuthMethods.forEach(method => {
     if (typeof auth[method] !== 'function') {
       throw new Error(`[CRITICAL] Auth module is missing required function: ${method}. Check server/middleware/auth.js exports!`);
@@ -187,7 +187,7 @@ app.post('/api/log-client-error', (req, res) => {
   const logMsg = `[${new Date().toISOString()}] CLIENT ERROR: ${JSON.stringify(body)}\n`;
   try {
     fs.appendFileSync('logs/client-errors.log', logMsg);
-  } catch (e) {}
+  } catch (e) { }
   console.log('LOGGED CLIENT ERROR:', body.message || 'Unknown error message');
   res.status(200).send('Logged');
 });
@@ -356,9 +356,9 @@ if (process.env.NODE_ENV === 'production') {
   // 1. API 404 Handler (JSON)
   app.use('/api/*', (req, res) => {
     console.warn(`[404] API Route not found: ${req.method} ${req.originalUrl}`);
-    res.status(404).json({ 
-      error: 'Not Found', 
-      message: `The API endpoint ${req.originalUrl} does not exist on this server.` 
+    res.status(404).json({
+      error: 'Not Found',
+      message: `The API endpoint ${req.originalUrl} does not exist on this server.`
     });
   });
 
@@ -406,7 +406,7 @@ if (process.env.NODE_ENV === 'production') {
 const startServer = (portToTry, retryCount = 0) => {
   const MAX_RETRIES = 5;
   if (activeServer) {
-    try { activeServer.close(); } catch (e) {}
+    try { activeServer.close(); } catch (e) { }
     activeServer = null;
   }
 
