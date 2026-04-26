@@ -28,6 +28,7 @@ const StudentManagement = () => {
   const [editingStudent, setEditingStudent] = useState(null);
   const [showCredentialsModal, setShowCredentialsModal] = useState(false);
   const [newStudentCredentials, setNewStudentCredentials] = useState(null);
+  const [parents, setParents] = useState([]);
   const [showParentCredentialsModal, setShowParentCredentialsModal] = useState(false);
   const [newParentCredentials, setNewParentCredentials] = useState(null);
   const [expandedClasses, setExpandedClasses] = useState(new Set());
@@ -58,12 +59,14 @@ const StudentManagement = () => {
     bloodGroup: '',
     genotype: '',
     disability: 'None',
-    clubs: ''
+    clubs: '',
+    parentId: ''
   });
 
   useEffect(() => {
     fetchStudents();
     fetchClasses();
+    fetchParents();
   }, []);
 
   const fetchStudents = async () => {
@@ -91,6 +94,18 @@ const StudentManagement = () => {
       }
     } catch (error) {
       console.error('Error fetching classes:', error);
+    }
+  };
+
+  const fetchParents = async () => {
+    try {
+      const response = await api.get('/api/parents');
+      if (response.ok) {
+        const data = await response.json();
+        setParents(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Error fetching parents:', error);
     }
   };
 
@@ -173,6 +188,7 @@ const StudentManagement = () => {
       parentGuardianName: student.parentGuardianName || '',
       parentGuardianPhone: student.parentGuardianPhone || '',
       parentEmail: student.parentEmail || '',
+      parentId: student.parentId || '',
       bloodGroup: student.bloodGroup || '',
       genotype: student.genotype || '',
       disability: student.disability || 'None',
@@ -1101,6 +1117,21 @@ Note: Password must be changed on first login.
                         onChange={(e) => setFormData({ ...formData, parentGuardianPhone: e.target.value })}
                         className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
                       />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Link to Parent Account</label>
+                      <select
+                        value={formData.parentId}
+                        onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700 appearance-none"
+                      >
+                        <option value="">No Linked Account</option>
+                        {parents.map((parent) => (
+                          <option key={parent.id} value={parent.id}>
+                            {parent.user?.firstName} {parent.user?.lastName} ({parent.phone})
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>
