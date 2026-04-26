@@ -170,8 +170,8 @@ const MyClass = () => {
       // Sort students alphabetically
       if (data.students && Array.isArray(data.students)) {
         data.students.sort((a, b) => {
-          const nameA = `${a.user?.firstName} ${a.user?.lastName} ${a.middleName || ''}`.trim().toLowerCase();
-          const nameB = `${b.user?.firstName} ${b.user?.lastName} ${b.middleName || ''}`.trim().toLowerCase();
+          const nameA = `${a.user?.firstName || ''} ${a.user?.lastName || ''} ${a.name || ''} ${a.middleName || ''}`.trim().toLowerCase() || 'zzzz';
+          const nameB = `${b.user?.firstName || ''} ${b.user?.lastName || ''} ${b.name || ''} ${b.middleName || ''}`.trim().toLowerCase() || 'zzzz';
           return nameA.localeCompare(nameB);
         });
       }
@@ -391,7 +391,12 @@ const MyClass = () => {
                 </div>
                  <div>
                     <h3 className="text-xl font-black text-gray-900 leading-none mb-1">Continuous Assessment & Remark</h3>
-                    <p className="text-sm font-medium text-gray-500">Student: <span className="text-primary font-bold">{gradingStudent.user.firstName} {gradingStudent.user.lastName} {gradingStudent.middleName || ''}</span></p>
+                    <p className="text-sm font-medium text-gray-500">Student: <span className="text-primary font-bold">
+                      {gradingStudent.user 
+                        ? `${gradingStudent.user.firstName} ${gradingStudent.user.lastName} ${gradingStudent.middleName || ''}` 
+                        : (gradingStudent.name || gradingStudent.middleName || `Unknown Student (${gradingStudent.admissionNumber})`)
+                      }
+                    </span></p>
                  </div>
               </div>
               <button onClick={() => setGradingStudent(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-gray-600">
