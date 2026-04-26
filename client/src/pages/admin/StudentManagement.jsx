@@ -135,10 +135,31 @@ const StudentManagement = () => {
 
   const handleEdit = (student) => {
     setEditingStudent(student);
+    
+    const legacyNameParts = (student.name || '').trim().split(/\s+/);
+    const hasUserNames = !!(student.user?.firstName || student.user?.lastName);
+    
+    let recoveredFirstName = student.user?.firstName || '';
+    let recoveredMiddleName = student.middleName || '';
+    let recoveredLastName = student.user?.lastName || '';
+
+    if (!hasUserNames && legacyNameParts.length > 0 && legacyNameParts[0] !== '') {
+      if (legacyNameParts.length === 1) {
+        recoveredFirstName = legacyNameParts[0];
+      } else if (legacyNameParts.length === 2) {
+        recoveredFirstName = legacyNameParts[0];
+        recoveredLastName = legacyNameParts[1];
+      } else {
+        recoveredFirstName = legacyNameParts[0];
+        recoveredMiddleName = legacyNameParts.slice(1, -1).join(' ');
+        recoveredLastName = legacyNameParts[legacyNameParts.length - 1];
+      }
+    }
+
     setFormData({
-      firstName: student.user?.firstName || (student.name?.split(' ').length > 1 ? student.name.split(' ')[0] : ''),
-      middleName: student.middleName || '',
-      lastName: student.user?.lastName || (student.name?.split(' ').length > 1 ? student.name.split(' ').slice(1).join(' ') : (student.name || '')),
+      firstName: recoveredFirstName,
+      middleName: recoveredMiddleName,
+      lastName: recoveredLastName,
       email: student.user?.email || '',
       admissionNumber: student.admissionNumber || '',
       password: '',
@@ -1282,23 +1303,39 @@ Note: Password must be changed on first login.
                                     })()}
                                     <div className="text-sm font-medium text-gray-900">
                                       {(() => {
-                                        const userName = student.user ? `${student.user.firstName || ''} ${student.user.lastName || ''}`.trim() : '';
+                                        const fName = (student.user?.firstName || '').trim();
+                                        const mName = (student.middleName || '').trim();
+                                        const lName = (student.user?.lastName || '').trim();
                                         const legacyName = (student.name || '').trim();
-                                        const middleName = (student.middleName || '').trim();
                                         
-                                        // Pick the longest available base name
-                                        let baseName = userName.length >= legacyName.length ? userName : legacyName;
+                                        // If we have any User names, construct the full name from them
+                                        if (fName || lName) {
+                                          return (
+                                            <div className="flex flex-col">
+                                              <span>{`${fName} ${mName} ${lName}`.replace(/\s+/g, ' ').trim()}</span>
+                                              {(!fName || !lName) && (
+                                                <span className="text-[10px] text-orange-500 font-bold uppercase tracking-tight">
+                                                  Incomplete Profile (Missing {!fName ? 'Firstname' : 'Surname'})
+                                                </span>
+                                              )}
+                                            </div>
+                                          );
+                                        }
                                         
-                                        // If we still have nothing, fallback to middle name or unknown
-                                        if (!baseName && middleName) baseName = middleName;
-                                        if (!baseName) return `Unknown Student (${student.admissionNumber})`;
+                                        // Fallback to legacy name
+                                        if (legacyName) return legacyName;
                                         
-                                        // Append middle name if it's not already part of the base name
-                                        const finalName = middleName && !baseName.toLowerCase().includes(middleName.toLowerCase()) 
-                                          ? `${baseName} ${middleName}` 
-                                          : baseName;
-                                          
-                                        return finalName;
+                                        // Final fallback to middle name only
+                                        if (mName) return (
+                                          <div className="flex flex-col">
+                                            <span>{mName}</span>
+                                            <span className="text-[10px] text-red-500 font-bold uppercase tracking-tight">
+                                              Only Middle Name Found
+                                            </span>
+                                          </div>
+                                        );
+
+                                        return `Unknown Student (${student.admissionNumber})`;
                                       })()}
                                     </div>
                                   </div>
