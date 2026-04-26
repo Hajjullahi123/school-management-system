@@ -247,7 +247,7 @@ model User {
 model Student {
   id                      Int                       @id @default(autoincrement())
   schoolId                Int
-  userId                  Int                       @unique
+  userId                  Int?                      @unique
   parentId                Int?
   admissionNumber         String
   classId                 Int?
@@ -287,7 +287,7 @@ model Student {
   promotionHistory        PromotionHistory[]
   quranRecords            QuranRecord[]
   results                 Result[]
-  user                    User                      @relation(fields: [userId], references: [id])
+  user                    User?                     @relation(fields: [userId], references: [id])
   parent                  Parent?                   @relation("StudentParent", fields: [parentId], references: [id])
   classModel              Class?                    @relation(fields: [classId], references: [id])
   school                  School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -629,7 +629,7 @@ model ExamRepository {
   academicSessionId Int
   status            String   @default("submitted")
   createdAt         DateTime @default(now())
-  updatedAt         DateTime
+  updatedAt         DateTime @default(now()) @updatedAt
   class             Class    @relation(fields: [classId], references: [id])
   subject           Subject  @relation(fields: [subjectId], references: [id])
   teacher           User     @relation(fields: [teacherId], references: [id])
