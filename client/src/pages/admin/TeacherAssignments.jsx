@@ -201,23 +201,23 @@ const TeacherAssignments = () => {
   // Group assignments based on selection
   const groupedAssignments = (Array.isArray(assignments) ? assignments : []).reduce((acc, assignment) => {
     if (groupBy === 'teacher') {
-      const teacherName = `${assignment.teacher.firstName} ${assignment.teacher.lastName}`;
+      const teacherName = assignment.teacher ? `${assignment.teacher.firstName} ${assignment.teacher.lastName}` : 'Unidentified Teacher';
       if (!acc[teacherName]) {
         acc[teacherName] = {
           title: teacherName,
-          subtitle: assignment.teacher.email,
+          subtitle: assignment.teacher?.email || 'No email',
           assignments: []
         };
       }
       acc[teacherName].assignments.push(assignment);
     } else {
-      const className = `${assignment.class.name} ${assignment.class.arm || ''}`;
+      const className = assignment.class ? `${assignment.class.name} ${assignment.class.arm || ''}` : 'Unidentified Class';
       const countData = unassignedCounts[assignment.classId] || { unassignedCount: 0, totalCount: 0 };
 
       if (!acc[className]) {
         acc[className] = {
           title: className,
-          subtitle: `${assignment.class.students?.length || 0} Students`,
+          subtitle: `${assignment.class?.students?.length || 0} Students`,
           classId: assignment.classId,
           unassignedCount: countData.unassignedCount,
           totalCount: countData.totalCount,
@@ -456,13 +456,13 @@ const TeacherAssignments = () => {
                       <div className="flex-1">
                         {groupBy === 'teacher' ? (
                           <>
-                            <p className="font-medium text-gray-900">{assignment.subject.name}</p>
-                            <p className="text-sm text-gray-600">{assignment.class.name} {assignment.class.arm}</p>
+                            <p className="font-medium text-gray-900">{assignment.subject?.name || 'Unknown Subject'}</p>
+                            <p className="text-sm text-gray-600">{assignment.class?.name || 'Unidentified'} {assignment.class?.arm || ''}</p>
                           </>
                         ) : (
                           <>
-                            <p className="font-medium text-gray-900">{assignment.subject.name}</p>
-                            <p className="text-sm text-gray-600">Tr. {assignment.teacher.firstName} {assignment.teacher.lastName}</p>
+                            <p className="font-medium text-gray-900">{assignment.subject?.name || 'Unknown Subject'}</p>
+                            <p className="text-sm text-gray-600">Tr. {assignment.teacher?.firstName || ''} {assignment.teacher?.lastName || 'Unidentified'}</p>
                           </>
                         )}
                       </div>
