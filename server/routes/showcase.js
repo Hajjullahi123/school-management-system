@@ -7,6 +7,9 @@ const { logAction } = require('../utils/audit');
 // Public route to fetch active showcase schools
 router.get('/public', async (req, res) => {
   try {
+    if (!prisma.showcaseSchool) {
+      return res.json([]);
+    }
     const schools = await prisma.showcaseSchool.findMany({
       where: { isActive: true },
       orderBy: { createdAt: 'desc' }

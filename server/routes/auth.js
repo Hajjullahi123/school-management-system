@@ -377,7 +377,12 @@ router.get('/me', authenticate, async (req, res) => {
         }
       };
     } else if (role === 'parent') {
-      include.parent = { select: { id: true, phone: true } };
+      include.parentChildren = { 
+        select: { 
+          id: true, name: true, admissionNumber: true, photoUrl: true,
+          classModel: { select: { name: true } } 
+        } 
+      };
     }
 
     const user = await prisma.user.findUnique({
