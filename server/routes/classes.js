@@ -17,9 +17,9 @@ router.get('/', authenticate, async (req, res) => {
       where.OR = [
         { classTeacherId: req.user.id },
         {
-          classSubjects: {
+          subjects: {
             some: {
-              teacherAssignments: {
+              assignments: {
                 some: { teacherId: req.user.id }
               }
             }
@@ -88,10 +88,14 @@ router.get('/my-class', authenticate, async (req, res) => {
             parent: {
               select: {
                 id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                phone: true
+                phone: true,
+                User: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true
+                  }
+                }
               }
             }
           }
@@ -153,10 +157,10 @@ router.get('/:id', authenticate, async (req, res) => {
             }
           }
         },
-        classSubjects: {
+        subjects: {
           include: {
             subject: true,
-            teacherAssignments: {
+            assignments: {
               where: { schoolId: req.schoolId },
               include: {
                 teacher: {
