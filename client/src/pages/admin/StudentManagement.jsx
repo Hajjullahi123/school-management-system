@@ -1051,14 +1051,13 @@ Note: Password must be changed on first login.
                   </div>
                   <div className="space-y-1">
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      Admission Number <span className="text-red-500 font-black">*</span>
+                      Admission Number
                     </label>
                     <input
                       type="text"
                       value={formData.admissionNumber}
                       onChange={(e) => setFormData({ ...formData, admissionNumber: e.target.value })}
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
-                      required={!editingStudent}
                       placeholder={editingStudent ? "Current: " + editingStudent.admissionNumber : "Auto-generated if empty"}
                     />
                   </div>

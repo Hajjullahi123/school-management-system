@@ -230,7 +230,8 @@ async function createOrUpdateFeeRecordWithOpening(data) {
           expectedAmount: numExpected,
           paidAmount: numPaid,
           balance: balance,
-          isClearedForExam
+          isClearedForExam,
+          updatedAt: new Date()
         }
       });
     } else {
@@ -245,7 +246,8 @@ async function createOrUpdateFeeRecordWithOpening(data) {
           expectedAmount: numExpected,
           paidAmount: numPaid,
           balance: isNaN(balance) ? 0 : balance,
-          isClearedForExam
+          isClearedForExam,
+          updatedAt: new Date()
         }
       });
     }
