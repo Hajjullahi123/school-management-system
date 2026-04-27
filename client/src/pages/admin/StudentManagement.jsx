@@ -502,6 +502,28 @@ Note: Password must be changed on first login.
     setExpandedClasses(newExpanded);
   };
 
+  // Helper: build the best available display name for a student
+  const getStudentDisplayName = (student) => {
+    const parts = [
+      student.user?.firstName,
+      student.middleName,
+      student.user?.lastName
+    ].filter(p => p && p.trim() !== '');
+    if (parts.length > 0) return parts.join(' ');
+    // Fallback to legacy name field
+    if (student.name && student.name.trim()) return student.name.trim();
+    return student.admissionNumber || '(No Name)';
+  };
+
+  // Helper: get initials from student
+  const getStudentInitials = (student) => {
+    const name = getStudentDisplayName(student);
+    const words = name.split(' ').filter(w => w.length > 0);
+    if (words.length >= 2) return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
+    if (words.length === 1) return words[0][0].toUpperCase();
+    return '?';
+  };
+
   // Group students by class
   const groupedStudents = () => {
     const grouped = {};
@@ -517,8 +539,8 @@ Note: Password must be changed on first login.
     // Sort students alphabetically within each class
     Object.keys(grouped).forEach(classKey => {
       grouped[classKey].sort((a, b) => {
-        const nameA = a.user ? `${a.user.firstName} ${a.user.lastName} ${a.middleName || ''}`.trim().toLowerCase() : (a.name || a.middleName || `unknown student (${a.admissionNumber})`).toLowerCase();
-        const nameB = b.user ? `${b.user.firstName} ${b.user.lastName} ${b.middleName || ''}`.trim().toLowerCase() : (b.name || b.middleName || `unknown student (${b.admissionNumber})`).toLowerCase();
+        const nameA = getStudentDisplayName(a).toLowerCase();
+        const nameB = getStudentDisplayName(b).toLowerCase();
         return nameA.localeCompare(nameB);
       });
     });
@@ -530,7 +552,7 @@ Note: Password must be changed on first login.
   const filteredStudents = students.filter(student => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
-    const fullName = student.user ? `${student.user.firstName} ${student.user.lastName} ${student.middleName || ''}`.toLowerCase() : (student.name || student.middleName || `unknown student (${student.admissionNumber})`).toLowerCase();
+    const fullName = getStudentDisplayName(student).toLowerCase();
     const admissionNumber = student.admissionNumber?.toLowerCase() || '';
     return fullName.includes(query) || admissionNumber.includes(query);
   });
@@ -1328,69 +1350,30 @@ Note: Password must be changed on first login.
                                         <img className="h-8 w-8 rounded-full object-cover mr-3" src={photo.startsWith('data:') || photo.startsWith('http') ? photo : `${API_BASE_URL}${photo}`} alt="" />
                                       ) : (
                                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold mr-3">
-                                          {(student.user?.firstName?.[0] || student.name?.[0] || student.middleName?.[0] || '?').toUpperCase()}
+                                          {getStudentInitials(student)}
                                         </div>
                                       );
                                     })()}
                                     <div className="text-sm font-medium text-gray-900">
-                                      {(() => {
-                                        const fName = (student.user?.firstName || '').trim();
-                                        const mName = (student.middleName || '').trim();
-                                        const lName = (student.user?.lastName || '').trim();
-                                        const legacyName = (student.name || '').trim();
-                                        
-                                        // If we have any User names, construct the full name from them
-                                        if (fName || lName) {
-                                          return (
-                                            <div className="flex flex-col">
-                                              <span>{`${fName} ${mName} ${lName}`.replace(/\s+/g, ' ').trim()}</span>
-                                              {(!fName || !lName) && (
-                                                <span className="text-[10px] text-orange-500 font-bold uppercase tracking-tight">
-                                                  Incomplete Profile (Missing {!fName ? 'Firstname' : 'Surname'})
-                                                </span>
-                                              )}
-                                              {student.parentGuardianName && (
-                                                <span className="text-[10px] text-gray-500 italic">
-                                                  Parent: {student.parentGuardianName}
-                                                </span>
-                                              )}
-                                            </div>
-                                          );
-                                        }
-                                        
-                                        // Fallback to legacy name
-                                        if (legacyName) return (
-                                          <div className="flex flex-col">
-                                            <span>{legacyName}</span>
-                                            {student.parentGuardianName && (
-                                              <span className="text-[10px] text-gray-500 italic">
-                                                Parent: {student.parentGuardianName}
-                                              </span>
-                                            )}
-                                          </div>
-                                        );
-                                        
-                                        // Final fallback to middle name only
-                                        if (mName) return (
-                                          <div className="flex flex-col">
-                                            <span>{mName}</span>
-                                            <span className="text-[10px] text-red-500 font-bold uppercase tracking-tight">
-                                              Only Middle Name Found
-                                            </span>
-                                            {(student.parentGuardianName || student.parentGuardianPhone) ? (
-                                              <span className="text-[10px] text-gray-500 italic mt-0.5">
-                                                ID Clue: {student.parentGuardianName || ''} {student.parentGuardianPhone ? `(${student.parentGuardianPhone})` : ''}
-                                              </span>
-                                            ) : (
-                                              <span className="text-[10px] text-gray-400 italic mt-0.5">
-                                                Admitted: {student.admissionYear || 'N/A'} | ID: {student.id}
-                                              </span>
-                                            )}
-                                          </div>
-                                        );
-
-                                        return `Unknown Student (${student.admissionNumber})`;
-                                      })()}
+                                      <div className="flex flex-col">
+                                        <span>{getStudentDisplayName(student)}</span>
+                                        {/* Show a subtle hint if first name or surname is missing */}
+                                        {(student.user?.firstName || student.user?.lastName) && !(student.user?.firstName?.trim()) && (
+                                          <span className="text-[10px] text-orange-500 font-bold uppercase tracking-tight">
+                                            Incomplete Profile (Missing Firstname)
+                                          </span>
+                                        )}
+                                        {(student.user?.firstName || student.user?.lastName) && !(student.user?.lastName?.trim()) && (
+                                          <span className="text-[10px] text-orange-500 font-bold uppercase tracking-tight">
+                                            Incomplete Profile (Missing Surname)
+                                          </span>
+                                        )}
+                                        {student.parentGuardianName && (
+                                          <span className="text-[10px] text-gray-500 italic">
+                                            Parent: {student.parentGuardianName}
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 </td>
