@@ -170,9 +170,25 @@ async function generateStudentUsername(schoolId, schoolCode, firstName, lastName
   return uniqueId;
 }
 
+/**
+ * Generates an auto-assigned email when none is provided
+ * Format: userinitials.schoolnamefirstword.fourrandomnumbers@edutech.com
+ */
+function generateAutoEmail(firstName, lastName, schoolName) {
+  const f = (firstName && firstName[0]) ? firstName[0].toLowerCase() : '';
+  const l = (lastName && lastName[0]) ? lastName[0].toLowerCase() : '';
+  const initials = f + l || 'x';
+  
+  const schoolFirstWord = schoolName ? schoolName.split(' ')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase() : 'school';
+  const randomNumbers = Math.floor(1000 + Math.random() * 9000);
+  
+  return `${initials}.${schoolFirstWord}.${randomNumbers}@edutech.com`;
+}
+
 module.exports = {
   generateAlumniUsername,
   generateAdminUsername,
   generateTeacherUsername,
-  generateStudentUsername
+  generateStudentUsername,
+  generateAutoEmail
 };

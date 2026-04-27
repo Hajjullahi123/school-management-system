@@ -4,6 +4,7 @@ const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
 const { logAction } = require('../utils/audit');
+const { generateAutoEmail } = require('../utils/usernameGenerator');
 
 // 1. Get My Children (Parent Dashboard)
 router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']), async (req, res) => {
@@ -106,8 +107,11 @@ router.post('/register', authenticate, authorize(['admin', 'principal', 'account
   try {
     const { firstName, lastName, email, phone, address, studentIds } = req.body;
 
+    // Determine school name for email logic
+    const school = await prisma.school.findUnique({ where: { id: req.schoolId } });
+    
     // Generate default email if not provided
-    const parentEmail = email || `${phone}@parent.school`;
+    const parentEmail = email || generateAutoEmail(firstName, lastName, school?.name);
 
     // Check if phone already registered in THIS school
     const existingPhone = await prisma.user.findFirst({

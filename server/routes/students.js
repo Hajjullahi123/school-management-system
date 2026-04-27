@@ -8,7 +8,7 @@ const fs = require('fs');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 const { generateAdmissionNumber, getUniqueAdmissionNumber, isValidBloodGroup, isValidGenotype } = require('../utils/studentUtils');
-const { generateStudentUsername } = require('../utils/usernameGenerator');
+const { generateStudentUsername, generateAutoEmail } = require('../utils/usernameGenerator');
 const { createOrUpdateFeeRecordWithOpening } = require('../utils/feeCalculations');
 
 // Use memory storage for Base64 DB persistence (survives Render's ephemeral filesystem)
@@ -807,7 +807,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
     const defaultPassword = password || '123456';
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
-    const uniqueEmailPrefix = email || `${uniqueAdmissionNumber.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now()}`;
+    const generatedEmail = email || generateAutoEmail(firstName, lastName, school?.name);
 
     // Create user account
     const user = await prisma.user.create({
@@ -816,7 +816,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
         firstName,
         lastName,
         username,
-        email: email || `${uniqueEmailPrefix}@student.darulquran.edu`,
+        email: generatedEmail,
         passwordHash: hashedPassword,
         role: 'student',
         mustChangePassword: false
