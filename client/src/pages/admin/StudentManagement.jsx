@@ -532,13 +532,14 @@ Note: Password must be changed on first login.
 
   // Helper: build the best available display name for a student
   const getStudentDisplayName = (student) => {
-    const parts = [
-      student.user?.firstName,
-      student.middleName,
-      student.user?.lastName
-    ].filter(p => p && p.trim() !== '');
-    if (parts.length > 0) return parts.join(' ');
-    // Fallback to legacy name field
+    if (student.user?.firstName) {
+      const parts = [
+        student.user.firstName,
+        student.middleName,
+        student.user.lastName
+      ].filter(p => p && p.trim() !== '');
+      return parts.join(' ');
+    }
     if (student.name && student.name.trim()) return student.name.trim();
     return student.admissionNumber || '(No Name)';
   };
