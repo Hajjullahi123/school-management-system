@@ -243,12 +243,31 @@ const UserManagement = () => {
     });
   };
 
+  // Helper: build a full display name from available name parts, filtering blanks
+  const getDisplayName = (user) => {
+    const parts = [
+      user.firstName,
+      user.student?.middleName,
+      user.lastName
+    ].filter(part => part && part.trim() !== '');
+    return parts.join(' ') || user.username || '(No Name)';
+  };
+
+  // Helper: get initials from whatever name parts exist
+  const getInitials = (user) => {
+    const name = getDisplayName(user);
+    const words = name.split(' ').filter(w => w.length > 0);
+    if (words.length >= 2) return `${words[0][0]}${words[words.length - 1][0]}`;
+    if (words.length === 1) return words[0][0];
+    return '?';
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesRole = filter === 'all' || user.role === filter;
+    const fullName = getDisplayName(user).toLowerCase();
     const matchesSearch =
       user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase());
+      fullName.includes(searchTerm.toLowerCase());
     return matchesRole && matchesSearch;
   });
 
@@ -421,12 +440,12 @@ const UserManagement = () => {
                                       return photoUrl ? (
                                         <img src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`} alt="" className="w-full h-full object-cover" />
                                       ) : (
-                                        <span>{user.firstName[0]}{user.lastName[0]}</span>
+                                        <span>{getInitials(user)}</span>
                                       );
                                     })()}
                                   </div>
                                   <div className="ml-4">
-                                    <div className="text-sm font-black text-gray-900 uppercase tracking-tighter">{user.firstName} {user.lastName}</div>
+                                    <div className="text-sm font-black text-gray-900 uppercase tracking-tighter">{getDisplayName(user)}</div>
                                     <div className="text-xs text-gray-400 font-mono">@{user.username}</div>
                                   </div>
                                 </div>
@@ -461,7 +480,7 @@ const UserManagement = () => {
                                         {user.parent.students.map(student => (
                                           <div key={student.id} className="flex items-center gap-1.5" title="Linked Ward">
                                             <span className="text-[10px] font-black bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">WARD</span>
-                                            <span className="text-xs text-gray-600 truncate max-w-[150px]">{student.user?.firstName} {student.user?.lastName}</span>
+                                            <span className="text-xs text-gray-600 truncate max-w-[150px]">{[student.user?.firstName, student.user?.lastName].filter(p => p && p.trim()).join(' ') || '(Unknown)'}</span>
                                           </div>
                                         ))}
                                       </div>
