@@ -436,6 +436,151 @@ router.delete('/my-photo', authenticate, async (req, res) => {
 });
 
 // ==========================================
+// NAME RECOVERY MIGRATION
+// ==========================================
+
+// Recover missing firstName/lastName from legacy data (Admin/Principal only)
+// GET  /api/students/fix-names         → dry-run preview
+// POST /api/students/fix-names?apply=true → apply fixes
+router.post('/fix-names', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const applyFixes = req.query.apply === 'true';
+
+    // Fetch all students with their User records for this school
+    const students = await prisma.student.findMany({
+      where: { schoolId: req.schoolId },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, username: true } }
+      }
+    });
+
+    const fixes = [];
+
+    for (const student of students) {
+      if (!student.user) continue;
+
+      const currentFirst = (student.user.firstName || '').trim();
+      const currentLast = (student.user.lastName || '').trim();
+
+      // Skip if both names already exist
+      if (currentFirst && currentLast) continue;
+
+      let newFirst = currentFirst;
+      let newLast = currentLast;
+      let source = '';
+
+      // Strategy 1: Parse the legacy student.name field (e.g. "Adam Ibrahim Lawal")
+      const legacyName = (student.name || '').trim();
+      if (legacyName) {
+        const parts = legacyName.split(/\s+/).filter(p => p.length > 0);
+        if (parts.length >= 3) {
+          // "FirstName MiddleName(s) LastName"
+          if (!newFirst) newFirst = parts[0];
+          if (!newLast) newLast = parts[parts.length - 1];
+          // Also populate middleName if it's empty
+          if (!student.middleName) {
+            const middle = parts.slice(1, -1).join(' ');
+            if (middle) source += ` [middleName→"${middle}"]`;
+          }
+          source = `legacy name "${legacyName}"` + source;
+        } else if (parts.length === 2) {
+          if (!newFirst) newFirst = parts[0];
+          if (!newLast) newLast = parts[1];
+          source = `legacy name "${legacyName}"`;
+        } else if (parts.length === 1) {
+          if (!newFirst) newFirst = parts[0];
+          source = `legacy name "${legacyName}" (single word → firstName)`;
+        }
+      }
+
+      // Strategy 2: Use middleName if firstName is still empty
+      if (!newFirst && student.middleName && student.middleName.trim()) {
+        newFirst = student.middleName.trim();
+        source = source || `middleName "${student.middleName}"`;
+      }
+
+      // Strategy 3: Extract surname from parentGuardianName if lastName is still empty
+      if (!newLast && student.parentGuardianName && student.parentGuardianName.trim()) {
+        const parentParts = student.parentGuardianName.trim().split(/\s+/);
+        if (parentParts.length > 0) {
+          // Use the first word of parent name as surname (common in many cultures)
+          newLast = parentParts[0];
+          source = (source ? source + ' + ' : '') + `parent name "${student.parentGuardianName}" (first word → surname)`;
+        }
+      }
+
+      // Strategy 4: Use username parts as last resort
+      if (!newFirst && !newLast && student.user.username) {
+        newFirst = student.user.username;
+        source = `username "${student.user.username}" (last resort)`;
+      }
+
+      // Skip if nothing changed
+      if (newFirst === currentFirst && newLast === currentLast) continue;
+
+      const fix = {
+        studentId: student.id,
+        userId: student.user.id,
+        admissionNumber: student.admissionNumber,
+        before: { firstName: currentFirst || '(empty)', lastName: currentLast || '(empty)' },
+        after: { firstName: newFirst || '(empty)', lastName: newLast || '(empty)' },
+        source
+      };
+
+      if (applyFixes) {
+        // Apply the fix to the database
+        const updateData = {};
+        if (newFirst && newFirst !== currentFirst) updateData.firstName = newFirst;
+        if (newLast && newLast !== currentLast) updateData.lastName = newLast;
+
+        if (Object.keys(updateData).length > 0) {
+          await prisma.user.update({
+            where: { id: student.user.id },
+            data: updateData
+          });
+          fix.applied = true;
+        }
+
+        // Also update middleName from legacy name if it was empty
+        if (legacyName && !student.middleName) {
+          const parts = legacyName.split(/\s+/).filter(p => p.length > 0);
+          if (parts.length >= 3) {
+            const middle = parts.slice(1, -1).join(' ');
+            await prisma.student.update({
+              where: { id: student.id },
+              data: { middleName: middle }
+            });
+          }
+        }
+      }
+
+      fixes.push(fix);
+    }
+
+    res.json({
+      mode: applyFixes ? 'APPLIED' : 'DRY_RUN (add ?apply=true to apply)',
+      totalStudents: students.length,
+      fixesNeeded: fixes.length,
+      fixes
+    });
+
+    if (applyFixes && fixes.length > 0) {
+      logAction({
+        schoolId: req.schoolId,
+        userId: req.user.id,
+        action: 'MIGRATE',
+        resource: 'STUDENT_NAMES',
+        details: { fixCount: fixes.length },
+        ipAddress: req.ip
+      });
+    }
+  } catch (error) {
+    console.error('Name fix error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==========================================
 // GENERAL ROUTES
 // ==========================================
 

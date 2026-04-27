@@ -36,6 +36,9 @@ const StudentManagement = () => {
   const [bulkUploadResults, setBulkUploadResults] = useState(null);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [nameFixResults, setNameFixResults] = useState(null);
+  const [showNameFixModal, setShowNameFixModal] = useState(false);
+  const [isFixingNames, setIsFixingNames] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -502,6 +505,31 @@ Note: Password must be changed on first login.
     setExpandedClasses(newExpanded);
   };
 
+  const handleFixNames = async (apply = false) => {
+    try {
+      setIsFixingNames(true);
+      const url = apply ? '/api/students/fix-names?apply=true' : '/api/students/fix-names';
+      const response = await api.post(url);
+      const data = await response.json();
+
+      if (response.ok) {
+        setNameFixResults(data);
+        setShowNameFixModal(true);
+        if (apply && data.fixesNeeded > 0) {
+          toast.success(`${data.fixesNeeded} student names recovered!`);
+          fetchStudents(); // Refresh the list
+        }
+      } else {
+        toast.error(data.error || 'Failed to scan names');
+      }
+    } catch (error) {
+      console.error('Name fix error:', error);
+      toast.error('Failed to scan student names');
+    } finally {
+      setIsFixingNames(false);
+    }
+  };
+
   // Helper: build the best available display name for a student
   const getStudentDisplayName = (student) => {
     const parts = [
@@ -887,6 +915,17 @@ Note: Password must be changed on first login.
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
             </svg>
             Credential Repo
+          </button>
+          <button
+            onClick={() => handleFixNames(false)}
+            disabled={isFixingNames}
+            className={`flex-1 sm:flex-none px-3 py-2 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm transition-all ${isFixingNames ? 'bg-purple-600 text-white cursor-wait' : 'bg-purple-50 border border-purple-100 text-purple-600 hover:bg-purple-100'}`}
+            title="Scan and recover missing first names and surnames"
+          >
+            <svg className={`w-4 h-4 font-bold ${isFixingNames ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {isFixingNames ? 'Scanning...' : 'Fix Names'}
           </button>
           <div className="relative group w-full sm:w-auto">
             <button className={`w-full sm:w-auto px-3 py-2 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm transition-all ${isUploading ? 'bg-emerald-600 text-white cursor-wait' : 'bg-white border border-gray-200 text-emerald-600 hover:bg-emerald-50'}`} disabled={isUploading}>
@@ -1699,6 +1738,91 @@ Note: Password must be changed on first login.
           }
         }
       `}</style>
+
+      {/* Name Fix Results Modal */}
+      {showNameFixModal && nameFixResults && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-[100] flex items-center justify-center p-4">
+          <div className="relative bg-white shadow-2xl rounded-2xl w-full max-w-2xl p-6 max-h-[85vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b">
+              <div>
+                <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Student Name Recovery</h3>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
+                  Mode: <span className={nameFixResults.mode === 'APPLIED' ? 'text-green-600' : 'text-amber-600'}>{nameFixResults.mode === 'APPLIED' ? '✅ Applied' : '👁 Preview'}</span>
+                  {' • '}{nameFixResults.totalStudents} students scanned • {nameFixResults.fixesNeeded} need fixes
+                </p>
+              </div>
+              <button onClick={() => setShowNameFixModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-all">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {nameFixResults.fixesNeeded === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h4 className="text-lg font-black text-gray-900 uppercase tracking-tight">All Names Are Complete</h4>
+                <p className="text-sm text-gray-500 mt-1">Every student has both a first name and surname.</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto mb-4">
+                  <table className="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-[10px] font-black text-gray-400 uppercase">Admission</th>
+                        <th className="px-3 py-2 text-left text-[10px] font-black text-gray-400 uppercase">Before</th>
+                        <th className="px-3 py-2 text-left text-[10px] font-black text-gray-400 uppercase">After</th>
+                        <th className="px-3 py-2 text-left text-[10px] font-black text-gray-400 uppercase">Source</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {nameFixResults.fixes.map((fix, i) => (
+                        <tr key={i} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 font-mono text-xs text-gray-600">{fix.admissionNumber}</td>
+                          <td className="px-3 py-2">
+                            <div className="text-xs text-red-500">
+                              <div>{fix.before.firstName} <span className="text-gray-300">|</span> {fix.before.lastName}</div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="text-xs text-green-700 font-bold">
+                              <div>{fix.after.firstName} <span className="text-gray-300">|</span> {fix.after.lastName}</div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-[10px] text-gray-400 max-w-[200px] truncate" title={fix.source}>{fix.source}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex gap-3 pt-3 border-t">
+                  <button
+                    onClick={() => setShowNameFixModal(false)}
+                    className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-500 font-black uppercase text-[10px] tracking-widest hover:bg-gray-50"
+                  >
+                    Close
+                  </button>
+                  {nameFixResults.mode !== 'APPLIED' && (
+                    <button
+                      onClick={() => { setShowNameFixModal(false); handleFixNames(true); }}
+                      disabled={isFixingNames}
+                      className="flex-1 py-3 rounded-xl bg-purple-600 text-white font-black uppercase text-[10px] tracking-widest hover:bg-purple-700 shadow-lg shadow-purple-200 disabled:opacity-50"
+                    >
+                      {isFixingNames ? 'Applying...' : `Apply ${nameFixResults.fixesNeeded} Fixes`}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div >
   );
 };
