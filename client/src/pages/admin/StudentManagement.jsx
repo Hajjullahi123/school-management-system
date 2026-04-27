@@ -172,6 +172,13 @@ const StudentManagement = () => {
         recoveredMiddleName = legacyNameParts.slice(1, -1).join(' ');
         recoveredLastName = legacyNameParts[legacyNameParts.length - 1];
       }
+    } else if (hasUserNames && !student.middleName) {
+      // If legacy import stuck the middle name into the user's first name, extract it so it can be cleanly overwritten
+      const firstParts = recoveredFirstName.trim().split(/\s+/);
+      if (firstParts.length > 1) {
+        recoveredFirstName = firstParts[0];
+        recoveredMiddleName = firstParts.slice(1).join(' ');
+      }
     }
 
     setFormData({

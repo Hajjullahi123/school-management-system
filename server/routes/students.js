@@ -1070,8 +1070,8 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
         ...(isExamRestricted !== undefined && { isExamRestricted: isExamRestricted === 'true' || isExamRestricted === true }),
         ...(examRestrictionReason !== undefined && { examRestrictionReason }),
         // Update full name if any component changed
-        ...((firstName || lastName || middleName !== undefined) && {
-          name: `${firstName || existingStudent.user?.firstName || ''} ${middleName !== undefined ? middleName : (existingStudent.middleName || '')} ${lastName || existingStudent.user?.lastName || ''}`.replace(/\s+/g, ' ').trim()
+        ...((firstName !== undefined || lastName !== undefined || middleName !== undefined) && {
+          name: `${firstName !== undefined ? firstName : (existingStudent.user?.firstName || existingStudent.name?.split(' ')[0] || '')} ${middleName !== undefined ? middleName : (existingStudent.middleName || '')} ${lastName !== undefined ? lastName : (existingStudent.user?.lastName || existingStudent.name?.split(' ').pop() || '')}`.replace(/\s+/g, ' ').trim()
         }),
         ...(clubs && { clubs })
       },
