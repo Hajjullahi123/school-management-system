@@ -1029,7 +1029,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
       return res.status(400).json({ error: 'Invalid genotype' });
     }
 
-    if (firstName || lastName || email || photoUrl) {
+    if ((firstName || lastName || email || photoUrl) && existingStudent.userId) {
       await prisma.user.update({
         where: {
           id: existingStudent.userId,
@@ -1071,7 +1071,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
         ...(examRestrictionReason !== undefined && { examRestrictionReason }),
         // Update full name if any component changed
         ...((firstName || lastName || middleName !== undefined) && {
-          name: `${firstName || existingStudent.user.firstName} ${middleName !== undefined ? middleName : (existingStudent.middleName || '')} ${lastName || existingStudent.user.lastName}`.replace(/\s+/g, ' ').trim()
+          name: `${firstName || existingStudent.user?.firstName || ''} ${middleName !== undefined ? middleName : (existingStudent.middleName || '')} ${lastName || existingStudent.user?.lastName || ''}`.replace(/\s+/g, ' ').trim()
         }),
         ...(clubs && { clubs })
       },
