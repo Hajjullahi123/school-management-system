@@ -348,7 +348,7 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'ex
     const enhancedParents = await prisma.parent.findMany({
       where: { schoolId: req.schoolId },
       include: {
-        user: { select: { firstName: true, lastName: true, email: true, username: true } },
+        User: { select: { firstName: true, lastName: true, email: true, username: true } },
         parentChildren: {
           where: { schoolId: req.schoolId },
           include: {
@@ -361,6 +361,8 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'ex
 
     const mappedParents = enhancedParents.map(p => ({
       ...p,
+      user: p.User,
+      User: undefined,
       students: p.parentChildren || [],
       parentChildren: undefined
     }));
