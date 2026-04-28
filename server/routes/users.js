@@ -45,14 +45,15 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'ex
     });
 
     const mappedUsers = users.map(u => {
-      if (u.Parent) {
+      // Robust mapping for parents to ensure consistent property names (parent vs Parent)
+      if (u.Parent || u.role === 'parent') {
         return {
           ...u,
-          parent: {
+          parent: u.Parent ? {
             ...u.Parent,
-            students: u.Parent.parentChildren,
+            students: u.Parent.parentChildren || [],
             parentChildren: undefined
-          },
+          } : null,
           Parent: undefined
         };
       }

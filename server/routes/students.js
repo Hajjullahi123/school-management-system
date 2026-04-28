@@ -1251,13 +1251,6 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'principal',
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Parent';
 
     // 2. Check if a user with this phone number already exists in this school
-    let user = await prisma.user.findFirst({
-      where: {
-        username: phone,
-        schoolId: req.schoolId
-      }
-    });
-
     let isNew = false;
     let user = null;
     let parent = null;

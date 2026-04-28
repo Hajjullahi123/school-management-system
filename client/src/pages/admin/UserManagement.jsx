@@ -346,7 +346,7 @@ const UserManagement = () => {
           ['admin', 'examination_officer', 'attendance_admin', 'principal', 'teacher', 'accountant', 'parent', 'student'].map(role => {
             const usersInRole = filteredUsers.filter(u => {
               if (role === 'parent') {
-                return u.role === 'parent' || (u.parent && Object.keys(u.parent).length > 0);
+                return u.role === 'parent' || u.parent;
               }
               return u.role === role;
             });

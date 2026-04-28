@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../api';
+import { api, API_BASE_URL } from '../../api';
 
 const ParentManagement = () => {
   const [parents, setParents] = useState([]);
@@ -16,8 +16,11 @@ const ParentManagement = () => {
 
   // Data
   const [createData, setCreateData] = useState({
-    firstName: '', lastName: '', email: '', phone: '', address: ''
+    firstName: '', lastName: '', email: '', phone: '', address: '', studentIds: []
   });
+  const [createSearchTerm, setCreateSearchTerm] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
 
   const [editData, setEditData] = useState({
     id: '', firstName: '', lastName: '', email: '', phone: '', address: ''
@@ -68,20 +71,69 @@ const ParentManagement = () => {
       const res = await api.post('/api/parents/register', createData);
       if (res.ok) {
         const data = await res.json();
+        // If students were selected, link them now
+        if (createData.studentIds && createData.studentIds.length > 0) {
+          for (const studentId of createData.studentIds) {
+            try {
+              await api.post('/api/parents/link-student', {
+                parentId: data.parentId,
+                studentId
+              });
+            } catch (linkErr) {
+              console.error('Failed to link student:', studentId, linkErr);
+            }
+          }
+        }
         setParentCredentials({
           name: `${createData.firstName} ${createData.lastName}`,
           username: data.credentials.username,
-          password: data.credentials.password
+          password: data.credentials.password,
+          linkedStudents: createData.studentIds.length
         });
         setShowCreateModal(false);
         setShowCredentialsModal(true);
-        setCreateData({ firstName: '', lastName: '', email: '', phone: '', address: '' });
+        setCreateData({ firstName: '', lastName: '', email: '', phone: '', address: '', studentIds: [] });
+        setCreateSearchTerm('');
         fetchParents();
+        fetchStudents();
       } else {
         const err = await res.json();
         alert(err.error || 'Failed to register');
       }
     } catch (e) { alert('Error creating parent'); }
+  };
+
+  // Sync all parents by matching parentGuardianPhone on student records
+  const handleSyncAll = async () => {
+    if (!confirm('This will automatically link students to parents based on matching phone numbers in student records. Continue?')) return;
+    setIsSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await api.post('/api/parents/sync-by-phone');
+      if (res.ok) {
+        const data = await res.json();
+        setSyncResult(data);
+        fetchParents();
+        fetchStudents();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Sync failed');
+      }
+    } catch (e) {
+      alert('Sync error: ' + e.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const toggleStudentInCreate = (studentId) => {
+    const id = studentId.toString();
+    setCreateData(prev => ({
+      ...prev,
+      studentIds: prev.studentIds.includes(id)
+        ? prev.studentIds.filter(s => s !== id)
+        : [...prev.studentIds, id]
+    }));
   };
 
   const handleEdit = async (e) => {
@@ -377,6 +429,76 @@ const ParentManagement = () => {
               </div>
               <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
                 <p className="text-xs text-blue-700">Default password: <strong>parent123</strong> (Parent will be required to change on first login)</p>
+              </div>
+
+              {/* NEW: Student Selection for Linkage */}
+              <div className="space-y-3 pt-4 border-t border-gray-100">
+                <label className="block text-sm font-bold text-gray-700">Link Wards (Optional)</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search students by name or admission #..."
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    value={createSearchTerm}
+                    onChange={(e) => setCreateSearchTerm(e.target.value)}
+                  />
+                  <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                
+                <div className="max-h-40 overflow-y-auto border border-gray-100 rounded-xl divide-y divide-gray-50 bg-gray-50/30">
+                  {students
+                    .filter(s => {
+                      const search = createSearchTerm.toLowerCase();
+                      if (!search) return false; // Don't show all by default to save space
+                      return `${s.user?.firstName} ${s.user?.lastName}`.toLowerCase().includes(search) || 
+                             s.admissionNumber?.toLowerCase().includes(search);
+                    })
+                    .map(s => {
+                      const isSelected = createData.studentIds.includes(s.id.toString());
+                      return (
+                        <div 
+                          key={s.id} 
+                          onClick={() => toggleStudentInCreate(s.id)}
+                          className={`p-3 flex justify-between items-center cursor-pointer transition-colors ${isSelected ? 'bg-primary/5' : 'hover:bg-gray-50'}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold overflow-hidden">
+                              {s.user?.photoUrl ? <img src={s.user.photoUrl.startsWith('data') ? s.user.photoUrl : `${API_BASE_URL}${s.user.photoUrl}`} alt="" className="w-full h-full object-cover" /> : s.user?.firstName?.[0]}
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-gray-800">{s.user?.firstName} {s.user?.lastName}</div>
+                              <div className="text-[10px] text-gray-500">{s.admissionNumber} • {s.classModel?.name || 'No Class'}</div>
+                            </div>
+                          </div>
+                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-primary border-primary text-white' : 'border-gray-300'}`}>
+                            {isSelected && <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {createSearchTerm && students.filter(s => {
+                    const search = createSearchTerm.toLowerCase();
+                    return `${s.user?.firstName} ${s.user?.lastName}`.toLowerCase().includes(search) || s.admissionNumber?.toLowerCase().includes(search);
+                  }).length === 0 && (
+                    <div className="p-4 text-center text-xs text-gray-400 italic">No matching students found</div>
+                  )}
+                  {!createSearchTerm && createData.studentIds.length === 0 && (
+                    <div className="p-4 text-center text-xs text-gray-400">Search for students to link them to this parent</div>
+                  )}
+                  {!createSearchTerm && createData.studentIds.length > 0 && (
+                     <div className="p-2 bg-primary/5">
+                        <p className="text-[10px] font-bold text-primary uppercase tracking-widest px-2 mb-2">Selected Wards:</p>
+                        {students.filter(s => createData.studentIds.includes(s.id.toString())).map(s => (
+                           <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-white mb-1 shadow-sm border border-primary/10">
+                              <span className="text-[10px] font-bold text-gray-700">{s.user?.firstName} {s.user?.lastName}</span>
+                              <button type="button" onClick={() => toggleStudentInCreate(s.id)} className="text-red-500 hover:text-red-700"><svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg></button>
+                           </div>
+                        ))}
+                     </div>
+                  )}
+                </div>
               </div>
               <div className="flex justify-end gap-2 mt-6">
                 <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium">Cancel</button>

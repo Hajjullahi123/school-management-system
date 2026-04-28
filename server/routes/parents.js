@@ -694,4 +694,50 @@ router.get('/recent-alerts', authenticate, authorize(['parent', 'admin', 'princi
   }
 });
 
+// 10. Sync all students to parents by phone matching (Admin tool)
+router.post('/sync-by-phone', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const parents = await prisma.parent.findMany({
+      where: { schoolId: req.schoolId }
+    });
+
+    let totalLinked = 0;
+    const results = [];
+
+    for (const parent of parents) {
+      if (!parent.phone) continue;
+      const sanitizedPhone = parent.phone.replace(/\s+/g, '');
+      
+      const unlinkedStudents = await prisma.student.findMany({
+        where: {
+          schoolId: req.schoolId,
+          parentId: null,
+          OR: [
+            { parentGuardianPhone: { contains: sanitizedPhone } },
+            { parentGuardianPhone: { contains: sanitizedPhone.startsWith('0') ? sanitizedPhone.substring(1) : sanitizedPhone } }
+          ]
+        }
+      });
+
+      if (unlinkedStudents.length > 0) {
+        await prisma.student.updateMany({
+          where: { id: { in: unlinkedStudents.map(s => s.id) } },
+          data: { parentId: parent.id }
+        });
+        totalLinked += unlinkedStudents.length;
+        results.push({ parentId: parent.id, phone: parent.phone, linked: unlinkedStudents.length });
+      }
+    }
+
+    res.json({ 
+      message: `Sync completed. ${totalLinked} students linked.`,
+      totalLinked,
+      details: results
+    });
+  } catch (error) {
+    console.error('Sync error:', error);
+    res.status(500).json({ error: 'Failed to sync parents' });
+  }
+});
+
 module.exports = router;

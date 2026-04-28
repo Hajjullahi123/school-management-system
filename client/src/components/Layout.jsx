@@ -8,9 +8,11 @@ import toast from 'react-hot-toast';
 import { useSchoolSettings } from '../hooks/useSchoolSettings';
 import DemoTour from './DemoTour';
 import CollapsibleMenu from './CollapsibleMenu';
+import { usePWA } from '../context/PWAContext';
 
 const Layout = () => {
   const { user, logout } = useAuth();
+  const { isInstallable, installApp, isInstalled } = usePWA();
   const isDemo = user?.username === 'demo_admin';
   const navigate = useNavigate();
   const location = useLocation();
@@ -1419,6 +1421,19 @@ const Layout = () => {
         </nav>
 
         <div className="p-4 border-t border-white/20 space-y-2 pb-2 sm:pb-4">
+          {/* PWA Install Button */}
+          {isInstallable && !isInstalled && (
+            <button
+              onClick={installApp}
+              className="w-full flex items-center justify-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl text-base font-black uppercase tracking-widest transition-all shadow-lg animate-bounce-slow mb-4"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              <span>Install App</span>
+            </button>
+          )}
+
           {/* Change Password - Available to ALL users */}
           <Link
             to="/dashboard/change-password"
