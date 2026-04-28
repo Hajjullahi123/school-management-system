@@ -106,12 +106,12 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
             orderBy: { date: 'desc' },
             take: 10
           },
-          miscFeePayments: {
+          MiscellaneousFeePayment: {
             where: { schoolId: req.schoolId },
             include: { fee: true },
             orderBy: { paymentDate: 'desc' }
           },
-          feeRecords: {
+          FeeRecord: {
             where: { schoolId: req.schoolId },
             include: {
               academicSession: true,
@@ -133,8 +133,17 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
       include: includeQuery
     });
 
-    console.log('Parent found:', parentWithWards.id, 'Students:', parentWithWards.parentChildren.length);
-    res.json(parentWithWards.parentChildren);
+    // Map Prisma relation names to the camelCase versions the frontend expects
+    const mappedChildren = (parentWithWards.parentChildren || []).map(child => ({
+      ...child,
+      miscFeePayments: child.MiscellaneousFeePayment || [],
+      feeRecords: child.FeeRecord || [],
+      MiscellaneousFeePayment: undefined,
+      FeeRecord: undefined
+    }));
+
+    console.log('Parent found:', parentWithWards.id, 'Students:', mappedChildren.length);
+    res.json(mappedChildren);
   } catch (error) {
     console.error('Get wards error:', error);
     res.status(500).json({ error: 'Failed to fetch wards' });
