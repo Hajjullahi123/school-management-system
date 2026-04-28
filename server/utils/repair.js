@@ -13,8 +13,8 @@ async function repairDatabase() {
     });
     
     for (const student of students) {
-      const parent = await prisma.user.findUnique({ where: { id: student.parentId } });
-      if (!parent) {
+      const parentProfile = await prisma.parent.findUnique({ where: { id: student.parentId } });
+      if (!parentProfile) {
         console.log(`[Repair] Orphaned parentId ${student.parentId} found for Student ${student.id}. Healing...`);
         await prisma.student.update({
           where: { id: student.id },

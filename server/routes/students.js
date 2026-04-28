@@ -1259,67 +1259,94 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'principal',
     });
 
     let isNew = false;
+    let user = null;
     let parent = null;
-
-    if (user) {
-      // User exists, find associated parent
-      parent = await prisma.parent.findUnique({
-        where: { userId: user.id }
-      });
-
-      if (!parent) {
-        // User exists but has no parent profile (e.g. they were only a staff member)
-        parent = await prisma.parent.create({
-          data: {
-            schoolId: req.schoolId,
-            userId: user.id,
-            phone: phone,
-            address: student.address
-          }
-        });
-        isNew = true; // Still "new" in terms of parent access
-      }
-    } else {
-      // 3. Create new User + Parent
-      isNew = true;
-      const passwordHash = await bcrypt.hash('123456', 10);
-
+    try {
       const result = await prisma.$transaction(async (tx) => {
-        const newUser = await tx.user.create({
-          data: {
-            schoolId: req.schoolId,
-            username: phone,
-            passwordHash,
-            firstName,
-            lastName,
-            role: 'parent',
-            isActive: true,
-            mustChangePassword: false,
-            email: student.parentEmail || `${phone}@parent.school`
+        // 1. Check if user exists by phone/username
+        const existingUser = await tx.user.findFirst({
+          where: {
+            schoolId: student.schoolId, // Use student's schoolId
+            username: phone
           }
         });
 
-        const newParent = await tx.parent.create({
-          data: {
-            schoolId: req.schoolId,
-            userId: newUser.id,
+        // 2. Create/Update User
+        const userData = {
+          schoolId: student.schoolId,
+          firstName,
+          lastName,
+          email: student.parentEmail || `${phone}@parent.school`,
+          username: phone,
+          passwordHash: await bcrypt.hash('123456', 10),
+          role: 'parent',
+          isActive: true
+        };
+
+        const finalUser = await tx.user.upsert({
+          where: {
+            schoolId_username: {
+              schoolId: student.schoolId,
+              username: phone
+            }
+          },
+          update: { role: 'parent' }, 
+          create: userData
+        });
+
+        if (!existingUser) isNew = true;
+
+        // 3. Create/Update Parent Profile
+        const finalParent = await tx.parent.upsert({
+          where: { userId: finalUser.id },
+          update: { phone: phone, address: student.address || '', schoolId: student.schoolId },
+          create: {
+            schoolId: student.schoolId,
+            userId: finalUser.id,
             phone: phone,
-            address: student.address
+            address: student.address || ''
           }
         });
 
-        return { user: newUser, parent: newParent };
+        // 4. Link student
+        await tx.student.update({
+          where: { id: studentId },
+          data: { parentId: finalParent.id }
+        });
+
+        // 5. AUTO-FIX: Create student user account if missing
+        if (!student.userId) {
+          console.log(`[Auto-Fix] Creating user account for student ${student.id} during parent creation`);
+          const studentUsername = student.admissionNumber || `std${student.id}`;
+          const studentPasswordHash = await bcrypt.hash('123456', 10);
+          
+          const studentUser = await tx.user.create({
+            data: {
+              schoolId: student.schoolId,
+              username: studentUsername,
+              passwordHash: studentPasswordHash,
+              firstName: student.user?.firstName || student.name.split(' ')[0],
+              lastName: student.user?.lastName || student.name.split(' ').slice(1).join(' ') || 'Student',
+              role: 'student',
+              isActive: true
+            }
+          });
+
+          await tx.student.update({
+            where: { id: studentId },
+            data: { userId: studentUser.id }
+          });
+        }
+
+        return { user: finalUser, parent: finalParent };
       });
 
       user = result.user;
       parent = result.parent;
+    } catch (error) {
+      console.error('Failed to create/link parent in transaction:', error);
+      return res.status(500).json({ error: 'System error while linking parent. Please check if this phone number is already used in another school.' });
     }
-
-    // 4. Link student to parent
-    await prisma.student.update({
-      where: { id: studentId },
-      data: { parentId: parent.id }
-    });
 
     // 5. Log Action
     logAction({

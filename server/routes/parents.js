@@ -10,6 +10,68 @@ const { generateAutoEmail } = require('../utils/usernameGenerator');
 router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']), async (req, res) => {
   try {
 
+    // 0. Emergency Sync: Automatically link students whose parentGuardianPhone matches this parent's phone
+    // This helps if the parent account was created but students weren't linked correctly
+    // NEW: Search across all schools for this user's parent profile to handle mismatches
+    let currentParent = await prisma.parent.findUnique({
+      where: { userId: req.user.id }
+    });
+
+    // If no parent profile at all, return error
+    if (!currentParent) {
+       console.log('No parent profile found for user:', req.user.id);
+       return res.status(404).json({ error: 'Parent profile not found' });
+    }
+
+    // If the parent profile's schoolId doesn't match the current context, 
+    // it might be a multi-school parent or a creation error.
+    // We update it to the current schoolId if it currently has no students linked in the old school.
+    if (currentParent.schoolId !== req.schoolId) {
+      const oldSchoolStudents = await prisma.student.count({ where: { parentId: currentParent.id, schoolId: currentParent.schoolId } });
+      if (oldSchoolStudents === 0) {
+        console.log(`[Sync] Updating parent ${currentParent.id} schoolId from ${currentParent.schoolId} to ${req.schoolId}`);
+        currentParent = await prisma.parent.update({
+          where: { id: currentParent.id },
+          data: { schoolId: req.schoolId }
+        });
+      }
+    }
+
+    if (currentParent.phone) {
+      const sanitizedPhone = currentParent.phone.replace(/\s+/g, '');
+      
+      // Find students in THIS school with matching phone but NO parentId or WRONG parentId.
+      // IMPORTANT: In SQLite, `NOT (field = value)` does NOT match NULLs, so we explicitly
+      // include { parentId: null } to catch unlinked students.
+      const unlinkedStudents = await prisma.student.findMany({
+        where: {
+          schoolId: req.schoolId,
+          AND: [
+            {
+              OR: [
+                { parentId: null },
+                { parentId: { not: currentParent.id } }
+              ]
+            },
+            {
+              OR: [
+                { parentGuardianPhone: { contains: sanitizedPhone } },
+                { parentGuardianPhone: { contains: sanitizedPhone.startsWith('0') ? sanitizedPhone.substring(1) : sanitizedPhone } }
+              ]
+            }
+          ]
+        }
+      });
+
+      if (unlinkedStudents.length > 0) {
+        console.log(`[Sync] Found ${unlinkedStudents.length} unlinked students for parent ${currentParent.id}. Linking...`);
+        await prisma.student.updateMany({
+          where: { id: { in: unlinkedStudents.map(s => s.id) } },
+          data: { parentId: currentParent.id }
+        });
+      }
+    }
+
     const includeQuery = {
       parentChildren: {
         include: {
@@ -65,36 +127,14 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
       }
     };
 
-    // Find parent profile
-    let parent = await prisma.parent.findFirst({
-      where: {
-        userId: req.user.id,
-        schoolId: req.schoolId
-      },
+    // Refresh the object to include wards after potential sync
+    const parentWithWards = await prisma.parent.findUnique({
+      where: { id: currentParent.id },
       include: includeQuery
     });
 
-    // If no parent profile but user is admin/principal, fetch a sample parent for preview
-    if (!parent && ['admin', 'principal'].includes(req.user.role)) {
-      parent = await prisma.parent.findFirst({
-        where: {
-          schoolId: req.schoolId,
-          parentChildren: { some: {} } // Parent must have at least one student
-        },
-        include: includeQuery
-      });
-      if (parent) {
-        console.log('Previewing parent dashboard with sample parent:', parent.id);
-      }
-    }
-
-    if (!parent) {
-      console.log('No parent profile found for user:', req.user.id);
-      return res.status(404).json({ error: 'Parent profile not found' });
-    }
-
-    console.log('Parent found:', parent.id, 'Students:', parent.parentChildren.length);
-    res.json(parent.parentChildren);
+    console.log('Parent found:', parentWithWards.id, 'Students:', parentWithWards.parentChildren.length);
+    res.json(parentWithWards.parentChildren);
   } catch (error) {
     console.error('Get wards error:', error);
     res.status(500).json({ error: 'Failed to fetch wards' });

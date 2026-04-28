@@ -567,18 +567,21 @@ model StaffAttendance {
 }
 
 model Notice {
-  id        Int       @id @default(autoincrement())
-  schoolId  Int
-  title     String
-  content   String
-  audience  String    @default("all")
-  isActive  Boolean   @default(true)
-  authorId  Int
-  expiresAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  author    User      @relation("NoticeAuthor", fields: [authorId], references: [id])
-  school    School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  id            Int       @id @default(autoincrement())
+  schoolId      Int
+  title         String
+  content       String
+  audience      String    @default("all")
+  category      String    @default("general") // general, urgent, event, holiday, exam
+  isPinned      Boolean   @default(false)
+  attachmentUrl String?
+  isActive      Boolean   @default(true)
+  authorId      Int
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  author        User      @relation("NoticeAuthor", fields: [authorId], references: [id])
+  school        School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 model ExamCard {
