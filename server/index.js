@@ -119,19 +119,55 @@ app.get('/privacy-policy', (req, res) => {
   `);
 });
 
-// DEBUG ROUTE - Remove before delivery
-app.get('/api/debug/inspect-users', async (req, res) => {
+// DEBUG ROUTE - Parent diagnostic
+app.get('/api/debug/inspect-parents', async (req, res) => {
   try {
     const prisma = require('./db');
-    const users = await prisma.user.findMany({
-      select: { id: true, username: true, role: true, schoolId: true }
-    });
     const schools = await prisma.school.findMany({
       select: { id: true, slug: true, name: true }
     });
-    res.json({ users, schools });
+    
+    const diagnostics = {};
+    for (const school of schools) {
+      const parentCount = await prisma.parent.count({ where: { schoolId: school.id } });
+      const parentUsers = await prisma.user.count({ where: { schoolId: school.id, role: 'parent' } });
+      const studentsWithParent = await prisma.student.count({ where: { schoolId: school.id, parentId: { not: null } } });
+      const totalStudents = await prisma.student.count({ where: { schoolId: school.id } });
+      
+      diagnostics[`${school.name} (ID:${school.id})`] = {
+        slug: school.slug,
+        parentRecords: parentCount,
+        usersWithParentRole: parentUsers,
+        studentsLinked: studentsWithParent,
+        totalStudents
+      };
+    }
+    
+    // Check orphaned parent users
+    const orphanedParentUsers = await prisma.user.findMany({
+      where: { role: 'parent' },
+      select: { 
+        id: true, username: true, firstName: true, lastName: true, schoolId: true,
+        Parent: { select: { id: true, phone: true, schoolId: true, parentChildren: { select: { id: true, admissionNumber: true } } } }
+      }
+    });
+    
+    const orphaned = orphanedParentUsers.filter(u => !u.Parent);
+    const withProfile = orphanedParentUsers.filter(u => u.Parent);
+    
+    res.json({ 
+      schools: diagnostics,
+      parentUsersTotal: orphanedParentUsers.length,
+      orphanedParentUsers: orphaned.map(u => ({ id: u.id, username: u.username, name: `${u.firstName} ${u.lastName}`, schoolId: u.schoolId })),
+      parentsWithProfile: withProfile.map(u => ({ 
+        userId: u.id, username: u.username, name: `${u.firstName} ${u.lastName}`,
+        parentId: u.Parent.id, parentSchoolId: u.Parent.schoolId, phone: u.Parent.phone,
+        childrenCount: u.Parent.parentChildren.length,
+        children: u.Parent.parentChildren.map(c => c.admissionNumber)
+      }))
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message, stack: err.stack });
   }
 });
 
