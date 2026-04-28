@@ -116,7 +116,7 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
             include: {
               academicSession: true,
               term: true,
-              payments: {
+              FeePayment: {
                 where: { schoolId: req.schoolId },
                 orderBy: { paymentDate: 'desc' }
               }
@@ -137,7 +137,11 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
     const mappedChildren = (parentWithWards.parentChildren || []).map(child => ({
       ...child,
       miscFeePayments: child.MiscellaneousFeePayment || [],
-      feeRecords: child.FeeRecord || [],
+      feeRecords: (child.FeeRecord || []).map(fr => ({
+        ...fr,
+        payments: fr.FeePayment || [],
+        FeePayment: undefined
+      })),
       MiscellaneousFeePayment: undefined,
       FeeRecord: undefined
     }));
