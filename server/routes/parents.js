@@ -108,14 +108,14 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
           },
           MiscellaneousFeePayment: {
             where: { schoolId: req.schoolId },
-            include: { fee: true },
+            include: { MiscellaneousFee: true },
             orderBy: { paymentDate: 'desc' }
           },
           FeeRecord: {
             where: { schoolId: req.schoolId },
             include: {
-              academicSession: true,
-              term: true,
+              AcademicSession: true,
+              Term: true,
               FeePayment: {
                 where: { schoolId: req.schoolId },
                 orderBy: { paymentDate: 'desc' }
@@ -136,10 +136,18 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
     // Map Prisma relation names to the camelCase versions the frontend expects
     const mappedChildren = (parentWithWards.parentChildren || []).map(child => ({
       ...child,
-      miscFeePayments: child.MiscellaneousFeePayment || [],
+      miscFeePayments: (child.MiscellaneousFeePayment || []).map(mfp => ({
+        ...mfp,
+        fee: mfp.MiscellaneousFee,
+        MiscellaneousFee: undefined
+      })),
       feeRecords: (child.FeeRecord || []).map(fr => ({
         ...fr,
+        academicSession: fr.AcademicSession,
+        term: fr.Term,
         payments: fr.FeePayment || [],
+        AcademicSession: undefined,
+        Term: undefined,
         FeePayment: undefined
       })),
       MiscellaneousFeePayment: undefined,
