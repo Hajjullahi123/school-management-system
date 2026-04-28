@@ -13,7 +13,7 @@ const PWAInstallButton = ({ className = "" }) => {
   return (
     <button
       onClick={installApp}
-      className={`group relative flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-primary to-accent hover:from-accent hover:to-primary text-white rounded-2xl font-black shadow-xl transform transition-all hover:scale-[1.05] active:scale-95 overflow-hidden md:hidden ${className}`}
+      className={`group relative flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-primary to-accent hover:from-accent hover:to-primary text-white rounded-2xl font-black shadow-xl transform transition-all hover:scale-[1.05] active:scale-95 overflow-hidden ${className}`}
     >
       {/* Glossy overlay effect */}
       <div className="absolute inset-x-0 h-[200%] top-[-50%] bg-white/20 -skew-y-12 transform -translate-y-[120%] group-hover:translate-y-[120%] transition-transform duration-700 pointer-events-none"></div>
