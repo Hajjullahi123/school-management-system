@@ -377,11 +377,15 @@ router.get('/me', authenticate, async (req, res) => {
         }
       };
     } else if (role === 'parent') {
-      include.parentChildren = { 
-        select: { 
-          id: true, name: true, admissionNumber: true, photoUrl: true,
-          classModel: { select: { name: true } } 
-        } 
+      include.Parent = {
+        include: {
+          parentChildren: {
+            include: {
+              user: { select: { firstName: true, lastName: true, photoUrl: true } },
+              classModel: { select: { id: true, name: true, arm: true } }
+            }
+          }
+        }
       };
     }
 
@@ -453,6 +457,17 @@ router.get('/me', authenticate, async (req, res) => {
       })()
     ]);
 
+    // Build parent profile for response if applicable
+    const parentProfile = user.Parent ? {
+      id: user.Parent.id,
+      phone: user.Parent.phone,
+      address: user.Parent.address,
+      students: (user.Parent.parentChildren || []).map(s => ({
+        ...s,
+        displayName: s.user ? `${s.user.firstName || ''} ${s.user.lastName || ''}`.trim() : (s.name || s.admissionNumber)
+      }))
+    } : null;
+
     res.json({
       id: user.id,
       username: user.username,
@@ -469,6 +484,7 @@ router.get('/me', authenticate, async (req, res) => {
       mustChangePassword: user.mustChangePassword,
       teacher: user.teacher,
       student: user.student,
+      parent: parentProfile,
       classesAsTeacher: user.classesAsTeacher,
       photoUrl: user.photoUrl,
       unreadMessageCount: unreadCount,
