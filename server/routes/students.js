@@ -804,7 +804,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
     // Sync username with admission number
     const username = uniqueAdmissionNumber.toLowerCase();
 
-    const defaultPassword = password || '123456';
+    const defaultPassword = password || 'parent123';
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
     const generatedEmail = email || generateAutoEmail(firstName, lastName, school?.name);
@@ -1271,7 +1271,7 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'principal',
           lastName,
           email: student.parentEmail || `${phone}@parent.school`,
           username: phone,
-          passwordHash: await bcrypt.hash('123456', 10),
+          passwordHash: await bcrypt.hash('parent123', 10),
           role: 'parent',
           isActive: true
         };
@@ -1311,7 +1311,7 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'principal',
         if (!student.userId) {
           console.log(`[Auto-Fix] Creating user account for student ${student.id} during parent creation`);
           const studentUsername = student.admissionNumber || `std${student.id}`;
-          const studentPasswordHash = await bcrypt.hash('123456', 10);
+          const studentPasswordHash = await bcrypt.hash('parent123', 10);
           
           const studentUser = await tx.user.create({
             data: {
@@ -1331,7 +1331,14 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'principal',
           });
         }
 
-        return { user: finalUser, parent: finalParent };
+        return { 
+          user: finalUser, 
+          parent: finalParent,
+          credentials: {
+            username: phone,
+            password: 'parent123'
+          }
+        };
       });
 
       user = result.user;

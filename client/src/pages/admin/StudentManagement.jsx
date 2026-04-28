@@ -273,18 +273,20 @@ const StudentManagement = () => {
       const data = await response.json();
 
       if (response.ok) {
+        toast.success(data.isNewAccount ? 'Parent account created successfully!' : 'Student linked to existing parent!');
         setNewParentCredentials({
           name: student.parentGuardianName,
           phone: student.parentGuardianPhone,
           username: data.credentials.username,
-          password: data.credentials.password,
+          password: data.credentials.password || 'parent123',
           isNewAccount: data.isNewAccount,
-          studentName: student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || 'Student')
+          studentName: getStudentDisplayName(student)
         });
         setShowParentCredentialsModal(true);
         fetchStudents(); // Refresh list to update parentId status
+        fetchParents();  // Refresh global parents list
       } else {
-        alert(`Failed to create parent account: ${data.error}`);
+        toast.error(`Failed: ${data.error}`);
       }
     } catch (error) {
       console.error('Error creating parent account:', error);
@@ -539,15 +541,20 @@ Note: Password must be changed on first login.
 
   // Helper: build the best available display name for a student
   const getStudentDisplayName = (student) => {
-    if (student.user?.firstName) {
+    // 1. Prioritize User account names (these are usually the most accurate/recovered)
+    if (student.user?.firstName || student.user?.lastName) {
       const parts = [
         student.user.firstName,
         student.middleName,
         student.user.lastName
       ].filter(p => p && p.trim() !== '');
-      return parts.join(' ');
+      if (parts.length > 0) return parts.join(' ');
     }
-    if (student.name && student.name.trim()) return student.name.trim();
+    // 2. Fallback to Student table name (legacy name)
+    if (student.name && student.name.trim() && !student.name.includes('LEGACY-ADM')) {
+       return student.name.trim();
+    }
+    // 3. Last resort: Admission Number
     return student.admissionNumber || '(No Name)';
   };
 

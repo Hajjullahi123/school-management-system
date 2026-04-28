@@ -361,12 +361,13 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'ex
 
     const mappedParents = enhancedParents.map(p => ({
       ...p,
-      students: p.parentChildren,
+      students: p.parentChildren || [],
       parentChildren: undefined
     }));
     res.json(mappedParents);
   } catch (e) {
-    res.status(500).json({ error: 'Failed' });
+    console.error('Fetch parents error:', e);
+    res.status(500).json({ error: 'Failed to fetch parents' });
   }
 });
 
