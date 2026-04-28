@@ -156,8 +156,16 @@
           e.message.includes('Failed to fetch dynamically imported module') || 
           e.message.includes('Importing a module script failed')
       )) {
-        console.warn('Deployment update detected. Refreshing...');
-        window.location.reload();
+        const lastError = sessionStorage.getItem('last-system-error-time');
+        const now = Date.now();
+        
+        if (!lastError || (now - parseInt(lastError)) > 10000) {
+          sessionStorage.setItem('last-system-error-time', now.toString());
+          console.warn('Deployment update detected. Refreshing...');
+          window.location.reload();
+        } else {
+          console.error('System loop detected. Preventing auto-refresh.');
+        }
         return;
       }
 
@@ -180,8 +188,16 @@
       );
       
       if (isChunkError) {
-        console.warn('Chunk load failed. Auto-refreshing...');
-        window.location.reload();
+        const lastChunkError = sessionStorage.getItem('last-chunk-error-time');
+        const now = Date.now();
+        
+        if (!lastChunkError || (now - parseInt(lastChunkError)) > 10000) {
+          sessionStorage.setItem('last-chunk-error-time', now.toString());
+          console.warn('Chunk load failed. Auto-refreshing...');
+          window.location.reload();
+        } else {
+          console.error('Multiple chunk load errors detected. Stopping auto-refresh to prevent loop.');
+        }
       }
     });
 

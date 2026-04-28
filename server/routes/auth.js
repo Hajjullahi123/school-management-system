@@ -382,7 +382,26 @@ router.get('/me', authenticate, async (req, res) => {
           parentChildren: {
             include: {
               user: { select: { firstName: true, lastName: true, photoUrl: true } },
-              classModel: { select: { id: true, name: true, arm: true } }
+              classModel: {
+                include: {
+                  classTeacher: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                      phone: true,
+                      photoUrl: true,
+                      username: true,
+                      teacher: {
+                        select: {
+                          publicPhone: true,
+                          publicEmail: true,
+                          publicWhatsapp: true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         }
