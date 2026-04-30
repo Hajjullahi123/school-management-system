@@ -406,6 +406,19 @@ router.put('/:id/publish-results', authenticate, authorize(['admin', 'teacher', 
     }
 
     // Update ResultPublication (Upsert)
+    const updateData = { updatedAt: new Date() };
+    if (isPublished !== undefined) updateData.isPublished = isPublished;
+    if (isProgressivePublished !== undefined) updateData.isProgressivePublished = isProgressivePublished;
+
+    const createData = {
+      schoolId: req.schoolId,
+      classId: classId,
+      termId: activeTermId,
+      isPublished: isPublished || false,
+      isProgressivePublished: isProgressivePublished || false,
+      updatedAt: new Date()
+    };
+
     const publication = await prisma.resultPublication.upsert({
       where: {
         schoolId_classId_termId: {
@@ -414,17 +427,8 @@ router.put('/:id/publish-results', authenticate, authorize(['admin', 'teacher', 
           termId: activeTermId
         }
       },
-      update: {
-        isPublished: isPublished !== undefined ? isPublished : undefined,
-        isProgressivePublished: isProgressivePublished !== undefined ? isProgressivePublished : undefined
-      },
-      create: {
-        schoolId: req.schoolId,
-        classId: classId,
-        termId: activeTermId,
-        isPublished: isPublished || false,
-        isProgressivePublished: isProgressivePublished || false
-      }
+      update: updateData,
+      create: createData
     });
 
     // Also update the legacy flag for compatibility (only if term results are being published)
