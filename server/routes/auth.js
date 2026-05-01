@@ -450,8 +450,10 @@ router.get('/me', authenticate, async (req, res) => {
             where: {
               teacherId: req.user.id,
               schoolId: req.schoolId,
-              subject: {
-                name: { contains: 'quran' }
+              classSubject: {
+                subject: {
+                  name: { contains: 'quran' }
+                }
               }
             },
             select: { id: true }

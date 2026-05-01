@@ -512,7 +512,7 @@ router.get('/cbt-tracking', authenticate, async (req, res) => {
         subject: { select: { name: true } },
         teacher: { select: { firstName: true, lastName: true } },
         _count: {
-          select: { results: { where: { schoolId: req.schoolId } } }
+          select: { CBTResult: { where: { schoolId: req.schoolId } } }
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -529,7 +529,7 @@ router.get('/cbt-tracking', authenticate, async (req, res) => {
 
     const trackingData = exams.map(exam => {
       const totalStudents = studentCountsMap[exam.classId] || 0;
-      const completedCount = exam._count.results;
+      const completedCount = exam._count.CBTResult || 0;
       const participationRate = totalStudents > 0 ? (completedCount / totalStudents) * 100 : 0;
 
       return {
@@ -574,10 +574,10 @@ router.get('/attendance-tracking', authenticate, authorize(['admin', 'principal'
       .map(n => parseInt(n));
     const dayOfWeek = today.getUTCDay();
     const isActuallyWeekend = weekendIndices.includes(dayOfWeek);
-    const isActuallyHoliday = holidayRecord && (holidayRecord.type !== 'weekend' || isActuallyWeekend);
+    const isActuallyHoliday = isActuallyWeekend; // Attendance tracking is suspended on weekends
 
-    if (isActuallyHoliday || isActuallyWeekend) {
-       return res.json([]); // Attendance tracking is suspended on non-school days
+    if (isActuallyHoliday) {
+       return res.json([]); 
     }
 
     const classes = await prisma.class.findMany({

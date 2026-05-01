@@ -264,7 +264,7 @@ router.get('/verify/:reference', authenticate, async (req, res) => {
           // 2. Fetch and update fee record
           const feeRecord = await tx.feeRecord.findFirst({
             where: { id: payment.feeRecordId, schoolId: req.schoolId },
-            include: { term: true, academicSession: true }
+            include: { Term: true, AcademicSession: true }
           });
 
           if (feeRecord) {
@@ -300,7 +300,7 @@ router.get('/verify/:reference', authenticate, async (req, res) => {
         // Notifications after successful transaction
         const freshRecord = await prisma.feeRecord.findFirst({
           where: { id: payment.feeRecordId },
-          include: { term: true, academicSession: true }
+          include: { Term: true, AcademicSession: true }
         });
 
         const newBalance = freshRecord ? Math.max(0, freshRecord.expectedAmount - freshRecord.paidAmount) : 0;
@@ -315,8 +315,8 @@ router.get('/verify/:reference', authenticate, async (req, res) => {
             date: new Date(),
             receiptNumber: reference,
             balance: newBalance,
-            termName: freshRecord?.term?.name || 'Current Term',
-            sessionName: freshRecord?.academicSession?.name || 'Current Session',
+            termName: freshRecord?.Term?.name || 'Current Term',
+            sessionName: freshRecord?.AcademicSession?.name || 'Current Session',
             schoolName: school.name || 'School Management System',
             className: payment.student.classModel?.name || 'N/A'
           }).catch(err => console.error('Email error:', err));
