@@ -370,7 +370,14 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
     const reportData = {
       student: {
         id: student.id,
-        name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
+        name: (() => {
+          const fName = student.user?.firstName || '';
+          const lName = student.user?.lastName || '';
+          const mName = student.middleName || '';
+          const legacyName = student.name || '';
+          if (fName || lName) return `${fName} ${lName} ${mName}`.replace(/\s+/g, ' ').trim();
+          return legacyName || mName || `Student (${student.admissionNumber || student.id})`;
+        })(),
         admissionNumber: student.admissionNumber,
         class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
         dateOfBirth: student.dateOfBirth,
@@ -686,7 +693,12 @@ async function api_internal_get_report_data(schoolId, studentId, termId) {
   const avg = subjects.length > 0 ? subjects.reduce((acc, s) => acc + s.total, 0) / subjects.length : 0;
 
   return {
-    student: { name: `${student.user.firstName} ${student.user.lastName}`, gender: student.gender, classId: student.classId },
+    student: { name: (() => {
+      const fName = student.user?.firstName || '';
+      const lName = student.user?.lastName || '';
+      if (fName || lName) return `${fName} ${lName}`.trim();
+      return student.name || 'Unknown Student';
+    })(), gender: student.gender, classId: student.classId },
     subjects,
     termAverage: avg,
     term: { name: term.name }
@@ -1035,7 +1047,14 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       return {
         student: {
           id: student.id,
-          name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
+          name: (() => {
+            const fName = student.user?.firstName || '';
+            const lName = student.user?.lastName || '';
+            const mName = student.middleName || '';
+            const legacyName = student.name || '';
+            if (fName || lName) return `${fName} ${lName} ${mName}`.replace(/\s+/g, ' ').trim();
+            return legacyName || mName || `Student (${student.admissionNumber || student.id})`;
+          })(),
           admissionNumber: student.admissionNumber,
           class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
           dateOfBirth: student.dateOfBirth,
