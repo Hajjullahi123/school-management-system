@@ -1312,10 +1312,17 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
       return {
         student: {
           id: student.id,
-          name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
+          name: (() => {
+            const fName = student.user?.firstName || '';
+            const lName = student.user?.lastName || '';
+            const mName = student.middleName || '';
+            const legacyName = student.name || '';
+            if (fName || lName) return `${fName} ${lName} ${mName}`.replace(/\s+/g, ' ').trim();
+            return legacyName || mName || `Student (${student.admissionNumber || student.id})`;
+          })(),
           admissionNumber: student.admissionNumber,
           class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
-          photoUrl: student.photoUrl,
+          photoUrl: student.user?.photoUrl || student.photoUrl,
           formMaster: student.classModel?.classTeacher ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}` : 'N/A',
           formMasterSignatureUrl: student.classModel?.classTeacher?.signatureUrl || null
         },
@@ -1601,7 +1608,14 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
     res.json({
       student: {
         id: student.id,
-        name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
+        name: (() => {
+          const fName = student.user?.firstName || '';
+          const lName = student.user?.lastName || '';
+          const mName = student.middleName || '';
+          const legacyName = student.name || '';
+          if (fName || lName) return `${fName} ${lName} ${mName}`.replace(/\s+/g, ' ').trim();
+          return legacyName || mName || `Student (${student.admissionNumber || student.id})`;
+        })(),
         admissionNumber: student.admissionNumber,
         class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
         dateOfBirth: student.dateOfBirth,
@@ -1794,7 +1808,14 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
         schoolSettings,
         student: {
           id: student.id,
-          name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
+          name: (() => {
+            const fName = student.user?.firstName || '';
+            const lName = student.user?.lastName || '';
+            const mName = student.middleName || '';
+            const legacyName = student.name || '';
+            if (fName || lName) return `${fName} ${lName} ${mName}`.replace(/\s+/g, ' ').trim();
+            return legacyName || mName || `Student (${student.admissionNumber || student.id})`;
+          })(),
           admissionNumber: student.admissionNumber,
           class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
           dateOfBirth: student.dateOfBirth,
@@ -1806,7 +1827,17 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
         attendance: { total: sessionAttendance, present: sessionPresent, absent: sessionAttendance - sessionPresent },
         feeSummary,
         aiNarrative: schoolSettings.geminiApiKey || schoolSettings.groqApiKey ? await generateAINarrative({
-          student: { name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`, gender: student.gender },
+          student: { 
+            name: (() => {
+              const fName = student.user?.firstName || '';
+              const lName = student.user?.lastName || '';
+              const mName = student.middleName || '';
+              const legacyName = student.name || '';
+              if (fName || lName) return `${fName} ${lName} ${mName}`.replace(/\s+/g, ' ').trim();
+              return legacyName || mName || `Student (${student.admissionNumber || student.id})`;
+            })(), 
+            gender: student.gender 
+          },
           subjects: cumulativeSubjects,
           attendance: { present: sessionPresent, total: sessionAttendance, percentage: ((sessionPresent / (sessionAttendance || 1)) * 100).toFixed(1) },
           termAverage: sessionAverage

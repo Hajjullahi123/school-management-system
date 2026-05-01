@@ -23,6 +23,16 @@ const CumulativeReport = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const getStudentDisplayName = (student) => {
+    if (!student) return 'Unknown Student';
+    const fName = (student.user?.firstName || '').trim();
+    const lName = (student.user?.lastName || '').trim();
+    const mName = (student.middleName || '').trim();
+    const legacyName = (student.name || '').trim();
+    if (fName || lName) return `${fName} ${mName} ${lName}`.replace(/\s+/g, ' ').trim();
+    return legacyName || mName || `Student (${student.admissionNumber || student.id})`;
+  };
+
   const printRef = useRef();
   const handlePrint = useReactToPrint({ contentRef: printRef });
 
@@ -465,7 +475,7 @@ const CumulativeReport = () => {
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Selected Ward</label>
                     {classStudents.length === 1 ? (
                       <div className="w-full bg-slate-100 border-white rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 shadow-inner">
-                        {classStudents[0].user.firstName} {classStudents[0].user.lastName}
+                        {getStudentDisplayName(classStudents[0])}
                       </div>
                     ) : (
                       <select 
@@ -475,7 +485,7 @@ const CumulativeReport = () => {
                       >
                         <option value="">Choose Ward</option>
                         {classStudents.map((ward) => (
-                          <option key={ward.id} value={ward.id}>{ward.user.firstName} {ward.user.lastName}</option>
+                          <option key={ward.id} value={ward.id}>{getStudentDisplayName(ward)}</option>
                         ))}
                       </select>
                     )}
@@ -553,7 +563,7 @@ const CumulativeReport = () => {
                         >
                           <option value="">Choose Student</option>
                           {classStudents.map((student) => (
-                            <option key={student.id} value={student.id}>{student.user.firstName} {student.user.lastName}</option>
+                            <option key={student.id} value={student.id}>{getStudentDisplayName(student)}</option>
                           ))}
                         </select>
                       </div>
