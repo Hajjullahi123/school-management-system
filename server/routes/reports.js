@@ -417,52 +417,63 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         total: totalAttendanceDays,
         percentage: totalAttendanceDays > 0 ? ((presentAttendanceDays / totalAttendanceDays) * 100).toFixed(1) : 0
       } : null,
-      subjects: classSubjects.map(cs => {
-        const result = results.find(r => r.subjectId === cs.subjectId);
+      subjects: (() => {
+        const uniqueSubjects = new Map();
+        classSubjects.forEach(cs => uniqueSubjects.set(cs.subjectId, { id: cs.subjectId, name: cs.subject?.name }));
+        results.forEach(r => {
+          if (!uniqueSubjects.has(r.subjectId)) {
+            uniqueSubjects.set(r.subjectId, { id: r.subjectId, name: r.subject?.name });
+          }
+        });
+        const combinedSubjects = Array.from(uniqueSubjects.values());
 
-        // Cumulative data for dynamic final term
-        let t1Score = null;
-        let t2Score = null;
-        let cumulativeAvg = null;
+        return combinedSubjects.map(cs => {
+          const result = results.find(r => r.subjectId === cs.id);
 
-        if (isFinalTerm && totalTerms > 1) {
-          // Map scores from previous terms dynamically
-          // t1Score = term 1, t2Score = term 2 (if exists)
-          const firstTerm = allTerms[0];
-          const secondTerm = totalTerms > 2 ? allTerms[1] : null;
-          
-          const r1 = previousTermsResults.find(r => r.subjectId === cs.subjectId && r.termId === firstTerm.id);
-          t1Score = r1 ? r1.totalScore : 0;
-          
-          if (secondTerm) {
-            const r2 = previousTermsResults.find(r => r.subjectId === cs.subjectId && r.termId === secondTerm.id);
-            t2Score = r2 ? r2.totalScore : 0;
+          // Cumulative data for dynamic final term
+          let t1Score = null;
+          let t2Score = null;
+          let cumulativeAvg = null;
+
+          if (isFinalTerm && totalTerms > 1) {
+            // Map scores from previous terms dynamically
+            // t1Score = term 1, t2Score = term 2 (if exists)
+            const firstTerm = allTerms[0];
+            const secondTerm = totalTerms > 2 ? allTerms[1] : null;
+            
+            const r1 = previousTermsResults.find(r => r.subjectId === cs.id && r.termId === firstTerm.id);
+            t1Score = r1 ? r1.totalScore : 0;
+            
+            if (secondTerm) {
+              const r2 = previousTermsResults.find(r => r.subjectId === cs.id && r.termId === secondTerm.id);
+              t2Score = r2 ? r2.totalScore : 0;
+            }
+
+            const currentTotal = result ? result.totalScore : 0;
+            const sessionTotal = t1Score + (t2Score || 0) + currentTotal;
+            cumulativeAvg = sessionTotal / totalTerms;
           }
 
-          const currentTotal = result ? result.totalScore : 0;
-          const sessionTotal = t1Score + (t2Score || 0) + currentTotal;
-          cumulativeAvg = sessionTotal / totalTerms;
-        }
-
-        return {
-          id: cs.subjectId,
-          name: cs.subject?.name || 'Unknown Subject',
-          assignment1: result ? result.assignment1Score : 0,
-          assignment2: result ? result.assignment2Score : 0,
-          test1: result ? result.test1Score : 0,
-          test2: result ? result.test2Score : 0,
-          exam: result ? result.examScore : 0,
-          total: result ? result.totalScore : 0,
-          grade: result ? result.grade : getGrade(0, schoolSettings.gradingSystem),
-          position: result ? result.positionInClass : '-',
-          classAverage: result ? result.classAverage : 0,
-          remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : getRemark(getGrade(0, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
-          // Cumulative fields
-          term1Score: t1Score,
-          term2Score: t2Score,
-          cumulativeAverage: cumulativeAvg
-        };
-      }),
+          return {
+            id: cs.id,
+            name: cs.name || 'Unknown Subject',
+            assignment1: result ? result.assignment1Score : 0,
+            assignment2: result ? result.assignment2Score : 0,
+            test1: result ? result.test1Score : 0,
+            test2: result ? result.test2Score : 0,
+            exam: result ? result.examScore : 0,
+            total: result ? result.totalScore : 0,
+            grade: result ? result.grade : getGrade(0, schoolSettings.gradingSystem),
+            position: result ? result.positionInClass : '-',
+            classAverage: result ? result.classAverage : 0,
+            remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : getRemark(getGrade(0, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+            // Cumulative fields
+            term1Score: t1Score,
+            term2Score: t2Score,
+            cumulativeAverage: cumulativeAvg
+          };
+        });
+      })(),
       passFailSummary: {
         totalPassed: results.filter(r => r.totalScore >= schoolSettings.passThreshold).length,
         totalFailed: results.filter(r => r.totalScore < schoolSettings.passThreshold).length,
@@ -1088,44 +1099,55 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           }
         },
         attendance: studentAttendance,
-        subjects: classSubjects.map(cs => {
-          const result = studentResults.filter(r => r.subjectId === cs.subjectId)[0];
-          let t1Score = null, t2Score = null, cumulativeAvg = null;
-          if (isFinalTerm && totalTerms > 1) {
-            const prevTermScores = allPreviousResults.filter(r => r.studentId === student.id);
-            
-            // Map scores from previous terms
-            const firstTerm = allTermsInSession[0];
-            const secondTerm = totalTerms > 2 ? allTermsInSession[1] : null;
-            
-            const r1 = prevTermScores.find(r => r.subjectId === cs.subjectId && r.termId === firstTerm.id);
-            t1Score = r1 ? r1.totalScore : 0;
-            
-            if (secondTerm) {
-              const r2 = prevTermScores.find(r => r.subjectId === cs.subjectId && r.termId === secondTerm.id);
-              t2Score = r2 ? r2.totalScore : 0;
+        subjects: (() => {
+          const uniqueSubjects = new Map();
+          classSubjects.forEach(cs => uniqueSubjects.set(cs.subjectId, { id: cs.subjectId, name: cs.subject?.name }));
+          studentResults.forEach(r => {
+            if (!uniqueSubjects.has(r.subjectId)) {
+              uniqueSubjects.set(r.subjectId, { id: r.subjectId, name: r.subject?.name });
             }
+          });
+          const combinedSubjects = Array.from(uniqueSubjects.values());
 
-            const currentTotal = result ? result.totalScore : 0;
-            const sessionTotal = t1Score + (t2Score || 0) + currentTotal;
-            cumulativeAvg = sessionTotal / totalTerms;
-          }
-          return {
-            id: cs.subjectId,
-            name: cs.subject?.name || 'Unknown Subject',
-            assignment1: result ? result.assignment1Score : 0,
-            assignment2: result ? result.assignment2Score : 0,
-            test1: result ? result.test1Score : 0,
-            test2: result ? result.test2Score : 0,
-            exam: result ? result.examScore : 0,
-            total: result ? result.totalScore : 0,
-            grade: result ? result.grade : getGrade(0, schoolSettings.gradingSystem),
-            position: result ? result.positionInClass : '-',
-            classAverage: result ? result.classAverage : 0,
-            remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : getRemark(getGrade(0, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
-            term1Score: t1Score, term2Score: t2Score, cumulativeAverage: cumulativeAvg
-          };
-        }),
+          return combinedSubjects.map(cs => {
+            const result = studentResults.find(r => r.subjectId === cs.id);
+            let t1Score = null, t2Score = null, cumulativeAvg = null;
+            if (isFinalTerm && totalTerms > 1) {
+              const prevTermScores = allPreviousResults.filter(r => r.studentId === student.id);
+              
+              // Map scores from previous terms
+              const firstTerm = allTermsInSession[0];
+              const secondTerm = totalTerms > 2 ? allTermsInSession[1] : null;
+              
+              const r1 = prevTermScores.find(r => r.subjectId === cs.id && r.termId === firstTerm.id);
+              t1Score = r1 ? r1.totalScore : 0;
+              
+              if (secondTerm) {
+                const r2 = prevTermScores.find(r => r.subjectId === cs.id && r.termId === secondTerm.id);
+                t2Score = r2 ? r2.totalScore : 0;
+              }
+
+              const currentTotal = result ? result.totalScore : 0;
+              const sessionTotal = t1Score + (t2Score || 0) + currentTotal;
+              cumulativeAvg = sessionTotal / totalTerms;
+            }
+            return {
+              id: cs.id,
+              name: cs.name || 'Unknown Subject',
+              assignment1: result ? result.assignment1Score : 0,
+              assignment2: result ? result.assignment2Score : 0,
+              test1: result ? result.test1Score : 0,
+              test2: result ? result.test2Score : 0,
+              exam: result ? result.examScore : 0,
+              total: result ? result.totalScore : 0,
+              grade: result ? result.grade : getGrade(0, schoolSettings.gradingSystem),
+              position: result ? result.positionInClass : '-',
+              classAverage: result ? result.classAverage : 0,
+              remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : getRemark(getGrade(0, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+              term1Score: t1Score, term2Score: t2Score, cumulativeAverage: cumulativeAvg
+            };
+          });
+        })(),
         termAverage,
         termPosition,
         totalStudents,
