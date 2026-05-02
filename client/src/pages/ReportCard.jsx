@@ -553,17 +553,17 @@ const ReportCard = () => {
                       {(reportData.subjects || []).map((sub, i) => (
                         <tr key={i} className="h-6">
                           <td className="border border-black px-2 font-black leading-tight">{sub.name}</td>
-                          <td className="border border-black text-center">{sub.assignment1 || '0'}</td>
-                          <td className="border border-black text-center">{sub.assignment2 || '0'}</td>
-                          <td className="border border-black text-center">{sub.test1 || '0'}</td>
-                          <td className="border border-black text-center">{sub.test2 || '0'}</td>
-                          <td className="border border-black text-center">{sub.exam || '0'}</td>
-                          <td className="border border-black text-center bg-gray-50 font-black">{sub.total?.toFixed(0)}</td>
+                          <td className="border border-black text-center">{sub.assignment1 || ''}</td>
+                          <td className="border border-black text-center">{sub.assignment2 || ''}</td>
+                          <td className="border border-black text-center">{sub.test1 || ''}</td>
+                          <td className="border border-black text-center">{sub.test2 || ''}</td>
+                          <td className="border border-black text-center">{sub.exam || ''}</td>
+                          <td className="border border-black text-center bg-gray-50 font-black">{sub.total ? sub.total.toFixed(0) : ''}</td>
                           {reportData.term?.number === 3 && (
                             <>
-                              <td className="border border-black text-center">{sub.term1Score ?? '0'}</td>
-                              <td className="border border-black text-center">{sub.term2Score ?? '0'}</td>
-                              <td className="border border-black text-center bg-gray-50 font-bold">{sub.cumulativeAverage?.toFixed(1) ?? '0'}</td>
+                              <td className="border border-black text-center">{sub.term1Score || ''}</td>
+                              <td className="border border-black text-center">{sub.term2Score || ''}</td>
+                              <td className="border border-black text-center bg-gray-50 font-bold">{sub.cumulativeAverage ? sub.cumulativeAverage.toFixed(1) : ''}</td>
                             </>
                           )}
                           <td className="border border-black text-center font-black">{sub.grade}</td>
@@ -634,7 +634,7 @@ const ReportCard = () => {
                     <div className="bg-gray-50 flex-1 grid grid-cols-2 divide-x divide-black/10 items-center">
                       <div className="text-center p-1">
                         <p className="text-[7px] text-gray-400 uppercase font-black">Average</p>
-                        <p className="text-sm font-black italic">{reportData.termAverage?.toFixed(1)}%</p>
+                        <p className="text-sm font-black italic">{reportData.termAverage ? `${reportData.termAverage.toFixed(1)}%` : '-'}</p>
                       </div>
                       {showPosition && (
                       <div className="text-center p-1">

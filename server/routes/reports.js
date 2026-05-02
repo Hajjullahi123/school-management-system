@@ -482,11 +482,11 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         totalFailed: results.filter(r => r.totalScore < schoolSettings.passThreshold).length,
         show: schoolSettings.showPassFailStats
       },
-      termAverage: termAverage,
-      termPosition: termPosition,
+      termAverage: results.length > 0 ? termAverage : null,
+      termPosition: results.length > 0 ? termPosition : '-',
       totalStudents: totalStudents,
-      overallGrade: getGrade(termAverage, schoolSettings.gradingSystem),
-      overallRemark: getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+      overallGrade: results.length > 0 ? getGrade(termAverage, schoolSettings.gradingSystem) : null,
+      overallRemark: results.length > 0 ? getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : null,
       // Extras
       formMasterRemark: reportExtras?.formMasterRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
       principalRemark: reportExtras?.principalRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
@@ -1177,18 +1177,18 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
             };
           });
         })(),
-        termAverage,
-        termPosition,
+        termAverage: studentResults.length > 0 ? termAverage : null,
+        termPosition: studentResults.length > 0 ? termPosition : '-',
         totalStudents,
         passFailSummary: {
           totalPassed: studentResults.filter(r => r.totalScore >= schoolSettings.passThreshold).length,
           totalFailed: studentResults.filter(r => r.totalScore < schoolSettings.passThreshold).length,
-          show: schoolSettings.showPassFailStats
+          show: schoolSettings.showPassFailStats && studentResults.length > 0
         },
-        overallGrade: getGrade(termAverage, schoolSettings.gradingSystem),
-        overallRemark: getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
-        formMasterRemark: reportExtras?.formMasterRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
-        principalRemark: reportExtras?.principalRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+        overallGrade: studentResults.length > 0 ? getGrade(termAverage, schoolSettings.gradingSystem) : null,
+        overallRemark: studentResults.length > 0 ? getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : null,
+        formMasterRemark: reportExtras?.formMasterRemark || (studentResults.length > 0 ? getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : null),
+        principalRemark: reportExtras?.principalRemark || (studentResults.length > 0 ? getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : null),
         psychomotorRatings: psychomotorDomains.map(d => {
           const rating = Array.isArray(ratings) ? ratings.find(r => r.domainId === d.id) : null;
           return { name: d.name, score: rating ? rating.score : null, maxScore: d.maxScore || 5 };
@@ -1388,11 +1388,11 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
             remark: subjectTotal > 0 ? getRemark(getGrade(subjectAvg, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : null
           };
         }),
-        sessionAverage: sessionAvg,
-        sessionPosition: positionMap[student.id],
+        sessionAverage: studentResults.length > 0 ? sessionAvg : null,
+        sessionPosition: studentResults.length > 0 ? positionMap[student.id] : '-',
         totalStudents: students.length,
-        overallGrade: getGrade(sessionAvg, schoolSettings.gradingSystem),
-        overallRemark: getRemark(getGrade(sessionAvg, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+        overallGrade: studentResults.length > 0 ? getGrade(sessionAvg, schoolSettings.gradingSystem) : null,
+        overallRemark: studentResults.length > 0 ? getRemark(getGrade(sessionAvg, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : null,
         psychomotorRatings: psychomotorDomains.map(d => {
           const r = Array.isArray(ratings) ? ratings.find(rate => rate.domainId === d.id) : null;
           return { name: d.name, score: r ? r.score : null, maxScore: d.maxScore || 5 };

@@ -496,17 +496,17 @@ const BulkReportDownload = () => {
                                   {(data.subjects || []).map((sub, i) => (
                                     <tr key={i} className="font-bold uppercase h-5">
                                       <td className="border border-black px-1 leading-tight text-[11px] font-black">{sub.name}</td>
-                                      <td className="border border-black text-center text-[10px]">{sub.assignment1 || '0'}</td>
-                                      <td className="border border-black text-center text-[10px]">{sub.assignment2 || '0'}</td>
-                                      <td className="border border-black text-center text-[10px]">{sub.test1 || '0'}</td>
-                                      <td className="border border-black text-center text-[10px]">{sub.test2 || '0'}</td>
-                                      <td className="border border-black text-center text-[10px]">{sub.exam || '0'}</td>
-                                      <td className="border border-black text-center bg-gray-50 text-[10px] font-black">{sub.total?.toFixed(0)}</td>
+                                      <td className="border border-black text-center text-[10px]">{sub.assignment1 || ''}</td>
+                                      <td className="border border-black text-center text-[10px]">{sub.assignment2 || ''}</td>
+                                      <td className="border border-black text-center text-[10px]">{sub.test1 || ''}</td>
+                                      <td className="border border-black text-center text-[10px]">{sub.test2 || ''}</td>
+                                      <td className="border border-black text-center text-[10px]">{sub.exam || ''}</td>
+                                      <td className="border border-black text-center bg-gray-50 text-[10px] font-black">{sub.total ? sub.total.toFixed(0) : ''}</td>
                                       {data.term?.number === 3 && (
                                         <>
-                                          <td className="border border-black text-center text-[9px]">{sub.term1Score ?? '0'}</td>
-                                          <td className="border border-black text-center text-[9px]">{sub.term2Score ?? '0'}</td>
-                                          <td className="border border-black text-center bg-gray-50 text-[9px] font-bold">{sub.cumulativeAverage?.toFixed(1) ?? '0'}</td>
+                                          <td className="border border-black text-center text-[9px]">{sub.term1Score || ''}</td>
+                                          <td className="border border-black text-center text-[9px]">{sub.term2Score || ''}</td>
+                                          <td className="border border-black text-center bg-gray-50 text-[9px] font-bold">{sub.cumulativeAverage ? sub.cumulativeAverage.toFixed(1) : ''}</td>
                                         </>
                                       )}
                                       <td className="border border-black text-center text-[10px] font-black">{sub.grade}</td>
@@ -585,8 +585,8 @@ const BulkReportDownload = () => {
                                     </div>
                                   )}
                                   <div className="flex flex-col items-center justify-center p-1">
-                                    <span className="text-[8px] text-gray-400 uppercase font-black">Average</span>
-                                    <span className="text-sm font-black italic">{data.termAverage?.toFixed(1)}%</span>
+                                        <p className="text-[7px] text-gray-400 uppercase font-black">Average</p>
+                                        <p className="text-sm font-black italic">{data.termAverage ? `${data.termAverage.toFixed(1)}%` : '-'}</p>
                                   </div>
                                 </div>
 
