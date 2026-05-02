@@ -460,16 +460,16 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
           return {
             id: cs.id,
             name: cs.name || 'Unknown Subject',
-            assignment1: result ? result.assignment1Score : 0,
-            assignment2: result ? result.assignment2Score : 0,
-            test1: result ? result.test1Score : 0,
-            test2: result ? result.test2Score : 0,
-            exam: result ? result.examScore : 0,
-            total: result ? result.totalScore : 0,
-            grade: result ? result.grade : getGrade(0, schoolSettings.gradingSystem),
+            assignment1: result ? result.assignment1Score : null,
+            assignment2: result ? result.assignment2Score : null,
+            test1: result ? result.test1Score : null,
+            test2: result ? result.test2Score : null,
+            exam: result ? result.examScore : null,
+            total: result ? result.totalScore : null,
+            grade: result ? result.grade : null,
             position: result ? result.positionInClass : '-',
             classAverage: result ? result.classAverage : 0,
-            remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : getRemark(getGrade(0, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+            remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : null,
             // Cumulative fields
             term1Score: t1Score,
             term2Score: t2Score,
@@ -1163,16 +1163,16 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
             return {
               id: cs.id,
               name: cs.name || 'Unknown Subject',
-              assignment1: result ? result.assignment1Score : 0,
-              assignment2: result ? result.assignment2Score : 0,
-              test1: result ? result.test1Score : 0,
-              test2: result ? result.test2Score : 0,
-              exam: result ? result.examScore : 0,
-              total: result ? result.totalScore : 0,
-              grade: result ? result.grade : getGrade(0, schoolSettings.gradingSystem),
+              assignment1: result ? result.assignment1Score : null,
+              assignment2: result ? result.assignment2Score : null,
+              test1: result ? result.test1Score : null,
+              test2: result ? result.test2Score : null,
+              exam: result ? result.examScore : null,
+              total: result ? result.totalScore : null,
+              grade: result ? result.grade : null,
               position: result ? result.positionInClass : '-',
               classAverage: result ? result.classAverage : 0,
-              remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : getRemark(getGrade(0, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+              remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : null,
               term1Score: t1Score, term2Score: t2Score, cumulativeAverage: cumulativeAvg
             };
           });
@@ -1383,9 +1383,9 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
             id: cs.subjectId,
             name: cs.subject?.name || 'Unknown',
             termScores,
-            sessionAverage: subjectAvg,
-            grade: getGrade(subjectAvg, schoolSettings.gradingSystem),
-            remark: getRemark(getGrade(subjectAvg, schoolSettings.gradingSystem), schoolSettings.gradingSystem)
+            sessionAverage: subjectTotal > 0 ? subjectAvg : null,
+            grade: subjectTotal > 0 ? getGrade(subjectAvg, schoolSettings.gradingSystem) : null,
+            remark: subjectTotal > 0 ? getRemark(getGrade(subjectAvg, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : null
           };
         }),
         sessionAverage: sessionAvg,
@@ -1597,12 +1597,14 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       // If it's not the final term yet, average by terms-to-date (s.count).
       // If it's the final term, average by the total session length.
       const divisor = isFinalTerm ? session.terms.length : (s.count > 0 ? s.count : session.terms.length);
-      const avg = s.count > 0 ? s.total / divisor : 0; 
+      const avg = s.count > 0 ? s.total / divisor : null; 
       
       return {
         ...s,
+        termScores: s.termScores.map(score => score || null),
+        total: s.total || null,
         average: avg,
-        grade: getGrade(avg, schoolSettings.gradingSystem)
+        grade: avg !== null ? getGrade(avg, schoolSettings.gradingSystem) : null
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
 
@@ -1839,8 +1841,16 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
       };
 
       const cumulativeSubjects = Object.values(subjectsMap).map(s => {
-        const avg = s.count > 0 ? s.total / session.terms.length : 0;
-        return { ...s, average: avg, grade: getGrade(avg, schoolSettings.gradingSystem) };
+        const avg = s.count > 0 ? s.total / session.terms.length : null;
+        return { 
+          ...s, 
+          term1: s.term1 || null,
+          term2: s.term2 || null,
+          term3: s.term3 || null,
+          total: s.total || null,
+          average: avg, 
+          grade: avg !== null ? getGrade(avg, schoolSettings.gradingSystem) : null 
+        };
       }).sort((a, b) => a.name.localeCompare(b.name));
 
       reports.push({
