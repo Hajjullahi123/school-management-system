@@ -766,12 +766,12 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         reportLayout: true,
         reportColorScheme: true,
         reportFontFamily: true,
-        schoolName: true,
+        name: true,
         logoUrl: true,
         address: true,
         phone: true,
         email: true,
-        schoolMotto: true
+        motto: true
       }
     });
     if (!schoolSettings) return res.status(404).json({ error: 'School settings not found' });
@@ -1111,7 +1111,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
           id: term.id,
           name: term.name,
           number: termNumber,
-          session: term.academicSession.name,
+          session: term.academicSession?.name || 'N/A',
           startDate: term.startDate,
           endDate: term.endDate,
           nextTermStartDate: nextTerm?.startDate || null,
@@ -1158,7 +1158,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
 
               const currentTotal = result ? result.totalScore : 0;
               const sessionTotal = t1Score + (t2Score || 0) + currentTotal;
-              cumulativeAvg = sessionTotal / totalTerms;
+              cumulativeAvg = sessionTotal / (totalTerms || 1);
             }
             return {
               id: cs.id,
@@ -1264,6 +1264,7 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
     // Fetch all terms in this session
     const sessionTerms = await prisma.term.findMany({
       where: { academicSessionId: parseInt(sessionId), schoolId: req.schoolId },
+      include: { academicSession: true },
       orderBy: { startDate: 'asc' }
     });
 
@@ -1307,7 +1308,7 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
       const sessionTotal = studentResults.reduce((sum, r) => sum + (r.totalScore || 0), 0);
       return {
         studentId: student.id,
-        sessionAverage: sessionTotal / (totalSubjectsCount * sessionTerms.length)
+        sessionAverage: sessionTotal / (Math.max(totalSubjectsCount * sessionTerms.length, 1))
       };
     });
 
@@ -1376,7 +1377,7 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
             return r ? r.totalScore : null;
           });
           const subjectTotal = termScores.reduce((a, b) => a + (b || 0), 0);
-          const subjectAvg = subjectTotal / sessionTerms.length;
+          const subjectAvg = subjectTotal / (sessionTerms.length || 1);
 
           return {
             id: cs.subjectId,
@@ -1619,7 +1620,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       where: {
         schoolId: req.schoolId,
         studentId: parseInt(studentId),
-        Term: { academicSessionId: parseInt(sessionId) }
+        term: { academicSessionId: parseInt(sessionId) }
       }
     });
 
@@ -1627,7 +1628,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       where: {
         schoolId: req.schoolId,
         studentId: parseInt(studentId),
-        Term: { academicSessionId: parseInt(sessionId) },
+        term: { academicSessionId: parseInt(sessionId) },
         status: { in: ['present', 'late'] }
       }
     });
@@ -2635,7 +2636,7 @@ router.get('/verify/:type/:studentId/:targetId', async (req, res) => {
       };
     } else if (type === 'cumulative') {
       const results = await prisma.result.findMany({
-        where: { studentId: parseInt(studentId), Term: { academicSessionId: parseInt(targetId) } }
+        where: { studentId: parseInt(studentId), term: { academicSessionId: parseInt(targetId) } }
       });
       if (results.length === 0) return res.status(404).json({ error: 'No results found for this session.' });
 

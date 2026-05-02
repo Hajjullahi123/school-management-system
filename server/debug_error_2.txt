@@ -1,0 +1,97 @@
+
+Invalid `prisma.parent.findFirst()` invocation:
+
+{
+  include: {
+    parentChildren: {
+      include: {
+        classModel: {
+          include: {
+            classTeacher: {
+              select: {
+                firstName: true,
+                lastName: true,
+                photoUrl: true,
+                username: true,
+                signatureUrl: true,
+                teacher: {
+                  select: {
+                    publicPhone: true,
+                    publicEmail: true,
+                    publicWhatsapp: true
+                  }
+                }
+              }
+            }
+          }
+        },
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            photoUrl: true
+          }
+        },
+        results: {
+          where: {
+            schoolId: 59
+          },
+          orderBy: {
+            createdAt: "desc"
+          },
+          take: 1
+        },
+        attendanceRecords: {
+          where: {
+            schoolId: 59
+          },
+          orderBy: {
+            date: "desc"
+          },
+          take: 10
+        },
+        MiscellaneousFeePayment: {
+          where: {
+            schoolId: 59
+          },
+          include: {
+            MiscellaneousFee: true
+          },
+          orderBy: {
+            paymentDate: "desc"
+          }
+        },
+        FeeRecord: {
+          where: {
+            schoolId: 59
+          },
+          include: {
+            academicSession: true,
+            ~~~~~~~~~~~~~~~
+            term: true,
+            FeePayment: {
+              where: {
+                schoolId: 59
+              },
+              orderBy: {
+                paymentDate: "desc"
+              }
+            },
+?           Student?: true,
+?           AcademicSession?: true,
+?           Term?: true,
+?           User?: true,
+?           School?: true,
+?           OnlinePayment?: true
+          },
+          orderBy: {
+            createdAt: "desc"
+          }
+        }
+      }
+    }
+  }
+}
+
+Unknown field `academicSession` for include statement on model `FeeRecord`. Available options are marked with ?.
