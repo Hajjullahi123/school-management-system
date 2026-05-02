@@ -2039,7 +2039,7 @@ router.get('/progressive/:studentId/:termId/:assessmentType', authenticate, asyn
 
     res.json({
       student: {
-        name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
+        name: (() => { const fName = student.user?.firstName || ''; const lName = student.user?.lastName || ''; const mName = student.middleName || ''; const legacyName = student.name || ''; if (fName || lName) return `${fName} ${lName} ${mName}`.replace(/\s+/g, ' ').trim(); return legacyName || mName || `Student (${student.admissionNumber || student.id})`; })(),
         admissionNumber: student.admissionNumber,
         class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
         gender: student.gender,
@@ -2311,7 +2311,7 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
       schoolSettings,
       student: {
         id: student.id,
-        name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
+        name: (() => { const fName = student.user?.firstName || ''; const lName = student.user?.lastName || ''; const mName = student.middleName || ''; const legacyName = student.name || ''; if (fName || lName) return `${fName} ${lName} ${mName}`.replace(/\s+/g, ' ').trim(); return legacyName || mName || `Student (${student.admissionNumber || student.id})`; })(),
         admissionNumber: student.admissionNumber,
         class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
         dateOfBirth: student.dateOfBirth,
@@ -2542,7 +2542,7 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
         schoolSettings,
         student: {
           id: student.id,
-          name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
+          name: (() => { const fName = student.user?.firstName || ''; const lName = student.user?.lastName || ''; const mName = student.middleName || ''; const legacyName = student.name || ''; if (fName || lName) return `${fName} ${lName} ${mName}`.replace(/\s+/g, ' ').trim(); return legacyName || mName || `Student (${student.admissionNumber || student.id})`; })(),
           admissionNumber: student.admissionNumber,
           class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
           dateOfBirth: student.dateOfBirth,
@@ -2674,7 +2674,7 @@ router.get('/verify/:type/:studentId/:targetId', async (req, res) => {
     res.json({
       verified: true,
       student: {
-        name: student.middleName ? `${student.user.firstName} ${student.user.lastName} ${student.middleName}` : `${student.user.firstName} ${student.user.lastName}`,
+        name: (() => { const fName = student.user?.firstName || ''; const lName = student.user?.lastName || ''; const mName = student.middleName || ''; const legacyName = student.name || ''; if (fName || lName) return `${fName} ${lName} ${mName}`.replace(/\s+/g, ' ').trim(); return legacyName || mName || `Student (${student.admissionNumber || student.id})`; })(),
         admissionNumber: student.admissionNumber,
         class: student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}` : 'N/A',
         photoUrl: student.user?.photoUrl || student.photoUrl

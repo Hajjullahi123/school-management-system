@@ -80,6 +80,7 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
         admissionNumber: true,
         photoUrl: true,
         middleName: true,
+        name: true,
         user: { select: { firstName: true, lastName: true, photoUrl: true } }
       },
       orderBy: [
@@ -105,6 +106,7 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
 
     // Combine data: Return student list with their status attached
     const result = students.map(student => {
+      if (!student.user) student.user = { firstName: student.name || `Student ${student.admissionNumber || student.id}`, lastName: '' };
       const record = recordMap.get(student.id);
       return {
         studentId: student.id,
@@ -336,6 +338,7 @@ router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal', '
               });
 
               if (!student) continue;
+              if (!student.user) student.user = { firstName: student.name || `Student ${student.admissionNumber || student.id}`, lastName: '' };
 
               // ABSENCE ALERT
               if (record.status === 'absent') {
@@ -612,6 +615,7 @@ router.get('/download', authenticate, authorize(['admin', 'teacher', 'principal'
 
     const csvRows = records.map(record => {
       const date = record.date.toISOString().split('T')[0];
+      if (!record.student.user) record.student.user = { firstName: record.student.name || `Student ${record.student.admissionNumber || record.student.id}`, lastName: '' };
       const studentName = `${record.student.user.firstName} ${record.student.user.lastName} ${record.student.middleName || ''}`.trim();
       const admissionNumber = record.student.admissionNumber || '';
       const className = `${record.class.name} ${record.class.arm || ''}`.trim();
@@ -706,6 +710,8 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
         parent: { include: { user: { select: { email: true, firstName: true } } } }
       }
     });
+
+    if (student && !student.user) student.user = { firstName: student.name || `Student ${student.admissionNumber || student.id}`, lastName: '' };
 
     console.log(`[SCAN DEBUG] Student Found: ${student ? student.user.firstName : 'NO'}`);
 
