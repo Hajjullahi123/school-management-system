@@ -1207,7 +1207,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         console.error(`[BulkReports] Error processing student ${student.id}:`, err);
         return null;
       }
-    }))).filter(r => r !== null);
+    }).filter(r => r !== null);
 
     res.json({ reports, totalStudents: reports.length });
 
