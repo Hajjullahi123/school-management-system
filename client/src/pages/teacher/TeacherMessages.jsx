@@ -228,7 +228,7 @@ const TeacherMessages = () => {
               )}
             </div>
             <h1 className="text-4xl md:text-6xl font-black text-white italic tracking-tighter uppercase leading-none">
-              Parental <span className="text-primary">Relay</span>
+              Parent <span className="text-primary">Messaging</span>
             </h1>
             <p className="text-slate-400 font-medium text-sm md:text-base max-w-xl leading-relaxed">
               Maintain critical communication channels with guardians and provide periodic performance synchronizations.
@@ -265,7 +265,7 @@ const TeacherMessages = () => {
             ) : (
               <>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-                Sync with Parent
+                Send Message
               </>
             )}
           </button>
@@ -276,8 +276,8 @@ const TeacherMessages = () => {
             <div className="space-y-6">
               <div className="flex justify-between items-end">
                 <div>
-                  <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Response Latency</p>
-                  <p className="text-xl font-black text-slate-900 italic leading-none">Optimal</p>
+                  <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Response Quality</p>
+                  <p className="text-xl font-black text-slate-900 italic leading-none">Good</p>
                 </div>
                 <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
               </div>
@@ -299,23 +299,23 @@ const TeacherMessages = () => {
                     <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase italic leading-none">Outbound Sync</h3>
-                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Configuring transmission for guardian fleet</p>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase italic leading-none">New Message</h3>
+                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Send a message to a parent</p>
                   </div>
                 </div>
 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1 italic">Target Student Identity</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1 italic">Select Student</label>
                     <select
                       value={selectedStudent || ''}
                       onChange={(e) => setSelectedStudent(e.target.value)}
                       className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-2xl px-6 py-4 text-slate-900 font-bold transition-all outline-none"
                     >
-                      <option value="">-- Select Target --</option>
+                      <option value="">-- Select Student --</option>
                       {students.map(student => (
                         <option key={student.id} value={student.id} className="font-bold">
-                          {student.user?.firstName} {student.user?.lastName} ({student.admissionNumber})
+                          {student.user?.firstName} {student.user?.lastName} — {student.admissionNumber}
                         </option>
                       ))}
                     </select>
@@ -323,35 +323,35 @@ const TeacherMessages = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1 italic">Relay Protocol</label>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1 italic">Message Type</label>
                       <select
                         value={newMessageData.messageType}
                         onChange={(e) => setNewMessageData({ ...newMessageData, messageType: e.target.value })}
                         className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-2xl px-6 py-4 text-slate-900 font-bold transition-all outline-none"
                       >
                         <option value="update">Performance Update</option>
-                        <option value="general">Standard Briefing</option>
+                        <option value="general">General Message</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1 italic">Sync Header</label>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1 italic">Subject</label>
                       <input
                         type="text"
                         value={newMessageData.subject}
                         onChange={(e) => setNewMessageData({ ...newMessageData, subject: e.target.value })}
-                        placeholder="Subject of transmission"
+                        placeholder="Enter subject"
                         className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-2xl px-6 py-4 text-slate-900 font-bold transition-all outline-none"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1 italic">Sync Payload</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1 italic">Message</label>
                     <textarea
                       value={newMessageData.message}
                       onChange={(e) => setNewMessageData({ ...newMessageData, message: e.target.value })}
                       rows="6"
-                      placeholder="Enter detailed sync information..."
+                      placeholder="Write your message here..."
                       className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-[32px] px-8 py-6 text-slate-900 font-bold transition-all outline-none resize-none shadow-inner"
                     />
                   </div>
@@ -362,7 +362,7 @@ const TeacherMessages = () => {
                       disabled={submitting}
                       className="w-full bg-slate-900 text-white py-6 rounded-[24px] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all active:scale-[0.98] disabled:opacity-50"
                     >
-                      {submitting ? 'Transmitting Sync...' : 'Initialize Transmission'}
+                      {submitting ? 'Sending...' : 'Send Message'}
                     </button>
                   </div>
                 </div>
@@ -457,7 +457,7 @@ const TeacherMessages = () => {
           {!showNewMessage && !showThread && (
             <div className="space-y-6">
               <div className="flex items-center justify-between px-4">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] italic">Transmission Logs</h3>
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] italic">Message History</h3>
                 <div className="h-px bg-slate-100 flex-1 ml-8"></div>
               </div>
 

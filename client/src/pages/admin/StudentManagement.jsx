@@ -954,32 +954,9 @@ Note: Password must be changed on first login.
                 type="file"
                 className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
                 accept=".csv,.xlsx"
-                onChange={handleBulkUpload}
               />
             )}
           </div>
-          <button
-            onClick={() => {
-              if (isDemo) {
-                toast.error('Registration is disabled in demo mode');
-                return;
-              }
-              setShowForm(!showForm);
-              if (!showForm) {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }
-            }}
-            className={`w-full sm:w-auto ${isDemo ? 'opacity-75 cursor-not-allowed bg-gray-400' : 'bg-primary'} text-white px-5 py-3 rounded-xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest`}
-          >
-            <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {showForm ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
-              )}
-            </svg>
-            {showForm ? 'Cancel Registration' : (isDemo ? 'Add Student (Demo)' : 'Add Student')}
-          </button>
         </div>
       </div>
 
@@ -1054,33 +1031,18 @@ Note: Password must be changed on first login.
                   </div>
                   <div className="space-y-1">
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
-                      placeholder="Auto-generated if empty"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      Admission Number
+                      Admission Number (Auto-generated)
                     </label>
                     <input
                       type="text"
-                      value={formData.admissionNumber}
-                      onChange={(e) => setFormData({ ...formData, admissionNumber: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
-                      placeholder={editingStudent ? "Current: " + editingStudent.admissionNumber : "Auto-generated if empty"}
+                      value={formData.admissionNumber || 'Auto-generated upon registration'}
+                      readOnly
+                      disabled
+                      className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-500 cursor-not-allowed opacity-75"
                     />
                   </div>
                 </div>
-              </div>
 
-              {/* Personal Information */}
-              <div className="space-y-4">
                 <div className="flex items-center gap-2 text-indigo-600 font-black uppercase text-[10px] tracking-widest mb-6">
                    <div className="w-8 h-px bg-indigo-600/20"></div>
                    Personal Background
@@ -1136,7 +1098,7 @@ Note: Password must be changed on first login.
                      <div className="w-8 h-px bg-emerald-600/20"></div>
                      Academic Placement
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
                     <div className="space-y-1">
                       <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
                         Class Placement <span className="text-red-500 font-black">*</span>
