@@ -166,8 +166,8 @@ const FeeStructureSetup = () => {
               <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Financial Engine</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tighter italic mb-1 uppercase">Fee Structure Setup</h1>
-            <p className="text-sm text-white/60 font-medium tracking-wide">Configure primary billables for all academic tiers</p>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tighter italic mb-1 uppercase">Create Fee Structure</h1>
+            <p className="text-sm text-white/60 font-medium tracking-wide">Set up school fees for different classes and terms</p>
           </div>
           
           <div className="p-4 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 text-center">
@@ -186,7 +186,7 @@ const FeeStructureSetup = () => {
           
           <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-6 flex items-center gap-2">
             <span className="w-1.5 h-6 bg-primary rounded-full"></span>
-            {editingStructure ? 'Update Tier Billing' : 'Configure New Tier'}
+            {editingStructure ? 'Change Fee Amount' : 'Create New Fee'}
           </h2>
 
           {message && (
@@ -205,9 +205,9 @@ const FeeStructureSetup = () => {
                 value={formData.academicSessionId}
                 onChange={e => setFormData({ ...formData, academicSessionId: e.target.value })}
               >
-                <option value="">Select Target Session</option>
+                <option value="">Select Academic Session</option>
                 {sessions.map(s => (
-                  <option key={s.id} value={s.id}>{s.name} {s.isCurrent ? '(LIVE)' : ''}</option>
+                  <option key={s.id} value={s.id}>{s.name} {s.isCurrent ? '(Active)' : ''}</option>
                 ))}
               </select>
             </div>
@@ -221,9 +221,9 @@ const FeeStructureSetup = () => {
                   value={formData.termId}
                   onChange={e => setFormData({ ...formData, termId: e.target.value })}
                 >
-                  <option value="">Pick Term</option>
+                  <option value="">Select Term</option>
                   {terms
-                    .filter(t => !formData.academicSessionId || t.academicSessionId === parseInt(formData.academicSessionId))
+                    .filter(t => !formData.academicSessionId || String(t.academicSessionId) === String(formData.academicSessionId))
                     .map(t => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
@@ -238,9 +238,9 @@ const FeeStructureSetup = () => {
                   value={formData.classId}
                   onChange={e => setFormData({ ...formData, classId: e.target.value })}
                 >
-                  <option value="">Choose Class</option>
+                  <option value="">Select Class</option>
                   {classes.map(c => (
-                    <option key={c.id} value={c.id}>{c.name} {c.arm}</option>
+                    <option key={c.id} value={c.id}>{c.name} {c.arm || ''}</option>
                   ))}
                 </select>
               </div>
@@ -288,7 +288,7 @@ const FeeStructureSetup = () => {
                 disabled={loading}
                 className="flex-[2] py-4 px-8 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 disabled:opacity-50 transition-all"
               >
-                {loading ? 'Processing Ledger...' : (editingStructure ? 'Confirm Policy Change' : 'Deploy Fee Structure')}
+                {loading ? 'Saving...' : (editingStructure ? 'Save Changes' : 'Create Fee Structure')}
               </button>
             </div>
           </form>
@@ -298,7 +298,6 @@ const FeeStructureSetup = () => {
         <div className="lg:col-span-7 bg-white rounded-[32px] shadow-xl border border-slate-100 overflow-hidden">
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
             <h2 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em]">Active Ledger Configuration</h2>
-            <span className="px-3 py-1 bg-white rounded-full text-[9px] font-black text-slate-400 border border-slate-100 shadow-sm uppercase tracking-widest">Read Only Mode</span>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-100">
