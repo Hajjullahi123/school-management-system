@@ -222,11 +222,9 @@ const FeeStructureSetup = () => {
                   onChange={e => setFormData({ ...formData, termId: e.target.value })}
                 >
                   <option value="">Select Term</option>
-                  {terms
-                    .filter(t => !formData.academicSessionId || String(t.academicSessionId) === String(formData.academicSessionId))
-                    .map(t => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
+                  {terms.map(t => (
+                    <option key={t.id} value={t.id}>{t.name} ({sessions.find(s => s.id === t.academicSessionId)?.name || 'N/A'})</option>
+                  ))}
                 </select>
               </div>
 
