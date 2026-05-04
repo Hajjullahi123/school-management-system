@@ -158,8 +158,18 @@ const ResultEntry = () => {
       }
       const classData = await studentsResponse.json();
 
-      // Sort students alphabetically
-      const loadedStudents = (classData.students || []).sort((a, b) => {
+      // Sort students alphabetically and filter duplicates
+      const uniqueStudents = [];
+      const studentIds = new Set();
+      
+      (classData.students || []).forEach(s => {
+        if (!studentIds.has(s.id)) {
+          studentIds.add(s.id);
+          uniqueStudents.push(s);
+        }
+      });
+
+      const loadedStudents = uniqueStudents.sort((a, b) => {
         const nameA = `${a.user?.firstName} ${a.user?.lastName} ${a.middleName || ''}`.trim().toLowerCase();
         const nameB = `${b.user?.firstName} ${b.user?.lastName} ${b.middleName || ''}`.trim().toLowerCase();
         return nameA.localeCompare(nameB);
@@ -618,8 +628,8 @@ const ResultEntry = () => {
             <table className="min-w-full divide-y divide-gray-200 table-fixed md:table-auto">
               <thead className="bg-primary/5">
                 <tr>
-                  <th className="px-4 py-4 text-left text-xs font-black text-primary uppercase tracking-widest sticky left-0 bg-white z-30 border-b border-primary/10 shadow-[2px_0_5px_rgba(0,0,0,0.05)] min-w-[160px]">
-                    Student Name
+                  <th className="px-4 py-4 text-left text-xs font-black text-primary uppercase tracking-widest sticky left-0 bg-white z-30 border-b border-primary/10 shadow-[2px_0_5px_rgba(0,0,0,0.05)] min-w-[220px]">
+                    Student Profile
                   </th>
                   <th className="px-4 py-4 text-center text-xs font-bold text-primary uppercase tracking-wider bg-primary/5 z-10">
                     Assgn 1<br /><span className="text-primary/60 text-[10px]">({weights.assignment1}%)</span>
@@ -653,8 +663,9 @@ const ResultEntry = () => {
                         className="px-4 py-4 text-sm font-bold text-gray-900 sticky left-0 z-20 border-r border-gray-100 shadow-[2px_0_5px_rgba(0,0,0,0.03)]" 
                         style={{ backgroundColor: index % 2 === 0 ? 'white' : '#fcfcfd' }}
                       >
-                        <div className="min-w-[140px] md:min-w-0 break-words leading-tight">
-                          {student.user?.firstName} {student.user?.lastName} {student.middleName}
+                        <div className="min-w-[180px] md:min-w-0 break-words leading-tight">
+                          <p className="font-black text-slate-900 uppercase tracking-tight">{student.user?.firstName} {student.user?.lastName}</p>
+                          <p className="text-[10px] text-primary font-black uppercase tracking-widest mt-1 opacity-70">{student.admissionNumber}</p>
                         </div>
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-center">

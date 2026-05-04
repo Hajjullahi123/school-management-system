@@ -1098,7 +1098,8 @@ Note: Password must be changed on first login.
                      <div className="w-8 h-px bg-emerald-600/20"></div>
                      Academic Placement
                   </div>
-
+                  
+                  <div className="grid grid-cols-1 gap-6">
                     <div className="space-y-1">
                       <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
                         Class Placement <span className="text-red-500 font-black">*</span>
