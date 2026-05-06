@@ -1005,12 +1005,12 @@ Note: Password must be changed on first login.
             <div className="relative">
               <button
                 onClick={() => { setShowDownloadsMenu(!showDownloadsMenu); setShowToolsMenu(false); }}
-                className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-gray-500 hover:text-gray-700"
-                title="Downloads"
+                className="px-3 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-gray-600 hover:text-gray-800 flex items-center gap-1.5 text-xs font-medium"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
+                Downloads
               </button>
               {showDownloadsMenu && (
                 <>
@@ -1042,13 +1042,13 @@ Note: Password must be changed on first login.
             <div className="relative">
               <button
                 onClick={() => { setShowToolsMenu(!showToolsMenu); setShowDownloadsMenu(false); }}
-                className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-gray-500 hover:text-gray-700"
-                title="Tools"
+                className="px-3 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-gray-600 hover:text-gray-800 flex items-center gap-1.5 text-xs font-medium"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
+                Tools
               </button>
               {showToolsMenu && (
                 <>
@@ -1077,17 +1077,6 @@ Note: Password must be changed on first login.
           </div>
         </div>
 
-        {/* Quick tip — only show when school has few students */}
-        {students.length < 5 && (
-          <div className="mt-4 pt-4 border-t border-gray-100 flex items-start gap-3">
-            <svg className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              <span className="font-semibold text-gray-700">Getting started:</span> Download the <button onClick={handleDownloadTemplate} className="text-primary font-semibold hover:underline">Excel Template</button>, fill it with student data using IDs from the <button onClick={handleDownloadGuidancePDF} className="text-amber-600 font-semibold hover:underline">Upload Guide</button>, then click <span className="font-semibold text-emerald-700">Import</span>. Classes must exist first.
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Student Registration Form - Moved to TOP for visibility */}
@@ -1370,46 +1359,7 @@ Note: Password must be changed on first login.
         )
       }
 
-      {/* Action Guidance */}
-      <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-6 mb-2 w-full">
-        <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-          <div className="bg-emerald-100 p-3 rounded-2xl flex-shrink-0">
-            <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div className="space-y-2 flex-1 text-center sm:text-left">
-            <h3 className="text-base font-black text-emerald-900 uppercase tracking-widest">Student Onboarding Instructions</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              <div className="bg-white/50 p-4 rounded-xl border border-emerald-100/50">
-                <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase mb-3">Option 1: Bulk Import</span>
-                <p className="text-xs text-emerald-800 leading-relaxed font-medium">
-                  Download the <span className="font-bold italic">Excel Template</span>, fill it with student records using the numeric IDs from the <span className="font-bold italic text-amber-700 text-[10px]">Download Guide</span>, and click <span className="font-bold italic">Import Students</span> to finish.
-                </p>
-              </div>
-              <div className="bg-white/50 p-4 rounded-xl border border-emerald-100/50">
-                <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase mb-3">Option 2: Manual Registration</span>
-                <p className="text-xs text-emerald-800 leading-relaxed font-medium">
-                  Click the <span className="font-bold italic text-primary">+ Add Student</span> button above to register students one by one through the digital enrollment form.
-                </p>
-              </div>
-            </div>
-            <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-xl space-y-2">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-red-700 flex items-center gap-2">
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                Registration Requirements
-              </h4>
-              <ul className="text-[10px] font-bold text-red-600 space-y-1 list-disc list-inside uppercase tracking-tight">
-                <li>Classes must be created before students can be added</li>
-                <li>Parent/Guardian Name is required</li>
-                <li>Parent/Guardian phone number is recommended for automated account creation</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
+
 
       {/* Search Bar */}
       {
