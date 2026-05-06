@@ -949,95 +949,145 @@ Note: Password must be changed on first login.
     }
   };
 
+  const [showToolsMenu, setShowToolsMenu] = useState(false);
+  const [showDownloadsMenu, setShowDownloadsMenu] = useState(false);
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Student Management</h1>
-          <p className="text-[10px] sm:text-xs text-gray-500 mt-1 font-bold uppercase tracking-widest">
-            {students.length} Total Students • {Object.keys(grouped).length} Classes
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-          <button
-            onClick={handleDownloadTemplate}
-            className="flex-1 sm:flex-none bg-white border border-gray-200 text-gray-600 px-3 py-2 rounded-xl hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
-          >
-            <svg className="w-4 h-4 text-gray-400 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Download Template
-          </button>
-          <button
-            onClick={handleDownloadGuidancePDF}
-            className="flex-1 sm:flex-none bg-amber-50 border border-amber-100 text-amber-600 px-3 py-2 rounded-xl hover:bg-amber-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
-            title="Download Upload Guide & Class IDs"
-          >
-            <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Download Guide
-          </button>
-          <button
-            onClick={handleDownloadPrintableForm}
-            className="flex-1 sm:flex-none bg-indigo-50 border border-indigo-100 text-indigo-600 px-3 py-2 rounded-xl hover:bg-indigo-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
-            title="Download Printable Admission Form"
-          >
-            <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
-            Download Form
-          </button>
-          <button
-            onClick={() => navigate('/dashboard/credential-repository')}
-            className="flex-1 sm:flex-none bg-emerald-50 border border-emerald-100 text-emerald-600 px-3 py-2 rounded-xl hover:bg-emerald-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
-            title="View All Student Credentials"
-          >
-            <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-            </svg>
-            Credential Repo
-          </button>
-          <button
-            onClick={() => handleFixNames(false)}
-            disabled={isFixingNames}
-            className={`flex-1 sm:flex-none px-3 py-2 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm transition-all ${isFixingNames ? 'bg-purple-600 text-white cursor-wait' : 'bg-purple-50 border border-purple-100 text-purple-600 hover:bg-purple-100'}`}
-            title="Scan and recover missing first names, surnames, and accounts"
-          >
-            <svg className={`w-4 h-4 font-bold ${isFixingNames ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            {isFixingNames ? 'Scanning...' : 'Recover Accounts'}
-          </button>
-          <button
-            onClick={() => handleFixAdmissionNumbers(true)}
-            disabled={isFixingNames}
-            className="flex-1 sm:flex-none px-3 py-2 rounded-xl bg-orange-50 border border-orange-100 text-orange-600 hover:bg-orange-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
-            title="Fix 'LEGACY' admission numbers"
-          >
-            <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-            </svg>
-            Fix Numbers
-          </button>
-          <div className="relative group w-full sm:w-auto">
-            <button className={`w-full sm:w-auto px-3 py-2 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm transition-all ${isUploading ? 'bg-emerald-600 text-white cursor-wait' : 'bg-white border border-gray-200 text-emerald-600 hover:bg-emerald-50'}`} disabled={isUploading}>
-              <svg className={`w-4 h-4 font-bold ${isUploading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Student Management</h1>
+            <p className="text-xs text-gray-500 mt-1">
+              {students.length} student{students.length !== 1 ? 's' : ''} across {Object.keys(grouped).length} class{Object.keys(grouped).length !== 1 ? 'es' : ''}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* + Add Student */}
+            <button
+              onClick={() => { setEditingStudent(null); setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className="flex-1 sm:flex-none bg-primary text-white px-4 py-2.5 rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 text-xs font-semibold shadow-md shadow-primary/20 active:scale-95"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              {isUploading ? 'Uploading...' : 'Import Students'}
+              Add Student
             </button>
-            {!isUploading && (
-              <input
-                type="file"
-                className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
-                accept=".csv,.xlsx"
-                onChange={handleBulkUpload}
-              />
-            )}
+
+            {/* Import Students */}
+            <div className="relative flex-1 sm:flex-none">
+              <button
+                className={`w-full px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold transition-all active:scale-95 ${
+                  isUploading
+                    ? 'bg-emerald-600 text-white cursor-wait'
+                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                }`}
+                disabled={isUploading}
+              >
+                <svg className={`w-4 h-4 ${isUploading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                {isUploading ? 'Uploading...' : 'Import'}
+              </button>
+              {!isUploading && (
+                <input
+                  type="file"
+                  className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+                  accept=".csv,.xlsx"
+                  onChange={handleBulkUpload}
+                />
+              )}
+            </div>
+
+            {/* Downloads Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => { setShowDownloadsMenu(!showDownloadsMenu); setShowToolsMenu(false); }}
+                className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-gray-500 hover:text-gray-700"
+                title="Downloads"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </button>
+              {showDownloadsMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowDownloadsMenu(false)} />
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <button onClick={() => { handleDownloadTemplate(); setShowDownloadsMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      Excel Template
+                    </button>
+                    <button onClick={() => { handleDownloadGuidancePDF(); setShowDownloadsMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                      <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                      Upload Guide (Class IDs)
+                    </button>
+                    <button onClick={() => { handleDownloadPrintableForm(); setShowDownloadsMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                      <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                      Printable Admission Form
+                    </button>
+                    <div className="border-t border-gray-100 my-1" />
+                    <button onClick={() => { navigate('/dashboard/credential-repository'); setShowDownloadsMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                      <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                      Credential Repository
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Tools Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => { setShowToolsMenu(!showToolsMenu); setShowDownloadsMenu(false); }}
+                className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-gray-500 hover:text-gray-700"
+                title="Tools"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+              {showToolsMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowToolsMenu(false)} />
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <button
+                      onClick={() => { handleFixNames(false); setShowToolsMenu(false); }}
+                      disabled={isFixingNames}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 disabled:opacity-50"
+                    >
+                      <svg className={`w-4 h-4 text-purple-500 ${isFixingNames ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                      {isFixingNames ? 'Scanning...' : 'Recover Accounts'}
+                    </button>
+                    <button
+                      onClick={() => { handleFixAdmissionNumbers(true); setShowToolsMenu(false); }}
+                      disabled={isFixingNames}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 disabled:opacity-50"
+                    >
+                      <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                      Fix Admission Numbers
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Quick tip — only show when school has few students */}
+        {students.length < 5 && (
+          <div className="mt-4 pt-4 border-t border-gray-100 flex items-start gap-3">
+            <svg className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              <span className="font-semibold text-gray-700">Getting started:</span> Download the <button onClick={handleDownloadTemplate} className="text-primary font-semibold hover:underline">Excel Template</button>, fill it with student data using IDs from the <button onClick={handleDownloadGuidancePDF} className="text-amber-600 font-semibold hover:underline">Upload Guide</button>, then click <span className="font-semibold text-emerald-700">Import</span>. Classes must exist first.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Student Registration Form - Moved to TOP for visibility */}
