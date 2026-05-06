@@ -1096,7 +1096,7 @@ Note: Password must be changed on first login.
             <span className="font-bold text-gray-700 uppercase tracking-wide">Quick Guide:</span> 
             <span className="mx-1.5 font-medium">1.</span> Ensure your Classes are created first. 
             <span className="mx-1.5 font-medium">2.</span> Click <strong className="text-primary">+ Add Student</strong> for single entry <span className="text-gray-400 italic">OR</span> 
-            <span className="mx-1.5 font-medium">3.</span> <strong className="text-gray-700">Get Template</strong>, fill it, and <strong className="text-emerald-700">Import Students</strong> for bulk.
+            <span className="mx-1.5 font-medium">3.</span> <strong className="text-gray-700">Get Template</strong>, fill it <span className="italic text-amber-700 bg-amber-50 px-1 rounded">(Use Class IDs from the Upload Guide in the Downloads ▾ menu)</span>, and <strong className="text-emerald-700">Import Students</strong> for bulk.
           </p>
         </div>
       </div>
