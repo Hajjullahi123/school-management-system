@@ -311,6 +311,107 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
   }
 });
 
+// Create User Account for Legacy Student
+router.post('/:id/create-account', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const studentId = parseInt(id);
+
+    const student = await prisma.student.findUnique({
+      where: { 
+        id: studentId,
+        schoolId: parseInt(req.schoolId)
+      },
+      include: { user: true }
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    if (student.user) {
+      return res.status(400).json({ error: 'Student already has a user account' });
+    }
+
+    // Split student.name into first and last name if available
+    let firstName = 'Student';
+    let lastName = studentId.toString();
+
+    if (student.name) {
+      const names = student.name.trim().split(/\s+/);
+      if (names.length > 0) firstName = names[0];
+      if (names.length > 1) lastName = names.slice(1).join(' ');
+    }
+
+    // Fetch school code for username generation
+    const school = await prisma.school.findUnique({
+      where: { id: parseInt(req.schoolId) },
+      select: { code: true }
+    });
+
+    // Generate professional username and admission number
+    const generatedId = await generateStudentUsername(
+      req.schoolId,
+      school?.code || 'SCH',
+      firstName,
+      lastName
+    );
+
+    const username = generatedId.toLowerCase();
+    const temporaryPassword = student.admissionNumber && !student.admissionNumber.startsWith('LEGACY-') 
+      ? student.admissionNumber 
+      : Math.random().toString(36).slice(-8).toUpperCase();
+
+    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+
+    // Create user and link to student in a transaction
+    const updatedStudent = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          schoolId: parseInt(req.schoolId),
+          username,
+          passwordHash,
+          role: 'student',
+          firstName,
+          lastName,
+          email: student.parentEmail || (student.parentPhone ? student.parentPhone + '@edutech.com' : null)
+        }
+      });
+
+      return await tx.student.update({
+        where: { id: studentId },
+        data: { 
+          userId: user.id,
+          // Update admission number if it was a legacy one
+          admissionNumber: (student.admissionNumber?.startsWith('LEGACY-') || !student.admissionNumber) ? generatedId : student.admissionNumber
+        },
+        include: { user: true }
+      });
+    });
+
+    res.json({
+      message: 'Account created successfully',
+      student: updatedStudent,
+      credentials: {
+        username,
+        password: temporaryPassword
+      }
+    });
+
+    logAction({
+      schoolId: parseInt(req.schoolId),
+      userId: req.user.id,
+      action: 'CREATE_ACCOUNT',
+      resource: 'STUDENT',
+      details: { studentId, username },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Create student account error:', error);
+    res.status(500).json({ error: 'Failed to create student account' });
+  }
+});
+
 // Upload my photo (for logged-in student) — Base64 DB storage
 router.post('/my-photo', authenticate, (req, res, next) => {
   upload.single('photo')(req, res, (err) => {

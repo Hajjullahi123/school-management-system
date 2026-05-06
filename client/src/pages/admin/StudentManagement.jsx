@@ -229,6 +229,35 @@ const StudentManagement = () => {
     }
   };
 
+  const handleCreateAccount = async (student) => {
+    if (!confirm(`Create a user account and generate a formal ID for ${student.name || 'this student'}?`)) return;
+
+    try {
+      setLoading(true);
+      const response = await api.post(`/api/students/${student.id}/create-account`);
+      const result = await response.json();
+
+      if (response.ok) {
+        setNewStudentCredentials({
+          name: `${result.student.user.firstName} ${result.student.user.lastName}`,
+          admissionNumber: result.student.admissionNumber,
+          username: result.credentials.username,
+          password: result.credentials.password,
+          mustChangePassword: true
+        });
+        setShowCredentialsModal(true);
+        fetchStudents(); // Refresh list to show new ID and user status
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating account:', error);
+      alert('Failed to create account');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleResetCredentials = async (student) => {
     if (!student.user) {
       alert('This student does not have an active user account.');
@@ -1457,13 +1486,23 @@ Note: Password must be changed on first login.
                                   {student.gender}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                  <button
-                                    onClick={() => handleResetCredentials(student)}
-                                    className="text-amber-600 hover:text-amber-900 mr-4"
-                                    title="Reset/View Credentials"
-                                  >
-                                    Credentials
-                                  </button>
+                                  {student.user ? (
+                                    <button
+                                      onClick={() => handleResetCredentials(student)}
+                                      className="text-amber-600 hover:text-amber-900 mr-4"
+                                      title="Reset/View Credentials"
+                                    >
+                                      Credentials
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleCreateAccount(student)}
+                                      className="text-primary hover:text-primary-dark font-bold mr-4"
+                                      title="Create User Account"
+                                    >
+                                      Create Account
+                                    </button>
+                                  )}
                                   {!student.parentId && (
                                     <button
                                       onClick={() => handleAutoCreateParent(student)}
