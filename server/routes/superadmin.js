@@ -526,28 +526,89 @@ router.put('/schools/:id', authenticate, authorize(['superadmin']), async (req, 
  * @access  SuperAdmin only
  */
 router.delete('/schools/:id', authenticate, authorize(['superadmin']), async (req, res) => {
+  const schoolId = parseInt(req.params.id);
+  
+  if (schoolId === 1) {
+    return res.status(400).json({ error: 'The primary system school (ID 1) cannot be deleted.' });
+  }
+
   try {
-    const schoolId = parseInt(req.params.id);
-
-    // This is a DESTRUCTIVE operation. In a real system, you might prefer Soft Delete.
-    // For now, we will perform a cascade delete if Prisma is set up for it, 
-    // or manual if not. 
-
-    // Check if school exists
     const school = await prisma.school.findUnique({ where: { id: schoolId } });
     if (!school) return res.status(404).json({ error: 'School not found' });
 
-    // Since many tables don't have cascade delete set up in Prisma by default 
-    // unless explicitly stated in schema, we'll use a transaction for safety if possible
-    // or just delete the school record if DB is set to Cascade.
+    console.log(`[SuperAdmin] Starting cascading delete for school: ${school.name} (ID: ${schoolId})`);
 
-    await prisma.school.delete({ where: { id: schoolId } });
+    // Perform manual cascading delete in a transaction to handle FK constraints
+    await prisma.$transaction(async (tx) => {
+      const where = { schoolId };
+
+      // 1. Delete deeply nested records first
+      await tx.result.deleteMany({ where });
+      await tx.attendanceRecord.deleteMany({ where });
+      await tx.staffAttendance.deleteMany({ where });
+      await tx.feePayment.deleteMany({ where });
+      await tx.feeRecord.deleteMany({ where });
+      await tx.onlinePayment.deleteMany({ where });
+      await tx.classFeeStructure.deleteMany({ where });
+      await tx.miscellaneousFeePayment.deleteMany({ where });
+      await tx.miscellaneousFee.deleteMany({ where });
+      await tx.examCard.deleteMany({ where });
+      await tx.cBTResult.deleteMany({ where });
+      await tx.cBTExam.deleteMany({ where });
+      await tx.cBTQuestionBank.deleteMany({ where });
+      await tx.cBTQuestion.deleteMany({ where: { schoolId } }); // If exists
+      await tx.quranRecord.deleteMany({ where });
+      await tx.quranTarget.deleteMany({ where });
+      await tx.homeworkSubmission.deleteMany({ where });
+      await tx.homework.deleteMany({ where });
+      await tx.lessonNote.deleteMany({ where });
+      await tx.lessonPlan.deleteMany({ where });
+      await tx.curriculum.deleteMany({ where });
+      await tx.teacherAssignment.deleteMany({ where });
+      await tx.classSubject.deleteMany({ where });
+      await tx.timetable.deleteMany({ where });
+      await tx.examRepository.deleteMany({ where });
+      await tx.studentReportCard.deleteMany({ where });
+      await tx.resultPublication.deleteMany({ where });
+      await tx.promotionHistory.deleteMany({ where });
+      await tx.staffAttendance.deleteMany({ where });
+      await tx.auditLog.deleteMany({ where });
+      await tx.newsEvent.deleteMany({ where });
+      await tx.notice.deleteMany({ where });
+      await tx.galleryImage.deleteMany({ where });
+      await tx.alumniDonation.deleteMany({ where });
+      await tx.alumniEvent.deleteMany({ where });
+      await tx.alumniStory.deleteMany({ where });
+      await tx.alumni.deleteMany({ where });
+      await tx.parentTeacherMessage.deleteMany({ where });
+      await tx.whatsAppLog.deleteMany({ where });
+      await tx.schoolHoliday.deleteMany({ where });
+      await tx.counter.deleteMany({ where });
+      await tx.psychomotorDomain.deleteMany({ where });
+      await tx.certificate.deleteMany({ where });
+      await tx.testimonial.deleteMany({ where });
+
+      // 2. Delete main entities
+      await tx.student.deleteMany({ where });
+      await tx.teacherAvailability.deleteMany({ where });
+      await tx.teacher.deleteMany({ where });
+      await tx.parent.deleteMany({ where });
+      await tx.user.deleteMany({ where });
+      await tx.subject.deleteMany({ where });
+      await tx.class.deleteMany({ where });
+      await tx.term.deleteMany({ where });
+      await tx.academicSession.deleteMany({ where });
+      await tx.department.deleteMany({ where });
+
+      // 3. Finally delete the school itself
+      await tx.school.delete({ where: { id: schoolId } });
+    });
 
     res.json({ message: 'School and all associated data deleted successfully' });
+    console.log(`[SuperAdmin] School deleted successfully: ${school.name} (ID: ${schoolId})`);
 
-    console.log(`[SuperAdmin] School deleted: ${school.name} (ID: ${schoolId})`);
     logAction({
-      schoolId: 1, // System level logs mapped to school 1 to avoid FK errors
+      schoolId: 1,
       userId: req.user.id,
       action: 'DELETE_SCHOOL',
       resource: 'SCHOOL',
@@ -556,7 +617,7 @@ router.delete('/schools/:id', authenticate, authorize(['superadmin']), async (re
     });
   } catch (error) {
     console.error('Delete school error:', error);
-    res.status(500).json({ error: 'Failed to delete school. Check for foreign key constraints.' });
+    res.status(500).json({ error: `Failed to delete school: ${error.message}` });
   }
 });
 

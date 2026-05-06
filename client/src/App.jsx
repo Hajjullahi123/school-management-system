@@ -56,6 +56,7 @@ const BulkResultUpload = lazyRetry(() => import('./pages/teacher/BulkResultUploa
 const BulkReportDownload = lazyRetry(() => import('./pages/teacher/BulkReportDownload'));
 const FeeManagement = lazyRetry(() => import('./pages/accountant/FeeManagement'));
 const FeeStructureSetup = lazyRetry(() => import('./pages/admin/FeeStructureSetup'));
+const QuickFeeSetup = lazyRetry(() => import('./pages/admin/QuickFeeSetup'));
 const MiscellaneousFees = lazyRetry(() => import('./pages/admin/MiscellaneousFees'));
 const MiscFeePayments = lazyRetry(() => import('./pages/admin/MiscFeePayments'));
 const ExamCardGenerator = lazyRetry(() => import('./pages/student/ExamCardGenerator'));
@@ -425,6 +426,11 @@ function App() {
               <Route path="fee-structure" element={
                 <ProtectedRoute roles={['admin', 'accountant', 'principal']}>
                   <FeeStructureSetup />
+                </ProtectedRoute>
+              } />
+              <Route path="quick-fee-setup" element={
+                <ProtectedRoute roles={['admin', 'accountant', 'principal']}>
+                  <QuickFeeSetup />
                 </ProtectedRoute>
               } />
               <Route path="misc-fees" element={

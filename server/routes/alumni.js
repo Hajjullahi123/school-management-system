@@ -185,12 +185,12 @@ router.get('/yearbook/:year', optionalAuth, async (req, res) => {
       alumni: alumni.map(a => ({
         id: a.id,
         studentId: a.student.id,
-        userId: a.student.user.id,
-        name: `${a.student.user.firstName} ${a.student.user.lastName}`,
-        photoUrl: a.profilePicture || a.student.user.photoUrl || a.student.photoUrl,
+        userId: a.student.user?.id || null,
+        name: a.student.user ? `${a.student.user.firstName} ${a.student.user.lastName}` : (a.student.name || a.student.admissionNumber || 'Alumni'),
+        photoUrl: a.profilePicture || a.student.user?.photoUrl || a.student.photoUrl,
         bio: a.bio,
         specialization: a.courseOfStudy || a.currentJob,
-        gender: a.student.user.gender
+        gender: a.student.user?.gender
       })),
       teachers: teachers.map(t => ({
         id: t.id,
@@ -479,8 +479,8 @@ router.post('/admin/create', authenticate, checkSubscription, authorize(['admin'
         alumniId: alumniId || await generateAlumniUsername(
           req.schoolId,
           schoolCode,
-          student.user.firstName,
-          student.user.lastName,
+          student.user ? student.user.firstName : (student.name?.split(' ')[0] || 'Alumni'),
+          student.user ? student.user.lastName : (student.name?.split(' ').slice(-1)[0] || student.admissionNumber || ''),
           graduationYear
         )
       }
@@ -720,8 +720,8 @@ router.post('/admin/generate-credentials', authenticate, checkSubscription, auth
       alumniId = await generateAlumniUsername(
         req.schoolId,
         schoolCode,
-        student.user.firstName,
-        student.user.lastName,
+        student.user ? student.user.firstName : (student.name?.split(' ')[0] || 'Alumni'),
+        student.user ? student.user.lastName : (student.name?.split(' ').slice(-1)[0] || student.admissionNumber || ''),
         student.alumniProfile.graduationYear
       );
     }

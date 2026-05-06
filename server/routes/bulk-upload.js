@@ -255,7 +255,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
     let allowedClassIds = null;
     if (req.user.role === 'teacher') {
       const assignedClasses = await prisma.class.findMany({
-        where: { classTeacherId: req.user.id, schoolId: req.schoolId },
+        where: { classTeacherId: req.user.id, schoolId: schoolIdInt },
         select: { id: true }
       });
       allowedClassIds = new Set(assignedClasses.map(c => c.id));
@@ -278,6 +278,12 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
         }
 
         let classIdVal = studentData.classId.toString().trim();
+        
+        // Handle dropdown format: "1 - ClassName Arm" -> extract the number before the dash
+        if (classIdVal.includes(' - ')) {
+          classIdVal = classIdVal.split(' - ')[0].trim();
+        }
+        
         let classIdInt = parseInt(classIdVal);
         let classInfo = null;
 
@@ -293,7 +299,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
           });
         }
 
-        // 3. Fallback to Class Name matching
+        // 3. Fallback to Class Name matching (use original value for name matching)
         if (!classInfo && studentData.classId) {
           const classNameStr = studentData.classId.toString().trim().toLowerCase();
           classInfo = availableClasses.find(c => 
@@ -491,7 +497,7 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'princi
     let allowedClassIds = null;
     if (req.user.role === 'teacher') {
       const assignedClasses = await prisma.class.findMany({
-        where: { classTeacherId: req.user.id, schoolId: req.schoolId },
+        where: { classTeacherId: req.user.id, schoolId: schoolIdInt },
         select: { id: true }
       });
       allowedClassIds = new Set(assignedClasses.map(c => c.id));
@@ -856,7 +862,7 @@ router.post('/results', authenticate, authorize(['admin', 'teacher', 'principal'
 
           uploadResults.updated.push({
             admissionNumber: resultData.admissionNumber,
-            studentName: `${student.user.firstName} ${student.user.lastName}`,
+            studentName: student.user ? `${student.user.firstName || ''} ${student.user.lastName || ''}`.trim() : (resultData.studentName || resultData.admissionNumber),
             totalScore,
             grade
           });
@@ -898,7 +904,7 @@ router.post('/results', authenticate, authorize(['admin', 'teacher', 'principal'
 
           uploadResults.successful.push({
             admissionNumber: resultData.admissionNumber,
-            studentName: `${student.user.firstName} ${student.user.lastName}`,
+            studentName: student.user ? `${student.user.firstName || ''} ${student.user.lastName || ''}`.trim() : (resultData.studentName || resultData.admissionNumber),
             totalScore,
             grade
           });

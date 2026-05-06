@@ -843,7 +843,7 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
     if (existingStudentRecord && existingStudentRecord.status === 'present') {
       return res.status(400).json({
         error: 'Student already scanned today',
-        message: `${student.user.firstName} already arrived today.`
+        message: `${student.user?.firstName || student.name || 'Student'} already arrived today.`
       });
     }
 
@@ -886,7 +886,7 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
           senderRole: req.user.role,
           studentId: student.id,
           subject: 'Safe Arrival Alert',
-          message: `${student.user.firstName} has arrived safely at school today (${arrivalTime}).`,
+          message: `${student.user?.firstName || student.name || 'Student'} has arrived safely at school today (${arrivalTime}).`,
           messageType: 'attendance',
           isRead: false
         }
@@ -897,7 +897,7 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
         const { sendArrivalSMS } = require('../services/smsService');
         sendArrivalSMS({
           phone: student.parent.phone,
-          studentName: student.user.firstName,
+          studentName: student.user?.firstName || student.name || 'Student',
           time: arrivalTime,
           schoolName
         }).catch(e => console.error('Arrival SMS error:', e));
@@ -908,7 +908,7 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
         const { sendArrivalAlert } = require('../services/emailService');
         sendArrivalAlert({
           parentEmail: student.parent.user.email,
-          studentName: student.user.firstName,
+          studentName: student.user?.firstName || student.name || 'Student',
           time: arrivalTime,
           className: student.classModel?.name || 'N/A',
           schoolName
@@ -917,9 +917,9 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
     }
 
     res.json({
-      message: `${student.user.firstName} arrival logged successfully`,
+      message: `${student.user?.firstName || student.name || 'Student'} arrival logged successfully`,
       student: {
-        name: `${student.user.firstName} ${student.user.lastName}`,
+        name: `${student.user?.firstName || student.name || 'Student'} ${student.user?.lastName || ''}`.trim(),
         class: student.classModel?.name,
         admissionNumber: student.admissionNumber
       }

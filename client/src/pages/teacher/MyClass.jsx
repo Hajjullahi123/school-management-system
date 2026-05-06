@@ -679,11 +679,14 @@ const MyClass = () => {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 leading-tight">
                     {(() => {
-                      const fName = (student.user?.firstName || '').trim();
-                      const mName = (student.middleName || '').trim();
-                      const lName = (student.user?.lastName || '').trim();
-                      const legacyName = (student.name || '').trim();
+                      const firstName = student.user?.firstName || '';
+                      const lastName = student.user?.lastName || '';
+                      const middleName = student.middleName || '';
+                      const legacyName = student.name || '';
                       
+                      const fullName = `${firstName} ${middleName} ${lastName}`.trim().replace(/\s+/g, ' ');
+                      const displayName = fullName || legacyName || `Student ${student.admissionNumber || student.id}`;
+
                       const showIdClue = () => (
                         (student.parentGuardianName || student.parentGuardianPhone) ? (
                           <span className="text-[10px] text-gray-400 italic mt-0.5 block">
@@ -696,40 +699,14 @@ const MyClass = () => {
                         )
                       );
 
-                      if (fName || lName) {
-                        return (
-                          <div className="flex flex-col">
-                            <span>{`${fName} ${mName} ${lName}`.replace(/\s+/g, ' ').trim()}</span>
-                            {(!fName || !lName) && (
-                              <span className="text-[10px] text-orange-500 font-bold uppercase tracking-tight">
-                                Incomplete Profile
-                              </span>
-                            )}
-                            {showIdClue()}
-                          </div>
-                        );
-                      }
-                      
-                      if (legacyName) return (
-                        <div className="flex flex-col">
-                          <span>{legacyName}</span>
-                          {showIdClue()}
-                        </div>
-                      );
-                      
-                      if (mName) return (
-                        <div className="flex flex-col">
-                          <span>{mName}</span>
-                          <span className="text-[10px] text-red-500 font-bold uppercase tracking-tight">
-                            Only Middle Name Found
-                          </span>
-                          {showIdClue()}
-                        </div>
-                      );
-
                       return (
                         <div className="flex flex-col">
-                          <span>Unknown Student</span>
+                          <span className="font-bold text-gray-900">{displayName}</span>
+                          {(!firstName || !lastName) && !legacyName && (
+                            <span className="text-[10px] text-orange-500 font-bold uppercase tracking-tight">
+                              Incomplete Profile
+                            </span>
+                          )}
                           {showIdClue()}
                         </div>
                       );

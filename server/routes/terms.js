@@ -17,10 +17,13 @@ const getTermOrder = (termName) => {
 router.get('/', authenticate, async (req, res) => {
   try {
     const { academicSessionId } = req.query;
-
     const where = { schoolId: req.schoolId };
+
     if (academicSessionId) {
-      where.academicSessionId = parseInt(academicSessionId);
+      const sessionId = parseInt(academicSessionId);
+      if (!isNaN(sessionId)) {
+        where.academicSessionId = sessionId;
+      }
     }
 
     const terms = await prisma.term.findMany({
@@ -36,7 +39,10 @@ router.get('/', authenticate, async (req, res) => {
     // Sort terms by session (descending) and then by term order (First, Second, Third)
     terms.sort((a, b) => {
       // First sort by academic session (most recent first)
-      const sessionCompare = b.academicSession.name.localeCompare(a.academicSession.name);
+      const sessionA = a.academicSession?.name || '';
+      const sessionB = b.academicSession?.name || '';
+      
+      const sessionCompare = sessionB.localeCompare(sessionA);
       if (sessionCompare !== 0) return sessionCompare;
 
       // Then sort by term order (First, Second, Third)

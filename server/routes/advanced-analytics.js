@@ -194,7 +194,7 @@ router.get('/subject/:subjectId', authenticate, requirePackage('premium'), async
         .sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0))
         .slice(0, 5)
         .map(r => ({
-          name: `${r.student.user.firstName} ${r.student.user.lastName}`,
+          name: r.student.user ? `${r.student.user.firstName} ${r.student.user.lastName}` : (r.student.name || r.student.admissionNumber || 'Student'),
           class: r.student.classModel ? `${r.student.classModel.name} ${r.student.classModel.arm}` : 'N/A',
           score: r.totalScore
         })),
@@ -203,7 +203,7 @@ router.get('/subject/:subjectId', authenticate, requirePackage('premium'), async
         .sort((a, b) => (a.totalScore || 0) - (b.totalScore || 0))
         .slice(0, 5)
         .map(r => ({
-          name: `${r.student.user.firstName} ${r.student.user.lastName}`,
+          name: r.student.user ? `${r.student.user.firstName} ${r.student.user.lastName}` : (r.student.name || r.student.admissionNumber || 'Student'),
           class: r.student.classModel ? `${r.student.classModel.name} ${r.student.classModel.arm}` : 'N/A',
           score: r.totalScore
         }))
@@ -357,7 +357,7 @@ router.get('/student/:studentId/comprehensive', authenticate, requirePackage('pr
     if (results.length === 0) {
       return res.json({
         student: {
-          name: `${student.user.firstName} ${student.user.lastName}`,
+          name: student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || student.admissionNumber || 'Student'),
           class: student.classModel ? `${student.classModel.name} ${student.classModel.arm}` : 'N/A'
         },
         message: 'No results available'
@@ -386,7 +386,7 @@ router.get('/student/:studentId/comprehensive', authenticate, requirePackage('pr
 
     const analytics = {
       student: {
-        name: `${student.user.firstName} ${student.user.lastName}`,
+        name: student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || student.admissionNumber || 'Student'),
         admissionNumber: student.admissionNumber,
         class: student.classModel ? `${student.classModel.name} ${student.classModel.arm}` : 'N/A'
       },
@@ -662,7 +662,7 @@ router.get('/class/:classId/overview', authenticate, requirePackage('premium'), 
         .sort((a, b) => b.totalScore - a.totalScore)
         .slice(0, 5)
         .map(r => ({
-          name: `${r.student.user.firstName} ${r.student.user.lastName}`,
+          name: r.student.user ? `${r.student.user.firstName} ${r.student.user.lastName}` : (r.student.name || r.student.admissionNumber || 'Student'),
           score: r.totalScore
         }))
     });
@@ -1008,7 +1008,7 @@ router.post('/ai/student-diagnosis/:studentId', authenticate, requirePackage('pr
     const prompt = `Act as an Academic Intelligence Analyst for a school. Provide a deep cognitive and behavioral diagnosis and intervention roadmap for the following student:
 
     STUDENT IDENTITY:
-    Name: ${student.user.firstName} ${student.user.lastName}
+    Name: ${student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || student.admissionNumber || 'Student')}
     Class: ${student.classModel?.name || 'N/A'} ${student.classModel?.arm || ''}
 
     DATA INPUTS:

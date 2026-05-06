@@ -59,7 +59,7 @@ async function getTopStudentForClass(schoolId, classItem, termId, sessionId) {
 
   return {
     id: top.id,
-    name: `${top.user.firstName} ${top.user.lastName}`,
+    name: top.user ? `${top.user.firstName} ${top.user.lastName}` : (top.name || top.admissionNumber || 'Student'),
     class: `${classItem.name}${classItem.arm ? ' ' + classItem.arm : ''}`,
     average: top.average.toFixed(1) + '%',
     averageNumeric: top.average,
@@ -202,7 +202,7 @@ router.get('/top-performers', async (req, res) => {
 
       return {
         id: student.id,
-        name: `${student.user.firstName} ${student.user.lastName}`,
+        name: student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || student.admissionNumber || 'Student'),
         class: student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'N/A',
         average: average.toFixed(1) + '%',
         averageNumeric: average,

@@ -309,7 +309,7 @@ router.get('/verify/:reference', authenticate, async (req, res) => {
         if (payment.student.parent?.user?.email) {
           sendPaymentConfirmation({
             parentEmail: payment.student.parent.user.email,
-            studentName: payment.student.middleName ? `${payment.student.user.firstName} ${payment.student.user.lastName} ${payment.student.middleName}` : `${payment.student.user.firstName} ${payment.student.user.lastName}`,
+            studentName: payment.student.user ? (payment.student.middleName ? `${payment.student.user.firstName} ${payment.student.user.lastName} ${payment.student.middleName}` : `${payment.student.user.firstName} ${payment.student.user.lastName}`) : (payment.student.name || payment.student.admissionNumber || 'Student'),
             amount: payment.amount,
             paymentMethod: `Online (${payment.provider})`,
             date: new Date(),
@@ -328,7 +328,7 @@ router.get('/verify/:reference', authenticate, async (req, res) => {
             const { sendPaymentSMS } = require('../services/smsService');
             sendPaymentSMS({
               phone: payment.student.parent.phoneNumber,
-              studentName: payment.student.middleName ? `${payment.student.user.firstName} ${payment.student.user.lastName} ${payment.student.middleName}` : `${payment.student.user.firstName} ${payment.student.user.lastName}`,
+              studentName: payment.student.user ? (payment.student.middleName ? `${payment.student.user.firstName} ${payment.student.user.lastName} ${payment.student.middleName}` : `${payment.student.user.firstName} ${payment.student.user.lastName}`) : (payment.student.name || payment.student.admissionNumber || 'Student'),
               amount: payment.amount,
               balance: newBalance,
               schoolName: school.name || 'School Management System'

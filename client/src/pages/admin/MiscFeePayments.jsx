@@ -139,7 +139,8 @@ const MiscFeePayments = () => {
         : null;
 
       // Generate security markers
-      const securityHash = btoa(`MISC-${payment.id}-${payment.student.id}`).substring(0, 12).toUpperCase();
+      const studentId = payment.student?.id || 'N/A';
+      const securityHash = btoa(`MISC-${payment.id}-${studentId}`).substring(0, 12).toUpperCase();
       const barcodeText = `MISC-${payment.id}`;
       const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&rotate=N&includetext=true&backgroundcolor=ffffff&height=12`;
 
@@ -149,7 +150,7 @@ const MiscFeePayments = () => {
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <title>Receipt - ${payment.student.admissionNumber}</title>
+        <title>Receipt - ${payment.student?.admissionNumber || 'N/A'}</title>
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
         <style>
           @page {
@@ -391,23 +392,23 @@ const MiscFeePayments = () => {
             <div class="section-title">Student Details</div>
             <div class="info-group">
               <div class="info-label">Student Name</div>
-              <div class="info-value">${payment.student.user.firstName} ${payment.student.user.lastName} ${payment.student.middleName || ''}</div>
+              <div class="info-value">${payment.student?.user?.firstName || 'Student'} ${payment.student?.user?.lastName || ''} ${payment.student?.middleName || ''}</div>
             </div>
             <div class="info-row">
               <div class="info-group">
                 <div class="info-label">Student ID</div>
-                <div class="info-value">${payment.student.admissionNumber}</div>
+                <div class="info-value">${payment.student?.admissionNumber || 'N/A'}</div>
               </div>
               <div class="info-group">
                 <div class="info-label">Class</div>
-                <div class="info-value">${payment.student.classModel?.name || 'N/A'}</div>
+                <div class="info-value">${payment.student?.classModel?.name || 'N/A'}</div>
               </div>
             </div>
 
             <div class="section-title" style="margin-top: 1mm;">Payment Info</div>
             <div class="info-group" style="margin-bottom: 1mm;">
               <div class="info-label">Fee Title</div>
-              <div class="info-value">${payment.fee.title}</div>
+              <div class="info-value">${payment.fee?.title || 'Miscellaneous Fee'}</div>
             </div>
             <div class="info-row">
               <div class="info-group">
@@ -422,7 +423,7 @@ const MiscFeePayments = () => {
 
             <div class="amount-section">
               <div class="amount-label">Verified Payment</div>
-              <div class="amount-value">₦${payment.amount.toLocaleString()}</div>
+              <div class="amount-value">₦${(payment.amount || 0).toLocaleString()}</div>
             </div>
 
             <div style="text-align: center; margin-top: 1mm;">
@@ -494,8 +495,12 @@ const MiscFeePayments = () => {
   };
 
   const filteredStudents = students.filter(student => {
-    const name = `${student.user.firstName} ${student.user.lastName} ${student.middleName || ''}`.toLowerCase();
-    const admission = student.admissionNumber.toLowerCase();
+    if (!student) return false;
+    const firstName = student.user?.firstName || 'Student';
+    const lastName = student.user?.lastName || '';
+    const middleName = student.middleName || '';
+    const name = `${firstName} ${lastName} ${middleName}`.toLowerCase();
+    const admission = (student.admissionNumber || '').toLowerCase();
     return name.includes(searchTerm.toLowerCase()) || admission.includes(searchTerm.toLowerCase());
   });
 
@@ -529,8 +534,10 @@ const MiscFeePayments = () => {
                     className={`p-3 border rounded cursor-pointer hover:bg-gray-50 transition-colors ${selectedStudent?.id === student.id ? 'bg-blue-50 border-blue-500' : ''
                       }`}
                   >
-                    <div className="font-bold text-gray-900">{student.user.firstName} {student.user.lastName} {student.middleName || ''}</div>
-                    <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">{student.admissionNumber}</div>
+                    <div className="font-bold text-gray-900">
+                      {student.user?.firstName || 'Student'} {student.user?.lastName || ''} {student.middleName || ''}
+                    </div>
+                    <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">{student.admissionNumber || 'No ID'}</div>
                     <div className="text-[10px] text-gray-400 mt-1">{student.classModel?.name || 'No Class'}</div>
                   </div>
                 ))
@@ -550,7 +557,7 @@ const MiscFeePayments = () => {
               <div className="bg-white rounded-lg shadow-md p-6 mb-4">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="font-semibold text-lg">
-                    {selectedStudent.user.firstName} {selectedStudent.user.lastName} {selectedStudent.middleName || ''}'s Fees
+                    {selectedStudent.user?.firstName || 'Student'} {selectedStudent.user?.lastName || ''} {selectedStudent.middleName || ''}'s Fees
                   </h2>
                   <button
                     onClick={() => setShowPaymentForm(!showPaymentForm)}
@@ -579,9 +586,9 @@ const MiscFeePayments = () => {
                           required
                         >
                           <option value="">Select fee</option>
-                          {studentFees.filter(f => f.balance > 0).map(fee => (
+                          {studentFees.filter(f => (f.balance || 0) > 0).map(fee => (
                             <option key={fee.id} value={fee.id}>
-                              {fee.title} (Balance: ₦{fee.balance.toLocaleString()})
+                              {fee.title} (Balance: ₦{(fee.balance || 0).toLocaleString()})
                             </option>
                           ))}
                         </select>
@@ -660,11 +667,11 @@ const MiscFeePayments = () => {
                       studentFees.map(fee => (
                         <tr key={fee.id}>
                           <td className="px-4 py-2">{fee.title}</td>
-                          <td className="px-4 py-2">₦{fee.amount.toLocaleString()}</td>
-                          <td className="px-4 py-2 text-green-600">₦{fee.paid.toLocaleString()}</td>
+                          <td className="px-4 py-2">₦{(fee.amount || 0).toLocaleString()}</td>
+                          <td className="px-4 py-2 text-green-600">₦{(fee.paid || 0).toLocaleString()}</td>
                           <td className="px-4 py-2">
-                            <span className={fee.balance > 0 ? 'text-red-600' : 'text- green-600'}>
-                              ₦{fee.balance.toLocaleString()}
+                            <span className={(fee.balance || 0) > 0 ? 'text-red-600' : 'text-green-600'}>
+                              ₦{(fee.balance || 0).toLocaleString()}
                             </span>
                           </td>
                         </tr>
@@ -699,9 +706,9 @@ const MiscFeePayments = () => {
                         .filter(p => p.studentId === selectedStudent.id)
                         .map(payment => (
                           <tr key={payment.id}>
-                            <td className="px-4 py-2 text-sm">{new Date(payment.paymentDate).toLocaleDateString()}</td>
-                            <td className="px-4 py-2 text-sm">{payment.fee.title}</td>
-                            <td className="px-4 py-2 text-sm">₦{payment.amount.toLocaleString()}</td>
+                            <td className="px-4 py-2 text-sm">{payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : 'N/A'}</td>
+                            <td className="px-4 py-2 text-sm">{payment.fee?.title || 'Unknown Fee'}</td>
+                            <td className="px-4 py-2 text-sm">₦{(payment.amount || 0).toLocaleString()}</td>
                             <td className="px-4 py-2 text-sm capitalize">{payment.paymentMethod || 'Cash'}</td>
                             <td className="px-4 py-2 text-sm">
                               <div className="flex space-x-2">

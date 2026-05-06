@@ -9,38 +9,87 @@ const { getStudentFeeSummary, calculatePreviousOutstanding, createOrUpdateFeeRec
 // Get all students with fee status (Accountant/Admin)
 router.get('/students', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
   try {
-    const { termId, academicSessionId, classId } = req.query;
+    const sessionInt = parseInt(academicSessionId);
+    const termInt = parseInt(termId);
+    const classInt = classId ? parseInt(classId) : null;
 
-    const where = { schoolId: req.schoolId, status: 'active' };
-    if (classId) where.classId = parseInt(classId);
+    if (!sessionInt || !termInt) {
+      // If we don't have IDs, we cannot proceed with fee calculation
+      return res.json([]);
+    }
 
-    const students = await prisma.student.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        },
-        classModel: true,
-        feeRecords: {
-          where: {
-            ...(termId && { termId: parseInt(termId) }),
-            ...(academicSessionId && { academicSessionId: parseInt(academicSessionId) })
-          }
-        }
-      },
-      orderBy: { admissionNumber: 'asc' }
+    // Determine if we're looking at the current session/term
+    const currentSession = await prisma.academicSession.findFirst({
+      where: { schoolId: req.schoolId, isCurrent: true }
     });
+    const currentTerm = await prisma.term.findFirst({
+      where: { schoolId: req.schoolId, isCurrent: true }
+    });
+
+    const isCurrentPeriod = (sessionInt === currentSession?.id) && (termInt === currentTerm?.id);
+
+    const feeRecordFilter = {
+      termId: termInt,
+      academicSessionId: sessionInt
+    };
+
+    let students;
+
+    if (isCurrentPeriod) {
+      // Current period: show only active students (original behavior)
+      const where = { schoolId: req.schoolId, status: 'active' };
+      if (classId) where.classId = parseInt(classId);
+
+      students = await prisma.student.findMany({
+        where,
+        include: {
+          user: { select: { firstName: true, lastName: true, email: true } },
+          classModel: true,
+          FeeRecord: { where: feeRecordFilter }
+        },
+        orderBy: { admissionNumber: 'asc' }
+      });
+
+      // Map FeeRecord to feeRecords for frontend
+      students = students.map(s => ({
+        ...s,
+        feeRecords: s.FeeRecord
+      }));
+    } else {
+      // Historical period: show ALL students who have fee records for this term/session,
+      // regardless of their current status (they may have been promoted/graduated)
+      const activeWhere = { schoolId: req.schoolId, status: 'active' };
+      if (classInt) activeWhere.classId = classInt;
+
+      const historicalWhere = {
+        schoolId: req.schoolId,
+        FeeRecord: { some: feeRecordFilter }
+      };
+      if (classInt) historicalWhere.classId = classInt;
+
+      students = await prisma.student.findMany({
+        where: { OR: [activeWhere, historicalWhere] },
+        include: {
+          user: { select: { firstName: true, lastName: true, email: true } },
+          classModel: true,
+          FeeRecord: { where: feeRecordFilter }
+        },
+        orderBy: { admissionNumber: 'asc' }
+      });
+
+      // Map FeeRecord to feeRecords for frontend
+      students = students.map(s => ({
+        ...s,
+        feeRecords: s.FeeRecord
+      }));
+    }
 
     // Fetch fee structures to populate expected amounts for students without records
     const feeStructures = await prisma.classFeeStructure.findMany({
       where: {
         schoolId: req.schoolId,
-        termId: parseInt(termId),
-        academicSessionId: parseInt(academicSessionId)
+        termId: termInt,
+        academicSessionId: sessionInt
       }
     });
 
@@ -62,8 +111,8 @@ router.get('/students', authenticate, authorize(['admin', 'principal', 'accounta
       const arrears = await calculatePreviousOutstanding(
         req.schoolId,
         student.id,
-        parseInt(academicSessionId),
-        parseInt(termId)
+        sessionInt,
+        termInt
       );
 
       // We attach a virtual record so frontend displays correct 'Expected', 'Arrears' and 'Balance'
@@ -109,13 +158,13 @@ router.get('/student/:studentId', authenticate, async (req, res) => {
         }
       },
       include: {
-        student: {
+        Student: {
           include: {
             user: true,
             classModel: true
           }
         },
-        clearedByUser: {
+        User: {
           select: {
             firstName: true,
             lastName: true
@@ -123,6 +172,12 @@ router.get('/student/:studentId', authenticate, async (req, res) => {
         }
       }
     });
+
+    // Map back to expected names for frontend
+    if (feeRecord) {
+      feeRecord.student = feeRecord.Student;
+      feeRecord.clearedByUser = feeRecord.User;
+    }
 
     res.json(feeRecord);
   } catch (error) {
@@ -329,7 +384,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
           isClearedForExam: (updatedBalance <= 0)
         },
         include: {
-          student: {
+          Student: {
             include: {
               user: true,
               parent: {
@@ -340,8 +395,8 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
               classModel: true
             }
           },
-          term: true,
-          academicSession: true
+          Term: true,
+          AcademicSession: true
         }
       });
 
@@ -362,20 +417,31 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
       return { feeRecord: updated, payment };
     });
 
+    // Map result for email/SMS functions which expect lowercase
+    const formattedResult = {
+      ...result,
+      feeRecord: {
+        ...result.feeRecord,
+        student: result.feeRecord.Student,
+        term: result.feeRecord.Term,
+        academicSession: result.feeRecord.AcademicSession
+      }
+    };
+
     // Send payment confirmation email to parent (non-blocking)
-    if (result.feeRecord.student.parent?.user?.email) {
+    if (formattedResult.feeRecord.student.parent?.user?.email) {
       const emailData = {
-        parentEmail: result.feeRecord.student.parent.user.email,
-        studentName: result.feeRecord.student.middleName ? `${result.feeRecord.student.user.firstName} ${result.feeRecord.student.user.lastName} ${result.feeRecord.student.middleName}` : `${result.feeRecord.student.user.firstName} ${result.feeRecord.student.user.lastName}`,
+        parentEmail: formattedResult.feeRecord.student.parent.user.email,
+        studentName: formattedResult.feeRecord.student.user ? (formattedResult.feeRecord.student.middleName ? `${formattedResult.feeRecord.student.user.firstName} ${formattedResult.feeRecord.student.user.lastName} ${formattedResult.feeRecord.student.middleName}` : `${formattedResult.feeRecord.student.user.firstName} ${formattedResult.feeRecord.student.user.lastName}`) : (formattedResult.feeRecord.student.name || formattedResult.feeRecord.student.admissionNumber || 'Student'),
         amount: parseFloat(amount),
         paymentMethod: paymentMethod || 'Cash',
         date: new Date(),
-        receiptNumber: result.payment.id,
-        balance: result.feeRecord.balance,
-        termName: result.feeRecord.term?.name || 'Current Term',
-        sessionName: result.feeRecord.academicSession?.name || 'Current Session',
+        receiptNumber: formattedResult.payment.id,
+        balance: formattedResult.feeRecord.balance,
+        termName: formattedResult.feeRecord.term?.name || 'Current Term',
+        sessionName: formattedResult.feeRecord.academicSession?.name || 'Current Session',
         schoolName: process.env.SCHOOL_NAME || 'School Management System',
-        className: result.feeRecord.student.classModel?.name || 'N/A'
+        className: formattedResult.feeRecord.student.classModel?.name || 'N/A'
       };
 
       // Send email asynchronously (don't await to avoid blocking)
@@ -392,7 +458,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
 
       sendPaymentSMS({
         phone: result.feeRecord.student.parent.phoneNumber,
-        studentName: result.feeRecord.student.middleName ? `${result.feeRecord.student.user.firstName} ${result.feeRecord.student.user.lastName} ${result.feeRecord.student.middleName}` : `${result.feeRecord.student.user.firstName} ${result.feeRecord.student.user.lastName}`,
+        studentName: result.feeRecord.student.user ? (result.feeRecord.student.middleName ? `${result.feeRecord.student.user.firstName} ${result.feeRecord.student.user.lastName} ${result.feeRecord.student.middleName}` : `${result.feeRecord.student.user.firstName} ${result.feeRecord.student.user.lastName}`) : (result.feeRecord.student.name || result.feeRecord.student.admissionNumber || 'Student'),
         amount: parseFloat(amount),
         balance: result.feeRecord.balance,
         schoolName
@@ -837,15 +903,44 @@ router.get('/summary', authenticate, authorize(['admin', 'principal', 'accountan
     const tId = parseInt(termId);
     const sId = parseInt(academicSessionId);
 
-    // 1. Get all active students
-    const students = await prisma.student.findMany({
-      where: { schoolId: schoolIdInt, status: 'active' },
-      include: {
-        feeRecords: {
-          where: { termId: tId, academicSessionId: sId }
-        }
-      }
+    // Determine if we're looking at historical data
+    const currentSession = await prisma.academicSession.findFirst({
+      where: { schoolId: schoolIdInt, isCurrent: true }
     });
+    const currentTerm = await prisma.term.findFirst({
+      where: { schoolId: schoolIdInt, isCurrent: true }
+    });
+
+    const isCurrentPeriod = (sId === currentSession?.id) && (tId === currentTerm?.id);
+
+    // 1. Get students — for historical periods, include all students with fee records
+    let students;
+    if (isCurrentPeriod) {
+      students = await prisma.student.findMany({
+        where: { schoolId: schoolIdInt, status: 'active' },
+        include: {
+          FeeRecord: { where: { termId: tId, academicSessionId: sId } }
+        }
+      });
+    } else {
+      students = await prisma.student.findMany({
+        where: {
+          OR: [
+            { schoolId: schoolIdInt, status: 'active' },
+            { schoolId: schoolIdInt, FeeRecord: { some: { termId: tId, academicSessionId: sId } } }
+          ]
+        },
+        include: {
+          FeeRecord: { where: { termId: tId, academicSessionId: sId } }
+        }
+      });
+    }
+
+    // Map FeeRecord to feeRecords for calculation logic
+    students = students.map(s => ({
+      ...s,
+      feeRecords: s.FeeRecord
+    }));
 
     // 2. Get fee structures for this term/session
     const feeStructures = await prisma.classFeeStructure.findMany({
@@ -973,7 +1068,7 @@ router.post('/bulk-reminder', authenticate, authorize(['admin', 'principal', 'ac
       if (record.student.parent?.user?.email) {
         const reminderData = {
           parentEmail: record.student.parent.user.email,
-          studentName: `${record.student.user.firstName} ${record.student.user.lastName}`,
+          studentName: record.student.user ? `${record.student.user.firstName} ${record.student.user.lastName}` : (record.student.admissionNumber || 'Student'),
           balance: record.balance,
           termName: record.term.name,
           sessionName: record.academicSession.name,
@@ -1007,10 +1102,28 @@ router.post('/sync-records', authenticate, authorize(['admin', 'principal', 'acc
 
     const schoolIdInt = parseInt(req.schoolId);
 
-    // 1. Get all active students in the school
-    const students = await prisma.student.findMany({
-      where: { schoolId: schoolIdInt, status: 'active' }
+    // 1. Get students for sync
+    // For current sessions, only active students.
+    // For historical sessions, include all who were in the school (had promotion records) or are active.
+    const currentSession = await prisma.academicSession.findFirst({
+      where: { schoolId: schoolIdInt, isCurrent: true }
     });
+    
+    let students;
+    if (parseInt(academicSessionId) === currentSession?.id) {
+      students = await prisma.student.findMany({
+        where: { schoolId: schoolIdInt, status: 'active' }
+      });
+    } else {
+      students = await prisma.student.findMany({
+        where: {
+          OR: [
+            { schoolId: schoolIdInt, status: 'active' },
+            { schoolId: schoolIdInt, promotionHistory: { some: { academicSessionId: parseInt(academicSessionId) } } }
+          ]
+        }
+      });
+    }
 
     // 2. Get all fee structures for this school/term/session
     const feeStructures = await prisma.classFeeStructure.findMany({

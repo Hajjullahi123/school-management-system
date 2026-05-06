@@ -819,6 +819,15 @@ const Layout = () => {
             label: 'Fee Structure'
           },
           {
+            path: '/dashboard/quick-fee-setup',
+            icon: (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            ),
+            label: 'Quick Fee Setup'
+          },
+          {
             path: '/dashboard/misc-fees',
             icon: (
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

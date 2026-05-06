@@ -130,7 +130,7 @@ router.post('/generate', authenticate, authorize(['student', 'admin', 'accountan
         ...examCard,
         student: {
           admissionNumber: student.admissionNumber,
-          name: `${student.user.firstName} ${student.user.lastName}`,
+          name: student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || student.admissionNumber || 'Student'),
           class: student.classModel ? `${student.classModel.name}${student.classModel.arm ? ' ' + student.classModel.arm : ''}` : 'N/A',
           photoUrl: student.user?.photoUrl || student.photoUrl
         },
@@ -226,7 +226,7 @@ router.get('/my-card', authenticate, authorize(['student']), async (req, res) =>
       ...examCard,
       student: {
         admissionNumber: student.admissionNumber,
-        name: `${student.user.firstName} ${student.user.lastName}`,
+        name: student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || student.admissionNumber || 'Student'),
         class: student.classModel ? `${student.classModel.name}${student.classModel.arm ? ' ' + student.classModel.arm : ''}` : 'N/A',
         photoUrl: student.user?.photoUrl || student.photoUrl
       },
@@ -288,7 +288,7 @@ router.get('/student/:studentId', authenticate, authorize(['admin', 'accountant'
       ...examCard,
       student: {
         admissionNumber: examCard.student.admissionNumber,
-        name: `${examCard.student.user.firstName} ${examCard.student.user.lastName}`,
+        name: examCard.student.user ? `${examCard.student.user.firstName} ${examCard.student.user.lastName}` : (examCard.student.name || examCard.student.admissionNumber || 'Student'),
         class: examCard.student.classModel ? `${examCard.student.classModel.name}${examCard.student.classModel.arm ? ' ' + examCard.student.classModel.arm : ''}` : 'N/A',
         photoUrl: examCard.student.user?.photoUrl || examCard.student.photoUrl
       },
@@ -338,7 +338,7 @@ router.get('/verify/:cardNumber', authenticate, authorize(['admin', 'teacher', '
         issuedAt: examCard.issuedAt,
         student: {
           admissionNumber: examCard.student.admissionNumber,
-          name: `${examCard.student.user.firstName} ${examCard.student.user.lastName}`,
+          name: examCard.student.user ? `${examCard.student.user.firstName} ${examCard.student.user.lastName}` : (examCard.student.name || examCard.student.admissionNumber || 'Student'),
           class: examCard.student.classModel ?
             `${examCard.student.classModel.name}${examCard.student.classModel.arm ? ' ' + examCard.student.classModel.arm : ''}` :
             'N/A',
@@ -479,7 +479,7 @@ router.post('/bulk-generate', authenticate, authorize(['admin', 'accountant', 'e
         if (existing) {
           results.alreadyExists.push({
             studentId: record.studentId,
-            name: `${record.student.user.firstName} ${record.student.user.lastName}`,
+            name: record.student.user ? `${record.student.user.firstName} ${record.student.user.lastName}` : (record.student.name || record.student.admissionNumber || 'Student'),
             cardNumber: existing.cardNumber
           });
           continue;
@@ -500,14 +500,14 @@ router.post('/bulk-generate', authenticate, authorize(['admin', 'accountant', 'e
 
         results.generated.push({
           studentId: record.studentId,
-          name: `${record.student.user.firstName} ${record.student.user.lastName}`,
+          name: record.student.user ? `${record.student.user.firstName} ${record.student.user.lastName}` : (record.student.name || record.student.admissionNumber || 'Student'),
           cardNumber: card.cardNumber
         });
 
       } catch (error) {
         results.errors.push({
           studentId: record.studentId,
-          name: `${record.student.user.firstName} ${record.student.user.lastName}`,
+          name: record.student?.user ? `${record.student.user.firstName} ${record.student.user.lastName}` : (record.student?.name || record.student?.admissionNumber || 'Student'),
           error: error.message
         });
       }

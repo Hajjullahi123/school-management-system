@@ -913,7 +913,7 @@ router.get('/:id/results/download', authenticate, authorize(['superadmin', 'admi
     // Generate CSV
     const headers = ['Student Name', 'Admission Number', 'Score', 'Total Questions', 'Correct Answers', 'Percentage', 'Submission Date'];
     const rows = results.map(r => {
-      const name = `${r.student.user.firstName} ${r.student.user.lastName}`;
+      const name = r.student.user ? `${r.student.user.firstName} ${r.student.user.lastName}` : (r.student.name || r.student.admissionNumber || 'Student');
       const percentage = exam.totalMarks > 0 ? ((r.score / exam.totalMarks) * 100).toFixed(2) : 0;
       return [
         name,

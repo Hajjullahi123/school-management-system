@@ -272,11 +272,13 @@ router.post('/graduate', authenticate, checkSubscription, authorize(['admin', 'p
           const schoolCode = school?.code || 'SCH';
 
           // Generate new format username/alumniId
+          const studentFirstName = student.user?.firstName || student.name?.split(' ')[0] || 'Student';
+          const studentLastName = student.user?.lastName || student.name?.split(' ').slice(1).join(' ') || student.admissionNumber || '';
           const alumniId = await generateAlumniUsername(
             req.schoolId,
             schoolCode,
-            student.user.firstName,
-            student.user.lastName,
+            studentFirstName,
+            studentLastName,
             graduationYear
           );
 
@@ -516,7 +518,7 @@ router.get('/verify/:studentId', async (req, res) => {
 
     res.json({
       verified: true,
-      studentName: `${student.user.firstName} ${student.user.lastName}`,
+      studentName: student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || student.admissionNumber || 'Student'),
       schoolName: student.school.name,
       graduationYear: student.alumni?.graduationYear,
       status: student.status,

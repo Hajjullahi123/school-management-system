@@ -16,18 +16,26 @@ router.get('/', authenticate, authorize(['admin', 'accountant']), async (req, re
     const structures = await prisma.classFeeStructure.findMany({
       where,
       include: {
-        class: true,
-        term: true,
-        academicSession: true
+        Class: true,
+        Term: true,
+        AcademicSession: true
       },
       orderBy: {
-        class: {
+        Class: {
           name: 'asc'
         }
       }
     });
 
-    res.json(structures);
+    // Map back to lowercase for frontend compatibility
+    const formattedStructures = structures.map(fs => ({
+      ...fs,
+      class: fs.Class,
+      term: fs.Term,
+      academicSession: fs.AcademicSession
+    }));
+
+    res.json(formattedStructures);
   } catch (error) {
     console.error('Error fetching fee structures:', error);
     res.status(500).json({ error: 'Failed to fetch fee structures' });
@@ -159,6 +167,35 @@ router.post('/setup', authenticate, authorize(['admin', 'accountant']), async (r
   } catch (error) {
     console.error('Error saving fee structure:', error);
     res.status(500).json({ error: 'Failed to save fee structure' });
+  }
+});
+
+// Delete fee structure
+router.delete('/:id', authenticate, authorize(['admin', 'accountant']), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.classFeeStructure.delete({
+      where: {
+        id: parseInt(id),
+        schoolId: req.schoolId
+      }
+    });
+
+    res.json({ message: 'Fee structure deleted successfully' });
+
+    // Log the action
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'DELETE',
+      resource: 'FEE_STRUCTURE',
+      details: { id: parseInt(id) },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error deleting fee structure:', error);
+    res.status(500).json({ error: 'Failed to delete fee structure' });
   }
 });
 

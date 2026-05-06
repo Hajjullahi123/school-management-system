@@ -338,6 +338,7 @@ app.use('/api/teacher-assignments', authenticate, checkSubscription, teacherAssi
 app.use('/api/bulk-upload', authenticate, checkSubscription, bulkUploadRoutes);
 app.use('/api/scoresheet', authenticate, checkSubscription, scoresheetRoutes);
 app.use('/api/fees', authenticate, checkSubscription, feeRoutes);
+app.use('/api/fee-management', authenticate, checkSubscription, feeRoutes);
 app.use('/api/fee-structure', authenticate, checkSubscription, feeStructureRoutes);
 app.use('/api/exam-cards', authenticate, checkSubscription, examCardRoutes);
 app.use('/api/teachers', authenticate, checkSubscription, teacherProfileRoutes);

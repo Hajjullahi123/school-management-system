@@ -26,7 +26,7 @@ router.get('/verify/:testimonialNumber', async (req, res) => {
 
     res.json({
       verified: true,
-      studentName: testimonial.student.middleName ? `${testimonial.student.user.firstName} ${testimonial.student.user.lastName} ${testimonial.student.middleName}` : `${testimonial.student.user.firstName} ${testimonial.student.user.lastName}`,
+      studentName: testimonial.student.user ? (testimonial.student.middleName ? `${testimonial.student.user.firstName} ${testimonial.student.user.lastName} ${testimonial.student.middleName}` : `${testimonial.student.user.firstName} ${testimonial.student.user.lastName}`) : (testimonial.student.name || testimonial.student.admissionNumber || 'Student'),
       schoolName: testimonial.school.name,
       conduct: testimonial.conduct,
       character: testimonial.character,

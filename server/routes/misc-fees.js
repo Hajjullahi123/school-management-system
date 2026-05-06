@@ -15,8 +15,8 @@ router.get('/', authenticate, async (req, res) => {
     const fees = await prisma.miscellaneousFee.findMany({
       where,
       include: {
-        academicSession: true,
-        term: true
+        AcademicSession: true,
+        Term: true
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -159,7 +159,7 @@ router.get('/detailed-analytics', authenticate, async (req, res) => {
           const totalPaid = studentPayments.reduce((sum, p) => sum + p.amount, 0);
           return {
             id: student.id,
-            name: `${student.user.firstName} ${student.user.lastName}`,
+            name: student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || student.admissionNumber || 'Student'),
             admissionNumber: student.admissionNumber,
             totalPaid,
             balance: fee.amount - totalPaid,
@@ -202,7 +202,19 @@ router.get('/detailed-analytics', authenticate, async (req, res) => {
       };
     });
 
-    res.json(detailedData);
+    // Patch: Ensure student.user exists to prevent frontend crashes
+    const patchedData = detailedData.map(fee => ({
+      ...fee,
+      classes: fee.classes.map(cls => ({
+        ...cls,
+        students: cls.students.map(student => ({
+          ...student,
+          user: student.user || { firstName: 'Student', lastName: '' }
+        }))
+      }))
+    }));
+
+    res.json(patchedData);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -325,7 +337,16 @@ router.post('/payments', authenticate, authorize(['admin', 'superadmin']), async
       }
     });
 
-    res.status(201).json(payment);
+    // Patch: Ensure student.user exists to prevent frontend crashes in older versions
+    const patchedPayment = {
+      ...payment,
+      student: {
+        ...payment.student,
+        user: payment.student.user || { firstName: 'Student', lastName: '' }
+      }
+    };
+
+    res.status(201).json(patchedPayment);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -353,7 +374,16 @@ router.get('/payments', authenticate, async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    res.json(payments);
+    // Patch: Ensure student.user exists to prevent frontend crashes in older versions
+    const patchedPayments = payments.map(p => ({
+      ...p,
+      student: {
+        ...p.student,
+        user: p.student?.user || { firstName: 'Student', lastName: '' }
+      }
+    }));
+
+    res.json(patchedPayments);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -400,7 +430,16 @@ router.get('/receipt/:paymentId', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Payment not found' });
     }
 
-    res.json(payment);
+    // Patch: Ensure student.user exists to prevent frontend crashes in older versions
+    const patchedPayment = {
+      ...payment,
+      student: {
+        ...payment.student,
+        user: payment.student.user || { firstName: 'Student', lastName: '' }
+      }
+    };
+
+    res.json(patchedPayment);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

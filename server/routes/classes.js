@@ -474,7 +474,7 @@ router.put('/:id/publish-results', authenticate, authorize(['admin', 'teacher', 
 
               const resultData = {
                 parentEmail: student.parent.user.email,
-                studentName: `${student.user.firstName} ${student.user.lastName}`,
+                studentName: student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || student.admissionNumber || 'Student'),
                 termName: currentTerm?.name || 'Current Term',
                 sessionName: currentSession?.name || 'Current Session',
                 className: `${updatedClass.name} ${updatedClass.arm || ''}`.trim(),

@@ -398,7 +398,7 @@ export default function PrintScholarshipModal({ student, isOpen, onClose, curren
             <div class="student-card">
               <div class="info-grid">
                 <div class="info-label">Full Name</div>
-                <div class="info-value">${student.user.firstName} ${student.user.lastName}</div>
+                <div class="info-value">${student.user?.firstName || 'Unknown'} ${student.user?.lastName || ''}</div>
               </div>
               
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4mm;">

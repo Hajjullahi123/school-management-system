@@ -203,7 +203,7 @@ router.get('/top-performers', authenticate, async (req, res) => {
     // Calculate averages and sort
     const topPerformers = Object.values(studentAverages)
       .map(data => ({
-        name: `${data.student.user.firstName} ${data.student.user.lastName}`,
+        name: data.student.user ? `${data.student.user.firstName} ${data.student.user.lastName}` : (data.student.name || data.student.admissionNumber || 'Student'),
         admissionNumber: data.student.admissionNumber,
         class: data.student.classModel ? `${data.student.classModel.name} ${data.student.classModel.arm}` : 'N/A',
         average: (data.total / data.count).toFixed(2)
@@ -258,7 +258,7 @@ router.get('/students-at-risk', authenticate, async (req, res) => {
     // Filter students with average below 50%
     const atRiskStudents = Object.values(studentAverages)
       .map(data => ({
-        name: `${data.student.user.firstName} ${data.student.user.lastName}`,
+        name: data.student.user ? `${data.student.user.firstName} ${data.student.user.lastName}` : (data.student.name || data.student.admissionNumber || 'Student'),
         admissionNumber: data.student.admissionNumber,
         class: data.student.classModel ? `${data.student.classModel.name} ${data.student.classModel.arm}` : 'N/A',
         average: (data.total / data.count).toFixed(2)
@@ -748,7 +748,7 @@ router.get('/teacher-precision-stats', authenticate, async (req, res) => {
       totalStudents: cls.students.length,
       hasTargets: cls._count.quranTargets > 0,
       students: cls.students.map(s => ({
-        name: `${s.user.firstName} ${s.user.lastName}`,
+        name: s.user ? `${s.user.firstName} ${s.user.lastName}` : (s.name || s.admissionNumber || 'Student'),
         lastUpdate: s.quranRecords[0]?.createdAt || null
       }))
     }));

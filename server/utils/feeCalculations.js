@@ -27,7 +27,7 @@ async function calculatePreviousOutstanding(schoolId, studentId, currentSessionI
       where: {
         schoolId: sId,
         studentId: studId,
-        term: {
+        Term: {
           startDate: { lt: currentTerm.startDate }
         }
       },
@@ -79,9 +79,9 @@ async function getStudentFeeSummary(schoolId, studentId, sessionId, termId) {
         }
       },
       include: {
-        term: true,
-        academicSession: true,
-        payments: {
+        Term: true,
+        AcademicSession: true,
+        FeePayment: {
           orderBy: { paymentDate: 'desc' }
         }
       }
@@ -151,7 +151,9 @@ async function getStudentFeeSummary(schoolId, studentId, sessionId, termId) {
       totalPaid,
       currentBalance: isNaN(currentBalance) ? 0 : currentBalance,
       grandTotal: isNaN(grandTotal) ? 0 : grandTotal,
-      payments: currentRecord?.payments || [],
+      payments: currentRecord?.FeePayment || [],
+      term: currentRecord?.Term,
+      academicSession: currentRecord?.AcademicSession,
       expectedAmount: currentTermFee,
       balance: isNaN(currentBalance) ? 0 : currentBalance,
       paidAmount: totalPaid

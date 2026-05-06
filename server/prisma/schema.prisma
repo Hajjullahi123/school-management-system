@@ -1003,7 +1003,7 @@ model ResultPublication {
   isPublished            Boolean  @default(false)
   isProgressivePublished Boolean  @default(false)
   createdAt              DateTime @default(now())
-  updatedAt              DateTime
+  updatedAt              DateTime @updatedAt
   term                   Term     @relation(fields: [termId], references: [id])
   class                  Class    @relation(fields: [classId], references: [id])
   school                 School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -1036,7 +1036,7 @@ model AlumniEvent {
   isPublished Boolean  @default(false)
   authorId    Int
   createdAt   DateTime @default(now())
-  updatedAt   DateTime
+  updatedAt   DateTime @updatedAt
   School      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
@@ -1051,7 +1051,7 @@ model AlumniStory {
   isPublished    Boolean  @default(false)
   isFeatured     Boolean  @default(false)
   createdAt      DateTime @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime @updatedAt
   School         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
@@ -1074,7 +1074,7 @@ model CBTExam {
   randomizeOptions   Boolean         @default(true)
   examType           String?         @default("examination")
   createdAt          DateTime        @default(now())
-  updatedAt          DateTime
+  updatedAt          DateTime @updatedAt
   Class              Class           @relation(fields: [classId], references: [id])
   Subject            Subject         @relation(fields: [subjectId], references: [id])
   User               User            @relation(fields: [teacherId], references: [id])
@@ -1112,7 +1112,7 @@ model CBTQuestionBank {
   points        Float    @default(1.0)
   difficulty    String?  @default("medium")
   createdAt     DateTime @default(now())
-  updatedAt     DateTime
+  updatedAt     DateTime @updatedAt
   Subject       Subject  @relation(fields: [subjectId], references: [id])
   User          User     @relation(fields: [teacherId], references: [id])
   School        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -1130,7 +1130,7 @@ model CBTResult {
   submittedAt    DateTime?
   answers        String?
   createdAt      DateTime  @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime @updatedAt
   CBTExam        CBTExam   @relation(fields: [examId], references: [id])
   Student        Student   @relation(fields: [studentId], references: [id])
   School         School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -1147,7 +1147,7 @@ model ClassFeeStructure {
   amount            Float
   description       String?
   createdAt         DateTime        @default(now())
-  updatedAt         DateTime
+  updatedAt         DateTime @updatedAt
   Class             Class           @relation(fields: [classId], references: [id])
   AcademicSession   AcademicSession @relation(fields: [academicSessionId], references: [id])
   Term              Term            @relation(fields: [termId], references: [id])
@@ -1226,7 +1226,7 @@ model Homework {
   fileName           String?
   dueDate            DateTime?
   createdAt          DateTime             @default(now())
-  updatedAt          DateTime
+  updatedAt          DateTime @updatedAt
   AcademicSession    AcademicSession?     @relation(fields: [sessionId], references: [id])
   Term               Term?                @relation(fields: [termId], references: [id])
   Class              Class                @relation(fields: [classId], references: [id])
@@ -1250,7 +1250,7 @@ model LearningResource {
   fileName        String?
   type            String           @default("note")
   createdAt       DateTime         @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime @updatedAt
   AcademicSession AcademicSession? @relation(fields: [sessionId], references: [id])
   Term            Term?            @relation(fields: [termId], references: [id])
   Class           Class            @relation(fields: [classId], references: [id])
@@ -1275,7 +1275,7 @@ model License {
   machineId     String?
   notes         String?
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime
+  updatedAt     DateTime @updatedAt
 }
 
 model MiscellaneousFee {
@@ -1289,7 +1289,7 @@ model MiscellaneousFee {
   academicSessionId       Int?
   termId                  Int?
   createdAt               DateTime                  @default(now())
-  updatedAt               DateTime
+  updatedAt               DateTime @updatedAt
   Term                    Term?                     @relation(fields: [termId], references: [id])
   AcademicSession         AcademicSession?          @relation(fields: [academicSessionId], references: [id])
   School                  School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -1324,7 +1324,7 @@ model OnlinePayment {
   paidAt           DateTime?
   providerResponse String?
   createdAt        DateTime  @default(now())
-  updatedAt        DateTime
+  updatedAt        DateTime @updatedAt
   FeeRecord        FeeRecord @relation(fields: [feeRecordId], references: [id])
   Student          Student   @relation(fields: [studentId], references: [id])
   School           School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -1360,7 +1360,7 @@ model ParentTeacherMessage {
   readAt          DateTime?
   parentMessageId Int?
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime @updatedAt
   School          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
@@ -1382,7 +1382,7 @@ model ShowcaseSchool {
   logoUrl   String
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt DateTime @updatedAt
 }
 
 model WhatsAppLog {

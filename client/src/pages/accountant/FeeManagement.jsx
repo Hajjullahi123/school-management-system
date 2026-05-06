@@ -130,10 +130,13 @@ export default function FeeManagement() {
       }
 
       setLoading(true);
+      // Use the VIEWED term/session, not always the current one
+      const targetTermId = selectedViewTerm?.id || currentTerm.id;
+      const targetSessionId = selectedViewSession?.id || currentSession.id;
       const response = await api.post('/api/fees/record', {
         studentId: editingFeeRecord.student.id,
-        termId: currentTerm.id,
-        academicSessionId: currentSession.id,
+        termId: targetTermId,
+        academicSessionId: targetSessionId,
         expectedAmount: expected,
         paidAmount: paid
       });
@@ -142,8 +145,13 @@ export default function FeeManagement() {
       if (response.ok) {
         alert('Fee record adjusted successfully');
         setEditingFeeRecord(null);
-        await loadStudents(currentTerm.id, currentSession.id);
-        await loadSummary(currentTerm.id, currentSession.id);
+        // Refresh the view we're actually looking at
+        if (viewAllTerms) {
+          await loadStudentsAllTerms(targetSessionId);
+        } else {
+          await loadStudents(targetTermId, targetSessionId);
+          await loadSummary(targetTermId, targetSessionId);
+        }
       } else {
         alert(data.error || 'Failed to adjust fee record');
       }
@@ -174,11 +182,13 @@ export default function FeeManagement() {
       if (response.ok) {
         alert('Restriction settings updated successfully');
         setRestrictionModalOpen(false);
-        // Refresh data
+        // Refresh data — use the VIEWED term/session
+        const refreshTermId = selectedViewTerm?.id || currentTerm.id;
+        const refreshSessionId = selectedViewSession?.id || currentSession.id;
         if (viewAllTerms) {
-          await loadStudentsAllTerms(selectedViewSession.id);
+          await loadStudentsAllTerms(refreshSessionId);
         } else {
-          await loadStudents(currentTerm.id, currentSession.id);
+          await loadStudents(refreshTermId, refreshSessionId);
         }
       } else {
         const data = await response.json();
@@ -590,7 +600,7 @@ export default function FeeManagement() {
             <div class="section-title">Student Details</div>
             <div class="info-group">
               <div class="info-label">Student Name</div>
-              <div class="info-value">${payment.student.user.firstName} ${payment.student.user.lastName}</div>
+              <div class="info-value">${payment.student?.user?.firstName || 'Unknown'} ${payment.student?.user?.lastName || ''}</div>
             </div>
             <div class="info-row">
               <div class="info-group">
@@ -950,12 +960,15 @@ export default function FeeManagement() {
     const summaries = {};
 
     studentsData.forEach(student => {
-      if (!student.classId) return;
+      const classId = student.classId || 'historical';
+      const className = student.classId 
+        ? (student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'Unknown Class')
+        : 'Historical/Alumni (No Current Class)';
 
-      if (!summaries[student.classId]) {
-        summaries[student.classId] = {
-          classId: student.classId,
-          className: student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'Unknown',
+      if (!summaries[classId]) {
+        summaries[classId] = {
+          classId: classId,
+          className: className,
           totalStudents: 0,
           totalExpected: 0,
           totalPaid: 0,
@@ -966,15 +979,15 @@ export default function FeeManagement() {
       }
 
       const feeRecord = student.feeRecords[0];
-      summaries[student.classId].totalStudents++;
-      summaries[student.classId].totalExpected += feeRecord?.expectedAmount || 0;
-      summaries[student.classId].totalPaid += feeRecord?.paidAmount || 0;
-      summaries[student.classId].totalBalance += feeRecord?.balance || 0;
+      summaries[classId].totalStudents++;
+      summaries[classId].totalExpected += feeRecord?.expectedAmount || 0;
+      summaries[classId].totalPaid += feeRecord?.paidAmount || 0;
+      summaries[classId].totalBalance += feeRecord?.balance || 0;
 
       if (feeRecord?.isClearedForExam) {
-        summaries[student.classId].clearedStudents++;
+        summaries[classId].clearedStudents++;
       } else {
-        summaries[student.classId].unclearedStudents++;
+        summaries[classId].unclearedStudents++;
       }
     });
 
@@ -1057,12 +1070,14 @@ export default function FeeManagement() {
       setPaymentNotes('');
       setSelectedStudent(null);
 
-      // Refresh data
+      // Refresh data — use the VIEWED term/session, not the current one
+      const refreshTermId = selectedViewTerm?.id || currentTerm.id;
+      const refreshSessionId = selectedViewSession?.id || currentSession.id;
       if (viewAllTerms) {
-        await loadStudentsAllTerms(selectedViewSession.id);
+        await loadStudentsAllTerms(refreshSessionId);
       } else {
-        await loadStudents(currentTerm.id, currentSession.id);
-        await loadSummary(currentTerm.id, currentSession.id);
+        await loadStudents(refreshTermId, refreshSessionId);
+        await loadSummary(refreshTermId, refreshSessionId);
       }
     } catch (error) {
       console.error('Error recording payment:', error);
@@ -1095,12 +1110,14 @@ export default function FeeManagement() {
       // Refresh history
       await viewPaymentHistory(historyStudent);
 
-      // Refresh main data
+      // Refresh main data — use the VIEWED term/session
+      const refreshTermId = selectedViewTerm?.id || currentTerm.id;
+      const refreshSessionId = selectedViewSession?.id || currentSession.id;
       if (viewAllTerms) {
-        await loadStudentsAllTerms(selectedViewSession.id);
+        await loadStudentsAllTerms(refreshSessionId);
       } else {
-        await loadStudents(currentTerm.id, currentSession.id);
-        await loadSummary(currentTerm.id, currentSession.id);
+        await loadStudents(refreshTermId, refreshSessionId);
+        await loadSummary(refreshTermId, refreshSessionId);
       }
 
       // Close modal
@@ -1124,14 +1141,16 @@ export default function FeeManagement() {
     if (!confirm(confirmMsg)) return;
 
     try {
+      const targetTermId = selectedViewTerm?.id || currentTerm.id;
+      const targetSessionId = selectedViewSession?.id || currentSession.id;
       await api.post(`/api/fees/toggle-clearance/${studentId}`, {
-        termId: currentTerm.id,
-        academicSessionId: currentSession.id
+        termId: targetTermId,
+        academicSessionId: targetSessionId
       });
 
       alert(`Student ${actionText.toLowerCase()}ed successfully`);
-      await loadStudents(currentTerm.id, currentSession.id);
-      await loadSummary(currentTerm.id, currentSession.id);
+      await loadStudents(targetTermId, targetSessionId);
+      await loadSummary(targetTermId, targetSessionId);
     } catch (error) {
       console.error('Error toggling clearance:', error);
       alert(error.message || 'Failed to update clearance status');
@@ -1153,9 +1172,11 @@ export default function FeeManagement() {
         try {
           // We use the appropriate endpoint based on action
           const endpoint = isAllowing ? '/api/fees/clear/' : '/api/fees/revoke-clearance/';
+          const batchTermId = selectedViewTerm?.id || currentTerm.id;
+          const batchSessionId = selectedViewSession?.id || currentSession.id;
           await api.post(`${endpoint}${studentId}`, {
-            termId: currentTerm.id,
-            academicSessionId: currentSession.id
+            termId: batchTermId,
+            academicSessionId: batchSessionId
           });
           successCount++;
         } catch (error) {
@@ -1165,8 +1186,10 @@ export default function FeeManagement() {
 
       alert(`${actionText}ed ${successCount} student(s). Failed: ${failCount}`);
       setSelectedStudents([]);
-      await loadStudents(currentTerm.id, currentSession.id);
-      await loadSummary(currentTerm.id, currentSession.id);
+      const refreshTermId = selectedViewTerm?.id || currentTerm.id;
+      const refreshSessionId = selectedViewSession?.id || currentSession.id;
+      await loadStudents(refreshTermId, refreshSessionId);
+      await loadSummary(refreshTermId, refreshSessionId);
     } catch (error) {
       console.error('Error in bulk clearance:', error);
       alert('Failed to process bulk action');
@@ -1177,8 +1200,10 @@ export default function FeeManagement() {
 
   const viewPaymentHistory = async (student) => {
     try {
+      const historyTermId = selectedViewTerm?.id || currentTerm.id;
+      const historySessionId = selectedViewSession?.id || currentSession.id;
       const response = await api.get(
-        `/api/fees/payments/${student.id}?termId=${currentTerm.id}&academicSessionId=${currentSession.id}`
+        `/api/fees/payments/${student.id}?termId=${historyTermId}&academicSessionId=${historySessionId}`
       );
 
       const data = await response.json();
@@ -1229,27 +1254,38 @@ export default function FeeManagement() {
   };
 
   const handleSyncRecords = async () => {
-    if (!selectedViewTerm || !selectedViewSession) {
-      alert('Please select a specific term and session to sync');
+    // Use selected view term/session, or fall back to current term/session
+    const syncTerm = selectedViewTerm || currentTerm;
+    const syncSession = selectedViewSession || currentSession;
+
+    if (!syncTerm || !syncSession) {
+      alert('Please select a specific term and session to sync, or ensure there is an active term and session.');
       return;
     }
 
-    if (!confirm(`This will automatically generate missing fee records for all active students for ${selectedViewTerm.name}. Standard fees will be applied to non-scholarship students. Proceed?`)) {
+    if (!confirm(`This will automatically generate missing fee records for all active students for ${syncTerm.name} (${syncSession.name}). Standard fees will be applied to non-scholarship students. Proceed?`)) {
       return;
     }
 
     try {
       setLoading(true);
       const response = await api.post('/api/fees/sync-records', {
-        termId: selectedViewTerm.id,
-        academicSessionId: selectedViewSession.id
+        termId: syncTerm.id,
+        academicSessionId: syncSession.id
       });
 
       const data = await response.json();
       if (response.ok) {
         alert(data.message);
-        await loadStudents(selectedViewTerm.id, selectedViewSession.id);
-        await loadSummary(selectedViewTerm.id, selectedViewSession.id);
+        // Refresh the correct view after sync
+        if (viewAllSessions) {
+          await loadStudentsAllSessions();
+        } else if (viewAllTerms) {
+          await loadStudentsAllTerms(syncSession.id);
+        } else {
+          await loadStudents(syncTerm.id, syncSession.id);
+          await loadSummary(syncTerm.id, syncSession.id);
+        }
       } else {
         alert(data.error || 'Sync failed');
       }
@@ -1641,7 +1677,8 @@ export default function FeeManagement() {
     const matchesSearch = fullName.includes(searchLower) || admissionNumber.includes(searchLower);
     const matchesClass = filterClass === 'all' || student.classId === parseInt(filterClass);
     const matchesClassView = selectedClassView === null || 
-      (selectedClassView === 'scholarship' ? student.isScholarship : student.classId === selectedClassView);
+      (selectedClassView === 'scholarship' ? student.isScholarship : 
+       (selectedClassView === 'historical' ? !student.classId : student.classId === selectedClassView));
     const matchesStatus = filterStatus === 'all' ||
       (filterStatus === 'cleared' && feeRecord?.isClearedForExam) ||
       (filterStatus === 'not-cleared' && !feeRecord?.isClearedForExam) ||
@@ -1680,12 +1717,46 @@ export default function FeeManagement() {
 
   return (
     <div className="max-w-7xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Fee Management</h1>
-        <p className="text-gray-600 mt-1">
-          {currentTerm?.name} - {currentSession?.name}
-        </p>
+      {/* Header with Diagnostics */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 p-6 bg-gradient-to-br from-slate-900 to-indigo-950 rounded-[32px] text-white shadow-2xl relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="px-2 py-0.5 bg-indigo-500/20 border border-indigo-400/30 rounded text-[10px] font-black uppercase tracking-widest text-indigo-300">
+              Administrative Portal
+            </span>
+            {(!selectedViewTerm?.isCurrent || !selectedViewSession?.isCurrent) && !viewAllSessions && !viewAllTerms && (
+               <span className="px-2 py-0.5 bg-amber-500/20 border border-amber-400/30 rounded text-[10px] font-black uppercase tracking-widest text-amber-300 animate-pulse">
+                Historical Records
+               </span>
+            )}
+          </div>
+          <h1 className="text-3xl md:text-4xl font-black tracking-tighter italic uppercase leading-none mb-2">Fee Management</h1>
+          <p className="text-indigo-200/60 font-bold flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+            {viewAllSessions ? 'GLOBAL ACADEMIC HISTORY' : (viewAllTerms ? `All Terms of ${selectedViewSession?.name}` : `${selectedViewTerm?.name || currentTerm?.name || 'Loading...'} - ${selectedViewSession?.name || currentSession?.name || 'Session'}`)}
+          </p>
+        </div>
+
+        <div className="relative z-10 flex flex-wrap gap-4">
+          <div className="p-3 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 text-center min-w-[100px]">
+            <span className="text-[9px] font-black text-indigo-300 uppercase tracking-widest block mb-1">School ID</span>
+            <span className="text-lg font-black">{authUser?.schoolId || 'N/A'}</span>
+          </div>
+          <div className="p-3 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 text-center min-w-[100px]">
+            <span className="text-[9px] font-black text-indigo-300 uppercase tracking-widest block mb-1">Students</span>
+            <span className="text-lg font-black">{students.length}</span>
+          </div>
+          {students.length === 0 && !loading && (
+            <button 
+              onClick={handleSyncRecords}
+              className="bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              Sync Records
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
@@ -1706,7 +1777,7 @@ export default function FeeManagement() {
             : 'text-gray-400 hover:text-gray-600'
             }`}
         >
-          Miscellaneous Fees
+          Other Fees
         </button>
       </div>
 
@@ -1915,189 +1986,7 @@ export default function FeeManagement() {
             </div>
           )}
 
-          {/* Class Navigation */}
-          <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">📚 Navigate by Class</h2>
-              {selectedClassView !== null && (
-                <button
-                  onClick={() => setSelectedClassView(null)}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                  </svg>
-                  View All Classes
-                </button>
-              )}
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* All Classes Card */}
-              <button
-                onClick={() => setSelectedClassView(null)}
-                className={`p-5 rounded-xl border-2 transition-all transform hover:scale-105 hover:shadow-lg text-left ${selectedClassView === null
-                  ? 'border-primary bg-primary/5 shadow-md'
-                  : 'border-gray-200 bg-white hover:border-primary/50'
-                  }`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-bold text-gray-900">All Classes</h3>
-                  {selectedClassView === null && (
-                    <svg className="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Students:</span>
-                    <span className="font-bold text-gray-900">{students.length}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Expected:</span>
-                    <span className="font-bold text-blue-600">₦{formatNumber(summary?.totalExpected || 0)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Collected:</span>
-                    <span className="font-bold text-green-600">₦{formatNumber(summary?.totalPaid || 0)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Balance:</span>
-                    <span className="font-bold text-red-600">₦{formatNumber(summary?.totalBalance || 0)}</span>
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <div className="w-full bg-gray-100 rounded-full h-1.5">
-                      <div
-                        className="bg-gradient-to-r from-green-500 to-primary h-1.5 rounded-full transition-all"
-                        style={{
-                          width: `${summary?.totalExpected > 0 ? (summary.totalPaid / summary.totalExpected) * 100 : 0}%`
-                        }}
-                      ></div>
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-1.5 text-center font-medium">
-                      {summary?.totalExpected > 0 ? ((summary.totalPaid / summary.totalExpected) * 100).toFixed(1) : 0}% overall collection
-                    </p>
-                  </div>
-                </div>
-              </button>
-
-              {/* Individual Class Cards */}
-              {Object.values(classSummaries || {}).map((classSummary) => (
-                <button
-                  key={classSummary.classId}
-                  onClick={() => setSelectedClassView(classSummary.classId)}
-                  className={`p-5 rounded-xl border-2 transition-all transform hover:scale-105 hover:shadow-lg text-left ${selectedClassView === classSummary.classId
-                    ? 'border-primary bg-primary/5 shadow-md'
-                    : 'border-gray-200 bg-white hover:border-primary/50'
-                    }`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-bold text-gray-900">{classSummary.className}</h3>
-                    {selectedClassView === classSummary.classId && (
-                      <svg className="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Students:</span>
-                      <span className="font-bold text-gray-900">{classSummary.totalStudents}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Expected:</span>
-                      <span className="font-bold text-blue-600">₦{formatNumber(classSummary.totalExpected)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Collected:</span>
-                      <span className="font-bold text-green-600">₦{formatNumber(classSummary.totalPaid)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Balance:</span>
-                      <span className="font-bold text-red-600">₦{formatNumber(classSummary.totalBalance)}</span>
-                    </div>
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <div className="flex justify-between text-xs font-medium">
-                        <span className="text-gray-400 uppercase tracking-tighter">Allowed:</span>
-                        <span className="font-bold text-indigo-600">{classSummary.clearedStudents}</span>
-                      </div>
-                      <div className="flex justify-between text-xs font-medium mt-1">
-                        <span className="text-gray-400 uppercase tracking-tighter">Restricted:</span>
-                        <span className="font-bold text-amber-600">{classSummary.unclearedStudents}</span>
-                      </div>
-                    </div>
-                    {/* Progress Bar */}
-                    <div className="mt-3">
-                      <div className="w-full bg-gray-100 rounded-full h-1.5">
-                        <div
-                          className="bg-gradient-to-r from-green-500 to-primary h-1.5 rounded-full transition-all"
-                          style={{
-                            width: `${classSummary.totalExpected > 0 ? (classSummary.totalPaid / classSummary.totalExpected) * 100 : 0}%`
-                          }}
-                        ></div>
-                      </div>
-                      <p className="text-[10px] text-gray-400 mt-1.5 text-center font-medium">
-                        {classSummary.totalExpected > 0 ? ((classSummary.totalPaid / classSummary.totalExpected) * 100).toFixed(1) : 0}% collected
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              ))}
-
-              {/* Scholarship Card */}
-              {(() => {
-                const scholarshipStudents = (Array.isArray(students) ? students : []).filter(s => s.isScholarship);
-                if (scholarshipStudents.length === 0) return null;
-                
-                return (
-                  <button
-                    onClick={() => setSelectedClassView('scholarship')}
-                    className={`p-5 rounded-xl border-2 transition-all transform hover:scale-105 hover:shadow-lg text-left ${selectedClassView === 'scholarship'
-                      ? 'border-red-500 bg-red-50 shadow-md'
-                      : 'border-red-200 bg-white hover:border-red-500/50'
-                      }`}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-bold text-red-700">🎓 Scholarship Students</h3>
-                      {selectedClassView === 'scholarship' && (
-                        <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="space-y-4">
-                       <div className="flex justify-between text-xs">
-                        <span className="text-gray-500">Students:</span>
-                        <span className="font-semibold text-gray-900">{scholarshipStudents.length}</span>
-                      </div>
-                      <div className="pt-2">
-                        <div 
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             exportToCSV('class', 'scholarship');
-                           }}
-                           className="w-full flex justify-center items-center gap-2 px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-xs font-bold transition-colors shadow"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                          Print Scholarship List
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })()}
-            </div>
-
-            {selectedClassView !== null && (
-              <div className="mt-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                <p className="text-sm text-primary">
-                  <strong>📌 Viewing:</strong> {selectedClassView === 'scholarship' ? 'Scholarship Students' : (Object.values(classSummaries).find(c => c.classId === selectedClassView)?.className || 'Selected Class')} -
-                  Showing {filteredStudents.length} student(s)
-                </p>
-              </div>
-            )}
-          </div>
 
           {/* Filters and Actions */}
           <div ref={recordsRef} className="bg-white rounded-lg shadow p-4 mb-6">
@@ -2287,6 +2176,190 @@ export default function FeeManagement() {
             </div>
           </div>
 
+          {/* Class Navigation */}
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">📚 Navigate by Class</h2>
+              {selectedClassView !== null && (
+                <button
+                  onClick={() => setSelectedClassView(null)}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  View All Classes
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* All Classes Card */}
+              <button
+                onClick={() => setSelectedClassView(null)}
+                className={`p-5 rounded-xl border-2 transition-all transform hover:scale-105 hover:shadow-lg text-left ${selectedClassView === null
+                  ? 'border-primary bg-primary/5 shadow-md'
+                  : 'border-gray-200 bg-white hover:border-primary/50'
+                  }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-bold text-gray-900">All Classes</h3>
+                  {selectedClassView === null && (
+                    <svg className="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Students:</span>
+                    <span className="font-bold text-gray-900">{students.length}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Expected:</span>
+                    <span className="font-bold text-blue-600">₦{formatNumber(summary?.totalExpected || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Collected:</span>
+                    <span className="font-bold text-green-600">₦{formatNumber(summary?.totalPaid || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Balance:</span>
+                    <span className="font-bold text-red-600">₦{formatNumber(summary?.totalBalance || 0)}</span>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div
+                        className="bg-gradient-to-r from-green-500 to-primary h-1.5 rounded-full transition-all"
+                        style={{
+                          width: `${summary?.totalExpected > 0 ? (summary.totalPaid / summary.totalExpected) * 100 : 0}%`
+                        }}
+                      ></div>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1.5 text-center font-medium">
+                      {summary?.totalExpected > 0 ? ((summary.totalPaid / summary.totalExpected) * 100).toFixed(1) : 0}% overall collection
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Individual Class Cards */}
+              {Object.values(classSummaries || {}).map((classSummary) => (
+                <button
+                  key={classSummary.classId}
+                  onClick={() => setSelectedClassView(classSummary.classId)}
+                  className={`p-5 rounded-xl border-2 transition-all transform hover:scale-105 hover:shadow-lg text-left ${selectedClassView === classSummary.classId
+                    ? 'border-primary bg-primary/5 shadow-md'
+                    : 'border-gray-200 bg-white hover:border-primary/50'
+                    }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-gray-900">{classSummary.className}</h3>
+                    {selectedClassView === classSummary.classId && (
+                      <svg className="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Students:</span>
+                      <span className="font-bold text-gray-900">{classSummary.totalStudents}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Expected:</span>
+                      <span className="font-bold text-blue-600">₦{formatNumber(classSummary.totalExpected)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Collected:</span>
+                      <span className="font-bold text-green-600">₦{formatNumber(classSummary.totalPaid)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Balance:</span>
+                      <span className="font-bold text-red-600">₦{formatNumber(classSummary.totalBalance)}</span>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <div className="flex justify-between text-xs font-medium">
+                        <span className="text-gray-400 uppercase tracking-tighter">Allowed:</span>
+                        <span className="font-bold text-indigo-600">{classSummary.clearedStudents}</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-medium mt-1">
+                        <span className="text-gray-400 uppercase tracking-tighter">Restricted:</span>
+                        <span className="font-bold text-amber-600">{classSummary.unclearedStudents}</span>
+                      </div>
+                    </div>
+                    {/* Progress Bar */}
+                    <div className="mt-3">
+                      <div className="w-full bg-gray-100 rounded-full h-1.5">
+                        <div
+                          className="bg-gradient-to-r from-green-500 to-primary h-1.5 rounded-full transition-all"
+                          style={{
+                            width: `${classSummary.totalExpected > 0 ? (classSummary.totalPaid / classSummary.totalExpected) * 100 : 0}%`
+                          }}
+                        ></div>
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-1.5 text-center font-medium">
+                        {classSummary.totalExpected > 0 ? ((classSummary.totalPaid / classSummary.totalExpected) * 100).toFixed(1) : 0}% collected
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+
+              {/* Scholarship Card */}
+              {(() => {
+                const scholarshipStudents = (Array.isArray(students) ? students : []).filter(s => s.isScholarship);
+                if (scholarshipStudents.length === 0) return null;
+                
+                return (
+                  <button
+                    onClick={() => setSelectedClassView('scholarship')}
+                    className={`p-5 rounded-xl border-2 transition-all transform hover:scale-105 hover:shadow-lg text-left ${selectedClassView === 'scholarship'
+                      ? 'border-red-500 bg-red-50 shadow-md'
+                      : 'border-red-200 bg-white hover:border-red-500/50'
+                      }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-bold text-red-700">🎓 Scholarship Students</h3>
+                      {selectedClassView === 'scholarship' && (
+                        <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="space-y-4">
+                       <div className="flex justify-between text-xs">
+                        <span className="text-gray-500">Students:</span>
+                        <span className="font-semibold text-gray-900">{scholarshipStudents.length}</span>
+                      </div>
+                      <div className="pt-2">
+                        <div 
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             exportToCSV('class', 'scholarship');
+                           }}
+                           className="w-full flex justify-center items-center gap-2 px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-xs font-bold transition-colors shadow"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                          Print Scholarship List
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })()}
+            </div>
+
+            {selectedClassView !== null && (
+              <div className="mt-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                <p className="text-sm text-primary">
+                  <strong>📌 Viewing:</strong> {selectedClassView === 'scholarship' ? 'Scholarship Students' : (Object.values(classSummaries).find(c => c.classId === selectedClassView)?.className || 'Selected Class')} -
+                  Showing {filteredStudents.length} student(s)
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Table View */}
           {viewMode === 'table' && (
             <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -2345,7 +2418,7 @@ export default function FeeManagement() {
                           <td className="px-3 py-4 border-b border-gray-100">
                             <div className="min-w-[140px]">
                               <div className="font-bold text-gray-900 leading-tight">
-                                {student.user.firstName} {student.user.lastName} {student.middleName || ''}
+                                {student.user?.firstName || ''} {student.user?.lastName || ''} {student.middleName || ''}
                               </div>
                               <div className="text-[10px] text-gray-400 font-medium">
                                 {student.admissionNumber}
@@ -2386,7 +2459,7 @@ export default function FeeManagement() {
                                       </span>
                                     </div>
                                     <p className="text-xs sm:text-sm font-medium leading-relaxed max-w-2xl text-white drop-shadow-sm">
-                                      This serves as official confirmation that <strong className="text-yellow-300 mx-1">{student.user.firstName} {student.user.lastName} {student.middleName || ''}</strong>
+                                      This serves as official confirmation that <strong className="text-yellow-300 mx-1">{student.user?.firstName || ''} {student.user?.lastName || ''} {student.middleName || ''}</strong>
                                       of <strong className="text-yellow-300 mx-1">{student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : ''}</strong>
                                       is exempted from paying school fees. Kindly take note and grant all necessary clearances.
                                     </p>
@@ -2504,10 +2577,10 @@ export default function FeeManagement() {
                       <div className="absolute top-0 right-0 -mr-6 -mt-6 w-24 h-24 rounded-full bg-white/10 blur-2xl"></div>
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center font-black text-sm">
-                          {student.user.firstName?.[0]}{student.user.lastName?.[0]}
+                          {student.user?.firstName?.[0]}{student.user?.lastName?.[0]}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-black text-sm truncate">{student.user.firstName} {student.user.lastName} {student.middleName || ''}</p>
+                          <p className="font-black text-sm truncate">{student.user?.firstName || ''} {student.user?.lastName || ''} {student.middleName || ''}</p>
                           <p className="text-emerald-100 text-xs font-medium">{student.admissionNumber}</p>
                         </div>
                         <span className="px-2 py-0.5 bg-yellow-400 text-yellow-900 text-[9px] font-black uppercase rounded-sm">Scholar</span>
@@ -2530,10 +2603,10 @@ export default function FeeManagement() {
                     <div className="p-4 border-b border-gray-50">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-black text-primary text-sm">
-                          {student.user.firstName?.[0]}{student.user.lastName?.[0]}
+                          {student.user?.firstName?.[0]}{student.user?.lastName?.[0]}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-gray-900 text-sm truncate">{student.user.firstName} {student.user.lastName} {student.middleName || ''}</p>
+                          <p className="font-bold text-gray-900 text-sm truncate">{student.user?.firstName || ''} {student.user?.lastName || ''} {student.middleName || ''}</p>
                           <p className="text-gray-400 text-xs font-medium">{student.admissionNumber}</p>
                         </div>
                         <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${
@@ -2645,7 +2718,7 @@ export default function FeeManagement() {
                 }}
                 className="px-6 py-2.5 bg-primary text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-95 active:scale-95 transition-all"
               >
-                + Create New Fee
+                + Create Fee Structure
               </button>
             </div>
           </div>
@@ -2844,7 +2917,7 @@ export default function FeeManagement() {
             </div>
             <div className="p-4 sm:p-6">
               <div className="mb-4 text-sm text-gray-600">
-                Record payment for {selectedStudent.user.firstName} {selectedStudent.user.lastName} ({selectedStudent.admissionNumber})
+                Record payment for {selectedStudent.user?.firstName || 'Unknown'} {selectedStudent.user?.lastName || ''} ({selectedStudent.admissionNumber})
               </div>
 
               <div className="space-y-4">
@@ -3035,7 +3108,7 @@ export default function FeeManagement() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                 <div className="col-span-2 lg:col-span-1">
                   <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Student Name</span>
-                  <span className="font-bold text-gray-900 truncate block">{historyStudent.user.firstName} {historyStudent.user.lastName}</span>
+                  <span className="font-bold text-gray-900 truncate block">{historyStudent.user?.firstName || 'Unknown'} {historyStudent.user?.lastName || ''}</span>
                 </div>
                 <div>
                   <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Admission No</span>
@@ -3211,7 +3284,7 @@ export default function FeeManagement() {
               🛑 Examination Card Restriction
             </h2>
             <p className="text-gray-600 mb-4">
-              Manage restriction for <strong>{restrictionStudent.user.firstName} {restrictionStudent.user.lastName}</strong> ({restrictionStudent.admissionNumber}).
+              Manage restriction for <strong>{restrictionStudent.user?.firstName || 'Unknown'} {restrictionStudent.user?.lastName || ''}</strong> ({restrictionStudent.admissionNumber}).
             </p>
 
             <div className="space-y-4">
@@ -3270,7 +3343,7 @@ export default function FeeManagement() {
               <span className="text-orange-600">⚙️</span> Fee Adjustment
             </h2>
             <p className="text-sm text-gray-600 mb-4">
-              Directly adjust the expected and total paid amounts for <strong>{editingFeeRecord.student.user.firstName} {editingFeeRecord.student.user.lastName}</strong>.
+              Directly adjust the expected and total paid amounts for <strong>{editingFeeRecord.student.user?.firstName || 'Unknown'} {editingFeeRecord.student.user?.lastName || ''}</strong>.
               <br /><span className="text-red-500 font-semibold">Note:</span> This updates the summary record directly.
             </p>
 
@@ -3375,7 +3448,7 @@ export default function FeeManagement() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <div>
-                <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Create Miscellaneous Fee</h2>
+                <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Create Fee Structure</h2>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Configure new custom charge</p>
               </div>
               <button

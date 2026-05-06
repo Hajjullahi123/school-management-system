@@ -304,7 +304,7 @@ router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin
         include: {
           students: {
             where: { schoolId: req.schoolId, status: 'active' }, // Only active students in template
-            include: { user: true },
+            include: { user: { select: { firstName: true, lastName: true } } },
             orderBy: { admissionNumber: 'asc' }
           }
         }
@@ -410,9 +410,19 @@ router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin
 
     const studentData = classInfo.students.map(s => {
       const r = resultsMap[s.id];
+      // Build student name with multiple fallbacks for legacy records
+      let studentName = 'Unknown student';
+      if (s.user && (s.user.firstName || s.user.lastName)) {
+        studentName = `${s.user.firstName || ''} ${s.user.lastName || ''}`.trim();
+      } else if (s.name) {
+        studentName = s.name;
+      } else if (s.parentGuardianName) {
+        studentName = `Student (${s.parentGuardianName})`;
+      }
+      
       return {
         admissionNumber: s.admissionNumber,
-        name: s.user ? `${s.user.firstName} ${s.user.lastName}` : (s.name || 'Unknown student'),
+        name: studentName || s.admissionNumber || 'Unknown student',
         ass1: r?.assignment1Score,
         ass2: r?.assignment2Score,
         test1: r?.test1Score,
