@@ -1193,6 +1193,20 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
       return res.status(404).json({ error: 'Student not found' });
     }
 
+    // Check if new admission number is already taken
+    if (admissionNumber && admissionNumber !== existingStudent.admissionNumber) {
+      const duplicate = await prisma.student.findFirst({
+        where: {
+          admissionNumber,
+          schoolId: parseInt(req.schoolId),
+          NOT: { id: studentId }
+        }
+      });
+      if (duplicate) {
+        return res.status(400).json({ error: 'Admission number already taken' });
+      }
+    }
+
     if (bloodGroup && !isValidBloodGroup(bloodGroup)) {
       return res.status(400).json({ error: 'Invalid blood group' });
     }

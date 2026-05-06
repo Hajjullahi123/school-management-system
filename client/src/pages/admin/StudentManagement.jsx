@@ -1098,14 +1098,18 @@ Note: Password must be changed on first login.
                   </div>
                   <div className="space-y-1">
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      Admission Number (Auto-generated)
+                      Admission Number {editingStudent ? '(Editable)' : '(Auto-generated)'}
                     </label>
                     <input
                       type="text"
-                      value={formData.admissionNumber || 'Auto-generated upon registration'}
-                      readOnly
-                      disabled
-                      className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-500 cursor-not-allowed opacity-75"
+                      value={formData.admissionNumber || (editingStudent ? '' : 'Auto-generated upon registration')}
+                      onChange={(e) => editingStudent && setFormData({ ...formData, admissionNumber: e.target.value })}
+                      readOnly={!editingStudent}
+                      disabled={!editingStudent && !formData.admissionNumber}
+                      className={`w-full border rounded-xl px-4 py-3 font-bold transition-all ${editingStudent 
+                        ? 'bg-white border-gray-200 focus:ring-4 focus:ring-primary/10 focus:border-primary text-gray-700' 
+                        : 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed opacity-75'}`}
+                      placeholder={editingStudent ? "Enter Admission Number" : ""}
                     />
                   </div>
                 </div>
