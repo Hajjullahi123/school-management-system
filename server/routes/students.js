@@ -253,31 +253,37 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
       await prisma.alumni.deleteMany({ where: { studentId } });
 
       // 3. Cleanup User-linked records (where student user is author/sender)
-      await prisma.newsEvent.deleteMany({ where: { authorId: userId } });
-      await prisma.notice.deleteMany({ where: { authorId: userId } });
-      await prisma.galleryImage.deleteMany({ where: { uploadedBy: userId } });
-      await prisma.nudge.deleteMany({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } });
-      await prisma.department.updateMany({ where: { headId: userId }, data: { headId: null } });
-
-      // 4. Check if User has other profiles (Teacher/Parent) before deleting User record
-      const fullUser = await prisma.user.findUnique({
-        where: { id: userId },
-        include: { teacher: true, parent: true }
-      });
-
-      if (fullUser?.teacher) {
-        await prisma.teacherAssignment.deleteMany({ where: { teacherId: userId } });
-        await prisma.teacher.delete({ where: { id: fullUser.teacher.id } });
+      if (userId) {
+        await prisma.newsEvent.deleteMany({ where: { authorId: userId } });
+        await prisma.notice.deleteMany({ where: { authorId: userId } });
+        await prisma.galleryImage.deleteMany({ where: { uploadedBy: userId } });
+        await prisma.nudge.deleteMany({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } });
+        await prisma.department.updateMany({ where: { headId: userId }, data: { headId: null } });
       }
-      if (fullUser?.parent) {
-        await prisma.parent.delete({ where: { id: fullUser.parent.id } });
+
+      if (userId) {
+        // 4. Check if User has other profiles (Teacher/Parent) before deleting User record
+        const fullUser = await prisma.user.findUnique({
+          where: { id: userId },
+          include: { teacher: true, parent: true }
+        });
+
+        if (fullUser?.teacher) {
+          await prisma.teacherAssignment.deleteMany({ where: { teacherId: userId } });
+          await prisma.teacher.delete({ where: { id: fullUser.teacher.id } });
+        }
+        if (fullUser?.parent) {
+          await prisma.parent.delete({ where: { id: fullUser.parent.id } });
+        }
       }
 
       // 5. Delete Student Profile
       await prisma.student.delete({ where: { id: studentId } });
       
       // 6. Delete User Account
-      await prisma.user.delete({ where: { id: userId } });
+      if (userId) {
+        await prisma.user.delete({ where: { id: userId } });
+      }
     });
 
     logAction({
