@@ -11,7 +11,7 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'ex
   try {
     const { role, search } = req.query;
 
-    const where = { schoolId: req.schoolId };
+    const where = { schoolId: parseInt(req.schoolId) };
     if (role) where.role = role;
     if (search) {
       where.OR = [
@@ -101,7 +101,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
     // Enforce singleton roles: only ONE admin, principal, accountant, examination_officer per school
     if (['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin'].includes(role)) {
       const existing = await prisma.user.findFirst({
-        where: { schoolId: req.schoolId, role }
+        where: { schoolId: parseInt(req.schoolId), role }
       });
       if (existing) {
         let roleLabel = '';
@@ -149,7 +149,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
           finalUsername = `${position}/${schoolInitials}@${randomNums}`;
 
           const existing = await prisma.user.findFirst({
-            where: { username: finalUsername, schoolId: req.schoolId }
+            where: { username: finalUsername, schoolId: parseInt(req.schoolId) }
           });
           if (!existing) usernameExists = false;
         }
@@ -159,7 +159,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
         let usernameExists = await prisma.user.findFirst({
           where: {
             username: baseUsername,
-            schoolId: req.schoolId
+            schoolId: parseInt(req.schoolId)
           }
         });
         let counter = 1;
@@ -170,7 +170,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
           usernameExists = await prisma.user.findFirst({
             where: {
               username: finalUsername,
-              schoolId: req.schoolId
+              schoolId: parseInt(req.schoolId)
             }
           });
           counter++;
@@ -194,7 +194,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
     const existingUser = await prisma.user.findFirst({
       where: {
         username: finalUsername,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       }
     });
 
@@ -219,7 +219,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
 
     // Create user with profile
     const userData = {
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       username: finalUsername,
       passwordHash,
       email: email || null,
@@ -263,7 +263,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
           ...userData,
           student: {
             create: {
-              schoolId: req.schoolId,
+              schoolId: parseInt(req.schoolId),
               admissionNumber: finalAdmissionNumber,
               classId: classId ? parseInt(classId) : null,
               dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
@@ -300,7 +300,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
       // Find the highest existing sequence number for the current year
       const existingTeachers = await prisma.teacher.findMany({
         where: {
-          schoolId: req.schoolId,
+          schoolId: parseInt(req.schoolId),
           staffId: {
             startsWith: `${schoolInitials}/${currentYear}/`
           }
@@ -338,7 +338,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
           passwordHash: finalPasswordHash,
           teacher: {
             create: {
-              schoolId: req.schoolId,
+              schoolId: parseInt(req.schoolId),
               staffId: finalStaffId,
               specialization
             }
@@ -401,7 +401,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
 
     // Log the user creation
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'CREATE',
       resource: 'USER',
@@ -472,7 +472,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
     const user = await prisma.user.findFirst({
       where: {
         id: parseInt(id),
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: {
         student: true,
@@ -512,7 +512,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
     await prisma.user.update({
       where: {
         id: parseInt(id),
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       data: updateData
     });
@@ -542,7 +542,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
       await prisma.student.update({
         where: {
           userId: parseInt(id),
-          schoolId: req.schoolId
+          schoolId: parseInt(req.schoolId)
         },
         data: studentUpdate
       });
@@ -556,7 +556,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
       await prisma.teacher.update({
         where: {
           userId: parseInt(id),
-          schoolId: req.schoolId
+          schoolId: parseInt(req.schoolId)
         },
         data: teacherUpdate
       });
@@ -566,7 +566,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
     const result = await prisma.user.findFirst({
       where: {
         id: parseInt(id),
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: {
         student: true,
@@ -580,7 +580,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
 
     // Log the update
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'UPDATE',
       resource: 'USER',
@@ -605,7 +605,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
     const user = await prisma.user.findFirst({
       where: {
         id: userId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: {
         student: true,
@@ -623,34 +623,34 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
         const studentId = user.student?.id;
         if (studentId) {
           // Comprehensive manual cascade delete for student records
-          await prisma.attendanceRecord.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-          await prisma.quranRecord.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-          await prisma.quranTarget.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-          await prisma.cbtResult.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-          await prisma.homeworkSubmission.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-          await prisma.psychomotorDomain.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-          await prisma.studentReportCard.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-          await prisma.intervention.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-          await prisma.miscellaneousFeePayment.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-          await prisma.result.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+          await prisma.attendanceRecord.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+          await prisma.quranRecord.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+          await prisma.quranTarget.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+          await prisma.cBTResult.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+          await prisma.homeworkSubmission.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+          await prisma.psychomotorDomain.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+          await prisma.studentReportCard.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+          await prisma.intervention.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+          await prisma.miscellaneousFeePayment.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+          await prisma.result.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
           
           // Delete Fee Payments first (requires fetching fee record IDs)
-          const feeRecords = await prisma.feeRecord.findMany({ where: { studentId, schoolId: req.schoolId }, select: { id: true } });
+          const feeRecords = await prisma.feeRecord.findMany({ where: { studentId, schoolId: parseInt(req.schoolId) }, select: { id: true } });
           const feeRecordIds = feeRecords.map(fr => fr.id);
-          await prisma.feePayment.deleteMany({ where: { feeRecordId: { in: feeRecordIds }, schoolId: req.schoolId } });
-          await prisma.feeRecord.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-          await prisma.examCard.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-          await prisma.promotionHistory.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-          await prisma.onlinePayment.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+          await prisma.feePayment.deleteMany({ where: { feeRecordId: { in: feeRecordIds }, schoolId: parseInt(req.schoolId) } });
+          await prisma.feeRecord.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+          await prisma.examCard.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+          await prisma.promotionHistory.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+          await prisma.onlinePayment.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
           await prisma.certificate.deleteMany({ where: { studentId } });
           await prisma.testimonial.deleteMany({ where: { studentId } });
-          await prisma.alumni.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+          await prisma.alumni.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
           await prisma.homeworkSubmission.deleteMany({ where: { studentId } });
           
           await prisma.student.delete({
             where: {
               id: studentId,
-              schoolId: req.schoolId
+              schoolId: parseInt(req.schoolId)
             }
           });
         }
@@ -658,25 +658,25 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
         const teacherId = user.teacher?.id;
         if (teacherId) {
           await prisma.teacherAssignment.deleteMany({
-            where: { teacherId: userId, schoolId: req.schoolId }
+            where: { teacherId: userId, schoolId: parseInt(req.schoolId) }
           });
           await prisma.teacher.delete({
-            where: { id: teacherId, schoolId: req.schoolId }
+            where: { id: teacherId, schoolId: parseInt(req.schoolId) }
           });
         }
       } else if (user.role === 'parent' || user.parent) {
         await prisma.parent.deleteMany({
           where: {
             userId: userId,
-            schoolId: req.schoolId
+            schoolId: parseInt(req.schoolId)
           }
         });
       }
 
       // Cleanup user-created records that might block deletion
-      await prisma.newsEvent.deleteMany({ where: { authorId: userId, schoolId: req.schoolId } });
-      await prisma.notice.deleteMany({ where: { authorId: userId, schoolId: req.schoolId } });
-      await prisma.galleryImage.deleteMany({ where: { uploadedBy: userId, schoolId: req.schoolId } });
+      await prisma.newsEvent.deleteMany({ where: { authorId: userId, schoolId: parseInt(req.schoolId) } });
+      await prisma.notice.deleteMany({ where: { authorId: userId, schoolId: parseInt(req.schoolId) } });
+      await prisma.galleryImage.deleteMany({ where: { uploadedBy: userId, schoolId: parseInt(req.schoolId) } });
       await prisma.nudge.deleteMany({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } });
       await prisma.department.updateMany({ where: { headId: userId }, data: { headId: null } });
 
@@ -684,7 +684,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
       await prisma.user.delete({
         where: {
           id: userId,
-          schoolId: req.schoolId
+          schoolId: parseInt(req.schoolId)
         }
       });
     });
@@ -693,7 +693,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
 
     // Log the deletion
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'DELETE',
       resource: 'USER',
@@ -736,7 +736,7 @@ router.post('/bulk-students', authenticate, authorize(['admin', 'principal', 'ac
 
         await prisma.user.create({
           data: {
-            schoolId: req.schoolId,
+            schoolId: parseInt(req.schoolId),
             username: student.username || student.admissionNumber,
             passwordHash,
             email: student.email,
@@ -745,7 +745,7 @@ router.post('/bulk-students', authenticate, authorize(['admin', 'principal', 'ac
             lastName: student.lastName,
             student: {
               create: {
-                schoolId: req.schoolId,
+                schoolId: parseInt(req.schoolId),
                 admissionNumber: student.admissionNumber,
                 classId: student.classId ? parseInt(student.classId) : null,
                 dateOfBirth: student.dateOfBirth ? new Date(student.dateOfBirth) : null,
@@ -772,7 +772,7 @@ router.post('/bulk-students', authenticate, authorize(['admin', 'principal', 'ac
 
     // Log bulk creation
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'BULK_CREATE',
       resource: 'STUDENT',
