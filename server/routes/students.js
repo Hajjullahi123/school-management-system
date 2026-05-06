@@ -211,7 +211,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
     const { id } = req.params;
     
     // Ensure the student exists and belongs to the school
-    const student = await prisma.student.findUnique({
+    const student = await prisma.student.findFirst({
       where: {
         id: parseInt(id),
         schoolId: parseInt(req.schoolId)
@@ -239,7 +239,10 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
       await prisma.miscellaneousFeePayment.deleteMany({ where: { studentId } });
       await prisma.result.deleteMany({ where: { studentId } });
       
-      // 2. Delete Fee Records & Payments
+      // 2. Delete Fee Records & Online Payments
+      // Order matters: Delete OnlinePayment first as it references FeeRecord
+      await prisma.onlinePayment.deleteMany({ where: { studentId } });
+      
       const feeRecords = await prisma.feeRecord.findMany({ where: { studentId }, select: { id: true } });
       const feeRecordIds = feeRecords.map(fr => fr.id);
       await prisma.feePayment.deleteMany({ where: { feeRecordId: { in: feeRecordIds } } });
@@ -247,10 +250,11 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
       
       await prisma.examCard.deleteMany({ where: { studentId } });
       await prisma.promotionHistory.deleteMany({ where: { studentId } });
-      await prisma.onlinePayment.deleteMany({ where: { studentId } });
       await prisma.certificate.deleteMany({ where: { studentId } });
       await prisma.testimonial.deleteMany({ where: { studentId } });
       await prisma.alumni.deleteMany({ where: { studentId } });
+      await prisma.parentTeacherMessage.deleteMany({ where: { studentId } });
+      await prisma.miscellaneousFeePayment.deleteMany({ where: { studentId } });
 
       // 3. Cleanup User-linked records (where student user is author/sender)
       if (userId) {

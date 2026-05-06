@@ -251,6 +251,12 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
       orderBy: { id: 'asc' }
     });
 
+    if (availableClasses.length === 0) {
+      return res.status(400).json({ 
+        error: 'No classes found for this school. Please create your classes (e.g., JSS 1, SS 1) before uploading students.' 
+      });
+    }
+
     // Determine allowed class IDs if user is a teacher
     let allowedClassIds = null;
     if (req.user.role === 'teacher') {
@@ -508,6 +514,12 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'princi
       where: { schoolId: schoolIdInt, isActive: true },
       orderBy: { id: 'asc' }
     });
+
+    if (availableClasses.length === 0) {
+      return res.status(400).json({ 
+        error: 'No classes found for this school. Please create your classes (e.g., JSS 1, SS 1) before uploading students.' 
+      });
+    }
 
     for (const studentData of students) {
       try {
