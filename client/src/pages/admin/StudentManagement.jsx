@@ -1087,6 +1087,18 @@ Note: Password must be changed on first login.
           </div>
         </div>
 
+        {/* Quick Instructions */}
+        <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2">
+          <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-[11px] text-gray-500 leading-tight">
+            <span className="font-bold text-gray-700 uppercase tracking-wide">Quick Guide:</span> 
+            <span className="mx-1.5 font-medium">1.</span> Ensure your Classes are created first. 
+            <span className="mx-1.5 font-medium">2.</span> Click <strong className="text-primary">+ Add Student</strong> for single entry <span className="text-gray-400 italic">OR</span> 
+            <span className="mx-1.5 font-medium">3.</span> <strong className="text-gray-700">Get Template</strong>, fill it, and <strong className="text-emerald-700">Import Students</strong> for bulk.
+          </p>
+        </div>
       </div>
 
       {/* Student Registration Form - Moved to TOP for visibility */}
