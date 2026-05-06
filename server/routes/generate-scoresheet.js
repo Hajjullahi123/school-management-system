@@ -413,7 +413,11 @@ router.get('/class/:classId/subject/:subjectId', authenticate, authorize(['admin
       // Build student name with multiple fallbacks for legacy records
       let studentName = 'Unknown student';
       if (s.user && (s.user.firstName || s.user.lastName)) {
-        studentName = `${s.user.firstName || ''} ${s.user.lastName || ''}`.trim();
+        studentName = [
+          s.user.firstName,
+          s.middleName,
+          s.user.lastName
+        ].filter(p => p && p.trim() !== '').join(' ');
       } else if (s.name) {
         studentName = s.name;
       } else if (s.parentGuardianName) {

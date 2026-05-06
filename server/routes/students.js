@@ -1210,10 +1210,10 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
             schoolId: parseInt(req.schoolId)
           },
           data: {
-            ...(firstName && { firstName }),
-            ...(lastName && { lastName }),
-            ...(email && { email }),
-            ...(photoUrl && { photoUrl })
+            ...(firstName !== undefined && { firstName: firstName.trim() }),
+            ...(lastName !== undefined && { lastName: lastName.trim() }),
+            ...(email !== undefined && { email: email.trim() || null }),
+            ...(photoUrl !== undefined && { photoUrl })
           }
         });
       } else {
@@ -1235,7 +1235,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
             lastName: lName,
             email: email || autoEmail,
             username: uName.toLowerCase(),
-            password: hashedPassword,
+            passwordHash: hashedPassword,
             role: 'student',
             schoolId: parseInt(req.schoolId),
             photoUrl: photoUrl || null,
