@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { api, API_BASE_URL } from '../../api';
+import { api, apiCall, API_BASE_URL } from '../../api';
+import { toast } from '../../utils/toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -66,41 +67,67 @@ const BulkStudentUpload = () => {
     }
     return students;
   };
-
   const handleUpload = async () => {
     if (!csvData && !selectedFile) {
-      alert('Please select a CSV file first');
+      toast.error('Please select a file first');
       return;
     }
 
+    console.log('[BulkUpload] handleUpload started. selectedFile:', !!selectedFile);
+    toast.info('Starting student upload, please wait...');
     setLoading(true);
+    setResults(null); // Clear previous results
+
     try {
+      let result;
       if (selectedFile) {
+        console.log('[BulkUpload] Using Multipart Upload');
         // Use multipart upload if a file was selected directly
         const formData = new FormData();
         formData.append('file', selectedFile);
 
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/api/bulk-upload/upload`, {
+        const response = await apiCall('/api/bulk-upload/upload', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
           body: formData
         });
 
-        const result = await response.json();
-        setResults(result);
+        console.log('[BulkUpload] Multipart response status:', response.status);
+
+        if (!response.ok) {
+          throw new Error(response.data?.error || response.data?.message || 'Failed to upload students');
+        }
+        result = response.data;
       } else {
+        console.log('[BulkUpload] Using Legacy JSON Upload');
         // Fallback for legacy text area paste
         const students = parseCSV(csvData);
-        const response = await api.post('/api/bulk-upload/bulk-upload', { students });
-        const result = await response.json();
-        setResults(result);
+        const response = await apiCall('/api/bulk-upload/bulk-upload', {
+          method: 'POST',
+          body: JSON.stringify({ students })
+        });
+        
+        console.log('[BulkUpload] Legacy response status:', response.status);
+
+        if (!response.ok) {
+          throw new Error(response.data?.error || response.data?.message || 'Failed to upload students');
+        }
+        result = response.data;
       }
+
+      console.log('[BulkUpload] Success. Results:', result);
+      setResults(result);
+      toast.success(`Successfully processed students!`);
+      
+      // Auto-scroll to results
+      setTimeout(() => {
+        const element = document.getElementById('upload-results');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
     } catch (error) {
-      console.error('Upload error:', error);
-      alert('Failed to upload students');
+      console.error('[BulkUpload] Error during upload:', error);
+      toast.error(error.message || 'Failed to upload students');
     } finally {
       setLoading(false);
     }
@@ -355,7 +382,26 @@ const BulkStudentUpload = () => {
 
 
   return (
-    <div className="space-y-6">
+    <div className="relative min-h-screen space-y-6">
+      {loading && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center text-white">
+          <div className="bg-white p-8 rounded-2xl flex flex-col items-center gap-4 text-gray-900 shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </div>
+            </div>
+            <div className="text-center">
+              <h3 className="text-xl font-bold">Uploading Students...</h3>
+              <p className="text-gray-500 text-sm mt-1">This may take a moment. Please do not refresh the page.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Bulk Student Upload</h1>
         <Link
@@ -473,7 +519,7 @@ const BulkStudentUpload = () => {
 
       {/* Results */}
       {results && (
-        <div className="space-y-4">
+        <div className="space-y-4" id="upload-results">
           {/* Summary */}
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold mb-4">Upload Results</h3>

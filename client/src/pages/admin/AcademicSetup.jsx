@@ -349,25 +349,8 @@ const AcademicSetup = () => {
           </nav>
         </div>
 
-        <div className="p-6 max-h-[calc(100vh-250px)] overflow-y-auto scrollbar-visible">
-          {/* Custom scrollbar styling */}
-          {/* Replaced style jsx with inline styles for portability */}
-          <style>{`
-            .scrollbar-visible::-webkit-scrollbar {
-              width: 12px;
-            }
-            .scrollbar-visible::-webkit-scrollbar-track {
-              background: #f1f5f9;
-              border-radius: 6px;
-            }
-            .scrollbar-visible::-webkit-scrollbar-thumb {
-              background: #0f766e;
-              border-radius: 6px;
-            }
-            .scrollbar-visible::-webkit-scrollbar-thumb:hover {
-              background: #0d9488;
-            }
-          `}</style>
+        <div className="p-6">
+          {/* ACADEMIC SESSIONS TAB */}
 
           {/* ACADEMIC SESSIONS TAB */}
           {activeTab === 'sessions' && (

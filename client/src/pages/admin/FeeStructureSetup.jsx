@@ -154,12 +154,8 @@ const FeeStructureSetup = () => {
   };
 
   return (
-    <div className="space-y-6 max-h-[calc(100vh-180px)] overflow-y-auto pr-2 pb-10" style={{
-      scrollbarWidth: 'none',
-      msOverflowStyle: 'none'
-    }}>
+    <div className="space-y-6 pr-2 pb-10">
       <style>{`
-        div::-webkit-scrollbar { display: none; }
         @keyframes slideIn {
           from { transform: translateY(20px); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }

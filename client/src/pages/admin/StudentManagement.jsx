@@ -898,42 +898,54 @@ Note: Password must be changed on first login.
   };
 
   const handleBulkUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (!confirm(`Registering students from "${file.name}". This will create user accounts and admission numbers automatically. Continue?`)) {
-      e.target.value = '';
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const token = localStorage.getItem('token');
     try {
-      setIsUploading(true);
-      const response = await fetch(`${API_BASE_URL}/api/bulk-upload/upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
+      const file = e.target.files[0];
+      if (!file) return;
 
-      const data = await response.json();
+      console.log('[StudentManagement] Bulk upload file selected:', file.name, file.size, 'bytes');
+
+      if (!confirm(`Registering students from "${file.name}". This will create user accounts and admission numbers automatically. Continue?`)) {
+        e.target.value = '';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      setIsUploading(true);
+      toast.loading('Uploading students...', { id: 'bulk-upload' });
+
+      const response = await api.postForm('/api/bulk-upload/upload', formData);
+      console.log('[StudentManagement] Upload response status:', response.status);
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        const text = await response.text();
+        console.error('[StudentManagement] Non-JSON response:', text.substring(0, 200));
+        toast.error('Server returned an invalid response. Check server logs.', { id: 'bulk-upload' });
+        return;
+      }
+
+      console.log('[StudentManagement] Upload result:', data);
       setBulkUploadResults(data);
       setShowBulkUploadModal(true);
+
       if (response.ok) {
+        const successCount = data.successful?.length || 0;
+        const failCount = data.failed?.length || 0;
+        toast.success(`Import done: ${successCount} added, ${failCount} failed.`, { id: 'bulk-upload' });
         fetchStudents();
       } else {
-        alert(`Import failed: ${data.error}`);
+        toast.error(data.error || data.message || 'Import failed', { id: 'bulk-upload' });
       }
     } catch (error) {
-      console.error('Upload error:', error);
-      alert('Failed to upload file');
+      console.error('[StudentManagement] Upload exception:', error);
+      toast.error(error.message || 'Failed to upload file', { id: 'bulk-upload' });
     } finally {
       setIsUploading(false);
-      e.target.value = '';
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -1021,6 +1033,7 @@ Note: Password must be changed on first login.
                 type="file"
                 className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
                 accept=".csv,.xlsx"
+                onChange={handleBulkUpload}
               />
             )}
           </div>

@@ -113,16 +113,19 @@ const AlumniDirectory = () => {
                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center text-primary text-3xl font-bold border border-gray-100 overflow-hidden shadow-inner">
                       {(() => {
                         const photoUrl = person.student?.user?.photoUrl || person.profilePicture;
+                        const firstName = person.student?.user?.firstName || person.name?.split(' ')[0] || 'Alumnus';
+                        const lastName = person.student?.user?.lastName || person.name?.split(' ').slice(1).join(' ') || '';
+                        
                         return photoUrl ? (
                           <img
                             src={photoUrl.startsWith('data:') || photoUrl.startsWith('http') ? photoUrl : `${API_BASE_URL}${photoUrl}`}
-                            alt={person.student.user.firstName}
+                            alt={firstName}
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <span>{person.student.user.firstName[0]}{person.student.user.lastName[0]}</span>
+                          <span>{firstName[0]}{lastName ? lastName[0] : ''}</span>
                         );
-                      })()}
+                      })() }
                     </div>
                     <span className="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest">
                       Class of {person.graduationYear}
@@ -130,7 +133,7 @@ const AlumniDirectory = () => {
                   </div>
 
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                    {person.student.user.firstName} {person.student.user.lastName}
+                    {person.student?.user?.firstName || person.name || 'Anonymous Alumnus'} {person.student?.user?.lastName || ''}
                   </h3>
 
                   <div className="mb-4">

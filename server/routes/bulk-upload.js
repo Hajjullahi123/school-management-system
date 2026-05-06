@@ -166,10 +166,24 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
       const data = xlsx.utils.sheet_to_json(worksheet, { header: 1, raw: false, dateNF: 'yyyy-mm-dd' });
 
       if (data.length > 0) {
-        // Map headers
-        const headerRow = data[0].map(h => (h !== undefined && h !== null) ? h.toString().toLowerCase().trim() : '');
+        // Find the first non-empty row to use as header
+        let headerRowIndex = 0;
+        while (headerRowIndex < data.length) {
+          const row = data[headerRowIndex];
+          if (row && row.some(cell => cell !== undefined && cell !== null && cell.toString().trim() !== '')) {
+            break;
+          }
+          headerRowIndex++;
+        }
+
+        if (headerRowIndex >= data.length) {
+          return res.status(400).json({ error: 'No data found in file' });
+        }
+
+        const headerRow = data[headerRowIndex].map(h => (h !== undefined && h !== null) ? h.toString().toLowerCase().trim() : '');
         
         headerRow.forEach((header, colNumber) => {
+          if (!header) return;
           if (header.includes('first name')) headers.firstName = colNumber;
           else if (header.includes('surname') || header.includes('last name')) headers.lastName = colNumber;
           else if (header.includes('other name') || header.includes('middle name')) headers.middleName = colNumber;
@@ -186,8 +200,8 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
           else if (header.includes('scholarship')) headers.isScholarship = colNumber;
         });
 
-        // Parse rows
-        for (let i = 1; i < data.length; i++) {
+        // Parse rows starting from the row after the header
+        for (let i = headerRowIndex + 1; i < data.length; i++) {
           const row = data[i];
           if (!row || row.length === 0) continue;
 
@@ -360,8 +374,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
           schoolIdInt,
           schoolCode,
           studentData.firstName,
-          studentData.lastName,
-          admissionYear
+          studentData.lastName
         );
 
         // Sync username with admission number

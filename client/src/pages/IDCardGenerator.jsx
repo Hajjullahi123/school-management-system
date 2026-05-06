@@ -11,9 +11,9 @@ const IDCard = ({ data, type, schoolSettings }) => {
   const photoUrl = isStudent 
     ? (data.user?.photoUrl || data.photoUrl) 
     : (data.photoUrl || data.teacher?.photoUrl);
-  const firstName = isStudent ? data.user?.firstName : data.firstName;
-  const lastName = isStudent ? data.user?.lastName : data.lastName;
-  const middleName = isStudent ? data.middleName : data.middleName;
+  const firstName = isStudent ? (data.user?.firstName || data.name?.split(' ')[0] || 'Student') : data.firstName;
+  const lastName = isStudent ? (data.user?.lastName || data.name?.split(' ').slice(1).join(' ') || '') : data.lastName;
+  const middleName = isStudent ? (data.middleName || '') : data.middleName;
   const idNumber = isStudent ? data.admissionNumber : (data.teacher?.staffId || data.username);
   const roleTitle = isStudent ? 'STUDENT' : (data.role === 'teacher' ? 'STAFF' : data.role.toUpperCase());
 
@@ -288,8 +288,9 @@ const IDCardGenerator = () => {
         if (Array.isArray(allStudents)) {
           const filtered = allStudents.filter(s =>
             s.admissionNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.user.lastName.toLowerCase().includes(searchTerm.toLowerCase())
+            (s.user?.firstName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (s.user?.lastName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (s.name || '').toLowerCase().includes(searchTerm.toLowerCase())
           );
           setSearchResults(filtered.map(s => ({ ...s, type: 'student' })));
           if (filtered.length === 0) toast.error('No students found');
@@ -658,7 +659,7 @@ const IDCardGenerator = () => {
                 {searchResults.map(student => (
                   <div key={student.id} className="border p-4 rounded flex justify-between items-center">
                     <div>
-                      <p className="font-bold">{student.user.firstName} {student.user.lastName}</p>
+                      <p className="font-bold">{(student.user?.firstName || student.name?.split(' ')[0] || 'Student')} {(student.user?.lastName || student.name?.split(' ').slice(1).join(' ') || '')}</p>
                       <p className="text-sm text-gray-600">{student.admissionNumber}</p>
                       <p className="text-xs text-gray-500">{student.classModel?.name} {student.classModel?.arm}</p>
                     </div>

@@ -1338,7 +1338,7 @@ const Layout = () => {
   const schoolMotto = user?.role === 'superadmin' ? "Global Management Console" : (schoolSettings?.schoolMotto || user?.schoolMotto || user?.school?.motto || "Management System");
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
@@ -1397,7 +1397,7 @@ const Layout = () => {
           </div>
         </div>
 
-        <nav className="mt-6 flex-1 overflow-y-auto px-3 space-y-1">
+        <nav className="mt-6 flex-1 overflow-y-auto custom-scrollbar px-3 space-y-1">
           {menuItems.map((item, index) => (
             item.type === 'group' ? (
               <CollapsibleMenu
@@ -1469,7 +1469,7 @@ const Layout = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col pb-[safe-area-inset-bottom]">
+      <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar pb-[safe-area-inset-bottom]">
         {/* Demo Mode Banner */}
         {user?.username === 'demo_admin' && (
           <div className="bg-gradient-to-r from-amber-600 to-amber-500 text-white px-4 py-2 flex items-center justify-between text-xs font-black uppercase tracking-widest shadow-lg z-50">

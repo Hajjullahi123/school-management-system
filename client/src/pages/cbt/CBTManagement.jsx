@@ -551,14 +551,8 @@ const CBTManagement = () => {
   if (loading) return <div className="p-8 text-center">Loading...</div>;
 
   return (
-    <div className="space-y-6 max-h-[calc(100vh-180px)] overflow-y-auto pr-2 pb-10" style={{
-      scrollbarWidth: 'none',
-      msOverflowStyle: 'none'
-    }}>
-      {/* Hide scrollbar but keep functionality */}
-      <style>{`
-        div::-webkit-scrollbar { display: none; }
-      `}</style>
+    <div className="space-y-6 pr-2 pb-10">
+      {/* Header Section - Glassmorphism */}
 
       {/* Header Section - Glassmorphism */}
       <div className="relative group overflow-hidden rounded-[40px] p-1 bg-gradient-to-br from-indigo-600 via-primary to-emerald-600 shadow-2xl">

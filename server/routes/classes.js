@@ -432,10 +432,16 @@ router.put('/:id/publish-results', authenticate, authorize(['admin', 'teacher', 
     });
 
     // Also update the legacy flag for compatibility (only if term results are being published)
+    let updatedClass = null;
     if (isPublished !== undefined) {
-      await prisma.class.update({
+      updatedClass = await prisma.class.update({
         where: { id: classId, schoolId: req.schoolId },
         data: { isResultPublished: isPublished }
+      });
+    } else {
+      // Fetch class info if not updating legacy flag
+      updatedClass = await prisma.class.findUnique({
+        where: { id: classId }
       });
     }
 
