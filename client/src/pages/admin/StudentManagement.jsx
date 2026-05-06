@@ -525,15 +525,42 @@ Note: Password must be changed on first login.
         setNameFixResults(data);
         setShowNameFixModal(true);
         if (apply && data.fixesNeeded > 0) {
-          toast.success(`${data.fixesNeeded} student names recovered!`);
+          toast.success(`${data.fixesNeeded} student accounts recovered!`);
           fetchStudents(); // Refresh the list
         }
       } else {
-        toast.error(data.error || 'Failed to scan names');
+        toast.error(data.error || 'Failed to scan accounts');
       }
     } catch (error) {
-      console.error('Name fix error:', error);
-      toast.error('Failed to scan student names');
+      console.error('Account recovery error:', error);
+      toast.error('Failed to scan student accounts');
+    } finally {
+      setIsFixingNames(false);
+    }
+  };
+
+  const handleFixAdmissionNumbers = async (apply = false) => {
+    if (apply && !confirm('This will permanently change admission numbers for selected students. Proceed?')) return;
+    
+    try {
+      setIsFixingNames(true);
+      const url = apply ? '/api/students/fix-admission-numbers?apply=true' : '/api/students/fix-admission-numbers';
+      const response = await api.post(url);
+      const data = await response.json();
+
+      if (response.ok) {
+        if (apply) {
+          toast.success(`${data.count} admission numbers fixed!`);
+          fetchStudents();
+        } else {
+          alert(`Found ${data.count} legacy admission numbers that need fixing.`);
+        }
+      } else {
+        toast.error(data.error || 'Failed to fix numbers');
+      }
+    } catch (error) {
+      console.error('Admission fix error:', error);
+      toast.error('Failed to fix admission numbers');
     } finally {
       setIsFixingNames(false);
     }
@@ -935,12 +962,23 @@ Note: Password must be changed on first login.
             onClick={() => handleFixNames(false)}
             disabled={isFixingNames}
             className={`flex-1 sm:flex-none px-3 py-2 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm transition-all ${isFixingNames ? 'bg-purple-600 text-white cursor-wait' : 'bg-purple-50 border border-purple-100 text-purple-600 hover:bg-purple-100'}`}
-            title="Scan and recover missing first names and surnames"
+            title="Scan and recover missing first names, surnames, and accounts"
           >
             <svg className={`w-4 h-4 font-bold ${isFixingNames ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            {isFixingNames ? 'Scanning...' : 'Fix Names'}
+            {isFixingNames ? 'Scanning...' : 'Recover Accounts'}
+          </button>
+          <button
+            onClick={() => handleFixAdmissionNumbers(true)}
+            disabled={isFixingNames}
+            className="flex-1 sm:flex-none px-3 py-2 rounded-xl bg-orange-50 border border-orange-100 text-orange-600 hover:bg-orange-100 transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+            title="Fix 'LEGACY' admission numbers"
+          >
+            <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            Fix Numbers
           </button>
           <div className="relative group w-full sm:w-auto">
             <button className={`w-full sm:w-auto px-3 py-2 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm transition-all ${isUploading ? 'bg-emerald-600 text-white cursor-wait' : 'bg-white border border-gray-200 text-emerald-600 hover:bg-emerald-50'}`} disabled={isUploading}>

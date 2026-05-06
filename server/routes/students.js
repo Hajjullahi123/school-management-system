@@ -39,7 +39,7 @@ router.get('/lookup', authenticate, async (req, res) => {
     const student = await prisma.student.findFirst({
       where: {
         admissionNumber,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: {
         user: {
@@ -80,7 +80,7 @@ router.get('/my-profile', authenticate, async (req, res) => {
     const student = await prisma.student.findFirst({
       where: {
         userId: parseInt(req.user.id),
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: {
         user: {
@@ -139,7 +139,7 @@ router.put('/my-profile', authenticate, async (req, res) => {
     const existingStudent = await prisma.student.findFirst({
       where: {
         userId: req.user.id,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: { user: true }
     });
@@ -163,7 +163,7 @@ router.put('/my-profile', authenticate, async (req, res) => {
     const updatedStudent = await prisma.student.update({
       where: {
         id: existingStudent.id,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       data: dataToUpdate,
       include: {
@@ -192,7 +192,7 @@ router.put('/my-profile', authenticate, async (req, res) => {
     });
 
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'UPDATE',
       resource: 'STUDENT_PROFILE',
@@ -214,7 +214,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
     const student = await prisma.student.findUnique({
       where: {
         id: parseInt(id),
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       }
     });
 
@@ -281,7 +281,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
     });
 
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'DELETE',
       resource: 'STUDENT',
@@ -352,7 +352,7 @@ router.post('/my-photo', authenticate, (req, res, next) => {
     await prisma.student.update({
       where: {
         id: student.id,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       data: { photoUrl }
     });
@@ -370,7 +370,7 @@ router.post('/my-photo', authenticate, (req, res, next) => {
 
     // Log the photo upload
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'UPDATE',
       resource: 'STUDENT_PHOTO',
@@ -422,7 +422,7 @@ router.delete('/my-photo', authenticate, async (req, res) => {
     res.json({ message: 'Photo deleted successfully' });
 
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'DELETE',
       resource: 'STUDENT_PHOTO',
@@ -445,112 +445,116 @@ router.delete('/my-photo', authenticate, async (req, res) => {
 router.post('/fix-names', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const applyFixes = req.query.apply === 'true';
+    const schoolIdInt = parseInt(req.schoolId);
 
-    // Fetch all students with their User records for this school
+    // Fetch all students for this school
     const students = await prisma.student.findMany({
-      where: { schoolId: req.schoolId },
+      where: { schoolId: schoolIdInt },
       include: {
         user: { select: { id: true, firstName: true, lastName: true, username: true } }
       }
     });
 
+    const school = await prisma.school.findUnique({ where: { id: schoolIdInt } });
+    const schoolName = school?.name || 'School';
+    const schoolCode = school?.code || 'SCH';
+
     const fixes = [];
 
     for (const student of students) {
-      if (!student.user) continue;
-
-      const currentFirst = (student.user.firstName || '').trim();
-      const currentLast = (student.user.lastName || '').trim();
-
-      // Skip if both names already exist
-      if (currentFirst && currentLast) continue;
+      const currentFirst = (student.user?.firstName || '').trim();
+      const currentLast = (student.user?.lastName || '').trim();
 
       let newFirst = currentFirst;
       let newLast = currentLast;
       let source = '';
+      let needsAccount = !student.user;
 
       // Strategy 1: Parse the legacy student.name field (e.g. "Adam Ibrahim Lawal")
       const legacyName = (student.name || '').trim();
-      if (legacyName) {
+      if (legacyName && legacyName !== 'Student') {
         const parts = legacyName.split(/\s+/).filter(p => p.length > 0);
         if (parts.length >= 3) {
-          // "FirstName MiddleName(s) LastName"
           if (!newFirst) newFirst = parts[0];
           if (!newLast) newLast = parts[parts.length - 1];
-          // Also populate middleName if it's empty
-          if (!student.middleName) {
-            const middle = parts.slice(1, -1).join(' ');
-            if (middle) source += ` [middleName→"${middle}"]`;
-          }
-          source = `legacy name "${legacyName}"` + source;
+          source = `legacy name "${legacyName}"`;
         } else if (parts.length === 2) {
           if (!newFirst) newFirst = parts[0];
           if (!newLast) newLast = parts[1];
           source = `legacy name "${legacyName}"`;
         } else if (parts.length === 1) {
           if (!newFirst) newFirst = parts[0];
-          source = `legacy name "${legacyName}" (single word → firstName)`;
+          source = `legacy name "${legacyName}"`;
         }
       }
 
-      // Strategy 2: Use middleName if firstName is still empty
-      if (!newFirst && student.middleName && student.middleName.trim()) {
-        newFirst = student.middleName.trim();
-        source = source || `middleName "${student.middleName}"`;
-      }
-
-      // Strategy 3: Extract surname from parentGuardianName if lastName is still empty
+      // Strategy 2: Extract surname from parentGuardianName if still missing
       if (!newLast && student.parentGuardianName && student.parentGuardianName.trim()) {
         const parentParts = student.parentGuardianName.trim().split(/\s+/);
         if (parentParts.length > 0) {
-          // Use the first word of parent name as surname (common in many cultures)
           newLast = parentParts[0];
-          source = (source ? source + ' + ' : '') + `parent name "${student.parentGuardianName}" (first word → surname)`;
+          source = (source ? source + ' + ' : '') + `parent name "${student.parentGuardianName}"`;
         }
       }
 
-      // Strategy 4: Use username parts as last resort
-      if (!newFirst && !newLast && student.user.username) {
-        newFirst = student.user.username;
-        source = `username "${student.user.username}" (last resort)`;
-      }
+      // Fallbacks
+      if (!newFirst) newFirst = 'Student';
+      if (!newLast) newLast = 'User';
 
-      // Skip if nothing changed
-      if (newFirst === currentFirst && newLast === currentLast) continue;
+      // Skip if nothing changed and account exists
+      if (!needsAccount && newFirst === currentFirst && newLast === currentLast) continue;
 
       const fix = {
         studentId: student.id,
-        userId: student.user.id,
         admissionNumber: student.admissionNumber,
-        before: { firstName: currentFirst || '(empty)', lastName: currentLast || '(empty)' },
-        after: { firstName: newFirst || '(empty)', lastName: newLast || '(empty)' },
-        source
+        before: { firstName: currentFirst || '(missing account)', lastName: currentLast || '(missing account)' },
+        after: { firstName: newFirst, lastName: newLast },
+        source,
+        type: needsAccount ? 'CREATE_ACCOUNT' : 'UPDATE_NAMES'
       };
 
       if (applyFixes) {
-        // Apply the fix to the database
-        const updateData = {};
-        if (newFirst && newFirst !== currentFirst) updateData.firstName = newFirst;
-        if (newLast && newLast !== currentLast) updateData.lastName = newLast;
+        if (needsAccount) {
+          // Create missing user account
+          const uName = await generateStudentUsername(schoolIdInt, schoolCode, newFirst, newLast);
+          const autoEmail = generateAutoEmail(newFirst, newLast, schoolName);
+          const hashedPassword = await bcrypt.hash('student123', 10);
 
-        if (Object.keys(updateData).length > 0) {
-          await prisma.user.update({
-            where: { id: student.user.id },
-            data: updateData
+          const newUser = await prisma.user.create({
+            data: {
+              firstName: newFirst,
+              lastName: newLast,
+              email: autoEmail,
+              username: uName.toLowerCase(),
+              password: hashedPassword,
+              role: 'student',
+              schoolId: schoolIdInt,
+              mustChangePassword: true
+            }
+          });
+
+          await prisma.student.update({
+            where: { id: student.id },
+            data: { 
+              userId: newUser.id,
+              name: `${newFirst} ${student.middleName || ''} ${newLast}`.replace(/\s+/g, ' ').trim()
+            }
           });
           fix.applied = true;
-        }
-
-        // Also update middleName from legacy name if it was empty
-        if (legacyName && !student.middleName) {
-          const parts = legacyName.split(/\s+/).filter(p => p.length > 0);
-          if (parts.length >= 3) {
-            const middle = parts.slice(1, -1).join(' ');
-            await prisma.student.update({
-              where: { id: student.id },
-              data: { middleName: middle }
-            });
-          }
+        } else {
+          // Update existing account
+          await prisma.user.update({
+            where: { id: student.user.id },
+            data: { firstName: newFirst, lastName: newLast }
+          });
+          
+          await prisma.student.update({
+            where: { id: student.id },
+            data: { 
+              name: `${newFirst} ${student.middleName || ''} ${newLast}`.replace(/\s+/g, ' ').trim()
+            }
+          });
+          fix.applied = true;
         }
       }
 
@@ -558,7 +562,7 @@ router.post('/fix-names', authenticate, authorize(['admin', 'principal']), async
     }
 
     res.json({
-      mode: applyFixes ? 'APPLIED' : 'DRY_RUN (add ?apply=true to apply)',
+      mode: applyFixes ? 'APPLIED' : 'DRY_RUN',
       totalStudents: students.length,
       fixesNeeded: fixes.length,
       fixes
@@ -566,16 +570,76 @@ router.post('/fix-names', authenticate, authorize(['admin', 'principal']), async
 
     if (applyFixes && fixes.length > 0) {
       logAction({
-        schoolId: req.schoolId,
+        schoolId: schoolIdInt,
         userId: req.user.id,
         action: 'MIGRATE',
-        resource: 'STUDENT_NAMES',
+        resource: 'STUDENT_ACCOUNTS',
         details: { fixCount: fixes.length },
         ipAddress: req.ip
       });
     }
   } catch (error) {
-    console.error('Name fix error:', error);
+    console.error('Account recovery error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Fix Legacy Admission Numbers
+router.post('/fix-admission-numbers', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const applyFixes = req.query.apply === 'true';
+    const schoolIdInt = parseInt(req.schoolId);
+
+    const school = await prisma.school.findUnique({ where: { id: schoolIdInt } });
+    const schoolCode = school?.code || 'SCH';
+
+    const students = await prisma.student.findMany({
+      where: {
+        schoolId: schoolIdInt,
+        OR: [
+          { admissionNumber: { contains: 'LEGACY' } },
+          { NOT: { admissionNumber: { startsWith: schoolCode } } }
+        ]
+      },
+      include: { user: true }
+    });
+
+    const fixes = [];
+    for (const student of students) {
+      const firstName = student.user?.firstName || student.name?.split(' ')[0] || 'Student';
+      const lastName = student.user?.lastName || student.name?.split(' ').pop() || 'User';
+      
+      const newAdmissionNumber = await generateStudentUsername(schoolIdInt, schoolCode, firstName, lastName);
+      
+      const fix = {
+        studentId: student.id,
+        oldNumber: student.admissionNumber,
+        newNumber: newAdmissionNumber
+      };
+
+      if (applyFixes) {
+        await prisma.student.update({
+          where: { id: student.id },
+          data: { admissionNumber: newAdmissionNumber }
+        });
+        // Also update username if it was linked to the old number
+        if (student.user && (student.user.username === student.admissionNumber.toLowerCase())) {
+          await prisma.user.update({
+            where: { id: student.user.id },
+            data: { username: newAdmissionNumber.toLowerCase() }
+          });
+        }
+        fix.applied = true;
+      }
+      fixes.push(fix);
+    }
+
+    res.json({
+      mode: applyFixes ? 'APPLIED' : 'DRY_RUN',
+      count: fixes.length,
+      fixes
+    });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
@@ -588,7 +652,7 @@ router.post('/fix-names', authenticate, authorize(['admin', 'principal']), async
 router.get('/', authenticate, async (req, res) => {
   try {
     const { classId, status } = req.query;
-    const where = { schoolId: req.schoolId };
+    const where = { schoolId: parseInt(req.schoolId) };
 
     if (classId) {
       where.classId = parseInt(classId);
@@ -640,7 +704,7 @@ router.get('/user/:userId', authenticate, async (req, res) => {
     const student = await prisma.student.findFirst({
       where: {
         userId: parseInt(req.params.userId),
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: {
         user: {
@@ -673,7 +737,7 @@ router.get('/:id', authenticate, async (req, res) => {
     const student = await prisma.student.findFirst({
       where: {
         id: parseInt(req.params.id),
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: {
         user: {
@@ -765,7 +829,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
       });
       if (license && license.maxStudents !== -1) {
         const currentCount = await prisma.student.count({
-          where: { schoolId: req.schoolId }
+          where: { schoolId: parseInt(req.schoolId) }
         });
         if (currentCount >= license.maxStudents) {
           return res.status(403).json({
@@ -784,7 +848,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
       const classInfo = await prisma.class.findFirst({
         where: {
           id: parseInt(classId),
-          schoolId: req.schoolId
+          schoolId: parseInt(req.schoolId)
         }
       });
       if (classInfo) {
@@ -813,7 +877,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
     // Create user account
     const user = await prisma.user.create({
       data: {
-        schoolId: req.schoolId,
+        schoolId: parseInt(req.schoolId),
         firstName,
         lastName,
         username,
@@ -827,7 +891,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
     // Create student profile
     const student = await prisma.student.create({
       data: {
-        schoolId: req.schoolId,
+        schoolId: parseInt(req.schoolId),
         userId: user.id,
         admissionNumber: uniqueAdmissionNumber,
         classId: classId ? parseInt(classId) : null,
@@ -960,7 +1024,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
 
     // Log student creation
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'CREATE',
       resource: 'STUDENT',
@@ -1013,7 +1077,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
     const existingStudent = await prisma.student.findFirst({
       where: {
         id: studentId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: { user: true }
     });
@@ -1030,25 +1094,62 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
       return res.status(400).json({ error: 'Invalid genotype' });
     }
 
-    if ((firstName || lastName || email || photoUrl) && existingStudent.userId) {
-      await prisma.user.update({
-        where: {
-          id: existingStudent.userId,
-          schoolId: req.schoolId
-        },
-        data: {
-          ...(firstName && { firstName }),
-          ...(lastName && { lastName }),
-          ...(email && { email }),
-          ...(photoUrl && { photoUrl })
-        }
-      });
+    if (firstName || lastName || email || photoUrl) {
+      if (existingStudent.userId) {
+        // Update existing user account
+        await prisma.user.update({
+          where: {
+            id: existingStudent.userId,
+            schoolId: parseInt(req.schoolId)
+          },
+          data: {
+            ...(firstName && { firstName }),
+            ...(lastName && { lastName }),
+            ...(email && { email }),
+            ...(photoUrl && { photoUrl })
+          }
+        });
+      } else {
+        // CREATE missing user account for legacy student
+        const school = await prisma.school.findUnique({
+          where: { id: parseInt(req.schoolId) }
+        });
+        const schoolCode = school?.code || 'SCH';
+        
+        const fName = firstName || existingStudent.name?.split(' ')[0] || 'Student';
+        const lName = lastName || existingStudent.name?.split(' ').pop() || 'User';
+        const uName = await generateStudentUsername(parseInt(req.schoolId), schoolCode, fName, lName);
+        const autoEmail = generateAutoEmail(fName, lName, school?.name || 'School');
+        const hashedPassword = await bcrypt.hash('student123', 10);
+
+        const newUser = await prisma.user.create({
+          data: {
+            firstName: fName,
+            lastName: lName,
+            email: email || autoEmail,
+            username: uName.toLowerCase(),
+            password: hashedPassword,
+            role: 'student',
+            schoolId: parseInt(req.schoolId),
+            photoUrl: photoUrl || null,
+            mustChangePassword: true
+          }
+        });
+
+        // Link the new user to the student
+        await prisma.student.update({
+          where: { id: studentId },
+          data: { userId: newUser.id }
+        });
+        
+        console.log(`Created missing user account for legacy student ${studentId}: ${uName}`);
+      }
     }
 
     const updatedStudent = await prisma.student.update({
       where: {
         id: studentId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       data: {
         ...(admissionNumber && { admissionNumber }),
@@ -1092,14 +1193,14 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
     if (isScholarship !== undefined) {
       const isScholarshipBool = isScholarship === 'true' || isScholarship === true;
       const currentTerm = await prisma.term.findFirst({
-        where: { isCurrent: true, schoolId: req.schoolId }
+        where: { isCurrent: true, schoolId: parseInt(req.schoolId) }
       });
 
       if (currentTerm) {
         const feeRecord = await prisma.feeRecord.findUnique({
           where: {
             schoolId_studentId_termId_academicSessionId: {
-              schoolId: req.schoolId,
+              schoolId: parseInt(req.schoolId),
               studentId: studentId,
               termId: currentTerm.id,
               academicSessionId: currentTerm.academicSessionId
@@ -1118,7 +1219,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
                 classId: updatedStudent.classId,
                 termId: currentTerm.id,
                 academicSessionId: currentTerm.academicSessionId,
-                schoolId: req.schoolId
+                schoolId: parseInt(req.schoolId)
               }
             });
             if (feeStructure) {
@@ -1146,7 +1247,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
 
     // Log student update
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'UPDATE',
       resource: 'STUDENT',
@@ -1170,7 +1271,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
     const student = await prisma.student.findFirst({
       where: {
         id: studentId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       }
     });
 
@@ -1180,40 +1281,40 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
 
     await prisma.$transaction(async (prisma) => {
       // Delete all related records to avoid foreign key constraints
-      await prisma.result.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.attendanceRecord.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.quranRecord.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.promotionHistory.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.CBTResult.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.homeworkSubmission.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.intervention.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.MiscellaneousFeePayment.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.OnlinePayment.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.studentReportCard.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.certificate.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.testimonial.deleteMany({ where: { studentId, schoolId: req.schoolId } });
-      await prisma.examCard.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+      await prisma.result.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+      await prisma.attendanceRecord.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+      await prisma.quranRecord.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+      await prisma.promotionHistory.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+      await prisma.cBTResult.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+      await prisma.homeworkSubmission.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+      await prisma.intervention.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+      await prisma.miscellaneousFeePayment.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+      await prisma.onlinePayment.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+      await prisma.studentReportCard.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+      await prisma.certificate.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+      await prisma.testimonial.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
+      await prisma.examCard.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
       
       // Handle FeePayments separately as they link via FeeRecord
       const feeRecords = await prisma.feeRecord.findMany({
-        where: { studentId, schoolId: req.schoolId },
+        where: { studentId, schoolId: parseInt(req.schoolId) },
         select: { id: true }
       });
       const feeRecordIds = feeRecords.map(fr => fr.id);
       
       if (feeRecordIds.length > 0) {
         await prisma.feePayment.deleteMany({ 
-          where: { feeRecordId: { in: feeRecordIds }, schoolId: req.schoolId } 
+          where: { feeRecordId: { in: feeRecordIds }, schoolId: parseInt(req.schoolId) } 
         });
       }
       
-      await prisma.feeRecord.deleteMany({ where: { studentId, schoolId: req.schoolId } });
+      await prisma.feeRecord.deleteMany({ where: { studentId, schoolId: parseInt(req.schoolId) } });
 
       // Finally delete student and user
       await prisma.student.delete({
         where: {
           id: studentId,
-          schoolId: req.schoolId
+          schoolId: parseInt(req.schoolId)
         }
       });
 
@@ -1221,7 +1322,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
         await prisma.user.delete({
           where: {
             id: student.userId,
-            schoolId: req.schoolId
+            schoolId: parseInt(req.schoolId)
           }
         });
       }
@@ -1231,7 +1332,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
 
     // Log student deletion
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'DELETE',
       resource: 'STUDENT',
@@ -1257,7 +1358,7 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'principal',
     const student = await prisma.student.findFirst({
       where: {
         id: studentId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       }
     });
 
@@ -1379,7 +1480,7 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'principal',
 
     // 5. Log Action
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: isNew ? 'CREATE' : 'LINK',
       resource: 'PARENT_ACCOUNT',
