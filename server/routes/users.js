@@ -609,7 +609,8 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
       },
       include: {
         student: true,
-        teacher: true
+        teacher: true,
+        Parent: true
       }
     });
 
@@ -664,13 +665,12 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
             where: { id: teacherId, schoolId: parseInt(req.schoolId) }
           });
         }
-      } else if (user.role === 'parent' || user.parent) {
-        await prisma.parent.deleteMany({
-          where: {
-            userId: userId,
-            schoolId: parseInt(req.schoolId)
-          }
-        });
+      } else if (user.role === 'parent' || user.Parent) {
+        const parentId = user.Parent?.id;
+        if (parentId) {
+          await prisma.student.updateMany({ where: { parentId }, data: { parentId: null } });
+          await prisma.parent.delete({ where: { id: parentId } });
+        }
       }
 
       // Cleanup user-created records that might block deletion

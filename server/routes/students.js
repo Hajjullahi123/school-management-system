@@ -265,15 +265,15 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
         // 4. Check if User has other profiles (Teacher/Parent) before deleting User record
         const fullUser = await prisma.user.findUnique({
           where: { id: userId },
-          include: { teacher: true, parent: true }
+          include: { teacher: true, Parent: true }
         });
 
         if (fullUser?.teacher) {
           await prisma.teacherAssignment.deleteMany({ where: { teacherId: userId } });
           await prisma.teacher.delete({ where: { id: fullUser.teacher.id } });
         }
-        if (fullUser?.parent) {
-          await prisma.parent.delete({ where: { id: fullUser.parent.id } });
+        if (fullUser?.Parent) {
+          await prisma.parent.delete({ where: { id: fullUser.Parent.id } });
         }
       }
 
