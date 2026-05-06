@@ -65,7 +65,7 @@ router.post('/initialize', authenticate, async (req, res) => {
             if (response.status) {
               await prisma.onlinePayment.create({
                 data: {
-                  schoolId: req.schoolId,
+                  schoolId: parseInt(req.schoolId),
                   feeRecordId: parseInt(feeRecordId),
                   studentId: parseInt(studentId),
                   amount: parseFloat(amount),
@@ -125,7 +125,7 @@ router.post('/initialize', authenticate, async (req, res) => {
             if (response.status === 'success') {
               await prisma.onlinePayment.create({
                 data: {
-                  schoolId: req.schoolId,
+                  schoolId: parseInt(req.schoolId),
                   feeRecordId: parseInt(feeRecordId),
                   studentId: parseInt(studentId),
                   amount: parseFloat(amount),
@@ -163,7 +163,7 @@ router.get('/verify/:reference', authenticate, async (req, res) => {
 
   try {
     const payment = await prisma.onlinePayment.findFirst({
-      where: { reference, schoolId: req.schoolId },
+      where: { reference, schoolId: parseInt(req.schoolId) },
       include: {
         student: {
           include: {
@@ -263,7 +263,7 @@ router.get('/verify/:reference', authenticate, async (req, res) => {
 
           // 2. Fetch and update fee record
           const feeRecord = await tx.feeRecord.findFirst({
-            where: { id: payment.feeRecordId, schoolId: req.schoolId },
+            where: { id: payment.feeRecordId, schoolId: parseInt(req.schoolId) },
             include: { Term: true, AcademicSession: true }
           });
 
@@ -282,7 +282,7 @@ router.get('/verify/:reference', authenticate, async (req, res) => {
             // 3. Create fee payment record
             const feePayment = await tx.feePayment.create({
               data: {
-                schoolId: req.schoolId,
+                schoolId: parseInt(req.schoolId),
                 feeRecordId: feeRecord.id,
                 amount: payment.amount,
                 paymentMethod: 'online',
@@ -337,7 +337,7 @@ router.get('/verify/:reference', authenticate, async (req, res) => {
         }
 
         logAction({
-          schoolId: req.schoolId,
+          schoolId: parseInt(req.schoolId),
           userId: req.user.id,
           action: 'VERIFY',
           resource: 'ONLINE_PAYMENT',
@@ -372,7 +372,7 @@ router.get('/verify/:reference', authenticate, async (req, res) => {
 router.get('/history', authenticate, authorize(['admin']), async (req, res) => {
   try {
     const payments = await prisma.onlinePayment.findMany({
-      where: { schoolId: req.schoolId },
+      where: { schoolId: parseInt(req.schoolId) },
       include: {
         student: {
           select: {

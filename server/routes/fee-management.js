@@ -9,6 +9,8 @@ const { getStudentFeeSummary, calculatePreviousOutstanding, createOrUpdateFeeRec
 // Get all students with fee status (Accountant/Admin)
 router.get('/students', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
   try {
+    const { academicSessionId, termId, classId } = req.query;
+    const schoolIdInt = parseInt(req.schoolId);
     const sessionInt = parseInt(academicSessionId);
     const termInt = parseInt(termId);
     const classInt = classId ? parseInt(classId) : null;
@@ -20,78 +22,78 @@ router.get('/students', authenticate, authorize(['admin', 'principal', 'accounta
 
     // Determine if we're looking at the current session/term
     const currentSession = await prisma.academicSession.findFirst({
-      where: { schoolId: req.schoolId, isCurrent: true }
-    });
-    const currentTerm = await prisma.term.findFirst({
-      where: { schoolId: req.schoolId, isCurrent: true }
-    });
-
-    const isCurrentPeriod = (sessionInt === currentSession?.id) && (termInt === currentTerm?.id);
-
-    const feeRecordFilter = {
-      termId: termInt,
-      academicSessionId: sessionInt
-    };
-
-    let students;
-
-    if (isCurrentPeriod) {
-      // Current period: show only active students (original behavior)
-      const where = { schoolId: req.schoolId, status: 'active' };
-      if (classId) where.classId = parseInt(classId);
-
-      students = await prisma.student.findMany({
-        where,
-        include: {
-          user: { select: { firstName: true, lastName: true, email: true } },
-          classModel: true,
-          FeeRecord: { where: feeRecordFilter }
-        },
-        orderBy: { admissionNumber: 'asc' }
+        where: { schoolId: schoolIdInt, isCurrent: true }
+      });
+      const currentTerm = await prisma.term.findFirst({
+        where: { schoolId: schoolIdInt, isCurrent: true }
       });
 
-      // Map FeeRecord to feeRecords for frontend
-      students = students.map(s => ({
-        ...s,
-        feeRecords: s.FeeRecord
-      }));
-    } else {
-      // Historical period: show ALL students who have fee records for this term/session,
-      // regardless of their current status (they may have been promoted/graduated)
-      const activeWhere = { schoolId: req.schoolId, status: 'active' };
-      if (classInt) activeWhere.classId = classInt;
+      const isCurrentPeriod = (sessionInt === currentSession?.id) && (termInt === currentTerm?.id);
 
-      const historicalWhere = {
-        schoolId: req.schoolId,
-        FeeRecord: { some: feeRecordFilter }
-      };
-      if (classInt) historicalWhere.classId = classInt;
-
-      students = await prisma.student.findMany({
-        where: { OR: [activeWhere, historicalWhere] },
-        include: {
-          user: { select: { firstName: true, lastName: true, email: true } },
-          classModel: true,
-          FeeRecord: { where: feeRecordFilter }
-        },
-        orderBy: { admissionNumber: 'asc' }
-      });
-
-      // Map FeeRecord to feeRecords for frontend
-      students = students.map(s => ({
-        ...s,
-        feeRecords: s.FeeRecord
-      }));
-    }
-
-    // Fetch fee structures to populate expected amounts for students without records
-    const feeStructures = await prisma.classFeeStructure.findMany({
-      where: {
-        schoolId: req.schoolId,
+      const feeRecordFilter = {
         termId: termInt,
         academicSessionId: sessionInt
+      };
+
+      let students;
+
+      if (isCurrentPeriod) {
+        // Current period: show only active students (original behavior)
+        const where = { schoolId: schoolIdInt, status: 'active' };
+        if (classId) where.classId = parseInt(classId);
+
+        students = await prisma.student.findMany({
+          where,
+          include: {
+            user: { select: { firstName: true, lastName: true, email: true } },
+            classModel: true,
+            FeeRecord: { where: feeRecordFilter }
+          },
+          orderBy: { admissionNumber: 'asc' }
+        });
+
+        // Map FeeRecord to feeRecords for frontend
+        students = students.map(s => ({
+          ...s,
+          feeRecords: s.FeeRecord
+        }));
+      } else {
+        // Historical period: show ALL students who have fee records for this term/session,
+        // regardless of their current status (they may have been promoted/graduated)
+        const activeWhere = { schoolId: schoolIdInt, status: 'active' };
+        if (classInt) activeWhere.classId = classInt;
+
+        const historicalWhere = {
+          schoolId: schoolIdInt,
+          FeeRecord: { some: feeRecordFilter }
+        };
+        if (classInt) historicalWhere.classId = classInt;
+
+        students = await prisma.student.findMany({
+          where: { OR: [activeWhere, historicalWhere] },
+          include: {
+            user: { select: { firstName: true, lastName: true, email: true } },
+            classModel: true,
+            FeeRecord: { where: feeRecordFilter }
+          },
+          orderBy: { admissionNumber: 'asc' }
+        });
+
+        // Map FeeRecord to feeRecords for frontend
+        students = students.map(s => ({
+          ...s,
+          feeRecords: s.FeeRecord
+        }));
       }
-    });
+
+      // Fetch fee structures to populate expected amounts for students without records
+      const feeStructures = await prisma.classFeeStructure.findMany({
+        where: {
+          schoolId: schoolIdInt,
+          termId: termInt,
+          academicSessionId: sessionInt
+        }
+      });
 
     const structureMap = {};
     feeStructures.forEach(fs => {
@@ -151,7 +153,7 @@ router.get('/student/:studentId', authenticate, async (req, res) => {
     const feeRecord = await prisma.feeRecord.findUnique({
       where: {
         schoolId_studentId_termId_academicSessionId: {
-          schoolId: req.schoolId,
+          schoolId: parseInt(req.schoolId),
           studentId,
           termId: parseInt(termId),
           academicSessionId: parseInt(academicSessionId)
@@ -259,7 +261,7 @@ router.post('/record', authenticate, authorize(['admin', 'principal', 'accountan
           classId: student.classId,
           termId: parseInt(termId),
           academicSessionId: parseInt(academicSessionId),
-          schoolId: req.schoolId
+          schoolId: parseInt(req.schoolId)
         }
       });
       const maxAllowed = feeStructure?.amount || 0;
@@ -272,7 +274,7 @@ router.post('/record', authenticate, authorize(['admin', 'principal', 'accountan
 
     // Use centralized utility
     const feeRecord = await createOrUpdateFeeRecordWithOpening({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       studentId: parseInt(studentId),
       termId: parseInt(termId),
       academicSessionId: parseInt(academicSessionId),
@@ -290,7 +292,7 @@ router.post('/record', authenticate, authorize(['admin', 'principal', 'accountan
 
     // Log the action (we can detect if it was an update via the result)
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'UPDATE_RECORD',
       resource: 'FEE_RECORD',
@@ -322,7 +324,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
     const feeRecord = await prisma.feeRecord.findUnique({
       where: {
         schoolId_studentId_termId_academicSessionId: {
-          schoolId: req.schoolId,
+          schoolId: parseInt(req.schoolId),
           studentId: parseInt(studentId),
           termId: parseInt(termId),
           academicSessionId: parseInt(academicSessionId)
@@ -403,7 +405,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
       // Create payment history record
       const payment = await tx.feePayment.create({
         data: {
-          schoolId: req.schoolId,
+          schoolId: parseInt(req.schoolId),
           feeRecordId: feeRecord.id,
           amount: parseFloat(amount),
           paymentMethod: paymentMethod || 'cash',
@@ -474,7 +476,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
 
     // Log the payment
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'CREATE',
       resource: 'FEE_PAYMENT',
@@ -508,7 +510,7 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'principal',
     const payment = await prisma.feePayment.findFirst({
       where: {
         id: paymentId,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: {
         feeRecord: true
@@ -575,7 +577,7 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'principal',
       const updatedPayment = await tx.feePayment.update({
         where: {
           id: paymentId,
-          schoolId: req.schoolId
+          schoolId: parseInt(req.schoolId)
         },
         data: {
           amount: newAmount,
@@ -596,7 +598,7 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'principal',
 
     // Log the update
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'UPDATE',
       resource: 'FEE_PAYMENT',
@@ -626,7 +628,7 @@ router.get('/payments/:studentId', authenticate, authorize(['admin', 'principal'
       const student = await prisma.student.findFirst({
         where: {
           userId: req.user.id,
-          schoolId: req.schoolId
+          schoolId: parseInt(req.schoolId)
         }
       });
 
@@ -643,7 +645,7 @@ router.get('/payments/:studentId', authenticate, authorize(['admin', 'principal'
     const feeRecord = await prisma.feeRecord.findUnique({
       where: {
         schoolId_studentId_termId_academicSessionId: {
-          schoolId: req.schoolId,
+          schoolId: parseInt(req.schoolId),
           studentId,
           termId: parseInt(termId),
           academicSessionId: parseInt(academicSessionId)
@@ -659,7 +661,7 @@ router.get('/payments/:studentId', authenticate, authorize(['admin', 'principal'
     const payments = await prisma.feePayment.findMany({
       where: {
         feeRecordId: feeRecord.id,
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       include: {
         recordedByUser: {
@@ -696,7 +698,7 @@ router.post('/toggle-clearance/:studentId', authenticate, authorize(['admin', 'p
     let feeRecord = await prisma.feeRecord.findUnique({
       where: {
         schoolId_studentId_termId_academicSessionId: {
-          schoolId: req.schoolId,
+          schoolId: parseInt(req.schoolId),
           studentId,
           termId: parseInt(termId),
           academicSessionId: parseInt(academicSessionId)
@@ -732,7 +734,7 @@ router.post('/toggle-clearance/:studentId', authenticate, authorize(['admin', 'p
 
       feeRecord = await prisma.feeRecord.create({
         data: {
-          schoolId: req.schoolId,
+          schoolId: parseInt(req.schoolId),
           studentId,
           termId: parseInt(termId),
           academicSessionId: parseInt(academicSessionId),
@@ -761,7 +763,7 @@ router.post('/toggle-clearance/:studentId', authenticate, authorize(['admin', 'p
     });
 
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'UPDATE',
       resource: 'FEE_CLEARANCE',
@@ -789,7 +791,7 @@ router.post('/clear/:studentId', authenticate, authorize(['admin', 'principal', 
     const record = await prisma.feeRecord.findUnique({
       where: {
         schoolId_studentId_termId_academicSessionId: {
-          schoolId: req.schoolId,
+          schoolId: parseInt(req.schoolId),
           studentId,
           termId: parseInt(termId),
           academicSessionId: parseInt(academicSessionId)
@@ -819,7 +821,7 @@ router.post('/clear/:studentId', authenticate, authorize(['admin', 'principal', 
 
       await prisma.feeRecord.create({
         data: {
-          schoolId: req.schoolId,
+          schoolId: parseInt(req.schoolId),
           studentId,
           termId: parseInt(termId),
           academicSessionId: parseInt(academicSessionId),
@@ -844,7 +846,7 @@ router.post('/revoke-clearance/:studentId', authenticate, authorize(['admin', 'p
     const record = await prisma.feeRecord.findUnique({
       where: {
         schoolId_studentId_termId_academicSessionId: {
-          schoolId: req.schoolId,
+          schoolId: parseInt(req.schoolId),
           studentId,
           termId: parseInt(termId),
           academicSessionId: parseInt(academicSessionId)
@@ -875,7 +877,7 @@ router.post('/revoke-clearance/:studentId', authenticate, authorize(['admin', 'p
 
       await prisma.feeRecord.create({
         data: {
-          schoolId: req.schoolId,
+          schoolId: parseInt(req.schoolId),
           studentId,
           termId: parseInt(termId),
           academicSessionId: parseInt(academicSessionId),
@@ -1028,7 +1030,7 @@ router.post('/bulk-reminder', authenticate, authorize(['admin', 'principal', 'ac
     }
 
     const where = {
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       termId: parseInt(termId),
       academicSessionId: parseInt(academicSessionId),
       balance: { gt: 0 }

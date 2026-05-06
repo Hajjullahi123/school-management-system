@@ -8,7 +8,7 @@ router.get('/', authenticate, async (req, res) => {
   try {
     const { sessionId, termId } = req.query;
 
-    const where = { schoolId: req.schoolId };
+    const where = { schoolId: parseInt(req.schoolId) };
     if (sessionId) where.academicSessionId = parseInt(sessionId);
     if (termId) where.termId = parseInt(termId);
 
@@ -40,14 +40,15 @@ router.post('/', authenticate, authorize(['admin', 'superadmin']), async (req, r
 
     const fee = await prisma.miscellaneousFee.create({
       data: {
-        schoolId: req.schoolId,
+        schoolId: parseInt(req.schoolId),
         title,
         description,
         amount: parseFloat(amount),
         isCompulsory: !!isCompulsory,
         classIds: JSON.stringify(classIds || []),
         academicSessionId: academicSessionId ? parseInt(academicSessionId) : null,
-        termId: termId ? parseInt(termId) : null
+        termId: termId ? parseInt(termId) : null,
+        updatedAt: new Date()
       }
     });
 
@@ -69,7 +70,7 @@ router.put('/:id', authenticate, authorize(['admin', 'superadmin']), async (req,
     const fee = await prisma.miscellaneousFee.update({
       where: {
         id: parseInt(id),
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       },
       data: {
         title,
@@ -78,7 +79,8 @@ router.put('/:id', authenticate, authorize(['admin', 'superadmin']), async (req,
         isCompulsory: !!isCompulsory,
         classIds: JSON.stringify(classIds || []),
         academicSessionId: academicSessionId ? parseInt(academicSessionId) : null,
-        termId: termId ? parseInt(termId) : null
+        termId: termId ? parseInt(termId) : null,
+        updatedAt: new Date()
       }
     });
 
@@ -99,7 +101,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'superadmin']), async (r
     await prisma.miscellaneousFee.delete({
       where: {
         id: parseInt(id),
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       }
     });
 
@@ -114,7 +116,7 @@ router.get('/detailed-analytics', authenticate, async (req, res) => {
   try {
     const { sessionId, termId } = req.query;
 
-    const where = { schoolId: req.schoolId };
+    const where = { schoolId: parseInt(req.schoolId) };
     if (sessionId) where.academicSessionId = parseInt(sessionId);
     if (termId) where.termId = parseInt(termId);
 
@@ -137,7 +139,7 @@ router.get('/detailed-analytics', authenticate, async (req, res) => {
     });
 
     const classes = await prisma.class.findMany({
-      where: { schoolId: req.schoolId },
+      where: { schoolId: parseInt(req.schoolId) },
       include: {
         students: {
           include: {
@@ -224,14 +226,14 @@ router.get('/detailed-analytics', authenticate, async (req, res) => {
 router.get('/analytics', authenticate, async (req, res) => {
   try {
     const fees = await prisma.miscellaneousFee.findMany({
-      where: { schoolId: req.schoolId },
+      where: { schoolId: parseInt(req.schoolId) },
       include: {
         payments: true
       }
     });
 
     const classes = await prisma.class.findMany({
-      where: { schoolId: req.schoolId },
+      where: { schoolId: parseInt(req.schoolId) },
       include: {
         students: true
       }
@@ -281,7 +283,7 @@ router.get('/student/:studentId', authenticate, async (req, res) => {
 
     // Get all fees applicable to this student's class
     const fees = await prisma.miscellaneousFee.findMany({
-      where: { schoolId: req.schoolId },
+      where: { schoolId: parseInt(req.schoolId) },
       include: {
         payments: {
           where: { studentId: parseInt(studentId) }
@@ -319,7 +321,7 @@ router.post('/payments', authenticate, authorize(['admin', 'superadmin']), async
 
     const payment = await prisma.miscellaneousFeePayment.create({
       data: {
-        schoolId: req.schoolId,
+        schoolId: parseInt(req.schoolId),
         studentId: parseInt(studentId),
         feeId: parseInt(feeId),
         amount: parseFloat(amount),
@@ -357,7 +359,7 @@ router.get('/payments', authenticate, async (req, res) => {
   try {
     const { studentId, feeId } = req.query;
 
-    const where = { schoolId: req.schoolId };
+    const where = { schoolId: parseInt(req.schoolId) };
     if (studentId) where.studentId = parseInt(studentId);
     if (feeId) where.feeId = parseInt(feeId);
 
@@ -397,7 +399,7 @@ router.delete('/payments/:id', authenticate, authorize(['admin', 'superadmin']),
     await prisma.miscellaneousFeePayment.delete({
       where: {
         id: parseInt(id),
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       }
     });
 

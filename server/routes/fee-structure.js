@@ -9,7 +9,7 @@ router.get('/', authenticate, authorize(['admin', 'accountant']), async (req, re
   try {
     const { termId, academicSessionId } = req.query;
 
-    const where = { schoolId: req.schoolId };
+    const where = { schoolId: parseInt(req.schoolId) };
     if (termId) where.termId = parseInt(termId);
     if (academicSessionId) where.academicSessionId = parseInt(academicSessionId);
 
@@ -55,7 +55,7 @@ router.post('/setup', authenticate, authorize(['admin', 'accountant']), async (r
     const feeStructure = await prisma.classFeeStructure.upsert({
       where: {
         schoolId_classId_termId_academicSessionId: {
-          schoolId: req.schoolId,
+          schoolId: parseInt(req.schoolId),
           classId: parseInt(classId),
           termId: parseInt(termId),
           academicSessionId: parseInt(academicSessionId)
@@ -66,7 +66,7 @@ router.post('/setup', authenticate, authorize(['admin', 'accountant']), async (r
         description
       },
       create: {
-        schoolId: req.schoolId,
+        schoolId: parseInt(req.schoolId),
         classId: parseInt(classId),
         termId: parseInt(termId),
         academicSessionId: parseInt(academicSessionId),
@@ -80,7 +80,7 @@ router.post('/setup', authenticate, authorize(['admin', 'accountant']), async (r
     const students = await prisma.student.findMany({
       where: {
         classId: parseInt(classId),
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       }
     });
 
@@ -95,7 +95,7 @@ router.post('/setup', authenticate, authorize(['admin', 'accountant']), async (r
       const existingRecord = await prisma.feeRecord.findUnique({
         where: {
           schoolId_studentId_termId_academicSessionId: {
-            schoolId: req.schoolId,
+            schoolId: parseInt(req.schoolId),
             studentId: student.id,
             termId: parseInt(termId),
             academicSessionId: parseInt(academicSessionId)
@@ -120,7 +120,7 @@ router.post('/setup', authenticate, authorize(['admin', 'accountant']), async (r
         // Create new fee record
         await prisma.feeRecord.create({
           data: {
-            schoolId: req.schoolId,
+            schoolId: parseInt(req.schoolId),
             studentId: student.id,
             termId: parseInt(termId),
             academicSessionId: parseInt(academicSessionId),
@@ -146,7 +146,7 @@ router.post('/setup', authenticate, authorize(['admin', 'accountant']), async (r
 
     // Log the action
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'UPSERT',
       resource: 'FEE_STRUCTURE',
@@ -178,7 +178,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'accountant']), async (r
     await prisma.classFeeStructure.delete({
       where: {
         id: parseInt(id),
-        schoolId: req.schoolId
+        schoolId: parseInt(req.schoolId)
       }
     });
 
@@ -186,7 +186,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'accountant']), async (r
 
     // Log the action
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'DELETE',
       resource: 'FEE_STRUCTURE',
