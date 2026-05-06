@@ -885,13 +885,24 @@ export default function FeeManagement() {
 
       const studentsArray = Array.from(studentMap.values()).map(student => {
         // Aggregate fee records for the student
-        const aggregatedRecord = student.feeRecords.reduce((acc, curr) => ({
-          expectedAmount: acc.expectedAmount + curr.expectedAmount,
-          paidAmount: acc.paidAmount + curr.paidAmount,
-          balance: acc.balance + curr.balance,
-          // A student is cleared cumulatively only if cleared in the most recent term record
-          isClearedForExam: curr.isClearedForExam // Last record in the array should be the most recent term fetched
-        }), { expectedAmount: 0, paidAmount: 0, balance: 0, isClearedForExam: true });
+        // Sort records by term start date to ensure the last one is the most recent
+        const sortedRecords = [...student.feeRecords].sort((a, b) => {
+          const termA = allTerms.find(t => t.id === a.termId);
+          const termB = allTerms.find(t => t.id === b.termId);
+          return (termA?.startDate || '').localeCompare(termB?.startDate || '');
+        });
+
+        const aggregatedRecord = sortedRecords.reduce((acc, curr, index) => {
+          const isLast = index === sortedRecords.length - 1;
+          return {
+            expectedAmount: acc.expectedAmount + curr.expectedAmount,
+            paidAmount: acc.paidAmount + curr.paidAmount,
+            // The true cumulative balance is the balance of the most recent term record
+            balance: isLast ? curr.balance : acc.balance,
+            // A student is cleared cumulatively only if cleared in the most recent term record
+            isClearedForExam: isLast ? curr.isClearedForExam : acc.isClearedForExam
+          };
+        }, { expectedAmount: 0, paidAmount: 0, balance: 0, isClearedForExam: true });
 
         return {
           ...student,
