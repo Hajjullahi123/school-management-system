@@ -688,9 +688,9 @@ const TermReportCard = () => {
                                 <td className="border border-black text-center bg-gray-50 text-[10px] font-black">{sub.isEmpty ? '' : (sub.total !== null && sub.total !== undefined ? sub.total.toFixed(0) : '')}</td>
                                 {termNumber === 3 && (
                                   <>
-                                    <td className="border border-black text-center text-[9px]">{sub.isEmpty ? '' : (sub.term1Score !== null && sub.term1Score !== undefined ? sub.term1Score : '')}</td>
-                                    <td className="border border-black text-center text-[9px]">{sub.isEmpty ? '' : (sub.term2Score !== null && sub.term2Score !== undefined ? sub.term2Score : '')}</td>
-                                    <td className="border border-black text-center bg-gray-50 text-[9px] font-bold">{sub.isEmpty ? '' : (sub.cumulativeAverage !== null && sub.cumulativeAverage !== undefined ? sub.cumulativeAverage.toFixed(1) : '')}</td>
+                                    <td className="border border-black text-center text-[9px]">{sub.term1Score !== null && sub.term1Score !== undefined ? sub.term1Score : '-'}</td>
+                                    <td className="border border-black text-center text-[9px]">{sub.term2Score !== null && sub.term2Score !== undefined ? sub.term2Score : '-'}</td>
+                                    <td className="border border-black text-center bg-gray-50 text-[9px] font-bold">{sub.cumulativeAverage !== null && sub.cumulativeAverage !== undefined ? sub.cumulativeAverage.toFixed(1) : '-'}</td>
                                   </>
                                 )}
                                 <td className="border border-black text-center text-[10px] font-black">{sub.isEmpty ? '' : (sub.grade || '')}</td>

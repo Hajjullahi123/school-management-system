@@ -440,21 +440,24 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
 
           if (isFinalTerm && totalTerms > 1) {
             // Map scores from previous terms dynamically
-            // t1Score = term 1, t2Score = term 2 (if exists)
             const firstTerm = allTerms[0];
             const secondTerm = totalTerms > 2 ? allTerms[1] : null;
             
             const r1 = previousTermsResults.find(r => r.subjectId === cs.id && r.termId === firstTerm.id);
-            t1Score = r1 ? r1.totalScore : 0;
+            t1Score = r1 ? r1.totalScore : null;  // null if no record exists
             
             if (secondTerm) {
               const r2 = previousTermsResults.find(r => r.subjectId === cs.id && r.termId === secondTerm.id);
-              t2Score = r2 ? r2.totalScore : 0;
+              t2Score = r2 ? r2.totalScore : null;  // null if no record exists
             }
 
-            const currentTotal = result ? result.totalScore : 0;
-            const sessionTotal = t1Score + (t2Score || 0) + currentTotal;
-            cumulativeAvg = sessionTotal / totalTerms;
+            // Calculate cumulative average only over terms that have actual data
+            const currentTotal = result ? result.totalScore : null;
+            const termScores = [t1Score, t2Score, currentTotal].filter(s => s !== null && s !== undefined);
+            if (termScores.length > 0) {
+              const sessionTotal = termScores.reduce((sum, s) => sum + s, 0);
+              cumulativeAvg = sessionTotal / termScores.length;
+            }
           }
 
           return {
@@ -1149,16 +1152,20 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
               const secondTerm = totalTerms > 2 ? allTermsInSession[1] : null;
               
               const r1 = prevTermScores.find(r => r.subjectId === cs.id && r.termId === firstTerm.id);
-              t1Score = r1 ? r1.totalScore : 0;
+              t1Score = r1 ? r1.totalScore : null;  // null if no record exists
               
               if (secondTerm) {
                 const r2 = prevTermScores.find(r => r.subjectId === cs.id && r.termId === secondTerm.id);
-                t2Score = r2 ? r2.totalScore : 0;
+                t2Score = r2 ? r2.totalScore : null;  // null if no record exists
               }
 
-              const currentTotal = result ? result.totalScore : 0;
-              const sessionTotal = t1Score + (t2Score || 0) + currentTotal;
-              cumulativeAvg = sessionTotal / (totalTerms || 1);
+              // Calculate cumulative average only over terms that have actual data
+              const currentTotal = result ? result.totalScore : null;
+              const termScores = [t1Score, t2Score, currentTotal].filter(s => s !== null && s !== undefined);
+              if (termScores.length > 0) {
+                const sessionTotal = termScores.reduce((sum, s) => sum + s, 0);
+                cumulativeAvg = sessionTotal / termScores.length;
+              }
             }
             return {
               id: cs.id,
