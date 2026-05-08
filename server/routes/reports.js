@@ -1619,6 +1619,9 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       return {
         ...s,
         termScores: s.termScores.map(score => score || null),
+        term1: s.termScores[0] || null,
+        term2: s.termScores[1] || null,
+        term3: s.termScores[2] || null,
         total: s.total || null,
         average: avg,
         grade: avg !== null ? getGrade(avg, schoolSettings.gradingSystem) : null
