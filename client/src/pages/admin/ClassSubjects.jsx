@@ -52,6 +52,12 @@ const ClassSubjects = () => {
       const response = await api.get(`/api/class-subjects/class/${selectedClass.id}`);
       const data = await response.json();
       const safeData = Array.isArray(data) ? data : [];
+      
+      if (!response.ok) {
+        console.error('Server error fetching class subjects:', data);
+        toast.error('Could not load class subjects. Please try again.');
+      }
+      
       setClassSubjects(safeData);
 
       // Calculate available subjects safely
@@ -61,6 +67,7 @@ const ClassSubjects = () => {
       setAvailableSubjects(available);
     } catch (error) {
       console.error('Error fetching class subjects:', error);
+      toast.error('Network error loading subjects.');
       setClassSubjects([]);
       setAvailableSubjects([]);
     } finally {
@@ -103,7 +110,19 @@ const ClassSubjects = () => {
 
       const result = await response.json();
       if (response.ok) {
-        toast.success(`${result.created.length} subjects added successfully!`);
+        const createdCount = result.created?.length || 0;
+        const errorCount = result.errors?.length || 0;
+        
+        if (createdCount > 0) {
+          toast.success(`${createdCount} subjects added successfully!`);
+        }
+        if (errorCount > 0 && createdCount === 0) {
+          // All subjects already exist — just refresh to show them
+          toast('These subjects already exist for this class. Refreshing...', { icon: 'ℹ️' });
+        } else if (errorCount > 0) {
+          toast(`${errorCount} subject(s) were already assigned.`, { icon: 'ℹ️' });
+        }
+        
         setSelectedSubjects([]);
         fetchClassSubjects();
       } else {

@@ -60,57 +60,93 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/class/:classId', authenticate, async (req, res) => {
   try {
     const classId = parseInt(req.params.classId);
+    if (isNaN(classId)) {
+      return res.json([]);
+    }
 
-    const activeTerm = await prisma.term.findFirst({
-      where: { schoolId: req.schoolId, isCurrent: true }
-    });
+    let activeTerm = null;
+    try {
+      activeTerm = await prisma.term.findFirst({
+        where: { schoolId: req.schoolId, isCurrent: true }
+      });
+    } catch (e) {
+      console.error('Error fetching active term for class subjects:', e.message);
+    }
 
-    const classSubjects = await prisma.classSubject.findMany({
-      where: {
-        classId,
-        schoolId: req.schoolId
-      },
-      include: {
-        subject: {
-          select: {
-            id: true,
-            name: true,
-            code: true
-          }
+    let classSubjects;
+    try {
+      // Full query with teacher assignments
+      classSubjects = await prisma.classSubject.findMany({
+        where: {
+          classId,
+          schoolId: req.schoolId
         },
-        teacherAssignments: {
-          where: { 
-            schoolId: req.schoolId,
-            ...(activeTerm ? { termId: activeTerm.id } : {})
+        include: {
+          subject: {
+            select: {
+              id: true,
+              name: true,
+              code: true
+            }
           },
-          include: {
-            teacher: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true
+          teacherAssignments: {
+            where: { 
+              schoolId: req.schoolId,
+              ...(activeTerm ? { termId: activeTerm.id } : {})
+            },
+            include: {
+              teacher: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true
+                }
               }
             }
           }
+        },
+        orderBy: {
+          subject: { name: 'asc' }
         }
-      },
-      orderBy: {
-        subject: { name: 'asc' }
-      }
-    });
+      });
+    } catch (queryError) {
+      console.error('Full query failed, falling back to simple query:', queryError.message);
+      // Fallback: simpler query without teacher assignments
+      classSubjects = await prisma.classSubject.findMany({
+        where: {
+          classId,
+          schoolId: req.schoolId
+        },
+        include: {
+          subject: {
+            select: {
+              id: true,
+              name: true,
+              code: true
+            }
+          }
+        },
+        orderBy: {
+          subject: { name: 'asc' }
+        }
+      });
+      // Add empty teacherAssignments so the map below doesn't fail
+      classSubjects = classSubjects.map(cs => ({ ...cs, teacherAssignments: [] }));
+    }
 
     // Add assignment status to each subject
     const subjectsWithStatus = classSubjects.map(cs => ({
       ...cs,
-      isAssigned: cs.teacherAssignments.length > 0,
-      teacher: cs.teacherAssignments[0]?.teacher || null
+      isAssigned: (cs.teacherAssignments || []).length > 0,
+      teacher: cs.teacherAssignments?.[0]?.teacher || null
     }));
 
     res.json(subjectsWithStatus);
   } catch (error) {
     console.error('Error fetching class subjects:', error);
-    res.status(500).json({ error: error.message });
+    // CRITICAL: Always return an array, never an error object, to prevent frontend crash
+    res.json([]);
   }
 });
 
