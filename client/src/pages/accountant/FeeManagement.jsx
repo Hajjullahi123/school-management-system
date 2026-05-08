@@ -2913,7 +2913,7 @@ export default function FeeManagement() {
 
       {/* Render Payment Modal, History Modal etc. */}
       {selectedStudent && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full flex justify-center items-end sm:items-center z-50 p-0 sm:p-4">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full flex justify-center items-end sm:items-center z-50 p-0 pb-24 sm:p-4">
           <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] sm:max-h-[85vh] flex flex-col transform transition-all">
             <div className="flex justify-between items-center p-4 border-b border-gray-100 shrink-0">
               <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight">Record Payment</h2>
@@ -3004,7 +3004,7 @@ export default function FeeManagement() {
 
       {/* Misc Payment Modal */}
       {selectedMiscPayment && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-[100] p-4 pb-24 sm:pb-4">
           <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md max-h-[90vh] sm:max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in duration-300">
             <div className="p-6 bg-gradient-to-br from-primary to-primary/90 text-white shrink-0">
               <div className="flex justify-between items-start mb-4">
