@@ -480,13 +480,6 @@ const BulkReportDownload = () => {
                                     <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">2ND TST<br />{data.term?.weights?.test2 || 10}</th>
                                     <th className="border border-black p-0.5 text-center w-8">EXM<br />{data.term?.weights?.exam || 70}</th>
                                     <th className="border border-black p-0.5 text-center w-8 font-black">TOT<br />100</th>
-                                    {data.term?.number === 3 && (
-                                      <>
-                                        <th className="border border-black p-0.5 text-center w-6 text-[7px]">T1</th>
-                                        <th className="border border-black p-0.5 text-center w-6 text-[7px]">T2</th>
-                                        <th className="border border-black p-0.5 text-center w-8 text-[7px] font-bold">CUM</th>
-                                      </>
-                                    )}
                                     <th className="border border-black p-0.5 text-center w-6 text-[7px]">GRD</th>
                                     {showPosition && <th className="border border-black p-0.5 text-center w-6 text-[7px]">POS</th>}
                                     <th className="border border-black p-0.5 text-left px-1 text-[8px]">REMARKS</th>
@@ -504,13 +497,6 @@ const BulkReportDownload = () => {
                                         <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.test2 !== null && sub.test2 !== undefined ? sub.test2 : '')}</td>
                                         <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.exam !== null && sub.exam !== undefined ? sub.exam : '')}</td>
                                         <td className="border border-black text-center bg-gray-50 text-[10px] font-black">{sub.isEmpty ? '' : (sub.total !== null && sub.total !== undefined ? sub.total.toFixed(0) : '')}</td>
-                                        {data.term?.number === 3 && (
-                                          <>
-                                            <td className="border border-black text-center text-[9px]">{sub.term1Score !== null && sub.term1Score !== undefined ? sub.term1Score : '-'}</td>
-                                            <td className="border border-black text-center text-[9px]">{sub.term2Score !== null && sub.term2Score !== undefined ? sub.term2Score : '-'}</td>
-                                            <td className="border border-black text-center bg-gray-50 text-[9px] font-bold">{sub.cumulativeAverage !== null && sub.cumulativeAverage !== undefined ? sub.cumulativeAverage.toFixed(1) : '-'}</td>
-                                          </>
-                                        )}
                                         <td className="border border-black text-center text-[10px] font-black">{sub.isEmpty ? '' : (sub.grade || '')}</td>
                                         {showPosition && <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.position || '')}</td>}
                                         <td className="border border-black px-1 text-[8px] leading-tight italic font-medium">{sub.isEmpty ? '' : (sub.remark || '')}</td>
