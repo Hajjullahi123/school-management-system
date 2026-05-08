@@ -1568,6 +1568,8 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       };
     });
 
+    let termsWithResults = 0;
+
     for (let i = 0; i < session.terms.length; i++) {
       const term = session.terms[i];
       const termIdx = i + 1;
@@ -1582,6 +1584,8 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
           subject: true
         }
       });
+
+      if (results.length > 0) termsWithResults++;
 
       const termAverage = await calculateStudentTermAverage(
         prisma,
@@ -1610,10 +1614,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
 
     // Convert subjects map to array and calculate cumulative averages
     const cumulativeSubjects = Object.values(subjectsMap).map(s => {
-      // Progressive Average Logic: 
-      // If it's not the final term yet, average by terms-to-date (s.count).
-      // If it's the final term, average by the total session length.
-      const divisor = isFinalTerm ? session.terms.length : (s.count > 0 ? s.count : session.terms.length);
+      const divisor = s.count > 0 ? s.count : 1;
       const avg = s.count > 0 ? s.total / divisor : null; 
       
       return {
@@ -1634,7 +1635,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       parseInt(studentId),
       parseInt(sessionId),
       req.schoolId,
-      totalSubjectsCount * session.terms.length
+      totalSubjectsCount * (termsWithResults || 1)
     );
 
     // Attendance (Session-wide)
@@ -1823,11 +1824,14 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
 
       const termsData = [];
       let sessionTotalScore = 0;
+      let termsWithResults = 0;
 
       for (let i = 0; i < session.terms.length; i++) {
         const term = session.terms[i];
         const termIdx = i + 1;
         const studentTermResults = allResults.filter(r => r.studentId === student.id && r.termId === term.id);
+
+        if (studentTermResults.length > 0) termsWithResults++;
 
         let termTotal = 0;
         studentTermResults.forEach(r => {
@@ -1844,7 +1848,7 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
         termsData.push({ termName: term.name, average: termAverage, grade: getGrade(termAverage, schoolSettings.gradingSystem) });
       }
 
-      const sessionAverage = sessionTotalScore / (totalSubjectsCount * session.terms.length);
+      const sessionAverage = sessionTotalScore / (totalSubjectsCount * (termsWithResults || 1));
       const hasAnyResults = cumulativeSubjects.some(s => s.count > 0);
       const isPromoted = hasAnyResults ? sessionAverage >= (schoolSettings.passThreshold || 40) : null;
 
@@ -1865,7 +1869,8 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
       };
 
       const cumulativeSubjects = Object.values(subjectsMap).map(s => {
-        const avg = s.count > 0 ? s.total / session.terms.length : null;
+        const divisor = s.count > 0 ? s.count : 1;
+        const avg = s.count > 0 ? s.total / divisor : null;
         return { 
           ...s, 
           term1: s.term1 || null,
