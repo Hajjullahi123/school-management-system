@@ -336,7 +336,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
             user: true,
             parent: {
               include: {
-                user: true
+                User: true
               }
             },
             classModel: true
@@ -391,7 +391,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
               user: true,
               parent: {
                 include: {
-                  user: true
+                  User: true
                 }
               },
               classModel: true
@@ -424,7 +424,13 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
       ...result,
       feeRecord: {
         ...result.feeRecord,
-        student: result.feeRecord.Student,
+        student: {
+          ...result.feeRecord.Student,
+          parent: result.feeRecord.Student.parent ? {
+            ...result.feeRecord.Student.parent,
+            user: result.feeRecord.Student.parent.User
+          } : null
+        },
         term: result.feeRecord.Term,
         academicSession: result.feeRecord.AcademicSession
       }
