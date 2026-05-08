@@ -531,12 +531,7 @@ const ProgressiveReport = () => {
                         <tbody>
                           {(() => {
                             const subs = data.subjects || [];
-                            const paddedSubs = [...subs];
-                            const MIN_ROWS = 12;
-                            while (paddedSubs.length < MIN_ROWS) {
-                              paddedSubs.push({ isEmpty: true });
-                            }
-                            return paddedSubs.map((sub, i) => (
+                            return subs.map((sub, i) => (
                               <tr key={i} className="hover:bg-gray-50 border-b border-gray-300 h-5">
                                 <td className="border-x border-black p-1 font-bold text-gray-800 uppercase text-[10px]">{sub.isEmpty ? '\u00A0' : (sub.subject?.name || '')}</td>
                                 <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '' : (sub.assignment1Score ?? '-')}</td>

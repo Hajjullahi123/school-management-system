@@ -552,12 +552,7 @@ const ReportCard = () => {
                     <tbody className="text-[10px] uppercase font-bold">
                       {(() => {
                         const subs = reportData.subjects || [];
-                        const paddedSubs = [...subs];
-                        const MIN_ROWS = 12;
-                        while (paddedSubs.length < MIN_ROWS) {
-                          paddedSubs.push({ isEmpty: true });
-                        }
-                        return paddedSubs.map((sub, i) => (
+                        return subs.map((sub, i) => (
                           <tr key={i} className="h-6">
                             <td className="border border-black px-2 font-black leading-tight">{sub.isEmpty ? '' : (sub.name || '')}</td>
                             <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.assignment1 !== null && sub.assignment1 !== undefined ? sub.assignment1 : '')}</td>

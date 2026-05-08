@@ -677,12 +677,7 @@ const TermReportCard = () => {
                         <tbody>
                           {(() => {
                             const subs = data.subjects || [];
-                            const paddedSubs = [...subs];
-                            const MIN_ROWS = 12;
-                            while (paddedSubs.length < MIN_ROWS) {
-                              paddedSubs.push({ isEmpty: true });
-                            }
-                            return paddedSubs.map((sub, i) => (
+                            return subs.map((sub, i) => (
                               <tr key={i} className="font-bold uppercase h-5">
                                 <td className="border border-black px-1 leading-tight text-[11px] font-black">{sub.isEmpty ? '\u00A0' : (sub.name || '')}</td>
                                 <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.assignment1 !== null && sub.assignment1 !== undefined ? sub.assignment1 : '')}</td>

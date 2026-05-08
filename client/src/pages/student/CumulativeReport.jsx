@@ -303,12 +303,7 @@ const CumulativeReport = () => {
               <tbody className="divide-y divide-gray-300">
                 {(() => {
                   const subs = data.subjects || [];
-                  const paddedSubs = [...subs];
-                  const MIN_ROWS = 12;
-                  while (paddedSubs.length < MIN_ROWS) {
-                    paddedSubs.push({ isEmpty: true });
-                  }
-                  return paddedSubs.map((sub, idx) => (
+                  return subs.map((sub, idx) => (
                     <tr key={idx} className={`${idx % 2 === 1 ? 'bg-gray-50' : 'bg-white'} divide-x divide-gray-300`}>
                       <td className="p-1 text-left pl-3 font-extrabold border-r-2 border-black text-[9px] h-5">{sub.isEmpty ? '\u00A0' : (sub.name || '')}</td>
                       <td className="p-1 text-[9px] h-5">{sub.isEmpty ? '' : (sub.term1 !== null && sub.term1 !== undefined ? sub.term1 : '-')}</td>
