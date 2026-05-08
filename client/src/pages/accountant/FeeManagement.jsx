@@ -26,6 +26,8 @@ export default function FeeManagement() {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
+  const [studentFeeSummary, setStudentFeeSummary] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
 
   // Term/Session selection for payment
   const [allTerms, setAllTerms] = useState([]);
@@ -1030,7 +1032,35 @@ export default function FeeManagement() {
       console.error('Error loading summary:', error);
       setSummary(null);
     }
+  const fetchStudentFeeSummary = async (studentId) => {
+    try {
+      setLoadingSummary(true);
+      // Use the VIEWED term/session as the reference point
+      const refTermId = selectedViewTerm?.id || currentTerm.id;
+      const refSessionId = selectedViewSession?.id || currentSession.id;
+      
+      const response = await api.get(`/api/fees/student/${studentId}/summary?termId=${refTermId}&academicSessionId=${refSessionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setStudentFeeSummary(data);
+      }
+    } catch (error) {
+      console.error('Error fetching student summary:', error);
+    } finally {
+      setLoadingSummary(false);
+    }
   };
+
+  useEffect(() => {
+    if (selectedStudent) {
+      // Set default payment term/session to the currently viewed ones
+      setSelectedPaymentTerm(selectedViewTerm || currentTerm);
+      setSelectedPaymentSession(selectedViewSession || currentSession);
+      fetchStudentFeeSummary(selectedStudent.id);
+    } else {
+      setStudentFeeSummary(null);
+    }
+  }, [selectedStudent]);
 
   const recordPayment = async (studentId) => {
     if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
@@ -1038,13 +1068,18 @@ export default function FeeManagement() {
       return;
     }
 
-    const currentBalance = selectedStudent.feeRecords[0]?.balance || 0;
-    if (currentBalance <= 0) {
-      alert(`This student has no outstanding balance for this term. No further payments can be recorded.`);
+    // Use the selected payment term's balance if available in summary
+    const selectedTermBalance = studentFeeSummary?.outstandingTerms?.find(
+      t => t.termId === (selectedPaymentTerm?.id || currentTerm?.id)
+    )?.balance || selectedStudent.feeRecords[0]?.balance || 0;
+
+    if (selectedTermBalance <= 0) {
+      alert(`The student has no outstanding balance for the selected term (${selectedPaymentTerm?.name || 'Current Term'}).`);
       return;
     }
-    if (parseFloat(paymentAmount) > currentBalance) {
-      alert(`Payment amount cannot exceed the outstanding balance (₦${formatNumber(currentBalance)})`);
+    
+    if (parseFloat(paymentAmount) > selectedTermBalance) {
+      alert(`Payment amount cannot exceed the outstanding balance for this term (₦${formatNumber(selectedTermBalance)})`);
       return;
     }
 
@@ -2443,72 +2478,31 @@ export default function FeeManagement() {
                           </td>
 
                           {student.isScholarship ? (
-                            <td colSpan="5" className="p-3 border-b border-gray-100">
-                              <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 p-4 text-white shadow-lg border border-emerald-400">
-                                {/* Decorative background elements */}
-                                <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white opacity-10 blur-2xl"></div>
-                                <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 rounded-full bg-white opacity-10 blur-xl"></div>
-
-                                <div className="relative flex items-center justify-between gap-4">
-                                  {/* Logo Section */}
-                                  <div className="hidden sm:flex shrink-0 w-16 h-16 bg-white/20 rounded-full p-2 backdrop-blur-sm border border-white/30 items-center justify-center">
-                                    {schoolSettings?.logoUrl ? (
-                                      <img src={schoolSettings.logoUrl} alt="Logo" className="w-full h-full object-contain drop-shadow-md" />
-                                    ) : (
-                                      <span className="text-2xl">🎓</span>
-                                    )}
-                                  </div>
-
-                                  {/* Main Content Section */}
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="px-2 py-0.5 bg-yellow-400 text-yellow-900 text-[10px] font-black uppercase tracking-widest rounded-sm shadow-sm">
-                                        Scholarship Awardee
-                                      </span>
-                                      <span className="text-emerald-100 text-[10px] font-bold uppercase tracking-wider">
-                                        {viewAllSessions ? 'All Sessions' : (viewAllTerms ? `${selectedViewSession?.name} (All Terms)` : `${selectedViewTerm?.name || currentTerm?.name} - ${selectedViewSession?.name || currentSession?.name}`)}
-                                      </span>
-                                    </div>
-                                    <p className="text-xs sm:text-sm font-medium leading-relaxed max-w-2xl text-white drop-shadow-sm">
-                                      This serves as official confirmation that <strong className="text-yellow-300 mx-1">{student.user?.firstName || ''} {student.user?.lastName || ''} {student.middleName || ''}</strong>
-                                      of <strong className="text-yellow-300 mx-1">{student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : ''}</strong>
-                                      is exempted from paying school fees. Kindly take note and grant all necessary clearances.
-                                    </p>
-                                  </div>
-
-                                  {/* Signature & Actions Section */}
-                                  <div className="shrink-0 flex flex-col items-center justify-center gap-2 border-l border-white/20 pl-4 ml-2">
-                                    {schoolSettings?.principalSignatureUrl ? (
-                                      <div className="h-10 w-24 bg-white/10 rounded backdrop-blur-sm flex items-center justify-center p-1 border border-white/20">
-                                        <img src={schoolSettings.principalSignatureUrl} alt="Signature" className="h-full w-full object-contain opacity-90" style={{ filter: 'brightness(0) invert(1)' }} />
-                                      </div>
-                                    ) : (
-                                      <div className="h-10 w-24 bg-white/10 rounded flex items-center justify-center border border-white/10 text-[8px] text-white/50 uppercase tracking-widest text-center leading-tight">
-                                        Authorized<br />Signature
-                                      </div>
-                                    )}
-                                    <div className="flex gap-1.5 w-full mt-1">
-                                      <button
-                                        onClick={() => {
-                                          setScholarshipStudent(student);
-                                          setScholarshipModalOpen(true);
-                                        }}
-                                        className="flex-1 bg-yellow-400 text-yellow-900 hover:bg-yellow-500 px-2 py-1.5 rounded-[4px] text-[10px] font-black uppercase tracking-tighter shadow-sm transition-all shadow-yellow-500/20"
-                                      >
-                                        🖨️ Print Card
-                                      </button>
-                                      <button
-                                        onClick={() => handleEditFee(student)}
-                                        className="bg-emerald-800 text-white hover:bg-emerald-900 border border-emerald-600 px-2 py-1.5 rounded-[4px] text-[10px] font-black uppercase tracking-tighter shadow-sm transition-all flex-none aspect-square w-8"
-                                        title="Adjust settings"
-                                      >
-                                        ⚙️
-                                      </button>
-                                    </div>
-                                  </div>
+                            <>
+                              <td colSpan="4" className="px-3 py-4 text-[11px] font-black text-center border-b border-gray-100 text-emerald-600 uppercase tracking-widest italic bg-emerald-50/50">
+                                🎓 scholarship student — full fee waiver
+                              </td>
+                              <td className="px-3 py-4 border-b border-gray-100">
+                                <div className="flex gap-1.5">
+                                  <button
+                                    onClick={() => {
+                                      setScholarshipStudent(student);
+                                      setScholarshipModalOpen(true);
+                                    }}
+                                    className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter shadow-sm transition-all"
+                                  >
+                                    🖨️ Print Card
+                                  </button>
+                                  <button
+                                    onClick={() => handleEditFee(student)}
+                                    className="bg-gray-100 text-gray-600 hover:bg-gray-200 px-2 py-1 rounded text-[10px] font-black transition-all flex-none aspect-square w-7 flex items-center justify-center"
+                                    title="Adjust settings"
+                                  >
+                                    ⚙️
+                                  </button>
                                 </div>
-                              </div>
-                            </td>
+                              </td>
+                            </>
                           ) : (
                             <>
                               <td className="px-3 py-4 text-xs font-bold text-right border-b border-gray-100">
@@ -2927,62 +2921,155 @@ export default function FeeManagement() {
               </button>
             </div>
             <div className="p-4 sm:p-6 overflow-y-auto flex-1">
-              <div className="mb-4 text-sm text-gray-600">
-                Record payment for {selectedStudent.user?.firstName || 'Unknown'} {selectedStudent.user?.lastName || ''} ({selectedStudent.admissionNumber})
+              <div className="mb-6 p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-1">Student Details</p>
+                <div className="flex items-center gap-3">
+                   <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center font-black text-primary text-lg">
+                    {selectedStudent.user?.firstName?.[0]}{selectedStudent.user?.lastName?.[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-gray-900 text-base truncate leading-tight">
+                      {selectedStudent.user?.firstName || ''} {selectedStudent.user?.lastName || ''}
+                    </p>
+                    <p className="text-gray-400 text-xs font-bold uppercase tracking-tighter">
+                      {selectedStudent.admissionNumber} • {selectedStudent.classModel?.name || 'N/A'}
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* Term & Session Selection */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Payment Session</label>
+                    <select
+                      value={selectedPaymentSession?.id || ''}
+                      onChange={(e) => {
+                        const sess = allSessions.find(s => s.id === parseInt(e.target.value));
+                        setSelectedPaymentSession(sess);
+                      }}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm transition-all"
+                    >
+                      {allSessions.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Payment Term</label>
+                    <select
+                      value={selectedPaymentTerm?.id || ''}
+                      onChange={(e) => {
+                        const term = allTerms.find(t => t.id === parseInt(e.target.value));
+                        setSelectedPaymentTerm(term);
+                      }}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm transition-all"
+                    >
+                      {allTerms.filter(t => t.academicSessionId === selectedPaymentSession?.id).map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Outstanding Balances Display */}
+                {loadingSummary ? (
+                   <div className="p-4 bg-gray-50 rounded-2xl flex items-center justify-center gap-3">
+                     <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                     <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Loading Balances...</span>
+                   </div>
+                ) : studentFeeSummary?.outstandingTerms?.length > 0 && (
+                  <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4">
+                    <h4 className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <span className="flex h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
+                      Outstanding Balances
+                    </h4>
+                    <div className="space-y-2 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
+                      {studentFeeSummary.outstandingTerms.map((term, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`flex justify-between items-center p-2 rounded-lg cursor-pointer transition-all ${
+                            selectedPaymentTerm?.id === term.termId ? 'bg-orange-500 text-white shadow-md' : 'bg-white hover:bg-orange-100'
+                          }`}
+                          onClick={() => {
+                            const foundTerm = allTerms.find(t => t.id === term.termId);
+                            const foundSession = allSessions.find(s => s.id === term.sessionId);
+                            setSelectedPaymentTerm(foundTerm);
+                            setSelectedPaymentSession(foundSession);
+                          }}
+                        >
+                          <div className="flex flex-col">
+                            <span className={`text-[10px] font-black uppercase ${selectedPaymentTerm?.id === term.termId ? 'text-white/80' : 'text-gray-400'}`}>
+                              {term.sessionName}
+                            </span>
+                            <span className="text-xs font-bold">{term.termName}</span>
+                          </div>
+                          <span className={`text-xs font-black ${selectedPaymentTerm?.id === term.termId ? 'text-white' : 'text-orange-600'}`}>
+                            ₦{formatNumber(term.balance)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₦)</label>
-                  <input
-                    type="number"
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    max={selectedStudent.feeRecords[0]?.balance || 0}
-                    className="w-full p-2 border rounded focus:ring-primary focus:border-primary"
-                    placeholder="0.00"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Outstanding: ₦{formatNumber(selectedStudent.feeRecords[0]?.balance || 0)}
-                  </p>
+                  <div className="flex justify-between items-center mb-1.5 ml-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount to Pay</label>
+                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">
+                      Max: ₦{formatNumber(studentFeeSummary?.outstandingTerms?.find(t => t.termId === selectedPaymentTerm?.id)?.balance || selectedStudent.feeRecords[0]?.balance || 0)}
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-400">₦</span>
+                    <input
+                      type="number"
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                      className="w-full pl-8 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-black text-xl text-gray-900 transition-all placeholder:text-gray-200"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Method</label>
+                    <select
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm transition-all"
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="bank_transfer">Bank Transfer</option>
+                      <option value="pos">POS</option>
+                      <option value="cheque">Cheque</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Reference No.</label>
+                    <input
+                      type="text"
+                      value={paymentReference}
+                      onChange={(e) => setPaymentReference(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm transition-all"
+                      placeholder="e.g. Teller #"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                  <select
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full p-2 border rounded focus:ring-primary focus:border-primary"
-                  >
-                    <option value="cash">Cash</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="pos">POS</option>
-                    <option value="cheque">Cheque</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Reference No. (Optional)</label>
-                  <input
-                    type="text"
-                    value={paymentReference}
-                    onChange={(e) => setPaymentReference(e.target.value)}
-                    className="w-full p-2 border rounded focus:ring-primary focus:border-primary"
-                    placeholder="e.g. Teller Number"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Notes</label>
                   <textarea
                     value={paymentNotes}
                     onChange={(e) => setPaymentNotes(e.target.value)}
-                    className="w-full p-2 border rounded focus:ring-primary focus:border-primary"
+                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium text-sm transition-all"
                     rows="2"
+                    placeholder="Add additional details..."
                   ></textarea>
                 </div>
               </div>
-
             </div>
             <div className="p-4 bg-gray-50 flex justify-end gap-3 rounded-b-2xl sm:rounded-b-xl shrink-0">
               <button
@@ -2993,9 +3080,17 @@ export default function FeeManagement() {
               </button>
               <button
                 onClick={() => recordPayment(selectedStudent.id)}
-                className="flex-1 sm:flex-none px-4 py-2.5 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-95 active:scale-95 transition-all"
+                disabled={loadingSummary}
+                className={`flex-1 sm:flex-none px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-95 active:scale-95 transition-all flex items-center justify-center gap-2 ${loadingSummary ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                Record Payment
+                {loadingSummary ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Verifying...
+                  </>
+                ) : (
+                  'Record Payment'
+                )}
               </button>
             </div>
           </div>

@@ -219,9 +219,34 @@ router.get('/student/:studentId/summary', authenticate, async (req, res) => {
       }
     });
 
+    // NEW: Get all terms with balances for this student
+    const allRecords = await prisma.feeRecord.findMany({
+      where: {
+        schoolId: parseInt(req.schoolId),
+        studentId: studentId,
+        balance: { gt: 0 }
+      },
+      include: {
+        Term: true,
+        AcademicSession: true
+      },
+      orderBy: {
+        Term: { startDate: 'asc' }
+      }
+    });
+
+    const outstandingTerms = allRecords.map(r => ({
+      termId: r.termId,
+      sessionId: r.academicSessionId,
+      termName: r.Term.name,
+      sessionName: r.AcademicSession.name,
+      balance: r.balance
+    }));
+
     res.json({
       student,
-      ...summary
+      ...summary,
+      outstandingTerms
     });
   } catch (error) {
     console.error('Error fetching fee summary:', error);
@@ -420,19 +445,23 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
     });
 
     // Map result for email/SMS functions which expect lowercase
+    // DEFENSIVE: Ensure we handle both Student (Prisma default) and student (mapped)
+    const baseStudent = result.feeRecord.Student || result.feeRecord.student;
+    
     const formattedResult = {
       ...result,
       feeRecord: {
         ...result.feeRecord,
-        student: (result.feeRecord.Student || result.feeRecord.student) ? {
-          ...(result.feeRecord.Student || result.feeRecord.student),
-          parent: (result.feeRecord.Student || result.feeRecord.student).parent ? {
-            ...(result.feeRecord.Student || result.feeRecord.student).parent,
-            user: (result.feeRecord.Student || result.feeRecord.student).parent.User || (result.feeRecord.Student || result.feeRecord.student).parent.user
+        student: baseStudent ? {
+          ...baseStudent,
+          user: baseStudent.user || baseStudent.User || null,
+          parent: baseStudent.parent ? {
+            ...baseStudent.parent,
+            user: baseStudent.parent.User || baseStudent.parent.user || null
           } : null
         } : null,
-        term: result.feeRecord.Term,
-        academicSession: result.feeRecord.AcademicSession
+        term: result.feeRecord.Term || result.feeRecord.term,
+        academicSession: result.feeRecord.AcademicSession || result.feeRecord.academicSession
       }
     };
 
@@ -478,7 +507,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
       message: 'Payment recorded successfully',
       feeRecord: result.feeRecord,
       payment: result.payment,
-      emailSent: !!result.feeRecord.student.parent?.user?.email
+      emailSent: !!formattedResult.feeRecord?.student?.parent?.user?.email
     });
 
     // Log the payment
