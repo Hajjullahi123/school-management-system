@@ -16,9 +16,10 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'ex
     if (search) {
       where.OR = [
         { username: { contains: search } },
-        { firstName: { contains: search } },
-        { lastName: { contains: search } },
-        { email: { contains: search } }
+        {firstName: {contains: search}},
+        {middleName: {contains: search}},
+        {lastName: {contains: search}},
+        {email: {contains: search}}
       ];
     }
 
@@ -76,6 +77,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
       email,
       role,
       firstName,
+      middleName,
       lastName,
       // Student-specific
       admissionNumber,
@@ -226,6 +228,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
       phone: phone || null,
       role,
       firstName,
+      middleName: middleName || null,
       lastName,
       photoUrl: photoUrl || null
     };
@@ -269,6 +272,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
               dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
               parentEmail,
               parentPhone,
+              middleName: middleName || null,
               rollNo: finalAdmissionNumber // For backward compatibility
             }
           }
@@ -442,6 +446,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
       email,
       phone,
       firstName,
+      middleName,
       lastName,
       isActive,
       // Student specific
@@ -489,6 +494,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
       email,
       phone,
       firstName,
+      middleName,
       lastName,
       isActive,
       username,
@@ -531,7 +537,8 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
         bloodGroup,
         genotype,
         disability,
-        isScholarship: isScholarship !== undefined ? isScholarship : undefined
+        isScholarship: isScholarship !== undefined ? isScholarship : undefined,
+        middleName
       };
       if (classId !== undefined) studentUpdate.classId = classId ? parseInt(classId) : null;
       if (admissionNumber) studentUpdate.admissionNumber = admissionNumber;
@@ -742,6 +749,7 @@ router.post('/bulk-students', authenticate, authorize(['admin', 'principal', 'ac
             email: student.email,
             role: 'student',
             firstName: student.firstName,
+            middleName: student.middleName || null,
             lastName: student.lastName,
             student: {
               create: {

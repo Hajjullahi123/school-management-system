@@ -45,6 +45,7 @@ router.get('/lookup', authenticate, async (req, res) => {
         user: {
           select: {
             firstName: true,
+            middleName: true,
             lastName: true,
             email: true,
             photoUrl: true
@@ -87,6 +88,7 @@ router.get('/my-profile', authenticate, async (req, res) => {
           select: {
             id: true,
             firstName: true,
+            middleName: true,
             lastName: true,
             email: true,
             username: true,
@@ -171,6 +173,7 @@ router.put('/my-profile', authenticate, async (req, res) => {
           select: {
             id: true,
             firstName: true,
+            middleName: true,
             lastName: true,
             email: true,
             username: true
@@ -377,6 +380,7 @@ router.post('/:id/create-account', authenticate, authorize(['admin', 'principal'
           passwordHash,
           role: 'student',
           firstName,
+          middleName: student.middleName || null,
           lastName,
           email: student.parentEmail || (student.parentPhone ? student.parentPhone + '@edutech.com' : null)
         }
@@ -784,6 +788,7 @@ router.get('/', authenticate, async (req, res) => {
           select: {
             id: true,
             firstName: true,
+            middleName: true,
             lastName: true,
             email: true,
             username: true,
@@ -1029,6 +1034,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
           select: {
             id: true,
             firstName: true,
+            middleName: true,
             lastName: true,
             email: true,
             username: true
@@ -1306,6 +1312,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
         user: {
           select: {
             firstName: true,
+            middleName: true,
             lastName: true,
             email: true
           }

@@ -316,7 +316,7 @@ const ReportCard = () => {
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">Select Student</label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <select
                     value={selectedStudentId}
                     onChange={(e) => setSelectedStudentId(e.target.value)}
@@ -329,7 +329,7 @@ const ReportCard = () => {
                   <button
                     onClick={fetchReportCard}
                     disabled={loading || !selectedStudentId}
-                    className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-primary/20 hover:brightness-110 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                    className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-primary/20 hover:brightness-110 disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap h-[46px]"
                   >
                     {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full"></div> : null}
                     Generate
@@ -338,7 +338,7 @@ const ReportCard = () => {
               </div>
             </>
           ) : (
-            <div className="md:col-span-2 flex gap-4 items-end">
+            <div className="md:col-span-2 flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-end">
               <div className="flex-1 space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">Admission Number</label>
                 <input
@@ -352,7 +352,7 @@ const ReportCard = () => {
               <button
                 onClick={fetchReportCard}
                 disabled={loading || !admissionNumber}
-                className="bg-primary text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-primary/20 hover:brightness-110 disabled:opacity-50"
+                className="bg-primary text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-primary/20 hover:brightness-110 disabled:opacity-50 h-[46px]"
               >
                 Lookup Result
               </button>
@@ -537,13 +537,7 @@ const ReportCard = () => {
                         <th className="border border-black px-1 py-1 text-center w-6">2TS<br />{reportData.term?.weights?.test2 || 10}</th>
                         <th className="border border-black px-1 py-1 text-center w-8">EXM<br />{reportData.term?.weights?.exam || 70}</th>
                         <th className="border border-black px-1 py-1 text-center w-8 font-black">TOT<br />100</th>
-                        {reportData.term?.number === 3 && (
-                          <>
-                            <th className="border border-black px-1 py-1 text-center w-6 text-[7px]">T1</th>
-                            <th className="border border-black px-1 py-1 text-center w-6 text-[7px]">T2</th>
-                            <th className="border border-black px-1 py-1 text-center w-8 text-[7px] font-bold">CUM</th>
-                          </>
-                        )}
+
                         <th className="border border-black px-1 py-1 text-center w-6">GRD</th>
                         {showPosition && <th className="border border-black px-1 py-1 text-center w-6">POS</th>}
                         <th className="border border-black px-2 py-1 text-left italic text-[8px]">Remark</th>
@@ -561,13 +555,7 @@ const ReportCard = () => {
                             <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.test2 !== null && sub.test2 !== undefined ? sub.test2 : '')}</td>
                             <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.exam !== null && sub.exam !== undefined ? sub.exam : '')}</td>
                             <td className="border border-black text-center bg-gray-50 font-black">{sub.isEmpty ? '' : (sub.total !== null && sub.total !== undefined ? sub.total.toFixed(0) : '')}</td>
-                            {reportData.term?.number === 3 && (
-                              <>
-                                <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.term1Score !== null && sub.term1Score !== undefined ? sub.term1Score : '')}</td>
-                                <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.term2Score !== null && sub.term2Score !== undefined ? sub.term2Score : '')}</td>
-                                <td className="border border-black text-center bg-gray-50 font-bold">{sub.isEmpty ? '' : (sub.cumulativeAverage !== null && sub.cumulativeAverage !== undefined ? sub.cumulativeAverage.toFixed(1) : '')}</td>
-                              </>
-                            )}
+
                             <td className="border border-black text-center font-black">{sub.isEmpty ? '' : (sub.grade || '')}</td>
                             {showPosition && <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.position || '')}</td>}
                             <td className="border border-black px-2 italic text-[8px] leading-tight font-medium">{sub.isEmpty ? '' : (sub.remark || '')}</td>

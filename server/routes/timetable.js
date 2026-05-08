@@ -52,7 +52,7 @@ router.get('/class/:classId', authenticate, async (req, res) => {
             subjectId: slot.subjectId
           }
         },
-        include: { teacher: { select: { id: true, firstName: true, lastName: true } } }
+        include: { teacher: { select: { id: true, firstName: true, middleName: true, lastName: true } } }
       });
 
       return { ...slot, teacher: assignment?.teacher || null };
@@ -81,7 +81,7 @@ router.get('/all', authenticate, authorize(['admin', 'principal']), async (req, 
     const allAssignments = await prisma.teacherAssignment.findMany({
       where: { schoolId: req.schoolId },
       include: {
-        teacher: { select: { id: true, firstName: true, lastName: true } },
+        teacher: { select: { id: true, firstName: true, middleName: true, lastName: true } },
         classSubject: true
       }
     });
@@ -617,7 +617,7 @@ router.get('/audit', authenticate, authorize(['admin', 'principal']), async (req
       if (cs.teacherAssignments.length > 0) {
         const t = cs.teacherAssignments[0].teacher;
         teacherMapByCS[`${cs.classId}_${cs.subjectId}`] = t.id;
-        teacherNameMap[t.id] = `${t.firstName} ${t.lastName}`;
+        teacherNameMap[t.id] = [t.firstName, t.middleName, t.lastName].filter(Boolean).join(' ');
       }
     });
 
@@ -767,7 +767,7 @@ router.post('/generate-all', authenticate, authorize(['admin', 'principal']), as
       if (cs.teacherAssignments.length > 0) {
         const t = cs.teacherAssignments[0].teacher;
         teacherMapByCS[`${cs.classId}_${cs.subjectId}`] = t.id;
-        teacherNameMap[t.id] = `${t.firstName} ${t.lastName}`;
+        teacherNameMap[t.id] = [t.firstName, t.middleName, t.lastName].filter(Boolean).join(' ');
       }
     });
 

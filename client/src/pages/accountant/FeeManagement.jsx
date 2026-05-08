@@ -37,6 +37,7 @@ export default function FeeManagement() {
 
   // Edit Payment State
   const [editingPayment, setEditingPayment] = useState(null);
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   // Print Receipt Modal State
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
@@ -1070,22 +1071,25 @@ export default function FeeManagement() {
       return;
     }
 
-    // Use the selected payment term's balance if available in summary
+    // Use the selected payment term's balance for informative messages
     const selectedTermBalance = studentFeeSummary?.outstandingTerms?.find(
       t => t.termId === (selectedPaymentTerm?.id || currentTerm?.id)
-    )?.balance || selectedStudent.feeRecords[0]?.balance || 0;
+    )?.balance || 0;
 
-    if (selectedTermBalance <= 0) {
-      alert(`The student has no outstanding balance for the selected term (${selectedPaymentTerm?.name || 'Current Term'}).`);
+    const grandTotal = studentFeeSummary?.grandTotal || 0;
+
+    if (grandTotal <= 0 && parseFloat(paymentAmount) > 0) {
+      alert(`This student has no overall outstanding balance. You cannot record a payment.`);
       return;
     }
     
-    if (parseFloat(paymentAmount) > selectedTermBalance) {
-      alert(`Payment amount cannot exceed the outstanding balance for this term (₦${formatNumber(selectedTermBalance)})`);
+    if (parseFloat(paymentAmount) > (grandTotal + 0.01)) {
+      alert(`Payment amount cannot exceed the student's total outstanding balance (₦${formatNumber(grandTotal)})`);
       return;
     }
 
     try {
+      setProcessingPayment(true);
       const response = await api.post('/api/fees/payment', {
         studentId,
         termId: selectedPaymentTerm?.id || currentTerm.id,
@@ -1130,6 +1134,8 @@ export default function FeeManagement() {
     } catch (error) {
       console.error('Error recording payment:', error);
       alert(error.message || 'Failed to record payment');
+    } finally {
+      setProcessingPayment(false);
     }
   };
 
@@ -2142,16 +2148,16 @@ export default function FeeManagement() {
                 Sync
               </button>
 
-              <div className="flex gap-4 items-center mt-4">
-                <div className="flex-1 bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-center gap-4">
-                  <div className="p-3 bg-blue-600 text-white rounded-lg shadow-lg">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center mt-6 w-full">
+                <div className="flex-1 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-4 rounded-2xl flex items-center gap-4 shadow-sm">
+                  <div className="p-3 bg-blue-600 text-white rounded-xl shadow-lg shrink-0">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <div>
-                    <p className="text-xs font-black text-blue-600 uppercase tracking-widest mb-0.5">Currently Viewing</p>
-                    <p className="text-sm font-bold text-blue-900">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-0.5">Currently Viewing</p>
+                    <p className="text-sm font-bold text-blue-900 truncate">
                       {viewAllSessions ? 'GLOBAL ACADEMIC HISTORY - ALL SESSIONS' : `${selectedViewSession?.name || 'Loading...'} - ${viewAllTerms ? 'All Terms (Cumulative)' : (selectedViewTerm?.name || 'Term')}`}
                     </p>
                   </div>
@@ -2159,12 +2165,12 @@ export default function FeeManagement() {
 
                 <button
                   onClick={() => viewAllSessions ? loadStudentsAllSessions() : (viewAllTerms ? loadStudentsAllTerms(selectedViewSession.id) : handleViewFilterChange(selectedViewTerm.id, selectedViewSession.id, false, false))}
-                  className="bg-primary text-white p-4 rounded-xl shadow-lg hover:brightness-95 transition-all active:scale-95 flex items-center gap-2 font-black uppercase text-xs tracking-widest"
+                  className="bg-primary text-white px-6 py-4 rounded-2xl shadow-lg hover:brightness-95 transition-all active:scale-95 flex items-center justify-center gap-2 font-black uppercase text-xs tracking-widest sm:w-auto w-full"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  Refresh
+                  Refresh View
                 </button>
               </div>
 
@@ -2439,7 +2445,7 @@ export default function FeeManagement() {
                         Paid
                       </th>
                       <th className="px-3 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                        Total Balance
+                        Term Balance
                       </th>
                       <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
                         Actions
@@ -2452,7 +2458,7 @@ export default function FeeManagement() {
                       const prevBalance = feeRecord?.openingBalance || 0;
                       const currentExpected = feeRecord?.expectedAmount || 0;
                       const paid = feeRecord?.paidAmount || 0;
-                      const totalBalance = feeRecord?.balance || 0;
+                      const totalBalance = currentExpected - paid;
                       return (
                         <tr key={student.id} className={`hover:bg-gray-50 ${student.isScholarship ? 'bg-emerald-50/30' : ''}`}>
                           <td className="px-3 py-4 border-b border-gray-100">
@@ -2482,7 +2488,7 @@ export default function FeeManagement() {
                           {student.isScholarship ? (
                             <>
                               <td colSpan="4" className="px-3 py-4 text-[11px] font-black text-center border-b border-gray-100 text-emerald-600 uppercase tracking-widest italic bg-emerald-50/50">
-                                🎓 scholarship student — full fee waiver
+                                🎓 SCHOLARSHIP
                               </td>
                               <td className="px-3 py-4 border-b border-gray-100">
                                 <div className="flex gap-1.5">
@@ -2574,7 +2580,7 @@ export default function FeeManagement() {
                 const prevBalance = feeRecord?.openingBalance || 0;
                 const currentExpected = feeRecord?.expectedAmount || 0;
                 const paid = feeRecord?.paidAmount || 0;
-                const totalBalance = feeRecord?.balance || 0;
+                const totalBalance = currentExpected - paid; // Changed to term-specific balance
                 const totalDue = prevBalance + currentExpected;
                 const paymentPercent = totalDue > 0 ? Math.min((paid / totalDue) * 100, 100) : 0;
 
@@ -3019,9 +3025,14 @@ export default function FeeManagement() {
                 <div>
                   <div className="flex justify-between items-center mb-1.5 ml-1">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount to Pay</label>
-                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">
-                      Max: ₦{formatNumber(studentFeeSummary?.outstandingTerms?.find(t => t.termId === selectedPaymentTerm?.id)?.balance || selectedStudent.feeRecords[0]?.balance || 0)}
-                    </span>
+                    <div className="flex flex-col items-end">
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Term Balance: ₦{formatNumber(studentFeeSummary?.outstandingTerms?.find(t => t.termId === selectedPaymentTerm?.id)?.balance || 0)}
+                      </span>
+                      <span className="text-[10px] font-black text-primary uppercase tracking-widest">
+                        Max (Total Debt): ₦{formatNumber(studentFeeSummary?.grandTotal || 0)}
+                      </span>
+                    </div>
                   </div>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-400">₦</span>
@@ -3082,13 +3093,13 @@ export default function FeeManagement() {
               </button>
               <button
                 onClick={() => recordPayment(selectedStudent.id)}
-                disabled={loadingSummary}
-                className={`flex-1 sm:flex-none px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-95 active:scale-95 transition-all flex items-center justify-center gap-2 ${loadingSummary ? 'opacity-70 cursor-not-allowed' : ''}`}
+                disabled={loadingSummary || processingPayment}
+                className={`flex-1 sm:flex-none px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-95 active:scale-95 transition-all flex items-center justify-center gap-2 ${loadingSummary || processingPayment ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                {loadingSummary ? (
+                {loadingSummary || processingPayment ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Verifying...
+                    {processingPayment ? 'Recording...' : 'Verifying...'}
                   </>
                 ) : (
                   'Record Payment'

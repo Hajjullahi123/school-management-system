@@ -14,6 +14,7 @@ const UserManagement = () => {
     email: '',
     phone: '',
     firstName: '',
+    middleName: '',
     lastName: '',
     role: 'teacher',
     admissionNumber: '', // for student
@@ -167,6 +168,7 @@ const UserManagement = () => {
       email: user.email || '',
       phone: user.phone || '',
       firstName: user.firstName,
+      middleName: user.middleName || '',
       lastName: user.lastName,
       role: user.role,
       admissionNumber: user.student?.admissionNumber || '',
@@ -247,7 +249,7 @@ const UserManagement = () => {
   const getDisplayName = (user) => {
     const parts = [
       user.firstName,
-      user.student?.middleName,
+      user.middleName || user.student?.middleName,
       user.lastName
     ].filter(part => part && part.trim() !== '');
     return parts.join(' ') || user.username || '(No Name)';
@@ -574,14 +576,18 @@ const UserManagement = () => {
                   ) : null;
                 })()}
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">First Name</label>
-                  <input type="text" name="firstName" required value={formData.firstName} onChange={handleInputChange} placeholder="Enter first name" className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all" />
+                  <input type="text" name="firstName" required value={formData.firstName} onChange={handleInputChange} placeholder="First" className="w-full border-2 border-gray-100 rounded-2xl py-2 px-3 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all text-xs" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Middle Name</label>
+                  <input type="text" name="middleName" value={formData.middleName} onChange={handleInputChange} placeholder="Middle" className="w-full border-2 border-gray-100 rounded-2xl py-2 px-3 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all text-xs" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Last Name</label>
-                  <input type="text" name="lastName" required value={formData.lastName} onChange={handleInputChange} placeholder="Enter last name" className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all" />
+                  <input type="text" name="lastName" required value={formData.lastName} onChange={handleInputChange} placeholder="Last" className="w-full border-2 border-gray-100 rounded-2xl py-2 px-3 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all text-xs" />
                 </div>
               </div>
               {editingUser && (

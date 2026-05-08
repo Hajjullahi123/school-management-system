@@ -750,30 +750,49 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
   };
 
   const handlePrint = async () => {
-    let receiptHTML = '';
-
-    if (receiptType === 'single') {
-      if (!selectedPayment) {
-        alert('Please select a payment');
-        return;
-      }
-      receiptHTML = generateSinglePaymentReceipt(selectedPayment);
-    } else if (receiptType === 'term') {
-      receiptHTML = await generateTermReceipt();
-    } else if (receiptType === 'cumulative') {
-      receiptHTML = await generateCumulativeReceipt();
+    // CRITICAL: Open window immediately to preserve user-gesture context for popup blockers
+    const printWindow = window.open('', '_blank');
+    
+    if (!printWindow) {
+      alert('Popup blocked! Please allow popups for this site to print receipts.');
+      return;
     }
 
-    // Open in new window and print
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(receiptHTML);
-    printWindow.document.close();
-    printWindow.focus();
+    // Show loading state in the new window
+    printWindow.document.write('<html><head><title>Loading...</title></head><body><div style="font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh;"><h2>Generating Receipt...</h2></div></body></html>');
 
-    // Auto-print after a short delay
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
+    try {
+      let receiptHTML = '';
+
+      if (receiptType === 'single') {
+        if (!selectedPayment) {
+          alert('Please select a payment');
+          printWindow.close();
+          return;
+        }
+        receiptHTML = generateSinglePaymentReceipt(selectedPayment);
+      } else if (receiptType === 'term') {
+        receiptHTML = await generateTermReceipt();
+      } else if (receiptType === 'cumulative') {
+        receiptHTML = await generateCumulativeReceipt();
+      }
+
+      // Write final content
+      printWindow.document.open();
+      printWindow.document.write(receiptHTML);
+      printWindow.document.close();
+      printWindow.focus();
+
+      // Auto-print after a short delay
+      setTimeout(() => {
+        if (printWindow.print) {
+          printWindow.print();
+        }
+      }, 500);
+    } catch (err) {
+      console.error('Print Error:', err);
+      printWindow.document.write(`<div style="color:red; padding:20px;">Error generating receipt: ${err.message}</div>`);
+    }
   };
 
   if (!isOpen) return null;
@@ -879,7 +898,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
 
           {/* Term Selection */}
           {(receiptType === 'single' || receiptType === 'term') && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Academic Session

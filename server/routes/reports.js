@@ -51,6 +51,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         user: {
           select: {
             firstName: true,
+            middleName: true,
             lastName: true,
             photoUrl: true
           }
@@ -69,6 +70,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
             classTeacher: {
               select: {
                 firstName: true,
+                middleName: true,
                 lastName: true,
                 signatureUrl: true
               }
@@ -355,7 +357,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
     const totalTerms = allTerms.length;
     const termIndex = allTerms.findIndex(t => t.id === parseInt(termId));
     const termNumber = termIndex + 1;
-    const isFinalTerm = termIndex === totalTerms - 1;
+    const isFinalTerm = false; // Forced to false to ensure isolated term reports, as requested. Cumulative data is handled by a separate report.
 
     // Fetch previous terms' results if it's the final term
     let previousTermsResults = [];
@@ -1461,6 +1463,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
         user: {
           select: {
             firstName: true,
+            middleName: true,
             lastName: true,
             photoUrl: true
           }
@@ -1470,6 +1473,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
             classTeacher: {
               select: {
                 firstName: true,
+                middleName: true,
                 lastName: true,
                 signatureUrl: true
               }
@@ -1962,6 +1966,7 @@ router.get('/progressive/:studentId/:termId/:assessmentType', authenticate, asyn
         user: {
           select: {
             firstName: true,
+            middleName: true,
             lastName: true,
             photoUrl: true
           }

@@ -24,7 +24,7 @@ async function getTopStudentForClass(schoolId, classItem, termId, sessionId) {
   const students = await prisma.student.findMany({
     where: { classId: classItem.id, schoolId, user: { isActive: true, schoolId } },
     include: {
-      user: { select: { firstName: true, lastName: true, photoUrl: true } },
+      user: { select: { firstName: true, middleName: true, lastName: true, photoUrl: true } },
       classModel: true,
       results: {
         where: { termId, academicSessionId: sessionId, schoolId },
@@ -59,7 +59,7 @@ async function getTopStudentForClass(schoolId, classItem, termId, sessionId) {
 
   return {
     id: top.id,
-    name: top.user ? `${top.user.firstName} ${top.user.lastName}` : (top.name || top.admissionNumber || 'Student'),
+    name: top.user ? [top.user.firstName, top.user.middleName || top.middleName, top.user.lastName].filter(Boolean).join(' ') : (top.name || top.admissionNumber || 'Student'),
     class: `${classItem.name}${classItem.arm ? ' ' + classItem.arm : ''}`,
     average: top.average.toFixed(1) + '%',
     averageNumeric: top.average,
@@ -168,7 +168,7 @@ router.get('/top-performers', async (req, res) => {
     const students = await prisma.student.findMany({
       where: { schoolId: finalSchoolId, user: { isActive: true, schoolId: finalSchoolId } },
       include: {
-        user: { select: { firstName: true, lastName: true, email: true, photoUrl: true } },
+        user: { select: { firstName: true, middleName: true, lastName: true, email: true, photoUrl: true } },
         classModel: true,
         results: {
           where: { termId: finalTermId, academicSessionId: finalSessionId, schoolId: finalSchoolId },
@@ -202,7 +202,7 @@ router.get('/top-performers', async (req, res) => {
 
       return {
         id: student.id,
-        name: student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || student.admissionNumber || 'Student'),
+        name: student.user ? [student.user.firstName, student.user.middleName || student.middleName, student.user.lastName].filter(Boolean).join(' ') : (student.name || student.admissionNumber || 'Student'),
         class: student.classModel ? `${student.classModel.name}${student.classModel.arm || ''}` : 'N/A',
         average: average.toFixed(1) + '%',
         averageNumeric: average,

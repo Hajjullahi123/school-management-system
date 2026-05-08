@@ -13,7 +13,7 @@ router.get('/verify/:testimonialNumber', async (req, res) => {
       include: {
         student: {
           include: {
-            user: { select: { firstName: true, lastName: true } }
+            user: { select: { firstName: true, middleName: true, lastName: true } }
           }
         },
         school: { select: { name: true, logoUrl: true } }
@@ -26,7 +26,7 @@ router.get('/verify/:testimonialNumber', async (req, res) => {
 
     res.json({
       verified: true,
-      studentName: testimonial.student.user ? (testimonial.student.middleName ? `${testimonial.student.user.firstName} ${testimonial.student.user.lastName} ${testimonial.student.middleName}` : `${testimonial.student.user.firstName} ${testimonial.student.user.lastName}`) : (testimonial.student.name || testimonial.student.admissionNumber || 'Student'),
+      studentName: testimonial.student.user ? [testimonial.student.user.firstName, testimonial.student.user.middleName || testimonial.student.middleName, testimonial.student.user.lastName].filter(Boolean).join(' ') : (testimonial.student.name || testimonial.student.admissionNumber || 'Student'),
       schoolName: testimonial.school.name,
       conduct: testimonial.conduct,
       character: testimonial.character,
@@ -145,13 +145,13 @@ router.get('/bulk/:year', authenticate, authorize(['admin', 'principal']), async
       include: {
         student: {
           include: {
-            user: { select: { firstName: true, lastName: true, username: true } },
+            user: { select: { firstName: true, middleName: true, lastName: true, username: true } },
             alumniProfile: { select: { graduationYear: true, alumniId: true, programType: true } },
             classModel: { select: { name: true } }
           }
         },
         school: { select: { name: true, logoUrl: true, address: true, primaryColor: true } },
-        issuer: { select: { firstName: true, lastName: true } }
+        issuer: { select: { firstName: true, middleName: true, lastName: true } }
       },
       orderBy: {
         student: {
@@ -205,13 +205,13 @@ router.get('/bulk-history/:classId/:sessionId', authenticate, authorize(['admin'
       include: {
         student: {
           include: {
-            user: { select: { firstName: true, lastName: true, username: true } },
+            user: { select: { firstName: true, middleName: true, lastName: true, username: true } },
             alumniProfile: { select: { graduationYear: true, alumniId: true, programType: true } },
             classModel: { select: { name: true } }
           }
         },
         school: { select: { name: true, logoUrl: true, address: true, primaryColor: true } },
-        issuer: { select: { firstName: true, lastName: true } }
+        issuer: { select: { firstName: true, middleName: true, lastName: true } }
       },
       orderBy: {
         student: {
@@ -284,7 +284,7 @@ router.post('/generate/:studentId', authenticate, authorize(['admin', 'principal
       include: {
         student: {
           include: {
-            user: { select: { firstName: true, lastName: true } }
+            user: { select: { firstName: true, middleName: true, lastName: true } }
           }
         }
       }
@@ -352,13 +352,13 @@ router.get('/:studentId', authenticate, authorize(['admin', 'principal']), async
       include: {
         student: {
           include: {
-            user: { select: { firstName: true, lastName: true, username: true } },
+            user: { select: { firstName: true, middleName: true, lastName: true, username: true } },
             alumniProfile: { select: { graduationYear: true, alumniId: true } },
             classModel: { select: { name: true } }
           }
         },
         school: { select: { name: true, logoUrl: true, address: true, primaryColor: true } },
-        issuer: { select: { firstName: true, lastName: true } }
+        issuer: { select: { firstName: true, middleName: true, lastName: true } }
       }
     });
 

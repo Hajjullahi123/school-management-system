@@ -348,6 +348,7 @@ router.get('/daily-report', authenticate, authorize(['admin', 'principal', 'atte
       select: {
         id: true,
         firstName: true,
+        middleName: true,
         lastName: true,
         role: true,
         email: true
@@ -370,6 +371,7 @@ router.get('/daily-report', authenticate, authorize(['admin', 'principal', 'atte
             select: {
               id: true,
               firstName: true,
+              middleName: true,
               lastName: true
             }
           }
@@ -392,7 +394,7 @@ router.get('/daily-report', authenticate, authorize(['admin', 'principal', 'atte
 
         return {
           userId: s.id,
-          name: `${s.firstName} ${s.lastName}`,
+          name: [s.firstName, s.middleName, s.lastName].filter(n => n).join(' '),
           role: s.role,
           email: s.email,
           checkInTime: record?.checkInTime || null,
@@ -402,7 +404,7 @@ router.get('/daily-report', authenticate, authorize(['admin', 'principal', 'atte
           hoursWorked: hoursWorked ? parseFloat(hoursWorked) : null,
           notes: record?.notes || null,
           verifiedAt: record?.verifiedAt || null,
-          verifiedBy: record?.verifier ? `${record.verifier.firstName} ${record.verifier.lastName}` : null
+          verifiedBy: record?.verifier ? [record.verifier.firstName, record.verifier.middleName, record.verifier.lastName].filter(n => n).join(' ') : null
         };
       });
 
@@ -853,6 +855,7 @@ router.get('/download', authenticate, authorize(['admin', 'principal', 'attendan
         verifier: {
           select: {
             firstName: true,
+            middleName: true,
             lastName: true
           }
         }
@@ -896,7 +899,7 @@ router.get('/download', authenticate, authorize(['admin', 'principal', 'attendan
 
       worksheet.addRow({
         date: r.date.toISOString().split('T')[0],
-        name: `${r.user.firstName} ${r.user.lastName}`,
+        name: [r.user.firstName, r.user.middleName, r.user.lastName].filter(n => n).join(' '),
         role: r.user.role,
         checkIn: r.checkInTime ? new Date(r.checkInTime).toLocaleTimeString() : '-',
         checkOut: r.checkOutTime ? new Date(r.checkOutTime).toLocaleTimeString() : '-',
@@ -904,7 +907,7 @@ router.get('/download', authenticate, authorize(['admin', 'principal', 'attendan
         late: r.lateMinutes || 0,
         hours: hoursWorked ? parseFloat(hoursWorked) : '-',
         notes: r.notes || '-',
-        verifiedBy: r.verifier ? `${r.verifier.firstName} ${r.verifier.lastName}` : '-'
+        verifiedBy: r.verifier ? [r.verifier.firstName, r.verifier.middleName, r.verifier.lastName].filter(n => n).join(' ') : '-'
       });
     });
 

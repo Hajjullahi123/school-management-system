@@ -105,7 +105,7 @@ router.get('/admin/staff', authenticate, canManageHR, async (req, res) => {
   try {
     const staff = await prisma.user.findMany({
       where: { schoolId: req.schoolId, role: { notIn: ['parent', 'student', 'superadmin'] } },
-      select: { id: true, firstName: true, lastName: true, role: true }
+      select: { id: true, firstName: true, middleName: true, lastName: true, role: true }
     });
     res.json(staff);
   } catch (error) {
@@ -307,10 +307,10 @@ router.get('/admin/requests', authenticate, canManageHR, async (req, res) => {
     const [loans, leaves, materials] = await Promise.all([
       prisma.loanRequest.findMany({ 
         where: { staff: { schoolId: req.schoolId } },
-        include: { staff: { select: { firstName: true, lastName: true } } } 
+        include: { staff: { select: { firstName: true, middleName: true, lastName: true } } } 
       }),
-      prisma.leaveRequest.findMany({ where: { schoolId: req.schoolId }, include: { staff: { select: { firstName: true, lastName: true } } } }),
-      prisma.materialRequest.findMany({ where: { schoolId: req.schoolId }, include: { staff: { select: { firstName: true, lastName: true } } } })
+      prisma.leaveRequest.findMany({ where: { schoolId: req.schoolId }, include: { staff: { select: { firstName: true, middleName: true, lastName: true } } } }),
+      prisma.materialRequest.findMany({ where: { schoolId: req.schoolId }, include: { staff: { select: { firstName: true, middleName: true, lastName: true } } } })
     ]);
     res.json({ loans, leaves, materials });
   } catch (error) {

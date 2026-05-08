@@ -219,12 +219,11 @@ router.get('/student/:studentId/summary', authenticate, async (req, res) => {
       }
     });
 
-    // NEW: Get all terms with balances for this student
+    // NEW: Get all terms for this student to show term-specific breakdown
     const allRecords = await prisma.feeRecord.findMany({
       where: {
         schoolId: parseInt(req.schoolId),
-        studentId: studentId,
-        balance: { gt: 0 }
+        studentId: studentId
       },
       include: {
         Term: true,
@@ -234,14 +233,18 @@ router.get('/student/:studentId/summary', authenticate, async (req, res) => {
         Term: { startDate: 'asc' }
       }
     });
-
-    const outstandingTerms = allRecords.map(r => ({
-      termId: r.termId,
-      sessionId: r.academicSessionId,
-      termName: r.Term.name,
-      sessionName: r.AcademicSession.name,
-      balance: r.balance
-    }));
+    
+    const outstandingTerms = allRecords.map(r => {
+      const termSpecificBalance = (r.expectedAmount || 0) - (r.paidAmount || 0);
+      return {
+        termId: r.termId,
+        sessionId: r.academicSessionId,
+        termName: r.Term.name,
+        sessionName: r.AcademicSession.name,
+        balance: termSpecificBalance,
+        cumulativeBalance: r.balance // Keep for reference if needed
+      };
+    }).filter(t => t.balance !== 0); // Only show terms with a specific balance (positive or negative)
 
     res.json({
       student,
@@ -380,9 +383,28 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
     if (isNaN(paymentAmountNum) || paymentAmountNum <= 0) {
       return res.status(400).json({ error: 'A valid positive payment amount is required' });
     }
-    if (paymentAmountNum > feeRecord.balance) {
+
+    // NEW: Get the student's GRAND TOTAL balance (across all terms) to validate against
+    // We fetch the summary for the school's CURRENT term to see the total debt
+    const currentSession = await prisma.academicSession.findFirst({
+      where: { schoolId: parseInt(req.schoolId), isCurrent: true }
+    });
+    const currentTerm = await prisma.term.findFirst({
+      where: { schoolId: parseInt(req.schoolId), isCurrent: true }
+    });
+
+    const studentSummary = await getStudentFeeSummary(
+      req.schoolId,
+      parseInt(studentId),
+      currentSession?.id || parseInt(academicSessionId),
+      currentTerm?.id || parseInt(termId)
+    );
+
+    const grandTotalBalance = studentSummary?.grandTotal || 0;
+
+    if (paymentAmountNum > (grandTotalBalance + 0.01)) { // Allow for small float noise
       return res.status(400).json({
-        error: `Payment amount (₦${paymentAmountNum.toLocaleString()}) cannot exceed the total outstanding balance (₦${feeRecord.balance.toLocaleString()})`
+        error: `Payment amount (₦${paymentAmountNum.toLocaleString()}) cannot exceed the student's total outstanding balance (₦${grandTotalBalance.toLocaleString()})`
       });
     }
 
@@ -397,10 +419,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
 
       const updatedPaidAmount = currentRecord.paidAmount + paymentAmountNum;
       const updatedBalance = (currentRecord.openingBalance + currentRecord.expectedAmount) - updatedPaidAmount;
-
-      if (updatedBalance < -0.01) { // Allow for tiny floating point noise
-        throw new Error(`Payment would result in a negative balance (₦${updatedBalance.toLocaleString()})`);
-      }
+      // Removed negative balance check to allow for credits that propagate forward
 
       // Update fee record
       const updated = await tx.feeRecord.update({
@@ -469,7 +488,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
     if (formattedResult.feeRecord?.student?.parent?.user?.email) {
       const emailData = {
         parentEmail: formattedResult.feeRecord.student.parent.user.email,
-        studentName: formattedResult.feeRecord.student.user ? (formattedResult.feeRecord.student.middleName ? `${formattedResult.feeRecord.student.user.firstName} ${formattedResult.feeRecord.student.user.lastName} ${formattedResult.feeRecord.student.middleName}` : `${formattedResult.feeRecord.student.user.firstName} ${formattedResult.feeRecord.student.user.lastName}`) : (formattedResult.feeRecord.student.name || formattedResult.feeRecord.student.admissionNumber || 'Student'),
+        studentName: formattedResult.feeRecord.student?.user ? (formattedResult.feeRecord.student.middleName ? `${formattedResult.feeRecord.student.user.firstName} ${formattedResult.feeRecord.student.user.lastName} ${formattedResult.feeRecord.student.middleName}` : `${formattedResult.feeRecord.student.user.firstName} ${formattedResult.feeRecord.student.user.lastName}`) : (formattedResult.feeRecord.student?.name || formattedResult.feeRecord.student?.admissionNumber || 'Student'),
         amount: parseFloat(amount),
         paymentMethod: paymentMethod || 'Cash',
         date: new Date(),
@@ -478,7 +497,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
         termName: formattedResult.feeRecord.term?.name || 'Current Term',
         sessionName: formattedResult.feeRecord.academicSession?.name || 'Current Session',
         schoolName: process.env.SCHOOL_NAME || 'School Management System',
-        className: formattedResult.feeRecord.student.classModel?.name || 'N/A'
+        className: formattedResult.feeRecord.student?.classModel?.name || 'N/A'
       };
 
       // Send email asynchronously (don't await to avoid blocking)
@@ -493,10 +512,10 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
       });
       const schoolName = settings?.name || settings?.schoolName || process.env.SCHOOL_NAME || 'School Management System';
 
-      const phoneToUse = formattedResult.feeRecord.student.parent.phoneNumber || formattedResult.feeRecord.student.parent.phone;
+      const phoneToUse = formattedResult.feeRecord.student?.parent?.phoneNumber || formattedResult.feeRecord.student?.parent?.phone;
       sendPaymentSMS({
         phone: phoneToUse,
-        studentName: formattedResult.feeRecord.student.user ? (formattedResult.feeRecord.student.middleName ? `${formattedResult.feeRecord.student.user.firstName} ${formattedResult.feeRecord.student.user.lastName} ${formattedResult.feeRecord.student.middleName}` : `${formattedResult.feeRecord.student.user.firstName} ${formattedResult.feeRecord.student.user.lastName}`) : (formattedResult.feeRecord.student.name || formattedResult.feeRecord.student.admissionNumber || 'Student'),
+        studentName: formattedResult.feeRecord.student?.user ? (formattedResult.feeRecord.student.middleName ? `${formattedResult.feeRecord.student.user.firstName} ${formattedResult.feeRecord.student.user.lastName} ${formattedResult.feeRecord.student.middleName}` : `${formattedResult.feeRecord.student.user.firstName} ${formattedResult.feeRecord.student.user.lastName}`) : (formattedResult.feeRecord.student?.name || formattedResult.feeRecord.student?.admissionNumber || 'Student'),
         amount: parseFloat(amount),
         balance: formattedResult.feeRecord.balance,
         schoolName
@@ -1009,20 +1028,19 @@ router.get('/summary', authenticate, authorize(['admin', 'principal', 'accountan
       let isCleared = false;
 
       if (record) {
-        // Use existing database record
+        // Use existing database record - calculate term-specific balance for stats
         expected = record.expectedAmount;
         paid = record.paidAmount;
-        balance = record.balance;
+        balance = expected - paid; // Changed from record.balance to be term-specific
         isCleared = record.isClearedForExam;
       } else {
-        // Calculate virtual record
-        const arrears = await calculatePreviousOutstanding(schoolIdInt, student.id, sId, tId);
+        // Calculate virtual record - use term-specific expected for stats
         const classExpected = student.isScholarship ? 0 : (structureMap[student.classId] || 0);
 
         expected = classExpected;
         paid = 0;
-        balance = arrears + classExpected;
-        isCleared = (classExpected === 0 && arrears <= 0);
+        balance = classExpected; // Changed from arrears + classExpected to be term-specific
+        isCleared = (classExpected === 0); // Simplified for term-specific clearing
       }
 
       // Aggregate

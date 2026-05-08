@@ -60,7 +60,7 @@ const StudentCard = ({ student, todayStatus, getTodayAttendance, getStatusBadge,
 
           <div className="min-w-0 pr-16">
             <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mb-1 truncate">
-              {student.user?.firstName} {student.user?.lastName}
+              {[student.user?.firstName, student.user?.middleName || student.middleName, student.user?.lastName].filter(Boolean).join(' ')}
             </h3>
             <div className="flex items-center gap-2 mb-2">
               <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-md">

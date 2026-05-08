@@ -201,6 +201,7 @@ model User {
   phone              String?
   role               String
   firstName          String
+  middleName         String?
   lastName           String
   photoUrl           String?
   signatureUrl       String?
