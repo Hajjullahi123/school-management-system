@@ -331,7 +331,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
         }
       },
       include: {
-        student: {
+        Student: {
           include: {
             user: true,
             parent: {
@@ -342,8 +342,8 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
             classModel: true
           }
         },
-        term: true,
-        academicSession: true
+        Term: true,
+        AcademicSession: true
       }
     });
 
@@ -565,7 +565,7 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'principal',
           isClearedForExam: (updatedBalance <= 0)
         },
         include: {
-          student: {
+          Student: {
             include: {
               user: true
             }
