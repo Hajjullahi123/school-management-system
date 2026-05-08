@@ -424,20 +424,20 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
       ...result,
       feeRecord: {
         ...result.feeRecord,
-        student: {
-          ...result.feeRecord.Student,
-          parent: result.feeRecord.Student.parent ? {
-            ...result.feeRecord.Student.parent,
-            user: result.feeRecord.Student.parent.User
+        student: (result.feeRecord.Student || result.feeRecord.student) ? {
+          ...(result.feeRecord.Student || result.feeRecord.student),
+          parent: (result.feeRecord.Student || result.feeRecord.student).parent ? {
+            ...(result.feeRecord.Student || result.feeRecord.student).parent,
+            user: (result.feeRecord.Student || result.feeRecord.student).parent.User || (result.feeRecord.Student || result.feeRecord.student).parent.user
           } : null
-        },
+        } : null,
         term: result.feeRecord.Term,
         academicSession: result.feeRecord.AcademicSession
       }
     };
 
     // Send payment confirmation email to parent (non-blocking)
-    if (formattedResult.feeRecord.student.parent?.user?.email) {
+    if (formattedResult.feeRecord?.student?.parent?.user?.email) {
       const emailData = {
         parentEmail: formattedResult.feeRecord.student.parent.user.email,
         studentName: formattedResult.feeRecord.student.user ? (formattedResult.feeRecord.student.middleName ? `${formattedResult.feeRecord.student.user.firstName} ${formattedResult.feeRecord.student.user.lastName} ${formattedResult.feeRecord.student.middleName}` : `${formattedResult.feeRecord.student.user.firstName} ${formattedResult.feeRecord.student.user.lastName}`) : (formattedResult.feeRecord.student.name || formattedResult.feeRecord.student.admissionNumber || 'Student'),
@@ -457,18 +457,19 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
     }
 
     // NEW: Send SMS confirmation (non-blocking)
-    if (result.feeRecord.student.parent?.phoneNumber) {
+    if (formattedResult.feeRecord?.student?.parent?.phoneNumber || formattedResult.feeRecord?.student?.parent?.phone) {
       const { sendPaymentSMS } = require('../services/smsService');
       const settings = await prisma.school.findUnique({
         where: { id: req.schoolId }
       });
       const schoolName = settings?.name || settings?.schoolName || process.env.SCHOOL_NAME || 'School Management System';
 
+      const phoneToUse = formattedResult.feeRecord.student.parent.phoneNumber || formattedResult.feeRecord.student.parent.phone;
       sendPaymentSMS({
-        phone: result.feeRecord.student.parent.phoneNumber,
-        studentName: result.feeRecord.student.user ? (result.feeRecord.student.middleName ? `${result.feeRecord.student.user.firstName} ${result.feeRecord.student.user.lastName} ${result.feeRecord.student.middleName}` : `${result.feeRecord.student.user.firstName} ${result.feeRecord.student.user.lastName}`) : (result.feeRecord.student.name || result.feeRecord.student.admissionNumber || 'Student'),
+        phone: phoneToUse,
+        studentName: formattedResult.feeRecord.student.user ? (formattedResult.feeRecord.student.middleName ? `${formattedResult.feeRecord.student.user.firstName} ${formattedResult.feeRecord.student.user.lastName} ${formattedResult.feeRecord.student.middleName}` : `${formattedResult.feeRecord.student.user.firstName} ${formattedResult.feeRecord.student.user.lastName}`) : (formattedResult.feeRecord.student.name || formattedResult.feeRecord.student.admissionNumber || 'Student'),
         amount: parseFloat(amount),
-        balance: result.feeRecord.balance,
+        balance: formattedResult.feeRecord.balance,
         schoolName
       }).catch(e => console.error('Payment SMS error:', e));
     }
