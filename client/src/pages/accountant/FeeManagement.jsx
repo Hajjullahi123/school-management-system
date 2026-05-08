@@ -1032,6 +1032,8 @@ export default function FeeManagement() {
       console.error('Error loading summary:', error);
       setSummary(null);
     }
+  };
+
   const fetchStudentFeeSummary = async (studentId) => {
     try {
       setLoadingSummary(true);
