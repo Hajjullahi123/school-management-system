@@ -26,9 +26,10 @@ const ClassSubjects = () => {
     try {
       const response = await api.get('/api/classes');
       const data = await response.json();
-      setClasses(data);
+      setClasses(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching classes:', error);
+      setClasses([]);
     }
   };
 
@@ -36,9 +37,10 @@ const ClassSubjects = () => {
     try {
       const response = await api.get('/api/subjects');
       const data = await response.json();
-      setSubjects(data);
+      setSubjects(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching subjects:', error);
+      setSubjects([]);
     }
   };
 
@@ -49,14 +51,18 @@ const ClassSubjects = () => {
     try {
       const response = await api.get(`/api/class-subjects/class/${selectedClass.id}`);
       const data = await response.json();
-      setClassSubjects(data);
+      const safeData = Array.isArray(data) ? data : [];
+      setClassSubjects(safeData);
 
-      // Calculate available subjects
-      const assignedSubjectIds = data.map(cs => cs.subjectId);
-      const available = subjects.filter(subject => !assignedSubjectIds.includes(subject.id));
+      // Calculate available subjects safely
+      const assignedSubjectIds = safeData.map(cs => cs.subjectId);
+      const safeSubjects = Array.isArray(subjects) ? subjects : [];
+      const available = safeSubjects.filter(subject => !assignedSubjectIds.includes(subject.id));
       setAvailableSubjects(available);
     } catch (error) {
       console.error('Error fetching class subjects:', error);
+      setClassSubjects([]);
+      setAvailableSubjects([]);
     } finally {
       setLoading(false);
     }

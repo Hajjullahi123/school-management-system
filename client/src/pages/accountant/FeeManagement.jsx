@@ -2914,8 +2914,8 @@ export default function FeeManagement() {
       {/* Render Payment Modal, History Modal etc. */}
       {selectedStudent && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full flex justify-center items-end sm:items-center z-50 p-0 sm:p-4">
-          <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full max-w-md transform transition-all">
-            <div className="flex justify-between items-center p-4 border-b border-gray-100">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] sm:max-h-[85vh] flex flex-col transform transition-all">
+            <div className="flex justify-between items-center p-4 border-b border-gray-100 shrink-0">
               <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight">Record Payment</h2>
               <button
                 onClick={() => setSelectedStudent(null)}
@@ -2926,7 +2926,7 @@ export default function FeeManagement() {
                 </svg>
               </button>
             </div>
-            <div className="p-4 sm:p-6">
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1">
               <div className="mb-4 text-sm text-gray-600">
                 Record payment for {selectedStudent.user?.firstName || 'Unknown'} {selectedStudent.user?.lastName || ''} ({selectedStudent.admissionNumber})
               </div>
@@ -2984,7 +2984,7 @@ export default function FeeManagement() {
               </div>
 
             </div>
-            <div className="p-4 bg-gray-50 flex justify-end gap-3 rounded-b-2xl sm:rounded-b-xl">
+            <div className="p-4 bg-gray-50 flex justify-end gap-3 rounded-b-2xl sm:rounded-b-xl shrink-0">
               <button
                 onClick={() => setSelectedStudent(null)}
                 className="flex-1 sm:flex-none px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors"
@@ -3005,8 +3005,8 @@ export default function FeeManagement() {
       {/* Misc Payment Modal */}
       {selectedMiscPayment && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-300">
-            <div className="p-6 bg-gradient-to-br from-primary to-primary/90 text-white">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md max-h-[90vh] sm:max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in duration-300">
+            <div className="p-6 bg-gradient-to-br from-primary to-primary/90 text-white shrink-0">
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="text-2xl font-black italic tracking-tighter uppercase mb-1">Record Payment</h3>
@@ -3037,8 +3037,8 @@ export default function FeeManagement() {
               </div>
             </div>
 
-            <form onSubmit={handleMiscPaymentSubmit} className="p-8 space-y-6">
-              <div className="space-y-4">
+            <form onSubmit={handleMiscPaymentSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-6 sm:p-8 space-y-4 overflow-y-auto flex-1">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Payment Amount (₦)</label>
                   <input
@@ -3078,7 +3078,7 @@ export default function FeeManagement() {
                 </div>
               </div>
 
-              <div className="flex gap-4 pt-4">
+              <div className="flex gap-4 p-6 sm:p-8 pt-4 border-t border-gray-100 shrink-0">
                 <button
                   type="button"
                   onClick={() => setSelectedMiscPayment(null)}

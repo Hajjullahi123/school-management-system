@@ -21,8 +21,7 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'superadmin']), a
         },
         subjects: {
           select: { id: true, name: true, code: true }
-        },
-        lessonPlanLink: true
+        }
       }
     });
     res.json(departments);
@@ -558,7 +557,6 @@ async function fetchDepartmentStatus(headId, schoolId) {
    return { 
      departmentName: department.name, 
      departmentId: department.id,
-     lessonPlanLink: department.lessonPlanLink,
      staff: staffStatus,
      momentumScore,
      insights

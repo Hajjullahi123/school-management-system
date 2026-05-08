@@ -964,11 +964,11 @@ Note: Password must be changed on first login.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             {/* + Add Student */}
             <button
               onClick={() => { setEditingStudent(null); setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              className="flex-1 sm:flex-none bg-primary text-white px-4 py-2.5 rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 text-xs font-semibold shadow-md shadow-primary/20 active:scale-95"
+              className="flex-1 sm:flex-none bg-primary text-white px-4 py-2.5 rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 text-xs font-semibold shadow-md shadow-primary/20 active:scale-95 whitespace-nowrap"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -979,7 +979,7 @@ Note: Password must be changed on first login.
             {/* Download Template */}
             <button
               onClick={handleDownloadTemplate}
-              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-xs font-medium text-gray-700"
+              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-xs font-medium text-gray-700 whitespace-nowrap"
               title="Download the Excel Template for bulk import"
             >
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -991,7 +991,7 @@ Note: Password must be changed on first login.
             {/* Import Students */}
             <div className="relative flex-1 sm:flex-none">
               <button
-                className={`w-full px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold transition-all active:scale-95 ${
+                className={`w-full px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold transition-all active:scale-95 whitespace-nowrap ${
                   isUploading
                     ? 'bg-emerald-600 text-white cursor-wait'
                     : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
@@ -1015,10 +1015,10 @@ Note: Password must be changed on first login.
             </div>
 
             {/* Downloads Dropdown */}
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-none">
               <button
                 onClick={() => { setShowDownloadsMenu(!showDownloadsMenu); setShowToolsMenu(false); }}
-                className="px-3 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-gray-600 hover:text-gray-800 flex items-center gap-1.5 text-xs font-medium"
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-gray-600 hover:text-gray-800 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -1049,10 +1049,10 @@ Note: Password must be changed on first login.
             </div>
 
             {/* Tools Dropdown */}
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-none">
               <button
                 onClick={() => { setShowToolsMenu(!showToolsMenu); setShowDownloadsMenu(false); }}
-                className="px-3 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-gray-600 hover:text-gray-800 flex items-center gap-1.5 text-xs font-medium"
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all text-gray-600 hover:text-gray-800 flex items-center justify-center gap-1.5 text-xs font-medium whitespace-nowrap"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />

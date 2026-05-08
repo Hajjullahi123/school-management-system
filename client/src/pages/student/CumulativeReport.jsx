@@ -301,16 +301,24 @@ const CumulativeReport = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-300">
-                {data.subjects?.map((sub, idx) => (
-                  <tr key={idx} className={`${idx % 2 === 1 ? 'bg-gray-50' : 'bg-white'} divide-x divide-gray-300`}>
-                    <td className="p-1 text-left pl-3 font-extrabold border-r-2 border-black text-[9px]">{sub.name}</td>
-                    <td className="p-1 text-[9px]">{sub.term1 || '-'}</td>
-                    <td className="p-1 text-[9px]">{sub.term2 || '-'}</td>
-                    <td className="p-1 text-[9px]">{sub.term3 || '-'}</td>
-                    <td className="p-1 font-black bg-gray-50 text-[9px]">{sub.average?.toFixed(1) || '0.0'}</td>
-                    <td className={`p-1 font-black text-[9px] ${sub.grade === 'F' ? 'text-red-600' : 'text-emerald-900'}`}>{sub.grade}</td>
-                  </tr>
-                ))}
+                {(() => {
+                  const subs = data.subjects || [];
+                  const paddedSubs = [...subs];
+                  const MIN_ROWS = 12;
+                  while (paddedSubs.length < MIN_ROWS) {
+                    paddedSubs.push({ isEmpty: true });
+                  }
+                  return paddedSubs.map((sub, idx) => (
+                    <tr key={idx} className={`${idx % 2 === 1 ? 'bg-gray-50' : 'bg-white'} divide-x divide-gray-300`}>
+                      <td className="p-1 text-left pl-3 font-extrabold border-r-2 border-black text-[9px] h-5">{sub.isEmpty ? '\u00A0' : (sub.name || '')}</td>
+                      <td className="p-1 text-[9px] h-5">{sub.isEmpty ? '' : (sub.term1 !== null && sub.term1 !== undefined ? sub.term1 : '-')}</td>
+                      <td className="p-1 text-[9px] h-5">{sub.isEmpty ? '' : (sub.term2 !== null && sub.term2 !== undefined ? sub.term2 : '-')}</td>
+                      <td className="p-1 text-[9px] h-5">{sub.isEmpty ? '' : (sub.term3 !== null && sub.term3 !== undefined ? sub.term3 : '-')}</td>
+                      <td className="p-1 font-black bg-gray-50 text-[9px] h-5">{sub.isEmpty ? '' : (sub.average !== null && sub.average !== undefined ? sub.average.toFixed(1) : '-')}</td>
+                      <td className={`p-1 font-black text-[9px] h-5 ${sub.grade === 'F' ? 'text-red-600' : 'text-emerald-900'}`}>{sub.isEmpty ? '' : (sub.grade || '')}</td>
+                    </tr>
+                  ));
+                })()}
               </tbody>
               <tfoot className="border-t-2 border-black bg-gray-200 divide-x divide-black">
                 <tr className="font-black">

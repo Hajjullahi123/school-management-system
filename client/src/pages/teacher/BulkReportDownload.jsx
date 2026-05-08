@@ -493,27 +493,35 @@ const BulkReportDownload = () => {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {(data.subjects || []).map((sub, i) => (
-                                    <tr key={i} className="font-bold uppercase h-5">
-                                      <td className="border border-black px-1 leading-tight text-[11px] font-black">{sub.name}</td>
-                                      <td className="border border-black text-center text-[10px]">{sub.assignment1 || ''}</td>
-                                      <td className="border border-black text-center text-[10px]">{sub.assignment2 || ''}</td>
-                                      <td className="border border-black text-center text-[10px]">{sub.test1 || ''}</td>
-                                      <td className="border border-black text-center text-[10px]">{sub.test2 || ''}</td>
-                                      <td className="border border-black text-center text-[10px]">{sub.exam || ''}</td>
-                                      <td className="border border-black text-center bg-gray-50 text-[10px] font-black">{sub.total ? sub.total.toFixed(0) : ''}</td>
-                                      {data.term?.number === 3 && (
-                                        <>
-                                          <td className="border border-black text-center text-[9px]">{sub.term1Score || ''}</td>
-                                          <td className="border border-black text-center text-[9px]">{sub.term2Score || ''}</td>
-                                          <td className="border border-black text-center bg-gray-50 text-[9px] font-bold">{sub.cumulativeAverage ? sub.cumulativeAverage.toFixed(1) : ''}</td>
-                                        </>
-                                      )}
-                                      <td className="border border-black text-center text-[10px] font-black">{sub.grade}</td>
-                                      {showPosition && <td className="border border-black text-center text-[10px]">{sub.position}</td>}
-                                      <td className="border border-black px-1 text-[8px] leading-tight italic font-medium">{sub.remark}</td>
-                                    </tr>
-                                  ))}
+                                  {(() => {
+                                    const subs = data.subjects || [];
+                                    const paddedSubs = [...subs];
+                                    const MIN_ROWS = 12;
+                                    while (paddedSubs.length < MIN_ROWS) {
+                                      paddedSubs.push({ isEmpty: true });
+                                    }
+                                    return paddedSubs.map((sub, i) => (
+                                      <tr key={i} className="font-bold uppercase h-5">
+                                        <td className="border border-black px-1 leading-tight text-[11px] font-black">{sub.isEmpty ? '\u00A0' : (sub.name || '')}</td>
+                                        <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.assignment1 !== null && sub.assignment1 !== undefined ? sub.assignment1 : '')}</td>
+                                        <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.assignment2 !== null && sub.assignment2 !== undefined ? sub.assignment2 : '')}</td>
+                                        <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.test1 !== null && sub.test1 !== undefined ? sub.test1 : '')}</td>
+                                        <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.test2 !== null && sub.test2 !== undefined ? sub.test2 : '')}</td>
+                                        <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.exam !== null && sub.exam !== undefined ? sub.exam : '')}</td>
+                                        <td className="border border-black text-center bg-gray-50 text-[10px] font-black">{sub.isEmpty ? '' : (sub.total !== null && sub.total !== undefined ? sub.total.toFixed(0) : '')}</td>
+                                        {data.term?.number === 3 && (
+                                          <>
+                                            <td className="border border-black text-center text-[9px]">{sub.isEmpty ? '' : (sub.term1Score !== null && sub.term1Score !== undefined ? sub.term1Score : '')}</td>
+                                            <td className="border border-black text-center text-[9px]">{sub.isEmpty ? '' : (sub.term2Score !== null && sub.term2Score !== undefined ? sub.term2Score : '')}</td>
+                                            <td className="border border-black text-center bg-gray-50 text-[9px] font-bold">{sub.isEmpty ? '' : (sub.cumulativeAverage !== null && sub.cumulativeAverage !== undefined ? sub.cumulativeAverage.toFixed(1) : '')}</td>
+                                          </>
+                                        )}
+                                        <td className="border border-black text-center text-[10px] font-black">{sub.isEmpty ? '' : (sub.grade || '')}</td>
+                                        {showPosition && <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.position || '')}</td>}
+                                        <td className="border border-black px-1 text-[8px] leading-tight italic font-medium">{sub.isEmpty ? '' : (sub.remark || '')}</td>
+                                      </tr>
+                                    ));
+                                  })()}
                                 </tbody>
                               </table>
                             </div>
