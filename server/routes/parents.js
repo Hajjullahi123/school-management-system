@@ -5,7 +5,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
 const { logAction } = require('../utils/audit');
 const { generateAutoEmail } = require('../utils/usernameGenerator');
-
+const { getStudentFeeSummary } = require('../utils/feeCalculations');
 // 1. Get My Children (Parent Dashboard)
 router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']), async (req, res) => {
   try {
@@ -134,15 +134,14 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
       include: includeQuery
     });
 
+    // Fetch current session and term for dynamic fee generation
+    const currentSession = await prisma.academicSession.findFirst({ where: { schoolId: req.schoolId, isCurrent: true } });
+    const currentTerm = await prisma.term.findFirst({ where: { schoolId: req.schoolId, isCurrent: true } });
+
     // Map Prisma relation names to the camelCase versions the frontend expects
-    const mappedChildren = (parentWithWards.parentChildren || []).map(child => ({
-      ...child,
-      miscFeePayments: (child.MiscellaneousFeePayment || []).map(mfp => ({
-        ...mfp,
-        fee: mfp.MiscellaneousFee,
-        MiscellaneousFee: undefined
-      })),
-      feeRecords: (child.FeeRecord || []).map(fr => ({
+    const mappedChildren = await Promise.all((parentWithWards.parentChildren || []).map(async (child) => {
+      // Get physical fee records
+      let mappedFeeRecords = (child.FeeRecord || []).map(fr => ({
         ...fr,
         academicSession: fr.AcademicSession,
         term: fr.Term,
@@ -150,9 +149,46 @@ router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']
         AcademicSession: undefined,
         Term: undefined,
         FeePayment: undefined
-      })),
-      MiscellaneousFeePayment: undefined,
-      FeeRecord: undefined
+      }));
+
+      // If current session/term exist, dynamically calculate the current term's fee summary
+      // so the parent dashboard accurately shows arrears + current bill just like the report card.
+      if (currentSession && currentTerm) {
+        const feeSummary = await getStudentFeeSummary(req.schoolId, child.id, currentSession.id, currentTerm.id);
+        
+        if (feeSummary && feeSummary.currentRecord) {
+          const dynamicCurrentRecord = {
+            ...feeSummary.currentRecord,
+            academicSession: feeSummary.academicSession || currentSession,
+            term: feeSummary.term || currentTerm,
+            payments: feeSummary.payments || [],
+            // Ensure these exact frontend fields match the dynamic projection
+            expectedAmount: feeSummary.currentTermFee,
+            paidAmount: feeSummary.totalPaid,
+            balance: feeSummary.grandTotal // Parent dashboard depends on this for total
+          };
+
+          // Remove the raw physical record for the current term if it exists, replacing it with the comprehensive one
+          mappedFeeRecords = mappedFeeRecords.filter(
+            r => !(r.academicSessionId === currentSession.id && r.termId === currentTerm.id)
+          );
+          
+          // Add the dynamic record to the top
+          mappedFeeRecords.unshift(dynamicCurrentRecord);
+        }
+      }
+
+      return {
+        ...child,
+        miscFeePayments: (child.MiscellaneousFeePayment || []).map(mfp => ({
+          ...mfp,
+          fee: mfp.MiscellaneousFee,
+          MiscellaneousFee: undefined
+        })),
+        feeRecords: mappedFeeRecords,
+        MiscellaneousFeePayment: undefined,
+        FeeRecord: undefined
+      };
     }));
 
     console.log('Parent found:', parentWithWards.id, 'Students:', mappedChildren.length);
