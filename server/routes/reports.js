@@ -460,6 +460,11 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
             }
           }
 
+          // Compute grade on-the-fly if not stored in the database
+          const computedGrade = result 
+            ? (result.grade || getGrade(result.totalScore, schoolSettings.gradingSystem))
+            : null;
+
           return {
             id: cs.id,
             name: cs.name || 'Unknown Subject',
@@ -469,10 +474,10 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
             test2: result ? result.test2Score : null,
             exam: result ? result.examScore : null,
             total: result ? result.totalScore : null,
-            grade: result ? result.grade : null,
-            position: result ? result.positionInClass : '-',
+            grade: computedGrade,
+            position: result ? (result.positionInClass || '-') : '-',
             classAverage: result ? result.classAverage : 0,
-            remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : null,
+            remark: computedGrade ? getRemark(computedGrade, schoolSettings.gradingSystem) : null,
             // Cumulative fields
             term1Score: t1Score,
             term2Score: t2Score,
@@ -1167,6 +1172,11 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
                 cumulativeAvg = sessionTotal / termScores.length;
               }
             }
+            // Compute grade on-the-fly if not stored in the database
+            const computedGrade = result 
+              ? (result.grade || getGrade(result.totalScore, schoolSettings.gradingSystem))
+              : null;
+
             return {
               id: cs.id,
               name: cs.name || 'Unknown Subject',
@@ -1176,10 +1186,10 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
               test2: result ? result.test2Score : null,
               exam: result ? result.examScore : null,
               total: result ? result.totalScore : null,
-              grade: result ? result.grade : null,
-              position: result ? result.positionInClass : '-',
+              grade: computedGrade,
+              position: result ? (result.positionInClass || '-') : '-',
               classAverage: result ? result.classAverage : 0,
-              remark: result ? getRemark(result.grade, schoolSettings.gradingSystem) : null,
+              remark: computedGrade ? getRemark(computedGrade, schoolSettings.gradingSystem) : null,
               term1Score: t1Score, term2Score: t2Score, cumulativeAverage: cumulativeAvg
             };
           });
