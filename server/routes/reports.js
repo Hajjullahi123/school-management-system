@@ -1659,9 +1659,12 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       status: rawFeeSummary.currentBalance <= 0 ? 'Cleared' : 'Owing'
     };
 
-    // Determine promotion status
-    const isPromoted = sessionAverage >= (schoolSettings.passThreshold || 40);
-    const nextClass = isPromoted ? 'Promoted' : 'Repeat Class';
+    // Check if the student has ANY results across all terms
+    const hasAnyResults = cumulativeSubjects.some(s => s.count > 0);
+
+    // Determine promotion status — only meaningful if results exist
+    const isPromoted = hasAnyResults ? sessionAverage >= (schoolSettings.passThreshold || 40) : null;
+    const nextClass = hasAnyResults ? (isPromoted ? 'Promoted' : 'Repeat Class') : 'RESULT PENDING';
 
     res.json({
       student: {
@@ -1696,9 +1699,9 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       },
       terms: termsData,
       subjects: cumulativeSubjects,
-      overallAverage: sessionAverage,
-      overallGrade: getGrade(sessionAverage, schoolSettings.gradingSystem),
-      overallRemark: getRemark(getGrade(sessionAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+      overallAverage: hasAnyResults ? sessionAverage : null,
+      overallGrade: hasAnyResults ? getGrade(sessionAverage, schoolSettings.gradingSystem) : 'N/A',
+      overallRemark: hasAnyResults ? getRemark(getGrade(sessionAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : 'No results available',
       isPromoted: isPromoted,
       nextClass: nextClass,
       reportSettings: {
@@ -1839,7 +1842,8 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
       }
 
       const sessionAverage = sessionTotalScore / (totalSubjectsCount * session.terms.length);
-      const isPromoted = sessionAverage >= (schoolSettings.passThreshold || 40);
+      const hasAnyResults = cumulativeSubjects.some(s => s.count > 0);
+      const isPromoted = hasAnyResults ? sessionAverage >= (schoolSettings.passThreshold || 40) : null;
 
       // Attendance (Bulk Session-wide)
       const sessionAttendance = await prisma.attendanceRecord.count({
@@ -1911,11 +1915,11 @@ router.get('/bulk-cumulative/:classId/:sessionId', authenticate, authorize(['adm
         session: { name: session.name, principalSignatureUrl: schoolSettings.principalSignatureUrl || null },
         terms: termsData,
         subjects: cumulativeSubjects,
-        overallAverage: sessionAverage,
-        overallGrade: getGrade(sessionAverage, schoolSettings.gradingSystem),
-        overallRemark: getRemark(getGrade(sessionAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+        overallAverage: hasAnyResults ? sessionAverage : null,
+        overallGrade: hasAnyResults ? getGrade(sessionAverage, schoolSettings.gradingSystem) : 'N/A',
+        overallRemark: hasAnyResults ? getRemark(getGrade(sessionAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : 'No results available',
         isPromoted,
-        nextClass: isPromoted ? 'Promoted' : 'Repeat Class',
+        nextClass: hasAnyResults ? (isPromoted ? 'Promoted' : 'Repeat Class') : 'RESULT PENDING',
         reportSettings: {
           showPositionOnReport: schoolSettings.showPositionOnReport && (classInfo?.showPositionOnReport !== false),
           showFeesOnReport: schoolSettings.showFeesOnReport && (classInfo?.showFeesOnReport !== false),

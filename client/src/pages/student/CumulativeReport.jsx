@@ -320,11 +320,11 @@ const CumulativeReport = () => {
                   <td className="p-2 text-right pr-6 uppercase border-r-2 border-black">ANNUAL PERFORMANCE SUMMARY</td>
                   <td className="p-2" colSpan={3}>
                     <div className="flex justify-around text-xs">
-                      <span>AVERAGE: {data.overallAverage?.toFixed(2)}%</span>
+                      <span>AVERAGE: {data.overallAverage !== null && data.overallAverage !== undefined ? `${data.overallAverage.toFixed(2)}%` : 'N/A'}</span>
                     </div>
                   </td>
-                  <td className="p-2 text-white text-xs border-l-2 border-black" colSpan={2} style={{ backgroundColor: reportColor || '#064e3b' }}>
-                    OVERALL GRADE: {data.overallGrade}
+                  <td className="p-2 text-white text-xs border-l-2 border-black" colSpan={2} style={{ backgroundColor: data.overallGrade === 'N/A' ? '#6b7280' : (reportColor || '#064e3b') }}>
+                    OVERALL GRADE: {data.overallGrade || 'N/A'}
                   </td>
                 </tr>
               </tfoot>
@@ -336,13 +336,13 @@ const CumulativeReport = () => {
             <div className="border-2 border-black rounded-lg p-3 bg-gray-50 space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black uppercase text-gray-600">PROMOTION STATUS:</span>
-                <span className={`text-lg font-black italic tracking-widest ${data.isPromoted ? 'text-emerald-700' : 'text-red-600'}`}>
+                <span className={`text-lg font-black italic tracking-widest ${data.isPromoted === null ? 'text-gray-500' : (data.isPromoted ? 'text-emerald-700' : 'text-red-600')}`}>
                   {data.nextClass?.toUpperCase() || 'RESULT PENDING'}
                 </span>
               </div>
               <div className="border-t border-gray-300 pt-2">
                 <span className="text-[10px] font-bold text-gray-500 block mb-1 uppercase">PRINCIPAL'S REMARK:</span>
-                <p className="text-xs font-black italic leading-tight text-emerald-900">{data.overallRemark}</p>
+                <p className="text-xs font-black italic leading-tight text-emerald-900">{data.overallRemark || 'N/A'}</p>
               </div>
             </div>
             <div className="border-2 border-black rounded-lg p-3 bg-gray-100 flex flex-col justify-center text-center">
