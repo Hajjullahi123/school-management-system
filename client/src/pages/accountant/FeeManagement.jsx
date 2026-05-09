@@ -1985,7 +1985,7 @@ export default function FeeManagement() {
 
           {/* Summary Cards */}
           {summary && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
+            <div className={`grid grid-cols-1 md:grid-cols-2 ${(!viewAllTerms && !viewAllSessions) ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-5 mb-6`}>
               <div className="bg-gradient-to-br from-primary to-primary/90 text-white p-6 rounded-xl shadow-lg">
                 <h3 className="text-sm font-black uppercase tracking-widest mb-5 opacity-80">Quick Info</h3>
                 <div className="space-y-4">
@@ -2009,6 +2009,7 @@ export default function FeeManagement() {
                   </div>
                 </div>
               </div>
+
               <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between overflow-hidden">
                 <p className="text-sm font-bold text-emerald-100 uppercase tracking-wider mb-2">Total Collected</p>
                 <p className="text-3xl font-black break-words">₦{formatNumber(summary.totalPaid)}</p>
@@ -2023,18 +2024,32 @@ export default function FeeManagement() {
                   </div>
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between overflow-hidden">
-                <p className="text-sm font-bold text-red-100 uppercase tracking-wider mb-2">Outstanding</p>
-                <p className="text-3xl font-black break-words">₦{formatNumber(summary.totalBalance)}</p>
-                <div className="mt-4 pt-3 border-t border-white/20">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-white/20 rounded-full h-2">
-                      <div className="bg-white h-2 rounded-full transition-all" style={{ width: `${summary.totalExpected > 0 ? Math.min((summary.totalBalance / summary.totalExpected) * 100, 100) : 0}%` }}></div>
+
+              {/* Term Outstanding Card - Only shown when viewing a specific term */}
+              {!viewAllTerms && !viewAllSessions && (
+                <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between overflow-hidden">
+                  <p className="text-sm font-bold text-orange-100 uppercase tracking-wider mb-2">Term Outstanding</p>
+                  <p className="text-3xl font-black break-words">₦{formatNumber(summary.totalBalance)}</p>
+                  <div className="mt-4 pt-3 border-t border-white/20">
+                    <div className="flex items-center justify-between">
+                      <span className="text-orange-100 text-xs font-bold uppercase">For {selectedViewTerm?.name || 'Current Term'}</span>
+                      <span className="font-black text-orange-100 text-sm">
+                        {summary.totalExpected > 0 ? ((summary.totalBalance / summary.totalExpected) * 100).toFixed(1) : 0}%
+                      </span>
                     </div>
-                    <span className="text-sm font-black text-red-100">
-                      {summary.totalExpected > 0 ? ((summary.totalBalance / summary.totalExpected) * 100).toFixed(1) : 0}%
-                    </span>
                   </div>
+                </div>
+              )}
+
+              {/* Total Cumulative Outstanding Card */}
+              <div className="bg-gradient-to-br from-red-600 to-red-700 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between overflow-hidden">
+                <p className="text-sm font-bold text-red-100 uppercase tracking-wider mb-2">Total Outstanding</p>
+                <p className="text-3xl font-black break-words">₦{formatNumber(summary.grandTotalBalance || summary.totalBalance)}</p>
+                <div className="mt-4 pt-3 border-t border-white/20">
+                   <div className="flex items-center justify-between">
+                      <span className="text-red-100 text-xs font-bold uppercase">All History (Grand Total)</span>
+                      <div className="flex h-2 w-2 rounded-full bg-white animate-pulse"></div>
+                   </div>
                 </div>
               </div>
             </div>
@@ -2993,12 +3008,14 @@ export default function FeeManagement() {
                       <span className="flex h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
                       Outstanding Balances
                     </h4>
-                    <div className="space-y-2 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
+                    <div className="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
                       {studentFeeSummary.outstandingTerms.map((term, idx) => (
                         <div 
                           key={idx} 
-                          className={`flex justify-between items-center p-2 rounded-lg cursor-pointer transition-all ${
-                            selectedPaymentTerm?.id === term.termId ? 'bg-orange-500 text-white shadow-md' : 'bg-white hover:bg-orange-100'
+                          className={`p-4 rounded-2xl border-2 transition-all cursor-pointer transform active:scale-95 ${
+                            selectedPaymentTerm?.id === term.termId 
+                              ? 'bg-orange-500 border-orange-600 shadow-xl text-white' 
+                              : 'bg-white border-orange-100 hover:border-orange-300 hover:shadow-md'
                           }`}
                           onClick={() => {
                             const foundTerm = allTerms.find(t => t.id === term.termId);
@@ -3007,15 +3024,28 @@ export default function FeeManagement() {
                             setSelectedPaymentSession(foundSession);
                           }}
                         >
-                          <div className="flex flex-col">
-                            <span className={`text-[10px] font-black uppercase ${selectedPaymentTerm?.id === term.termId ? 'text-white/80' : 'text-gray-400'}`}>
-                              {term.sessionName}
-                            </span>
-                            <span className="text-xs font-bold">{term.termName}</span>
+                          <div className="flex justify-between items-start mb-3">
+                             <div className="flex flex-col">
+                                <span className={`text-[9px] font-black uppercase tracking-widest ${selectedPaymentTerm?.id === term.termId ? 'text-white/70' : 'text-gray-400'}`}>
+                                  {term.sessionName}
+                                </span>
+                                <span className="text-base font-black italic tracking-tighter">{term.termName}</span>
+                             </div>
+                             <div className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter ${selectedPaymentTerm?.id === term.termId ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-700'}`}>
+                                Debt Breakdwon
+                             </div>
                           </div>
-                          <span className={`text-xs font-black ${selectedPaymentTerm?.id === term.termId ? 'text-white' : 'text-orange-600'}`}>
-                            ₦{formatNumber(term.balance)}
-                          </span>
+                          
+                          <div className={`grid grid-cols-2 gap-4 pt-3 border-t ${selectedPaymentTerm?.id === term.termId ? 'border-white/20' : 'border-gray-50'}`}>
+                             <div>
+                                <p className={`text-[9px] font-black uppercase tracking-widest mb-0.5 ${selectedPaymentTerm?.id === term.termId ? 'text-white/60' : 'text-gray-400'}`}>Term Outstanding</p>
+                                <p className="text-sm font-black">₦{formatNumber(term.balance)}</p>
+                             </div>
+                             <div className="text-right">
+                                <p className={`text-[9px] font-black uppercase tracking-widest mb-0.5 ${selectedPaymentTerm?.id === term.termId ? 'text-white/60' : 'text-gray-400'}`}>Total (Cumulative)</p>
+                                <p className="text-sm font-black">₦{formatNumber(term.cumulativeBalance)}</p>
+                             </div>
+                          </div>
                         </div>
                       ))}
                     </div>

@@ -460,6 +460,31 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
         }
       });
 
+      // CASCADE UPDATE: Update openingBalance and balance for all subsequent terms
+      const subsequentRecords = await tx.feeRecord.findMany({
+        where: {
+          studentId: parseInt(studentId),
+          schoolId: parseInt(req.schoolId),
+          Term: {
+            startDate: { gt: feeRecord.Term.startDate }
+          }
+        },
+        include: { Term: true }
+      });
+
+      for (const record of subsequentRecords) {
+        const newOpeningBalance = record.openingBalance - paymentAmountNum;
+        const newBalance = record.balance - paymentAmountNum;
+        await tx.feeRecord.update({
+          where: { id: record.id },
+          data: {
+            openingBalance: newOpeningBalance,
+            balance: newBalance,
+            isClearedForExam: (newBalance <= 0)
+          }
+        });
+      }
+
       return { feeRecord: updated, payment };
     });
 
@@ -598,7 +623,8 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'principal',
       }
 
       const feeRecord = await tx.feeRecord.findUnique({
-        where: { id: currentPayment.feeRecordId }
+        where: { id: currentPayment.feeRecordId },
+        include: { Term: true }
       });
 
       const updatedPaidAmount = (feeRecord.paidAmount - currentPayment.amount) + newAmount;
@@ -641,6 +667,31 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'principal',
           notes: notes || payment.notes
         }
       });
+
+      // CASCADE UPDATE: Update openingBalance and balance for all subsequent terms
+      const subsequentRecords = await tx.feeRecord.findMany({
+        where: {
+          studentId: feeRecord.studentId,
+          schoolId: parseInt(req.schoolId),
+          Term: {
+            startDate: { gt: feeRecord.Term.startDate }
+          }
+        },
+        include: { Term: true }
+      });
+
+      for (const record of subsequentRecords) {
+        const newOpeningBalance = record.openingBalance - difference;
+        const newBalance = record.balance - difference;
+        await tx.feeRecord.update({
+          where: { id: record.id },
+          data: {
+            openingBalance: newOpeningBalance,
+            balance: newBalance,
+            isClearedForExam: (newBalance <= 0)
+          }
+        });
+      }
 
       return { feeRecord: updatedFeeRecord, payment: updatedPayment };
     });
@@ -1055,19 +1106,34 @@ router.get('/summary', authenticate, authorize(['admin', 'principal', 'accountan
       else notPaid++;
     }
 
-    const summary = {
+    // 4. Calculate GRAND TOTAL balance across all terms for all active students
+    // We take the balance from each student's MOST RECENT fee record
+    const allActiveStudents = await prisma.student.findMany({
+      where: { schoolId: schoolIdInt, status: 'active' },
+      include: {
+        FeeRecord: {
+          orderBy: { Term: { startDate: 'desc' } },
+          take: 1
+        }
+      }
+    });
+
+    const grandTotalBalance = allActiveStudents.reduce((sum, s) => {
+      return sum + (s.FeeRecord[0]?.balance || 0);
+    }, 0);
+
+    res.json({
       totalStudents,
       totalExpected,
       totalPaid,
-      totalBalance,
+      totalBalance, // This is term-specific
       clearedStudents,
-      restrictedStudents, // Fixed: ensure this uses the calculated count
+      restrictedStudents,
       fullyPaid,
       partiallyPaid,
-      notPaid
-    };
-
-    res.json(summary);
+      notPaid,
+      grandTotalBalance // This is cumulative
+    });
   } catch (error) {
     console.error('Error fetching fee summary:', error);
     res.status(500).json({ error: error.message });
