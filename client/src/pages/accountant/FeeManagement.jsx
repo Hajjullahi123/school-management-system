@@ -2462,6 +2462,9 @@ export default function FeeManagement() {
                       <th className="px-3 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
                         Term Balance
                       </th>
+                      <th className="px-3 py-3 text-right text-[10px] font-black text-red-500 uppercase tracking-widest bg-red-50/50">
+                        Total Balance
+                      </th>
                       <th className="px-3 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
                         Actions
                       </th>
@@ -2502,7 +2505,7 @@ export default function FeeManagement() {
 
                           {student.isScholarship ? (
                             <>
-                              <td colSpan="4" className="px-3 py-4 text-[11px] font-black text-center border-b border-gray-100 text-emerald-600 uppercase tracking-widest italic bg-emerald-50/50">
+                              <td colSpan="5" className="px-3 py-4 text-[11px] font-black text-center border-b border-gray-100 text-emerald-600 uppercase tracking-widest italic bg-emerald-50/50">
                                 🎓 SCHOLARSHIP
                               </td>
                               <td className="px-3 py-4 border-b border-gray-100">
@@ -2540,8 +2543,13 @@ export default function FeeManagement() {
                                 ₦{formatNumber(paid)}
                               </td>
                               <td className="px-3 py-4 text-xs font-black text-right border-b border-gray-100">
-                                <span className={totalBalance > 0 ? 'text-red-600' : 'text-green-600'}>
+                                <span className={totalBalance > 0 ? 'text-red-600' : (totalBalance < 0 ? 'text-emerald-600' : 'text-gray-400')}>
                                   ₦{formatNumber(totalBalance)}
+                                </span>
+                              </td>
+                              <td className="px-3 py-4 text-xs font-black text-right border-b border-gray-100 bg-red-50/20">
+                                <span className={student.feeRecords[0]?.balance > 0 ? 'text-red-700' : (student.feeRecords[0]?.balance < 0 ? 'text-emerald-700' : 'text-gray-400')}>
+                                  ₦{formatNumber(student.feeRecords[0]?.balance || 0)}
                                 </span>
                               </td>
                               <td className="px-3 py-4 border-b border-gray-100">
