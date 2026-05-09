@@ -531,7 +531,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
     if (formattedResult.feeRecord?.student?.parent?.phoneNumber || formattedResult.feeRecord?.student?.parent?.phone) {
       const { sendPaymentSMS } = require('../services/smsService');
       const settings = await prisma.school.findUnique({
-        where: { id: req.schoolId }
+        where: { id: parseInt(req.schoolId) }
       });
       const schoolName = settings?.name || settings?.schoolName || process.env.SCHOOL_NAME || 'School Management System';
 
@@ -842,6 +842,7 @@ router.post('/toggle-clearance/:studentId', authenticate, authorize(['admin', 'p
 
       const feeStructure = await prisma.classFeeStructure.findFirst({
         where: {
+          schoolId: parseInt(req.schoolId),
           classId: student.classId,
           termId: parseInt(termId),
           academicSessionId: parseInt(academicSessionId)
@@ -932,7 +933,7 @@ router.post('/clear/:studentId', authenticate, authorize(['admin', 'principal', 
         return res.status(404).json({ error: 'Student not found' });
       }
       const feeStructure = await prisma.classFeeStructure.findFirst({
-        where: { classId: student?.classId, termId: parseInt(termId), academicSessionId: parseInt(academicSessionId) }
+        where: { schoolId: parseInt(req.schoolId), classId: student?.classId, termId: parseInt(termId), academicSessionId: parseInt(academicSessionId) }
       });
 
       // Scholarship students get 0 fees
@@ -988,7 +989,7 @@ router.post('/revoke-clearance/:studentId', authenticate, authorize(['admin', 'p
         return res.status(404).json({ error: 'Student not found' });
       }
       const feeStructure = await prisma.classFeeStructure.findFirst({
-        where: { classId: student?.classId, termId: parseInt(termId), academicSessionId: parseInt(academicSessionId) }
+        where: { schoolId: parseInt(req.schoolId), classId: student?.classId, termId: parseInt(termId), academicSessionId: parseInt(academicSessionId) }
       });
 
       // Scholarship students get 0 fees
@@ -1197,7 +1198,7 @@ router.post('/bulk-reminder', authenticate, authorize(['admin', 'principal', 'ac
 
     const { sendFeeReminder } = require('../services/emailService');
     const settings = await prisma.school.findUnique({
-      where: { id: req.schoolId }
+      where: { id: parseInt(req.schoolId) }
     });
     const schoolName = settings?.name || settings?.schoolName || process.env.SCHOOL_NAME || 'School Management System';
 
