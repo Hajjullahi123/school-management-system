@@ -283,6 +283,8 @@ router.post('/record', authenticate, authorize(['admin', 'principal', 'accountan
     }
 
     // Fetch school fee structure for this class/term
+    // RELAXED: Only enforce this if a structure is defined and we want to prevent accidental 
+    // overcharging, but allow admins to bypass it for special cases.
     if (!student.isScholarship) {
       const feeStructure = await prisma.classFeeStructure.findFirst({
         where: {
@@ -292,11 +294,28 @@ router.post('/record', authenticate, authorize(['admin', 'principal', 'accountan
           schoolId: parseInt(req.schoolId)
         }
       });
+      
       const maxAllowed = feeStructure?.amount || 0;
-      if (parseFloat(expectedAmount) > maxAllowed) {
-        return res.status(400).json({
-          error: `Charge amount (₦${parseFloat(expectedAmount).toLocaleString()}) cannot exceed the standard school fee for this class (₦${maxAllowed.toLocaleString()})`
+      
+      // If a structure exists, we check against it. 
+      // If no structure exists (maxAllowed === 0), we allow any amount because 
+      // the admin might be setting up fees manually for a special term.
+      if (maxAllowed > 0 && parseFloat(expectedAmount) > (maxAllowed + 0.01)) {
+        // We'll allow it if it's an update and the amount isn't changing or is decreasing
+        const existingRecord = await prisma.feeRecord.findFirst({
+          where: {
+            studentId: parseInt(studentId),
+            termId: parseInt(termId),
+            academicSessionId: parseInt(academicSessionId),
+            schoolId: parseInt(req.schoolId)
+          }
         });
+
+        if (!existingRecord || parseFloat(expectedAmount) > (existingRecord.expectedAmount + 0.01)) {
+           return res.status(400).json({
+             error: `Charge amount (₦${parseFloat(expectedAmount).toLocaleString()}) exceeds the standard school fee for this class (₦${maxAllowed.toLocaleString()}). Please update the Class Fee Structure first if this is the new standard.`
+           });
+        }
       }
     }
 
