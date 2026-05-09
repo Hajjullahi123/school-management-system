@@ -282,43 +282,6 @@ router.post('/record', authenticate, authorize(['admin', 'principal', 'accountan
       return res.status(404).json({ error: 'Student not found' });
     }
 
-    // Fetch school fee structure for this class/term
-    // RELAXED: Only enforce this if a structure is defined and we want to prevent accidental 
-    // overcharging, but allow admins to bypass it for special cases.
-    if (!student.isScholarship) {
-      const feeStructure = await prisma.classFeeStructure.findFirst({
-        where: {
-          classId: student.classId,
-          termId: parseInt(termId),
-          academicSessionId: parseInt(academicSessionId),
-          schoolId: parseInt(req.schoolId)
-        }
-      });
-      
-      const maxAllowed = feeStructure?.amount || 0;
-      
-      // If a structure exists, we check against it. 
-      // If no structure exists (maxAllowed === 0), we allow any amount because 
-      // the admin might be setting up fees manually for a special term.
-      if (maxAllowed > 0 && parseFloat(expectedAmount) > (maxAllowed + 0.01)) {
-        // We'll allow it if it's an update and the amount isn't changing or is decreasing
-        const existingRecord = await prisma.feeRecord.findFirst({
-          where: {
-            studentId: parseInt(studentId),
-            termId: parseInt(termId),
-            academicSessionId: parseInt(academicSessionId),
-            schoolId: parseInt(req.schoolId)
-          }
-        });
-
-        if (!existingRecord || parseFloat(expectedAmount) > (existingRecord.expectedAmount + 0.01)) {
-           return res.status(400).json({
-             error: `Charge amount (₦${parseFloat(expectedAmount).toLocaleString()}) exceeds the standard school fee for this class (₦${maxAllowed.toLocaleString()}). Please update the Class Fee Structure first if this is the new standard.`
-           });
-        }
-      }
-    }
-
     // Use centralized utility
     const feeRecord = await createOrUpdateFeeRecordWithOpening({
       schoolId: parseInt(req.schoolId),
@@ -421,11 +384,8 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
 
     const grandTotalBalance = studentSummary?.grandTotal || 0;
 
-    if (paymentAmountNum > (grandTotalBalance + 0.01)) { // Allow for small float noise
-      return res.status(400).json({
-        error: `Payment amount (₦${paymentAmountNum.toLocaleString()}) cannot exceed the student's total outstanding balance (₦${grandTotalBalance.toLocaleString()})`
-      });
-    }
+    // REMOVED: Overpayment check. We allow admins to record any payment amount.
+    // If the payment exceeds the balance, it will result in a credit (negative balance).
 
     // Use transaction to update fee record and create payment history
     const result = await prisma.$transaction(async (tx) => {
@@ -653,9 +613,8 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'principal',
         throw new Error(`Invalid change. Total paid amount cannot be negative.`);
       }
 
-      if (updatedBalance < -0.01) {
-        throw new Error(`Updated payment amount would exceed the total budget. Balance: ₦${updatedBalance.toLocaleString()}`);
-      }
+      // REMOVED: Overpayment check during update. 
+      // Allows for corrections that result in a credit balance.
 
       const updatedFeeRecord = await tx.feeRecord.update({
         where: { id: feeRecord.id },
