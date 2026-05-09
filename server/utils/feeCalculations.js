@@ -216,9 +216,7 @@ async function createOrUpdateFeeRecordWithOpening(data) {
     const totalDue = safeOpening + numExpected;
     const balance = totalDue - numPaid;
 
-    if (balance < 0) {
-      throw new Error(`Total paid (₦${numPaid.toLocaleString()}) cannot exceed the total amount due (₦${totalDue.toLocaleString()}).`);
-    }
+    // REMOVED: Overpayment check. We allow negative balances (credits).
 
     // Exam clearance logic: Must have zero or negative balance (fully paid total due)
     const isClearedForExam = (balance <= 0);

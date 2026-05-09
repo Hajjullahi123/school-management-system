@@ -34,7 +34,7 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // Create new miscellaneous fee
-router.post('/', authenticate, authorize(['admin', 'superadmin']), async (req, res) => {
+router.post('/', authenticate, authorize(['admin', 'superadmin', 'accountant']), async (req, res) => {
   try {
     const { title, description, amount, isCompulsory, classIds, academicSessionId, termId } = req.body;
 
@@ -62,7 +62,7 @@ router.post('/', authenticate, authorize(['admin', 'superadmin']), async (req, r
 });
 
 // Update miscellaneous fee
-router.put('/:id', authenticate, authorize(['admin', 'superadmin']), async (req, res) => {
+router.put('/:id', authenticate, authorize(['admin', 'superadmin', 'accountant']), async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, amount, isCompulsory, classIds, academicSessionId, termId } = req.body;
@@ -94,7 +94,7 @@ router.put('/:id', authenticate, authorize(['admin', 'superadmin']), async (req,
 });
 
 // Delete miscellaneous fee
-router.delete('/:id', authenticate, authorize(['admin', 'superadmin']), async (req, res) => {
+router.delete('/:id', authenticate, authorize(['admin', 'superadmin', 'accountant']), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -277,7 +277,7 @@ router.get('/student/:studentId', authenticate, async (req, res) => {
       where: { id: parseInt(studentId) }
     });
 
-    if (!student || student.schoolId !== req.schoolId) {
+    if (!student || student.schoolId !== parseInt(req.schoolId)) {
       return res.status(404).json({ error: 'Student not found' });
     }
 
@@ -315,7 +315,7 @@ router.get('/student/:studentId', authenticate, async (req, res) => {
 });
 
 // Record payment
-router.post('/payments', authenticate, authorize(['admin', 'superadmin']), async (req, res) => {
+router.post('/payments', authenticate, authorize(['admin', 'superadmin', 'accountant']), async (req, res) => {
   try {
     const { studentId, feeId, amount, paymentMethod, receiptNumber } = req.body;
 
@@ -327,7 +327,7 @@ router.post('/payments', authenticate, authorize(['admin', 'superadmin']), async
         amount: parseFloat(amount),
         paymentMethod,
         receiptNumber,
-        recordedBy: req.userId
+        recordedBy: req.user.id
       },
       include: {
         student: {
@@ -392,7 +392,7 @@ router.get('/payments', authenticate, async (req, res) => {
 });
 
 // Delete payment
-router.delete('/payments/:id', authenticate, authorize(['admin', 'superadmin']), async (req, res) => {
+router.delete('/payments/:id', authenticate, authorize(['admin', 'superadmin', 'accountant']), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -428,7 +428,7 @@ router.get('/receipt/:paymentId', authenticate, async (req, res) => {
       }
     });
 
-    if (!payment || payment.schoolId !== req.schoolId) {
+    if (!payment || payment.schoolId !== parseInt(req.schoolId)) {
       return res.status(404).json({ error: 'Payment not found' });
     }
 

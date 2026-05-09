@@ -127,10 +127,7 @@ export default function FeeManagement() {
         return;
       }
 
-      if (paid > totalDue) {
-        alert(`Total Paid (₦${formatNumber(paid)}) cannot exceed the total amount due (₦${formatNumber(totalDue)})`);
-        return;
-      }
+      // REMOVED: Frontend overpayment check. Trust the admin's manual override.
 
       setLoading(true);
       // Use the VIEWED term/session, not always the current one
@@ -1078,15 +1075,7 @@ export default function FeeManagement() {
 
     const grandTotal = studentFeeSummary?.grandTotal || 0;
 
-    if (grandTotal <= 0 && parseFloat(paymentAmount) > 0) {
-      alert(`This student has no overall outstanding balance. You cannot record a payment.`);
-      return;
-    }
-    
-    if (parseFloat(paymentAmount) > (grandTotal + 0.01)) {
-      alert(`Payment amount cannot exceed the student's total outstanding balance (₦${formatNumber(grandTotal)})`);
-      return;
-    }
+    // REMOVED: Frontend overpayment check. Trust the admin to record payments as needed (e.g. advance payments).
 
     try {
       setProcessingPayment(true);
@@ -3032,7 +3021,7 @@ export default function FeeManagement() {
                                 <span className="text-base font-black italic tracking-tighter">{term.termName}</span>
                              </div>
                              <div className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter ${selectedPaymentTerm?.id === term.termId ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-700'}`}>
-                                Debt Breakdwon
+                                Debt Breakdown
                              </div>
                           </div>
                           
@@ -3184,7 +3173,7 @@ export default function FeeManagement() {
                     required
                     value={miscFormData.amount}
                     onChange={(e) => setMiscFormData({ ...miscFormData, amount: e.target.value })}
-                    max={selectedMiscPayment.student.balance}
+
                     placeholder="0.00"
                     className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-xl font-black focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all"
                   />

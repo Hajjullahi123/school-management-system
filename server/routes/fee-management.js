@@ -439,7 +439,8 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
         }
       });
 
-      // CASCADE UPDATE: Update openingBalance and balance for all subsequent terms
+      // CASCADE UPDATE: Recalculate openingBalance for all subsequent terms from scratch.
+      // This avoids double-counting issues when the utility function also recalculates openingBalance.
       const subsequentRecords = await tx.feeRecord.findMany({
         where: {
           studentId: parseInt(studentId),
@@ -448,12 +449,28 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
             startDate: { gt: feeRecord.Term.startDate }
           }
         },
-        include: { Term: true }
+        include: { Term: true },
+        orderBy: { Term: { startDate: 'asc' } }
       });
 
+      // Get ALL records for this student to recalculate properly
+      const allPriorRecords = await tx.feeRecord.findMany({
+        where: {
+          studentId: parseInt(studentId),
+          schoolId: parseInt(req.schoolId),
+          Term: {
+            startDate: { lte: feeRecord.Term.startDate }
+          }
+        },
+        select: { expectedAmount: true, paidAmount: true }
+      });
+
+      // Sum all prior debt (including the record we just updated)
+      let runningDebt = allPriorRecords.reduce((sum, r) => sum + (r.expectedAmount || 0) - (r.paidAmount || 0), 0);
+
       for (const record of subsequentRecords) {
-        const newOpeningBalance = record.openingBalance - paymentAmountNum;
-        const newBalance = record.balance - paymentAmountNum;
+        const newOpeningBalance = runningDebt;
+        const newBalance = newOpeningBalance + record.expectedAmount - record.paidAmount;
         await tx.feeRecord.update({
           where: { id: record.id },
           data: {
@@ -462,6 +479,8 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
             isClearedForExam: (newBalance <= 0)
           }
         });
+        // Add this record's own debt to the running total for the next term
+        runningDebt += (record.expectedAmount || 0) - (record.paidAmount || 0);
       }
 
       return { feeRecord: updated, payment };
@@ -597,7 +616,7 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'principal',
         include: { feeRecord: true }
       });
 
-      if (!currentPayment || currentPayment.schoolId !== req.schoolId) {
+      if (!currentPayment || currentPayment.schoolId !== parseInt(req.schoolId)) {
         throw new Error('Payment record not found or access denied');
       }
 
@@ -646,7 +665,7 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'principal',
         }
       });
 
-      // CASCADE UPDATE: Update openingBalance and balance for all subsequent terms
+      // CASCADE UPDATE: Recalculate openingBalance for all subsequent terms from scratch.
       const subsequentRecords = await tx.feeRecord.findMany({
         where: {
           studentId: feeRecord.studentId,
@@ -655,12 +674,27 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'principal',
             startDate: { gt: feeRecord.Term.startDate }
           }
         },
-        include: { Term: true }
+        include: { Term: true },
+        orderBy: { Term: { startDate: 'asc' } }
       });
 
+      // Get ALL records for this student up to and including current to recalculate properly
+      const allPriorRecords = await tx.feeRecord.findMany({
+        where: {
+          studentId: feeRecord.studentId,
+          schoolId: parseInt(req.schoolId),
+          Term: {
+            startDate: { lte: feeRecord.Term.startDate }
+          }
+        },
+        select: { expectedAmount: true, paidAmount: true }
+      });
+
+      let runningDebt = allPriorRecords.reduce((sum, r) => sum + (r.expectedAmount || 0) - (r.paidAmount || 0), 0);
+
       for (const record of subsequentRecords) {
-        const newOpeningBalance = record.openingBalance - difference;
-        const newBalance = record.balance - difference;
+        const newOpeningBalance = runningDebt;
+        const newBalance = newOpeningBalance + record.expectedAmount - record.paidAmount;
         await tx.feeRecord.update({
           where: { id: record.id },
           data: {
@@ -669,6 +703,7 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'principal',
             isClearedForExam: (newBalance <= 0)
           }
         });
+        runningDebt += (record.expectedAmount || 0) - (record.paidAmount || 0);
       }
 
       return { feeRecord: updatedFeeRecord, payment: updatedPayment };
@@ -1084,20 +1119,23 @@ router.get('/summary', authenticate, authorize(['admin', 'principal', 'accountan
       else notPaid++;
     }
 
-    // 4. Calculate GRAND TOTAL balance across all terms for all active students
-    // We take the balance from each student's MOST RECENT fee record
+    // 4. Calculate GRAND TOTAL balance across ALL terms for ALL active students.
+    // FIX: Sum (expected - paid) across every fee record, not just the latest one.
+    // This ensures students who owe from previous terms but have no current record are included.
     const allActiveStudents = await prisma.student.findMany({
       where: { schoolId: schoolIdInt, status: 'active' },
       include: {
         FeeRecord: {
-          orderBy: { Term: { startDate: 'desc' } },
-          take: 1
+          select: { expectedAmount: true, paidAmount: true }
         }
       }
     });
 
     const grandTotalBalance = allActiveStudents.reduce((sum, s) => {
-      return sum + (s.FeeRecord[0]?.balance || 0);
+      const studentTotal = (s.FeeRecord || []).reduce((rSum, r) => {
+        return rSum + ((r.expectedAmount || 0) - (r.paidAmount || 0));
+      }, 0);
+      return sum + studentTotal;
     }, 0);
 
     res.json({

@@ -51,88 +51,96 @@ router.post('/setup', authenticate, authorize(['admin', 'accountant']), async (r
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // 1. Create or Update Fee Structure
-    const feeStructure = await prisma.classFeeStructure.upsert({
-      where: {
-        schoolId_classId_termId_academicSessionId: {
-          schoolId: parseInt(req.schoolId),
-          classId: parseInt(classId),
-          termId: parseInt(termId),
-          academicSessionId: parseInt(academicSessionId)
-        }
-      },
-      update: {
-        amount: parseFloat(amount),
-        description
-      },
-      create: {
-        schoolId: parseInt(req.schoolId),
-        classId: parseInt(classId),
-        termId: parseInt(termId),
-        academicSessionId: parseInt(academicSessionId),
-        amount: parseFloat(amount),
-        description
-      }
-    });
-
-    // 2. Update existing students' fee records
-    // Find all students in this class
-    const students = await prisma.student.findMany({
-      where: {
-        classId: parseInt(classId),
-        schoolId: parseInt(req.schoolId)
-      }
-    });
-
-    let updatedCount = 0;
-    let createdCount = 0;
-
-    for (const student of students) {
-      // Respect scholarship status
-      const expectedForThisStudent = student.isScholarship ? 0 : parseFloat(amount);
-
-      // Check if fee record exists
-      const existingRecord = await prisma.feeRecord.findUnique({
+    // Use a transaction so all student records update atomically.
+    // If the server crashes mid-loop, nothing is left in an inconsistent state.
+    const { feeStructure, updatedCount, createdCount, students } = await prisma.$transaction(async (tx) => {
+      // 1. Create or Update Fee Structure
+      const feeStructure = await tx.classFeeStructure.upsert({
         where: {
-          schoolId_studentId_termId_academicSessionId: {
+          schoolId_classId_termId_academicSessionId: {
             schoolId: parseInt(req.schoolId),
-            studentId: student.id,
+            classId: parseInt(classId),
             termId: parseInt(termId),
             academicSessionId: parseInt(academicSessionId)
           }
+        },
+        update: {
+          amount: parseFloat(amount),
+          description
+        },
+        create: {
+          schoolId: parseInt(req.schoolId),
+          classId: parseInt(classId),
+          termId: parseInt(termId),
+          academicSessionId: parseInt(academicSessionId),
+          amount: parseFloat(amount),
+          description
         }
       });
 
-      if (existingRecord) {
-        // Update expected amount and balance
-        // We preserve the paidAmount
-        const newBalance = expectedForThisStudent - existingRecord.paidAmount;
+      // 2. Update existing students' fee records
+      // Find all students in this class
+      const students = await tx.student.findMany({
+        where: {
+          classId: parseInt(classId),
+          schoolId: parseInt(req.schoolId)
+        }
+      });
 
-        await prisma.feeRecord.update({
-          where: { id: existingRecord.id },
-          data: {
-            expectedAmount: expectedForThisStudent,
-            balance: newBalance
+      let updatedCount = 0;
+      let createdCount = 0;
+
+      for (const student of students) {
+        // Respect scholarship status
+        const expectedForThisStudent = student.isScholarship ? 0 : parseFloat(amount);
+
+        // Check if fee record exists
+        const existingRecord = await tx.feeRecord.findUnique({
+          where: {
+            schoolId_studentId_termId_academicSessionId: {
+              schoolId: parseInt(req.schoolId),
+              studentId: student.id,
+              termId: parseInt(termId),
+              academicSessionId: parseInt(academicSessionId)
+            }
           }
         });
-        updatedCount++;
-      } else {
-        // Create new fee record
-        await prisma.feeRecord.create({
-          data: {
-            schoolId: parseInt(req.schoolId),
-            studentId: student.id,
-            termId: parseInt(termId),
-            academicSessionId: parseInt(academicSessionId),
-            expectedAmount: expectedForThisStudent,
-            paidAmount: 0,
-            balance: expectedForThisStudent,
-            isClearedForExam: true
-          }
-        });
-        createdCount++;
+
+        if (existingRecord) {
+          // FIX: Include openingBalance in the balance calculation so arrears are preserved
+          const opening = existingRecord.openingBalance || 0;
+          const newBalance = opening + expectedForThisStudent - existingRecord.paidAmount;
+
+          await tx.feeRecord.update({
+            where: { id: existingRecord.id },
+            data: {
+              expectedAmount: expectedForThisStudent,
+              balance: newBalance,
+              isClearedForExam: (newBalance <= 0)
+            }
+          });
+          updatedCount++;
+        } else {
+          // Create new fee record
+          // FIX: isClearedForExam should be false when student owes money
+          await tx.feeRecord.create({
+            data: {
+              schoolId: parseInt(req.schoolId),
+              studentId: student.id,
+              termId: parseInt(termId),
+              academicSessionId: parseInt(academicSessionId),
+              expectedAmount: expectedForThisStudent,
+              paidAmount: 0,
+              balance: expectedForThisStudent,
+              isClearedForExam: (expectedForThisStudent <= 0)
+            }
+          });
+          createdCount++;
+        }
       }
-    }
+
+      return { feeStructure, updatedCount, createdCount, students };
+    });
 
     res.json({
       message: 'Fee structure saved successfully',
