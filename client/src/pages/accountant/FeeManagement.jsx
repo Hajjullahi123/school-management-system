@@ -3681,7 +3681,7 @@ export default function FeeManagement() {
                   Cancel
                 </button>
                 <button
-                  onClick={handleUpdateFeeRecord}
+                  onClick={saveFeeRecord}
                   disabled={loading}
                   className="px-6 py-2.5 bg-orange-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-200 hover:bg-orange-600 active:scale-95 transition-all flex items-center gap-2"
                 >
