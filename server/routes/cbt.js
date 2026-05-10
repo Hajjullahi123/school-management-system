@@ -931,8 +931,9 @@ router.get('/:id/results/download', authenticate, authorize(['superadmin', 'admi
       ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
     ].join('\n');
 
+    const safeExamTitle = exam.title.replace(/[^\x00-\x7F]/g, '').replace(/\s+/g, '_') || 'Exam';
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=CBT_Results_${exam.title.replace(/\s+/g, '_')}.csv`);
+    res.setHeader('Content-Disposition', `attachment; filename="CBT_Results_${safeExamTitle}.csv"`);
     res.send(csvContent);
 
   } catch (error) {
