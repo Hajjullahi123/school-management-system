@@ -1076,35 +1076,30 @@ export default function FeeManagement() {
       t => t.termId === (selectedPaymentTerm?.id || currentTerm?.id)
     )?.balance || 0;
 
+    // Wait for summary to load to avoid false ceiling blocks
+    if (!studentFeeSummary) {
+      alert('Student financial summary is still loading. Please wait a moment...');
+      return;
+    }
+
     const grandTotal = studentFeeSummary?.grandTotal || 0;
     const amount = parseFloat(paymentAmount);
 
-    // Soft fee ceiling: warn if payment exceeds outstanding balance
+    // Hard fee ceiling: Block if payment exceeds outstanding balance
     if (grandTotal > 0 && amount > grandTotal) {
-      const overpayment = amount - grandTotal;
-      const proceed = confirm(
-        `⚠️ FEE CEILING WARNING\n\n` +
-        `This payment of ₦${formatNumber(amount)} exceeds the student's total outstanding balance of ₦${formatNumber(grandTotal)}.\n\n` +
-        `The student will have a credit of ₦${formatNumber(overpayment)}.\n\n` +
-        `Continue with this payment?`
+      alert(
+        `⛔ FEE CEILING ERROR\n\n` +
+        `This payment (₦${formatNumber(amount)}) exceeds the student's total outstanding balance (₦${formatNumber(grandTotal)}).\n\n` +
+        `The system is configured to prevent overpayments. Please reduce the amount.`
       );
-      if (!proceed) return;
+      return;
     } else if (grandTotal <= 0) {
-      const proceed = confirm(
-        `⚠️ FEE CEILING WARNING\n\n` +
+      alert(
+        `⛔ FEE CEILING ERROR\n\n` +
         `This student has no outstanding balance (current balance: ₦${formatNumber(grandTotal)}).\n\n` +
-        `Recording ₦${formatNumber(amount)} will create a credit on their account.\n\n` +
-        `Continue with this payment?`
+        `You cannot record a payment on a cleared account.`
       );
-      if (!proceed) return;
-    } else if (selectedTermBalance > 0 && amount > selectedTermBalance) {
-      // Payment exceeds the selected term balance but not grand total — just inform
-      const proceed = confirm(
-        `ℹ️ This payment of ₦${formatNumber(amount)} exceeds this term's balance of ₦${formatNumber(selectedTermBalance)}, but the student's total debt is ₦${formatNumber(grandTotal)}.\n\n` +
-        `The extra amount will reduce their overall outstanding debt.\n\n` +
-        `Continue?`
-      );
-      if (!proceed) return;
+      return;
     }
 
     try {
@@ -1164,26 +1159,25 @@ export default function FeeManagement() {
       return;
     }
 
-    // Soft fee ceiling: warn if the updated amount would cause overpayment
+    // Hard fee ceiling: Block if update causes overpayment
     const newAmount = parseFloat(paymentAmount);
     const oldAmount = editingPayment.amount || 0;
     const feeRecord = historyStudent?.feeRecords?.[0];
     if (feeRecord) {
       const currentBalance = feeRecord.balance || 0;
-      // Projected balance after change: currentBalance + oldAmount - newAmount
       const projectedBalance = currentBalance + oldAmount - newAmount;
-      if (projectedBalance < 0 && currentBalance >= 0) {
-        const credit = Math.abs(projectedBalance);
-        const proceed = confirm(
-          `⚠️ FEE CEILING WARNING\n\n` +
-          `Changing this payment from ₦${formatNumber(oldAmount)} to ₦${formatNumber(newAmount)} will create a credit of ₦${formatNumber(credit)} on this student's account.\n\n` +
-          `Continue?`
+      if (projectedBalance < 0) {
+        alert(
+          `⛔ FEE CEILING ERROR\n\n` +
+          `Changing this payment to ₦${formatNumber(newAmount)} would cause an overpayment (Credit: ₦${formatNumber(Math.abs(projectedBalance))}).\n\n` +
+          `Action blocked by System Policy.`
         );
-        if (!proceed) return;
+        return;
       }
     }
 
     try {
+      setProcessingPayment(true);
       const response = await api.put(`/api/fees/payment/${editingPayment.id}`, {
         amount: parseFloat(paymentAmount),
         paymentMethod,
@@ -1221,6 +1215,26 @@ export default function FeeManagement() {
     } catch (error) {
       console.error('Error updating payment:', error);
       alert(error.message || 'Failed to update payment');
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  const handleResetLedger = async (studentId) => {
+    if (!confirm('⚠️ EXTREME WARNING: You are about to RESET this student\'s entire ledger. This will PERMANENTLY DELETE all payment history and fee records for this student. This action cannot be undone.\n\nType "RESET" to confirm.')) return;
+    
+    const secondConfirm = prompt('Please type RESET to confirm permanent deletion:');
+    if (secondConfirm !== 'RESET') return;
+
+    try {
+      const response = await api.delete(`/api/fees/student/${studentId}/reset`);
+      if (!response.ok) throw new Error('Reset failed');
+      
+      alert('Student ledger has been completely wiped.');
+      setEditingFeeRecord(null);
+      loadStudents(selectedViewTerm?.id || currentTerm.id, selectedViewSession?.id || currentSession.id);
+    } catch (err) {
+      alert('Error: ' + err.message);
     }
   };
 
@@ -3647,28 +3661,35 @@ export default function FeeManagement() {
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100 shrink-0">
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between shrink-0">
               <button
-                onClick={() => setEditingFeeRecord(null)}
-                disabled={loading}
-                className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors"
+                onClick={() => handleResetLedger(editingFeeRecord.studentId)}
+                className="px-4 py-2.5 bg-rose-50 text-rose-600 text-[10px] font-black uppercase rounded-xl border border-rose-100 hover:bg-rose-600 hover:text-white transition-all shadow-sm shadow-rose-100"
               >
-                Cancel
+                Reset Student Ledger
               </button>
-              <button
-                onClick={saveFeeRecord}
-                disabled={loading}
-                className="px-6 py-2.5 bg-orange-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-200 hover:bg-orange-600 active:scale-95 transition-all flex items-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Saving...
-                  </>
-                ) : (
-                  'Update Fee Amount'
-                )}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setEditingFeeRecord(null)}
+                  className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateFeeRecord}
+                  disabled={loading}
+                  className="px-6 py-2.5 bg-orange-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-200 hover:bg-orange-600 active:scale-95 transition-all flex items-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    'Update Fee Amount'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

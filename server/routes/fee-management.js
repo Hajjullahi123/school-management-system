@@ -1401,4 +1401,54 @@ router.post('/sync-records', authenticate, authorize(['admin', 'principal', 'acc
   }
 });
 
+// RESET STUDENT LEDGER - Wipes all fee records and payments for a student
+router.delete('/student/:studentId/reset', async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    // Verify student exists and belongs to the school
+    const student = await prisma.student.findUnique({
+      where: { id: parseInt(studentId) },
+      select: { schoolId: true }
+    });
+
+    if (!student || student.schoolId !== parseInt(req.schoolId)) {
+      return res.status(404).json({ error: 'Student not found or unauthorized access' });
+    }
+
+    // Delete all FeePayments first (due to foreign key constraints)
+    await prisma.feePayment.deleteMany({
+      where: {
+        FeeRecord: {
+          studentId: parseInt(studentId),
+          schoolId: parseInt(req.schoolId)
+        }
+      }
+    });
+
+    // Delete all FeeRecords
+    await prisma.feeRecord.deleteMany({
+      where: {
+        studentId: parseInt(studentId),
+        schoolId: parseInt(req.schoolId)
+      }
+    });
+
+    // Log the action
+    logAction({
+      schoolId: parseInt(req.schoolId),
+      userId: req.user.id,
+      action: 'RESET_LEDGER',
+      resource: 'FEE_HISTORY',
+      details: { studentId: parseInt(studentId) },
+      ipAddress: req.ip
+    });
+
+    res.json({ message: 'Student ledger has been completely reset successfully.' });
+  } catch (error) {
+    console.error('Error resetting student ledger:', error);
+    res.status(500).json({ error: 'Internal server error while resetting ledger' });
+  }
+});
+
 module.exports = router;
