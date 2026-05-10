@@ -809,40 +809,57 @@ router.get('/payments/:studentId', authenticate, authorize(['admin', 'principal'
       return res.status(400).json({ error: 'Term ID and Academic Session ID are required' });
     }
 
-    // Get fee record
-    const feeRecord = await prisma.feeRecord.findUnique({
-      where: {
-        schoolId_studentId_termId_academicSessionId: {
-          schoolId: parseInt(req.schoolId),
-          studentId,
-          termId: parseInt(termId),
-          academicSessionId: parseInt(academicSessionId)
-        }
-      }
-    });
-
-    if (!feeRecord) {
-      return res.json([]); // Return empty array if no fee record exists
-    }
-
-    // Get payment history
-    const payments = await prisma.feePayment.findMany({
-      where: {
-        feeRecordId: feeRecord.id,
-        schoolId: parseInt(req.schoolId)
-      },
-      include: {
-        recordedByUser: {
-          select: {
-            firstName: true,
-            lastName: true
+    let payments = [];
+    if (termId === 'all') {
+      payments = await prisma.feePayment.findMany({
+        where: {
+          FeeRecord: {
+            studentId,
+            academicSessionId: parseInt(academicSessionId),
+            schoolId: parseInt(req.schoolId)
+          }
+        },
+        include: {
+          recordedByUser: {
+            select: { firstName: true, lastName: true }
+          },
+          FeeRecord: {
+            include: { Term: true }
+          }
+        },
+        orderBy: { paymentDate: 'desc' }
+      });
+    } else {
+      // Get specific fee record
+      const feeRecord = await prisma.feeRecord.findUnique({
+        where: {
+          schoolId_studentId_termId_academicSessionId: {
+            schoolId: parseInt(req.schoolId),
+            studentId,
+            termId: parseInt(termId),
+            academicSessionId: parseInt(academicSessionId)
           }
         }
-      },
-      orderBy: {
-        paymentDate: 'desc'
+      });
+
+      if (feeRecord) {
+        payments = await prisma.feePayment.findMany({
+          where: {
+            feeRecordId: feeRecord.id,
+            schoolId: parseInt(req.schoolId)
+          },
+          include: {
+            recordedByUser: {
+              select: { firstName: true, lastName: true }
+            },
+            FeeRecord: {
+              include: { Term: true }
+            }
+          },
+          orderBy: { paymentDate: 'desc' }
+        });
       }
-    });
+    }
 
     res.json(payments);
   } catch (error) {

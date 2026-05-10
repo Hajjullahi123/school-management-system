@@ -1307,7 +1307,7 @@ export default function FeeManagement() {
 
   const viewPaymentHistory = async (student) => {
     try {
-      const historyTermId = selectedViewTerm?.id || currentTerm.id;
+      const historyTermId = selectedViewTerm?.id || 'all';
       const historySessionId = selectedViewSession?.id || currentSession.id;
       const response = await api.get(
         `/api/fees/payments/${student.id}?termId=${historyTermId}&academicSessionId=${historySessionId}`
@@ -3356,6 +3356,7 @@ export default function FeeManagement() {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Term</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ref</th>
@@ -3368,6 +3369,9 @@ export default function FeeManagement() {
                         <tr key={payment.id}>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {new Date(payment.paymentDate).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 font-bold">
+                            {payment.FeeRecord?.Term?.name || '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">
                             ₦{formatNumber(payment.amount)}
