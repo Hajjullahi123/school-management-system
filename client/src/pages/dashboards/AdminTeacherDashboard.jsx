@@ -319,7 +319,7 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
 
           {/* Form Master Quick Actions - DIRECT BULK DOWNLOADS */}
           {user?.isFormMaster && user.formMasterClass && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <Link 
                 to="/dashboard/bulk-report-download" 
                 className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-700 p-6 rounded-3xl shadow-xl shadow-emerald-200/40 transition-all hover:scale-[1.02] active:scale-95"
@@ -333,20 +333,39 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
                   </div>
                   <div>
                     <h3 className="text-white font-black uppercase tracking-wider text-sm">Bulk Term Reports</h3>
-                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-0.5">Collect Entire {user.formMasterClass.name} Class</p>
+                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-0.5">Collect {user.formMasterClass.name} Reports</p>
                   </div>
                 </div>
               </Link>
 
               <Link 
-                to="/dashboard/cumulative-report?view=teacher" 
-                className="group relative overflow-hidden bg-gradient-to-br from-indigo-600 to-blue-700 p-6 rounded-3xl shadow-xl shadow-indigo-200/40 transition-all hover:scale-[1.02] active:scale-95"
+                to="/dashboard/broadsheet" 
+                className="group relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-3xl shadow-xl shadow-amber-200/40 transition-all hover:scale-[1.02] active:scale-95"
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700"></div>
                 <div className="relative z-10 flex items-center gap-4">
                   <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md text-white shadow-inner">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-black uppercase tracking-wider text-sm">Exam Record Sheet</h3>
+                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-0.5">Full {user.formMasterClass.name} Broadsheet</p>
+                  </div>
+                </div>
+              </Link>
+
+              <Link 
+                to="/dashboard/cumulative-report?view=teacher" 
+                className="group relative overflow-hidden bg-gradient-to-br from-indigo-600 to-blue-700 p-6 rounded-3xl shadow-xl shadow-indigo-200/40 transition-all hover:scale-[1.02] active:scale-95 sm:col-span-2 lg:col-span-1"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700"></div>
+                <div className="relative z-10 flex items-center gap-4">
+                  <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md text-white shadow-inner">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
                     </svg>
                   </div>
                   <div>

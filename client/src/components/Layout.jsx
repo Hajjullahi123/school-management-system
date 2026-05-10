@@ -548,8 +548,7 @@ const Layout = () => {
           ),
           label: 'Bulk Report Download'
         },
-        // Broadsheet only for form masters who manage a full class
-        ...(user?.isFormMaster ? [{
+        {
           path: '/dashboard/broadsheet',
           icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -557,7 +556,7 @@ const Layout = () => {
             </svg>
           ),
           label: 'Compiled Broadsheet'
-        }] : [])
+        }
       ]
     });
     teacherItems.push({

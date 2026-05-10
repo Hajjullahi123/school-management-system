@@ -996,6 +996,7 @@ export default function FeeManagement() {
       summaries[classId].totalStudents++;
       summaries[classId].totalExpected += feeRecord?.expectedAmount || 0;
       summaries[classId].totalPaid += feeRecord?.paidAmount || 0;
+      summaries[classId].totalArrears = (summaries[classId].totalArrears || 0) + (feeRecord?.openingBalance || 0);
       summaries[classId].totalBalance += feeRecord?.balance || 0;
 
       if (feeRecord?.isClearedForExam) {
@@ -2393,16 +2394,20 @@ export default function FeeManagement() {
                       <span className="font-bold text-gray-900">{classSummary.totalStudents}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Expected:</span>
-                      <span className="font-bold text-blue-600">₦{formatNumber(classSummary.totalExpected)}</span>
+                      <span className="text-gray-500 font-medium">Expected (Term):</span>
+                      <span className="font-black text-blue-600 tracking-tight">₦{formatNumber(classSummary.totalExpected)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Collected:</span>
-                      <span className="font-bold text-green-600">₦{formatNumber(classSummary.totalPaid)}</span>
+                      <span className="text-gray-500 font-medium">Collected (Term):</span>
+                      <span className="font-black text-emerald-600 tracking-tight">₦{formatNumber(classSummary.totalPaid)}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Balance:</span>
-                      <span className="font-bold text-red-600">₦{formatNumber(classSummary.totalBalance)}</span>
+                    <div className="flex justify-between text-sm pt-1 border-t border-dashed border-gray-100">
+                      <span className="text-gray-400 italic text-[11px]">Previous Arrears:</span>
+                      <span className="font-bold text-gray-400 text-[11px]">₦{formatNumber(classSummary.totalArrears || 0)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm pt-1 mt-1 border-t-2 border-gray-100">
+                      <span className="text-gray-900 font-black uppercase text-[10px]">Total Balance:</span>
+                      <span className="font-black text-red-600 tracking-tight">₦{formatNumber(classSummary.totalBalance)}</span>
                     </div>
                     <div className="mt-3 pt-3 border-t border-gray-100">
                       <div className="flex justify-between text-xs font-medium">
