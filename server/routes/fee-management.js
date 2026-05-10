@@ -292,15 +292,64 @@ router.post('/record', authenticate, authorize(['admin', 'principal', 'accountan
       paidAmount: paidAmount !== undefined ? parseFloat(paidAmount) : undefined
     });
 
+    // CASCADE UPDATE: Recalculate openingBalance for all subsequent terms
+    // This ensures adjusting a fee in one term correctly propagates to future terms
+    const currentTermData = await prisma.term.findUnique({
+      where: { id: parseInt(termId) }
+    });
+
+    if (currentTermData) {
+      const subsequentRecords = await prisma.feeRecord.findMany({
+        where: {
+          studentId: parseInt(studentId),
+          schoolId: parseInt(req.schoolId),
+          Term: {
+            startDate: { gt: currentTermData.startDate }
+          }
+        },
+        include: { Term: true },
+        orderBy: { Term: { startDate: 'asc' } }
+      });
+
+      if (subsequentRecords.length > 0) {
+        const allPriorRecords = await prisma.feeRecord.findMany({
+          where: {
+            studentId: parseInt(studentId),
+            schoolId: parseInt(req.schoolId),
+            Term: {
+              startDate: { lte: currentTermData.startDate }
+            }
+          },
+          select: { expectedAmount: true, paidAmount: true }
+        });
+
+        let runningDebt = allPriorRecords.reduce((sum, r) => sum + (r.expectedAmount || 0) - (r.paidAmount || 0), 0);
+
+        for (const record of subsequentRecords) {
+          const newOpeningBalance = runningDebt;
+          const newBalance = newOpeningBalance + record.expectedAmount - record.paidAmount;
+          await prisma.feeRecord.update({
+            where: { id: record.id },
+            data: {
+              openingBalance: newOpeningBalance,
+              balance: newBalance,
+              isClearedForExam: (newBalance <= 0)
+            }
+          });
+          runningDebt += (record.expectedAmount || 0) - (record.paidAmount || 0);
+        }
+      }
+    }
+
     res.json({
-      message: 'Fee record saved successfully',
+      message: 'Fee record adjusted successfully',
       feeRecord,
       ...(student.isScholarship && {
         warning: 'This student is on scholarship. Fee amount has been automatically set to ₦0.'
       })
     });
 
-    // Log the action (we can detect if it was an update via the result)
+    // Log the action
     logAction({
       schoolId: parseInt(req.schoolId),
       userId: req.user.id,

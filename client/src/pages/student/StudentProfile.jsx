@@ -117,17 +117,8 @@ const StudentProfile = () => {
     const uploadData = new FormData();
     uploadData.append('photo', file);
 
-    const token = localStorage.getItem('token');
-    const uploadUrl = `${API_BASE_URL}/api/students/my-photo?token=${token}`;
-
     try {
-      console.log('Starting photo upload to:', uploadUrl);
-      const response = await fetch(uploadUrl, {
-        method: 'POST',
-        body: uploadData,
-        // Don't set Content-Type header, fetch will set it correctly with the boundary
-      });
-
+      const response = await api.post('/api/students/my-photo', uploadData);
       const result = await response.json();
 
       if (response.ok) {

@@ -54,6 +54,7 @@ const TeacherAvailability = lazyRetry(() => import('./pages/admin/TeacherAvailab
 
 const BulkResultUpload = lazyRetry(() => import('./pages/teacher/BulkResultUpload'));
 const BulkReportDownload = lazyRetry(() => import('./pages/teacher/BulkReportDownload'));
+const BroadsheetDownload = lazyRetry(() => import('./pages/teacher/BroadsheetDownload'));
 const FeeManagement = lazyRetry(() => import('./pages/accountant/FeeManagement'));
 const FeeStructureSetup = lazyRetry(() => import('./pages/admin/FeeStructureSetup'));
 const QuickFeeSetup = lazyRetry(() => import('./pages/admin/QuickFeeSetup'));
@@ -255,6 +256,11 @@ function App() {
               <Route path="bulk-report-download" element={
                 <ProtectedRoute roles={['admin', 'teacher', 'principal', 'examination_officer']}>
                   <BulkReportDownload />
+                </ProtectedRoute>
+              } />
+              <Route path="broadsheet" element={
+                <ProtectedRoute roles={['admin', 'teacher', 'principal', 'examination_officer']}>
+                  <BroadsheetDownload />
                 </ProtectedRoute>
               } />
               <Route path="cbt-management" element={

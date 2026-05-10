@@ -76,7 +76,6 @@ export default function FeeManagement() {
   // Fee Adjustment State
   const [editingFeeRecord, setEditingFeeRecord] = useState(null);
   const [adjustedExpected, setAdjustedExpected] = useState('');
-  const [adjustedPaid, setAdjustedPaid] = useState('');
 
   // Tab State
   const [activeTab, setActiveTab] = useState('standard'); // 'standard' or 'misc'
@@ -109,8 +108,7 @@ export default function FeeManagement() {
   const handleEditFee = (student) => {
     const record = student.feeRecords[0];
     setEditingFeeRecord({ student, record });
-    setAdjustedExpected(record?.expectedAmount.toString() || '0');
-    setAdjustedPaid(record?.paidAmount.toString() || '0');
+    setAdjustedExpected(record?.expectedAmount?.toString() || '0');
   };
 
   const saveFeeRecord = async () => {
@@ -118,16 +116,21 @@ export default function FeeManagement() {
 
     try {
       const expected = parseFloat(adjustedExpected) || 0;
-      const paid = parseFloat(adjustedPaid) || 0;
-      const opening = editingFeeRecord.record?.openingBalance || 0;
-      const totalDue = opening + expected;
 
-      if (expected < 0 || paid < 0) {
-        alert('Fee amounts cannot be negative');
+      if (expected < 0) {
+        toast.error('Fee amount cannot be negative');
         return;
       }
 
-      // REMOVED: Frontend overpayment check. Trust the admin's manual override.
+      const oldExpected = editingFeeRecord.record?.expectedAmount || 0;
+      if (expected === oldExpected) {
+        toast.error('No changes detected');
+        return;
+      }
+
+      if (!confirm(`Change term fee from ₦${formatNumber(oldExpected)} to ₦${formatNumber(expected)}? This will recalculate the student's balance and update all subsequent terms.`)) {
+        return;
+      }
 
       setLoading(true);
       // Use the VIEWED term/session, not always the current one
@@ -137,13 +140,13 @@ export default function FeeManagement() {
         studentId: editingFeeRecord.student.id,
         termId: targetTermId,
         academicSessionId: targetSessionId,
-        expectedAmount: expected,
-        paidAmount: paid
+        expectedAmount: expected
+        // NOTE: paidAmount is NOT sent — it stays as-is from individual payment records
       });
 
       const data = await response.json();
       if (response.ok) {
-        alert('Fee record adjusted successfully');
+        toast.success('Fee adjusted successfully. Subsequent terms updated.');
         setEditingFeeRecord(null);
         // Refresh the view we're actually looking at
         if (viewAllTerms) {
@@ -153,11 +156,11 @@ export default function FeeManagement() {
           await loadSummary(targetTermId, targetSessionId);
         }
       } else {
-        alert(data.error || 'Failed to adjust fee record');
+        toast.error(data.error || 'Failed to adjust fee record');
       }
     } catch (error) {
       console.error('Error adjusting fee:', error);
-      alert('Failed to save changes');
+      toast.error('Failed to save changes');
     } finally {
       setLoading(false);
     }
@@ -2000,7 +2003,9 @@ export default function FeeManagement() {
               </div>
 
               <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white flex flex-col justify-between overflow-hidden">
-                <p className="text-sm font-bold text-emerald-100 uppercase tracking-wider mb-2">Total Collected</p>
+                <p className="text-sm font-bold text-emerald-100 uppercase tracking-wider mb-2">
+                  {viewAllTerms ? 'Total Collected (All Terms)' : viewAllSessions ? 'Total Collected (All Sessions)' : `Collected (${selectedViewTerm?.name || 'This Term'})`}
+                </p>
                 <p className="text-3xl font-black break-words">₦{formatNumber(summary.totalPaid)}</p>
                 <div className="mt-4 pt-3 border-t border-white/20">
                   <div className="flex items-center gap-2">
@@ -2011,6 +2016,9 @@ export default function FeeManagement() {
                       {summary.totalExpected > 0 ? ((summary.totalPaid / summary.totalExpected) * 100).toFixed(1) : 0}%
                     </span>
                   </div>
+                  <p className="text-[10px] text-emerald-200 mt-1.5 font-bold uppercase tracking-wider">
+                    {viewAllTerms || viewAllSessions ? 'Cumulative collection across periods' : 'Collection for this term only — does not include other terms'}
+                  </p>
                 </div>
               </div>
 
@@ -3475,74 +3483,145 @@ export default function FeeManagement() {
       )}
       {/* Fee Adjustment Modal */}
       {editingFeeRecord && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center z-[80]">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <span className="text-orange-600">⚙️</span> Fee Adjustment
-            </h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Directly adjust the expected and total paid amounts for <strong>{editingFeeRecord.student.user?.firstName || 'Unknown'} {editingFeeRecord.student.user?.lastName || ''}</strong>.
-              <br /><span className="text-red-500 font-semibold">Note:</span> This updates the summary record directly.
-            </p>
-
-            <div className="space-y-4">
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm overflow-y-auto h-full w-full flex justify-center items-end sm:items-center z-[80] p-0 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center shrink-0">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Expected Fee (Charge) ₦</label>
-                <input
-                  type="number"
-                  value={adjustedExpected}
-                  onChange={(e) => setAdjustedExpected(e.target.value)}
-                  className="w-full p-2 border rounded focus:ring-orange-500 focus:border-orange-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Total Paid (Override) ₦</label>
-                <input
-                  type="number"
-                  value={adjustedPaid}
-                  onChange={(e) => setAdjustedPaid(e.target.value)}
-                  className="w-full p-2 border rounded focus:ring-orange-500 focus:border-orange-500"
-                />
-                <p className="text-[10px] text-gray-400 mt-1 italic">
-                  * Changing this may cause discrepancy with individual payment logs.
+                <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight flex items-center gap-2">
+                  <span className="text-orange-500">⚙️</span> Adjust Term Fee
+                </h2>
+                <p className="text-xs text-gray-400 font-bold mt-0.5">
+                  {editingFeeRecord.student.user?.firstName} {editingFeeRecord.student.user?.lastName} • {editingFeeRecord.student.admissionNumber}
                 </p>
               </div>
+              <button onClick={() => setEditingFeeRecord(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-              <div className="p-4 bg-gray-50 rounded-lg space-y-2 text-xs border border-gray-200">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Arrears/Opening:</span>
-                  <span className="font-semibold text-gray-700">₦{formatNumber(editingFeeRecord.record?.openingBalance || 0)}</span>
+            <div className="p-5 overflow-y-auto flex-1 space-y-5">
+              {/* Current Breakdown - Read Only */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Current Fee Breakdown</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Previous Balance (Arrears):</span>
+                    <span className="font-bold text-gray-700">₦{formatNumber(editingFeeRecord.record?.openingBalance || 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Current Term Fee:</span>
+                    <span className="font-bold text-gray-700">₦{formatNumber(editingFeeRecord.record?.expectedAmount || 0)}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2 border-slate-200">
+                    <span className="text-gray-600 font-semibold">Total Due:</span>
+                    <span className="font-black text-gray-900">₦{formatNumber((editingFeeRecord.record?.openingBalance || 0) + (editingFeeRecord.record?.expectedAmount || 0))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-green-600 font-semibold">Total Paid:</span>
+                    <span className="font-black text-green-600">₦{formatNumber(editingFeeRecord.record?.paidAmount || 0)}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2 border-slate-200">
+                    <span className="text-gray-600 font-bold">Current Balance:</span>
+                    <span className={`font-black ${(editingFeeRecord.record?.balance || 0) > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                      ₦{formatNumber(editingFeeRecord.record?.balance || 0)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Current Expected:</span>
-                  <span className="font-semibold text-gray-700">₦{formatNumber(parseFloat(adjustedExpected) || 0)}</span>
+              </div>
+
+              {/* Adjust Term Fee */}
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                  New Term Fee Amount (₦)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">₦</span>
+                  <input
+                    type="number"
+                    value={adjustedExpected}
+                    onChange={(e) => setAdjustedExpected(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-white border-2 border-orange-200 rounded-xl focus:ring-4 focus:ring-orange-100 focus:border-orange-400 font-black text-xl transition-all"
+                    placeholder="0.00"
+                  />
                 </div>
-                <div className="flex justify-between border-t pt-1 border-gray-200">
-                  <span className="text-gray-600 font-bold">Total Due:</span>
-                  <span className="font-bold text-gray-900 underline">₦{formatNumber((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0))}</span>
-                </div>
-                <div className={`flex justify-between border-t pt-1 mt-1 ${((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0) - (parseFloat(adjustedPaid) || 0)) < 0 ? 'text-red-600' : 'text-orange-800'}`}>
-                  <span className="font-bold">Remaining Balance:</span>
-                  <span className="font-bold">₦{formatNumber((editingFeeRecord.record?.openingBalance || 0) + (parseFloat(adjustedExpected) || 0) - (parseFloat(adjustedPaid) || 0))}</span>
+              </div>
+
+              {/* Live Preview */}
+              {(() => {
+                const newExpected = parseFloat(adjustedExpected) || 0;
+                const opening = editingFeeRecord.record?.openingBalance || 0;
+                const paid = editingFeeRecord.record?.paidAmount || 0;
+                const newBalance = opening + newExpected - paid;
+                const oldBalance = editingFeeRecord.record?.balance || 0;
+                const diff = newBalance - oldBalance;
+
+                return (
+                  <div className={`rounded-xl p-4 border-2 transition-all ${
+                    diff === 0 ? 'bg-gray-50 border-gray-100' : diff < 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-orange-50 border-orange-200'
+                  }`}>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest mb-3 text-gray-500">Preview After Adjustment</h4>
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div>
+                        <p className="text-[9px] font-black text-gray-400 uppercase mb-1">Old Fee</p>
+                        <p className="text-sm font-black text-gray-600">₦{formatNumber(editingFeeRecord.record?.expectedAmount || 0)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black text-gray-400 uppercase mb-1">New Fee</p>
+                        <p className="text-sm font-black text-orange-600">₦{formatNumber(newExpected)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black text-gray-400 uppercase mb-1">New Balance</p>
+                        <p className={`text-sm font-black ${newBalance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>₦{formatNumber(newBalance)}</p>
+                      </div>
+                    </div>
+                    {diff !== 0 && (
+                      <p className={`text-center text-xs font-bold mt-3 pt-2 border-t ${diff < 0 ? 'text-emerald-600 border-emerald-200' : 'text-orange-600 border-orange-200'}`}>
+                        Balance will {diff < 0 ? 'decrease' : 'increase'} by ₦{formatNumber(Math.abs(diff))}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Guidance for payment corrections */}
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex gap-3 items-start">
+                <svg className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-xs font-bold text-blue-800">Need to correct a payment amount?</p>
+                  <p className="text-[11px] text-blue-600 mt-0.5">
+                    Use <strong>Payment History → Edit</strong> on the specific payment entry. This keeps your records accurate and maintains an audit trail.
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
+            {/* Footer */}
+            <div className="p-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100 shrink-0">
               <button
                 onClick={() => setEditingFeeRecord(null)}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
                 disabled={loading}
+                className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={saveFeeRecord}
-                className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 font-medium transition-colors"
                 disabled={loading}
+                className="px-6 py-2.5 bg-orange-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-200 hover:bg-orange-600 active:scale-95 transition-all flex items-center gap-2"
               >
-                {loading ? 'Saving...' : 'Update Record'}
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Saving...
+                  </>
+                ) : (
+                  'Update Fee Amount'
+                )}
               </button>
             </div>
           </div>

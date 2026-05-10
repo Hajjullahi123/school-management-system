@@ -299,6 +299,7 @@ const academicsRoutes = require('./routes/academics');
 const showcaseRoutes = require('./routes/showcase');
 const advertRoutes = require('./routes/adverts');
 const departmentRoutes = require('./routes/departments');
+const broadsheetRoutes = require('./routes/broadsheet');
 
 console.log('[Server] All route modules imported.');
 
@@ -376,6 +377,7 @@ app.use('/api/academics', authenticate, checkSubscription, academicsRoutes);
 app.use('/api/showcase', showcaseRoutes);
 app.use('/api/adverts', advertRoutes);
 app.use('/api/departments', authenticate, checkSubscription, departmentRoutes);
+app.use('/api/broadsheet', authenticate, checkSubscription, broadsheetRoutes);
 
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
