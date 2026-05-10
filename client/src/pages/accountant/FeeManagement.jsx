@@ -1742,11 +1742,11 @@ export default function FeeManagement() {
               </tr>
             </thead>
             <tbody>
-              ${fee.classes.map(cls => `
+              ${(Array.isArray(fee.classes) ? fee.classes : []).map(cls => `
                 <tr class="class-header">
                   <td colspan="6">${cls.name} ${cls.arm || ''} (${cls.students.length} students)</td>
                 </tr>
-                ${cls.students.map(s => `
+                ${(Array.isArray(cls.students) ? cls.students : []).map(s => `
                   <tr>
                     <td>${s.name}</td>
                     <td>${cls.name}</td>
@@ -2136,7 +2136,7 @@ export default function FeeManagement() {
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="all">All Classes</option>
-                  {classes?.map(cls => (
+                  {(Array.isArray(classes) ? classes : []).map(cls => (
                     <option key={cls.id} value={cls.id}>
                       {cls.name}{cls.arm || ''}
                     </option>
@@ -2190,7 +2190,7 @@ export default function FeeManagement() {
                 >
                   <option value="" disabled>📥 Export By Class...</option>
                   <option value="all">All Classes</option>
-                  {classes?.map(cls => (
+                  {(Array.isArray(classes) ? classes : []).map(cls => (
                     <option key={cls.id} value={cls.id}>
                       {cls.name}{cls.arm || ''}
                     </option>
@@ -2768,7 +2768,7 @@ export default function FeeManagement() {
                 className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all"
               >
                 <option value="">All Sessions</option>
-                {allSessions?.map(session => (
+                {(Array.isArray(allSessions) ? allSessions : []).map(session => (
                   <option key={session.id} value={session.id}>{session.name}</option>
                 ))}
               </select>
@@ -2781,7 +2781,7 @@ export default function FeeManagement() {
                 className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all"
               >
                 <option value="">All Terms</option>
-                {allTerms?.map(term => (
+                {(Array.isArray(allTerms) ? allTerms : []).map(term => (
                   <option key={term.id} value={term.id}>{term.name}</option>
                 ))}
               </select>
@@ -3806,7 +3806,7 @@ export default function FeeManagement() {
                 <div className="md:col-span-2">
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Applicable Classes</label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-100 max-h-60 overflow-y-auto">
-                    {classes.map(cls => (
+                    {(Array.isArray(classes) ? classes : []).map(cls => (
                       <div
                         key={cls.id}
                         onClick={() => handleMiscClassToggle(cls.id)}
