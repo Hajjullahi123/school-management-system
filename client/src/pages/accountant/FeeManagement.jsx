@@ -243,7 +243,7 @@ export default function FeeManagement() {
       const response = await api.get(url);
       if (response.ok) {
         const data = await response.json();
-        setDetailedAnalytics(data);
+        setDetailedAnalytics(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error('Error fetching detailed analytics:', error);
@@ -2841,7 +2841,7 @@ export default function FeeManagement() {
             </div>
           ) : (
             <div className="space-y-4">
-              {detailedAnalytics.map(fee => (
+              {(Array.isArray(detailedAnalytics) ? detailedAnalytics : []).map(fee => (
                 <div key={fee.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
                   <div
                     onClick={() => setExpandedFee(expandedFee === fee.id ? null : fee.id)}
@@ -2883,7 +2883,7 @@ export default function FeeManagement() {
 
                   {expandedFee === fee.id && (
                     <div className="p-6 bg-gray-50 border-t border-gray-100 space-y-4">
-                      {fee.classes.map(cls => (
+                      {(Array.isArray(fee.classes) ? fee.classes : []).map(cls => (
                         <div key={cls.id} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
                           <button
                             onClick={() => setExpandedClass(expandedClass === `${fee.id}-${cls.id}` ? null : `${fee.id}-${cls.id}`)}
@@ -2918,7 +2918,7 @@ export default function FeeManagement() {
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                  {cls.students.map(student => (
+                                  {(Array.isArray(cls.students) ? cls.students : []).map(student => (
                                     <tr key={student.id} className="hover:bg-gray-50 transition-colors">
                                       <td className="px-6 py-4">
                                         <div className="font-bold text-gray-900">{student.name}</div>
@@ -2954,7 +2954,7 @@ export default function FeeManagement() {
                                                   Select Payment
                                                 </div>
                                                 <div className="max-h-48 overflow-y-auto">
-                                                  {student.payments.map((p, idx) => (
+                                                  {(Array.isArray(student.payments) ? student.payments : []).map((p, idx) => (
                                                     <button
                                                       key={p.id}
                                                       onClick={() => handlePrintMiscReceipt(p.id)}
@@ -3036,7 +3036,7 @@ export default function FeeManagement() {
                       }}
                       className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm transition-all"
                     >
-                      {allSessions.map(s => (
+                      {(Array.isArray(allSessions) ? allSessions : []).map(s => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>
@@ -3051,7 +3051,7 @@ export default function FeeManagement() {
                       }}
                       className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary font-bold text-sm transition-all"
                     >
-                      {allTerms.filter(t => t.academicSessionId === selectedPaymentSession?.id).map(t => (
+                      {(Array.isArray(allTerms) ? allTerms : []).filter(t => t.academicSessionId === selectedPaymentSession?.id).map(t => (
                         <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
                     </select>
@@ -3364,7 +3364,7 @@ export default function FeeManagement() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {paymentHistory?.map((payment) => (
+                      {(Array.isArray(paymentHistory) ? paymentHistory : []).map((payment) => (
                         <tr key={payment.id}>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {new Date(payment.paymentDate).toLocaleDateString()}
