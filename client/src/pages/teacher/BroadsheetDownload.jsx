@@ -95,12 +95,16 @@ const BroadsheetDownload = () => {
       const a = document.createElement('a');
       a.href = url;
 
-      // Extract filename from Content-Disposition header
-      const disposition = res.headers.get('Content-Disposition');
+      // Extract filename from Content-Disposition header with safety
       let filename = 'broadsheet.xlsx';
-      if (disposition) {
-        const match = disposition.match(/filename="?(.+?)"?$/);
-        if (match) filename = match[1];
+      try {
+        const disposition = res.headers.get('Content-Disposition');
+        if (disposition) {
+          const match = disposition.match(/filename="?(.+?)"?$/);
+          if (match) filename = match[1];
+        }
+      } catch (e) {
+        console.warn('Could not parse filename from header:', e);
       }
 
       a.download = filename;

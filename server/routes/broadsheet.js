@@ -435,10 +435,10 @@ router.get('/download/:classId',
       }
 
       // 9. Write workbook to response
-      // SANITIZE FILENAME: Remove non-ASCII characters to prevent "Invalid character in header content" error
-      const sanitizedClassName = className.replace(/[^\x00-\x7F]/g, '').replace(/\s+/g, '_') || 'Class';
-      const sanitizedSessionName = session.name.replace(/[^\x00-\x7F]/g, '').replace(/\s+/g, '_') || 'Session';
-      const filename = `${sanitizedClassName}_Broadsheet_${sanitizedSessionName}.xlsx`;
+      // STRICT SANITIZATION: Only allow alphanumeric, underscores, and hyphens in the filename header
+      const safeClassName = className.replace(/[^\w\s-]/g, '').trim() || 'Class';
+      const safeSessionName = session.name.replace(/[^\w\s-]/g, '').trim() || 'Session';
+      const filename = `${safeClassName.replace(/\s+/g, '_')}_Broadsheet_${safeSessionName.replace(/\s+/g, '_')}.xlsx`;
       
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
