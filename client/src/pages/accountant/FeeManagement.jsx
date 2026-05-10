@@ -1077,8 +1077,35 @@ export default function FeeManagement() {
     )?.balance || 0;
 
     const grandTotal = studentFeeSummary?.grandTotal || 0;
+    const amount = parseFloat(paymentAmount);
 
-    // REMOVED: Frontend overpayment check. Trust the admin to record payments as needed (e.g. advance payments).
+    // Soft fee ceiling: warn if payment exceeds outstanding balance
+    if (grandTotal > 0 && amount > grandTotal) {
+      const overpayment = amount - grandTotal;
+      const proceed = confirm(
+        `⚠️ FEE CEILING WARNING\n\n` +
+        `This payment of ₦${formatNumber(amount)} exceeds the student's total outstanding balance of ₦${formatNumber(grandTotal)}.\n\n` +
+        `The student will have a credit of ₦${formatNumber(overpayment)}.\n\n` +
+        `Continue with this payment?`
+      );
+      if (!proceed) return;
+    } else if (grandTotal <= 0) {
+      const proceed = confirm(
+        `⚠️ FEE CEILING WARNING\n\n` +
+        `This student has no outstanding balance (current balance: ₦${formatNumber(grandTotal)}).\n\n` +
+        `Recording ₦${formatNumber(amount)} will create a credit on their account.\n\n` +
+        `Continue with this payment?`
+      );
+      if (!proceed) return;
+    } else if (selectedTermBalance > 0 && amount > selectedTermBalance) {
+      // Payment exceeds the selected term balance but not grand total — just inform
+      const proceed = confirm(
+        `ℹ️ This payment of ₦${formatNumber(amount)} exceeds this term's balance of ₦${formatNumber(selectedTermBalance)}, but the student's total debt is ₦${formatNumber(grandTotal)}.\n\n` +
+        `The extra amount will reduce their overall outstanding debt.\n\n` +
+        `Continue?`
+      );
+      if (!proceed) return;
+    }
 
     try {
       setProcessingPayment(true);
@@ -1135,6 +1162,25 @@ export default function FeeManagement() {
     if (!editingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0) {
       alert('Please enter a valid payment amount');
       return;
+    }
+
+    // Soft fee ceiling: warn if the updated amount would cause overpayment
+    const newAmount = parseFloat(paymentAmount);
+    const oldAmount = editingPayment.amount || 0;
+    const feeRecord = historyStudent?.feeRecords?.[0];
+    if (feeRecord) {
+      const currentBalance = feeRecord.balance || 0;
+      // Projected balance after change: currentBalance + oldAmount - newAmount
+      const projectedBalance = currentBalance + oldAmount - newAmount;
+      if (projectedBalance < 0 && currentBalance >= 0) {
+        const credit = Math.abs(projectedBalance);
+        const proceed = confirm(
+          `⚠️ FEE CEILING WARNING\n\n` +
+          `Changing this payment from ₦${formatNumber(oldAmount)} to ₦${formatNumber(newAmount)} will create a credit of ₦${formatNumber(credit)} on this student's account.\n\n` +
+          `Continue?`
+        );
+        if (!proceed) return;
+      }
     }
 
     try {
