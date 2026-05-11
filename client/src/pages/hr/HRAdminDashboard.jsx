@@ -14,6 +14,7 @@ const HRAdminDashboard = () => {
   const [voucherForm, setVoucherForm] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
   
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [selectedVoucher, setSelectedVoucher] = useState(null);
   const [recordForm, setRecordForm] = useState({ baseSalary: 0, allowances: [], deductions: [] });
 
   useEffect(() => {
@@ -42,6 +43,18 @@ const HRAdminDashboard = () => {
       const res = await api.get('/api/hr/admin/staff');
       if (res.ok) setStaffPool(await res.json());
     } catch (e) {}
+  };
+
+  const handleOpenVoucher = async (voucher) => {
+    try {
+      setLoading(true);
+      const res = await api.get(`/api/hr/admin/vouchers/${voucher.id}`);
+      if (res.ok) {
+        setSelectedVoucher(await res.json());
+        setActiveTab('records');
+      }
+    } catch (e) { toast.error('Voucher loading failed'); }
+    finally { setLoading(false); }
   };
 
   const handleCreateVoucher = async () => {
@@ -88,7 +101,7 @@ const HRAdminDashboard = () => {
       if (res.ok) {
         toast.success('Personnel payroll record synchronized');
         setSelectedRecord(null);
-        // Refresh records view if applicable
+        handleOpenVoucher(selectedVoucher);
       }
     } catch (e) { toast.error('Record update failed'); }
   };
@@ -154,7 +167,7 @@ const HRAdminDashboard = () => {
                                <span className="text-indigo-600">₦{v.totalNet.toLocaleString()}</span>
                             </div>
                             <div className="flex gap-2 mt-4">
-                               <button className="flex-1 py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 transition-all">Open Records</button>
+                               <button onClick={() => handleOpenVoucher(v)} className="flex-1 py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 transition-all">Open Records</button>
                                {v.status === 'DRAFT' && (
                                   <button onClick={() => handleFinalizeVoucher(v.id)} className="px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all" title="Finalize & Lock">Finalize</button>
                                )}
@@ -168,7 +181,6 @@ const HRAdminDashboard = () => {
 
           {activeTab === 'requests' && (
              <motion.div key="requests" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-12">
-                {/* Loan Requests */}
                 <section>
                    <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter mb-6 italic px-4">Credit Facilities</h3>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -192,7 +204,6 @@ const HRAdminDashboard = () => {
                    </div>
                 </section>
 
-                {/* Leave Requests */}
                 <section>
                    <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter mb-6 italic px-4">Leave Management</h3>
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -220,76 +231,122 @@ const HRAdminDashboard = () => {
                    </div>
                 </section>
 
-                {/* Material Requests */}
-                 <section>
-                    <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter mb-6 italic px-4">Supply Requisitions</h3>
-                    
-                    {/* Desktop View */}
-                    <div className="hidden lg:block bg-white rounded-[3rem] shadow-xl border border-gray-100 overflow-hidden">
-                       <table className="w-full">
-                          <thead>
-                             <tr className="text-left border-b border-gray-50 bg-gray-50/50">
-                                <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Staff</th>
-                                <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Items</th>
-                                <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Priority</th>
-                                <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
-                             </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-50">
-                             {requests.materials.map(m => (
-                                <tr key={m.id}>
-                                   <td className="p-6 font-black text-gray-900 uppercase text-xs">{m.staff.firstName} {m.staff.lastName}</td>
-                                   <td className="p-6 flex flex-wrap gap-1">
-                                      {(() => {
-                                         try {
-                                            return JSON.parse(m.items).map((it, i) => <span key={i} className="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg">{it}</span>);
-                                         } catch(e) { return <span className="text-[9px] text-gray-400 italic">Invalid Data</span>; }
-                                      })()}
-                                   </td>
-                                   <td className="p-6"><span className={`text-[9px] font-black uppercase ${m.priority === 'URGENT' ? 'text-rose-600' : 'text-gray-400'}`}>{m.priority}</span></td>
-                                   <td className="p-6 text-right">
-                                      {m.status === 'PENDING' ? (
-                                         <button onClick={() => handleProcessRequest('material', m.id, 'APPROVED')} className="bg-gray-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all">Disburse</button>
-                                      ) : (
-                                         <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">{m.status}</span>
-                                      )}
-                                   </td>
-                                </tr>
-                             ))}
-                          </tbody>
-                       </table>
-                    </div>
+                <section>
+                   <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter mb-6 italic px-4">Supply Requisitions</h3>
+                   <div className="hidden lg:block bg-white rounded-[3rem] shadow-xl border border-gray-100 overflow-hidden">
+                      <table className="w-full">
+                         <thead>
+                            <tr className="text-left border-b border-gray-50 bg-gray-50/50">
+                               <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Staff</th>
+                               <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Items</th>
+                               <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Priority</th>
+                               <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
+                            </tr>
+                         </thead>
+                         <tbody className="divide-y divide-gray-50">
+                            {requests.materials.map(m => (
+                               <tr key={m.id}>
+                                  <td className="p-6 font-black text-gray-900 uppercase text-xs">{m.staff.firstName} {m.staff.lastName}</td>
+                                  <td className="p-6 flex flex-wrap gap-1">
+                                     {(() => {
+                                        try {
+                                           return JSON.parse(m.items).map((it, i) => <span key={i} className="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg">{it}</span>);
+                                        } catch(e) { return <span className="text-[9px] text-gray-400 italic">Invalid Data</span>; }
+                                     })()}
+                                  </td>
+                                  <td className="p-6"><span className={`text-[9px] font-black uppercase ${m.priority === 'URGENT' ? 'text-rose-600' : 'text-gray-400'}`}>{m.priority}</span></td>
+                                  <td className="p-6 text-right">
+                                     {m.status === 'PENDING' ? (
+                                        <button onClick={() => handleProcessRequest('material', m.id, 'APPROVED')} className="bg-gray-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all">Disburse</button>
+                                     ) : (
+                                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">{m.status}</span>
+                                     )}
+                                  </td>
+                               </tr>
+                            ))}
+                         </tbody>
+                      </table>
+                   </div>
+                   <div className="lg:hidden space-y-4 px-2">
+                      {requests.materials.map(m => (
+                         <div key={m.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-xl space-y-4">
+                            <div className="flex justify-between items-start">
+                               <div>
+                                  <p className="text-xs font-black text-gray-900 uppercase">{m.staff.firstName} {m.staff.lastName}</p>
+                                  <p className={`text-[8px] font-black uppercase tracking-widest mt-1 ${m.priority === 'URGENT' ? 'text-rose-600' : 'text-gray-400'}`}>{m.priority} Priority</p>
+                               </div>
+                               <span className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${m.status === 'PENDING' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>{m.status}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                               {(() => {
+                                  try {
+                                     return JSON.parse(m.items).map((it, i) => <span key={i} className="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg">{it}</span>);
+                                  } catch(e) { return <span className="text-[9px] text-gray-400 italic">Invalid Data</span>; }
+                               })()}
+                            </div>
+                            {m.status === 'PENDING' && (
+                               <button onClick={() => handleProcessRequest('material', m.id, 'APPROVED')} className="w-full bg-gray-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest">Disburse Supplies</button>
+                            )}
+                         </div>
+                      ))}
+                   </div>
+                </section>
+             </motion.div>
+          )}
 
-                    {/* Mobile Card View */}
-                    <div className="lg:hidden space-y-4 px-2">
-                       {requests.materials.map(m => (
-                          <div key={m.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-xl space-y-4">
-                             <div className="flex justify-between items-start">
-                                <div>
-                                   <p className="text-xs font-black text-gray-900 uppercase">{m.staff.firstName} {m.staff.lastName}</p>
-                                   <p className={`text-[8px] font-black uppercase tracking-widest mt-1 ${m.priority === 'URGENT' ? 'text-rose-600' : 'text-gray-400'}`}>{m.priority} Priority</p>
-                                </div>
-                                <span className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${m.status === 'PENDING' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>{m.status}</span>
-                             </div>
-                             <div className="flex flex-wrap gap-2">
-                                {(() => {
-                                   try {
-                                      return JSON.parse(m.items).map((it, i) => <span key={i} className="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg">{it}</span>);
-                                   } catch(e) { return <span className="text-[9px] text-gray-400 italic">Invalid Data</span>; }
-                                })()}
-                             </div>
-                             {m.status === 'PENDING' && (
-                                <button onClick={() => handleProcessRequest('material', m.id, 'APPROVED')} className="w-full bg-gray-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest">Disburse Supplies</button>
-                             )}
-                          </div>
-                       ))}
-                    </div>
-                 </section>
+          {activeTab === 'records' && selectedVoucher && (
+             <motion.div key="records" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
+                <div className="flex justify-between items-center bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                   <div>
+                      <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter">
+                         {new Date(0, selectedVoucher.month-1).toLocaleString('default', {month:'long'})} {selectedVoucher.year} Records
+                      </h3>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Individual Payroll Breakdown</p>
+                   </div>
+                   <button onClick={() => setActiveTab('vouchers')} className="text-gray-400 font-black text-[10px] uppercase hover:text-gray-600">Back to Vouchers</button>
+                </div>
+
+                <div className="bg-white rounded-[3rem] shadow-xl border border-gray-100 overflow-hidden">
+                   <table className="w-full">
+                      <thead>
+                         <tr className="text-left border-b border-gray-50 bg-gray-50/50">
+                            <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Personnel</th>
+                            <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Base Salary</th>
+                            <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Allowances</th>
+                            <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Deductions</th>
+                            <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest">Net Pay</th>
+                            <th className="p-6 text-[9px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
+                         </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                         {selectedVoucher.records.map(r => (
+                            <tr key={r.id}>
+                               <td className="p-6">
+                                  <p className="font-black text-gray-900 uppercase text-xs">{r.staff.firstName} {r.staff.lastName}</p>
+                                  <p className="text-[9px] font-bold text-gray-400 uppercase">{r.staff.role}</p>
+                               </td>
+                               <td className="p-6 font-bold text-gray-600">₦{r.baseSalary.toLocaleString()}</td>
+                               <td className="p-6 text-emerald-600 font-bold">₦{r.totalAllowances.toLocaleString()}</td>
+                               <td className="p-6 text-rose-600 font-bold">₦{r.totalDeductions.toLocaleString()}</td>
+                               <td className="p-6 font-black text-indigo-600">₦{r.netPay.toLocaleString()}</td>
+                               <td className="p-6 text-right">
+                                  <button 
+                                     onClick={() => openRecordEditor(r)}
+                                     disabled={selectedVoucher.status === 'FINALIZED'}
+                                     className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${selectedVoucher.status === 'FINALIZED' ? 'bg-gray-50 text-gray-300' : 'bg-gray-900 text-white hover:bg-indigo-600'}`}
+                                  >
+                                     {selectedVoucher.status === 'FINALIZED' ? 'Locked' : 'Edit'}
+                                  </button>
+                               </td>
+                            </tr>
+                         ))}
+                      </tbody>
+                   </table>
+                </div>
              </motion.div>
           )}
        </AnimatePresence>
 
-       {/* Voucher Creation Modal */}
        {showVoucherModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
              <div className="bg-white rounded-[3rem] w-full max-w-sm p-10 shadow-2xl border border-gray-100">
@@ -310,6 +367,73 @@ const HRAdminDashboard = () => {
                    <div className="flex gap-4 pt-4">
                       <button onClick={() => setShowVoucherModal(false)} className="flex-1 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400">Abort</button>
                       <button onClick={handleCreateVoucher} className="flex-2 bg-indigo-600 text-white py-4 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all">Initialize Sequence</button>
+                   </div>
+                </div>
+             </div>
+          </div>
+       )}
+
+       {selectedRecord && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+             <div className="bg-white rounded-[3rem] w-full max-w-xl p-10 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
+                <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter italic mb-2">Edit Record</h2>
+                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-8">{selectedRecord.staff.firstName} {selectedRecord.staff.lastName}</p>
+                
+                <div className="space-y-6">
+                   <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Base Salary</label>
+                      <input type="number" value={recordForm.baseSalary} onChange={e => setRecordForm({...recordForm, baseSalary: parseFloat(e.target.value)})} className="w-full bg-gray-50 border-2 border-gray-50 rounded-2xl py-4 px-6 outline-none font-black text-sm" />
+                   </div>
+
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                         <div className="flex justify-between items-center">
+                            <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Allowances</label>
+                            <button onClick={() => setRecordForm({...recordForm, allowances: [...recordForm.allowances, { type: 'Other', amount: 0, description: '' }]})} className="text-[9px] font-black uppercase text-indigo-600">+ Add</button>
+                         </div>
+                         {recordForm.allowances.map((a, i) => (
+                            <div key={i} className="flex gap-2 items-center">
+                               <input placeholder="Type" value={a.type} onChange={e => {
+                                  const next = [...recordForm.allowances];
+                                  next[i].type = e.target.value;
+                                  setRecordForm({...recordForm, allowances: next});
+                               }} className="flex-1 bg-gray-50 rounded-xl py-2 px-3 text-[10px] font-bold" />
+                               <input type="number" placeholder="Amount" value={a.amount} onChange={e => {
+                                  const next = [...recordForm.allowances];
+                                  next[i].amount = e.target.value;
+                                  setRecordForm({...recordForm, allowances: next});
+                               }} className="w-24 bg-gray-50 rounded-xl py-2 px-3 text-[10px] font-bold" />
+                               <button onClick={() => setRecordForm({...recordForm, allowances: recordForm.allowances.filter((_, idx) => idx !== i)})} className="text-rose-600">×</button>
+                            </div>
+                         ))}
+                      </div>
+
+                      <div className="space-y-4">
+                         <div className="flex justify-between items-center">
+                            <label className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Deductions</label>
+                            <button onClick={() => setRecordForm({...recordForm, deductions: [...recordForm.deductions, { reason: 'Other', amount: 0 }]})} className="text-[9px] font-black uppercase text-indigo-600">+ Add</button>
+                         </div>
+                         {recordForm.deductions.map((d, i) => (
+                            <div key={i} className="flex gap-2 items-center">
+                               <input placeholder="Reason" value={d.reason} onChange={e => {
+                                  const next = [...recordForm.deductions];
+                                  next[i].reason = e.target.value;
+                                  setRecordForm({...recordForm, deductions: next});
+                               }} className="flex-1 bg-gray-50 rounded-xl py-2 px-3 text-[10px] font-bold" />
+                               <input type="number" placeholder="Amount" value={d.amount} onChange={e => {
+                                  const next = [...recordForm.deductions];
+                                  next[i].amount = e.target.value;
+                                  setRecordForm({...recordForm, deductions: next});
+                               }} className="w-24 bg-gray-50 rounded-xl py-2 px-3 text-[10px] font-bold" />
+                               <button onClick={() => setRecordForm({...recordForm, deductions: recordForm.deductions.filter((_, idx) => idx !== i)})} className="text-rose-600">×</button>
+                            </div>
+                         ))}
+                      </div>
+                   </div>
+
+                   <div className="flex gap-4 pt-4 border-t border-gray-50 mt-8">
+                      <button onClick={() => setSelectedRecord(null)} className="flex-1 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400">Abort</button>
+                      <button onClick={handleUpdateRecord} className="flex-2 bg-indigo-600 text-white py-4 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all">Synchronize Record</button>
                    </div>
                 </div>
              </div>

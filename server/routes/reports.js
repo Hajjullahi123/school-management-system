@@ -35,7 +35,10 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         showAttendanceOnReport: true,
         showPassFailStats: true,
         showPositionOnReport: true,
-        showFeesOnReport: true
+        showFeesOnReport: true,
+        reportLayout: true,
+        reportColorScheme: true,
+        reportFontFamily: true
       }
     });
 

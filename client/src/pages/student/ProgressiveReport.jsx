@@ -669,7 +669,6 @@ const ProgressiveReport = () => {
               background: white !important;
             }
             .print-safe-content {
-              border: 3px solid black !important;
               height: 100% !important;
             }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }

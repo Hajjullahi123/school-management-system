@@ -127,6 +127,28 @@ router.get('/admin/vouchers', authenticate, canManageHR, async (req, res) => {
   }
 });
 
+// Get specific voucher with records
+router.get('/admin/vouchers/:id', authenticate, canManageHR, async (req, res) => {
+  try {
+    const voucher = await prisma.payrollVoucher.findUnique({
+      where: { id: parseInt(req.params.id), schoolId: req.schoolId },
+      include: {
+        records: {
+          include: {
+            staff: { select: { id: true, firstName: true, middleName: true, lastName: true, role: true } },
+            allowances: true,
+            deductions: true
+          }
+        }
+      }
+    });
+    if (!voucher) return res.status(404).json({ error: 'Voucher not found' });
+    res.json(voucher);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Create/Draft a voucher
 router.post('/admin/vouchers', authenticate, canManageHR, async (req, res) => {
   try {

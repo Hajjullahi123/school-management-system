@@ -13,7 +13,7 @@ const ClassManagement = () => {
     showPositionOnReport: true,
     showFeesOnReport: true,
     showAttendanceOnReport: true,
-    reportLayout: 'classic'
+    reportLayout: ''
   });
   const [editingClass, setEditingClass] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
@@ -191,6 +191,7 @@ const ClassManagement = () => {
         },
         body: JSON.stringify({
           ...classForm,
+          reportLayout: classForm.reportLayout || null,
           classTeacherId: classForm.classTeacherId ? parseInt(classForm.classTeacherId) : null
         })
       });
@@ -205,7 +206,7 @@ const ClassManagement = () => {
           showPositionOnReport: true,
           showFeesOnReport: true,
           showAttendanceOnReport: true,
-          reportLayout: 'classic'
+          reportLayout: ''
         });
         setEditingClass(null);
         setShowClassForm(false);
@@ -315,7 +316,7 @@ const ClassManagement = () => {
                   showPositionOnReport: true,
                   showFeesOnReport: true,
                   showAttendanceOnReport: true,
-                  reportLayout: 'classic'
+                  reportLayout: ''
                 });
               } else {
                 setShowClassForm(!showClassForm);
@@ -329,7 +330,7 @@ const ClassManagement = () => {
                     showPositionOnReport: true,
                     showFeesOnReport: true,
                     showAttendanceOnReport: true,
-                    reportLayout: 'classic'
+                    reportLayout: ''
                   });
                 }
               }
@@ -389,7 +390,7 @@ const ClassManagement = () => {
                             showPositionOnReport: cls.showPositionOnReport ?? true,
                             showFeesOnReport: cls.showFeesOnReport ?? true,
                             showAttendanceOnReport: cls.showAttendanceOnReport ?? true,
-                            reportLayout: cls.reportLayout ?? 'classic'
+                            reportLayout: cls.reportLayout || ''
                           });
                           setShowClassForm(true);
                         }}
@@ -446,7 +447,7 @@ const ClassManagement = () => {
                         showPositionOnReport: true,
                         showFeesOnReport: true,
                         showAttendanceOnReport: true,
-                        reportLayout: 'classic'
+                        reportLayout: ''
                       });
                     }}
                     className="text-gray-400 hover:text-gray-600 p-1"
@@ -574,6 +575,7 @@ const ClassManagement = () => {
                           onChange={(e) => setClassForm({ ...classForm, reportLayout: e.target.value })}
                           className="w-full border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
                         >
+                          <option value="">Use School Default</option>
                           <option value="classic">Classic Professional</option>
                           <option value="modern">Modern Gradient</option>
                           <option value="minimal">Minimalist Business</option>
@@ -602,7 +604,7 @@ const ClassManagement = () => {
                             showPositionOnReport: true,
                             showFeesOnReport: true,
                             showAttendanceOnReport: true,
-                            reportLayout: 'classic'
+                            reportLayout: ''
                           });
                           setShowClassForm(false);
                         }}

@@ -140,7 +140,7 @@ router.put('/my-profile', authenticate, async (req, res) => {
     // Find student profile
     const existingStudent = await prisma.student.findFirst({
       where: {
-        userId: req.user.id,
+        userId: parseInt(req.user.id),
         schoolId: parseInt(req.schoolId)
       },
       include: { user: true }
@@ -474,7 +474,7 @@ router.post('/my-photo', authenticate, (req, res, next) => {
 
     // Also update User model for centralized access
     await prisma.user.update({
-      where: { id: req.user.id },
+      where: { id: parseInt(req.user.id) },
       data: { photoUrl }
     });
 
@@ -511,7 +511,7 @@ router.delete('/my-photo', authenticate, async (req, res) => {
 
     // Find student
     const student = await prisma.student.findUnique({
-      where: { userId: req.user.id }
+      where: { userId: parseInt(req.user.id) }
     });
 
     if (!student) {
@@ -530,7 +530,7 @@ router.delete('/my-photo', authenticate, async (req, res) => {
 
     // Also clear from User model
     await prisma.user.update({
-      where: { id: req.user.id },
+      where: { id: parseInt(req.user.id) },
       data: { photoUrl: null }
     });
 

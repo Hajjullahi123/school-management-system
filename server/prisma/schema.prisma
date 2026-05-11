@@ -190,6 +190,9 @@ model School {
   timetables                  Timetable[]
   users                       User[]
   WhatsAppLog                 WhatsAppLog[]
+  payrollVouchers             PayrollVoucher[]
+  leaveRequests               LeaveRequest[]
+  materialRequests            MaterialRequest[]
 }
 
 model User {
@@ -238,6 +241,13 @@ model User {
   testimonialsIssued Testimonial[]        @relation("TestimonialIssuer")
   department         Department?          @relation("DepartmentStaff", fields: [departmentId], references: [id])
   school             School?              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  payrollRecords     PayrollRecord[]
+  loanRequests       LoanRequest[]
+  leaveRequests      LeaveRequest[]
+  materialRequests   MaterialRequest[]
+  processedLoans     LoanRequest[]        @relation("LoanProcessor")
+  processedLeaves    LeaveRequest[]       @relation("LeaveProcessor")
+  processedMaterials MaterialRequest[]    @relation("MaterialProcessor")
 
   @@unique([schoolId, username])
   @@unique([schoolId, email])
@@ -1401,4 +1411,125 @@ model WhatsAppLog {
 
   @@index([createdAt])
   @@index([schoolId, phoneNumber])
+}
+
+// ================= HUMAN RESOURCES (HR) =================
+
+model PayrollVoucher {
+  id              Int             @id @default(autoincrement())
+  schoolId        Int
+  month           Int
+  year            Int
+  status          String          @default("DRAFT") // DRAFT, FINALIZED
+  totalGross      Float           @default(0)
+  totalNet        Float           @default(0)
+  totalDeductions Float           @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  School          School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  records         PayrollRecord[]
+
+  @@unique([schoolId, month, year])
+  @@index([schoolId])
+}
+
+model PayrollRecord {
+  id              Int                @id @default(autoincrement())
+  staffId         Int
+  voucherId       Int
+  baseSalary      Float              @default(0)
+  totalAllowances Float              @default(0)
+  totalDeductions Float              @default(0)
+  netPay          Float              @default(0)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  
+  voucher         PayrollVoucher     @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  staff           User               @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  allowances      PayrollAllowance[]
+  deductions      PayrollDeduction[]
+
+  @@index([staffId])
+  @@index([voucherId])
+}
+
+model PayrollAllowance {
+  id              Int           @id @default(autoincrement())
+  payrollRecordId Int
+  type            String        // Housing, Transport, etc.
+  amount          Float
+  description     String?
+  
+  record          PayrollRecord @relation(fields: [payrollRecordId], references: [id], onDelete: Cascade)
+}
+
+model PayrollDeduction {
+  id              Int           @id @default(autoincrement())
+  payrollRecordId Int
+  amount          Float
+  reason          String        // Tax, Loan, Absence, etc.
+  
+  record          PayrollRecord @relation(fields: [payrollRecordId], references: [id], onDelete: Cascade)
+}
+
+model LoanRequest {
+  id              Int       @id @default(autoincrement())
+  staffId         Int
+  amount          Float
+  reason          String
+  repaymentMonths Int       @default(1)
+  repaidMonths    Int       @default(0)
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED, COMPLETED
+  processedById   Int?
+  processedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  staff           User      @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  processor       User?     @relation("LoanProcessor", fields: [processedById], references: [id])
+
+  @@index([staffId])
+}
+
+model LeaveRequest {
+  id              Int       @id @default(autoincrement())
+  schoolId        Int
+  staffId         Int
+  type            String    // Annual, Sick, Casual, etc.
+  startDate       DateTime
+  endDate         DateTime
+  reason          String
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  processedById   Int?
+  processedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staff           User      @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  processor       User?     @relation("LeaveProcessor", fields: [processedById], references: [id])
+
+  @@index([schoolId])
+  @@index([staffId])
+}
+
+model MaterialRequest {
+  id              Int       @id @default(autoincrement())
+  schoolId        Int
+  staffId         Int
+  items           String    // JSON string
+  priority        String    @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED, DISBURSED
+  processedById   Int?
+  processedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staff           User      @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  processor       User?     @relation("MaterialProcessor", fields: [processedById], references: [id])
+
+  @@index([schoolId])
+  @@index([staffId])
 }

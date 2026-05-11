@@ -288,6 +288,7 @@ const StaffHRDashboard = () => {
       </AnimatePresence>
 
       {/* Modals */}
+      {showLoanModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto">
              <div className="bg-white rounded-[2.5rem] sm:rounded-[3rem] w-full max-w-lg p-6 sm:p-10 shadow-2xl border border-gray-100 my-auto">
                 <h2 className="text-2xl sm:text-3xl font-black text-gray-900 uppercase tracking-tighter italic mb-6 sm:mb-8">Loan Application</h2>

@@ -220,7 +220,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
         showPositionOnReport: req.body.showPositionOnReport !== undefined ? req.body.showPositionOnReport : true,
         showFeesOnReport: req.body.showFeesOnReport !== undefined ? req.body.showFeesOnReport : true,
         showAttendanceOnReport: req.body.showAttendanceOnReport !== undefined ? req.body.showAttendanceOnReport : true,
-        reportLayout: req.body.reportLayout || 'classic'
+        reportLayout: req.body.reportLayout || null
       },
       include: {
         classTeacher: {
