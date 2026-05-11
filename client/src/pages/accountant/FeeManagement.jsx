@@ -2141,7 +2141,7 @@ export default function FeeManagement() {
 
           {/* Filters and Actions */}
           <div ref={recordsRef} className="bg-white rounded-lg shadow p-4 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
                 <input
@@ -2182,23 +2182,28 @@ export default function FeeManagement() {
                 </select>
               </div>
               <div className="flex flex-col">
-                <label className="block text-sm font-black text-gray-900 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
                   <span>🛡️ Enrollment Logic</span>
                 </label>
                 <div 
                   onClick={() => setStrictEnrollment(!strictEnrollment)}
-                  className={`relative w-full h-11 rounded-xl cursor-pointer transition-all duration-300 flex items-center px-4 gap-3 ${strictEnrollment ? 'bg-indigo-600 shadow-indigo-200 shadow-lg' : 'bg-gray-200'}`}
+                  className={`relative w-full h-10 rounded-lg cursor-pointer transition-all duration-300 flex items-center px-2 gap-3 border ${strictEnrollment ? 'bg-indigo-600 border-indigo-600 shadow-sm' : 'bg-gray-100 border-gray-300'}`}
                 >
-                  <div className={`w-5 h-5 rounded-full bg-white transition-all duration-300 shadow-sm ${strictEnrollment ? 'translate-x-0' : 'translate-x-0'}`}>
+                  <div className={`w-6 h-6 rounded-md bg-white transition-all duration-300 shadow-md flex items-center justify-center transform ${strictEnrollment ? 'translate-x-0' : 'translate-x-[calc(100%-1.5rem)]'}`} style={{
+                    marginLeft: strictEnrollment ? '0' : 'auto'
+                  }}>
                     {strictEnrollment ? '✅' : '🔓'}
                   </div>
-                  <span className={`text-[11px] font-black uppercase tracking-widest ${strictEnrollment ? 'text-white' : 'text-gray-600'}`}>
-                    {strictEnrollment ? 'Strict Enrollment' : 'Flexible (All Students)'}
+                  <span className={`text-[10px] font-bold uppercase tracking-tight flex-1 ${strictEnrollment ? 'text-white text-left' : 'text-gray-600 text-right'}`}>
+                    {strictEnrollment ? 'Strict' : 'Flexible'}
                   </span>
                   
-                  {/* Tooltip-like help text */}
-                  <div className="absolute -top-10 left-0 right-0 bg-gray-900 text-white text-[9px] p-2 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity text-center z-50">
-                    {strictEnrollment ? 'Only students joined before term end are charged' : 'All active students are charged regardless of join date'}
+                  {/* Tooltip help icon */}
+                  <div className="group relative">
+                    <span className={`text-[10px] ${strictEnrollment ? 'text-indigo-200' : 'text-gray-400'}`}>ⓘ</span>
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[9px] rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center leading-tight">
+                      {strictEnrollment ? 'Strict: Only students joined before term end are charged' : 'Flexible: All active students are charged regardless of join date'}
+                    </div>
                   </div>
                 </div>
               </div>
