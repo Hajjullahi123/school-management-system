@@ -99,10 +99,12 @@ router.get('/download/:classId',
       }
 
       // 4. Fetch ALL results for this class/session/terms
+      const studentIds = classInfo.students.map(s => s.id);
+
       const results = await prisma.result.findMany({
         where: {
           schoolId: req.schoolId,
-          classId,
+          studentId: { in: studentIds },
           academicSessionId: sessionId,
           termId: { in: selectedTermIds }
         }
@@ -112,7 +114,7 @@ router.get('/download/:classId',
       const reportCards = await prisma.studentReportCard.findMany({
         where: {
           schoolId: req.schoolId,
-          classId,
+          studentId: { in: studentIds },
           academicSessionId: sessionId,
           termId: { in: selectedTermIds }
         }

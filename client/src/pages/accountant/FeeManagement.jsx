@@ -1233,7 +1233,14 @@ export default function FeeManagement() {
       
       alert('Student ledger has been completely wiped.');
       setEditingFeeRecord(null);
-      loadStudents(selectedViewTerm?.id || currentTerm.id, selectedViewSession?.id || currentSession.id);
+      if (viewAllSessions) {
+        await loadStudentsAllSessions();
+      } else if (viewAllTerms) {
+        await loadStudentsAllTerms(selectedViewSession?.id || currentSession.id);
+      } else {
+        await loadStudents(selectedViewTerm?.id || currentTerm.id, selectedViewSession?.id || currentSession.id);
+        await loadSummary(selectedViewTerm?.id || currentTerm.id, selectedViewSession?.id || currentSession.id);
+      }
     } catch (err) {
       alert('Error: ' + err.message);
     }
@@ -3672,7 +3679,7 @@ export default function FeeManagement() {
             {/* Footer */}
             <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between shrink-0">
               <button
-                onClick={() => handleResetLedger(editingFeeRecord.studentId)}
+                onClick={() => handleResetLedger(editingFeeRecord.student.id)}
                 className="px-4 py-2.5 bg-rose-50 text-rose-600 text-[10px] font-black uppercase rounded-xl border border-rose-100 hover:bg-rose-600 hover:text-white transition-all shadow-sm shadow-rose-100"
               >
                 Reset Student Ledger

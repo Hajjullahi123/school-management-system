@@ -1433,6 +1433,14 @@ router.delete('/student/:studentId/reset', async (req, res) => {
       return res.status(404).json({ error: 'Student not found or unauthorized access' });
     }
 
+    // Delete all OnlinePayments (related to fee records)
+    await prisma.onlinePayment.deleteMany({
+      where: {
+        studentId: parseInt(studentId),
+        schoolId: parseInt(req.schoolId)
+      }
+    });
+
     // Delete all FeePayments first (due to foreign key constraints)
     await prisma.feePayment.deleteMany({
       where: {
