@@ -303,7 +303,28 @@ const HRAdminDashboard = () => {
                       </h3>
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Individual Payroll Breakdown</p>
                    </div>
-                   <button onClick={() => setActiveTab('vouchers')} className="text-gray-400 font-black text-[10px] uppercase hover:text-gray-600">Back to Vouchers</button>
+                   <div className="flex gap-4">
+                      {selectedVoucher.status === 'DRAFT' && (
+                         <button 
+                            onClick={async () => {
+                               try {
+                                  const res = await api.post(`/api/hr/admin/vouchers/${selectedVoucher.id}/sync`);
+                                  const data = await res.json();
+                                  if (res.ok) {
+                                     toast.success(data.message);
+                                     handleOpenVoucher(selectedVoucher);
+                                  } else {
+                                     toast.error(data.error);
+                                  }
+                               } catch (e) { toast.error('Sync failed'); }
+                            }}
+                            className="bg-indigo-50 text-indigo-600 px-6 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all"
+                         >
+                            Sync Personnel
+                         </button>
+                      )}
+                      <button onClick={() => setActiveTab('vouchers')} className="text-gray-400 font-black text-[10px] uppercase hover:text-gray-600">Back to Vouchers</button>
+                   </div>
                 </div>
 
                 <div className="bg-white rounded-[3rem] shadow-xl border border-gray-100 overflow-hidden">

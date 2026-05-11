@@ -327,6 +327,49 @@ router.patch('/admin/vouchers/:id/finalize', authenticate, canManageHR, async (r
   }
 });
 
+// Sync Voucher Records (Add missing staff)
+router.post('/admin/vouchers/:id/sync', authenticate, canManageHR, async (req, res) => {
+  try {
+    const voucherId = parseInt(req.params.id);
+    const voucher = await prisma.payrollVoucher.findUnique({
+      where: { id: voucherId, schoolId: req.schoolId },
+      include: { records: true }
+    });
+
+    if (!voucher) return res.status(404).json({ error: 'Voucher not found' });
+    if (voucher.status === 'FINALIZED') return res.status(400).json({ error: 'Cannot sync finalized voucher' });
+
+    const existingStaffIds = voucher.records.map(r => r.staffId);
+    
+    const allStaff = await prisma.user.findMany({
+      where: { 
+        schoolId: req.schoolId, 
+        role: { notIn: ['parent', 'student', 'superadmin'] },
+        id: { notIn: existingStaffIds }
+      }
+    });
+
+    if (allStaff.length === 0) {
+      return res.json({ message: 'Personnel list already synchronized', count: 0 });
+    }
+
+    const newRecords = await prisma.$transaction(
+      allStaff.map(s => prisma.payrollRecord.create({
+        data: {
+          staffId: s.id,
+          voucherId: voucher.id,
+          baseSalary: 0,
+          netPay: 0
+        }
+      }))
+    );
+
+    res.json({ message: `Synchronized ${newRecords.length} new personnel records`, count: newRecords.length });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Manage Requests (Loan, Leave, Material)
 router.get('/admin/requests', authenticate, canManageHR, async (req, res) => {
   try {
