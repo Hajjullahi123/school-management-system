@@ -19,6 +19,7 @@ export default function FeeManagement() {
   const [currentSession, setCurrentSession] = useState(null);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [strictEnrollment, setStrictEnrollment] = useState(true);
 
   // Payment States
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -217,6 +218,21 @@ export default function FeeManagement() {
       recordsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [selectedClassView]);
+
+  useEffect(() => {
+    if (currentTerm && currentSession) {
+      if (viewAllSessions) {
+        loadStudentsAllSessions();
+      } else if (viewAllTerms) {
+        loadStudentsAllTerms(selectedViewSession?.id || currentSession.id);
+      } else {
+        const tId = selectedViewTerm?.id || currentTerm.id;
+        const sId = selectedViewSession?.id || currentSession.id;
+        loadStudents(tId, sId);
+        loadSummary(tId, sId);
+      }
+    }
+  }, [strictEnrollment]);
 
   useEffect(() => {
     fetchData();
@@ -769,7 +785,7 @@ export default function FeeManagement() {
         const sessionTerms = allTerms.filter(t => t.academicSessionId === session.id);
         for (const term of sessionTerms) {
           const response = await api.get(
-            `/api/fees/students?termId=${term.id}&academicSessionId=${session.id}`
+            `/api/fees/students?termId=${term.id}&academicSessionId=${session.id}&ignoreJoinDate=${!strictEnrollment}`
           );
 
           if (!response.ok) continue;
@@ -850,7 +866,7 @@ export default function FeeManagement() {
 
       for (const term of termsInSession) {
         const response = await api.get(
-          `/api/fees/students?termId=${term.id}&academicSessionId=${sessionId}`
+          `/api/fees/students?termId=${term.id}&academicSessionId=${sessionId}&ignoreJoinDate=${!strictEnrollment}`
         );
 
         if (!response.ok) {
@@ -943,7 +959,7 @@ export default function FeeManagement() {
   const loadStudents = async (termId, sessionId) => {
     try {
       const response = await api.get(
-        `/api/fees/students?termId=${termId}&academicSessionId=${sessionId}`
+        `/api/fees/students?termId=${termId}&academicSessionId=${sessionId}&ignoreJoinDate=${!strictEnrollment}`
       );
 
       if (!response.ok) {
@@ -1012,7 +1028,7 @@ export default function FeeManagement() {
   const loadSummary = async (termId, sessionId) => {
     try {
       const response = await api.get(
-        `/api/fees/summary?termId=${termId}&academicSessionId=${sessionId}`
+        `/api/fees/summary?termId=${termId}&academicSessionId=${sessionId}&ignoreJoinDate=${!strictEnrollment}`
       );
 
       if (!response.ok) {
@@ -1385,7 +1401,8 @@ export default function FeeManagement() {
       setLoading(true);
       const response = await api.post('/api/fees/sync-records', {
         termId: syncTerm.id,
-        academicSessionId: syncSession.id
+        academicSessionId: syncSession.id,
+        ignoreJoinDate: !strictEnrollment
       });
 
       const data = await response.json();
@@ -2163,6 +2180,27 @@ export default function FeeManagement() {
                   <option value="owing">💸 Owing</option>
                   <option value="paid">💰 Fully Paid</option>
                 </select>
+              </div>
+              <div className="flex flex-col">
+                <label className="block text-sm font-black text-gray-900 uppercase tracking-widest mb-2 flex items-center gap-2">
+                  <span>🛡️ Enrollment Logic</span>
+                </label>
+                <div 
+                  onClick={() => setStrictEnrollment(!strictEnrollment)}
+                  className={`relative w-full h-11 rounded-xl cursor-pointer transition-all duration-300 flex items-center px-4 gap-3 ${strictEnrollment ? 'bg-indigo-600 shadow-indigo-200 shadow-lg' : 'bg-gray-200'}`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white transition-all duration-300 shadow-sm ${strictEnrollment ? 'translate-x-0' : 'translate-x-0'}`}>
+                    {strictEnrollment ? '✅' : '🔓'}
+                  </div>
+                  <span className={`text-[11px] font-black uppercase tracking-widest ${strictEnrollment ? 'text-white' : 'text-gray-600'}`}>
+                    {strictEnrollment ? 'Strict Enrollment' : 'Flexible (All Students)'}
+                  </span>
+                  
+                  {/* Tooltip-like help text */}
+                  <div className="absolute -top-10 left-0 right-0 bg-gray-900 text-white text-[9px] p-2 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity text-center z-50">
+                    {strictEnrollment ? 'Only students joined before term end are charged' : 'All active students are charged regardless of join date'}
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">View Mode</label>

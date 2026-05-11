@@ -99,19 +99,25 @@ async function getStudentFeeSummary(schoolId, studentId, sessionId, termId) {
     if (!currentRecord) {
       const student = await prisma.student.findUnique({
         where: { id: studentId },
-        select: { classId: true, isScholarship: true }
+        select: { classId: true, isScholarship: true, createdAt: true }
       });
 
       if (student && !student.isScholarship) {
-        const feeStructure = await prisma.classFeeStructure.findFirst({
-          where: {
-            schoolId: sId,
-            classId: student.classId,
-            academicSessionId: sessId,
-            termId: tId
-          }
-        });
-        defaultExpected = safeParse(feeStructure?.amount, 0);
+        // Fetch term to check if student had joined yet
+        const term = await prisma.term.findUnique({ where: { id: tId } });
+        const joinedAfterTerm = term && student.createdAt > term.endDate;
+        
+        if (!joinedAfterTerm) {
+          const feeStructure = await prisma.classFeeStructure.findFirst({
+            where: {
+              schoolId: sId,
+              classId: student.classId,
+              academicSessionId: sessId,
+              termId: tId
+            }
+          });
+          defaultExpected = safeParse(feeStructure?.amount, 0);
+        }
       }
     }
 

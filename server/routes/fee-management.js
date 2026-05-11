@@ -9,16 +9,22 @@ const { getStudentFeeSummary, calculatePreviousOutstanding, createOrUpdateFeeRec
 // Get all students with fee status (Accountant/Admin)
 router.get('/students', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
   try {
-    const { academicSessionId, termId, classId } = req.query;
+    const { academicSessionId, termId, classId, ignoreJoinDate } = req.query;
     const schoolIdInt = parseInt(req.schoolId);
     const sessionInt = parseInt(academicSessionId);
     const termInt = parseInt(termId);
     const classInt = classId ? parseInt(classId) : null;
+    const shouldIgnoreJoinDate = ignoreJoinDate === 'true';
 
     if (!sessionInt || !termInt) {
       // If we don't have IDs, we cannot proceed with fee calculation
       return res.json([]);
     }
+
+    // Fetch the target term to check its dates for mid-session joiners
+    const targetTerm = await prisma.term.findUnique({
+      where: { id: termInt }
+    });
 
     // Determine if we're looking at the current session/term
     const currentSession = await prisma.academicSession.findFirst({
@@ -109,7 +115,9 @@ router.get('/students', authenticate, authorize(['admin', 'principal', 'accounta
       }
 
       // No record for current term, calculate virtual data
-      const expected = student.isScholarship ? 0 : (structureMap[student.classId] || 0);
+      // Check if student joined after this term ended (mid-session joiner)
+      const joinedAfterTerm = !shouldIgnoreJoinDate && targetTerm && student.createdAt > targetTerm.endDate;
+      const expected = (student.isScholarship || joinedAfterTerm) ? 0 : (structureMap[student.classId] || 0);
       const arrears = await calculatePreviousOutstanding(
         req.schoolId,
         student.id,
@@ -1081,7 +1089,7 @@ router.post('/revoke-clearance/:studentId', authenticate, authorize(['admin', 'p
 // Get fee summary/statistics (Accountant/Admin)
 router.get('/summary', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
   try {
-    const { termId, academicSessionId } = req.query;
+    const { termId, academicSessionId, ignoreJoinDate } = req.query;
 
     if (!termId || !academicSessionId) {
       return res.status(400).json({ error: 'Term ID and Academic Session ID are required' });
@@ -1090,6 +1098,7 @@ router.get('/summary', authenticate, authorize(['admin', 'principal', 'accountan
     const schoolIdInt = parseInt(req.schoolId);
     const tId = parseInt(termId);
     const sId = parseInt(academicSessionId);
+    const shouldIgnoreJoinDate = ignoreJoinDate === 'true';
 
     // Determine if we're looking at historical data
     const currentSession = await prisma.academicSession.findFirst({
@@ -1097,6 +1106,10 @@ router.get('/summary', authenticate, authorize(['admin', 'principal', 'accountan
     });
     const currentTerm = await prisma.term.findFirst({
       where: { schoolId: schoolIdInt, isCurrent: true }
+    });
+
+    const targetTerm = await prisma.term.findUnique({
+      where: { id: tId }
     });
 
     const isCurrentPeriod = (sId === currentSession?.id) && (tId === currentTerm?.id);
@@ -1166,7 +1179,9 @@ router.get('/summary', authenticate, authorize(['admin', 'principal', 'accountan
         isCleared = record.isClearedForExam;
       } else {
         // Calculate virtual record - use term-specific expected for stats
-        const classExpected = student.isScholarship ? 0 : (structureMap[student.classId] || 0);
+        // Check if student joined after this term ended (mid-session joiner)
+        const joinedAfterTerm = !shouldIgnoreJoinDate && targetTerm && student.createdAt > targetTerm.endDate;
+        const classExpected = (student.isScholarship || joinedAfterTerm) ? 0 : (structureMap[student.classId] || 0);
 
         expected = classExpected;
         paid = 0;
@@ -1300,12 +1315,13 @@ router.post('/bulk-reminder', authenticate, authorize(['admin', 'principal', 'ac
 // Sync missing fee records for all active students (Admin/Accountant)
 router.post('/sync-records', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
   try {
-    const { termId, academicSessionId } = req.body;
+    const { termId, academicSessionId, ignoreJoinDate } = req.body;
     if (!termId || !academicSessionId) {
       return res.status(400).json({ error: 'Term and Session are required for sync' });
     }
 
     const schoolIdInt = parseInt(req.schoolId);
+    const shouldIgnoreJoinDate = ignoreJoinDate === true;
 
     // 1. Get students for sync
     // For current sessions, only active students.
@@ -1344,6 +1360,10 @@ router.post('/sync-records', authenticate, authorize(['admin', 'principal', 'acc
       structureMap[fs.classId] = fs.amount;
     });
 
+    const targetTerm = await prisma.term.findUnique({
+      where: { id: parseInt(termId) }
+    });
+
     let createdCount = 0;
     let updatedCount = 0;
     let skippedCount = 0;
@@ -1352,6 +1372,12 @@ router.post('/sync-records', authenticate, authorize(['admin', 'principal', 'acc
     // 3. For each student, check if record exists, if not create/update it
     for (const student of students) {
       try {
+        // Check if student joined after this term ended (mid-session joiner)
+        if (!shouldIgnoreJoinDate && targetTerm && student.createdAt > targetTerm.endDate) {
+          skippedCount++;
+          continue;
+        }
+
         const amount = structureMap[student.classId];
         if (amount === undefined) {
           noStructureCount++;
