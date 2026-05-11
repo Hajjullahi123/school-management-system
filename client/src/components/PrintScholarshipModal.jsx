@@ -46,10 +46,12 @@ export default function PrintScholarshipModal({ student, isOpen, onClose, curren
             .no-print { display: none !important; }
             .card-container { 
               box-shadow: none !important; 
-              margin: 0 !important; 
-              width: 105mm !important; 
-              height: 148mm !important; 
+              margin: 0 auto !important; 
+              width: 100mm !important; 
+              height: 140mm !important; 
               border: none !important;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
             }
           }
           * { box-sizing: border-box; }
@@ -462,8 +464,19 @@ export default function PrintScholarshipModal({ student, isOpen, onClose, curren
     printWindow.focus();
 
     setTimeout(() => {
-      printWindow.print();
-    }, 800);
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 500);
+      };
+      
+      // Fallback
+      if (printWindow.document.readyState === 'complete') {
+        setTimeout(() => {
+          if (printWindow.print) printWindow.print();
+        }, 1500);
+      }
+    }, 500);
   };
 
   if (!isOpen) return null;

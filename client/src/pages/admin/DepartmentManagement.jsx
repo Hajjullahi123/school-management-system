@@ -127,10 +127,10 @@ const DepartmentManagement = () => {
       const response = await api.post(`/api/departments/${currentDept.id}/staff`, {
         staffIds: selectedStaffIds
       });
-      if (response.ok) {
-        toast.success('Staff assigned successfully');
-        setShowStaffModal(false);
         fetchData();
+      } else {
+        const err = await response.json();
+        toast.error(err.error || 'Failed to assign staff');
       }
     } catch (error) {
       toast.error('Failed to assign staff');
@@ -142,10 +142,10 @@ const DepartmentManagement = () => {
       const response = await api.post(`/api/departments/${currentDept.id}/subjects`, {
         subjectIds: selectedSubjectIds
       });
-      if (response.ok) {
-        toast.success('Subjects assigned successfully');
-        setShowSubjectModal(false);
         fetchData();
+      } else {
+        const err = await response.json();
+        toast.error(err.error || 'Failed to assign subjects');
       }
     } catch (error) {
       toast.error('Failed to assign subjects');

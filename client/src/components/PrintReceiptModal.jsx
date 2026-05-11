@@ -806,12 +806,11 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
           printWindow.print();
         }, 1000);
       };
-
-      // Fallback for browsers that don't trigger onload for document.write
+ 
       if (printWindow.document.readyState === 'complete') {
         setTimeout(() => {
           if (printWindow.print) printWindow.print();
-        }, 1200);
+        }, 2000);
       }
     } catch (err) {
       console.error('Print Error:', err);
