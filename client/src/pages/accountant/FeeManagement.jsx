@@ -2693,7 +2693,7 @@ export default function FeeManagement() {
                                     onClick={() => viewPaymentHistory(student)}
                                     className="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
                                   >
-                                    🕒 History
+                                    🕒 Edit Records
                                   </button>
                                   <button
                                     onClick={() => {
@@ -2755,7 +2755,7 @@ export default function FeeManagement() {
                       </p>
                       <p className="text-xs text-emerald-200 mt-2 italic">Full scholarship — fees waived</p>
                       <div className="flex gap-2 mt-4 pt-3 border-t border-white/20">
-                        <button onClick={() => viewPaymentHistory(student)} className="flex-1 bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-1.5 rounded-lg transition-all">History</button>
+                        <button onClick={() => viewPaymentHistory(student)} className="flex-1 bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-1.5 rounded-lg transition-all">Edit Records</button>
                         <button onClick={() => { setReceiptStudent(student); setReceiptPayment(null); setReceiptModalOpen(true); }} className="flex-1 bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-1.5 rounded-lg transition-all">Receipt</button>
                       </div>
                     </div>
@@ -2821,7 +2821,7 @@ export default function FeeManagement() {
                     {/* Card Actions */}
                     <div className="px-4 pb-4 flex gap-2">
                       <button onClick={() => setSelectedStudent(student)} className="flex-1 bg-primary/10 text-primary hover:bg-primary hover:text-white text-xs font-bold py-2 rounded-lg transition-all">Pay</button>
-                      <button onClick={() => viewPaymentHistory(student)} className="flex-1 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white text-xs font-bold py-2 rounded-lg transition-all">History</button>
+                      <button onClick={() => viewPaymentHistory(student)} className="flex-1 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white text-xs font-bold py-2 rounded-lg transition-all">Edit Records</button>
                       <button onClick={() => { setReceiptStudent(student); setReceiptPayment(null); setReceiptModalOpen(true); }} className="flex-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white text-xs font-bold py-2 rounded-lg transition-all">Receipt</button>
                       <button onClick={() => handleEditFee(student)} className="flex-1 bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white text-xs font-bold py-2 rounded-lg transition-all">Adjust</button>
                     </div>
