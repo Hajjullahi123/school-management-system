@@ -193,6 +193,7 @@ model School {
   payrollVouchers             PayrollVoucher[]
   leaveRequests               LeaveRequest[]
   materialRequests            MaterialRequest[]
+  DepartmentResource          DepartmentResource[]
 }
 
 model User {
@@ -248,6 +249,7 @@ model User {
   processedLoans     LoanRequest[]        @relation("LoanProcessor")
   processedLeaves    LeaveRequest[]       @relation("LeaveProcessor")
   processedMaterials MaterialRequest[]    @relation("MaterialProcessor")
+  departmentResources DepartmentResource[] @relation("ResourceUploader")
 
   @@unique([schoolId, username])
   @@unique([schoolId, email])
@@ -724,6 +726,7 @@ model Department {
   nudges    Nudge[]
   subjects  Subject[]
   staff     User[]    @relation("DepartmentStaff")
+  resources DepartmentResource[]
 
   @@unique([schoolId, name])
 }
@@ -1532,4 +1535,25 @@ model MaterialRequest {
 
   @@index([schoolId])
   @@index([staffId])
+}
+
+model DepartmentResource {
+  id           Int        @id @default(autoincrement())
+  schoolId     Int
+  departmentId Int
+  uploaderId   Int
+  title        String
+  description  String?
+  fileUrl      String
+  fileType     String     @default("LINK") // LINK, PDF, DOC, etc.
+  category     String     @default("OTHER") // LESSON_PLAN, SYLLABUS, EXAM, OTHER
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  school       School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  uploader     User       @relation("ResourceUploader", fields: [uploaderId], references: [id])
+
+  @@index([schoolId])
+  @@index([departmentId])
 }
