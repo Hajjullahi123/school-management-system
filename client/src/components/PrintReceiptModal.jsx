@@ -68,13 +68,22 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
         <style>
           @page {
-            size: A6;
+            size: 105mm 148mm;
             margin: 0;
           }
           @media print {
-            body { margin: 0; padding: 0; background: white !important; }
+            html, body { margin: 0 !important; padding: 0 !important; background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .no-print { display: none !important; }
-            .receipt-card { box-shadow: none !important; border: 1px solid #eee !important; margin: 0 !important; width: 100mm !important; height: 144mm !important; }
+            .receipt-card { 
+              box-shadow: none !important; 
+              border: none !important; 
+              margin: 0 auto !important; 
+              width: 105mm !important; 
+              height: 148mm !important; 
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+              overflow: hidden !important;
+            }
           }
           * { box-sizing: border-box; }
           body {
@@ -89,7 +98,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
           .receipt-card {
             background: white;
             width: 100mm;
-            height: 144mm;
+            height: 140mm;
             margin: 0 auto;
             border-radius: 8px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -397,8 +406,12 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
         <title>Term Payment Statement - ${student.user?.firstName || 'Student'}</title>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
         <style>
+          @page {
+            size: auto;
+            margin: 10mm;
+          }
           @media print {
-            body { background: white !important; padding: 0 !important; }
+            body { margin: 0 !important; padding: 0 !important; background: white !important; }
             .no-print { display: none !important; }
             .statement-card { box-shadow: none !important; border: 1px solid #eee !important; margin: 0 !important; width: 100% !important; }
           }
@@ -598,8 +611,12 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
         <title>Sessional Payment Ledger - ${student.user?.firstName || 'Student'}</title>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
         <style>
+          @page {
+            size: auto;
+            margin: 10mm;
+          }
           @media print {
-            body { background: white !important; padding: 0 !important; }
+            body { margin: 0 !important; padding: 0 !important; background: white !important; }
             .no-print { display: none !important; }
             .ledger-card { box-shadow: none !important; border: 1px solid #eee !important; margin: 0 !important; width: 100% !important; }
           }
@@ -783,12 +800,19 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
       printWindow.document.close();
       printWindow.focus();
 
-      // Auto-print after a short delay
-      setTimeout(() => {
-        if (printWindow.print) {
+      // Auto-print after all resources (fonts, images) are loaded
+      printWindow.onload = () => {
+        setTimeout(() => {
           printWindow.print();
-        }
-      }, 500);
+        }, 1000);
+      };
+
+      // Fallback for browsers that don't trigger onload for document.write
+      if (printWindow.document.readyState === 'complete') {
+        setTimeout(() => {
+          if (printWindow.print) printWindow.print();
+        }, 1200);
+      }
     } catch (err) {
       console.error('Print Error:', err);
       printWindow.document.write(`<div style="color:red; padding:20px;">Error generating receipt: ${err.message}</div>`);
@@ -798,7 +822,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-center">

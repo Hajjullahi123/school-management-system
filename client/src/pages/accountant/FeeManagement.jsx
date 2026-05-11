@@ -381,13 +381,13 @@ export default function FeeManagement() {
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
         <style>
           @page {
-            size: 74mm 105mm;
-            margin: 0;
+            size: auto;
+            margin: 0mm;
           }
           @media print {
-            body { margin: 0; padding: 0; background: white !important; }
+            html, body { margin: 0 !important; padding: 0 !important; background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .no-print { display: none !important; }
-            .receipt-card { box-shadow: none !important; border: 1px solid #eee !important; margin: 0 !important; width: 74mm !important; height: 105mm !important; }
+            .receipt-card { box-shadow: none !important; border: none !important; margin: 0 auto !important; width: 74mm !important; height: 100mm !important; break-inside: avoid !important; page-break-inside: avoid !important; }
           }
           * { box-sizing: border-box; }
           body {
@@ -402,7 +402,7 @@ export default function FeeManagement() {
           .receipt-card {
             background: white;
             width: 74mm;
-            height: 105mm;
+            height: 100mm;
             margin: 0 auto;
             border-radius: 4mm;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
@@ -692,9 +692,18 @@ export default function FeeManagement() {
       </html>
     `);
       printWindow.document.close();
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
+      
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 300);
+      };
+
+      if (printWindow.document.readyState === 'complete') {
+        setTimeout(() => {
+          if (printWindow.print) printWindow.print();
+        }, 800);
+      }
     } catch (error) {
       toast.error('Error generating receipt: ' + error.message);
     }
@@ -3351,8 +3360,8 @@ export default function FeeManagement() {
 
       {/* Payment History Modal */}
       {showPaymentHistory && historyStudent && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full flex justify-center items-end sm:items-center z-50 p-0 sm:p-4">
-          <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] flex flex-col transform transition-all">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm overflow-y-auto h-full w-full flex justify-center items-center z-[100] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col transition-all duration-300">
             <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-white rounded-t-3xl sm:rounded-t-2xl">
               <h2 className="text-xl font-black text-gray-900 italic tracking-tighter uppercase">Payment History</h2>
               <button
@@ -3435,17 +3444,17 @@ export default function FeeManagement() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {payment.recordedByUser?.firstName} {payment.recordedByUser?.lastName}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
                             <button
                               onClick={() => printReceipt(payment, historyStudent)}
-                              className="text-indigo-600 hover:text-indigo-900 mr-4 font-semibold"
+                              className="inline-flex items-center px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-100"
                               title="Regenerate payment receipt"
                             >
-                              📄 Regenerate Receipt
+                              <span className="mr-1">📄</span> Receipt
                             </button>
                             <button
                               onClick={() => startEditPayment(payment)}
-                              className="text-blue-600 hover:text-blue-900"
+                              className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors border border-blue-100 font-bold"
                             >
                               Edit
                             </button>
@@ -3472,8 +3481,8 @@ export default function FeeManagement() {
 
       {/* Edit Payment Modal */}
       {editingPayment && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center z-[60]">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md overflow-y-auto h-full w-full flex justify-center items-center z-[110] p-4">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
             <h2 className="text-xl font-bold mb-4">Edit Payment</h2>
 
             <div className="space-y-4">

@@ -469,7 +469,7 @@ export default function PrintScholarshipModal({ student, isOpen, onClose, curren
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transform transition-all">
         <div className="bg-gradient-to-r from-emerald-600 to-teal-800 p-6 flex justify-between items-center text-white">
           <div className="flex items-center gap-3">
