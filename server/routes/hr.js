@@ -160,68 +160,72 @@ router.post('/admin/vouchers', authenticate, canManageHR, async (req, res) => {
     });
     if (existing) return res.status(400).json({ error: 'Voucher already exists for this period' });
 
-    const voucher = await prisma.payrollVoucher.create({
-      data: { schoolId: req.schoolId, month: parseInt(month), year: parseInt(year) }
-    });
+    const resultVoucher = await prisma.$transaction(async (tx) => {
+      const voucher = await tx.payrollVoucher.create({
+        data: { schoolId: req.schoolId, month: parseInt(month), year: parseInt(year) }
+      });
 
-    // Populate records for all staff
-    const staff = await prisma.user.findMany({
-      where: { schoolId: req.schoolId, role: { notIn: ['parent', 'student', 'superadmin'] } }
-    });
+      // Populate records for all staff
+      const staff = await tx.user.findMany({
+        where: { schoolId: req.schoolId, role: { notIn: ['parent', 'student', 'superadmin'] } }
+      });
 
-    for (const s of staff) {
-      const record = await prisma.payrollRecord.create({
-        data: {
-          staffId: s.id,
-          voucherId: voucher.id,
-          baseSalary: 0, 
-          netPay: 0
+      for (const s of staff) {
+        const record = await tx.payrollRecord.create({
+          data: {
+            staffId: s.id,
+            voucherId: voucher.id,
+            baseSalary: 0, 
+            netPay: 0
+          }
+        });
+
+        // Automated Loan Repayment Detection
+        const activeLoans = await tx.loanRequest.findMany({
+          where: { staffId: s.id, status: 'APPROVED' }
+        });
+
+        for (const loan of activeLoans) {
+          if (loan.repaidMonths < loan.repaymentMonths) {
+            const monthlyAmount = Math.ceil(loan.amount / loan.repaymentMonths);
+            await tx.payrollDeduction.create({
+              data: {
+                payrollRecordId: record.id,
+                amount: monthlyAmount,
+                reason: `Loan Repayment [ID:${loan.id}] (Instalment ${loan.repaidMonths + 1}/${loan.repaymentMonths})`
+              }
+            });
+          }
         }
-      });
 
-      // Automated Loan Repayment Detection
-      const activeLoans = await prisma.loanRequest.findMany({
-        where: { staffId: s.id, status: 'APPROVED' }
-      });
+        // Attendance-Linked Deduction Suggestion
+        const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+        const endDate = new Date(parseInt(year), parseInt(month), 0); // Last day of month
 
-      for (const loan of activeLoans) {
-        if (loan.repaidMonths < loan.repaymentMonths) {
-          const monthlyAmount = Math.ceil(loan.amount / loan.repaymentMonths);
-          await prisma.payrollDeduction.create({
+        const absences = await tx.staffAttendance.count({
+          where: {
+            userId: s.id, // FIXED: was staffId
+            status: 'ABSENT',
+            date: { gte: startDate, lte: endDate }
+          }
+        });
+
+        if (absences > 0) {
+          await tx.payrollDeduction.create({
             data: {
               payrollRecordId: record.id,
-              amount: monthlyAmount,
-              reason: `Loan Repayment [ID:${loan.id}] (Instalment ${loan.repaidMonths + 1}/${loan.repaymentMonths})`
+              amount: 0, // Admin to decide based on school policy
+              reason: `Absenteeism: ${absences} days recorded in ${new Date(0, parseInt(month)-1).toLocaleString('default', {month:'short'})}`
             }
           });
         }
       }
+      return voucher;
+    });
 
-      // Attendance-Linked Deduction Suggestion
-      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-      const endDate = new Date(parseInt(year), parseInt(month), 0); // Last day of month
-
-      const absences = await prisma.staffAttendance.count({
-        where: {
-          staffId: s.id,
-          status: 'ABSENT',
-          date: { gte: startDate, lte: endDate }
-        }
-      });
-
-      if (absences > 0) {
-        await prisma.payrollDeduction.create({
-          data: {
-            payrollRecordId: record.id,
-            amount: 0, // Admin to decide based on school policy
-            reason: `Absenteeism: ${absences} days recorded in ${new Date(0, parseInt(month)-1).toLocaleString('default', {month:'short'})}`
-          }
-        });
-      }
-    }
-
-    res.json(voucher);
+    res.json(resultVoucher);
   } catch (error) {
+    console.error('[Payroll Error]:', error);
     res.status(500).json({ error: error.message });
   }
 });
