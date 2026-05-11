@@ -464,21 +464,21 @@ async function fetchDepartmentStatus(headId, schoolId) {
          where: { 
             teacherId: { in: staffIds }, 
             schoolId,
-            subject: { departmentId: department.id }
-         },
-         orderBy: { createdAt: 'desc' },
-         distinct: ['teacherId']
-      }),
-      prisma.result.findMany({
-         where: {
-            teacherId: { in: staffIds },
-            schoolId,
-            subject: { departmentId: department.id }
-         },
-         orderBy: { updatedAt: 'desc' },
-         distinct: ['teacherId']
-      })
-   ]);
+             subject: { departmentId: department.id }
+          },
+          orderBy: { date: 'desc' },
+          distinct: ['teacherId']
+       }),
+       prisma.result.findMany({
+          where: {
+             teacherId: { in: staffIds },
+             schoolId,
+             subject: { departmentId: department.id }
+          },
+          orderBy: { updatedAt: 'desc' },
+          distinct: ['teacherId']
+       })
+    ]);
 
    const staffStatus = department.staff.map((teacher) => {
       const teacherClassIds = teacher.classesAsTeacher.map(c => c.id);
@@ -487,7 +487,7 @@ async function fetchDepartmentStatus(headId, schoolId) {
       const lastRes = latestResults.find(r => r.teacherId === teacher.id);
       
       const lastActivity = [
-        lastQuran?.createdAt,
+        lastQuran?.date,
         lastRes?.updatedAt
       ].filter(Boolean).sort((a, b) => b - a)[0];
 
@@ -528,7 +528,7 @@ async function fetchDepartmentStatus(headId, schoolId) {
         where: { 
           schoolId, 
           subjectId: { in: subjectIds },
-          createdAt: { gte: start }
+           date: { gte: start }
          },
         _count: { _all: true },
         _sum: { pages: true }

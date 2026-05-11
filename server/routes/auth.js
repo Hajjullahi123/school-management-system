@@ -445,19 +445,31 @@ router.get('/me', authenticate, async (req, res) => {
         const studentClassId = user?.student?.classId || user?.student?.classModel?.id;
         
         if (role === 'teacher') {
-          // Find ANY single Quran-related assignment — stops at first match
+          // 1. Check if they are HOD of a Quran-related department
+          if (user.departmentAsHead) {
+            const deptName = user.departmentAsHead.name.toLowerCase();
+            if (deptName.includes('quran') || deptName.includes("qur'an")) {
+              return true;
+            }
+          }
+
+          // 2. Find ANY single Quran-related assignment — stops at first match
           const quranAssignment = await prisma.teacherAssignment.findFirst({
             where: {
               teacherId: req.user.id,
               schoolId: req.schoolId,
               classSubject: {
                 subject: {
-                  name: { contains: 'quran' }
+                  OR: [
+                    { name: { contains: 'quran', mode: 'insensitive' } },
+                    { name: { contains: "qur'an", mode: 'insensitive' } }
+                  ]
                 }
               }
             },
             select: { id: true }
           });
+          
           return !!quranAssignment;
         }
         
@@ -467,11 +479,25 @@ router.get('/me', authenticate, async (req, res) => {
               classId: studentClassId,
               schoolId: req.schoolId,
               subject: {
-                name: { contains: 'quran' }
+                name: { contains: 'quran', mode: 'insensitive' }
               }
             },
             select: { id: true }
           });
+
+          if (!quranSubject && studentClassId) {
+             const quranAltSubject = await prisma.classSubject.findFirst({
+                where: {
+                  classId: studentClassId,
+                  schoolId: req.schoolId,
+                  subject: {
+                    name: { contains: "qur'an", mode: 'insensitive' }
+                  }
+                },
+                select: { id: true }
+             });
+             return !!quranAltSubject;
+          }
           return !!quranSubject;
         }
         return false;

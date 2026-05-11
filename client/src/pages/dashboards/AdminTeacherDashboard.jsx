@@ -19,6 +19,7 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
   const [alumniCount, setAlumniCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [deptAlerts, setDeptAlerts] = useState(null);
+  const [deptScore, setDeptScore] = useState(null);
   const [nudges, setNudges] = useState([]);
 
   useEffect(() => {
@@ -42,6 +43,9 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
       const res = await api.get('/api/departments/my-department/status');
       if (res.ok) {
         const data = await res.json();
+        if (user.departmentAsHead) {
+          setDeptScore(data.overallScore);
+        }
         const me = data.staff.find(s => s.id === user.id);
         if (me && (me.needsUpdate || !me.hasTargets)) {
           setDeptAlerts({
@@ -294,6 +298,74 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
           </div>
         )}
       </div>
+
+      {/* HOD Quick Oversight Widget */}
+      {user?.departmentAsHead && (
+        <Link 
+          to="/dashboard/department-monitoring"
+          className="group relative overflow-hidden bg-gradient-to-br from-indigo-900 to-slate-900 p-6 rounded-[2.5rem] shadow-2xl border border-white/10 transition-all hover:scale-[1.01] active:scale-95"
+        >
+          <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl -mr-24 -mt-24 group-hover:scale-125 transition-transform duration-1000"></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md text-primary border border-white/10 shadow-inner">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-white font-black uppercase tracking-widest text-sm italic">Department Oversight</h3>
+                  <p className="text-primary-light text-[9px] font-black uppercase tracking-[0.2em] mt-0.5">{user.departmentAsHead.name} Hub</p>
+                </div>
+              </div>
+              <svg className="w-5 h-5 text-white/30 group-hover:text-primary transition-all transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+            </div>
+            
+            {/* Quick Stats Grid for HOD */}
+            <div className="grid grid-cols-2 gap-3">
+               <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
+                  <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Momentum</p>
+                  <div className="flex items-end gap-2">
+                     <p className="text-xl font-black text-white leading-none">{deptScore || 0}%</p>
+                     {deptScore < 70 && <span className="text-[8px] font-bold text-rose-500 uppercase animate-pulse">Lagging</span>}
+                  </div>
+               </div>
+               <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
+                  <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Status</p>
+                  <p className="text-sm font-black text-primary leading-none uppercase tracking-tighter">Ready to Nudge</p>
+               </div>
+            </div>
+          </div>
+        </Link>
+      )}
+
+      {/* Quran Tracker Quick Access for Quran Teachers */}
+      {user?.hasQuranAccess && (
+        <Link 
+          to="/dashboard/quran-tracker"
+          className="group relative overflow-hidden bg-gradient-to-br from-emerald-900 to-teal-900 p-6 rounded-[2.5rem] shadow-2xl border border-white/10 transition-all hover:scale-[1.01] active:scale-95"
+        >
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl -ml-24 -mb-24 group-hover:scale-125 transition-transform duration-1000"></div>
+          <div className="relative z-10 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md text-emerald-400 border border-white/10 shadow-inner">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-white font-black uppercase tracking-widest text-sm italic">Qur'an Tracker</h3>
+                <p className="text-emerald-400/60 text-[9px] font-black uppercase tracking-[0.2em] mt-0.5">Log Progress • Target Compliance</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+               <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase rounded-full border border-emerald-500/30">Active</span>
+               <svg className="w-5 h-5 text-white/30 group-hover:text-emerald-400 transition-all transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+            </div>
+          </div>
+        </Link>
+      )}
 
       {/* Notices */}
       {notices.length > 0 && (
