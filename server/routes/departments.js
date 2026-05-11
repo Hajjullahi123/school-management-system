@@ -140,12 +140,9 @@ router.post('/:id/subjects', authenticate, async (req, res) => {
     const { subjectIds } = req.body; // Array of subject IDs
     const departmentId = parseInt(id);
 
-    // If not admin/principal, check if user is the HOD of THIS department
+    // This is now restricted to Admin/Principal per user request
     if (!['admin', 'principal', 'superadmin'].includes(req.user.role)) {
-       const department = await prisma.department.findUnique({ where: { id: departmentId } });
-       if (!department || department.headId !== req.user.id) {
-          return res.status(403).json({ error: 'Access denied. You can only manage subjects for your own department.' });
-       }
+      return res.status(403).json({ error: 'Strategic Access Denied: Only administrators can synchronize departmental jurisdictions.' });
     }
     
     // Unset department for subjects that were previously in this department but not in the new list
@@ -448,9 +445,20 @@ async function fetchDepartmentStatus(headId, schoolId) {
    const now = new Date();
    const threeDaysAgo = new Date(now.getTime() - 86400000 * 3);
 
-   // Batch fetch all relevant data for the entire staff pool
-   const staffIds = department.staff.map(s => s.id);
-   const classIds = [...new Set(department.staff.flatMap(s => s.classesAsTeacher.map(c => c.id)))];
+   // 1. Identify departmental subjects
+    const departmentSubjects = await prisma.subject.findMany({
+       where: { departmentId: department.id, schoolId },
+       select: { id: true }
+    });
+    const deptSubjectIds = departmentSubjects.map(s => s.id);
+
+    // 2. Identify classes where these subjects are taught
+    const classSubjects = await prisma.classSubject.findMany({
+       where: { subjectId: { in: deptSubjectIds }, schoolId },
+       select: { classId: true }
+    });
+    const classIds = [...new Set(classSubjects.map(cs => cs.classId))];
+    const staffIds = department.staff.map(s => s.id);
 
    // 1. Fetch Targets count per class
    const targets = (currentTerm && classIds.length > 0) ? await prisma.quranTarget.findMany({
@@ -517,12 +525,7 @@ async function fetchDepartmentStatus(headId, schoolId) {
      const timeElapsed = now - start;
      const termProgress = Math.min(100, Math.max(0, (timeElapsed / termDuration) * 100));
 
-     // Fetch aggregate activity for department subjects
-     const departmentSubjects = await prisma.subject.findMany({
-        where: { departmentId: department.id },
-        select: { id: true }
-     });
-     const subjectIds = departmentSubjects.map(s => s.id);
+     const subjectIds = deptSubjectIds;
 
      const stats = await prisma.quranRecord.aggregate({
         where: { 

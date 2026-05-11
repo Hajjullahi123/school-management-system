@@ -95,11 +95,33 @@ const QuranTracker = () => {
 
   const fetchQuranSubjects = async () => {
     try {
-      const resp = await api.get('/api/subjects');
+      // Fetch only subjects the teacher is actually assigned to
+      const resp = await api.get('/api/teacher-assignments/my-subjects');
       if (resp.ok) {
-        const allSubjects = await resp.json();
-        // Look for subjects that are in a department named "Quran" or just show all for flexibility
-        setQuranSubjects(allSubjects);
+        const assignments = await resp.json();
+        // Extract subjects from assignments
+        const uniqueSubjects = [];
+        const seenIds = new Set();
+        
+        assignments.forEach(a => {
+          const sub = a.classSubject.subject;
+          if (!seenIds.has(sub.id)) {
+            // Only include subjects that are likely Quran related (if department filtering isn't available)
+            const name = sub.name.toLowerCase();
+            if (name.includes('quran') || name.includes("qur'an") || name.includes('hifz') || name.includes('tilawa')) {
+               uniqueSubjects.push(sub);
+               seenIds.add(sub.id);
+            }
+          }
+        });
+
+        setQuranSubjects(uniqueSubjects);
+        
+        // Auto-select if only one exists
+        if (uniqueSubjects.length === 1) {
+          setTargetForm(prev => ({ ...prev, subjectId: uniqueSubjects[0].id }));
+          setRecordForm(prev => ({ ...prev, subjectId: uniqueSubjects[0].id }));
+        }
       }
     } catch (error) {
       console.error('Error fetching Quran subjects:', error);
