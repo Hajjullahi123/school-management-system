@@ -50,7 +50,7 @@ const PhotoUpload = ({ studentId, currentPhotoUrl, onPhotoUpload }) => {
 
       if (response.ok) {
         alert('Photo uploaded successfully!');
-        setPreview(`${API_BASE_URL}${result.photoUrl}`);
+        setPreview(result.photoUrl);
         setSelectedFile(null);
         if (onPhotoUpload) {
           onPhotoUpload(result.photoUrl);

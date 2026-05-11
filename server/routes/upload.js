@@ -42,8 +42,8 @@ function fileToBase64(file) {
 
 // ============ STUDENT PHOTO UPLOAD ============
 
-// Upload student photo (Admin)
-router.post('/:studentId/photo', authenticate, authorize(['admin']), upload.single('photo'), async (req, res) => {
+// Upload student photo (Admin/Principal/Staff)
+router.post('/:studentId/photo', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), upload.single('photo'), async (req, res) => {
   try {
     const studentId = parseInt(req.params.studentId);
 
@@ -51,9 +51,12 @@ router.post('/:studentId/photo', authenticate, authorize(['admin']), upload.sing
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Check if student exists
-    const student = await prisma.student.findUnique({
-      where: { id: studentId }
+    // Check if student exists and belongs to the school
+    const student = await prisma.student.findFirst({
+      where: { 
+        id: studentId,
+        schoolId: parseInt(req.schoolId)
+      }
     });
 
     if (!student) {
@@ -89,13 +92,12 @@ router.post('/:studentId/photo', authenticate, authorize(['admin']), upload.sing
 
     res.json({
       message: 'Photo uploaded successfully',
-      photoUrl: photoUrl,
-      student: updatedStudent
+      photoUrl: photoUrl
     });
 
     // Log the upload
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'UPLOAD_PHOTO',
       resource: 'STUDENT',
@@ -112,12 +114,15 @@ router.post('/:studentId/photo', authenticate, authorize(['admin']), upload.sing
 });
 
 // Delete student photo
-router.delete('/:studentId/photo', authenticate, authorize(['admin']), async (req, res) => {
+router.delete('/:studentId/photo', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const studentId = parseInt(req.params.studentId);
 
-    const student = await prisma.student.findUnique({
-      where: { id: studentId }
+    const student = await prisma.student.findFirst({
+      where: { 
+        id: studentId,
+        schoolId: parseInt(req.schoolId)
+      }
     });
 
     if (!student) {
@@ -146,7 +151,7 @@ router.delete('/:studentId/photo', authenticate, authorize(['admin']), async (re
 
     // Log the deletion
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'DELETE_PHOTO',
       resource: 'STUDENT',
@@ -161,8 +166,8 @@ router.delete('/:studentId/photo', authenticate, authorize(['admin']), async (re
 
 // ============ TEACHER PHOTO UPLOAD ============
 
-// Upload teacher photo (Admin)
-router.post('/teacher/:teacherId/photo', authenticate, authorize(['admin']), upload.single('photo'), async (req, res) => {
+// Upload teacher photo (Admin/Principal)
+router.post('/teacher/:teacherId/photo', authenticate, authorize(['admin', 'principal']), upload.single('photo'), async (req, res) => {
   try {
     const teacherId = parseInt(req.params.teacherId);
 
@@ -170,9 +175,12 @@ router.post('/teacher/:teacherId/photo', authenticate, authorize(['admin']), upl
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Check if teacher exists
-    const teacher = await prisma.teacher.findUnique({
-      where: { id: teacherId }
+    // Check if teacher exists and belongs to the school
+    const teacher = await prisma.teacher.findFirst({
+      where: { 
+        id: teacherId,
+        schoolId: parseInt(req.schoolId)
+      }
     });
 
     if (!teacher) {
@@ -213,7 +221,7 @@ router.post('/teacher/:teacherId/photo', authenticate, authorize(['admin']), upl
 
     // Log the upload
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'UPLOAD_PHOTO',
       resource: 'TEACHER',
@@ -230,12 +238,15 @@ router.post('/teacher/:teacherId/photo', authenticate, authorize(['admin']), upl
 });
 
 // Delete teacher photo
-router.delete('/teacher/:teacherId/photo', authenticate, authorize(['admin']), async (req, res) => {
+router.delete('/teacher/:teacherId/photo', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const teacherId = parseInt(req.params.teacherId);
 
-    const teacher = await prisma.teacher.findUnique({
-      where: { id: teacherId }
+    const teacher = await prisma.teacher.findFirst({
+      where: { 
+        id: teacherId,
+        schoolId: parseInt(req.schoolId)
+      }
     });
 
     if (!teacher) {
@@ -264,7 +275,7 @@ router.delete('/teacher/:teacherId/photo', authenticate, authorize(['admin']), a
 
     // Log the deletion
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'DELETE_PHOTO',
       resource: 'TEACHER',
@@ -376,8 +387,8 @@ router.post('/admission-guide', authenticate, authorize(['admin']), documentUplo
 
 // ============ CERTIFICATE PHOTO UPLOAD ============
 
-// Upload certificate photo
-router.post('/certificate/:certificateId/photo', authenticate, authorize(['admin']), upload.single('photo'), async (req, res) => {
+// Upload certificate photo (Admin/Principal)
+router.post('/certificate/:certificateId/photo', authenticate, authorize(['admin', 'principal']), upload.single('photo'), async (req, res) => {
   try {
     const certificateId = parseInt(req.params.certificateId);
 
@@ -385,9 +396,12 @@ router.post('/certificate/:certificateId/photo', authenticate, authorize(['admin
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Check if certificate exists
-    const certificate = await prisma.certificate.findUnique({
-      where: { id: certificateId }
+    // Check if certificate exists and belongs to the school
+    const certificate = await prisma.certificate.findFirst({
+      where: { 
+        id: certificateId,
+        schoolId: parseInt(req.schoolId)
+      }
     });
 
     if (!certificate) {
@@ -420,7 +434,7 @@ router.post('/certificate/:certificateId/photo', authenticate, authorize(['admin
 
     // Log the upload
     logAction({
-      schoolId: req.schoolId,
+      schoolId: parseInt(req.schoolId),
       userId: req.user.id,
       action: 'UPLOAD_PHOTO',
       resource: 'CERTIFICATE',
