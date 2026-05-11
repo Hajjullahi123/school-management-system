@@ -257,7 +257,14 @@ const HRAdminDashboard = () => {
                                   <td className="p-6"><span className={`text-[9px] font-black uppercase ${m.priority === 'URGENT' ? 'text-rose-600' : 'text-gray-400'}`}>{m.priority}</span></td>
                                   <td className="p-6 text-right">
                                      {m.status === 'PENDING' ? (
-                                        <button onClick={() => handleProcessRequest('material', m.id, 'APPROVED')} className="bg-gray-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all">Disburse</button>
+                                         <div className="flex justify-end gap-2">
+                                            <button onClick={() => handleProcessRequest('material', m.id, 'APPROVED')} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all" title="Approve & Disburse">
+                                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                                            </button>
+                                            <button onClick={() => handleProcessRequest('material', m.id, 'REJECTED')} className="p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all" title="Reject Request">
+                                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                            </button>
+                                         </div>
                                      ) : (
                                         <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">{m.status}</span>
                                      )}
@@ -285,7 +292,10 @@ const HRAdminDashboard = () => {
                                })()}
                             </div>
                             {m.status === 'PENDING' && (
-                               <button onClick={() => handleProcessRequest('material', m.id, 'APPROVED')} className="w-full bg-gray-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest">Disburse Supplies</button>
+                               <div className="flex gap-2">
+                                  <button onClick={() => handleProcessRequest('material', m.id, 'APPROVED')} className="flex-1 bg-emerald-600 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest">Approve</button>
+                                  <button onClick={() => handleProcessRequest('material', m.id, 'REJECTED')} className="flex-1 bg-rose-600 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest">Reject</button>
+                               </div>
                             )}
                          </div>
                       ))}
