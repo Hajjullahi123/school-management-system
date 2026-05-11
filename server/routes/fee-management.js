@@ -1477,13 +1477,37 @@ router.delete('/student/:studentId/reset', async (req, res) => {
       }
     });
 
-    // Delete all FeeRecords
-    await prisma.feeRecord.deleteMany({
+    // 3. Reset all FeeRecords instead of deleting them
+    // This preserves the "fee structure" (expected amounts) as requested
+    const feeRecords = await prisma.feeRecord.findMany({
       where: {
         studentId: parseInt(studentId),
         schoolId: parseInt(req.schoolId)
-      }
+      },
+      include: { Term: true },
+      orderBy: { Term: { startDate: 'asc' } }
     });
+
+    let runningDebt = 0;
+    for (const record of feeRecords) {
+      const newOpeningBalance = runningDebt;
+      const newBalance = newOpeningBalance + record.expectedAmount; // paidAmount is now 0
+      
+      await prisma.feeRecord.update({
+        where: { id: record.id },
+        data: {
+          openingBalance: newOpeningBalance,
+          paidAmount: 0,
+          balance: newBalance,
+          isClearedForExam: (newBalance <= 0),
+          clearedBy: null,
+          clearedAt: null
+        }
+      });
+      
+      // Update running debt for the next term
+      runningDebt += record.expectedAmount;
+    }
 
     // Log the action
     logAction({
