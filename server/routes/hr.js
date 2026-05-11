@@ -389,13 +389,18 @@ router.get('/admin/requests', authenticate, canManageHR, async (req, res) => {
 
 router.patch('/admin/loan-requests/:id', authenticate, canManageHR, async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, rejectionReason } = req.body;
     const updated = await prisma.loanRequest.update({
       where: { 
         id: parseInt(req.params.id),
         staff: { schoolId: req.schoolId } // Security: Ensure request belongs to this school
       },
-      data: { status, processedById: req.user.id, processedAt: new Date() }
+      data: { 
+        status, 
+        rejectionReason,
+        processedById: req.user.id, 
+        processedAt: new Date() 
+      }
     });
     res.json(updated);
   } catch (error) {
@@ -405,13 +410,18 @@ router.patch('/admin/loan-requests/:id', authenticate, canManageHR, async (req, 
 
 router.patch('/admin/leave-requests/:id', authenticate, canManageHR, async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, rejectionReason } = req.body;
     const updated = await prisma.leaveRequest.update({
       where: { 
         id: parseInt(req.params.id),
         schoolId: req.schoolId // Security check
       },
-      data: { status, processedById: req.user.id, processedAt: new Date() }
+      data: { 
+        status, 
+        rejectionReason,
+        processedById: req.user.id, 
+        processedAt: new Date() 
+      }
     });
     res.json(updated);
   } catch (error) {
@@ -421,13 +431,18 @@ router.patch('/admin/leave-requests/:id', authenticate, canManageHR, async (req,
 
 router.patch('/admin/material-requests/:id', authenticate, canManageHR, async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, rejectionReason } = req.body;
     const updated = await prisma.materialRequest.update({
       where: { 
         id: parseInt(req.params.id),
         schoolId: req.schoolId // Security check
       },
-      data: { status, processedById: req.user.id, processedAt: new Date() }
+      data: { 
+        status, 
+        rejectionReason,
+        processedById: req.user.id, 
+        processedAt: new Date() 
+      }
     });
     res.json(updated);
   } catch (error) {

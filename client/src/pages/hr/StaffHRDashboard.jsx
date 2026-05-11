@@ -211,6 +211,7 @@ const StaffHRDashboard = () => {
                                <p className="text-lg font-black text-gray-900">₦{loan.amount.toLocaleString()}</p>
                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{loan.reason}</p>
                                <p className="text-[8px] font-black text-indigo-500 uppercase">Repayment: {loan.repaymentMonths} Months</p>
+                               {loan.rejectionReason && <p className="mt-2 text-[9px] font-bold text-rose-500 bg-rose-50 p-2 rounded-lg border border-rose-100 italic">Reason: {loan.rejectionReason}</p>}
                             </div>
                             <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest ${
                                loan.status === 'APPROVED' ? 'bg-emerald-500 text-white' : 
@@ -249,7 +250,8 @@ const StaffHRDashboard = () => {
                             <span className={`text-[8px] font-black uppercase ${l.status === 'APPROVED' ? 'text-emerald-600' : 'text-amber-600'}`}>{l.status}</span>
                          </div>
                          <p className="text-sm font-bold text-gray-800 mb-1">{l.reason}</p>
-                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{new Date(l.startDate).toLocaleDateString()} - {new Date(l.endDate).toLocaleDateString()}</p>
+                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">{new Date(l.startDate).toLocaleDateString()} - {new Date(l.endDate).toLocaleDateString()}</p>
+                         {l.rejectionReason && <p className="text-[9px] font-bold text-rose-500 bg-rose-50 p-2 rounded-lg border border-rose-100 italic">Reason: {l.rejectionReason}</p>}
                       </div>
                    ))}
                 </div>
@@ -278,7 +280,8 @@ const StaffHRDashboard = () => {
                                } catch (e) { return <span className="text-[9px] text-gray-400 italic">Invalid Data</span>; }
                             })()}
                          </div>
-                         <p className="text-[8px] font-bold text-gray-400 uppercase mt-3">Requested on {new Date(m.createdAt).toLocaleDateString()}</p>
+                         <p className="text-[8px] font-bold text-gray-400 uppercase mt-3 mb-2">Requested on {new Date(m.createdAt).toLocaleDateString()}</p>
+                         {m.rejectionReason && <p className="text-[9px] font-bold text-rose-500 bg-rose-50 p-2 rounded-lg border border-rose-100 italic">Reason: {m.rejectionReason}</p>}
                       </div>
                    ))}
                 </div>

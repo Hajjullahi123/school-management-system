@@ -1486,6 +1486,7 @@ model LoanRequest {
   status          String    @default("PENDING") // PENDING, APPROVED, REJECTED, COMPLETED
   processedById   Int?
   processedAt     DateTime?
+  rejectionReason String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   
@@ -1506,6 +1507,7 @@ model LeaveRequest {
   status          String    @default("PENDING") // PENDING, APPROVED, REJECTED
   processedById   Int?
   processedAt     DateTime?
+  rejectionReason String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   
@@ -1526,6 +1528,7 @@ model MaterialRequest {
   status          String    @default("PENDING") // PENDING, APPROVED, REJECTED, DISBURSED
   processedById   Int?
   processedAt     DateTime?
+  rejectionReason String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   
