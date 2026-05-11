@@ -1339,21 +1339,37 @@ export default function FeeManagement() {
 
   const viewPaymentHistory = async (student) => {
     try {
+      if (!student) return;
+      
       const historyTermId = selectedViewTerm?.id || 'all';
-      const historySessionId = selectedViewSession?.id || currentSession.id;
+      // Defensive: Ensure session ID is valid
+      const historySessionId = selectedViewSession?.id || currentSession?.id;
+      
+      if (!historySessionId) {
+        console.warn('Cannot fetch payment history: No academic session identified.');
+        return;
+      }
+
       const response = await api.get(
         `/api/fees/payments/${student.id}?termId=${historyTermId}&academicSessionId=${historySessionId}`
       );
 
       const data = await response.json();
-      if (data) {
+      if (response.ok && Array.isArray(data)) {
         setPaymentHistory(data);
         setHistoryStudent(student);
         setShowPaymentHistory(true);
+      } else {
+        console.error('Invalid payment history data:', data);
+        setPaymentHistory([]);
+        setHistoryStudent(student);
+        setShowPaymentHistory(true);
+        toast.error(data.error || 'No payment records found or failed to load.');
       }
     } catch (error) {
       console.error('Error fetching payment history:', error);
-      alert('Failed to load payment history');
+      toast.error('Failed to load payment history');
+      setPaymentHistory([]);
     }
   };
 
@@ -3360,9 +3376,9 @@ export default function FeeManagement() {
 
       {/* Payment History Modal */}
       {showPaymentHistory && historyStudent && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm overflow-y-auto h-full w-full flex justify-center items-center z-[100] p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col transition-all duration-300">
-            <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-white rounded-t-3xl sm:rounded-t-2xl">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-2 sm:p-4 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col border border-white/20">
+            <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h2 className="text-xl font-black text-gray-900 italic tracking-tighter uppercase">Payment History</h2>
               <button
                 onClick={() => setShowPaymentHistory(false)}
@@ -3405,9 +3421,11 @@ export default function FeeManagement() {
                   📝 Use <strong>Edit</strong> to update payment records.
                 </p>
               </div>
-              {paymentHistory.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No payments found for this term.
+              {!Array.isArray(paymentHistory) || paymentHistory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-500 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 mx-4">
+                  <div className="text-4xl mb-2">💸</div>
+                  <p className="font-bold text-gray-600">No Payment History Found</p>
+                  <p className="text-sm">No recorded payments match the current filter criteria.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
@@ -3453,11 +3471,14 @@ export default function FeeManagement() {
                               <span className="mr-1">📄</span> Receipt
                             </button>
                             <button
-                              onClick={() => startEditPayment(payment)}
-                              className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors border border-blue-100 font-bold"
-                            >
-                              Edit
-                            </button>
+                               onClick={() => {
+                                 console.log('Editing payment:', payment);
+                                 startEditPayment(payment);
+                               }}
+                               className="inline-flex items-center px-4 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-sm font-bold text-xs"
+                             >
+                               <span className="mr-1">✏️</span> Edit
+                             </button>
                           </td>
                         </tr>
                       ))}
@@ -3481,8 +3502,8 @@ export default function FeeManagement() {
 
       {/* Edit Payment Modal */}
       {editingPayment && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md overflow-y-auto h-full w-full flex justify-center items-center z-[110] p-4">
-          <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md overflow-y-auto h-full w-full flex justify-center items-center z-[2000] p-4">
+          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white/20 transform transition-all">
             <h2 className="text-xl font-bold mb-4">Edit Payment</h2>
 
             <div className="space-y-4">

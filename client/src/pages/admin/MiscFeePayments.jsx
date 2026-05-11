@@ -154,13 +154,13 @@ const MiscFeePayments = () => {
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
         <style>
           @page {
-            size: 74mm 105mm;
-            margin: 0;
+            size: auto;
+            margin: 0mm;
           }
           @media print {
-            body { margin: 0; padding: 0; background: white !important; }
+            html, body { margin: 0 !important; padding: 0 !important; background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .no-print { display: none !important; }
-            .receipt-card { box-shadow: none !important; border: 1px solid #eee !important; margin: 0 !important; width: 74mm !important; height: 105mm !important; }
+            .receipt-card { box-shadow: none !important; border: none !important; margin: 0 auto !important; width: 74mm !important; height: 100mm !important; break-inside: avoid !important; page-break-inside: avoid !important; }
           }
           * { box-sizing: border-box; }
           body {
@@ -175,7 +175,7 @@ const MiscFeePayments = () => {
           .receipt-card {
             background: white;
             width: 74mm;
-            height: 105mm;
+            height: 100mm;
             margin: 0 auto;
             border-radius: 4mm;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
@@ -465,9 +465,18 @@ const MiscFeePayments = () => {
       </html>
     `);
       printWindow.document.close();
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
+      
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 300);
+      };
+
+      if (printWindow.document.readyState === 'complete') {
+        setTimeout(() => {
+          if (printWindow.print) printWindow.print();
+        }, 800);
+      }
     } catch (error) {
       toast.error('Error generating receipt: ' + error.message);
     }
