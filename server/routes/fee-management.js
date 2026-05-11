@@ -792,6 +792,113 @@ router.put('/payment/:paymentId', authenticate, authorize(['admin', 'principal',
     res.status(500).json({ error: error.message });
   }
 });
+// Delete payment (Accountant/Admin)
+router.delete('/payment/:paymentId', authenticate, authorize(['admin', 'principal', 'accountant']), async (req, res) => {
+  try {
+    const paymentId = parseInt(req.params.paymentId);
+
+    // Get existing payment
+    const payment = await prisma.feePayment.findFirst({
+      where: {
+        id: paymentId,
+        schoolId: parseInt(req.schoolId)
+      },
+      include: {
+        FeeRecord: {
+          include: { Term: true }
+        }
+      }
+    });
+
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment record not found' });
+    }
+
+    const feeRecord = payment.FeeRecord;
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete the payment
+      await tx.feePayment.delete({
+        where: { id: paymentId }
+      });
+
+      // 2. Update the parent fee record
+      const updatedPaidAmount = feeRecord.paidAmount - payment.amount;
+      const updatedBalance = (feeRecord.openingBalance + feeRecord.expectedAmount) - updatedPaidAmount;
+
+      await tx.feeRecord.update({
+        where: { id: feeRecord.id },
+        data: {
+          paidAmount: updatedPaidAmount,
+          balance: updatedBalance,
+          isClearedForExam: (updatedBalance <= 0)
+        }
+      });
+
+      // 3. CASCADE UPDATE: Recalculate openingBalance for all subsequent terms
+      const subsequentRecords = await tx.feeRecord.findMany({
+        where: {
+          studentId: feeRecord.studentId,
+          schoolId: parseInt(req.schoolId),
+          Term: {
+            startDate: { gt: feeRecord.Term.startDate }
+          }
+        },
+        include: { Term: true },
+        orderBy: { Term: { startDate: 'asc' } }
+      });
+
+      // Get total debt up to this term after deletion
+      const allPriorRecords = await tx.feeRecord.findMany({
+        where: {
+          studentId: feeRecord.studentId,
+          schoolId: parseInt(req.schoolId),
+          Term: {
+            startDate: { lte: feeRecord.Term.startDate }
+          }
+        },
+        select: { expectedAmount: true, paidAmount: true }
+      });
+
+      let runningDebt = allPriorRecords.reduce((sum, r) => sum + (r.expectedAmount || 0) - (r.paidAmount || 0), 0);
+
+      for (const record of subsequentRecords) {
+        const newOpeningBalance = runningDebt;
+        const newBalance = newOpeningBalance + record.expectedAmount - record.paidAmount;
+        await tx.feeRecord.update({
+          where: { id: record.id },
+          data: {
+            openingBalance: newOpeningBalance,
+            balance: newBalance,
+            isClearedForExam: (newBalance <= 0)
+          }
+        });
+        runningDebt += (record.expectedAmount || 0) - (record.paidAmount || 0);
+      }
+    });
+
+    res.json({ message: 'Payment deleted successfully' });
+
+    // Log the deletion
+    logAction({
+      schoolId: parseInt(req.schoolId),
+      userId: req.user.id,
+      action: 'DELETE',
+      resource: 'FEE_PAYMENT',
+      details: {
+        paymentId,
+        studentId: feeRecord.studentId,
+        amount: payment.amount,
+        termId: feeRecord.termId
+      },
+      ipAddress: req.ip
+    });
+
+  } catch (error) {
+    console.error('Error deleting payment:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Get payment history for a student
 router.get('/payments/:studentId', authenticate, authorize(['admin', 'principal', 'accountant', 'student']), async (req, res) => {

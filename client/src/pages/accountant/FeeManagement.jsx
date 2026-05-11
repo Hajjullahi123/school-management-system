@@ -1246,6 +1246,40 @@ export default function FeeManagement() {
     }
   };
 
+  const deletePayment = async (paymentId) => {
+    if (!confirm('⚠️ Are you sure you want to PERMANENTLY DELETE this payment? This will increase the student\'s balance and update their arrears. This action cannot be undone.')) return;
+
+    try {
+      setProcessingPayment(true);
+      const response = await api.delete(`/api/fees/payment/${paymentId}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete payment');
+      }
+
+      toast.success('Payment deleted successfully');
+
+      // Refresh history
+      await viewPaymentHistory(historyStudent);
+
+      // Refresh main data
+      const refreshTermId = selectedViewTerm?.id || (currentTerm?.id);
+      const refreshSessionId = selectedViewSession?.id || (currentSession?.id);
+      if (viewAllTerms) {
+        await loadStudentsAllTerms(refreshSessionId);
+      } else {
+        await loadStudents(refreshTermId, refreshSessionId);
+        await loadSummary(refreshTermId, refreshSessionId);
+      }
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      toast.error(error.message || 'Failed to delete payment');
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
   const handleResetLedger = async (studentId) => {
     if (!confirm('⚠️ EXTREME WARNING: You are about to RESET this student\'s entire ledger. This will PERMANENTLY DELETE all payment history and fee records for this student. This action cannot be undone.\n\nType "RESET" to confirm.')) return;
     
@@ -3443,6 +3477,13 @@ export default function FeeManagement() {
                              >
                                <span className="mr-1">✏️</span> Edit
                              </button>
+                             <button
+                                onClick={() => deletePayment(payment.id)}
+                                className="inline-flex items-center px-4 py-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all border border-rose-100 font-bold text-xs"
+                                title="Delete this payment"
+                              >
+                                <span className="mr-1">🗑️</span> Delete
+                              </button>
                           </td>
                         </tr>
                       ))}
