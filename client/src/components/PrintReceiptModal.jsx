@@ -48,12 +48,13 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
 
   const generateSinglePaymentReceipt = (payment) => {
     const primaryColor = schoolSettings.primaryColor || '#0f766e';
+    const cleanBaseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
     const logoUrl = schoolSettings.logoUrl
-      ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl}`)
+      ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${cleanBaseUrl}${schoolSettings.logoUrl.startsWith('/') ? '' : '/'}${schoolSettings.logoUrl}`)
       : null;
-    const logoHTML = logoUrl
-      ? `<img src="${logoUrl}" alt="School Logo" style="height: 80px; width: auto; max-width: 250px; object-fit: contain; margin-bottom: 12px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));" />`
-      : '';
+    
+    const termName = payment.FeeRecord?.Term?.name || selectedTerm?.name || 'Current Term';
+    const sessionName = payment.FeeRecord?.AcademicSession?.name || selectedSession?.name || 'Current Session';
 
     const securityHash = btoa(`PAY-${payment.id}-${student.id}`).substring(0, 12).toUpperCase();
     const barcodeText = `PAY-${payment.id}`;
@@ -306,6 +307,17 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
               <div class="info-value">${student.classModel?.name || ''} ${student.classModel?.arm || ''}</div>
             </div>
 
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="info-group">
+                <div class="info-label">Term</div>
+                <div class="info-value">${termName}</div>
+              </div>
+              <div class="info-group">
+                <div class="info-label">Session</div>
+                <div class="info-value">${sessionName}</div>
+              </div>
+            </div>
+
             <div class="section-title" style="margin-top: 10px;">Payment</div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
               <div class="info-group">
@@ -376,8 +388,9 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
 
   const generateTermReceipt = async () => {
     const primaryColor = schoolSettings.primaryColor || '#0f766e';
+    const cleanBaseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
     const logoUrl = schoolSettings.logoUrl
-      ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl}`)
+      ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${cleanBaseUrl}${schoolSettings.logoUrl.startsWith('/') ? '' : '/'}${schoolSettings.logoUrl}`)
       : null;
     const logoHTML = logoUrl
       ? `<img src="${logoUrl}" alt="School Logo" style="height: 70px; width: auto; max-width: 250px; object-fit: contain; margin-bottom: 8px;" />`
@@ -566,8 +579,9 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
 
   const generateCumulativeReceipt = async () => {
     const primaryColor = schoolSettings.primaryColor || '#0f766e';
+    const cleanBaseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
     const logoUrl = schoolSettings.logoUrl
-      ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl}`)
+      ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${cleanBaseUrl}${schoolSettings.logoUrl.startsWith('/') ? '' : '/'}${schoolSettings.logoUrl}`)
       : null;
     const logoHTML = logoUrl
       ? `<img src="${logoUrl}" alt="School Logo" style="height: 65px; width: auto; max-width: 250px; object-fit: contain; margin-bottom: 5px;" />`
