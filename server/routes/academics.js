@@ -515,6 +515,18 @@ router.get('/lesson-monitoring', authenticate, authorize(['admin', 'superadmin',
 
     const where = { schoolId, role: 'teacher', isActive: true };
     if (departmentId) where.departmentId = parseInt(departmentId);
+    
+    // Security check: Teachers (HODs) can only monitor their own department
+    if (req.user.role === 'teacher') {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { departmentAsHead: { select: { id: true } } }
+      });
+      if (!user.departmentAsHead || (departmentId && parseInt(departmentId) !== user.departmentAsHead.id)) {
+        return res.status(403).json({ error: 'You are not authorized to monitor this department' });
+      }
+      where.departmentId = user.departmentAsHead.id;
+    }
 
     const teachers = await prisma.user.findMany({
       where,

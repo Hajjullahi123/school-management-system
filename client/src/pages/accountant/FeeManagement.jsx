@@ -2104,10 +2104,15 @@ export default function FeeManagement() {
                     <span className="font-black text-lg text-white">{summary.totalStudents > 0 ? ((summary.clearedStudents / summary.totalStudents) * 100).toFixed(1) : 0}%</span>
                   </div>
                   <div className="pt-3 border-t border-white/20">
-                    <div className="flex items-center justify-between">
-                      <span className="text-yellow-200 text-sm font-bold">🎓 On Scholarship</span>
-                      <span className="font-black text-lg text-yellow-200">{students.filter(s => s.isScholarship).length}</span>
-                    </div>
+                    <button 
+                      onClick={() => setSelectedClassView(selectedClassView === 'scholarship' ? null : 'scholarship')}
+                      className={`w-full flex items-center justify-between p-2 rounded-lg transition-all ${selectedClassView === 'scholarship' ? 'bg-white/30 ring-2 ring-white/50' : 'hover:bg-white/10'}`}
+                    >
+                      <span className="text-yellow-200 text-sm font-bold uppercase tracking-tight">🎓 Scholarship Filter</span>
+                      <span className="font-black text-lg text-white">
+                        {students.filter(s => s.isScholarship).length}
+                      </span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2512,48 +2517,7 @@ export default function FeeManagement() {
                 </button>
               ))}
 
-              {/* Scholarship Card */}
-              {(() => {
-                const scholarshipStudents = (Array.isArray(students) ? students : []).filter(s => s.isScholarship);
-                if (scholarshipStudents.length === 0) return null;
-                
-                return (
-                  <button
-                    onClick={() => setSelectedClassView('scholarship')}
-                    className={`p-5 rounded-xl border-2 transition-all transform hover:scale-105 hover:shadow-lg text-left ${selectedClassView === 'scholarship'
-                      ? 'border-red-500 bg-red-50 shadow-md'
-                      : 'border-red-200 bg-white hover:border-red-500/50'
-                      }`}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-bold text-red-700">🎓 Scholarship Students</h3>
-                      {selectedClassView === 'scholarship' && (
-                        <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="space-y-4">
-                       <div className="flex justify-between text-xs">
-                        <span className="text-gray-500">Students:</span>
-                        <span className="font-semibold text-gray-900">{scholarshipStudents.length}</span>
-                      </div>
-                      <div className="pt-2">
-                        <div 
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             exportToCSV('class', 'scholarship');
-                           }}
-                           className="w-full flex justify-center items-center gap-2 px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-xs font-bold transition-colors shadow"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                          Print Scholarship List
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })()}
+
             </div>
 
             {selectedClassView !== null && (

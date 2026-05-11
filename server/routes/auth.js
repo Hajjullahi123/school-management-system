@@ -537,7 +537,8 @@ router.get('/me', authenticate, async (req, res) => {
       unreadMessageCount: unreadCount,
       isFormMaster: !!formMasterClass,
       formMasterClass: formMasterClass,
-      hasQuranAccess: hasQuranAccess
+      hasQuranAccess: hasQuranAccess,
+      departmentAsHead: user.departmentAsHead
     });
   } catch (error) {
     console.error('Me error:', error);

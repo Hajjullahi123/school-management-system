@@ -224,6 +224,22 @@ h3 {
   letter-spacing: -0.025em;
 }
 
+/* Global SVG Constraint - Prevent giant icons */
+svg {
+  max-width: 100%;
+  height: auto;
+  flex-shrink: 0;
+}
+
+/* Sidebar Specific Icon Constraints */
+nav a svg,
+.sidebar-link svg {
+  width: 1.25rem !important; /* w-5 */
+  height: 1.25rem !important; /* h-5 */
+  min-width: 1.25rem;
+  min-height: 1.25rem;
+}
+
 @media print {
   @page {
     size: A4;

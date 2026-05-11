@@ -122,6 +122,17 @@ router.post('/:id/staff', authenticate, authorize(['admin', 'principal', 'supera
     }
 
     // 3. Perform the update
+    // First, unset department for staff who were previously in this department but not in the new list
+    await prisma.user.updateMany({
+      where: { 
+        departmentId: departmentId, 
+        schoolId: req.schoolId, 
+        NOT: { id: { in: staffIds } } 
+      },
+      data: { departmentId: null }
+    });
+
+    // Then, set department for the new list
     await prisma.user.updateMany({
       where: { id: { in: staffIds }, schoolId: req.schoolId },
       data: { departmentId: departmentId }
