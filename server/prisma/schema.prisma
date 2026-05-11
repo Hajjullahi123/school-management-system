@@ -1182,7 +1182,7 @@ model FeePayment {
   recordedBy    Int
   createdAt     DateTime  @default(now())
   FeeRecord     FeeRecord @relation(fields: [feeRecordId], references: [id])
-  User          User      @relation(fields: [recordedBy], references: [id])
+  recordedByUser User      @relation(fields: [recordedBy], references: [id])
   School        School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 

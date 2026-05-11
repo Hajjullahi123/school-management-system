@@ -18,7 +18,9 @@ const DepartmentManagement = () => {
   const [formData, setFormData] = useState({ name: '', headId: '', subjectIds: [] });
   const [selectedStaffIds, setSelectedStaffIds] = useState([]);
   const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
+  const [assignments, setAssignments] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
+  const { refreshUser } = useAuth();
 
   useEffect(() => {
     fetchData();
@@ -28,15 +30,21 @@ const DepartmentManagement = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [deptRes, staffRes, subRes] = await Promise.all([
+      const [deptRes, staffRes, subRes, assignRes] = await Promise.all([
         api.get('/api/departments'),
         api.get('/api/users?role=teacher'),
-        api.get('/api/subjects')
+        api.get('/api/subjects'),
+        api.get('/api/teacher-assignments')
       ]);
 
       if (deptRes.ok) {
          const depts = await deptRes.json();
          setDepartments(depts);
+         
+         if (assignRes.ok) {
+           setAssignments(await assignRes.json());
+         }
+
          if (staffRes.ok) {
             const staffData = await staffRes.json();
             const enrichedStaff = staffData.map(s => {
@@ -80,6 +88,8 @@ const DepartmentManagement = () => {
         setFormData({ name: '', headId: '', subjectIds: [] });
         setIsEditing(false);
         fetchData();
+        // If the current user was appointed or is the head, refresh their session
+        refreshUser();
       } else {
         const err = await response.json();
         toast.error(err.error || 'Failed to process department');
@@ -368,9 +378,32 @@ const DepartmentManagement = () => {
                 >
                   <option value="">Select Staff Member</option>
                   {staff.map(s => (
-                    <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>
+                    <option key={s.id} value={s.id}>{s.firstName} {s.lastName} {s.currentDept ? `(${s.currentDept})` : ''}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Academic Subjects (Jurisdiction)</label>
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-50 rounded-2xl border-2 border-gray-100">
+                  {subjects.map(sub => (
+                    <label key={sub.id} className={`flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.subjectIds.includes(sub.id) ? 'border-emerald-500 bg-emerald-50 shadow-sm' : 'border-white bg-white hover:border-gray-200'}`}>
+                      <input 
+                        type="checkbox"
+                        checked={formData.subjectIds.includes(sub.id)}
+                        onChange={(e) => {
+                          const newIds = e.target.checked 
+                            ? [...formData.subjectIds, sub.id]
+                            : formData.subjectIds.filter(id => id !== sub.id);
+                          setFormData({ ...formData, subjectIds: newIds });
+                        }}
+                        className="w-4 h-4 accent-emerald-600"
+                      />
+                      <span className="text-[10px] font-black uppercase truncate">{sub.name}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-[8px] font-bold text-gray-400 mt-2 ml-1 uppercase italic">* Subjects must be assigned before team members can be validated.</p>
               </div>
 
               <div className="flex flex-col gap-3 pt-4">
@@ -400,31 +433,47 @@ const DepartmentManagement = () => {
             <h2 className="text-2xl font-black text-gray-900 mb-2 uppercase tracking-tighter">Assign Members</h2>
             <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mb-8">Department: {currentDept?.name}</p>
              <div className="flex-1 overflow-y-auto mb-8 pr-2 space-y-2 p-2">
-               {staff.map(s => (
-                 <label key={s.id} className={`flex items-center justify-between p-3 sm:p-4 rounded-2xl border-2 transition-all cursor-pointer ${selectedStaffIds.includes(s.id) ? 'border-primary bg-primary/5 shadow-md scale-[1.02]' : 'border-gray-50 hover:border-gray-200 bg-white'}`}>
-                   <div className="flex items-center gap-3 sm:gap-4">
-                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gray-100 flex items-center justify-center font-black text-gray-500 overflow-hidden text-[10px] sm:text-base">
-                       {s.photoUrl ? <img src={s.photoUrl} alt="" className="w-full h-full object-cover" /> : s.firstName[0]}
-                     </div>
-                     <div>
-                       <p className="font-black text-gray-900 uppercase text-[10px] sm:text-xs tracking-tight">{s.firstName} {s.lastName}</p>
-                       <div className="flex items-center gap-2">
-                         <p className="text-[8px] sm:text-[10px] font-bold text-gray-400 capitalize">{s.teacher?.specialization || 'Instructor'}</p>
-                         {s.currentDept && <span className="text-[7px] sm:text-[8px] font-black bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-tighter">In: {s.currentDept}</span>}
-                       </div>
-                     </div>
-                   </div>
-                   <input
-                     type="checkbox"
-                     checked={selectedStaffIds.includes(s.id)}
-                     onChange={(e) => {
-                       if (e.target.checked) setSelectedStaffIds([...selectedStaffIds, s.id]);
-                       else setSelectedStaffIds(selectedStaffIds.filter(id => id !== s.id));
-                     }}
-                     className="w-5 h-5 sm:w-6 sm:h-6 accent-primary rounded-lg"
-                   />
-                 </label>
-               ))}
+               {staff.map(s => {
+                 const isEligible = assignments.some(a => a.teacherId === s.id && currentDept?.subjects.some(sub => sub.id === a.subjectId));
+                 
+                 return (
+                  <label 
+                    key={s.id} 
+                    className={`flex items-center justify-between p-3 sm:p-4 rounded-2xl border-2 transition-all ${!isEligible ? 'opacity-50 grayscale cursor-not-allowed border-gray-100 bg-gray-50' : 'cursor-pointer'} ${selectedStaffIds.includes(s.id) ? 'border-primary bg-primary/5 shadow-md scale-[1.02]' : isEligible ? 'border-gray-50 hover:border-gray-200 bg-white' : ''}`}
+                    onClick={(e) => {
+                      if (!isEligible) {
+                        e.preventDefault();
+                        toast.error(`${s.firstName} is not assigned to any subjects in this department.`);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gray-100 flex items-center justify-center font-black text-gray-500 overflow-hidden text-[10px] sm:text-base">
+                        {s.photoUrl ? <img src={s.photoUrl} alt="" className="w-full h-full object-cover" /> : s.firstName[0]}
+                      </div>
+                      <div>
+                        <p className="font-black text-gray-900 uppercase text-[10px] sm:text-xs tracking-tight">{s.firstName} {s.lastName}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[8px] sm:text-[10px] font-bold text-gray-400 capitalize">{s.teacher?.specialization || 'Instructor'}</p>
+                          {s.currentDept && <span className="text-[7px] sm:text-[8px] font-black bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-tighter">In: {s.currentDept}</span>}
+                          {!isEligible && <span className="text-[7px] font-black bg-rose-100 text-rose-500 px-2 py-0.5 rounded-full uppercase tracking-tighter animate-pulse">Ineligible</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      disabled={!isEligible}
+                      checked={selectedStaffIds.includes(s.id)}
+                      onChange={(e) => {
+                        if (!isEligible) return;
+                        if (e.target.checked) setSelectedStaffIds([...selectedStaffIds, s.id]);
+                        else setSelectedStaffIds(selectedStaffIds.filter(id => id !== s.id));
+                      }}
+                      className="w-5 h-5 sm:w-6 sm:h-6 accent-primary rounded-lg"
+                    />
+                  </label>
+                );
+               })}
              </div>
             <div className="flex gap-4 border-t border-gray-100 pt-8">
               <button type="button" onClick={() => setShowStaffModal(false)} className="flex-1 py-4 font-black uppercase text-xs tracking-widest text-gray-400">Close</button>
