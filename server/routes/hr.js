@@ -266,11 +266,11 @@ router.patch('/admin/payroll-records/:id', authenticate, canManageHR, async (req
     const allRecords = await prisma.payrollRecord.findMany({ where: { voucherId: updated.voucherId } });
     const totalGross = allRecords.reduce((sum, r) => sum + r.baseSalary + r.totalAllowances, 0);
     const totalNet = allRecords.reduce((sum, r) => sum + r.netPay, 0);
-    const totalDeductions = allRecords.reduce((sum, r) => sum + r.totalDeductions, 0);
+    const voucherTotalDeductions = allRecords.reduce((sum, r) => sum + r.totalDeductions, 0);
 
     await prisma.payrollVoucher.update({
       where: { id: updated.voucherId },
-      data: { totalGross, totalNet, totalDeductions }
+      data: { totalGross, totalNet, totalDeductions: voucherTotalDeductions }
     });
 
     res.json(updated);
