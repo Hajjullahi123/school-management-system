@@ -17,16 +17,42 @@ router.get('/stats-summary', authenticate, async (req, res) => {
 
     // For teachers, return only their assigned class/student counts
     if (role === 'teacher') {
+      // Get current active term to filter assignments
+      const activeTerm = await prisma.term.findFirst({
+        where: { schoolId, isCurrent: true }
+      });
+      const termFilter = activeTerm ? { OR: [{ termId: activeTerm.id }, { termId: null }] } : {};
+
+      // Get all classes this teacher is associated with (Form Master OR Subject Teacher in CURRENT TERM)
       const myClasses = await prisma.class.findMany({
-        where: { schoolId, classTeacherId: userId },
-        select: { id: true, _count: { select: { students: true } } }
+        where: { 
+          schoolId,
+          isActive: true,
+          OR: [
+            { classTeacherId: userId },
+            { 
+              subjects: { 
+                some: { 
+                  assignments: { some: { teacherId: userId, ...termFilter } } 
+                } 
+              } 
+            }
+          ]
+        },
+        include: {
+          _count: {
+            select: {
+              students: { where: { status: 'active' } }
+            }
+          }
+        }
       });
 
-      const totalStudents = myClasses.reduce((acc, c) => acc + c._count.students, 0);
+      const totalStudents = myClasses.reduce((acc, c) => acc + (c._count?.students || 0), 0);
       
-      // Get subjects assigned to this teacher via TeacherAssignment -> ClassSubject
+      // Get subjects assigned to this teacher via TeacherAssignment -> ClassSubject (Current Term only)
       const assignments = await prisma.teacherAssignment.findMany({
-          where: { schoolId, teacherId: userId },
+          where: { schoolId, teacherId: userId, ...termFilter },
           include: { classSubject: true }
       });
       
@@ -43,10 +69,10 @@ router.get('/stats-summary', authenticate, async (req, res) => {
 
     // For admin/principal/superadmin, return full school metrics
     const [studentCount, subjectCount, teacherCount, classCount] = await Promise.all([
-      prisma.student.count({ where: { schoolId } }),
+      prisma.student.count({ where: { schoolId, status: 'active' } }),
       prisma.subject.count({ where: { schoolId } }),
       prisma.user.count({ where: { schoolId, role: 'teacher', isActive: true } }),
-      prisma.class.count({ where: { schoolId } })
+      prisma.class.count({ where: { schoolId, isActive: true } })
     ]);
 
     res.json({

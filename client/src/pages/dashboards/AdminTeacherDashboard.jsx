@@ -19,6 +19,7 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
   const [alumniCount, setAlumniCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [deptAlerts, setDeptAlerts] = useState(null);
+  const [deptAlertDismissed, setDeptAlertDismissed] = useState(false);
   const [deptScore, setDeptScore] = useState(null);
   const [nudges, setNudges] = useState([]);
 
@@ -81,13 +82,15 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
     try {
       setLoading(true);
 
-      // Fast Stats Fetch (Optimized for Mobile/Slow Connections)
+      // Fast Stats Fetch (Optimized for Mobile/Slow Connections) — used as initial placeholder
+      let fastStatsLoaded = false;
       try {
         const statsRes = await api.get('/api/settings/stats-summary');
         if (statsRes.ok) {
           const stats = await statsRes.json();
           setTeacherStats({ totalStudents: stats.students, activeClasses: stats.classes });
           setTotalSubjectsCount(stats.subjects);
+          fastStatsLoaded = true;
         }
       } catch (err) {
         console.warn('Fast stats fetch failed');
@@ -110,8 +113,10 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
       if (!studentsRes.ok) console.warn('Student fetch failed:', studentsRes.status);
       if (!classesRes.ok) console.error('Classes fetch failed:', classesRes.status);
 
-      // If fast stats failed, fall back to calculating from full lists
-      if (!teacherStats || teacherStats.totalStudents === 0) {
+      // Always recalculate from the authoritative class list to ensure
+      // enrollment counts are accurate after promotions/transfers.
+      // The fast stats serve as a placeholder only until classes load.
+      if (classesRes.ok) {
         if (subjectsRes?.ok) {
           const subjectsData = await subjectsRes.json();
           setTotalSubjectsCount(Array.isArray(subjectsData) ? subjectsData.length : 0);
@@ -245,34 +250,42 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
       )}
 
       {/* Department Alerts for Teachers */}
-      {deptAlerts && (
+      {deptAlerts && !deptAlertDismissed && (
         <div className="bg-rose-50 border-2 border-rose-100 rounded-3xl p-5 shadow-lg shadow-rose-200/20 relative overflow-hidden animate-bounce-slow">
            <div className="absolute top-0 right-0 w-24 h-24 bg-rose-200/20 rounded-full -mr-12 -mt-12"></div>
-           <div className="flex items-start gap-4 relative z-10">
-              <div className="p-3 bg-rose-600 text-white rounded-2xl shadow-lg">
-                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                 </svg>
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-rose-900 uppercase tracking-tight mb-1">HOD Performance Notice</h3>
-                <p className="text-[10px] font-bold text-rose-700 uppercase tracking-widest mb-3">{deptAlerts.deptName} Oversight Hub</p>
-                
-                <div className="flex flex-wrap gap-2">
-                   {deptAlerts.noTargets && (
-                     <div className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-rose-200">
-                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
-                        <span className="text-[9px] font-black text-rose-600 uppercase">Missing Targets</span>
-                     </div>
-                   )}
-                   {deptAlerts.needsUpdate && (
-                     <div className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-rose-200">
-                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
-                        <span className="text-[9px] font-black text-rose-600 uppercase">Input Lagging</span>
-                     </div>
-                   )}
+           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-rose-600 text-white rounded-2xl shadow-lg flex-shrink-0">
+                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                   </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-rose-900 uppercase tracking-tight mb-1">HOD Performance Notice</h3>
+                  <p className="text-[10px] font-bold text-rose-700 uppercase tracking-widest mb-3">{deptAlerts.deptName} Oversight Hub</p>
+                  
+                  <div className="flex flex-wrap gap-2">
+                     {deptAlerts.noTargets && (
+                       <div className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-rose-200">
+                          <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+                          <span className="text-[9px] font-black text-rose-600 uppercase">Missing Targets</span>
+                       </div>
+                     )}
+                     {deptAlerts.needsUpdate && (
+                       <div className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-rose-200">
+                          <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+                          <span className="text-[9px] font-black text-rose-600 uppercase">Input Lagging</span>
+                       </div>
+                     )}
+                  </div>
                 </div>
               </div>
+              <button
+                onClick={() => setDeptAlertDismissed(true)}
+                className="w-full sm:w-auto px-6 py-3 bg-white border-2 border-rose-200 text-rose-700 text-[10px] font-black uppercase rounded-2xl hover:bg-rose-100 transition-all shadow-sm active:scale-95 whitespace-nowrap"
+              >
+                Dismiss
+              </button>
            </div>
         </div>
       )}

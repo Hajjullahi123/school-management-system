@@ -12,15 +12,20 @@ router.get('/', authenticate, async (req, res) => {
       isActive: true
     };
 
-    // If teacher, return classes they are form master for OR classes they teach subjects in
+    // If teacher, return classes they are form master for OR classes they teach subjects in CURRENT TERM
     if (req.user.role === 'teacher') {
+      const activeTerm = await prisma.term.findFirst({
+        where: { schoolId: req.schoolId, isCurrent: true }
+      });
+      const termFilter = activeTerm ? { OR: [{ termId: activeTerm.id }, { termId: null }] } : {};
+
       where.OR = [
         { classTeacherId: req.user.id },
         {
           subjects: {
             some: {
               assignments: {
-                some: { teacherId: req.user.id }
+                some: { teacherId: req.user.id, ...termFilter }
               }
             }
           }
@@ -41,7 +46,7 @@ router.get('/', authenticate, async (req, res) => {
         },
         _count: {
           select: {
-            students: true,
+            students: { where: { status: 'active' } },
             subjects: true
           }
         }
@@ -101,7 +106,7 @@ router.get('/my-class', authenticate, async (req, res) => {
           }
         },
         _count: {
-          select: { students: true }
+          select: { students: { where: { status: 'active' } } }
         }
       }
     });

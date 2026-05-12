@@ -79,6 +79,13 @@ router.post('/promote', authenticate, checkSubscription, authorize(['admin', 'pr
 
           if (!student) throw new Error("Student not found in this school");
 
+          // Get target class name for legacy string field sync
+          const targetClass = await tx.class.findUnique({
+            where: { id: parseInt(targetClassId) },
+            select: { name: true, arm: true }
+          });
+          const classString = targetClass ? `${targetClass.name}${targetClass.arm ? ` ${targetClass.arm}` : ''}` : null;
+
           // Update student's class
           const updated = await tx.student.update({
             where: {
@@ -87,6 +94,7 @@ router.post('/promote', authenticate, checkSubscription, authorize(['admin', 'pr
             },
             data: {
               classId: parseInt(targetClassId),
+              class: classString // Sync legacy string field
             }
           });
 
@@ -263,7 +271,8 @@ router.post('/graduate', authenticate, checkSubscription, authorize(['admin', 'p
             },
             data: {
               status: 'alumni',
-              classId: null // No longer in any class
+              classId: null, // No longer in any class
+              class: 'Alumni' // Sync legacy string field
             }
           });
 
