@@ -312,73 +312,95 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
         )}
       </div>
 
-      {/* HOD Quick Oversight Widget */}
-      {user?.departmentAsHead && (
-        <Link 
-          to="/dashboard/department-monitoring"
-          className="group relative overflow-hidden bg-gradient-to-br from-indigo-900 to-slate-900 p-6 rounded-[2.5rem] shadow-2xl border border-white/10 transition-all hover:scale-[1.01] active:scale-95"
-        >
-          <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl -mr-24 -mt-24 group-hover:scale-125 transition-transform duration-1000"></div>
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md text-primary border border-white/10 shadow-inner">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-white font-black uppercase tracking-widest text-sm italic">Department Oversight</h3>
-                  <p className="text-primary-light text-[9px] font-black uppercase tracking-[0.2em] mt-0.5">{user.departmentAsHead.name} Hub</p>
-                </div>
-              </div>
-              <svg className="w-5 h-5 text-white/30 group-hover:text-primary transition-all transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
-            </div>
-            
-            {/* Quick Stats Grid for HOD */}
-            <div className="grid grid-cols-2 gap-3">
-               <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
-                  <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Momentum</p>
-                  <div className="flex items-end gap-2">
-                     <p className="text-xl font-black text-white leading-none">{deptScore || 0}%</p>
-                     {deptScore < 70 && <span className="text-[8px] font-bold text-rose-500 uppercase animate-pulse">Lagging</span>}
+      {/* Department Oversight & Quran Tracker Sections - Grouped with clear separation */}
+      <div className="space-y-6">
+        {user?.departmentAsHead && (
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 px-4 italic">Personnel Management</h3>
+            <Link 
+              to="/dashboard/department-monitoring"
+              className="group relative block overflow-hidden bg-indigo-950 p-6 rounded-[2rem] shadow-2xl border-2 border-indigo-800/50 transition-all hover:scale-[1.01] active:scale-95"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl -mr-32 -mt-32 group-hover:scale-125 transition-transform duration-1000"></div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-indigo-500/20 rounded-2xl backdrop-blur-md text-indigo-400 border border-indigo-500/30 shadow-inner">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-white text-base font-black uppercase tracking-widest italic drop-shadow-md">Department Oversight</h3>
+                      <p className="text-indigo-300 text-[10px] font-black uppercase tracking-[0.2em] mt-0.5">{user.departmentAsHead.name} Control Hub</p>
+                    </div>
                   </div>
-               </div>
-               <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
-                  <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Status</p>
-                  <p className="text-sm font-black text-primary leading-none uppercase tracking-tighter">Ready to Nudge</p>
-               </div>
-            </div>
+                  <div className="p-2 bg-white/10 rounded-full text-white group-hover:bg-indigo-500 transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+                  </div>
+                </div>
+                
+                {/* Quick Stats Grid for HOD */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-black/30 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-inner">
+                      <p className="text-[9px] font-black text-indigo-300/60 uppercase tracking-widest mb-1">Momentum</p>
+                      <div className="flex items-end gap-2">
+                        <p className="text-2xl font-black text-white leading-none">{deptScore || 0}%</p>
+                        {deptScore < 70 && <span className="text-[8px] font-bold text-rose-400 uppercase animate-pulse">Action Required</span>}
+                      </div>
+                  </div>
+                  <div className="bg-black/30 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-inner">
+                      <p className="text-[9px] font-black text-indigo-300/60 uppercase tracking-widest mb-1">Intervention</p>
+                      <p className="text-sm font-black text-indigo-400 leading-none uppercase tracking-tighter">Ready to Nudge</p>
+                  </div>
+                </div>
+              </div>
+            </Link>
           </div>
-        </Link>
-      )}
+        )}
 
-      {/* Quran Tracker Quick Access for Quran Teachers */}
-      {user?.hasQuranAccess && (
-        <Link 
-          to="/dashboard/quran-tracker"
-          className="group relative overflow-hidden bg-gradient-to-br from-emerald-900 to-teal-900 p-6 rounded-[2.5rem] shadow-2xl border border-white/10 transition-all hover:scale-[1.01] active:scale-95"
-        >
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl -ml-24 -mb-24 group-hover:scale-125 transition-transform duration-1000"></div>
-          <div className="relative z-10 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md text-emerald-400 border border-white/10 shadow-inner">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-white font-black uppercase tracking-widest text-sm italic">Qur'an Tracker</h3>
-                <p className="text-emerald-400/60 text-[9px] font-black uppercase tracking-[0.2em] mt-0.5">Log Progress • Target Compliance</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-               <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase rounded-full border border-emerald-500/30">Active</span>
-               <svg className="w-5 h-5 text-white/30 group-hover:text-emerald-400 transition-all transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+        {/* Separator if both exist */}
+        {user?.departmentAsHead && user?.hasQuranAccess && (
+          <div className="relative py-2">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+              <div className="w-full border-t border-gray-200"></div>
             </div>
           </div>
-        </Link>
-      )}
+        )}
+
+        {user?.hasQuranAccess && (
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 px-4 italic">Academic Tracking</h3>
+            <Link 
+              to="/dashboard/quran-tracker"
+              className="group relative block overflow-hidden bg-emerald-950 p-6 rounded-[2rem] shadow-2xl border-2 border-emerald-800/50 transition-all hover:scale-[1.01] active:scale-95"
+            >
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -ml-32 -mb-32 group-hover:scale-125 transition-transform duration-1000"></div>
+              
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-emerald-500/20 rounded-2xl backdrop-blur-md text-emerald-400 border border-emerald-500/30 shadow-inner">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white text-base font-black uppercase tracking-widest italic drop-shadow-md">Qur'an Tracker</h3>
+                    <p className="text-emerald-300 text-[10px] font-black uppercase tracking-[0.2em] mt-0.5">Log Progress • Target Compliance</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="px-4 py-1.5 bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase rounded-full border border-emerald-500/40 backdrop-blur-md">Active</span>
+                  <div className="p-2 bg-white/10 rounded-full text-white group-hover:bg-emerald-500 transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </div>
+        )}
+      </div>
 
       {/* Notices */}
       {notices.length > 0 && (
