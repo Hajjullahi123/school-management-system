@@ -294,11 +294,7 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
       )}
 
       {/* Compact Status Grid */}
-      <div className={`grid gap-4 ${
-        (user?.role === 'admin' || user?.role === 'principal') 
-          ? 'grid-cols-2 lg:grid-cols-4' 
-          : 'grid-cols-2 lg:grid-cols-4'
-      }`}>
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         <div className="bg-blue-50 p-5 rounded-2xl shadow-sm border border-blue-100 transition-all hover:scale-[1.02]">
           <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Total Enrollment</p>
           <p className="text-2xl font-black text-blue-900">{teacherStats?.totalStudents || 0}</p>
@@ -332,6 +328,18 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
             <p className="text-lg font-black text-emerald-900 uppercase tracking-tighter">Active Tracking</p>
           </Link>
         )}
+
+        {/* HR & Personnel Finance Hub - Compact Tile */}
+        <Link to="/dashboard/hr-center" className="bg-slate-900 p-5 rounded-2xl shadow-xl border border-white/5 transition-all hover:scale-[1.02] group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform"></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">HR & Finance</p>
+              <svg className="w-3 h-3 text-indigo-400 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+            </div>
+            <p className="text-lg font-black text-white uppercase tracking-tighter">Staff Portal</p>
+          </div>
+        </Link>
 
         {(user?.role === 'admin' || user?.role === 'principal') && (
           <div className="bg-teal-50 p-5 rounded-2xl shadow-sm border border-teal-100 transition-all hover:scale-[1.02]">
@@ -423,27 +431,7 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
             </div>
           )}
 
-          {/* HR & Personnel Finance Hub - Compact Version */}
-          <Link 
-            to="/dashboard/hr-center" 
-            className="group relative overflow-hidden bg-slate-900 p-6 rounded-3xl shadow-xl border border-white/5 transition-all hover:scale-[1.02] active:scale-95"
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700"></div>
-            <div className="relative z-10 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30 shadow-inner">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-white font-black uppercase tracking-wider text-sm">HR & Finance Hub</h3>
-                  <p className="text-white/40 text-[9px] font-black uppercase tracking-widest mt-0.5">Payroll • Requisitions • Leaves</p>
-                </div>
-              </div>
-              <svg className="w-5 h-5 text-indigo-400 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
-            </div>
-          </Link>
+
           {/* Assigned Subjects Container */}
           <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-gray-100 mt-2">
             <div className="flex items-center justify-between mb-4">
