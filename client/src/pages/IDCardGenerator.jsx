@@ -115,7 +115,9 @@ const IDCard = ({ data, type, schoolSettings }) => {
               <div className="flex flex-col">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">EXPIRES ON</p>
                 <p className="text-sm font-black text-primary">
-                  {isStudent ? 'SEPT 2026' : 'PERMANENT'}
+                  {isStudent 
+                    ? `SEPT ${schoolSettings?.currentSession?.name?.split('/')?.[1] || schoolSettings?.currentSession?.name?.split('-')?.[1] || (new Date().getFullYear() + 1)}` 
+                    : 'PERMANENT'}
                 </p>
               </div>
               <div className="bg-white p-1 rounded-lg border border-gray-100 shadow-sm">

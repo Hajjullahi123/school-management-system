@@ -753,17 +753,37 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
         });
       }
 
-      console.log(`[SCAN DEBUG] Staff Found: ${staffUser ? staffUser.firstName : 'NO'}`);
+      console.log(`[SCAN DEBUG] Staff Found: ${staffUser ? staffUser.firstName + ' (Role: ' + staffUser.role + ')' : 'NO'}`);
 
       if (staffUser) {
+        // Check if user is active
+        if (!staffUser.isActive) {
+          return res.status(403).json({ 
+            error: 'Account inactive', 
+            message: 'Your staff account is currently deactivated. Please contact administration.' 
+          });
+        }
+
         const staffSettings = await prisma.school.findUnique({
           where: { id: req.schoolId },
-          select: { staffExpectedArrivalTime: true }
+          select: { staffExpectedArrivalTime: true, staffClockInMode: true, authorizedIP: true }
         });
+
+        // IP Restriction Check (if enabled)
+        if (staffSettings?.staffClockInMode === 'authorized_ip' && staffSettings.authorizedIP) {
+          const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+          if (!clientIp.includes(staffSettings.authorizedIP)) {
+            console.warn(`[SCAN WARNING] IP Restriction: Staff ${staffUser.id} attempted scan from unauthorized IP: ${clientIp}`);
+            return res.status(403).json({
+              error: 'Unauthorized Location',
+              message: 'Attendance scanning is only allowed from authorized school networks.'
+            });
+          }
+        }
 
         const checkInTime = new Date();
         const expectedArrivalTime = staffSettings?.staffExpectedArrivalTime || '07:00';
-        const lateMinutes = calculateLateMinutes(checkInTime, expectedArrivalTime);
+        const lateMinutes = calculateLateMinutes(checkInTime, expectedArrivalTime) || 0;
         const status = determineStaffStatus(checkInTime, lateMinutes);
 
         // Check if already scanned today
@@ -784,45 +804,54 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
           });
         }
 
-        const staffRecord = await prisma.staffAttendance.upsert({
-          where: {
-            schoolId_userId_date: {
+        try {
+          const staffRecord = await prisma.staffAttendance.upsert({
+            where: {
+              schoolId_userId_date: {
+                schoolId: req.schoolId,
+                userId: staffUser.id,
+                date: today
+              }
+            },
+            update: { 
+              checkInTime, 
+              status, 
+              lateMinutes: Math.floor(lateMinutes) 
+            },
+            create: {
               schoolId: req.schoolId,
               userId: staffUser.id,
-              date: today
+              date: today,
+              checkInTime,
+              status,
+              lateMinutes: Math.floor(lateMinutes)
             }
-          },
-          update: { checkInTime, status, lateMinutes },
-          create: {
+          });
+
+          logAction({
             schoolId: req.schoolId,
-            userId: staffUser.id,
-            date: today,
-            checkInTime,
-            status,
-            lateMinutes
-          }
-        });
+            userId: req.user.id,
+            action: 'STAFF_SCAN_ARRIVAL',
+            resource: 'STAFF_ATTENDANCE',
+            details: { staffUserId: staffUser.id, status, lateMinutes },
+            ipAddress: req.ip
+          });
 
-        logAction({
-          schoolId: req.schoolId,
-          userId: req.user.id,
-          action: 'STAFF_SCAN_ARRIVAL',
-          resource: 'STAFF_ATTENDANCE',
-          details: { staffUserId: staffUser.id, status },
-          ipAddress: req.ip
-        });
-
-        return res.json({
-          message: `${staffUser.firstName} (Staff) arrival logged`,
-          isStaff: true,
-          staff: {
-            name: `${staffUser.firstName} ${staffUser.lastName}`,
-            role: staffUser.role,
-            status,
-            isLate: status === 'late',
-            lateMinutes
-          }
-        });
+          return res.json({
+            message: `${staffUser.firstName} (Staff) arrival logged`,
+            isStaff: true,
+            staff: {
+              name: `${staffUser.firstName} ${staffUser.lastName}`,
+              role: staffUser.role,
+              status,
+              isLate: status === 'late',
+              lateMinutes: Math.floor(lateMinutes)
+            }
+          });
+        } catch (dbError) {
+          console.error('[SCAN ERROR] Database error during staff attendance upsert:', dbError);
+          return res.status(500).json({ error: 'Database error', message: 'Failed to save staff attendance record.' });
+        }
       }
 
       return res.status(404).json({ error: 'ID not recognized (not a student or staff)' });
