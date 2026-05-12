@@ -290,114 +290,50 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
         </div>
       )}
 
-      {/* Grid Stats */}
+      {/* Compact Status Grid */}
       <div className={`grid gap-4 ${
         (user?.role === 'admin' || user?.role === 'principal') 
-          ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' 
-          : 'grid-cols-1 sm:grid-cols-2'
+          ? 'grid-cols-2 lg:grid-cols-4' 
+          : 'grid-cols-2 lg:grid-cols-4'
       }`}>
-        <div className="bg-blue-50 p-5 rounded-xl shadow-sm border border-blue-100 transition-all hover:scale-[1.02]">
-          <p className="text-[11px] font-black text-blue-600 uppercase tracking-widest mb-1">Total Enrollment</p>
+        <div className="bg-blue-50 p-5 rounded-2xl shadow-sm border border-blue-100 transition-all hover:scale-[1.02]">
+          <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Total Enrollment</p>
           <p className="text-2xl font-black text-blue-900">{teacherStats?.totalStudents || 0}</p>
         </div>
-        <div className="bg-purple-50 p-5 rounded-xl shadow-sm border border-purple-100 transition-all hover:scale-[1.02]">
-          <p className="text-[11px] font-black text-purple-600 uppercase tracking-widest mb-1">Assigned Classes</p>
+        <div className="bg-purple-50 p-5 rounded-2xl shadow-sm border border-purple-100 transition-all hover:scale-[1.02]">
+          <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-1">Assigned Classes</p>
           <p className="text-2xl font-black text-purple-900">{teacherStats?.activeClasses || 0}</p>
         </div>
-        {(user?.role === 'admin' || user?.role === 'principal') && (
-          <div className="bg-teal-50 p-5 rounded-xl shadow-sm border border-teal-100 transition-all hover:scale-[1.02] sm:col-span-2 lg:col-span-1">
-            <p className="text-[11px] font-black text-teal-600 uppercase tracking-widest mb-1">Registered Subjects</p>
-            <p className="text-2xl font-black text-teal-900">{totalSubjectsCount || 0}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Department Oversight & Quran Tracker Sections - Grouped with clear separation */}
-      <div className="space-y-6">
+        
+        {/* Department Momentum - Compact Tile */}
         {user?.departmentAsHead && (
-          <div className="space-y-3">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 px-4 italic">Personnel Management</h3>
-            <Link 
-              to="/dashboard/department-monitoring"
-              className="group relative block overflow-hidden bg-indigo-950 p-6 rounded-[2rem] shadow-2xl border-2 border-indigo-800/50 transition-all hover:scale-[1.01] active:scale-95"
-            >
-              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl -mr-32 -mt-32 group-hover:scale-125 transition-transform duration-1000"></div>
-              
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-indigo-500/20 rounded-2xl backdrop-blur-md text-indigo-400 border border-indigo-500/30 shadow-inner">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-white text-base font-black uppercase tracking-widest italic drop-shadow-md">Department Oversight</h3>
-                      <p className="text-indigo-300 text-[10px] font-black uppercase tracking-[0.2em] mt-0.5">{user.departmentAsHead.name} Control Hub</p>
-                    </div>
-                  </div>
-                  <div className="p-2 bg-white/10 rounded-full text-white group-hover:bg-indigo-500 transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
-                  </div>
-                </div>
-                
-                {/* Quick Stats Grid for HOD */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-black/30 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-inner">
-                      <p className="text-[9px] font-black text-indigo-300/60 uppercase tracking-widest mb-1">Momentum</p>
-                      <div className="flex items-end gap-2">
-                        <p className="text-2xl font-black text-white leading-none">{deptScore || 0}%</p>
-                        {deptScore < 70 && <span className="text-[8px] font-bold text-rose-400 uppercase animate-pulse">Action Required</span>}
-                      </div>
-                  </div>
-                  <div className="bg-black/30 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-inner">
-                      <p className="text-[9px] font-black text-indigo-300/60 uppercase tracking-widest mb-1">Intervention</p>
-                      <p className="text-sm font-black text-indigo-400 leading-none uppercase tracking-tighter">Ready to Nudge</p>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          </div>
-        )}
-
-        {/* Separator if both exist */}
-        {user?.departmentAsHead && user?.hasQuranAccess && (
-          <div className="relative py-2">
-            <div className="absolute inset-0 flex items-center" aria-hidden="true">
-              <div className="w-full border-t border-gray-200"></div>
+          <Link to="/dashboard/department-monitoring" className="bg-indigo-50 p-5 rounded-2xl shadow-sm border border-indigo-100 transition-all hover:scale-[1.02] group">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Dept. Momentum</p>
+              <svg className="w-3 h-3 text-indigo-400 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
             </div>
-          </div>
+            <div className="flex items-end gap-2">
+              <p className="text-2xl font-black text-indigo-900">{deptScore || 0}%</p>
+              {deptScore < 70 && <span className="text-[8px] font-black text-rose-500 uppercase animate-pulse mb-1">Low</span>}
+            </div>
+          </Link>
         )}
 
+        {/* Quran Access - Compact Tile */}
         {user?.hasQuranAccess && (
-          <div className="space-y-3">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 px-4 italic">Academic Tracking</h3>
-            <Link 
-              to="/dashboard/quran-tracker"
-              className="group relative block overflow-hidden bg-emerald-950 p-6 rounded-[2rem] shadow-2xl border-2 border-emerald-800/50 transition-all hover:scale-[1.01] active:scale-95"
-            >
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -ml-32 -mb-32 group-hover:scale-125 transition-transform duration-1000"></div>
-              
-              <div className="relative z-10 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-emerald-500/20 rounded-2xl backdrop-blur-md text-emerald-400 border border-emerald-500/30 shadow-inner">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-white text-base font-black uppercase tracking-widest italic drop-shadow-md">Qur'an Tracker</h3>
-                    <p className="text-emerald-300 text-[10px] font-black uppercase tracking-[0.2em] mt-0.5">Log Progress • Target Compliance</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="px-4 py-1.5 bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase rounded-full border border-emerald-500/40 backdrop-blur-md">Active</span>
-                  <div className="p-2 bg-white/10 rounded-full text-white group-hover:bg-emerald-500 transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
-                  </div>
-                </div>
-              </div>
-            </Link>
+          <Link to="/dashboard/quran-tracker" className="bg-emerald-50 p-5 rounded-2xl shadow-sm border border-emerald-100 transition-all hover:scale-[1.02] group">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Qur'an Status</p>
+              <svg className="w-3 h-3 text-emerald-400 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+            </div>
+            <p className="text-lg font-black text-emerald-900 uppercase tracking-tighter">Active Tracking</p>
+          </Link>
+        )}
+
+        {(user?.role === 'admin' || user?.role === 'principal') && (
+          <div className="bg-teal-50 p-5 rounded-2xl shadow-sm border border-teal-100 transition-all hover:scale-[1.02]">
+            <p className="text-[10px] font-black text-teal-600 uppercase tracking-widest mb-1">Reg. Subjects</p>
+            <p className="text-2xl font-black text-teal-900">{totalSubjectsCount || 0}</p>
           </div>
         )}
       </div>
@@ -484,28 +420,25 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
             </div>
           )}
 
-          {/* HR & Personnel Finance Hub - Accessible to all Staff */}
+          {/* HR & Personnel Finance Hub - Compact Version */}
           <Link 
             to="/dashboard/hr-center" 
-            className="group relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-[2.5rem] shadow-2xl border border-white/5 transition-all hover:scale-[1.01] active:scale-95"
+            className="group relative overflow-hidden bg-slate-900 p-6 rounded-3xl shadow-xl border border-white/5 transition-all hover:scale-[1.02] active:scale-95"
           >
-            <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700"></div>
             <div className="relative z-10 flex items-center justify-between">
-              <div className="flex items-center gap-5">
-                <div className="p-4 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30 shadow-inner">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-white font-black uppercase tracking-widest text-sm italic">HR & Personnel Finance</h3>
-                  <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em] mt-0.5">Payroll • Loans • Requisitions • Leaves</p>
+                  <h3 className="text-white font-black uppercase tracking-wider text-sm">HR & Finance Hub</h3>
+                  <p className="text-white/40 text-[9px] font-black uppercase tracking-widest mt-0.5">Payroll • Requisitions • Leaves</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                 <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Enter Hub</span>
-                 <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
-              </div>
+              <svg className="w-5 h-5 text-indigo-400 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
             </div>
           </Link>
           {/* Assigned Subjects Container */}
