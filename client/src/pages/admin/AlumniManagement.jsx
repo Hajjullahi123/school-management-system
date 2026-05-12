@@ -6,7 +6,8 @@ import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 import AlumniIDCard from '../../components/AlumniIDCard';
 import { useReactToPrint } from 'react-to-print';
 import { toast } from '../../utils/toast';
-import { FileText, Award, Printer, Plus, Search, ChevronRight } from 'lucide-react';
+import { FileText, Award, Printer, Plus, Search, ChevronRight, RotateCcw } from 'lucide-react';
+
 
 const AlumniManagement = () => {
   const navigate = useNavigate();
@@ -28,6 +29,12 @@ const AlumniManagement = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [expandedYears, setExpandedYears] = useState({});
   const [registrationMethod, setRegistrationMethod] = useState('promotion'); // 'promotion' or 'direct'
+  const [classes, setClasses] = useState([]);
+  const [showRevertModal, setShowRevertModal] = useState(false);
+  const [revertingAlumni, setRevertingAlumni] = useState(null);
+  const [targetClassId, setTargetClassId] = useState('');
+  const [reverting, setReverting] = useState(false);
+
 
   // Form States
   const [createForm, setCreateForm] = useState({ studentId: '', graduationYear: new Date().getFullYear(), alumniId: '' });
@@ -91,7 +98,16 @@ const AlumniManagement = () => {
   useEffect(() => {
     fetchAlumni();
     fetchDonations();
+    fetchClasses();
   }, []);
+
+  const fetchClasses = async () => {
+    try {
+      const res = await api.get('/api/classes');
+      if (res.ok) setClasses(await res.json());
+    } catch (err) { console.error(err); }
+  };
+
 
   const fetchAlumni = async () => {
     setLoading(true);
@@ -358,7 +374,32 @@ const AlumniManagement = () => {
     }
   };
 
+  const handleRevert = async (e) => {
+    e.preventDefault();
+    if (!targetClassId) return alert('Please select a target class');
+    
+    setReverting(true);
+    try {
+      const res = await api.post(`/api/alumni/${revertingAlumni.id}/revert`, { targetClassId });
+      if (res.ok) {
+        toast.success('Student reverted successfully!');
+        setShowRevertModal(false);
+        setRevertingAlumni(null);
+        setTargetClassId('');
+        fetchAlumni();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to revert');
+      }
+    } catch (error) {
+      toast.error('Error reverting alumni');
+    } finally {
+      setReverting(false);
+    }
+  };
+
   const handlePhotoUpload = async (e) => {
+
     const file = e.target.files[0];
     if (!file) return;
 
@@ -640,11 +681,22 @@ const AlumniManagement = () => {
                                     setSelectedAlumni(alumni);
                                     setTimeout(handlePrint, 100);
                                   }}
-                                  className="text-primary hover:text-primary-dark"
+                                  className="text-primary hover:text-primary-dark mr-4"
                                 >
                                   Print ID
                                 </button>
+                                <button
+                                  onClick={() => {
+                                    setRevertingAlumni(alumni);
+                                    setShowRevertModal(true);
+                                  }}
+                                  className="text-orange-600 hover:text-orange-900"
+                                  title="Revert to Student"
+                                >
+                                  Revert
+                                </button>
                               </td>
+
                             </tr>
                           ))}
                         </tbody>
@@ -1534,6 +1586,58 @@ const AlumniManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Revert Modal */}
+      {showRevertModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4">
+          <div className="bg-white p-8 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95">
+            <h2 className="text-xl font-bold mb-4">Revert Graduation</h2>
+            <p className="text-gray-600 mb-6">
+              You are about to revert <strong>{revertingAlumni?.student?.user?.firstName} {revertingAlumni?.student?.user?.lastName}</strong> back to an active student.
+              Please select the class they should be placed in.
+            </p>
+
+            <form onSubmit={handleRevert}>
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-1 text-gray-700">Target Class</label>
+                <select
+                  required
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all"
+                  value={targetClassId}
+                  onChange={(e) => setTargetClassId(e.target.value)}
+                >
+                  <option value="">Select a class...</option>
+                  {classes.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} {c.arm}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRevertModal(false);
+                    setRevertingAlumni(null);
+                    setTargetClassId('');
+                  }}
+                  className="flex-1 px-4 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={reverting}
+                  className="flex-1 bg-primary text-white px-4 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+                >
+                  {reverting ? 'Reverting...' : 'Confirm Revert'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

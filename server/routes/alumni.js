@@ -1014,4 +1014,81 @@ router.post('/:id/photo', authenticate, checkSubscription, authorize(['admin', '
   }
 });
 
+// 13. Revert Alumni to Active Student (Admin Only)
+router.post('/:id/revert', authenticate, checkSubscription, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
+  try {
+    const alumniIdInt = parseInt(req.params.id);
+    const { targetClassId } = req.body;
+
+    if (!targetClassId) {
+      return res.status(400).json({ error: 'Target class is required for reversion' });
+    }
+
+    const alumni = await prisma.alumni.findUnique({
+      where: { id: alumniIdInt, schoolId: req.schoolId },
+      include: { 
+        student: {
+          include: { user: true }
+        }
+      }
+    });
+
+    if (!alumni) {
+      return res.status(404).json({ error: 'Alumni record not found' });
+    }
+
+    const classInfo = await prisma.class.findUnique({
+      where: { id: parseInt(targetClassId), schoolId: req.schoolId }
+    });
+
+    if (!classInfo) {
+      return res.status(400).json({ error: 'Target class not found' });
+    }
+
+    // Use a transaction to safely revert
+    await prisma.$transaction(async (tx) => {
+      // 1. Update Student status and class
+      await tx.student.update({
+        where: { id: alumni.studentId },
+        data: {
+          status: 'active',
+          classId: parseInt(targetClassId)
+        }
+      });
+
+      // 2. Update User role if it was 'alumni'
+      if (alumni.student.user && alumni.student.user.role === 'alumni') {
+        await tx.user.update({
+          where: { id: alumni.student.user.id },
+          data: { role: 'student' }
+        });
+      }
+
+      // 3. Delete Alumni record
+      await tx.alumni.delete({
+        where: { id: alumniIdInt }
+      });
+    });
+
+    res.json({ message: 'Alumni successfully reverted to active student' });
+
+    // Log the action
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'REVERT_GRADUATION',
+      resource: 'ALUMNI',
+      details: {
+        studentId: alumni.studentId,
+        targetClass: classInfo.name + (classInfo.arm ? ` ${classInfo.arm}` : '')
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Revert alumni error:', error);
+    res.status(500).json({ error: 'Failed to revert alumni: ' + error.message });
+  }
+});
+
 module.exports = router;
+
