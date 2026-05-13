@@ -18,12 +18,28 @@ async function getCurrentSessionAndTerm(schoolId) {
 // Staff Attendance Helpers
 function calculateLateMinutes(checkInTime, expectedArrivalTime) {
   if (!expectedArrivalTime) return 0;
-  const today = new Date().toISOString().split('T')[0];
-  const expected = new Date(`${today}T${expectedArrivalTime}`);
-  const actual = new Date(checkInTime);
-  const diffMs = actual - expected;
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
-  return diffMinutes > 0 ? diffMinutes : 0;
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    // Ensure format HH:mm:ss for better cross-platform compatibility
+    const formattedExpected = expectedArrivalTime.includes(':') && expectedArrivalTime.split(':').length === 2 
+      ? `${expectedArrivalTime}:00` 
+      : expectedArrivalTime;
+    
+    const expected = new Date(`${today}T${formattedExpected}`);
+    const actual = new Date(checkInTime);
+    
+    if (isNaN(expected.getTime()) || isNaN(actual.getTime())) {
+      console.warn('[ATTENDANCE] Invalid date for late calculation:', { expected: formattedExpected, actual: checkInTime });
+      return 0;
+    }
+
+    const diffMs = actual - expected;
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    return diffMinutes > 0 ? diffMinutes : 0;
+  } catch (err) {
+    console.error('[ATTENDANCE] Error calculating late minutes:', err);
+    return 0;
+  }
 }
 
 function determineStaffStatus(checkInTime, lateMinutes) {

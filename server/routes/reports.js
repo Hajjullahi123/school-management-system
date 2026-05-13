@@ -2293,19 +2293,41 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
       });
     });
 
-    // Fetch student's specific results
+    // Fetch all results for the student in this term
     const studentResults = await prisma.result.findMany({
       where: { studentId: parseInt(studentId), termId: parseInt(termId), schoolId: req.schoolId },
       include: { subject: true }
     });
 
-    const totalSubjectsCount = allClassResults.reduce((acc, r) => {
-      acc.add(r.subjectId);
-      return acc;
-    }, new Set()).size || 1;
+    // Fetch all subjects for the class to ensure all appear on report
+    const classSubjects = await prisma.classSubject.findMany({
+      where: { classId: student.classId, schoolId: req.schoolId },
+      include: { subject: true }
+    });
+
+    const totalSubjectsCount = classSubjects.length || studentResults.length || 1;
 
     let caSumTotal = 0;
-    const finalSubjectsData = studentResults.map(r => {
+    const finalSubjectsData = classSubjects.map(cs => {
+      const r = studentResults.find(res => res.subjectId === cs.subjectId);
+      if (!r) {
+        return {
+          id: `missing-${cs.subjectId}`,
+          subject: { name: cs.subject?.name || 'Unknown' },
+          assignment1Score: null,
+          assignment2Score: null,
+          test1Score: null,
+          test2Score: null,
+          totalScore: 0,
+          position: 'N/A',
+          highestInClass: 0, lowestInClass: 0, averageInClass: 0,
+          outOf: 0,
+          grade: '-',
+          remark: '-',
+          isEmpty: true
+        };
+      }
+
       const caTotal = (r.assignment1Score || 0) + (r.assignment2Score || 0) + (r.test1Score || 0) + (r.test2Score || 0);
       caSumTotal += caTotal;
 
@@ -2366,7 +2388,7 @@ router.get('/progressive-enhanced/:studentId/:termId', authenticate, async (req,
         age: calculateAge(student.dateOfBirth),
         gender: student.gender,
         photoUrl: student.user?.photoUrl || student.photoUrl,
-        club: student.club || '-',
+        club: student.clubs || '-',
         formMaster: student.classModel?.classTeacher
           ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}`
           : 'Not Assigned',
@@ -2492,13 +2514,12 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
     });
     const numStudentsInClass = allStudentsInClass.length;
 
-    // Fetch all results for the class in this term
-    const allClassResults = await prisma.result.findMany({
-      where: { Student: { classId: parseInt(classId) }, termId: parseInt(termId), schoolId: req.schoolId },
+    const classSubjects = await prisma.classSubject.findMany({
+      where: { classId: parseInt(classId), schoolId: req.schoolId },
       include: { subject: true }
     });
 
-    const totalSubjectsCount = allClassResults.reduce((acc, r) => { acc.add(r.subjectId); return acc; }, new Set()).size || 1;
+    const totalSubjectsCount = classSubjects.length || 1;
 
     // Pre-calculate progressive totals for everyone
     const studentCATotals = {};
@@ -2557,7 +2578,26 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
       const studentResults = allClassResults.filter(r => r.studentId === student.id);
       let caSumTotal = 0;
 
-      const finalSubjectsData = studentResults.map(r => {
+      const finalSubjectsData = classSubjects.map(cs => {
+        const r = studentResults.find(res => res.subjectId === cs.subjectId);
+        if (!r) {
+          return {
+            id: `missing-${cs.subjectId}`,
+            subject: { name: cs.subject?.name || 'Unknown' },
+            assignment1Score: null,
+            assignment2Score: null,
+            test1Score: null,
+            test2Score: null,
+            totalScore: 0,
+            position: 'N/A',
+            highestInClass: 0, lowestInClass: 0, averageInClass: 0,
+            outOf: 0,
+            grade: '-',
+            remark: '-',
+            isEmpty: true
+          };
+        }
+
         const caTotal = (r.assignment1Score || 0) + (r.assignment2Score || 0) + (r.test1Score || 0) + (r.test2Score || 0);
         caSumTotal += caTotal;
         const subScores = subjectScores[r.subjectId] || [];
@@ -2597,7 +2637,7 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
           age: calculateAge(student.dateOfBirth),
           gender: student.gender,
           photoUrl: student.user?.photoUrl || student.photoUrl,
-          club: student.club || '-',
+          club: student.clubs || '-',
           formMaster: student.classModel?.classTeacher ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}` : 'Not Assigned',
           formMasterSignatureUrl: student.classModel?.classTeacher?.signatureUrl
         },
