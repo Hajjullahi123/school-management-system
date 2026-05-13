@@ -32,19 +32,32 @@ router.post('/identify', async (req, res) => {
       return res.json({ schools: [], count: 0, globalAccess: true, message: 'Global admin detected' });
     }
 
-    // If no schoolSlug, do a global user lookup and return their school
+    // If no schoolSlug, do a global lookup for ALL accounts matching this identifier
     if (!schoolSlug) {
-      const globalUser = await prisma.user.findFirst({
+      const globalMatches = await prisma.user.findMany({
         where: { 
           OR: [
             { username: { equals: searchId } }, 
             { email: { equals: searchId } }
           ] 
         },
-        select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
+        select: { 
+          school: { 
+            select: { id: true, name: true, slug: true, logoUrl: true } 
+          } 
+        }
       });
-      if (globalUser?.school) {
-        return res.json({ schools: [globalUser.school], count: 1 });
+
+      const schools = globalMatches
+        .filter(m => m.school)
+        .map(m => m.school);
+
+      if (schools.length > 0) {
+        return res.json({ 
+          schools, 
+          count: schools.length,
+          message: schools.length > 1 ? 'Multiple accounts found' : 'Account found'
+        });
       }
       return res.status(404).json({ error: 'Account not found. Check your credentials.' });
     }
