@@ -7,6 +7,7 @@ import useSchoolSettings from '../../hooks/useSchoolSettings';
 const MiscFeePayments = () => {
   const { user } = useAuth();
   const { settings: schoolSettings } = useSchoolSettings();
+  const isViewOnly = ['admin', 'superadmin', 'proprietor'].includes(user?.role?.toLowerCase());
   const [students, setStudents] = useState([]);
   const [fees, setFees] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -568,12 +569,14 @@ const MiscFeePayments = () => {
                   <h2 className="font-semibold text-lg">
                     {selectedStudent.user?.firstName || 'Student'} {selectedStudent.user?.lastName || ''} {selectedStudent.middleName || ''}'s Fees
                   </h2>
-                  <button
-                    onClick={() => setShowPaymentForm(!showPaymentForm)}
-                    className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark text-sm"
-                  >
-                    {showPaymentForm ? 'Cancel' : '+ Record Payment'}
-                  </button>
+                  {!isViewOnly && (
+                    <button
+                      onClick={() => setShowPaymentForm(!showPaymentForm)}
+                      className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark text-sm"
+                    >
+                      {showPaymentForm ? 'Cancel' : '+ Record Payment'}
+                    </button>
+                  )}
                 </div>
 
                 {showPaymentForm && (
@@ -727,12 +730,14 @@ const MiscFeePayments = () => {
                                 >
                                   Print
                                 </button>
-                                <button
-                                  onClick={() => handleDeletePayment(payment.id)}
-                                  className="text-red-600 hover:text-red-800"
-                                >
-                                  Delete
-                                </button>
+                                {!isViewOnly && (
+                                  <button
+                                    onClick={() => handleDeletePayment(payment.id)}
+                                    className="text-red-600 hover:text-red-800"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>

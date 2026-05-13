@@ -5,6 +5,7 @@ import { formatNumber } from '../../utils/formatters';
 
 const FeeStructureSetup = () => {
   const { user } = useAuth();
+  const isViewOnly = ['admin', 'superadmin', 'proprietor'].includes(user?.role?.toLowerCase());
   const [classes, setClasses] = useState([]);
   const [terms, setTerms] = useState([]);
   const [sessions, setSessions] = useState([]);
@@ -247,105 +248,116 @@ const FeeStructureSetup = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2 group">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 group-focus-within:text-indigo-600 transition-colors">Academic Session</label>
-                <select
-                  required
-                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:border-indigo-600 focus:bg-white transition-all appearance-none cursor-pointer"
-                  value={formData.academicSessionId}
-                  onChange={e => setFormData({ ...formData, academicSessionId: e.target.value })}
-                >
-                  <option value="">Select Session</option>
-                  {sessions.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} {s.isCurrent ? '(Active)' : ''}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Select Term</label>
+            {!isViewOnly && (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2 group">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 group-focus-within:text-indigo-600 transition-colors">Academic Session</label>
                   <select
                     required
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:border-indigo-600 focus:bg-white transition-all cursor-pointer"
-                    value={formData.termId}
-                    onChange={e => setFormData({ ...formData, termId: e.target.value })}
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:border-indigo-600 focus:bg-white transition-all appearance-none cursor-pointer"
+                    value={formData.academicSessionId}
+                    onChange={e => setFormData({ ...formData, academicSessionId: e.target.value })}
                   >
-                    <option value="">Term</option>
-                    {terms.map(t => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
+                    <option value="">Select Session</option>
+                    {sessions.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} {s.isCurrent ? '(Active)' : ''}</option>
                     ))}
                   </select>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Target Class</label>
-                  <select
-                    required
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:border-indigo-600 focus:bg-white transition-all cursor-pointer"
-                    value={formData.classId}
-                    onChange={e => setFormData({ ...formData, classId: e.target.value })}
-                  >
-                    <option value="">Class</option>
-                    {classes.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} {c.arm || ''}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Select Term</label>
+                    <select
+                      required
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:border-indigo-600 focus:bg-white transition-all cursor-pointer"
+                      value={formData.termId}
+                      onChange={e => setFormData({ ...formData, termId: e.target.value })}
+                    >
+                      <option value="">Term</option>
+                      {terms.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Billing Amount (₦)</label>
-                <div className="relative">
-                  <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-black">₦</span>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Target Class</label>
+                    <select
+                      required
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:border-indigo-600 focus:bg-white transition-all cursor-pointer"
+                      value={formData.classId}
+                      onChange={e => setFormData({ ...formData, classId: e.target.value })}
+                    >
+                      <option value="">Class</option>
+                      {classes.map(c => (
+                        <option key={c.id} value={c.id}>{c.name} {c.arm || ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Billing Amount (₦)</label>
+                  <div className="relative">
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-black">₦</span>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      placeholder="0.00"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl pl-10 pr-5 py-4 text-xl font-black italic focus:border-indigo-600 focus:bg-white transition-all"
+                      value={formData.amount}
+                      onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Ledger Reference</label>
                   <input
-                    type="number"
-                    required
-                    min="0"
-                    placeholder="0.00"
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl pl-10 pr-5 py-4 text-xl font-black italic focus:border-indigo-600 focus:bg-white transition-all"
-                    value={formData.amount}
-                    onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                    type="text"
+                    placeholder="Internal description..."
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:border-indigo-600 focus:bg-white transition-all"
+                    value={formData.description}
+                    onChange={e => setFormData({ ...formData, description: e.target.value })}
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Ledger Reference</label>
-                <input
-                  type="text"
-                  placeholder="Internal description..."
-                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:border-indigo-600 focus:bg-white transition-all"
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                {editingStructure && (
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  {editingStructure && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      className="flex-1 py-4 px-6 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
+                    >
+                      Abort Edit
+                    </button>
+                  )}
                   <button
-                    type="button"
-                    onClick={handleCancelEdit}
-                    className="flex-1 py-4 px-6 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
+                    type="submit"
+                    disabled={loading}
+                    className="flex-[2] py-4 px-8 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-200 active:scale-95 disabled:opacity-50 transition-all hover:bg-indigo-700"
                   >
-                    Abort Edit
+                    {loading ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>Syncing...</span>
+                      </div>
+                    ) : (editingStructure ? 'Apply Override' : 'Push to Ledger')}
                   </button>
-                )}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-[2] py-4 px-8 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-200 active:scale-95 disabled:opacity-50 transition-all hover:bg-indigo-700"
-                >
-                  {loading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>Syncing...</span>
-                    </div>
-                  ) : (editingStructure ? 'Apply Override' : 'Push to Ledger')}
-                </button>
+                </div>
+              </form>
+            )}
+            {isViewOnly && (
+              <div className="p-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                </div>
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">View Only Mode</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">You have read-only access to ledger configurations.</p>
               </div>
-            </form>
+            )}
           </div>
         </div>
 
@@ -396,22 +408,24 @@ const FeeStructureSetup = () => {
                         <span className="text-base font-black text-slate-900 italic tracking-tight">₦{formatNumber(fs.amount)}</span>
                       </td>
                       <td className="px-8 py-6 text-right">
-                        <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleEdit(fs)}
-                            className="p-2.5 bg-white hover:bg-slate-900 text-slate-400 hover:text-white rounded-xl transition-all shadow-sm border border-slate-100"
-                            title="Edit Ledger Entry"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(fs.id)}
-                            className="p-2.5 bg-rose-50 hover:bg-rose-600 text-rose-400 hover:text-white rounded-xl transition-all shadow-sm border border-rose-100"
-                            title="Purge Entry"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          </button>
-                        </div>
+                        {!isViewOnly && (
+                          <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleEdit(fs)}
+                              className="p-2.5 bg-white hover:bg-slate-900 text-slate-400 hover:text-white rounded-xl transition-all shadow-sm border border-slate-100"
+                              title="Edit Ledger Entry"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(fs.id)}
+                              className="p-2.5 bg-rose-50 hover:bg-rose-600 text-rose-400 hover:text-white rounded-xl transition-all shadow-sm border border-rose-100"
+                              title="Purge Entry"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

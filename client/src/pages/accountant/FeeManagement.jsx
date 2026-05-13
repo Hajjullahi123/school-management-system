@@ -14,6 +14,7 @@ export default function FeeManagement() {
   const recordsRef = useRef(null);
   const { user: authUser } = useAuth();
   const { settings: schoolSettings } = useSchoolSettings();
+  const isViewOnly = ['admin', 'superadmin', 'proprietor'].includes(authUser?.role?.toLowerCase());
   const [students, setStudents] = useState([]);
   const [currentTerm, setCurrentTerm] = useState(null);
   const [currentSession, setCurrentSession] = useState(null);
@@ -1937,7 +1938,7 @@ export default function FeeManagement() {
             <span className="text-[9px] font-black text-indigo-300 uppercase tracking-widest block mb-1">Students</span>
             <span className="text-lg font-black">{students.length}</span>
           </div>
-          {students.length === 0 && !loading && (
+          {students.length === 0 && !loading && !isViewOnly && (
             <button 
               onClick={handleSyncRecords}
               className="bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2"
@@ -2325,15 +2326,17 @@ export default function FeeManagement() {
                 </svg>
                 Cumulative
               </button>
-              <button
-                onClick={handleSyncRecords}
-                className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold"
-              >
-                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Sync
-              </button>
+              {!isViewOnly && (
+                <button
+                  onClick={handleSyncRecords}
+                  className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold"
+                >
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Sync
+                </button>
+              )}
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center mt-6 w-full">
                 <div className="flex-1 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-4 rounded-2xl flex items-center gap-4 shadow-sm">
@@ -2384,7 +2387,7 @@ export default function FeeManagement() {
               )}
 
               <div className="w-full sm:w-auto flex flex-wrap gap-2">
-                {selectedStudents.length > 0 && (
+                {selectedStudents.length > 0 && !isViewOnly && (
                   <>
                     <button
                       onClick={() => bulkToggleClearance('allow')}
@@ -2402,15 +2405,17 @@ export default function FeeManagement() {
                 )}
               </div>
 
-              <button
-                onClick={sendBulkReminders}
-                className="w-full sm:w-auto px-4 py-2.5 bg-orange-600 text-white rounded-md hover:bg-orange-700 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold shadow-lg"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                Send Fee Reminders
-              </button>
+              {!isViewOnly && (
+                <button
+                  onClick={sendBulkReminders}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-orange-600 text-white rounded-md hover:bg-orange-700 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold shadow-lg"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  Send Fee Reminders
+                </button>
+              )}
             </div>
             <div className="mt-4 text-[10px] sm:text-xs text-gray-400 font-bold uppercase tracking-widest text-center sm:text-left">
               Showing {filteredStudents.length} of {students.length} students
@@ -2651,13 +2656,15 @@ export default function FeeManagement() {
                                   >
                                     🖨️ Print Card
                                   </button>
-                                  <button
-                                    onClick={() => handleEditFee(student)}
-                                    className="bg-gray-100 text-gray-600 hover:bg-gray-200 px-2 py-1 rounded text-[10px] font-black transition-all flex-none aspect-square w-7 flex items-center justify-center"
-                                    title="Adjust settings"
-                                  >
-                                    ⚙️
-                                  </button>
+                                  {!isViewOnly && (
+                                    <button
+                                      onClick={() => handleEditFee(student)}
+                                      className="bg-gray-100 text-gray-600 hover:bg-gray-200 px-2 py-1 rounded text-[10px] font-black transition-all flex-none aspect-square w-7 flex items-center justify-center"
+                                      title="Adjust settings"
+                                    >
+                                      ⚙️
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </>
@@ -2681,17 +2688,19 @@ export default function FeeManagement() {
                               </td>
                               <td className="px-3 py-4 border-b border-gray-100">
                                 <div className="flex flex-wrap gap-1.5 min-w-[160px]">
-                                  <button
-                                    onClick={() => setSelectedStudent(student)}
-                                    className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
-                                  >
-                                    💰 Pay
-                                  </button>
+                                  {!isViewOnly && (
+                                    <button
+                                      onClick={() => setSelectedStudent(student)}
+                                      className="bg-primary/10 text-primary hover:bg-primary hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
+                                    >
+                                      💰 Pay
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => viewPaymentHistory(student)}
                                     className="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
                                   >
-                                    🕒 Edit Records
+                                    🕒 {isViewOnly ? 'View Records' : 'Edit Records'}
                                   </button>
                                   <button
                                     onClick={() => {
@@ -2703,12 +2712,14 @@ export default function FeeManagement() {
                                   >
                                     🖨️ Receipt
                                   </button>
-                                  <button
-                                    onClick={() => handleEditFee(student)}
-                                    className="bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
-                                  >
-                                    ⚙️ Adjust
-                                  </button>
+                                  {!isViewOnly && (
+                                    <button
+                                      onClick={() => handleEditFee(student)}
+                                      className="bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all"
+                                    >
+                                      ⚙️ Adjust
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </>
@@ -2753,7 +2764,7 @@ export default function FeeManagement() {
                       </p>
                       <p className="text-xs text-emerald-200 mt-2 italic">Full scholarship — fees waived</p>
                       <div className="flex gap-2 mt-4 pt-3 border-t border-white/20">
-                        <button onClick={() => viewPaymentHistory(student)} className="flex-1 bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-1.5 rounded-lg transition-all">Edit Records</button>
+                        <button onClick={() => viewPaymentHistory(student)} className="flex-1 bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-1.5 rounded-lg transition-all">{isViewOnly ? 'View Records' : 'Edit Records'}</button>
                         <button onClick={() => { setReceiptStudent(student); setReceiptPayment(null); setReceiptModalOpen(true); }} className="flex-1 bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-1.5 rounded-lg transition-all">Receipt</button>
                       </div>
                     </div>
@@ -3005,15 +3016,17 @@ export default function FeeManagement() {
                                       </td>
                                       <td className="px-6 py-4 text-right">
                                         <div className="flex justify-end gap-2">
-                                          <button
-                                            onClick={() => {
-                                              setSelectedMiscPayment({ student, fee });
-                                              setMiscFormData({ ...miscFormData, amount: student.balance });
-                                            }}
-                                            className="px-3 py-1 bg-primary text-white text-[10px] font-black uppercase rounded-lg hover:brightness-90"
-                                          >
-                                            Update
-                                          </button>
+                                          {!isViewOnly && (
+                                            <button
+                                              onClick={() => {
+                                                setSelectedMiscPayment({ student, fee });
+                                                setMiscFormData({ ...miscFormData, amount: student.balance });
+                                              }}
+                                              className="px-3 py-1 bg-primary text-white text-[10px] font-black uppercase rounded-lg hover:brightness-90"
+                                            >
+                                              Update
+                                            </button>
+                                          )}
                                           {student.payments.length > 0 && (
                                             <div className="relative group">
                                               <button
@@ -3256,20 +3269,22 @@ export default function FeeManagement() {
               >
                 Cancel
               </button>
-              <button
-                onClick={() => recordPayment(selectedStudent.id)}
-                disabled={loadingSummary || processingPayment}
-                className={`flex-1 sm:flex-none px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-95 active:scale-95 transition-all flex items-center justify-center gap-2 ${loadingSummary || processingPayment ? 'opacity-70 cursor-not-allowed' : ''}`}
-              >
-                {loadingSummary || processingPayment ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    {processingPayment ? 'Recording...' : 'Verifying...'}
-                  </>
-                ) : (
-                  'Record Payment'
-                )}
-              </button>
+               {!isViewOnly && (
+                <button
+                  onClick={() => recordPayment(selectedStudent.id)}
+                  disabled={loadingSummary || processingPayment}
+                  className={`flex-1 sm:flex-none px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-95 active:scale-95 transition-all flex items-center justify-center gap-2 ${loadingSummary || processingPayment ? 'opacity-70 cursor-not-allowed' : ''}`}
+                >
+                  {loadingSummary || processingPayment ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      {processingPayment ? 'Recording...' : 'Verifying...'}
+                    </>
+                  ) : (
+                    'Record Payment'
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -3359,13 +3374,15 @@ export default function FeeManagement() {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={loadingMisc}
-                  className="flex-3 bg-gray-900 text-white py-4 px-8 rounded-2xl font-black text-sm hover:bg-black active:scale-95 transition-all shadow-xl shadow-gray-200 uppercase tracking-widest disabled:opacity-50"
-                >
-                  {loadingMisc ? 'Recording...' : 'Record Payment'}
-                </button>
+                {!isViewOnly && (
+                  <button
+                    type="submit"
+                    disabled={loadingMisc}
+                    className="flex-3 bg-gray-900 text-white py-4 px-8 rounded-2xl font-black text-sm hover:bg-black active:scale-95 transition-all shadow-xl shadow-gray-200 uppercase tracking-widest disabled:opacity-50"
+                  >
+                    {loadingMisc ? 'Recording...' : 'Record Payment'}
+                  </button>
+                )}
               </div>
             </form>
           </div>
@@ -3468,22 +3485,26 @@ export default function FeeManagement() {
                             >
                               <span className="mr-1">📄</span> Receipt
                             </button>
-                            <button
-                               onClick={() => {
-                                 console.log('Editing payment:', payment);
-                                 startEditPayment(payment);
-                               }}
-                               className="inline-flex items-center px-4 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-sm font-bold text-xs"
-                             >
-                               <span className="mr-1">✏️</span> Edit
-                             </button>
-                             <button
-                                onClick={() => deletePayment(payment.id)}
-                                className="inline-flex items-center px-4 py-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all border border-rose-100 font-bold text-xs"
-                                title="Delete this payment"
-                              >
-                                <span className="mr-1">🗑️</span> Delete
-                              </button>
+                            {!isViewOnly && (
+                               <>
+                                 <button
+                                   onClick={() => {
+                                     console.log('Editing payment:', payment);
+                                     startEditPayment(payment);
+                                   }}
+                                   className="inline-flex items-center px-4 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-sm font-bold text-xs"
+                                 >
+                                   <span className="mr-1">✏️</span> Edit
+                                 </button>
+                                 <button
+                                   onClick={() => deletePayment(payment.id)}
+                                   className="inline-flex items-center px-4 py-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all border border-rose-100 font-bold text-xs"
+                                   title="Delete this payment"
+                                 >
+                                   <span className="mr-1">🗑️</span> Delete
+                                 </button>
+                               </>
+                             )}
                           </td>
                         </tr>
                       ))}
@@ -3565,12 +3586,14 @@ export default function FeeManagement() {
               >
                 Cancel
               </button>
-              <button
-                onClick={updatePayment}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Update Payment
-              </button>
+              {!isViewOnly && (
+                <button
+                  onClick={updatePayment}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Update Payment
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -3625,12 +3648,14 @@ export default function FeeManagement() {
               >
                 Cancel
               </button>
-              <button
-                onClick={saveRestriction}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-medium"
-              >
-                Save Restriction
-              </button>
+              {!isViewOnly && (
+                <button
+                  onClick={saveRestriction}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-medium"
+                >
+                  Save Restriction
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -3756,12 +3781,14 @@ export default function FeeManagement() {
 
             {/* Footer */}
             <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between shrink-0">
-              <button
-                onClick={() => handleResetLedger(editingFeeRecord.student.id)}
-                className="px-4 py-2.5 bg-rose-50 text-rose-600 text-[10px] font-black uppercase rounded-xl border border-rose-100 hover:bg-rose-600 hover:text-white transition-all shadow-sm shadow-rose-100"
-              >
-                Reset Student Ledger
-              </button>
+              {!isViewOnly && (
+                <button
+                  onClick={() => handleResetLedger(editingFeeRecord.student.id)}
+                  className="px-4 py-2.5 bg-rose-50 text-rose-600 text-[10px] font-black uppercase rounded-xl border border-rose-100 hover:bg-rose-600 hover:text-white transition-all shadow-sm shadow-rose-100"
+                >
+                  Reset Student Ledger
+                </button>
+              )}
               <div className="flex gap-3">
                 <button
                   onClick={() => setEditingFeeRecord(null)}
@@ -3769,20 +3796,22 @@ export default function FeeManagement() {
                 >
                   Cancel
                 </button>
-                <button
-                  onClick={saveFeeRecord}
-                  disabled={loading}
-                  className="px-6 py-2.5 bg-orange-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-200 hover:bg-orange-600 active:scale-95 transition-all flex items-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    'Update Fee Amount'
-                  )}
-                </button>
+                {!isViewOnly && (
+                  <button
+                    onClick={saveFeeRecord}
+                    disabled={loading}
+                    className="px-6 py-2.5 bg-orange-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-200 hover:bg-orange-600 active:scale-95 transition-all flex items-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      'Update Fee Amount'
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>

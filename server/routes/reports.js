@@ -2521,6 +2521,16 @@ router.get('/bulk-progressive/:classId/:termId', authenticate, authorize(['admin
 
     const totalSubjectsCount = classSubjects.length || 1;
 
+    // Fetch all results for the class in this term
+    const allClassResults = await prisma.result.findMany({
+      where: {
+        student: { classId: parseInt(classId), status: 'active' },
+        termId: parseInt(termId),
+        schoolId: req.schoolId
+      },
+      include: { subject: true }
+    });
+
     // Pre-calculate progressive totals for everyone
     const studentCATotals = {};
     const subjectScores = {};

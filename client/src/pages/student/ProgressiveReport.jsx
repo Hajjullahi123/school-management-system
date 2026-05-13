@@ -533,14 +533,14 @@ const ProgressiveReport = () => {
                             const subs = data.subjects || [];
                             return subs.map((sub, i) => (
                               <tr key={i} className="hover:bg-gray-50 border-b border-gray-300 h-5">
-                                <td className="border-x border-black p-1 font-bold text-gray-800 uppercase text-[10px]">{sub.isEmpty ? '\u00A0' : (sub.subject?.name || '')}</td>
-                                <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '' : (sub.assignment1Score ?? '-')}</td>
-                                <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '' : (sub.assignment2Score ?? '-')}</td>
-                                <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '' : (sub.test1Score ?? '-')}</td>
-                                <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '' : (sub.test2Score ?? '-')}</td>
-                                <td className="border-x border-black p-1 text-center font-black bg-gray-100 text-sm text-emerald-800" style={{ color: sub.isEmpty ? undefined : reportColor }}>{sub.isEmpty ? '' : (sub.totalScore ?? '-')}</td>
-                                <td className="border-x border-gray-400 p-1 text-center italic text-gray-600">{sub.isEmpty ? '' : (sub.averageInClass !== null && sub.averageInClass !== undefined ? sub.averageInClass.toFixed(1) : '-')}</td>
-                                {showPosition && <td className="border-x border-black p-1 text-center font-black text-emerald-800 bg-emerald-50/50">{sub.isEmpty ? '' : getSuffix(sub.position)}</td>}
+                                <td className="border-x border-black p-1 font-bold text-gray-800 uppercase text-[10px]">{sub.subject?.name || ''}</td>
+                                <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '-' : (sub.assignment1Score ?? '-')}</td>
+                                <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '-' : (sub.assignment2Score ?? '-')}</td>
+                                <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '-' : (sub.test1Score ?? '-')}</td>
+                                <td className="border-x border-gray-400 p-1 text-center">{sub.isEmpty ? '-' : (sub.test2Score ?? '-')}</td>
+                                <td className="border-x border-black p-1 text-center font-black bg-gray-100 text-sm text-emerald-800" style={{ color: sub.isEmpty ? '#9ca3af' : reportColor }}>{sub.isEmpty ? '-' : (sub.totalScore ?? '-')}</td>
+                                <td className="border-x border-gray-400 p-1 text-center italic text-gray-600">{sub.isEmpty ? '-' : (sub.averageInClass !== null && sub.averageInClass !== undefined ? sub.averageInClass.toFixed(1) : '-')}</td>
+                                {showPosition && <td className="border-x border-black p-1 text-center font-black text-emerald-800 bg-emerald-50/50">{sub.isEmpty ? '-' : getSuffix(sub.position)}</td>}
                               </tr>
                             ));
                           })()}
