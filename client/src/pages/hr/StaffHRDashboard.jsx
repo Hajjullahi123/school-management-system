@@ -80,21 +80,21 @@ const StaffHRDashboard = () => {
          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
             <div>
                <div className="flex items-center gap-3 mb-4">
-                  <span className="px-4 py-1.5 bg-primary/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-primary/30 text-primary-light">Personnel Financial Hub</span>
+                  <span className="px-4 py-1.5 bg-indigo-500/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-white/20 text-indigo-100">Personnel Financial Hub</span>
                </div>
-               <h1 className="text-4xl sm:text-6xl font-black tracking-tighter leading-none mb-6 italic uppercase">HR Dashboard</h1>
+               <h1 className="text-4xl sm:text-6xl font-black tracking-tighter leading-none mb-6 italic uppercase text-white drop-shadow-2xl">HR Dashboard</h1>
                
                <div className="flex flex-wrap gap-3">
-                  <button onClick={() => setActiveTab('payroll')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'payroll' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>Payroll History</button>
-                  <button onClick={() => setActiveTab('loans')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'loans' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>Loan Center</button>
-                  <button onClick={() => setActiveTab('requests')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'requests' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>Requisitions</button>
+                  <button onClick={() => setActiveTab('payroll')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'payroll' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>Payroll History</button>
+                  <button onClick={() => setActiveTab('loans')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'loans' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>Loan Center</button>
+                  <button onClick={() => setActiveTab('requests')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'requests' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>Requisitions</button>
                </div>
             </div>
 
             <div className="flex gap-4">
-               <div className="bg-white/10 backdrop-blur-xl p-6 rounded-[2.5rem] border border-white/10 text-center">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-1">Last Net Pay</p>
-                  <p className="text-3xl font-black leading-none">₦{data.salaries[0]?.netPay?.toLocaleString() || '0'}</p>
+               <div className="bg-white/10 backdrop-blur-xl p-6 rounded-[2.5rem] border border-white/20 text-center shadow-inner">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-indigo-100/70 mb-1">Last Net Pay</p>
+                  <p className="text-3xl font-black leading-none text-white drop-shadow-md">₦{data.salaries[0]?.netPay?.toLocaleString() || '0'}</p>
                </div>
             </div>
          </div>
@@ -109,12 +109,12 @@ const StaffHRDashboard = () => {
                     <table className="w-full">
                        <thead>
                           <tr className="text-left border-b border-gray-50">
-                             <th className="pb-4 text-[9px] font-black text-gray-400 uppercase tracking-widest">Period</th>
-                             <th className="pb-4 text-[9px] font-black text-gray-400 uppercase tracking-widest">Base Salary</th>
-                             <th className="pb-4 text-[9px] font-black text-gray-400 uppercase tracking-widest text-emerald-600">Allowances</th>
-                             <th className="pb-4 text-[9px] font-black text-gray-400 uppercase tracking-widest text-rose-600">Deductions</th>
-                             <th className="pb-4 text-[9px] font-black text-gray-400 uppercase tracking-widest">Net Pay</th>
-                             <th className="pb-4 text-[9px] font-black text-gray-400 uppercase tracking-widest text-right">Status</th>
+                             <th className="pb-4 text-[9px] font-black text-slate-600 uppercase tracking-widest">Period</th>
+                             <th className="pb-4 text-[9px] font-black text-slate-600 uppercase tracking-widest">Base Salary</th>
+                             <th className="pb-4 text-[9px] font-black text-emerald-700 uppercase tracking-widest">Allowances</th>
+                             <th className="pb-4 text-[9px] font-black text-rose-700 uppercase tracking-widest">Deductions</th>
+                             <th className="pb-4 text-[9px] font-black text-slate-600 uppercase tracking-widest">Net Pay</th>
+                             <th className="pb-4 text-[9px] font-black text-slate-600 uppercase tracking-widest text-right">Status</th>
                           </tr>
                        </thead>
                        <tbody className="divide-y divide-gray-50">
