@@ -32,98 +32,77 @@ router.post('/identify', async (req, res) => {
       return res.json({ schools: [], count: 0, globalAccess: true, message: 'Global admin detected' });
     }
 
-    // If no schoolSlug, do a global lookup for ALL accounts matching this identifier
-    if (!schoolSlug) {
-      const globalMatches = await prisma.user.findMany({
-        where: { 
-          OR: [
-            { username: { equals: searchId } }, 
-            { email: { equals: searchId } }
-          ] 
-        },
-        select: { 
-          school: { 
-            select: { id: true, name: true, slug: true, logoUrl: true } 
-          } 
+    // 1. PERFORM GLOBAL DISCOVERY
+    // We search across all schools to see if this identifier exists anywhere
+    const globalMatches = await prisma.user.findMany({
+      where: { 
+        OR: [
+          { username: { equals: searchId } }, 
+          { email: { equals: searchId } }
+        ] 
+      },
+      select: { 
+        school: { 
+          select: { id: true, name: true, slug: true, logoUrl: true } 
+        } 
+      }
+    });
+
+    const schools = globalMatches
+      .filter(m => m.school)
+      .map(m => m.school);
+
+    // 2. LOGIC FOR RETURNING MATCHES
+    if (schools.length > 0) {
+      // If a schoolSlug was provided, we check if it's in our global matches
+      if (schoolSlug) {
+        const currentSchoolMatch = schools.find(s => s.slug === schoolSlug);
+        
+        // If we found the current school AND no other schools, just return that one (normal flow)
+        if (currentSchoolMatch && schools.length === 1) {
+          return res.json({ schools: [currentSchoolMatch], count: 1 });
         }
-      });
-
-      const schools = globalMatches
-        .filter(m => m.school)
-        .map(m => m.school);
-
-      if (schools.length > 0) {
+        
+        // If we found the current school PLUS others, or just other schools, return the whole list
+        // This is what unlocks the "discovery" for parents even on a school-specific PWA
         return res.json({ 
           schools, 
           count: schools.length,
           message: schools.length > 1 ? 'Multiple accounts found' : 'Account found'
         });
       }
-      return res.status(404).json({ error: 'Account not found. Check your credentials.' });
-    }
 
-    // Cache school slug → id lookup
-    const schoolCache = global.__schoolCache || (global.__schoolCache = {});
-    let schoolId;
-    if (schoolCache[schoolSlug]) {
-      schoolId = schoolCache[schoolSlug];
-    } else {
-      const school = await prisma.school.findUnique({
-        where: { slug: schoolSlug },
-        select: { id: true }
+      // If no schoolSlug provided (Global Discovery Page), return all matches
+      return res.json({ 
+        schools, 
+        count: schools.length,
+        message: schools.length > 1 ? 'Multiple accounts found' : 'Account found'
       });
-      if (!school) {
-        return res.status(404).json({ error: 'Invalid school domain' });
-      }
-      schoolId = school.id;
-      schoolCache[schoolSlug] = schoolId;
     }
 
-    // Performance Optimization: Check User table FIRST using unique index
-    // This handles 90% of logins (admins, teachers with usernames, students with admission numbers as username)
-    const directUser = await prisma.user.findUnique({
-      where: {
-        schoolId_username: {
-          schoolId,
-          username: searchId
+    // 3. FALLBACK: Check non-user records (Students/Teachers) only if no direct User matches
+    // This is for legacy/first-time login scenarios
+    if (schoolSlug) {
+      const school = await prisma.school.findUnique({ where: { slug: schoolSlug }, select: { id: true } });
+      if (school) {
+        const [studentMatch, teacherMatch] = await Promise.all([
+          prisma.student.findFirst({
+            where: { schoolId: school.id, admissionNumber: { equals: searchId } },
+            select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
+          }),
+          prisma.teacher.findFirst({
+            where: { schoolId: school.id, staffId: { equals: searchId } },
+            select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
+          })
+        ]);
+        const legacyMatch = studentMatch || teacherMatch;
+        if (legacyMatch?.school) {
+          return res.json({ schools: [legacyMatch.school], count: 1 });
         }
-      },
-      select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
-    });
-
-    if (directUser?.school) {
-      return res.json({ schools: [directUser.school], count: 1 });
+      }
     }
 
-    // Secondary lookups for email or non-synced admission/staff IDs
-    // SMART ROUTING: Reduce search width based on identifier pattern
-    let finalMatch = null;
-    const isEmail = searchId.includes('@');
-    
-    if (isEmail) {
-      finalMatch = await prisma.user.findFirst({
-        where: { schoolId, email: { equals: searchId } },
-        select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
-      });
-    } else {
-      const [studentMatch, teacherMatch] = await Promise.all([
-        prisma.student.findFirst({
-          where: { schoolId, admissionNumber: { equals: searchId } },
-          select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
-        }),
-        prisma.teacher.findFirst({
-          where: { schoolId, staffId: { equals: searchId } },
-          select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
-        })
-      ]);
-      finalMatch = studentMatch || teacherMatch;
-    }
-
-    if (!finalMatch?.school) {
-      return res.status(404).json({ error: 'Account not found. Check your credentials.' });
-    }
-
-    res.json({ schools: [finalMatch.school], count: 1 });
+    return res.status(404).json({ error: 'Account not found. Check your credentials.' });
   } catch (error) {
     console.error('Identify error:', error);
     res.status(500).json({ error: 'Identification failed' });
