@@ -499,71 +499,65 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
   }
 });
 
-// 6. Delete Parent (Admin/Principal)
+// 6. Delete Parent Account (Admin/Principal)
 router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
-    const { id } = req.params;
+    const parentId = parseInt(req.params.id);
 
-    // Get parent with user info
-    const parent = await prisma.parent.findFirst({
-      where: {
-        id: parseInt(id),
-        schoolId: req.schoolId
-      },
-      include: { user: true, parentChildren: true }
+    // Get parent with user info using correct schema casing
+    const parent = await prisma.parent.findUnique({
+      where: { id: parentId },
+      include: { 
+        User: true, 
+        parentChildren: { select: { id: true } } 
+      }
     });
 
-    if (!parent) {
+    if (!parent || parent.schoolId !== req.schoolId) {
       return res.status(404).json({ error: 'Parent not found' });
     }
 
-    // Map parentChildren back to students for consistency (though it's being deleted)
-    parent.students = parent.parentChildren;
-
-    // Delete in transaction
-    await prisma.$transaction(async (prisma) => {
-      // Unlink all students first
-      await prisma.student.updateMany({
-        where: {
-          parentId: parseInt(id),
-          schoolId: req.schoolId
-        },
+    // Execute in transaction to ensure data integrity
+    await prisma.$transaction(async (tx) => {
+      // 1. Unlink all students associated with this parent
+      await tx.student.updateMany({
+        where: { parentId: parentId },
         data: { parentId: null }
       });
 
-      // Delete parent record
-      await prisma.parent.delete({
-        where: {
-          id: parseInt(id),
-          schoolId: req.schoolId
-        }
+      // 2. Set parentId to null in WhatsApp logs (if they exist)
+      // Since WhatsAppLog doesn't have an explicit Prisma relation but has the ID
+      await tx.whatsAppLog.updateMany({
+        where: { parentId: parentId },
+        data: { parentId: null }
       });
 
-      // Delete user account
-      await prisma.user.delete({
-        where: {
-          id: parent.userId,
-          schoolId: req.schoolId
-        }
+      // 3. Delete the parent profile
+      await tx.parent.delete({
+        where: { id: parentId }
       });
+
+      // 4. Delete the associated user account if they only have the parent role
+      if (parent.User && parent.User.role === 'parent') {
+        await tx.user.delete({
+          where: { id: parent.userId }
+        });
+      }
     });
 
-    res.json({ message: 'Parent deleted successfully' });
-
-    // Log the deletion
     logAction({
       schoolId: req.schoolId,
       userId: req.user.id,
-      action: 'DELETE',
-      resource: 'PARENT_ACCOUNT',
-      details: {
-        parentId: parseInt(id)
-      },
+      action: 'DELETE_PARENT',
+      resource: 'PARENT',
+      details: { parentId, deletedUserId: parent.userId },
       ipAddress: req.ip
     });
+
+    res.json({ message: 'Parent account deleted successfully' });
   } catch (error) {
     console.error('Delete parent error:', error);
-    res.status(500).json({ error: 'Failed to delete parent' });
+    res.status(500).json({ error: 'Failed to delete parent account. Ensure no critical dependencies exist.' });
   }
 });
 
@@ -629,56 +623,7 @@ router.post('/unlink-student', authenticate, authorize(['admin', 'principal', 'a
 });
 
 
-// 8. Delete Parent Account (Admin/Principal)
-router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
-  try {
-    const parentId = parseInt(req.params.id);
 
-    const parent = await prisma.parent.findUnique({
-      where: { id: parentId },
-      include: { User: true }
-    });
-
-    if (!parent || parent.schoolId !== req.schoolId) {
-      return res.status(404).json({ error: 'Parent not found' });
-    }
-
-    // Execute in transaction to ensure data integrity
-    await prisma.$transaction(async (tx) => {
-      // 1. Unlink all students associated with this parent
-      await tx.student.updateMany({
-        where: { parentId: parentId },
-        data: { parentId: null }
-      });
-
-      // 2. Delete the parent profile
-      await tx.parent.delete({
-        where: { id: parentId }
-      });
-
-      // 3. Delete the associated user account if they only have the parent role
-      if (parent.User && parent.User.role === 'parent') {
-        await tx.user.delete({
-          where: { id: parent.userId }
-        });
-      }
-    });
-
-    logAction({
-      schoolId: req.schoolId,
-      userId: req.user.id,
-      action: 'DELETE_PARENT',
-      resource: 'PARENT',
-      details: { parentId, deletedUserId: parent.userId },
-      ipAddress: req.ip
-    });
-
-    res.json({ message: 'Parent account deleted successfully' });
-  } catch (error) {
-    console.error('Delete parent error:', error);
-    res.status(500).json({ error: 'Failed to delete parent account' });
-  }
-});
 
 // 9. Get Student Attendance (Parent view their ward's attendance)
 router.get('/student-attendance', authenticate, authorize(['parent', 'admin', 'principal']), async (req, res) => {

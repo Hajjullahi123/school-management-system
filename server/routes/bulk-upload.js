@@ -40,7 +40,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       { header: 'Parent Phone', key: 'parentPhone', width: 20 },
       { header: 'Address', key: 'address', width: 40 },
       { header: 'Date of Birth (YYYY-MM-DD)', key: 'dob', width: 25 },
-      { header: 'Scholarship (Yes/No)', key: 'isScholarship', width: 20 }
+      { header: 'Scholarship (Yes/No)', key: 'isScholarship', width: 20 },
+      { header: 'Password (Optional)', key: 'password', width: 20 }
     ];
 
     // Styling the header row
@@ -67,7 +68,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
         parentPhone: '08000000000',
         address: '123 School Road',
         dob: '2015-05-15',
-        isScholarship: 'No'
+        isScholarship: 'No',
+        password: 'securePassword123'
       });
     }
 
@@ -198,6 +200,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
           else if (header.includes('address')) headers.address = colNumber;
           else if (header.includes('date of birth') || header.includes('dob')) headers.dateOfBirth = colNumber;
           else if (header.includes('scholarship')) headers.isScholarship = colNumber;
+          else if (header.includes('password')) headers.password = colNumber;
         });
 
         // Parse rows starting from the row after the header
@@ -233,7 +236,8 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
             parentEmail: getVal('parentEmail'),
             address: getVal('address'),
             dateOfBirth: getVal('dateOfBirth'),
-            isScholarship: getVal('isScholarship')
+            isScholarship: getVal('isScholarship'),
+            password: getVal('password')
           });
         }
       }
@@ -379,8 +383,8 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
 
         // Sync username with admission number
         const username = admissionNumber.toLowerCase();
-
-        const hashedPassword = await bcrypt.hash('student123', 10);
+        const rawPassword = studentData.password || 'student123';
+        const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
         // Check if email already exists
         let userEmailToUse = studentData.email || null;
