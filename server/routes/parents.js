@@ -519,25 +519,53 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
 
     // Execute in transaction to ensure data integrity
     await prisma.$transaction(async (tx) => {
-      // 1. Unlink all students associated with this parent
+      // 1. Unlink all students associated with this parent profile
       await tx.student.updateMany({
         where: { parentId: parentId },
         data: { parentId: null }
       });
 
-      // 2. Set parentId to null in WhatsApp logs (if they exist)
-      // Since WhatsAppLog doesn't have an explicit Prisma relation but has the ID
+      // 2. Clear parentId from WhatsApp logs
       await tx.whatsAppLog.updateMany({
         where: { parentId: parentId },
         data: { parentId: null }
       });
 
-      // 3. Delete the parent profile
+      // 3. Handle User-level dependencies if deleting the user account
+      // This prevents "Foreign Key Constraint" errors when the parent has sent/received messages or nudges
+      if (parent.User && parent.User.role === 'parent') {
+        const userId = parent.userId;
+
+        // Delete nudges sent to or by this parent
+        await tx.nudge.deleteMany({
+          where: { OR: [{ senderId: userId }, { receiverId: userId }] }
+        });
+
+        // Delete notices authored by this parent (unlikely for parents, but possible if they have mixed roles)
+        await tx.notice.deleteMany({
+          where: { authorId: userId }
+        });
+
+        // Null out userId in audit logs to preserve the log records
+        await tx.auditLog.updateMany({
+          where: { userId: userId },
+          data: { userId: null }
+        });
+
+        // Delete Parent-Teacher messages involving this user
+        // Note: receiverId and senderId are Ints, handled by tx.executeRaw if relations are missing in schema
+        // but since we found they are in the schema, we can use model methods
+        await tx.parentTeacherMessage.deleteMany({
+          where: { OR: [{ senderId: userId }, { receiverId: userId }] }
+        });
+      }
+
+      // 4. Delete the parent profile first
       await tx.parent.delete({
         where: { id: parentId }
       });
 
-      // 4. Delete the associated user account if they only have the parent role
+      // 5. Delete the associated user account if they only have the parent role
       if (parent.User && parent.User.role === 'parent') {
         await tx.user.delete({
           where: { id: parent.userId }
@@ -550,14 +578,18 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
       userId: req.user.id,
       action: 'DELETE_PARENT',
       resource: 'PARENT',
-      details: { parentId, deletedUserId: parent.userId },
+      details: { parentId, deletedUserId: parent.userId, phone: parent.phone },
       ipAddress: req.ip
     });
 
-    res.json({ message: 'Parent account deleted successfully' });
+    res.json({ message: 'Parent account and profile deleted successfully' });
   } catch (error) {
-    console.error('Delete parent error:', error);
-    res.status(500).json({ error: 'Failed to delete parent account. Ensure no critical dependencies exist.' });
+    console.error('[DeleteParent] Failed to delete parent:', error);
+    res.status(500).json({ 
+      error: 'Failed to delete parent account', 
+      details: error.message,
+      message: 'Ensure no critical dependencies exist or the account is not shared with a staff role.' 
+    });
   }
 });
 

@@ -15,7 +15,7 @@ const memoryStorage = multer.memoryStorage();
 
 // File filter to accept only images
 const imageFileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif/;
+  const allowedTypes = /jpeg|jpg|png|gif|webp/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
 
@@ -43,9 +43,15 @@ function fileToBase64(file) {
 // ============ STUDENT PHOTO UPLOAD ============
 
 // Upload student photo (Admin/Principal/Staff)
-router.post('/:studentId/photo', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), upload.single('photo'), async (req, res) => {
+router.post('/:studentId/photo', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin', 'teacher']), upload.single('photo'), async (req, res) => {
   try {
     const studentId = parseInt(req.params.studentId);
+    const schoolId = parseInt(req.schoolId);
+
+    if (isNaN(schoolId)) {
+      console.error('[Upload] Missing or invalid schoolId in request');
+      return res.status(401).json({ error: 'Session expired or school ID missing. Please log in again.' });
+    }
 
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -55,7 +61,7 @@ router.post('/:studentId/photo', authenticate, authorize(['admin', 'principal', 
     const student = await prisma.student.findFirst({
       where: { 
         id: studentId,
-        schoolId: parseInt(req.schoolId)
+        schoolId: schoolId
       }
     });
 
@@ -97,31 +103,37 @@ router.post('/:studentId/photo', authenticate, authorize(['admin', 'principal', 
 
     // Log the upload
     logAction({
-      schoolId: parseInt(req.schoolId),
+      schoolId: schoolId,
       userId: req.user.id,
       action: 'UPLOAD_PHOTO',
       resource: 'STUDENT',
       details: {
         studentId: studentId,
-        method: 'base64_database_storage'
+        method: 'base64_database_storage',
+        role: req.user.role
       },
       ipAddress: req.ip
     });
   } catch (error) {
-    console.error('Error uploading photo:', error);
-    res.status(500).json({ error: error.message });
+    console.error('[Upload] Fatal error uploading student photo:', error);
+    res.status(500).json({ error: 'Server error: ' + error.message });
   }
 });
 
 // Delete student photo
-router.delete('/:studentId/photo', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+router.delete('/:studentId/photo', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin', 'teacher']), async (req, res) => {
   try {
     const studentId = parseInt(req.params.studentId);
+    const schoolId = parseInt(req.schoolId);
+
+    if (isNaN(schoolId)) {
+      return res.status(401).json({ error: 'Session expired. Please log in again.' });
+    }
 
     const student = await prisma.student.findFirst({
       where: { 
         id: studentId,
-        schoolId: parseInt(req.schoolId)
+        schoolId: schoolId
       }
     });
 
