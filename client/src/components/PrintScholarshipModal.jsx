@@ -1,9 +1,13 @@
 import { api, API_BASE_URL } from '../api';
 import useSchoolSettings from '../hooks/useSchoolSettings';
 import { formatDateTime } from '../utils/formatters';
+import { useState } from 'react';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function PrintScholarshipModal({ student, isOpen, onClose, currentTerm, currentSession }) {
   const { settings: schoolSettings } = useSchoolSettings();
+  const [downloading, setDownloading] = useState(false);
 
   const handlePrint = () => {
     if (!student) return;
@@ -479,6 +483,142 @@ export default function PrintScholarshipModal({ student, isOpen, onClose, curren
     }, 500);
   };
 
+  const handleDownloadPDF = async () => {
+    if (downloading || !student) return;
+    setDownloading(true);
+
+    try {
+      const primaryColor = schoolSettings?.primaryColor || '#059669';
+      const secondaryColor = schoolSettings?.secondaryColor || '#047857';
+      const logoUrl = schoolSettings?.logoUrl
+        ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl}`)
+        : null;
+      const signatureUrl = schoolSettings?.principalSignatureUrl
+        ? (schoolSettings.principalSignatureUrl.startsWith('http') ? schoolSettings.principalSignatureUrl : `${API_BASE_URL}${schoolSettings.principalSignatureUrl}`)
+        : null;
+
+      const barcodeText = `SCH-${student.id}-${currentTerm?.id || 'ALL'}`;
+      const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&rotate=N&includetext=true&backgroundcolor=ffffff&height=12`;
+      const securityHash = btoa(`SCHOLARSHIP-${student.id}-${new Date().getTime()}`).substring(0, 16).toUpperCase();
+
+      // Recalculate printHTML (simplified for PDF capture)
+      const printHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+          <style>
+            body { margin: 0; padding: 0; background: white; }
+            .card-container {
+              width: 105mm;
+              height: 148mm;
+              background: white;
+              position: relative;
+              border-radius: 8mm;
+              display: flex;
+              flex-direction: column;
+              border: 0.5mm solid rgba(0,0,0,0.05);
+              overflow: hidden;
+            }
+            /* ... Copy required styles from above ... */
+            .header { background: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}); padding: 8mm 6mm; color: white; text-align: center; }
+            .school-logo-frame { width: 18mm; height: 18mm; background: white; border-radius: 5mm; margin: 0 auto 3mm; display: flex; align-items: center; justify-content: center; padding: 2mm; }
+            .school-logo-frame img { max-width: 100%; max-height: 100%; object-fit: contain; }
+            .school-name { font-size: 14px; font-weight: 800; text-transform: uppercase; margin-bottom: 1mm; }
+            .badge-row { padding: 4mm 6mm; display: flex; justify-content: center; }
+            .scholarship-badge { background: #fef3c7; color: #92400e; padding: 1.5mm 4mm; border-radius: 100px; font-size: 9px; font-weight: 800; text-transform: uppercase; border: 0.5mm solid #fbbf24; }
+            .body { flex: 1; padding: 0 8mm 6mm; display: flex; flex-direction: column; align-items: center; }
+            .card-title { font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 6mm; text-transform: uppercase; }
+            .student-card { width: 100%; background: #f8fafc; border-radius: 5mm; padding: 5mm; border: 0.3mm solid #e2e8f0; margin-bottom: 6mm; border-left: 1.5mm solid ${primaryColor}; }
+            .info-label { font-size: 7px; color: #94a3b8; text-transform: uppercase; font-weight: 800; }
+            .info-value { font-size: 13px; font-weight: 700; color: #0f172a; }
+            .description { font-size: 10px; line-height: 1.6; color: #475569; text-align: justify; }
+            .footer { margin-top: auto; width: 100%; display: flex; justify-content: space-between; align-items: flex-end; }
+            .barcode { max-width: 40mm; }
+            .signature-img { height: 12mm; width: auto; }
+            .auth-line { width: 35mm; border-top: 0.3mm solid #cbd5e1; padding-top: 1.5mm; font-size: 7px; font-weight: 800; color: #64748b; text-transform: uppercase; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="card-container" id="capture-container">
+            <div class="header">
+              <div class="school-logo-frame">
+                ${logoUrl ? `<img src="${logoUrl}" />` : '🎓'}
+              </div>
+              <div class="school-name">${schoolSettings?.schoolName || 'ACADEMY'}</div>
+            </div>
+            <div class="badge-row">
+              <div class="scholarship-badge">Official Exemption Award</div>
+            </div>
+            <div class="body">
+              <h2 class="card-title">Scholarship Card</h2>
+              <div class="student-card">
+                <div class="info-label">Full Name</div>
+                <div class="info-value">${student.user?.firstName || ''} ${student.user?.lastName || ''}</div>
+                <div style="margin-top: 3mm; display: grid; grid-template-columns: 1fr 1fr;">
+                  <div>
+                    <div class="info-label">Student ID</div>
+                    <div class="info-value">${student.admissionNumber}</div>
+                  </div>
+                  <div>
+                    <div class="info-label">Class</div>
+                    <div class="info-value">${student.classModel?.name || ''} ${student.classModel?.arm || ''}</div>
+                  </div>
+                </div>
+              </div>
+              <p class="description">
+                This card certifies that the student is under a FULL ACADEMIC SCHOLARSHIP for the ${currentSession?.name || 'Current Session'}.
+              </p>
+              <div class="footer">
+                <div>
+                  <img class="barcode" src="${barcodeUrl}" />
+                  <div style="font-size: 7px; color: #94a3b8; font-family: monospace;">${securityHash}</div>
+                </div>
+                <div style="text-align: center;">
+                  ${signatureUrl ? `<img class="signature-img" src="${signatureUrl}" />` : '<div style="height: 10mm;"></div>'}
+                  <div class="auth-line">Official Seal / Sign</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Render to hidden iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.visibility = 'hidden';
+      document.body.appendChild(iframe);
+      const doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write(printHTML);
+      doc.close();
+
+      await new Promise(r => setTimeout(r, 1500));
+
+      const container = doc.getElementById('capture-container');
+      const canvas = await html2canvas(container, { scale: 3, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: [105, 148]
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, 105, 148);
+      pdf.save(`ScholarshipCard-${student.admissionNumber}.pdf`);
+
+      document.body.removeChild(iframe);
+    } catch (error) {
+      console.error('PDF Generation failed:', error);
+      alert('Failed to generate PDF');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -527,10 +667,23 @@ export default function PrintScholarshipModal({ student, isOpen, onClose, curren
               Cancel
             </button>
             <button
+              onClick={handleDownloadPDF}
+              disabled={downloading}
+              className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition-all flex items-center gap-2"
+            >
+              {downloading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <span>💾</span>
+              )}
+              Download Card (PDF)
+            </button>
+            <button
               onClick={handlePrint}
+              disabled={downloading}
               className="px-6 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-bold shadow-md shadow-emerald-600/20 hover:bg-emerald-700 hover:shadow-lg hover:-translate-y-0.5 transition-all"
             >
-              Generate Official Card 🖨️
+              Print 🖨️
             </button>
           </div>
         </div>

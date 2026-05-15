@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../api';
 import useSchoolSettings from '../hooks/useSchoolSettings';
 import { formatNumber, formatDate, formatDateTime } from '../utils/formatters';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function PrintReceiptModal({ student, isOpen, onClose, currentTerm, currentSession, allTerms, allSessions, currentPayment }) {
   const { settings: schoolSettings } = useSchoolSettings();
@@ -11,6 +13,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
   const [selectedSession, setSelectedSession] = useState(currentSession);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (isOpen && currentPayment) {
@@ -780,6 +783,70 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
     `;
   };
 
+  const handleDownloadPDF = async () => {
+    if (downloading) return;
+    setDownloading(true);
+
+    try {
+      let content = '';
+      if (receiptType === 'single') {
+        if (!selectedPayment) return;
+        content = generateSinglePaymentReceipt(selectedPayment);
+      } else if (receiptType === 'summary') {
+        content = await generateTermReceipt();
+      } else {
+        content = await generateCumulativeReceipt();
+      }
+
+      // Create hidden iframe to render content
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '210mm'; // A4 width
+      iframe.style.height = '100%';
+      iframe.style.border = 'none';
+      iframe.style.visibility = 'hidden';
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write(content);
+      doc.close();
+
+      // Wait for resources to load
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      const container = doc.querySelector('.receipt-card, .statement-card, .ledger-card');
+      if (!container) throw new Error('Preview container not found');
+
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? 'l' : 'p',
+        unit: 'mm',
+        format: [canvas.width * 0.264583, canvas.height * 0.264583]
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width * 0.264583, canvas.height * 0.264583);
+      pdf.save(`Receipt-${student.admissionNumber}-${new Date().getTime()}.pdf`);
+
+      document.body.removeChild(iframe);
+    } catch (error) {
+      console.error('PDF Generation failed:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const handlePrint = async () => {
     // CRITICAL: Open window immediately to preserve user-gesture context for popup blockers
     const printWindow = window.open('', '_blank');
@@ -1018,12 +1085,26 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
             Cancel
           </button>
           <button
+            onClick={handleDownloadPDF}
+            disabled={downloading || (receiptType === 'single' && (!selectedPayment || payments.length === 0))}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+          >
+            {downloading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+            ) : (
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            )}
+            Download PDF
+          </button>
+          <button
             onClick={handlePrint}
-            disabled={receiptType === 'single' && (!selectedPayment || payments.length === 0)}
+            disabled={downloading || (receiptType === 'single' && (!selectedPayment || payments.length === 0))}
             className="px-4 py-2 bg-primary text-white rounded-md hover:brightness-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
             Print Receipt
           </button>
