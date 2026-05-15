@@ -68,7 +68,34 @@ const performCloudBackup = async () => {
 
     await s3Client.send(command);
 
-    // 3. Update Status
+    // 3. Optional: Cleanup old backups (Retention Enforcement)
+    try {
+        const { ListObjectsV2Command, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+        const listCommand = new ListObjectsV2Command({
+            Bucket: settings.s3BucketName,
+            Prefix: 'backups/'
+        });
+        const list = await s3Client.send(listCommand);
+        
+        if (list.Contents) {
+            const retentionMs = (settings.backupRetentionDays || 30) * 24 * 60 * 60 * 1000;
+            const now = new Date().getTime();
+            
+            for (const obj of list.Contents) {
+                if (now - new Date(obj.LastModified).getTime() > retentionMs) {
+                    await s3Client.send(new DeleteObjectCommand({
+                        Bucket: settings.s3BucketName,
+                        Key: obj.Key
+                    }));
+                    console.log(`[BackupService] Deleted expired backup: ${obj.Key}`);
+                }
+            }
+        }
+    } catch (cleanupErr) {
+        console.warn('[BackupService] Cleanup failed:', cleanupErr.message);
+    }
+
+    // 4. Update Status
     await prisma.globalSettings.update({
       where: { id: settings.id },
       data: {
