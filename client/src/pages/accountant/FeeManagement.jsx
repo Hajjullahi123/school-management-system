@@ -14,7 +14,7 @@ export default function FeeManagement() {
   const recordsRef = useRef(null);
   const { user: authUser } = useAuth();
   const { settings: schoolSettings } = useSchoolSettings();
-  const isViewOnly = ['admin', 'superadmin', 'proprietor'].includes(authUser?.role?.toLowerCase());
+  const isViewOnly = ['superadmin', 'proprietor'].includes(authUser?.role?.toLowerCase());
   const [students, setStudents] = useState([]);
   const [currentTerm, setCurrentTerm] = useState(null);
   const [currentSession, setCurrentSession] = useState(null);
@@ -2720,6 +2720,14 @@ export default function FeeManagement() {
                                       ⚙️ Adjust
                                     </button>
                                   )}
+                                  <a
+                                    href={`https://wa.me/${student.parentGuardianPhone?.replace(/\D/g, '') || ''}?text=${encodeURIComponent(`Hello ${student.parentGuardianName}, this is a friendly reminder from ${schoolSettings.schoolName} regarding the outstanding fees for ${student.user?.firstName} (${student.admissionNumber}). The current balance is ₦${formatNumber(student.feeRecords[0]?.balance || 0)}. Please kindly make payments at your earliest convenience. Thank you.`)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bg-green-50 text-green-600 hover:bg-green-600 hover:text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter transition-all flex items-center gap-1"
+                                  >
+                                    <span>📱</span> WhatsApp
+                                  </a>
                                 </div>
                               </td>
                             </>
@@ -2828,11 +2836,23 @@ export default function FeeManagement() {
                     </div>
 
                     {/* Card Actions */}
-                    <div className="px-4 pb-4 flex gap-2">
-                      <button onClick={() => setSelectedStudent(student)} className="flex-1 bg-primary/10 text-primary hover:bg-primary hover:text-white text-xs font-bold py-2 rounded-lg transition-all">Pay</button>
-                      <button onClick={() => viewPaymentHistory(student)} className="flex-1 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white text-xs font-bold py-2 rounded-lg transition-all">Edit Records</button>
-                      <button onClick={() => { setReceiptStudent(student); setReceiptPayment(null); setReceiptModalOpen(true); }} className="flex-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white text-xs font-bold py-2 rounded-lg transition-all">Receipt</button>
-                      <button onClick={() => handleEditFee(student)} className="flex-1 bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white text-xs font-bold py-2 rounded-lg transition-all">Adjust</button>
+                    <div className="px-4 pb-4 flex flex-wrap gap-2">
+                      {!isViewOnly && (
+                        <button onClick={() => setSelectedStudent(student)} className="flex-1 min-w-[70px] bg-primary/10 text-primary hover:bg-primary hover:text-white text-[10px] font-black uppercase py-2 rounded-lg transition-all tracking-tighter">Pay</button>
+                      )}
+                      <button onClick={() => viewPaymentHistory(student)} className="flex-1 min-w-[70px] bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white text-[10px] font-black uppercase py-2 rounded-lg transition-all tracking-tighter">{isViewOnly ? 'Records' : 'Edit'}</button>
+                      <button onClick={() => { setReceiptStudent(student); setReceiptPayment(null); setReceiptModalOpen(true); }} className="flex-1 min-w-[70px] bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white text-[10px] font-black uppercase py-2 rounded-lg transition-all tracking-tighter">Receipt</button>
+                      {!isViewOnly && (
+                        <button onClick={() => handleEditFee(student)} className="flex-1 min-w-[70px] bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white text-[10px] font-black uppercase py-2 rounded-lg transition-all tracking-tighter">Adjust</button>
+                      )}
+                      <a
+                        href={`https://wa.me/${student.parentGuardianPhone?.replace(/\D/g, '') || ''}?text=${encodeURIComponent(`Hello ${student.parentGuardianName}, this is a friendly reminder from ${schoolSettings.schoolName} regarding the outstanding fees for ${student.user?.firstName} (${student.admissionNumber}). The current balance is ₦${formatNumber(student.feeRecords[0]?.balance || 0)}. Please kindly make payments at your earliest convenience. Thank you.`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 min-w-[70px] bg-green-50 text-green-600 hover:bg-green-600 hover:text-white text-[10px] font-black uppercase py-2 rounded-lg transition-all tracking-tighter text-center flex items-center justify-center gap-1"
+                      >
+                        <span>📱</span> WA
+                      </a>
                     </div>
                   </div>
                 );
