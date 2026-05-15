@@ -6,6 +6,7 @@ const fs = require('fs');
 const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
+const { uploadFile } = require('../services/storageService');
 
 // ===========================================================
 // Use MEMORY storage so we can convert to Base64 for DB storage
@@ -69,8 +70,8 @@ router.post('/:studentId/photo', authenticate, authorize(['admin', 'principal', 
       return res.status(404).json({ error: 'Student not found' });
     }
 
-    // Convert to base64 data URI and store in DB
-    const photoUrl = fileToBase64(req.file);
+    // Upload to cloud storage (or fallback to base64 if not configured)
+    const photoUrl = await uploadFile(req.file, 'students');
 
     const updatedStudent = await prisma.student.update({
       where: { id: studentId },
@@ -109,7 +110,7 @@ router.post('/:studentId/photo', authenticate, authorize(['admin', 'principal', 
       resource: 'STUDENT',
       details: {
         studentId: studentId,
-        method: 'base64_database_storage',
+        method: 'cloud_storage_optimized',
         role: req.user.role
       },
       ipAddress: req.ip
@@ -199,8 +200,8 @@ router.post('/teacher/:teacherId/photo', authenticate, authorize(['admin', 'prin
       return res.status(404).json({ error: 'Teacher not found' });
     }
 
-    // Convert to base64 data URI and store in DB
-    const photoUrl = fileToBase64(req.file);
+    // Upload to cloud storage
+    const photoUrl = await uploadFile(req.file, 'teachers');
 
     const updatedTeacher = await prisma.teacher.update({
       where: { id: teacherId },
@@ -239,7 +240,7 @@ router.post('/teacher/:teacherId/photo', authenticate, authorize(['admin', 'prin
       resource: 'TEACHER',
       details: {
         teacherId: teacherId,
-        method: 'base64_database_storage'
+        method: 'cloud_storage_optimized'
       },
       ipAddress: req.ip
     });
@@ -332,7 +333,7 @@ router.post('/brochure', authenticate, authorize(['admin']), documentUpload.sing
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const fileData = fileToBase64(req.file);
+    const fileData = await uploadFile(req.file, 'documents');
 
     // Store in school settings
     await prisma.school.update({
@@ -368,7 +369,7 @@ router.post('/admission-guide', authenticate, authorize(['admin']), documentUplo
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const fileData = fileToBase64(req.file);
+    const fileData = await uploadFile(req.file, 'documents');
 
     // Store in school settings
     await prisma.school.update({
@@ -420,8 +421,8 @@ router.post('/certificate/:certificateId/photo', authenticate, authorize(['admin
       return res.status(404).json({ error: 'Certificate not found' });
     }
 
-    // Convert to base64 data URI and store in DB
-    const passportUrl = fileToBase64(req.file);
+    // Upload to cloud storage
+    const passportUrl = await uploadFile(req.file, 'certificates');
 
     const updatedCertificate = await prisma.certificate.update({
       where: { id: certificateId },
