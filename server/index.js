@@ -302,6 +302,7 @@ const advertRoutes = require('./routes/adverts');
 const departmentRoutes = require('./routes/departments');
 const broadsheetRoutes = require('./routes/broadsheet');
 const hrRoutes = require('./routes/hr');
+const pushRoutes = require('./routes/push');
 
 console.log('[Server] All route modules imported.');
 
@@ -380,6 +381,7 @@ app.use('/api/showcase', showcaseRoutes);
 app.use('/api/adverts', advertRoutes);
 app.use('/api/departments', authenticate, checkSubscription, departmentRoutes);
 app.use('/api/broadsheet', authenticate, checkSubscription, broadsheetRoutes);
+app.use('/api/push', pushRoutes);
 app.use('/api/hr', authenticate, checkSubscription, hrRoutes);
 
 // Serve frontend in production

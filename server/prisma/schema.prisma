@@ -194,6 +194,7 @@ model School {
   leaveRequests               LeaveRequest[]
   materialRequests            MaterialRequest[]
   DepartmentResource          DepartmentResource[]
+  PushSubscription            PushSubscription[]
 }
 
 model User {
@@ -255,6 +256,7 @@ model User {
   @@unique([schoolId, email])
   @@index([email])
   @@index([username])
+  PushSubscription    PushSubscription[]
 }
 
 model Student {
@@ -1559,4 +1561,19 @@ model DepartmentResource {
 
   @@index([schoolId])
   @@index([departmentId])
+}
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  schoolId  Int
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([schoolId])
 }

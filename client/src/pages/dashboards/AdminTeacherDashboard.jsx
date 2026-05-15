@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api, API_BASE_URL } from '../../api';
 import { formatNumber } from '../../utils/formatters';
 import StaffAttendanceWidget from '../../components/StaffAttendanceWidget';
+import { requestPushPermission, checkPushPermission } from '../../utils/push';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -47,6 +48,9 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
   const [deptAlertDismissed, setDeptAlertDismissed] = useState(false);
   const [deptScore, setDeptScore] = useState(null);
   const [nudges, setNudges] = useState([]);
+  const [attendanceTrend, setAttendanceTrend] = useState([]);
+  const [financialTrend, setFinancialTrend] = useState(null);
+  const [pushStatus, setPushStatus] = useState(checkPushPermission());
   const [attendanceTrend, setAttendanceTrend] = useState([]);
   const [financialTrend, setFinancialTrend] = useState(null);
 
@@ -254,6 +258,33 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
           </div>
         </div>
       </div>
+
+      {/* Push Notification Banner */}
+      {pushStatus !== 'granted' && (
+        <div className="bg-indigo-600 rounded-2xl p-4 shadow-lg flex items-center justify-between group overflow-hidden relative">
+          <div className="absolute inset-0 bg-white/10 translate-x-full group-hover:translate-x-0 transition-transform duration-700"></div>
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="p-2 bg-white/20 rounded-xl text-white">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-white font-black text-xs uppercase tracking-tight">Enable Real-Time Alerts</p>
+              <p className="text-white/70 text-[10px] font-bold uppercase">Stay updated with school activities on your phone</p>
+            </div>
+          </div>
+          <button 
+            onClick={async () => {
+              const success = await requestPushPermission();
+              if (success) setPushStatus('granted');
+            }}
+            className="px-5 py-2 bg-white text-indigo-600 text-[10px] font-black uppercase rounded-xl hover:scale-105 active:scale-95 transition-all relative z-10"
+          >
+            Activate Now
+          </button>
+        </div>
+      )}
 
       {/* Persistent HOD Nudges */}
       {nudges.length > 0 && (
