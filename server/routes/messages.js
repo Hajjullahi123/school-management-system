@@ -22,10 +22,10 @@ router.post('/', authenticate, authorize(['parent', 'teacher', 'principal', 'adm
           userId: req.user.id,
           schoolId: req.schoolId
         },
-        include: { students: { where: { schoolId: req.schoolId } } }
+        include: { parentChildren: { where: { schoolId: req.schoolId } } }
       });
 
-      if (!parent || !parent.students.some(s => s.id === parseInt(studentId))) {
+      if (!parent || !parent.parentChildren.some(s => s.id === parseInt(studentId))) {
         return res.status(403).json({ error: 'You can only send messages about your own children' });
       }
 
@@ -322,10 +322,10 @@ router.get('/form-master/:studentId', authenticate, authorize(['parent', 'admin'
           userId: req.user.id,
           schoolId: req.schoolId
         },
-        include: { students: { where: { schoolId: req.schoolId } } }
+        include: { parentChildren: { where: { schoolId: req.schoolId } } }
       });
 
-      if (!parent || !parent.students.some(s => s.id === parseInt(studentId))) {
+      if (!parent || !parent.parentChildren.some(s => s.id === parseInt(studentId))) {
         return res.status(403).json({ error: 'Unauthorized' });
       }
     }

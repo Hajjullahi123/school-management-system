@@ -63,7 +63,7 @@ async function findParentByPhone(phone, schoolId) {
       user: {
         select: { firstName: true, lastName: true }
       },
-      students: {
+      parentChildren: {
         include: {
           user: { select: { firstName: true, lastName: true } },
           classModel: { select: { name: true, arm: true } },
@@ -76,10 +76,10 @@ async function findParentByPhone(phone, schoolId) {
             orderBy: { createdAt: 'desc' },
             take: 1
           },
-          feeRecords: {
+          FeeRecord: {
             include: {
-              academicSession: true,
-              term: true
+              AcademicSession: true,
+              Term: true
             },
             orderBy: { createdAt: 'desc' },
             take: 1
@@ -94,8 +94,8 @@ async function findParentByPhone(phone, schoolId) {
 
 // Query Handlers
 async function handleBalanceQuery(parent, schoolId) {
-  const students = parent.students.map(s => {
-    const feeRecord = s.feeRecords[0];
+  const students = parent.parentChildren.map(s => {
+    const feeRecord = s.FeeRecord[0];
     return {
       name: `${s.user.firstName} ${s.user.lastName}`,
       class: `${s.classModel?.name || ''} ${s.classModel?.arm || ''}`.trim(),
@@ -114,7 +114,7 @@ async function handleAttendanceQuery(parent, schoolId) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const students = parent.students.map(s => {
+  const students = parent.parentChildren.map(s => {
     const attendance = s.attendanceRecords[0];
     return {
       name: `${s.user.firstName} ${s.user.lastName}`,
@@ -275,7 +275,7 @@ router.post('/webhook', async (req, res) => {
     // Analyze the query using AI
     const analysis = await aiHandler.analyzeQuery(message, {
       parentName: `${parent.user.firstName} ${parent.user.lastName}`,
-      studentCount: parent.students.length
+      studentCount: parent.parentChildren.length
     });
 
     let responseData;
