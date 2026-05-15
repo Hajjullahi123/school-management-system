@@ -3,6 +3,8 @@ import { api, API_BASE_URL } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const MiscFeePayments = () => {
   const { user } = useAuth();
@@ -22,6 +24,7 @@ const MiscFeePayments = () => {
     paymentMethod: 'cash',
     receiptNumber: ''
   });
+  const [downloadingReceipt, setDownloadingReceipt] = useState(false);
 
   useEffect(() => {
     fetchStudents();
@@ -123,6 +126,135 @@ const MiscFeePayments = () => {
       receiptNumber: ''
     });
     setShowPaymentForm(false);
+  };
+
+  const handleDownloadReceipt = async (paymentId) => {
+    if (downloadingReceipt) return;
+    setDownloadingReceipt(true);
+    const toastId = toast.loading('Generating Receipt PDF...');
+
+    try {
+      const response = await api.get(`/api/misc-fees/receipt/${paymentId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch receipt data');
+      }
+      const payment = await response.json();
+
+      const primaryColor = schoolSettings?.primaryColor || '#0f766e';
+      const logoUrl = schoolSettings?.logoUrl
+        ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl}`)
+        : null;
+
+      const studentId = payment.student?.id || 'N/A';
+      const securityHash = btoa(`MISC-${payment.id}-${studentId}`).substring(0, 12).toUpperCase();
+      const barcodeText = `MISC-${payment.id}`;
+      const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&rotate=N&includetext=true&backgroundcolor=ffffff&height=12`;
+
+      const receiptHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+          <style>
+            body { margin: 0; padding: 0; background: white; }
+            .receipt-card {
+              width: 74mm;
+              height: 100mm;
+              background: white;
+              border: 0.5mm solid #eee;
+              display: flex;
+              flex-direction: column;
+              font-family: 'Outfit', sans-serif;
+              overflow: hidden;
+            }
+            .header { background: ${primaryColor}; padding: 3mm 4mm; color: white; display: flex; justify-content: space-between; align-items: center; }
+            .school-info h1 { margin: 0; font-size: 10px; text-transform: uppercase; }
+            .school-info p { margin: 1mm 0 0; font-size: 7px; opacity: 0.9; }
+            .badge { background: white; color: ${primaryColor}; padding: 1mm 2mm; border-radius: 1mm; font-size: 8px; font-weight: 800; }
+            .body { padding: 4mm; flex: 1; display: flex; flex-direction: column; }
+            .id-line { display: flex; justify-content: space-between; font-size: 8px; font-weight: 700; color: #64748b; margin-bottom: 3mm; }
+            .section-title { font-size: 8px; font-weight: 800; color: ${primaryColor}; text-transform: uppercase; margin-bottom: 2mm; border-bottom: 0.2mm solid ${primaryColor}20; }
+            .info-group { margin-bottom: 2mm; }
+            .info-label { font-size: 7px; color: #94a3b8; text-transform: uppercase; font-weight: 800; }
+            .info-value { font-size: 9px; font-weight: 700; color: #0f172a; }
+            .amount-section { background: #f8fafc; border-radius: 2mm; padding: 3mm; text-align: center; border: 0.5mm dashed #e2e8f0; margin: 3mm 0; }
+            .amount-val { font-size: 18px; font-weight: 800; color: ${primaryColor}; }
+            .barcode { max-width: 40mm; height: auto; margin: 2mm auto; display: block; }
+            .footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding-top: 2mm; border-top: 0.2mm solid #f1f5f9; }
+            .hash { font-size: 7px; color: #64748b; background: #f1f5f9; padding: 0.5mm 1mm; }
+          </style>
+        </head>
+        <body>
+          <div id="misc-receipt-capture" class="receipt-card">
+            <div class="header">
+              <div class="school-info">
+                <h1>${schoolSettings?.schoolName || 'SMS'}</h1>
+                <p>${schoolSettings?.schoolAddress?.substring(0, 30) || ''}</p>
+              </div>
+              <div class="badge">MISC</div>
+            </div>
+            <div class="body">
+              <div class="id-line">
+                <span>NO: ${payment.receiptNumber || payment.id}</span>
+                <span>${new Date(payment.paymentDate).toLocaleDateString()}</span>
+              </div>
+              <div class="section-title">Student</div>
+              <div class="info-group">
+                <div class="info-label">Name</div>
+                <div class="info-value">${payment.student?.user?.firstName || 'Student'} ${payment.student?.user?.lastName || ''}</div>
+              </div>
+              <div class="section-title">Payment</div>
+              <div class="info-group">
+                <div class="info-label">Fee Title</div>
+                <div class="info-value">${payment.fee?.title || 'Misc Fee'}</div>
+              </div>
+              <div class="amount-section">
+                <div class="amount-val">₦${(payment.amount || 0).toLocaleString()}</div>
+              </div>
+              <img src="${barcodeUrl}" class="barcode" />
+              <div class="footer">
+                <div class="hash">${securityHash}</div>
+                <div style="font-size: 6px; color: #94a3b8;">${new Date().toLocaleTimeString()}</div>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.visibility = 'hidden';
+      document.body.appendChild(iframe);
+      const doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write(receiptHTML);
+      doc.close();
+
+      await new Promise(r => setTimeout(r, 1500));
+
+      const container = doc.getElementById('misc-receipt-capture');
+      const canvas = await html2canvas(container, { scale: 3, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: [74, 100]
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, 74, 100);
+      pdf.save(`MiscReceipt-${payment.receiptNumber || payment.id}.pdf`);
+
+      document.body.removeChild(iframe);
+      toast.success('Receipt downloaded successfully', { id: toastId });
+    } catch (error) {
+      console.error('PDF Generation failed:', error);
+      toast.error('Failed to generate PDF receipt', { id: toastId });
+    } finally {
+      setDownloadingReceipt(false);
+    }
   };
 
   const handlePrintReceipt = async (paymentId) => {
@@ -724,12 +856,24 @@ const MiscFeePayments = () => {
                             <td className="px-4 py-2 text-sm capitalize">{payment.paymentMethod || 'Cash'}</td>
                             <td className="px-4 py-2 text-sm">
                               <div className="flex space-x-2">
-                                <button
-                                  onClick={() => handlePrintReceipt(payment.id)}
-                                  className="text-blue-600 hover:text-blue-800"
-                                >
-                                  Print
-                                </button>
+                                  <button
+                                    onClick={() => handleDownloadReceipt(payment.id)}
+                                    disabled={downloadingReceipt}
+                                    className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                  >
+                                    {downloadingReceipt ? (
+                                       <div className="w-3 h-3 border border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                    ) : (
+                                      <span>💾</span>
+                                    )}
+                                    Download
+                                  </button>
+                                  <button
+                                    onClick={() => handlePrintReceipt(payment.id)}
+                                    className="text-gray-500 hover:text-gray-700"
+                                  >
+                                    Print
+                                  </button>
                                 {!isViewOnly && (
                                   <button
                                     onClick={() => handleDeletePayment(payment.id)}

@@ -9,6 +9,8 @@ import { toast } from 'react-hot-toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { API_BASE_URL } from '../../api';
 import ExcelJS from 'exceljs';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function FeeManagement() {
   const recordsRef = useRef(null);
@@ -707,6 +709,140 @@ export default function FeeManagement() {
       }
     } catch (error) {
       toast.error('Error generating receipt: ' + error.message);
+    }
+  };
+
+  const handleDownloadMiscReceipt = async (paymentId) => {
+    if (downloadingMisc) return;
+    setDownloadingMisc(true);
+    const toastId = toast.loading('Generating PDF Receipt...');
+
+    try {
+      const response = await api.get(`/api/misc-fees/receipt/${paymentId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch receipt data');
+      }
+      const payment = await response.json();
+
+      const primaryColor = schoolSettings.primaryColor || '#0f766e';
+      const logoUrl = schoolSettings.logoUrl
+        ? (schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL}${schoolSettings.logoUrl}`)
+        : null;
+
+      const securityHash = btoa(`MISC-${payment.id}-${payment.student.id}`).substring(0, 12).toUpperCase();
+      const barcodeText = `MISC-${payment.id}`;
+      const barcodeUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(barcodeText)}&scale=3&rotate=N&includetext=true&backgroundcolor=ffffff&height=12`;
+
+      // Define CSS specifically for capture
+      const receiptHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+          <style>
+            body { margin: 0; padding: 0; background: white; }
+            .receipt-card {
+              width: 74mm;
+              height: 100mm;
+              background: white;
+              border: 0.5mm solid #eee;
+              display: flex;
+              flex-direction: column;
+              font-family: 'Outfit', sans-serif;
+              overflow: hidden;
+            }
+            .header { background: ${primaryColor}; padding: 3mm 4mm; color: white; display: flex; justify-content: space-between; align-items: center; }
+            .school-info h1 { margin: 0; font-size: 10px; text-transform: uppercase; }
+            .school-info p { margin: 1mm 0 0; font-size: 7px; opacity: 0.9; }
+            .badge { background: white; color: ${primaryColor}; padding: 1mm 2mm; border-radius: 1mm; font-size: 8px; font-weight: 800; }
+            .body { padding: 4mm; flex: 1; display: flex; flex-direction: column; }
+            .id-line { display: flex; justify-content: space-between; font-size: 8px; font-weight: 700; color: #64748b; margin-bottom: 3mm; }
+            .section-title { font-size: 8px; font-weight: 800; color: ${primaryColor}; text-transform: uppercase; margin-bottom: 2mm; border-bottom: 0.2mm solid ${primaryColor}20; }
+            .info-group { margin-bottom: 2mm; }
+            .info-label { font-size: 7px; color: #94a3b8; text-transform: uppercase; font-weight: 800; }
+            .info-value { font-size: 9px; font-weight: 700; color: #0f172a; }
+            .amount-section { background: #f8fafc; border-radius: 2mm; padding: 3mm; text-align: center; border: 0.5mm dashed #e2e8f0; margin: 3mm 0; }
+            .amount-val { font-size: 18px; font-weight: 800; color: ${primaryColor}; }
+            .barcode { max-width: 40mm; height: auto; margin: 2mm auto; display: block; }
+            .sig-line { border-top: 0.3mm solid #cbd5e1; margin: 4mm auto 1mm; width: 30mm; }
+            .sig-label { font-size: 7px; color: #94a3b8; text-align: center; text-transform: uppercase; font-weight: 700; }
+            .footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding-top: 2mm; border-top: 0.2mm solid #f1f5f9; }
+            .hash { font-size: 7px; color: #64748b; background: #f1f5f9; padding: 0.5mm 1mm; }
+          </style>
+        </head>
+        <body>
+          <div id="misc-receipt-capture" class="receipt-card">
+            <div class="header">
+              <div class="school-info">
+                <h1>${schoolSettings.schoolName || 'SMS'}</h1>
+                <p>${schoolSettings.schoolAddress?.substring(0, 30) || ''}</p>
+              </div>
+              <div class="badge">MISC</div>
+            </div>
+            <div class="body">
+              <div class="id-line">
+                <span>NO: ${payment.receiptNumber || payment.id}</span>
+                <span>${new Date(payment.paymentDate).toLocaleDateString()}</span>
+              </div>
+              <div class="section-title">Student</div>
+              <div class="info-group">
+                <div class="info-label">Name</div>
+                <div class="info-value">${payment.student?.user?.firstName || ''} ${payment.student?.user?.lastName || ''}</div>
+              </div>
+              <div class="section-title">Payment</div>
+              <div class="info-group">
+                <div class="info-label">Fee Title</div>
+                <div class="info-value">${payment.fee.title}</div>
+              </div>
+              <div class="amount-section">
+                <div class="amount-val">₦${payment.amount.toLocaleString()}</div>
+              </div>
+              <img src="${barcodeUrl}" class="barcode" />
+              <div class="sig-line"></div>
+              <div class="sig-label">Authorized Signature</div>
+              <div class="footer">
+                <div class="hash">${securityHash}</div>
+                <div style="font-size: 6px; color: #94a3b8;">${new Date().toLocaleTimeString()}</div>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Render to hidden iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.visibility = 'hidden';
+      document.body.appendChild(iframe);
+      const doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write(receiptHTML);
+      doc.close();
+
+      await new Promise(r => setTimeout(r, 1500));
+
+      const container = doc.getElementById('misc-receipt-capture');
+      const canvas = await html2canvas(container, { scale: 3, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: [74, 100]
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, 74, 100);
+      pdf.save(`MiscReceipt-${payment.receiptNumber || payment.id}.pdf`);
+
+      document.body.removeChild(iframe);
+      toast.success('Receipt downloaded successfully', { id: toastId });
+    } catch (error) {
+      console.error('PDF Generation failed:', error);
+      toast.error('Failed to generate PDF receipt', { id: toastId });
+    } finally {
+      setDownloadingMisc(false);
     }
   };
 
@@ -1852,6 +1988,133 @@ export default function FeeManagement() {
     printWindow.document.close();
   };
 
+  const [downloadingDetailedMisc, setDownloadingDetailedMisc] = useState(false);
+  const handleDownloadDetailedMiscReport = async (fee) => {
+    if (downloadingDetailedMisc) return;
+    setDownloadingDetailedMisc(true);
+    const toastId = toast.loading('Generating Detailed Report PDF...');
+
+    try {
+      const primaryColor = schoolSettings?.primaryColor || '#0f766e';
+      const schoolName = schoolSettings?.schoolName || 'School';
+
+      const reportHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+          <style>
+            body { font-family: 'Inter', sans-serif; padding: 20px; color: #1e293b; background: white; }
+            .report-container { width: 210mm; background: white; }
+            .header { text-align: center; border-bottom: 2px solid ${primaryColor}; padding-bottom: 20px; margin-bottom: 30px; }
+            .school-name { font-size: 24px; font-weight: 900; color: ${primaryColor}; margin: 0; }
+            .report-title { font-size: 18px; font-weight: 700; margin: 10px 0; text-transform: uppercase; }
+            .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+            .stat-card { padding: 15px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; }
+            .stat-label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+            .stat-value { font-size: 16px; font-weight: 900; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { text-align: left; padding: 12px; background: #f1f5f9; font-size: 11px; text-transform: uppercase; border: 1px solid #e2e8f0; }
+            td { padding: 10px; font-size: 10px; border: 1px solid #e2e8f0; }
+            .class-header { background: #f8fafc; font-weight: 700; }
+            .status-paid { color: #059669; font-weight: 700; }
+            .status-pending { color: #dc2626; font-weight: 700; }
+          </style>
+        </head>
+        <body>
+          <div id="detailed-report-capture" class="report-container">
+            <div class="header">
+              <h1 class="school-name">${schoolName}</h1>
+              <div class="report-title">Miscellaneous Fee Status: ${fee.title}</div>
+              <div style="font-size: 10px; color: #64748b;">Generated on ${new Date().toLocaleDateString()}</div>
+            </div>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-label">Total Expected</div>
+                <div class="stat-value">₦${formatNumber(fee.totalExpected || 0)}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Total Collected</div>
+                <div class="stat-value" style="color: #059669;">₦${formatNumber(fee.totalReceived || 0)}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Total Outstanding</div>
+                <div class="stat-value" style="color: #dc2626;">₦${formatNumber(fee.outstanding || 0)}</div>
+              </div>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Class</th>
+                  <th>Admission No</th>
+                  <th>Paid</th>
+                  <th>Balance</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${(Array.isArray(fee.classes) ? fee.classes : []).map(cls => `
+                  <tr class="class-header">
+                    <td colspan="6">${cls.name} ${cls.arm || ''}</td>
+                  </tr>
+                  ${(Array.isArray(cls.students) ? cls.students : []).map(s => `
+                    <tr>
+                      <td>${s.name}</td>
+                      <td>${cls.name}</td>
+                      <td>${s.admissionNumber}</td>
+                      <td>₦${formatNumber(s.totalPaid)}</td>
+                      <td>₦${formatNumber(s.balance)}</td>
+                      <td class="${s.balance === 0 ? 'status-paid' : 'status-pending'}">
+                        ${s.balance === 0 ? 'FULLY PAID' : (s.totalPaid > 0 ? 'PARTIAL' : 'PENDING')}
+                      </td>
+                    </tr>
+                  `).join('')}
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.visibility = 'hidden';
+      document.body.appendChild(iframe);
+      const doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write(reportHTML);
+      doc.close();
+
+      await new Promise(r => setTimeout(r, 2000));
+
+      const container = doc.getElementById('detailed-report-capture');
+      const canvas = await html2canvas(container, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`DetailedReport-${fee.title}-${new Date().getTime()}.pdf`);
+
+      document.body.removeChild(iframe);
+      toast.success('Report downloaded successfully', { id: toastId });
+    } catch (error) {
+      console.error('PDF Generation failed:', error);
+      toast.error('Failed to generate report PDF', { id: toastId });
+    } finally {
+      setDownloadingDetailedMisc(false);
+    }
+  };
+
   const printReceipt = (payment, student) => {
     setReceiptPayment(payment);
     setReceiptStudent(student);
@@ -2967,18 +3230,38 @@ export default function FeeManagement() {
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Outstanding</p>
                         <p className="text-lg font-black text-red-600">₦{formatNumber(fee.outstanding)}</p>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          printDetailedMiscReport(fee);
-                        }}
-                        className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors"
-                        title="Print Fee Report"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2-2h10a2 2 0 002 2v4" />
-                        </svg>
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownloadDetailedMiscReport(fee);
+                          }}
+                          disabled={downloadingDetailedMisc}
+                          className="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-colors flex items-center gap-1"
+                          title="Download PDF Report"
+                        >
+                          {downloadingDetailedMisc ? (
+                             <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          )}
+                          <span className="text-[10px] font-black uppercase hidden sm:inline">Report</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            printDetailedMiscReport(fee);
+                          }}
+                          className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors"
+                          title="Print Fee Report"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2-2h10a2 2 0 002 2v4" />
+                          </svg>
+                        </button>
+                      </div>
                       <svg className={`w-6 h-6 transform transition-transform ${expandedFee === fee.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
@@ -3061,17 +3344,27 @@ export default function FeeManagement() {
                                                 </div>
                                                 <div className="max-h-48 overflow-y-auto">
                                                   {(Array.isArray(student.payments) ? student.payments : []).map((p, idx) => (
-                                                    <button
-                                                      key={p.id}
-                                                      onClick={() => handlePrintMiscReceipt(p.id)}
-                                                      className="w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors border-b border-gray-50 flex flex-col gap-0.5"
-                                                    >
-                                                      <span className="text-[10px] font-black text-primary uppercase">Payment #{student.payments.length - idx}</span>
-                                                      <div className="flex justify-between items-center text-xs">
-                                                        <span className="font-bold text-gray-900">₦{formatNumber(p.amount)}</span>
-                                                        <span className="text-gray-400 font-medium">{new Date(p.paymentDate).toLocaleDateString()}</span>
-                                                      </div>
-                                                    </button>
+                                                    <div key={p.id} className="w-full hover:bg-primary/5 transition-colors border-b border-gray-50 flex items-center pr-2">
+                                                      <button
+                                                        onClick={() => handleDownloadMiscReceipt(p.id)}
+                                                        className="flex-1 text-left px-4 py-3 flex flex-col gap-0.5"
+                                                      >
+                                                        <span className="text-[10px] font-black text-primary uppercase">Payment #{student.payments.length - idx}</span>
+                                                        <div className="flex justify-between items-center text-xs">
+                                                          <span className="font-bold text-gray-900">₦{formatNumber(p.amount)}</span>
+                                                          <span className="text-gray-400 font-medium">{new Date(p.paymentDate).toLocaleDateString()}</span>
+                                                        </div>
+                                                      </button>
+                                                      <button
+                                                        onClick={() => handlePrintMiscReceipt(p.id)}
+                                                        className="p-2 text-gray-400 hover:text-primary transition-colors"
+                                                        title="Print (Alternative)"
+                                                      >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                                        </svg>
+                                                      </button>
+                                                    </div>
                                                   ))}
                                                 </div>
                                               </div>
