@@ -31,6 +31,9 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
   }
 });
 
+const { initBackupService } = require('./services/BackupService');
+initBackupService();
+
 const app = express();
 app.use(compression()); // Enable Gzip compression for all responses
 let activeServer = null;

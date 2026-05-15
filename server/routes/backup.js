@@ -137,4 +137,32 @@ router.get('/export-assets', authenticate, checkSubscription, authorize(['admin'
   }
 });
 
+/**
+ * @route   POST /api/backup/trigger
+ * @desc    Manually trigger a cloud backup to S3
+ * @access  Admin only
+ */
+router.post('/trigger', authenticate, checkSubscription, authorize(['admin']), async (req, res) => {
+  try {
+    const { performCloudBackup } = require('../services/BackupService');
+    
+    // Non-blocking trigger
+    performCloudBackup();
+    
+    res.json({ message: 'Cloud backup triggered successfully. Check status in a few minutes.' });
+    
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'TRIGGER_CLOUD_BACKUP',
+      resource: 'BACKUP',
+      details: { trigger: 'manual' },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Backup trigger error:', error);
+    res.status(500).json({ error: 'Failed to trigger backup' });
+  }
+});
+
 module.exports = router;

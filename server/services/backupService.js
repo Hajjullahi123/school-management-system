@@ -1,26 +1,55 @@
+const cron = require('node-cron');
 const prisma = require('../db');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const fs = require('fs');
 const path = require('path');
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 
 /**
- * Service to handle automated database backups to AWS S3.
- * Only active if SuperAdmin has enabled it in GlobalSettings.
+ * Cloud Backup Service
+ * Schedules and executes nightly database backups to S3
  */
-const performFullBackup = async () => {
+const initBackupService = () => {
+  // Schedule: 2:00 AM Every Night
+  cron.schedule('0 2 * * *', async () => {
+    console.log('[BackupService] Starting scheduled nightly backup...');
+    await performCloudBackup();
+  });
+  console.log('[BackupService] Nightly cloud backup scheduled for 02:00 AM.');
+};
+
+const performCloudBackup = async () => {
   try {
     const settings = await prisma.globalSettings.findFirst();
-    if (!settings || !settings.enableAutoBackup || !settings.s3AccessKey) {
-      console.log('[BackupService] Auto-backup is disabled or not configured.');
+    if (!settings || !settings.enableAutoBackup) {
+      console.log('[BackupService] Auto-backup is disabled in settings. Skipping.');
       return;
     }
 
-    const dbPath = path.join(__dirname, '../prisma/dev.db');
-    if (!fs.existsSync(dbPath)) {
-      console.error('[BackupService] Database file not found at:', dbPath);
+    if (!settings.s3AccessKey || !settings.s3SecretKey || !settings.s3BucketName) {
+      console.error('[BackupService] S3 Credentials missing in GlobalSettings. Cannot backup.');
+      await prisma.globalSettings.update({
+        where: { id: settings.id },
+        data: { lastBackupStatus: 'Failed: Missing S3 Credentials' }
+      });
       return;
     }
 
+    // 1. Aggregate All System Data (Multi-School)
+    const backupData = {
+      timestamp: new Date().toISOString(),
+      schools: await prisma.school.findMany({
+        include: {
+          students: true,
+          users: true,
+          classes: true,
+          FeeRecord: true,
+          results: true,
+          attendanceRecords: true
+        }
+      })
+    };
+
+    const backupFileName = `full_system_backup_${Date.now()}.json`;
     const s3Client = new S3Client({
       region: settings.s3Region || 'us-east-1',
       credentials: {
@@ -29,22 +58,38 @@ const performFullBackup = async () => {
       }
     });
 
-    const fileStream = fs.createReadStream(dbPath);
-    const fileName = `backups/db-backup-${Date.now()}.sqlite`;
-
-    const uploadParams = {
+    // 2. Upload to S3
+    const command = new PutObjectCommand({
       Bucket: settings.s3BucketName,
-      Key: fileName,
-      Body: fileStream,
-    };
+      Key: `backups/${backupFileName}`,
+      Body: JSON.stringify(backupData),
+      ContentType: 'application/json'
+    });
 
-    console.log(`[BackupService] Starting upload to S3: ${fileName}...`);
-    await s3Client.send(new PutObjectCommand(uploadParams));
-    console.log('[BackupService] Automated backup successful!');
+    await s3Client.send(command);
 
+    // 3. Update Status
+    await prisma.globalSettings.update({
+      where: { id: settings.id },
+      data: {
+        lastBackupDate: new Date(),
+        lastBackupStatus: 'Success: Uploaded to S3'
+      }
+    });
+
+    console.log(`[BackupService] Backup successful: ${backupFileName}`);
   } catch (error) {
-    console.error('[BackupService] Automated backup failed:', error);
+    console.error('[BackupService] Backup FAILED:', error);
+    try {
+        const settings = await prisma.globalSettings.findFirst();
+        if (settings) {
+            await prisma.globalSettings.update({
+                where: { id: settings.id },
+                data: { lastBackupStatus: `Failed: ${error.message.substring(0, 100)}` }
+            });
+        }
+    } catch (e) {}
   }
 };
 
-module.exports = { performFullBackup };
+module.exports = { initBackupService, performCloudBackup };

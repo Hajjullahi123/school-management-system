@@ -29,6 +29,8 @@ model GlobalSettings {
   standardPrice          Float    @default(120000)
   premiumPrice           Float    @default(250000)
   updatedAt              DateTime @updatedAt
+  lastBackupDate         DateTime?
+  lastBackupStatus       String?
   apkDownloadUrl         String?
   latestAppVersion       String?  @default("1.0.0")
   geminiApiKey           String?

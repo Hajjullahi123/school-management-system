@@ -75,7 +75,13 @@ const Settings = () => {
     testimFontFamily: 'sans-serif',
     testimBorderType: 'modern',
     testimPrimaryColor: '',
-    testimSecondaryColor: ''
+    testimSecondaryColor: '',
+    enableAutoBackup: false,
+    backupRetentionDays: 30,
+    s3AccessKey: '',
+    s3SecretKey: '',
+    s3BucketName: '',
+    s3Region: 'us-east-1'
   });
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
@@ -411,6 +417,7 @@ const Settings = () => {
             <option value="whatsapp">💬 WhatsApp Bot</option>
             <option value="academics">📊 Academic Config</option>
             <option value="ai">🤖 AI Configuration</option>
+            <option value="backups">☁️ Automated Backups</option>
           </select>
         </div>
 
@@ -497,6 +504,15 @@ const Settings = () => {
                 }`}
             >
               AI Configuration
+            </button>
+            <button
+              onClick={() => setActiveTab('backups')}
+              className={`px-6 py-4 border-b-2 font-black text-[10px] uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === 'backups'
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                }`}
+            >
+              Automated Backups
             </button>
           </nav>
         </div>
@@ -1572,6 +1588,135 @@ const Settings = () => {
                       Apply AI Configuration
                     </>
                   )}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Automated Backups Tab */}
+          {activeTab === 'backups' && (
+            <form onSubmit={handleSaveSettings} className="space-y-6">
+              <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-6 rounded-2xl border border-indigo-100 shadow-sm mb-6">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 bg-white p-3 rounded-xl text-indigo-600 shadow-sm">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-black text-indigo-900 uppercase tracking-tighter">Automated Cloud Backups</h3>
+                    <p className="text-sm text-indigo-700/80 mt-1 font-medium">
+                      Ensure your school's data is never lost. Configure nightly backups to your private S3 cloud storage.
+                    </p>
+                    <div className="mt-4 flex items-center gap-4">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          name="enableAutoBackup"
+                          checked={settings.enableAutoBackup}
+                          onChange={handleInputChange}
+                          className="sr-only peer" 
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        <span className="ml-3 text-sm font-black text-indigo-900 uppercase tracking-tight">Enable Nightly Sync (02:00 AM)</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-widest border-b pb-2">AWS S3 Configuration</h4>
+                  
+                  <div>
+                    <label className="block text-xs font-black text-gray-500 uppercase mb-2">S3 Access Key</label>
+                    <input
+                      type="text"
+                      name="s3AccessKey"
+                      value={settings.s3AccessKey || ''}
+                      onChange={handleInputChange}
+                      placeholder="AKIA..."
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-gray-500 uppercase mb-2">S3 Secret Key</label>
+                    <input
+                      type="password"
+                      name="s3SecretKey"
+                      value={settings.s3SecretKey || ''}
+                      onChange={handleInputChange}
+                      placeholder="••••••••••••"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono focus:ring-2 focus:ring-primary/20 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-widest border-b pb-2">Storage Details</h4>
+
+                  <div>
+                    <label className="block text-xs font-black text-gray-500 uppercase mb-2">Bucket Name</label>
+                    <input
+                      type="text"
+                      name="s3BucketName"
+                      value={settings.s3BucketName || ''}
+                      onChange={handleInputChange}
+                      placeholder="my-school-backups"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-gray-500 uppercase mb-2">Region</label>
+                    <input
+                      type="text"
+                      name="s3Region"
+                      value={settings.s3Region || 'us-east-1'}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 p-6 rounded-2xl border border-amber-100 flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-black text-amber-900 uppercase tracking-tight">Manual Cloud Sync</h4>
+                  <p className="text-xs text-amber-700 font-medium">Trigger an immediate system-wide backup to your S3 bucket.</p>
+                  {settings.lastBackupDate && (
+                    <p className="text-[10px] font-bold text-amber-600 mt-2 uppercase tracking-widest">
+                      Last Sync: {new Date(settings.lastBackupDate).toLocaleString()} • Status: <span className="text-amber-800">{settings.lastBackupStatus}</span>
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      toast.info('Triggering manual backup...');
+                      const res = await api.post('/api/backup/trigger');
+                      if (res.ok) toast.success('Backup triggered! Check status in 5 minutes.');
+                      else throw new Error('Failed');
+                    } catch (e) {
+                      toast.error('Backup trigger failed');
+                    }
+                  }}
+                  className="px-6 py-3 bg-amber-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-amber-700 transition-all shadow-lg shadow-amber-200"
+                >
+                  Cloud Sync Now
+                </button>
+              </div>
+
+              <div className="flex justify-end pt-6 border-t">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-bold disabled:opacity-50 flex items-center shadow-lg shadow-indigo-100 transition-all active:scale-95"
+                >
+                  {saving ? 'Saving...' : 'Save Backup Settings'}
                 </button>
               </div>
             </form>
