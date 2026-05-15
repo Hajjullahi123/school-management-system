@@ -51,8 +51,6 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
   const [attendanceTrend, setAttendanceTrend] = useState([]);
   const [financialTrend, setFinancialTrend] = useState(null);
   const [pushStatus, setPushStatus] = useState(checkPushPermission());
-  const [attendanceTrend, setAttendanceTrend] = useState([]);
-  const [financialTrend, setFinancialTrend] = useState(null);
 
   useEffect(() => {
     fetchMainData();
