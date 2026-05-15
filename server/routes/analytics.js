@@ -759,4 +759,39 @@ router.get('/teacher-precision-stats', authenticate, async (req, res) => {
   }
 });
 
+// GET /api/analytics/financial-overview
+router.get('/financial-overview', authenticate, authorize(['admin', 'principal', 'superadmin', 'accountant']), async (req, res) => {
+  try {
+    const { termId, sessionId } = req.query;
+    
+    if (!termId || !sessionId) {
+      return res.status(400).json({ error: 'Term and Session IDs required' });
+    }
+
+    const records = await prisma.feeRecord.findMany({
+      where: {
+        schoolId: req.schoolId,
+        termId: parseInt(termId),
+        academicSessionId: parseInt(sessionId)
+      },
+      select: {
+        expectedAmount: true,
+        paidAmount: true,
+        openingBalance: true
+      }
+    });
+
+    const summary = records.reduce((acc, curr) => {
+      acc.expected += (curr.expectedAmount || 0);
+      acc.collected += (curr.paidAmount || 0);
+      acc.arrears += (curr.openingBalance || 0);
+      return acc;
+    }, { expected: 0, collected: 0, arrears: 0 });
+
+    res.json(summary);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

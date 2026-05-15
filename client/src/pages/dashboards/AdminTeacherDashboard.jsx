@@ -3,6 +3,31 @@ import { Link } from 'react-router-dom';
 import { api, API_BASE_URL } from '../../api';
 import { formatNumber } from '../../utils/formatters';
 import StaffAttendanceWidget from '../../components/StaffAttendanceWidget';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+} from 'chart.js';
+import { Bar, Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const AdminTeacherDashboard = ({ user, schoolSettings }) => {
   const [teacherStats, setTeacherStats] = useState(null);
@@ -22,6 +47,8 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
   const [deptAlertDismissed, setDeptAlertDismissed] = useState(false);
   const [deptScore, setDeptScore] = useState(null);
   const [nudges, setNudges] = useState([]);
+  const [attendanceTrend, setAttendanceTrend] = useState([]);
+  const [financialTrend, setFinancialTrend] = useState(null);
 
   useEffect(() => {
     fetchMainData();
@@ -165,6 +192,15 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
           const alumniData = await alumniRes.json();
           setAlumniCount(alumniData.count || 0);
         }
+
+        // Fetch Chart Data
+        const [attRes, finRes] = await Promise.all([
+          api.get('/api/analytics/attendance-trends'),
+          api.get(`/api/analytics/financial-overview?termId=${activeTerm.id}&sessionId=${activeSession.id}`)
+        ]);
+
+        if (attRes.ok) setAttendanceTrend(await attRes.json());
+        if (finRes.ok) setFinancialTrend(await finRes.json());
       }
 
       // Teacher specific assignments
@@ -348,6 +384,114 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
           </div>
         )}
       </div>
+
+      {/* Visual Analytics Section */}
+      {(user?.role === 'admin' || user?.role === 'principal') && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Revenue Chart */}
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xs font-black uppercase tracking-widest text-gray-400">Revenue Overview</h3>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-primary"></span>
+                <span className="text-[10px] font-bold text-gray-500 uppercase">Target vs Collected</span>
+              </div>
+            </div>
+            <div className="h-64">
+              {financialTrend ? (
+                <Bar 
+                  data={{
+                    labels: ['Revenue Flow'],
+                    datasets: [
+                      {
+                        label: 'Expected',
+                        data: [financialTrend.expected],
+                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                        borderColor: 'rgb(99, 102, 241)',
+                        borderWidth: 2,
+                        borderRadius: 12,
+                      },
+                      {
+                        label: 'Collected',
+                        data: [financialTrend.collected],
+                        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                        borderColor: 'rgb(34, 197, 94)',
+                        borderWidth: 2,
+                        borderRadius: 12,
+                      }
+                    ]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } }
+                  }}
+                />
+              ) : <div className="h-full flex items-center justify-center text-gray-400 text-xs font-bold uppercase">Calculating Ledger...</div>}
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
+               <div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Collection Rate</p>
+                  <p className="text-lg font-black text-emerald-600">
+                    {financialTrend?.expected > 0 ? ((financialTrend.collected / financialTrend.expected) * 100).toFixed(1) : 0}%
+                  </p>
+               </div>
+               <div className="text-right">
+                  <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Outstanding</p>
+                  <p className="text-lg font-black text-rose-500">
+                    ₦{formatNumber(Math.max(0, (financialTrend?.expected || 0) - (financialTrend?.collected || 0)))}
+                  </p>
+               </div>
+            </div>
+          </div>
+
+          {/* Attendance Trend */}
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xs font-black uppercase tracking-widest text-gray-400">Attendance Pulse (7d)</h3>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span className="text-[10px] font-bold text-gray-500 uppercase">Student Presence</span>
+              </div>
+            </div>
+            <div className="h-64">
+              {attendanceTrend.length > 0 ? (
+                <Line 
+                  data={{
+                    labels: attendanceTrend.map(t => new Date(t.date).toLocaleDateString('en-US', { weekday: 'short' })),
+                    datasets: [
+                      {
+                        label: 'Present',
+                        data: attendanceTrend.map(t => t.present),
+                        borderColor: 'rgb(34, 197, 94)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#fff'
+                      }
+                    ]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { color: '#f3f4f6' } }, x: { grid: { display: false } } }
+                  }}
+                />
+              ) : <div className="h-full flex items-center justify-center text-gray-400 text-xs font-bold uppercase">No records found for this period.</div>}
+            </div>
+            <div className="mt-4 flex justify-between items-center pt-4 border-t border-gray-50">
+               <p className="text-[10px] font-black text-gray-400 uppercase">Average Daily Presence</p>
+               <p className="text-sm font-black text-primary">
+                 {attendanceTrend.length > 0 ? (attendanceTrend.reduce((a, b) => a + b.present, 0) / attendanceTrend.length).toFixed(0) : 0} Students
+               </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notices */}
       {notices.length > 0 && (
