@@ -353,6 +353,37 @@ Respond with ONLY the message text, nothing else.`;
         return data.message || 'I found the information you requested.';
     }
   }
+
+  /**
+   * Generate academic report remarks
+   */
+  async generateReportRemark(studentData) {
+    if (!this.provider) {
+      throw new Error("AI service is not configured.");
+    }
+
+    const prompt = `You are an expert school teacher. Write a professional, constructive, and encouraging academic remark for a student's terminal report card.
+    
+Student Data:
+${JSON.stringify(studentData, null, 2)}
+
+Requirements:
+- Length: 2-3 concise sentences.
+- Tone: Professional, warm, and balanced (mention strengths and areas for improvement if any).
+- Perspective: Third-person (e.g., "Student Name is...", "He/She shows...").
+- Language: Clear English suitable for a Nigerian school context.
+- Avoid generic phrases like "Keep it up." Be specific to their performance.
+
+Respond with ONLY the remark text, nothing else.`;
+
+    try {
+      const text = await this.generate(prompt, false);
+      return text.trim();
+    } catch (error) {
+      console.error('[AI SERVICE] Remark generation error:', error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = AIQueryHandler;

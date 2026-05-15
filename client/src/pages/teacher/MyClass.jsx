@@ -18,6 +18,7 @@ const MyClass = () => {
   const [publication, setPublication] = useState({ isPublished: false, isProgressivePublished: false });
   const [reportPreview, setReportPreview] = useState(null);
   const [fetchingPreview, setFetchingPreview] = useState(false);
+  const [generatingAI, setGeneratingAI] = useState(false);
 
   const predefinedRemarks = [
     "An excellent result, keep up the good work.",
@@ -146,6 +147,26 @@ const MyClass = () => {
       alert("Error saving.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const generateAIRemark = async () => {
+    if (!gradingStudent || !currentTerm) return;
+    setGeneratingAI(true);
+    try {
+      const res = await api.post(`/api/reports/generate-remark/${gradingStudent.id}/${currentTerm.id}`);
+      if (res.ok) {
+        const { remark } = await res.json();
+        setRemarks(prev => ({ ...prev, formMasterRemark: remark }));
+      } else {
+        const error = await res.json();
+        alert(error.error || "Failed to generate AI remark.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error generating AI remark.");
+    } finally {
+      setGeneratingAI(false);
     }
   };
 
@@ -434,7 +455,23 @@ const MyClass = () => {
                     <div className="grid grid-cols-1 gap-8">
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                          <label className="text-sm font-black text-gray-700 uppercase tracking-wider">Form Master's Remark</label>
+                          <div className="flex items-center gap-2">
+                            <label className="text-sm font-black text-gray-700 uppercase tracking-wider">Form Master's Remark</label>
+                            <button 
+                              onClick={generateAIRemark}
+                              disabled={generatingAI}
+                              title="Generate AI Remark"
+                              className={`p-1.5 rounded-lg transition-all ${generatingAI ? 'bg-gray-100 text-gray-400' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:scale-110 active:scale-95'}`}
+                            >
+                              {generatingAI ? (
+                                <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent animate-spin rounded-full"></div>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
                           <select 
                             onChange={(e) => setRemarks({ ...remarks, formMasterRemark: e.target.value })}
                             className="text-xs border-none bg-gray-50 rounded-lg px-3 py-1.5 font-bold text-gray-500 focus:ring-0 cursor-pointer outline-none"

@@ -603,6 +603,49 @@ router.post('/generate-narrative/:studentId/:termId', authenticate, authorize(['
   }
 });
 
+// Generate AI Report Remark (Teacher Comment)
+router.post('/generate-remark/:studentId/:termId', authenticate, authorize(['admin', 'teacher', 'principal', 'superadmin']), async (req, res) => {
+  try {
+    const { studentId, termId } = req.params;
+    
+    // 1. Fetch data for the AI
+    const reportData = await api_internal_get_report_data(req.schoolId, studentId, termId);
+    
+    // 2. Fetch school for AI keys
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: { geminiApiKey: true, groqApiKey: true }
+    });
+
+    if (!school.geminiApiKey && !school.groqApiKey) {
+      return res.status(400).json({ error: 'AI service not configured for this school.' });
+    }
+
+    // 3. Initialize AI Handler and generate
+    const AIQueryHandler = require('../services/AIQueryHandler');
+    const aiHandler = new AIQueryHandler({
+      geminiApiKey: school.geminiApiKey,
+      groqApiKey: school.groqApiKey
+    });
+
+    const remark = await aiHandler.generateReportRemark(reportData);
+
+    res.json({ remark });
+
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'GENERATE_AI_REMARK',
+      resource: 'STUDENT_REPORT_CARD',
+      details: { studentId: parseInt(studentId), termId: parseInt(termId) },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('Error generating AI remark:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Bulk Generate AI narratives for a class
 router.post('/bulk-generate-narratives/:classId/:termId', authenticate, authorize(['admin', 'principal', 'superadmin', 'teacher']), async (req, res) => {
   try {
