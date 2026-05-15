@@ -40,8 +40,7 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       { header: 'Parent Phone', key: 'parentPhone', width: 20 },
       { header: 'Address', key: 'address', width: 40 },
       { header: 'Date of Birth (YYYY-MM-DD)', key: 'dob', width: 25 },
-      { header: 'Scholarship (Yes/No)', key: 'isScholarship', width: 20 },
-      { header: 'Password (Optional)', key: 'password', width: 20 }
+      { header: 'Scholarship (Yes/No)', key: 'isScholarship', width: 20 }
     ];
 
     // Styling the header row
@@ -68,8 +67,7 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
         parentPhone: '08000000000',
         address: '123 School Road',
         dob: '2015-05-15',
-        isScholarship: 'No',
-        password: 'securePassword123'
+        isScholarship: 'No'
       });
     }
 

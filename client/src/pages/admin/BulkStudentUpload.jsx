@@ -617,7 +617,6 @@ const BulkStudentUpload = () => {
               <li><code className="bg-gray-100 px-1">Date of Birth</code> (YYYY-MM-DD)</li>
               <li><code className="bg-gray-100 px-1">Gender</code> (select from dropdown)</li>
               <li><code className="bg-gray-100 px-1">Email</code></li>
-              <li><code className="bg-gray-100 px-1">Parent Name</code></li>
               <li><code className="bg-gray-100 px-1">Scholarship</code> (select from dropdown)</li>
               <li>...and more (see template)</li>
             </ul>
