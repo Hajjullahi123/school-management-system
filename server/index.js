@@ -1,6 +1,7 @@
 // Stability Overhaul v2
 // Build Marker: Parent Identification Enhancements - 2026-04-26 23:10
 const express = require('express');
+require('express-async-errors');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const fs = require('fs');
@@ -426,23 +427,39 @@ if (process.env.NODE_ENV === 'production') {
     res.set('Surrogate-Control', 'no-store');
     res.sendFile(path.join(clientDistPath, 'index.html'));
   });
-  // 4. Development API 404 Handler
-  app.use('/api/*', (req, res) => {
-    res.status(404).json({ error: 'Route not found' });
-  });
-
-  // 5. Development Global Error Handler (Crucial for Multer errors)
-  app.use((err, req, res, next) => {
-    if (req.url.startsWith('/api/')) {
-      console.error('[API ERROR]:', err.message);
-      return res.status(err.status || 500).json({
-        error: 'Server Error',
-        message: err.message || 'An unexpected error occurred'
-      });
-    }
-    next(err);
-  });
 }
+
+// ===========================================================
+// CRITICAL STABILITY LAYER: GLOBAL ERROR HANDLER (CRASH NET)
+// ===========================================================
+app.use((err, req, res, next) => {
+  const isApiRequest = req.url.startsWith('/api/');
+  
+  // Log the full error details for debugging
+  console.error('==================== SERVER ERROR ====================');
+  console.error(`Timestamp: ${new Date().toISOString()}`);
+  console.error(`Method: ${req.method}`);
+  console.error(`Path: ${req.originalUrl}`);
+  console.error(`Error: ${err.message}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(`Stack: ${err.stack}`);
+  }
+  console.error('======================================================');
+
+  if (isApiRequest) {
+    // If it's an API request, send a clean JSON response instead of crashing
+    return res.status(err.status || 500).json({
+      error: 'Server Error',
+      message: process.env.NODE_ENV === 'production' 
+        ? 'An unexpected error occurred. Our team has been notified.' 
+        : err.message
+    });
+  }
+
+  // For non-API requests, let it continue (likely a frontend issue)
+  next(err);
+});
+
 
 const startServer = (portToTry, retryCount = 0) => {
   const MAX_RETRIES = 5;
