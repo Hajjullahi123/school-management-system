@@ -119,7 +119,8 @@ const TeacherMessages = () => {
         setShowNewMessage(false);
         fetchAllMessages();
       } else {
-        toast.error('Transmission failed');
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || 'Transmission failed');
       }
     } catch (error) {
       toast.error('Connection error');

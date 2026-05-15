@@ -93,9 +93,11 @@ router.get('/my-class', authenticate, async (req, res) => {
             parent: {
               select: {
                 id: true,
+                userId: true,
                 phone: true,
                 User: {
                   select: {
+                    id: true,
                     firstName: true,
                     lastName: true,
                     email: true

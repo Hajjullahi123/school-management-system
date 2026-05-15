@@ -40,6 +40,7 @@
     "react-markdown": "^9.1.0",
     "react-router-dom": "^7.0.2",
     "react-to-print": "^3.2.0",
+    "school-mn": "file:..",
     "tailwindcss": "^3.4.17",
     "vite": "^6.0.5",
     "vite-plugin-pwa": "^1.2.0",

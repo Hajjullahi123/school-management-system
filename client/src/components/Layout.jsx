@@ -429,24 +429,37 @@ const Layout = () => {
       label: 'My Profile'
     });
 
-    teacherItems.push({
-      path: '/dashboard/my-class',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-      ),
-      label: 'My Class'
-    });
-    teacherItems.push({
-      path: '/dashboard/attendance',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h.01M16 12h.01M8 12h.01M8 16h.01M16 16h.01" />
-        </svg>
-      ),
-      label: 'Class Attendance'
-    });
+    // Form Master specific items
+    if (isFormMaster) {
+      teacherItems.push({
+        path: '/dashboard/my-class',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        ),
+        label: 'My Class'
+      });
+      teacherItems.push({
+        path: '/dashboard/attendance',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h.01M16 12h.01M8 12h.01M8 16h.01M16 16h.01" />
+          </svg>
+        ),
+        label: 'Class Attendance'
+      });
+      teacherItems.push({
+        path: '/dashboard/teacher/messages',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        ),
+        label: 'Parent Messaging',
+        badge: unreadCount > 0 ? unreadCount : null
+      });
+    }
 
     teacherItems.push({
       path: '/dashboard/result-entry',
@@ -603,16 +616,7 @@ const Layout = () => {
     });
 
 
-    teacherItems.push({
-      path: '/dashboard/teacher/messages',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
-      ),
-      label: 'Parent Messages',
-      badge: unreadCount > 0 ? unreadCount : null
-    });
+
 
     // Only show Quran Tracker for teachers who have Quran access
     if (hasQuranAccess) {
@@ -1770,12 +1774,25 @@ const Layout = () => {
             } else if (user?.role === 'teacher' || user?.teacher) {
               bottomItems.push(
                 {
-                  path: '/dashboard/attendance', label: 'mark attendance', icon: (
+                  path: '/dashboard/attendance', label: 'Attendance', icon: (
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                     </svg>
                   )
-                },
+                }
+              );
+
+              if (isFormMaster) {
+                bottomItems.push({
+                  path: '/dashboard/teacher/messages', label: 'Messaging', icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  ), badge: unreadCount
+                });
+              }
+
+              bottomItems.push(
                 {
                   path: '/dashboard/result-entry', label: 'Grades', icon: (
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
