@@ -31,7 +31,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
   }
 });
 
-const { initBackupService } = require('./services/BackupService');
+const { initBackupService } = require('./services/backupService');
 initBackupService();
 
 const app = express();
