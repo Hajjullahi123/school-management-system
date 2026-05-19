@@ -40,3 +40,13 @@ server/uploads/*
 # Temporary
 tmp/
 temp/
+
+# Desktop builds and release packages
+dist-desktop/
+*.exe
+*.apk
+*.aab
+*.blockmap
+latest.yml
+builder-debug.yml
+

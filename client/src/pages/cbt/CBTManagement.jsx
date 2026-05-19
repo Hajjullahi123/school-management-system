@@ -621,7 +621,8 @@ const CBTManagement = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-[40px] shadow-2xl border border-slate-100 overflow-hidden">
+          {/* Desktop Table View */}
+          <div className="hidden lg:block bg-white rounded-[40px] shadow-2xl border border-slate-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-100">
                 <thead className="bg-slate-50/50">
@@ -640,10 +641,12 @@ const CBTManagement = () => {
                         <div className="flex flex-col">
                           <span className="text-sm font-black text-slate-900 uppercase tracking-tight group-hover:text-primary transition-colors">{exam.title}</span>
                           <div className="flex items-center gap-2 mt-2">
-                             <span className="px-2 py-0.5 text-[9px] font-black bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100 uppercase tracking-widest">
+                            <span className="px-2 py-0.5 text-[9px] font-black bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100 uppercase tracking-widest">
                               {exam.examType?.replace('_', ' ') || 'Examination'}
                             </span>
-                             <span className="text-[10px] text-slate-400 font-bold">{new Date(exam.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                            <span className="text-[10px] text-slate-400 font-bold">
+                              {new Date(exam.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
                           </div>
                         </div>
                       </td>
@@ -677,34 +680,38 @@ const CBTManagement = () => {
                         </button>
                       </td>
                       <td className="px-8 py-6">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-2 flex-wrap">
                           <button
                             onClick={() => handleViewResults(exam)}
-                            className="p-3 bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white rounded-2xl transition-all shadow-sm hover:shadow-indigo-200 group/btn"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-indigo-200 text-[10px] font-black uppercase tracking-widest group/btn"
                             title="Analytics"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                            Results
                           </button>
                           <button
                             onClick={() => handleManageQuestions(exam)}
-                            className="p-3 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-2xl transition-all shadow-sm hover:shadow-primary/30"
-                            title="Manage Bank"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-xl transition-all shadow-sm hover:shadow-primary/30 text-[10px] font-black uppercase tracking-widest"
+                            title="Manage Questions"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                            Questions
                           </button>
                           <button
                             onClick={() => handlePrintExam(exam)}
-                            className="p-3 bg-slate-50 hover:bg-slate-900 text-slate-600 hover:text-white rounded-2xl transition-all shadow-sm"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-900 text-slate-600 hover:text-white rounded-xl transition-all shadow-sm text-[10px] font-black uppercase tracking-widest"
                             title="Print Hardcopy"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                            Print
                           </button>
                           <button
                             onClick={() => handleDeleteExam(exam.id)}
-                            className="p-3 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white rounded-2xl transition-all shadow-sm hover:shadow-rose-100"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-rose-100 text-[10px] font-black uppercase tracking-widest"
                             title="Destroy"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            Delete
                           </button>
                         </div>
                       </td>
@@ -714,7 +721,7 @@ const CBTManagement = () => {
                     <tr>
                       <td colSpan="5" className="px-8 py-20 text-center">
                         <div className="w-20 h-20 bg-slate-50 rounded-[28px] flex items-center justify-center mx-auto mb-6">
-                           <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                          <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                         </div>
                         <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No Examinations Found</p>
                         <button onClick={() => setView('create')} className="mt-4 text-primary font-black uppercase text-xs hover:underline tracking-widest italic">Create Your First CBT Core</button>
@@ -725,8 +732,98 @@ const CBTManagement = () => {
               </table>
             </div>
           </div>
+
+          {/* Mobile/Tablet Card View */}
+          <div className="lg:hidden space-y-6">
+            {exams.map((exam) => (
+              <div key={exam.id} className="bg-white rounded-[32px] p-6 shadow-xl border border-slate-100 space-y-4">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="space-y-1">
+                    <span className="px-2 py-0.5 text-[9px] font-black bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100 uppercase tracking-widest">
+                      {exam.examType?.replace('_', ' ') || 'Examination'}
+                    </span>
+                    <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">{exam.title}</h3>
+                    <p className="text-[11px] text-slate-400 font-bold">
+                      Created: {new Date(exam.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={() => handlePublishToggle(exam)}
+                    className={`px-3 py-1.5 text-[9px] rounded-full font-black uppercase tracking-wider border transition-all ${exam.isPublished
+                      ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                      : 'bg-amber-50 text-amber-600 border-amber-100'
+                      }`}
+                  >
+                    {exam.isPublished ? 'Live' : 'Draft'}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 bg-slate-50/50 p-4 rounded-2xl text-xs">
+                  <div className="space-y-0.5">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Target Class</p>
+                    <p className="font-bold text-slate-800">{exam.class?.name}</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Subject</p>
+                    <p className="font-bold text-slate-800">{exam.subject?.name}</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Duration</p>
+                    <p className="font-bold text-slate-800">{exam.durationMinutes} Minutes</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Questions</p>
+                    <p className="font-bold text-slate-800">{exam._count?.questions || 0} Questions</p>
+                  </div>
+                </div>
+
+                {/* Console Actions - 2x2 Grid with full labels */}
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] mb-2">Console Actions</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleViewResults(exam)}
+                      className="flex items-center justify-center gap-2 py-3 bg-indigo-50 active:bg-indigo-100 text-indigo-600 rounded-xl font-bold uppercase tracking-wider text-xs transition-all shadow-sm"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                      Results
+                    </button>
+                    <button
+                      onClick={() => handleManageQuestions(exam)}
+                      className="flex items-center justify-center gap-2 py-3 bg-primary/10 active:bg-primary/20 text-primary rounded-xl font-bold uppercase tracking-wider text-xs transition-all shadow-sm"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                      Questions
+                    </button>
+                    <button
+                      onClick={() => handlePrintExam(exam)}
+                      className="flex items-center justify-center gap-2 py-3 bg-slate-50 active:bg-slate-100 text-slate-600 rounded-xl font-bold uppercase tracking-wider text-xs transition-all shadow-sm"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                      Print
+                    </button>
+                    <button
+                      onClick={() => handleDeleteExam(exam.id)}
+                      className="flex items-center justify-center gap-2 py-3 bg-rose-50 active:bg-rose-100 text-rose-600 rounded-xl font-bold uppercase tracking-wider text-xs transition-all shadow-sm"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {exams.length === 0 && (
+              <div className="bg-white rounded-[32px] p-10 text-center text-slate-500 border border-slate-100 shadow-xl">
+                <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No Examinations Found</p>
+                <button onClick={() => setView('create')} className="mt-4 text-primary font-black uppercase text-xs hover:underline tracking-widest italic">Create Your First CBT Core</button>
+              </div>
+            )}
+          </div>
         </div>
       )}
+
 
       {/* VIEW: Create Form */}
       {view === 'create' && (
