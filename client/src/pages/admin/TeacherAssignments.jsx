@@ -213,11 +213,13 @@ const TeacherAssignments = () => {
     } else {
       const className = assignment.class ? `${assignment.class.name} ${assignment.class.arm || ''}` : 'Unidentified Class';
       const countData = unassignedCounts[assignment.classId] || { unassignedCount: 0, totalCount: 0 };
+      const matchedClass = classes.find(c => c.id === assignment.classId);
+      const studentCount = matchedClass?._count?.students ?? 0;
 
       if (!acc[className]) {
         acc[className] = {
           title: className,
-          subtitle: `${assignment.class?.students?.length || 0} Students`,
+          subtitle: `${studentCount} Student${studentCount !== 1 ? 's' : ''}`,
           classId: assignment.classId,
           unassignedCount: countData.unassignedCount,
           totalCount: countData.totalCount,
