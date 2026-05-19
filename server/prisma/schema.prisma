@@ -1091,6 +1091,7 @@ model CBTExam {
   randomizeQuestions Boolean         @default(true)
   randomizeOptions   Boolean         @default(true)
   examType           String?         @default("examination")
+  token              String?         // Optional invigilator token to restrict unauthorized exam start
   createdAt          DateTime        @default(now())
   updatedAt          DateTime @updatedAt
   Class              Class           @relation(fields: [classId], references: [id])

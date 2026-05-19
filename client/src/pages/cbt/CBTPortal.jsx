@@ -69,13 +69,29 @@ const CBTPortal = () => {
       return;
     }
 
+    let enteredToken = '';
+    if (examToStart?.hasToken) {
+      enteredToken = window.prompt("🔑 This Exam is Access Token Secured.\n\nPlease enter the CBT Access Token provided by your invigilator:");
+      if (enteredToken === null) {
+        return; // User clicked cancel
+      }
+      if (!enteredToken.trim()) {
+        toast.error("An Access Token is required to start this exam.");
+        return;
+      }
+    }
+
     try {
       setLoading(true);
-      const response = await api.get(`/api/cbt/${examId}`);
+      const url = enteredToken 
+        ? `/api/cbt/${examId}?token=${encodeURIComponent(enteredToken.trim())}` 
+        : `/api/cbt/${examId}`;
+      
+      const response = await api.get(url);
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || 'Failed to start exam');
+        toast.error(data.message || data.error || 'Failed to start exam');
         setLoading(false);
         return;
       }

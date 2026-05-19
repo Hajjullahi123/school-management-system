@@ -27,7 +27,8 @@ const CBTManagement = () => {
     endDate: '',
     examType: 'examination', // assignment1, assignment2, test1, test2, examination
     randomizeQuestions: true,
-    randomizeOptions: true
+    randomizeOptions: true,
+    token: ''
   });
 
   // Question Management State
@@ -130,7 +131,10 @@ const CBTManagement = () => {
           totalMarks: 100,
           startDate: '',
           endDate: '',
-          examType: 'examination'
+          examType: 'examination',
+          randomizeQuestions: true,
+          randomizeOptions: true,
+          token: ''
         });
       } else {
         toast.error(data.error || 'Failed to create exam');
@@ -956,6 +960,19 @@ const CBTManagement = () => {
                   value={formData.endDate}
                   onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                 />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Access Token (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. MATH101"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary font-mono uppercase tracking-wider"
+                  value={formData.token || ''}
+                  onChange={(e) => setFormData({ ...formData, token: e.target.value })}
+                />
+                <p className="mt-1 text-[10px] text-gray-400">If set, students must enter this exact code to start taking the exam.</p>
               </div>
             </div>
 

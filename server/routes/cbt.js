@@ -226,7 +226,7 @@ router.post('/', authenticate, authorize(['superadmin', 'admin', 'teacher', 'pri
     const {
       title, description, classId, subjectId,
       durationMinutes, totalMarks, startDate, endDate,
-      examType, randomizeQuestions, randomizeOptions
+      examType, randomizeQuestions, randomizeOptions, token
     } = req.body;
 
     // Validation for teachers
@@ -286,7 +286,8 @@ router.post('/', authenticate, authorize(['superadmin', 'admin', 'teacher', 'pri
         isPublished: false,
         randomizeQuestions: randomizeQuestions !== undefined ? !!randomizeQuestions : true,
         randomizeOptions: randomizeOptions !== undefined ? !!randomizeOptions : true,
-        examType: examType || 'examination'
+        examType: examType || 'examination',
+        token: token || null
       }
     });
 
@@ -302,7 +303,7 @@ router.put('/:id', authenticate, authorize(['superadmin', 'admin', 'teacher', 'p
     const examId = parseInt(req.params.id);
     const {
       title, description, durationMinutes, totalMarks, startDate, endDate,
-      examType, randomizeQuestions, randomizeOptions
+      examType, randomizeQuestions, randomizeOptions, token
     } = req.body;
 
     const exam = await prisma.cBTExam.findFirst({
@@ -325,7 +326,8 @@ router.put('/:id', authenticate, authorize(['superadmin', 'admin', 'teacher', 'p
         endDate: endDate ? new Date(endDate) : null,
         examType,
         randomizeQuestions: randomizeQuestions !== undefined ? !!randomizeQuestions : undefined,
-        randomizeOptions: randomizeOptions !== undefined ? !!randomizeOptions : undefined
+        randomizeOptions: randomizeOptions !== undefined ? !!randomizeOptions : undefined,
+        token: token !== undefined ? (token || null) : undefined
       }
     });
 
@@ -524,6 +526,8 @@ router.get('/student/available', authenticate, authorize(['student']), async (re
       ...e,
       subject: e.Subject,
       results: e.CBTResult,
+      hasToken: !!e.token, // Return hasToken boolean securely
+      token: undefined,    // Strip the secret token so students can't inspect it!
       Subject: undefined,
       CBTResult: undefined
     }));
@@ -851,6 +855,17 @@ router.get('/:id', authenticate, async (req, res) => {
       // Check if exam is published
       if (!normalizedExam.isPublished) return res.status(403).json({ error: 'Exam not published' });
 
+      // Check Access Token
+      if (normalizedExam.token && normalizedExam.token.trim() !== '') {
+        const providedToken = req.query.token || req.headers['x-exam-token'];
+        if (!providedToken || providedToken.trim().toLowerCase() !== normalizedExam.token.trim().toLowerCase()) {
+          return res.status(403).json({ 
+            error: 'token_required', 
+            message: 'Invalid or missing Exam Access Token. Please enter the correct token from the invigilator.' 
+          });
+        }
+      }
+
       // Check Timing
       const now = new Date();
       if (normalizedExam.startDate && new Date(normalizedExam.startDate) > now) {
@@ -860,9 +875,10 @@ router.get('/:id', authenticate, async (req, res) => {
         return res.status(403).json({ error: 'Exam has ended and is no longer accessible' });
       }
 
-      // Return without correctOption
+      // Return without correctOption and token
       const studentExam = {
         ...normalizedExam,
+        token: undefined, // Strip secret token from payload
         questions: normalizedExam.questions.map(q => ({
           id: q.id,
           questionText: q.questionText,
