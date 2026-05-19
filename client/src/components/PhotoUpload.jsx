@@ -56,7 +56,8 @@ const PhotoUpload = ({ studentId, currentPhotoUrl, onPhotoUpload }) => {
           onPhotoUpload(result.photoUrl);
         }
       } else {
-        alert(`Error: ${result.error}`);
+        const errorMsg = result.message || result.error;
+        alert(`Error: ${errorMsg}`);
       }
     } catch (error) {
       console.error('Error uploading photo:', error);
@@ -81,7 +82,8 @@ const PhotoUpload = ({ studentId, currentPhotoUrl, onPhotoUpload }) => {
         }
       } else {
         const result = await response.json();
-        alert(`Error: ${result.error}`);
+        const errorMsg = result.message || result.error;
+        alert(`Error: ${errorMsg}`);
       }
     } catch (error) {
       console.error('Error deleting photo:', error);

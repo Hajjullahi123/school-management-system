@@ -126,18 +126,10 @@ router.get('/debug/counts', authenticate, async (req, res) => {
 // =============================================
 
 // Get comprehensive subject analytics
-router.get('/subject/:subjectId', authenticate, requirePackage('premium'), async (req, res) => {
+router.get('/subject/:subjectId', authenticate, async (req, res) => {
   try {
     const subjectId = parseInt(req.params.subjectId);
     const { termId } = req.query;
-
-    // Check publication (except for superadmin or special bypass if needed)
-    if (req.user.role !== 'superadmin' && !await isTermPublished(req.schoolId, termId)) {
-      return res.status(403).json({
-        error: 'Results Not Published',
-        message: 'Statistical insights are only available once results have been officially published.'
-      });
-    }
 
     const whereClause = {
       subjectId,
@@ -217,7 +209,7 @@ router.get('/subject/:subjectId', authenticate, requirePackage('premium'), async
 });
 
 // Get subject trends over terms
-router.get('/subject/:subjectId/trends', authenticate, requirePackage('premium'), async (req, res) => {
+router.get('/subject/:subjectId/trends', authenticate, async (req, res) => {
   try {
     const subjectId = parseInt(req.params.subjectId);
 
@@ -258,18 +250,10 @@ router.get('/subject/:subjectId/trends', authenticate, requirePackage('premium')
 });
 
 // Compare all subjects
-router.get('/subject/comparison/all', authenticate, requirePackage('premium'), async (req, res) => {
+router.get('/subject/comparison/all', authenticate, async (req, res) => {
   try {
     const sId = parseInt(req.schoolId);
     const { termId } = req.query;
-
-    // Check publication
-    if (req.user.role !== 'superadmin' && !await isTermPublished(sId, termId)) {
-      return res.status(403).json({
-        error: 'Results Not Published',
-        message: 'Statistical insights are only available once results have been officially published.'
-      });
-    }
 
     console.log(`[ANALYTICS] Subject Comparison - sId: ${sId}, type: ${typeof sId}`);
     const subjects = await prisma.subject.findMany({
@@ -326,7 +310,7 @@ router.get('/subject/comparison/all', authenticate, requirePackage('premium'), a
 // =============================================
 
 // Comprehensive student analytics
-router.get('/student/:studentId/comprehensive', authenticate, requirePackage('premium'), async (req, res) => {
+router.get('/student/:studentId/comprehensive', authenticate, async (req, res) => {
   try {
     const studentId = parseInt(req.params.studentId);
 
@@ -414,7 +398,7 @@ router.get('/student/:studentId/comprehensive', authenticate, requirePackage('pr
 });
 
 // Student performance trends
-router.get('/student/:studentId/trends', authenticate, requirePackage('premium'), async (req, res) => {
+router.get('/student/:studentId/trends', authenticate, async (req, res) => {
   try {
     const studentId = parseInt(req.params.studentId);
 
@@ -452,7 +436,7 @@ router.get('/student/:studentId/trends', authenticate, requirePackage('premium')
 });
 
 // AI predictions for student
-router.get('/student/:studentId/predictions', authenticate, requirePackage('premium'), async (req, res) => {
+router.get('/student/:studentId/predictions', authenticate, async (req, res) => {
   try {
     const studentId = parseInt(req.params.studentId);
     const prediction = await predictPerformance(prisma, studentId, req.schoolId);
@@ -464,7 +448,7 @@ router.get('/student/:studentId/predictions', authenticate, requirePackage('prem
 });
 
 // Student vs class average
-router.get('/student/:studentId/peer-comparison', authenticate, requirePackage('premium'), async (req, res) => {
+router.get('/student/:studentId/peer-comparison', authenticate, async (req, res) => {
   try {
     const studentId = parseInt(req.params.studentId);
 
@@ -535,7 +519,7 @@ router.get('/student/:studentId/peer-comparison', authenticate, requirePackage('
 // =============================================
 
 // Teacher effectiveness
-router.get('/teacher/:teacherId/effectiveness', authenticate, requirePackage('premium'), async (req, res) => {
+router.get('/teacher/:teacherId/effectiveness', authenticate, async (req, res) => {
   try {
     const teacherId = parseInt(req.params.teacherId);
 
@@ -613,7 +597,7 @@ router.get('/teacher/:teacherId/effectiveness', authenticate, requirePackage('pr
 // =============================================
 
 // Class overview analytics
-router.get('/class/:classId/overview', authenticate, requirePackage('premium'), async (req, res) => {
+router.get('/class/:classId/overview', authenticate, async (req, res) => {
   try {
     const classId = parseInt(req.params.classId);
 
@@ -673,18 +657,10 @@ router.get('/class/:classId/overview', authenticate, requirePackage('premium'), 
 });
 
 // Class comparison
-router.get('/class/comparison/all', authenticate, requirePackage('premium'), async (req, res) => {
+router.get('/class/comparison/all', authenticate, async (req, res) => {
   try {
     const sId = parseInt(req.schoolId);
     const { termId } = req.query;
-
-    // Check publication
-    if (req.user.role !== 'superadmin' && !await isTermPublished(sId, termId)) {
-      return res.status(403).json({
-        error: 'Results Not Published',
-        message: 'Statistical insights are only available once results have been officially published.'
-      });
-    }
 
     console.log(`[ANALYTICS] Class Comparison - sId: ${sId}, type: ${typeof sId}`);
     const classes = await prisma.class.findMany({
@@ -748,7 +724,7 @@ router.get('/class/comparison/all', authenticate, requirePackage('premium'), asy
 // =============================================
 
 // Term overview
-router.get('/term/:termId/overview', authenticate, requirePackage('premium'), async (req, res) => {
+router.get('/term/:termId/overview', authenticate, async (req, res) => {
   try {
     const termId = parseInt(req.params.termId);
 
@@ -791,7 +767,7 @@ router.get('/term/:termId/overview', authenticate, requirePackage('premium'), as
 });
 
 // Term comparison
-router.get('/term/comparison', authenticate, requirePackage('premium'), async (req, res) => {
+router.get('/term/comparison', authenticate, async (req, res) => {
   try {
     const { term1, term2 } = req.query;
 
@@ -841,14 +817,6 @@ router.get('/ai/at-risk-students', authenticate, authorize(['admin', 'teacher', 
   try {
     const { classId, termId } = req.query;
 
-    // Check publication
-    if (req.user.role !== 'superadmin' && !await isTermPublished(req.schoolId, termId)) {
-      return res.status(403).json({
-        error: 'Results Not Published',
-        message: 'Statistical insights are only available once results have been officially published.'
-      });
-    }
-
     const atRiskStudents = await identifyAtRiskStudents(prisma, req.schoolId, classId, termId);
     res.json(atRiskStudents);
   } catch (error) {
@@ -858,7 +826,7 @@ router.get('/ai/at-risk-students', authenticate, authorize(['admin', 'teacher', 
 });
 
 // Personalized recommendations
-router.get('/ai/recommendations/:studentId', authenticate, requirePackage('premium'), async (req, res) => {
+router.get('/ai/recommendations/:studentId', authenticate, async (req, res) => {
   try {
     const studentId = parseInt(req.params.studentId);
     const recommendations = await generateRecommendations(prisma, studentId, req.schoolId);
@@ -870,17 +838,9 @@ router.get('/ai/recommendations/:studentId', authenticate, requirePackage('premi
 });
 
 // Heatmap analytics
-router.get('/heatmap', authenticate, requirePackage('premium'), async (req, res) => {
+router.get('/heatmap', authenticate, async (req, res) => {
   try {
     const { termId } = req.query;
-
-    // Check publication
-    if (req.user.role !== 'superadmin' && !await isTermPublished(req.schoolId, termId)) {
-      return res.status(403).json({
-        error: 'Results Not Published',
-        message: 'Statistical insights are only available once results have been officially published.'
-      });
-    }
 
     // 1. Fetch available classes and subjects for axes
     const classes = await prisma.class.findMany({
@@ -952,7 +912,7 @@ router.get('/heatmap', authenticate, requirePackage('premium'), async (req, res)
 });
 
 // Deep AI Student Diagnosis
-router.post('/ai/student-diagnosis/:studentId', authenticate, requirePackage('premium'), async (req, res) => {
+router.post('/ai/student-diagnosis/:studentId', authenticate, async (req, res) => {
   try {
     const studentId = parseInt(req.params.studentId);
     const { termId } = req.body; // Optional term context

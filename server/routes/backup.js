@@ -138,6 +138,42 @@ router.get('/export-assets', authenticate, checkSubscription, authorize(['admin'
 });
 
 /**
+ * @route   GET /api/backup/download-sqlite
+ * @desc    Download the actual SQLite database file directly
+ * @access  Admin only
+ */
+router.get('/download-sqlite', authenticate, checkSubscription, authorize(['admin', 'superadmin']), async (req, res) => {
+  try {
+    const dbPath = path.join(__dirname, '../prisma/dev.db');
+    if (!fs.existsSync(dbPath)) {
+      return res.status(404).json({ error: 'Database file not found' });
+    }
+    
+    res.download(dbPath, `school_management_backup_${Date.now()}.db`, (err) => {
+      if (err) {
+        console.error('Error downloading database:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Failed to download database' });
+        }
+      }
+    });
+    
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'DOWNLOAD_SQLITE_DB',
+      resource: 'BACKUP',
+      details: { format: 'sqlite' },
+      ipAddress: req.ip
+    });
+
+  } catch (error) {
+    console.error('SQLite download error:', error);
+    res.status(500).json({ error: 'Failed to initiate database download' });
+  }
+});
+
+/**
  * @route   POST /api/backup/trigger
  * @desc    Manually trigger a cloud backup to S3
  * @access  Admin only

@@ -61,8 +61,7 @@ const AdvancedAnalytics = () => {
   const [heatmapData, setHeatmapData] = useState(null);
   const [diagnosticData, setDiagnosticData] = useState(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
-  const [isUpgradeRequired, setIsUpgradeRequired] = useState(false);
-  const [isResultsNotPublished, setIsResultsNotPublished] = useState(false);
+
 
   // Intervention State
   const [showInterventionModal, setShowInterventionModal] = useState(false);
@@ -252,19 +251,7 @@ const AdvancedAnalytics = () => {
         api.get(`/api/advanced-analytics/ai/at-risk-students${termParam}`)
       ]);
 
-      if (subjectRes.status === 403) {
-        const errData = await subjectRes.json();
-        if (errData.error === 'Results Not Published') {
-          setIsResultsNotPublished(true);
-        } else {
-          setIsUpgradeRequired(true);
-        }
-        return;
-      }
-
       if (subjectRes.ok) {
-        setIsUpgradeRequired(false);
-        setIsResultsNotPublished(false);
         const data = await subjectRes.json();
         console.log('[ANALYTICS] Subjects received:', data.length);
         setSubjectComparison(Array.isArray(data) ? data : []);
@@ -875,65 +862,7 @@ const AdvancedAnalytics = () => {
       {activeTab === 'overview' && loading && <AnalyticsSkeleton type="overview" />}
 
       {/* Content Area */}
-      {isResultsNotPublished ? (
-        <div className="bg-white p-12 rounded-lg shadow-md text-center">
-          <div className="max-w-md mx-auto">
-            <div className="bg-yellow-100 text-yellow-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 14c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Results Not Published</h2>
-            <p className="text-gray-600 mb-6">
-              Statistical insights for this term are only available once the results have been officially published by the school administration.
-            </p>
-            {user?.role === 'superadmin' && (
-              <p className="text-sm text-gray-500 mb-4 italic">
-                (Superadmin seeing this? Check if any class has isResultPublished set to true)
-              </p>
-            )}
-            <button
-              onClick={() => setSelectedTerm('current')}
-              className="bg-primary text-white px-6 py-2 rounded-lg hover:brightness-90 transition-all font-medium"
-            >
-              Back to Current Term
-            </button>
-          </div>
-        </div>
-      ) : isUpgradeRequired ? (
-        <div className="bg-white p-12 rounded-[40px] border border-slate-100 shadow-xl text-center max-w-4xl mx-auto">
-          <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
-            <svg className="w-12 h-12 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <h2 className="text-4xl font-black italic tracking-tighter uppercase mb-4">Unlocking Premium Intelligence</h2>
-          <p className="text-slate-500 max-w-lg mx-auto mb-10 leading-relaxed font-medium">
-            Advanced Predictive Analytics, AI-Risk Detection, and Performance Heatmaps are exclusive to the <span className="text-primary font-bold">Premium Package</span>.
-          </p>
-
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-            <button
-              onClick={() => window.location.href = '/dashboard/platform-billing'}
-              className="px-12 py-4 bg-primary text-white font-black rounded-2xl uppercase tracking-[0.2em] text-xs shadow-xl shadow-primary/30 hover:scale-[1.05] transition-all"
-            >
-              Upgrade Plan Now
-            </button>
-            <button
-              onClick={fetchDiagnostics}
-              className="px-8 py-4 bg-slate-900 text-white font-black rounded-2xl uppercase tracking-[0.2em] text-xs shadow-xl shadow-slate-900/30 hover:scale-[1.05] transition-all"
-            >
-              Verify System Data
-            </button>
-          </div>
-
-          <div className="mt-12 bg-slate-50 p-6 rounded-3xl border border-slate-100 inline-block">
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Status Verification</p>
-            <p className="text-xs text-slate-600 font-bold">Diagnostics are always enabled to ensure your database connection is healthy.</p>
-          </div>
-        </div>
-      ) : (
-        <>
+      <>
           {activeTab === 'overview' && !loading && (
             <div className="space-y-6">
               {/* Quick Stats */}

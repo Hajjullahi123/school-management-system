@@ -79,7 +79,11 @@ const CBTQuestionBank = () => {
   const fetchQuestions = async () => {
     setLoading(true);
     try {
-      const query = new URLSearchParams(filters).toString();
+      // Only include non-empty filter values to avoid sending empty strings
+      const cleanFilters = Object.fromEntries(
+        Object.entries(filters).filter(([_, v]) => v !== '' && v != null)
+      );
+      const query = new URLSearchParams(cleanFilters).toString();
       const response = await api.get(`/api/cbt/bank?${query}`);
       const data = await response.json();
       if (response.ok) {
@@ -128,8 +132,10 @@ const CBTQuestionBank = () => {
   };
 
   const handleDownloadBank = () => {
-    const query = new URLSearchParams({ subjectId: filters.subjectId }).toString();
-    const url = `${API_BASE_URL}/api/cbt/bank/download?${query}`;
+    const params = {};
+    if (filters.subjectId) params.subjectId = filters.subjectId;
+    const query = new URLSearchParams(params).toString();
+    const url = `${API_BASE_URL}/api/cbt/bank/download${query ? '?' + query : ''}`;
     const token = localStorage.getItem('token');
 
     fetch(url, {

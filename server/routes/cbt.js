@@ -168,7 +168,7 @@ router.post('/:id/questions/bulk', authenticate, authorize(['superadmin', 'admin
       userId: req.user.id,
       action: 'IMPORT',
       resource: 'CBT_QUESTIONS',
-      details: { examId, count: createdQuestions.length },
+      details: { examId, count: result.length },
       ipAddress: req.ip
     });
   } catch (error) {
@@ -192,19 +192,29 @@ router.get('/teacher', authenticate, authorize(['superadmin', 'admin', 'teacher'
     const exams = await prisma.cBTExam.findMany({
       where,
       include: {
-        class: true,
-        subject: true,
+        Class: true,
+        Subject: true,
         _count: {
           select: {
-            questions: { where: { schoolId: req.schoolId } },
-            results: { where: { schoolId: req.schoolId } }
+            CBTQuestion: { where: { schoolId: req.schoolId } },
+            CBTResult: { where: { schoolId: req.schoolId } }
           }
         }
       },
       orderBy: { createdAt: 'desc' }
     });
 
-    res.json(exams);
+    // Normalize for frontend compatibility
+    const normalized = exams.map(e => ({
+      ...e,
+      class: e.Class,
+      subject: e.Subject,
+      _count: { questions: e._count?.CBTQuestion || 0, results: e._count?.CBTResult || 0 },
+      Class: undefined,
+      Subject: undefined
+    }));
+
+    res.json(normalized);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -499,8 +509,8 @@ router.get('/student/available', authenticate, authorize(['student']), async (re
         termId: currentTerm?.id || undefined // Only show exams for current term
       },
       include: {
-        subject: true,
-        results: {
+        Subject: true,
+        CBTResult: {
           where: {
             studentId: student.id,
             schoolId: req.schoolId
@@ -509,7 +519,16 @@ router.get('/student/available', authenticate, authorize(['student']), async (re
       }
     });
 
-    res.json(availableExams);
+    // Normalize for frontend compatibility
+    const normalized = availableExams.map(e => ({
+      ...e,
+      subject: e.Subject,
+      results: e.CBTResult,
+      Subject: undefined,
+      CBTResult: undefined
+    }));
+
+    res.json(normalized);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -523,29 +542,39 @@ router.get('/bank', authenticate, authorize(['superadmin', 'admin', 'teacher', '
     const { subjectId, teacherId, classId } = req.query;
     const where = { schoolId: req.schoolId };
 
-    if (subjectId) where.subjectId = parseInt(subjectId);
-    if (classId) where.classId = parseInt(classId);
+    if (subjectId && !isNaN(parseInt(subjectId))) where.subjectId = parseInt(subjectId);
+    if (classId && !isNaN(parseInt(classId))) where.classId = parseInt(classId);
 
     // Teachers usually only see their own bank questions unless they are admin
     if (req.user.role === 'teacher') {
       where.teacherId = req.user.id;
-    } else if (teacherId) {
+    } else if (teacherId && !isNaN(parseInt(teacherId))) {
       where.teacherId = parseInt(teacherId);
     }
 
     const questions = await prisma.cBTQuestionBank.findMany({
       where,
       include: {
-        subject: true,
-        teacher: {
+        Subject: true,
+        User: {
           select: { firstName: true, lastName: true }
         }
       },
       orderBy: { createdAt: 'desc' }
     });
 
-    res.json(questions);
+    // Normalize relation names for frontend compatibility
+    const normalized = questions.map(q => ({
+      ...q,
+      subject: q.Subject,
+      teacher: q.User,
+      Subject: undefined,
+      User: undefined
+    }));
+
+    res.json(normalized);
   } catch (error) {
+    console.error('Question bank fetch error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -656,12 +685,12 @@ router.get('/bank/download', authenticate, authorize(['superadmin', 'admin', 'te
   try {
     const { subjectId } = req.query;
     const where = { schoolId: req.schoolId };
-    if (subjectId) where.subjectId = parseInt(subjectId);
+    if (subjectId && !isNaN(parseInt(subjectId))) where.subjectId = parseInt(subjectId);
     if (req.user.role === 'teacher') where.teacherId = req.user.id;
 
     const questions = await prisma.cBTQuestionBank.findMany({
       where,
-      include: { subject: true, teacher: true }
+      include: { Subject: true, User: true }
     });
 
     const workbook = new ExcelJS.Workbook();
@@ -682,7 +711,7 @@ router.get('/bank/download', authenticate, authorize(['superadmin', 'admin', 'te
     questions.forEach(q => {
       const opts = JSON.parse(q.options);
       worksheet.addRow({
-        subject: q.subject.name,
+        subject: q.Subject?.name || 'N/A',
         questionText: q.questionText,
         a: opts.find(o => o.id === 'a')?.text,
         b: opts.find(o => o.id === 'b')?.text,
@@ -690,7 +719,7 @@ router.get('/bank/download', authenticate, authorize(['superadmin', 'admin', 'te
         d: opts.find(o => o.id === 'd')?.text,
         correctOption: q.correctOption,
         points: q.points,
-        teacher: `${q.teacher.firstName} ${q.teacher.lastName}`
+        teacher: q.User ? `${q.User.firstName} ${q.User.lastName}` : 'Unknown'
       });
     });
 
@@ -699,32 +728,18 @@ router.get('/bank/download', authenticate, authorize(['superadmin', 'admin', 'te
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Delete Question from Bank
-router.delete('/bank/:id', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const question = await prisma.cBTQuestionBank.findUnique({ where: { id } });
-
-    if (!question) return res.status(404).json({ error: 'Question not found' });
-    if (req.user.role === 'teacher' && question.teacherId !== req.user.id) {
-      return res.status(403).json({ error: 'Unauthorized' });
-    }
-
-    await prisma.cBTQuestionBank.delete({ where: { id } });
-    res.json({ message: 'Question deleted from bank' });
-  } catch (error) {
+    console.error('Bank download error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Bulk Delete Questions by Subject from Bank
+// IMPORTANT: This must come BEFORE /bank/:id to prevent Express matching 'subject' as an id
 router.delete('/bank/subject/:subjectId', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const subjectId = parseInt(req.params.subjectId);
+    if (isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subject ID' });
+
     const where = {
       schoolId: req.schoolId,
       subjectId: subjectId
@@ -747,6 +762,26 @@ router.delete('/bank/subject/:subjectId', authenticate, authorize(['superadmin',
     });
   } catch (error) {
     console.error('Bulk delete by subject error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete Question from Bank
+router.delete('/bank/:id', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid question ID' });
+
+    const question = await prisma.cBTQuestionBank.findUnique({ where: { id } });
+
+    if (!question) return res.status(404).json({ error: 'Question not found' });
+    if (req.user.role === 'teacher' && question.teacherId !== req.user.id) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    await prisma.cBTQuestionBank.delete({ where: { id } });
+    res.json({ message: 'Question deleted from bank' });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
@@ -789,35 +824,46 @@ router.get('/:id', authenticate, async (req, res) => {
         schoolId: req.schoolId
       },
       include: {
-        questions: {
+        CBTQuestion: {
           where: { schoolId: req.schoolId }
         },
-        class: true,
-        subject: true
+        Class: true,
+        Subject: true
       }
     });
 
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
 
+    // Normalize relation names for frontend
+    const normalizedExam = {
+      ...exam,
+      questions: exam.CBTQuestion,
+      class: exam.Class,
+      subject: exam.Subject,
+      CBTQuestion: undefined,
+      Class: undefined,
+      Subject: undefined
+    };
+
     // Authorization check
     if (req.user.role === 'student') {
       // Check if student belongs to class
       // Check if exam is published
-      if (!exam.isPublished) return res.status(403).json({ error: 'Exam not published' });
+      if (!normalizedExam.isPublished) return res.status(403).json({ error: 'Exam not published' });
 
       // Check Timing
       const now = new Date();
-      if (exam.startDate && new Date(exam.startDate) > now) {
-        return res.status(403).json({ error: `Exam starts at ${new Date(exam.startDate).toLocaleString()}` });
+      if (normalizedExam.startDate && new Date(normalizedExam.startDate) > now) {
+        return res.status(403).json({ error: `Exam starts at ${new Date(normalizedExam.startDate).toLocaleString()}` });
       }
-      if (exam.endDate && new Date(exam.endDate) < now) {
+      if (normalizedExam.endDate && new Date(normalizedExam.endDate) < now) {
         return res.status(403).json({ error: 'Exam has ended and is no longer accessible' });
       }
 
       // Return without correctOption
       const studentExam = {
-        ...exam,
-        questions: exam.questions.map(q => ({
+        ...normalizedExam,
+        questions: normalizedExam.questions.map(q => ({
           id: q.id,
           questionText: q.questionText,
           options: q.options, // It's a string, frontend parses
@@ -829,7 +875,7 @@ router.get('/:id', authenticate, async (req, res) => {
       return res.json(studentExam);
     }
 
-    res.json(exam);
+    res.json(normalizedExam);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -846,7 +892,7 @@ router.get('/:id/results', authenticate, authorize(['superadmin', 'admin', 'teac
         id: examId,
         schoolId: req.schoolId
       },
-      include: { class: true, subject: true }
+      include: { Class: true, Subject: true }
     });
 
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
@@ -860,7 +906,7 @@ router.get('/:id/results', authenticate, authorize(['superadmin', 'admin', 'teac
         schoolId: req.schoolId
       },
       include: {
-        student: {
+        Student: {
           include: {
             user: {
               select: {
@@ -875,7 +921,11 @@ router.get('/:id/results', authenticate, authorize(['superadmin', 'admin', 'teac
       orderBy: { score: 'desc' }
     });
 
-    res.json({ exam, results });
+    // Normalize
+    const normalizedExam = { ...exam, class: exam.Class, subject: exam.Subject, Class: undefined, Subject: undefined };
+    const normalizedResults = results.map(r => ({ ...r, student: r.Student, Student: undefined }));
+
+    res.json({ exam: normalizedExam, results: normalizedResults });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -888,7 +938,7 @@ router.get('/:id/results/download', authenticate, authorize(['superadmin', 'admi
 
     const exam = await prisma.cBTExam.findFirst({
       where: { id: examId, schoolId: req.schoolId },
-      include: { class: true, subject: true }
+      include: { Class: true, Subject: true }
     });
 
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
@@ -899,7 +949,7 @@ router.get('/:id/results/download', authenticate, authorize(['superadmin', 'admi
     const results = await prisma.cBTResult.findMany({
       where: { examId, schoolId: req.schoolId },
       include: {
-        student: {
+        Student: {
           include: {
             user: {
               select: { firstName: true, lastName: true }
@@ -913,11 +963,11 @@ router.get('/:id/results/download', authenticate, authorize(['superadmin', 'admi
     // Generate CSV
     const headers = ['Student Name', 'Admission Number', 'Score', 'Total Questions', 'Correct Answers', 'Percentage', 'Submission Date'];
     const rows = results.map(r => {
-      const name = r.student.user ? `${r.student.user.firstName} ${r.student.user.lastName}` : (r.student.name || r.student.admissionNumber || 'Student');
+      const name = r.Student?.user ? `${r.Student.user.firstName} ${r.Student.user.lastName}` : (r.Student?.name || r.Student?.admissionNumber || 'Student');
       const percentage = exam.totalMarks > 0 ? ((r.score / exam.totalMarks) * 100).toFixed(2) : 0;
       return [
         name,
-        r.student.admissionNumber,
+        r.Student?.admissionNumber,
         r.score,
         r.totalQuestions,
         r.correctAnswers,
@@ -951,7 +1001,7 @@ router.post('/:id/results/import', authenticate, authorize(['superadmin', 'admin
       prisma.cBTExam.findFirst({
         where: { id: examId, schoolId: req.schoolId },
         include: {
-          results: { where: { schoolId: req.schoolId } }
+          CBTResult: { where: { schoolId: req.schoolId } }
         }
       }),
       prisma.school.findUnique({
@@ -965,7 +1015,7 @@ router.post('/:id/results/import', authenticate, authorize(['superadmin', 'admin
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    if (!exam.results || exam.results.length === 0) {
+    if (!exam.CBTResult || exam.CBTResult.length === 0) {
       return res.status(400).json({ error: 'No results found to import' });
     }
 
@@ -977,7 +1027,7 @@ router.post('/:id/results/import', authenticate, authorize(['superadmin', 'admin
     else if (examType === 'assignment2') targetField = 'assignment2Score';
 
     // 2. Import each result
-    const importResults = await Promise.all(exam.results.map(async (cbtRes) => {
+    const importResults = await Promise.all(exam.CBTResult.map(async (cbtRes) => {
       // Find existing result record
       const existing = await prisma.result.findUnique({
         where: {
@@ -1173,7 +1223,7 @@ router.post('/:id/submit', authenticate, authorize(['student']), async (req, res
         schoolId: req.schoolId
       },
       include: {
-        questions: {
+        CBTQuestion: {
           where: { schoolId: req.schoolId }
         }
       }
@@ -1183,7 +1233,8 @@ router.post('/:id/submit', authenticate, authorize(['student']), async (req, res
     let score = 0;
     let correctCount = 0;
 
-    exam.questions.forEach(q => {
+    const examQuestions = exam.CBTQuestion || [];
+    examQuestions.forEach(q => {
       const studentAnswer = answers[q.id];
       if (studentAnswer === q.correctOption) {
         score += q.points;
@@ -1198,7 +1249,7 @@ router.post('/:id/submit', authenticate, authorize(['student']), async (req, res
         examId,
         studentId: student.id,
         score,
-        totalQuestions: exam.questions.length,
+        totalQuestions: examQuestions.length,
         correctAnswers: correctCount,
         answers: JSON.stringify(answers),
         submittedAt: new Date()
@@ -1217,7 +1268,7 @@ router.post('/:id/submit', authenticate, authorize(['student']), async (req, res
         examId: examId,
         studentId: student.id,
         score: score,
-        total: exam.questions.length
+        total: examQuestions.length
       },
       ipAddress: req.ip
     });
@@ -1234,12 +1285,12 @@ router.delete('/results/:id', authenticate, authorize(['admin', 'teacher', 'prin
     // Verify ownership/permission
     const result = await prisma.cBTResult.findUnique({
       where: { id: resultId },
-      include: { exam: true }
+      include: { CBTExam: true }
     });
 
     if (!result) return res.status(404).json({ error: 'Result not found' });
 
-    if (req.user.role === 'teacher' && result.exam.teacherId !== req.user.id) {
+    if (req.user.role === 'teacher' && result.CBTExam.teacherId !== req.user.id) {
       return res.status(403).json({ error: 'Unauthorized to delete this result' });
     }
 

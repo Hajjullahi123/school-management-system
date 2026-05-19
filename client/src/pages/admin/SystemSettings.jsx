@@ -79,6 +79,28 @@ export default function SystemSettings() {
     }
   };
 
+  const handleDownloadDatabase = async () => {
+    try {
+      const response = await api.get('/api/backup/download-sqlite');
+      if (!response.ok) {
+        throw new Error('Failed to download database');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `school_database_backup_${new Date().getTime()}.db`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download the database file.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -235,6 +257,28 @@ export default function SystemSettings() {
           );
         })}
       </div>
+      {/* Backup and Migration section */}
+      <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-emerald-100">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+          <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+          </svg>
+          Data Backup & Migration
+        </h2>
+        <p className="text-gray-600 text-sm mb-6">
+          Download your complete database file. This contains all students, teachers, results, and financial records. Keep this file safe and secure.
+        </p>
+        <button
+          onClick={handleDownloadDatabase}
+          className="px-6 py-3 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-lg hover:shadow-xl active:scale-95"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Download Database File (.db)
+        </button>
+      </div>
+
     </div>
   );
 }
