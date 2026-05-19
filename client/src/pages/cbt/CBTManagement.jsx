@@ -1049,6 +1049,7 @@ const CBTManagement = () => {
                   value={formData.endDate}
                   onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                 />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
