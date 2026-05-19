@@ -28,7 +28,7 @@ router.get('/', authenticate, async (req, res) => {
             code: true
           }
         },
-        teacherAssignments: {
+        assignments: {
           where: { 
             schoolId: req.schoolId,
             ...(activeTerm ? { termId: activeTerm.id } : {})
@@ -49,7 +49,16 @@ router.get('/', authenticate, async (req, res) => {
         { subject: { name: 'asc' } }
       ]
     });
-    res.json(classSubjects);
+
+    // Add isAssigned and mapping for frontend compatibility
+    const mapped = classSubjects.map(cs => ({
+      ...cs,
+      teacherAssignments: cs.assignments || [],
+      isAssigned: (cs.assignments || []).length > 0,
+      teacher: cs.assignments?.[0]?.teacher || null
+    }));
+
+    res.json(mapped);
   } catch (error) {
     console.error('Error fetching class subjects:', error);
     res.status(500).json({ error: error.message });
@@ -89,7 +98,7 @@ router.get('/class/:classId', authenticate, async (req, res) => {
               code: true
             }
           },
-          teacherAssignments: {
+          assignments: {
             where: { 
               schoolId: req.schoolId,
               ...(activeTerm ? { termId: activeTerm.id } : {})
@@ -131,15 +140,16 @@ router.get('/class/:classId', authenticate, async (req, res) => {
           subject: { name: 'asc' }
         }
       });
-      // Add empty teacherAssignments so the map below doesn't fail
-      classSubjects = classSubjects.map(cs => ({ ...cs, teacherAssignments: [] }));
+      // Add empty assignments so the map below doesn't fail
+      classSubjects = classSubjects.map(cs => ({ ...cs, assignments: [] }));
     }
 
     // Add assignment status to each subject
     const subjectsWithStatus = classSubjects.map(cs => ({
       ...cs,
-      isAssigned: (cs.teacherAssignments || []).length > 0,
-      teacher: cs.teacherAssignments?.[0]?.teacher || null
+      teacherAssignments: cs.assignments || [],
+      isAssigned: (cs.assignments || []).length > 0,
+      teacher: cs.assignments?.[0]?.teacher || null
     }));
 
     res.json(subjectsWithStatus);
@@ -165,7 +175,7 @@ router.get('/class/:classId/unassigned-count', authenticate, async (req, res) =>
         schoolId: req.schoolId
       },
       include: {
-        teacherAssignments: {
+        assignments: {
           where: { 
             schoolId: req.schoolId,
             ...(activeTerm ? { termId: activeTerm.id } : {})
@@ -174,7 +184,7 @@ router.get('/class/:classId/unassigned-count', authenticate, async (req, res) =>
       }
     });
 
-    const unassignedCount = classSubjects.filter(cs => cs.teacherAssignments.length === 0).length;
+    const unassignedCount = classSubjects.filter(cs => cs.assignments.length === 0).length;
     const totalCount = classSubjects.length;
 
     res.json({
@@ -336,7 +346,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
         schoolId: req.schoolId
       },
       include: {
-        teacherAssignments: {
+        assignments: {
           where: { schoolId: req.schoolId }
         }
       }
@@ -346,7 +356,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
       return res.status(404).json({ error: 'Class subject not found' });
     }
 
-    if (classSubject.teacherAssignments.length > 0) {
+    if (classSubject.assignments.length > 0) {
       return res.status(400).json({
         error: 'Cannot remove subject with assigned teachers. Please remove teacher assignments first.'
       });
