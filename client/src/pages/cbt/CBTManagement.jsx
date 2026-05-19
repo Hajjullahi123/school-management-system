@@ -31,8 +31,8 @@ const CBTManagement = () => {
     token: ''
   });
 
-  // Question Management State
   const [selectedExam, setSelectedExam] = useState(null);
+  const [editingExam, setEditingExam] = useState(null);
   const [questions, setQuestions] = useState([]); // Questions for selected exam
   const [examResults, setExamResults] = useState([]);
   const [resultsLoading, setResultsLoading] = useState(false);
@@ -141,6 +141,80 @@ const CBTManagement = () => {
       }
     } catch (error) {
       toast.error('Error creating exam');
+    }
+  };
+
+  const handleEditExam = (exam) => {
+    const formatDateTimeLocal = (dateString) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      const offset = date.getTimezoneOffset();
+      const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+      return localDate.toISOString().slice(0, 16);
+    };
+
+    setEditingExam(exam);
+    setFormData({
+      title: exam.title || '',
+      description: exam.description || '',
+      classId: exam.classId || '',
+      subjectId: exam.subjectId || '',
+      durationMinutes: exam.durationMinutes || 60,
+      totalMarks: exam.totalMarks || 100,
+      startDate: formatDateTimeLocal(exam.startDate),
+      endDate: formatDateTimeLocal(exam.endDate),
+      examType: exam.examType || 'examination',
+      randomizeQuestions: exam.randomizeQuestions !== false,
+      randomizeOptions: exam.randomizeOptions !== false,
+      token: exam.token || ''
+    });
+    setView('edit');
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await api.put(`/api/cbt/${editingExam.id}`, formData);
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Exam settings updated successfully');
+        // Map data to preserve local model relationships (class, subject)
+        const updatedExams = exams.map(ex => {
+          if (ex.id === editingExam.id) {
+            return {
+              ...ex,
+              ...data,
+              class: ex.class,
+              subject: ex.subject,
+              _count: ex._count
+            };
+          }
+          return ex;
+        });
+        setExams(updatedExams);
+        setView('list');
+        setEditingExam(null);
+        // Reset form
+        setFormData({
+          title: '',
+          description: '',
+          classId: '',
+          subjectId: '',
+          durationMinutes: 60,
+          totalMarks: 100,
+          startDate: '',
+          endDate: '',
+          examType: 'examination',
+          randomizeQuestions: true,
+          randomizeOptions: true,
+          token: ''
+        });
+      } else {
+        toast.error(data.error || 'Failed to update exam');
+      }
+    } catch (error) {
+      toast.error('Error updating exam');
     }
   };
 
@@ -702,6 +776,14 @@ const CBTManagement = () => {
                             Questions
                           </button>
                           <button
+                            onClick={() => handleEditExam(exam)}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-600 text-amber-600 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-amber-200 text-[10px] font-black uppercase tracking-widest"
+                            title="Edit Settings"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            Edit
+                          </button>
+                          <button
                             onClick={() => handlePrintExam(exam)}
                             className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-900 text-slate-600 hover:text-white rounded-xl transition-all shadow-sm text-[10px] font-black uppercase tracking-widest"
                             title="Print Hardcopy"
@@ -782,7 +864,7 @@ const CBTManagement = () => {
                   </div>
                 </div>
 
-                {/* Console Actions - 2x2 Grid with full labels */}
+                {/* Console Actions - Modern Responsive Grid with full labels */}
                 <div className="space-y-2 pt-2 border-t border-slate-100">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] mb-2">Console Actions</p>
                   <div className="grid grid-cols-2 gap-2">
@@ -801,6 +883,13 @@ const CBTManagement = () => {
                       Questions
                     </button>
                     <button
+                      onClick={() => handleEditExam(exam)}
+                      className="flex items-center justify-center gap-2 py-3 bg-amber-50 active:bg-amber-100 text-amber-600 rounded-xl font-bold uppercase tracking-wider text-xs transition-all shadow-sm"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      Edit
+                    </button>
+                    <button
                       onClick={() => handlePrintExam(exam)}
                       className="flex items-center justify-center gap-2 py-3 bg-slate-50 active:bg-slate-100 text-slate-600 rounded-xl font-bold uppercase tracking-wider text-xs transition-all shadow-sm"
                     >
@@ -809,7 +898,7 @@ const CBTManagement = () => {
                     </button>
                     <button
                       onClick={() => handleDeleteExam(exam.id)}
-                      className="flex items-center justify-center gap-2 py-3 bg-rose-50 active:bg-rose-100 text-rose-600 rounded-xl font-bold uppercase tracking-wider text-xs transition-all shadow-sm"
+                      className="flex items-center justify-center gap-2 py-3 bg-rose-50 active:bg-rose-100 text-rose-600 rounded-xl font-bold uppercase tracking-wider text-xs transition-all shadow-sm col-span-2"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       Delete
@@ -999,6 +1088,174 @@ const CBTManagement = () => {
                 className="px-4 py-2 bg-primary text-white rounded-md hover:brightness-90"
               >
                 Create Exam
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* VIEW: Edit Form */}
+      {view === 'edit' && editingExam && (
+        <div className="bg-white rounded-lg shadow p-6 max-w-2xl mx-auto">
+          <h2 className="text-lg font-semibold mb-4 text-gray-800">Edit Exam Settings</h2>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Exam Title</label>
+              <input
+                type="text"
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Class (Locked)</label>
+                <select
+                  disabled
+                  className="mt-1 block w-full rounded-md border-gray-100 bg-gray-50 text-gray-500 cursor-not-allowed shadow-sm focus:ring-0"
+                  value={formData.classId}
+                >
+                  <option value={formData.classId}>{editingExam.class?.name} {editingExam.class?.arm}</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Subject (Locked)</label>
+                <select
+                  disabled
+                  className="mt-1 block w-full rounded-md border-gray-100 bg-gray-50 text-gray-500 cursor-not-allowed shadow-sm focus:ring-0"
+                  value={formData.subjectId}
+                >
+                  <option value={formData.subjectId}>{editingExam.subject?.name}</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Exam Type</label>
+                <select
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                  value={formData.examType}
+                  onChange={(e) => setFormData({ ...formData, examType: e.target.value })}
+                >
+                  <option value="examination">Final Examination</option>
+                  <option value="test1">1st Continuous Assessment (Test 1)</option>
+                  <option value="test2">2nd Continuous Assessment (Test 2)</option>
+                  <option value="assignment1">1st Assignment</option>
+                  <option value="assignment2">2nd Assignment</option>
+                </select>
+              </div>
+              <div className="flex gap-4 items-center bg-gray-50 p-3 rounded mt-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="randomizeQuestionsEdit"
+                    className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                    checked={formData.randomizeQuestions !== false}
+                    onChange={(e) => setFormData({ ...formData, randomizeQuestions: e.target.checked })}
+                  />
+                  <label htmlFor="randomizeQuestionsEdit" className="text-xs font-semibold text-gray-700">Randomize Questions</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="randomizeOptionsEdit"
+                    className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                    checked={formData.randomizeOptions !== false}
+                    onChange={(e) => setFormData({ ...formData, randomizeOptions: e.target.checked })}
+                  />
+                  <label htmlFor="randomizeOptionsEdit" className="text-xs font-semibold text-gray-700">Randomize Options</label>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Duration (Minutes)</label>
+                <input
+                  type="number"
+                  min="10"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                  value={formData.durationMinutes}
+                  onChange={(e) => setFormData({ ...formData, durationMinutes: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Total Marks</label>
+                <input
+                  type="number"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                  value={formData.totalMarks}
+                  onChange={(e) => setFormData({ ...formData, totalMarks: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Start Date (Optional)</label>
+                <input
+                  type="datetime-local"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">End Date (Optional)</label>
+                <input
+                  type="datetime-local"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Access Token (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. MATH101"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary font-mono uppercase tracking-wider"
+                  value={formData.token || ''}
+                  onChange={(e) => setFormData({ ...formData, token: e.target.value })}
+                />
+                <p className="mt-1 text-[10px] text-gray-400">If set, students must enter this exact code to start taking the exam.</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Description</label>
+              <textarea
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                rows="3"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              ></textarea>
+            </div>
+
+            <div className="pt-4 flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setView('list');
+                  setEditingExam(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-amber-500 text-white rounded-md hover:brightness-90 font-semibold"
+              >
+                Save Changes
               </button>
             </div>
           </form>
