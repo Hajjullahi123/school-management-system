@@ -493,10 +493,24 @@ const CertificateView = () => {
           }
         }
 
-        @media screen and (max-width: 1024px) {
+        @media screen and (max-width: 1440px) {
           .certificate-page {
-            zoom: 0.4;
-            -moz-transform: scale(0.4);
+            zoom: 0.75;
+            -moz-transform: scale(0.75);
+            -moz-transform-origin: top center;
+          }
+        }
+        @media screen and (max-width: 1200px) {
+          .certificate-page {
+            zoom: 0.6;
+            -moz-transform: scale(0.6);
+            -moz-transform-origin: top center;
+          }
+        }
+        @media screen and (max-width: 900px) {
+          .certificate-page {
+            zoom: 0.45;
+            -moz-transform: scale(0.45);
             -moz-transform-origin: top center;
           }
         }

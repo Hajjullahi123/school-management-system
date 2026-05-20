@@ -447,6 +447,13 @@ const TestimonialView = () => {
           }
         }
 
+        @media screen and (max-width: 1200px) {
+          .testimonial-paper {
+            zoom: 0.75;
+            -moz-transform: scale(0.75);
+            -moz-transform-origin: top center;
+          }
+        }
         @media screen and (max-width: 794px) {
           .testimonial-paper {
             zoom: 0.45;
