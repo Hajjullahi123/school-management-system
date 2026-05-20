@@ -6,6 +6,194 @@ const prisma = require('../db');
 const { JWT_SECRET, authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 
+// Helper to construct the unified, rich user object returned during login & /me sessions
+const getFullUserPayload = async (userId, schoolId, role) => {
+  // Build a minimal select to avoid loading heavy JSON columns (gradingSystem etc.)
+  const schoolSelect = {
+    id: true, slug: true, name: true, logoUrl: true,
+    motto: true, isActivated: true, packageType: true
+  };
+
+  // Role-specific includes — only what's actually needed
+  let include = { school: { select: schoolSelect } };
+  if (role === 'teacher' || role === 'principal') {
+    include.teacher = { select: { id: true, staffId: true, specialization: true, photoUrl: true } };
+    include.classesAsTeacher = { select: { id: true, name: true, arm: true } };
+  } else if (role === 'student') {
+    include.student = {
+      select: {
+        id: true, admissionNumber: true, photoUrl: true, classId: true,
+        classModel: { 
+          select: { 
+            id: true, name: true, arm: true,
+            classTeacher: {
+              select: {
+                firstName: true,
+                lastName: true,
+                signatureUrl: true
+              }
+            }
+          } 
+        }
+      }
+    };
+  } else if (role === 'parent') {
+    include.Parent = {
+      include: {
+        parentChildren: {
+          include: {
+            user: { select: { firstName: true, lastName: true, photoUrl: true } },
+            classModel: {
+              include: {
+                classTeacher: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    phone: true,
+                    photoUrl: true,
+                    username: true,
+                    teacher: {
+                      select: {
+                        publicPhone: true,
+                        publicEmail: true,
+                        publicWhatsapp: true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true, username: true, role: true, schoolId: true,
+      firstName: true, lastName: true, email: true,
+      signatureUrl: true, mustChangePassword: true, photoUrl: true,
+      departmentAsHead: { select: { id: true, name: true } },
+      ...include
+    }
+  });
+
+  if (!user) return null;
+
+  // Perform essential lookups in parallel
+  const [unreadCount, formMasterClass, hasQuranAccess] = await Promise.all([
+    // Unread message count
+    prisma.parentTeacherMessage.count({
+      where: { receiverId: userId, isRead: false, schoolId: schoolId || undefined }
+    }),
+    // Form Master check
+    ['teacher', 'principal'].includes(role) ? prisma.class.findFirst({
+      where: { classTeacherId: userId, schoolId: schoolId || undefined },
+      select: { id: true, name: true }
+    }) : null,
+    // Quran access check
+    (async () => {
+      if (role === 'admin' || role === 'principal' || role === 'superadmin') return true;
+      
+      const studentClassId = user?.student?.classId || user?.student?.classModel?.id;
+      
+      if (role === 'teacher') {
+        if (user.departmentAsHead) {
+          const deptName = user.departmentAsHead.name.toLowerCase();
+          if (deptName.includes('quran') || deptName.includes("qur'an")) {
+            return true;
+          }
+        }
+
+        const quranAssignment = await prisma.teacherAssignment.findFirst({
+          where: {
+            teacherId: userId,
+            schoolId: schoolId || undefined,
+            classSubject: {
+              subject: {
+                OR: [
+                  { name: { contains: 'quran', mode: 'insensitive' } },
+                  { name: { contains: "qur'an", mode: 'insensitive' } }
+                ]
+              }
+            }
+          },
+          select: { id: true }
+        });
+        
+        return !!quranAssignment;
+      }
+      
+      if (role === 'student' && studentClassId) {
+        const quranSubject = await prisma.classSubject.findFirst({
+          where: {
+            classId: studentClassId,
+            schoolId: schoolId || undefined,
+            subject: {
+              name: { contains: 'quran', mode: 'insensitive' }
+            }
+          },
+          select: { id: true }
+        });
+
+        if (!quranSubject && studentClassId) {
+           const quranAltSubject = await prisma.classSubject.findFirst({
+              where: {
+                classId: studentClassId,
+                schoolId: schoolId || undefined,
+                subject: {
+                  name: { contains: "qur'an", mode: 'insensitive' }
+                }
+              },
+              select: { id: true }
+           });
+           return !!quranAltSubject;
+        }
+        return !!quranSubject;
+      }
+      return false;
+    })()
+  ]);
+
+  const parentProfile = user.Parent ? {
+    id: user.Parent.id,
+    phone: user.Parent.phone,
+    address: user.Parent.address,
+    students: (user.Parent.parentChildren || []).map(s => ({
+      ...s,
+      displayName: s.user ? `${s.user.firstName || ''} ${s.user.lastName || ''}`.trim() : (s.name || s.admissionNumber)
+    }))
+  } : null;
+
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    schoolId: user.schoolId,
+    schoolSlug: user.school?.slug,
+    schoolLogo: user.school?.logoUrl,
+    schoolName: user.school?.name,
+    schoolMotto: user.school?.motto,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    signatureUrl: user.signatureUrl,
+    mustChangePassword: user.mustChangePassword,
+    teacher: user.teacher,
+    student: user.student,
+    parent: parentProfile,
+    classesAsTeacher: user.classesAsTeacher,
+    photoUrl: user.photoUrl,
+    unreadMessageCount: unreadCount,
+    isFormMaster: !!formMasterClass,
+    formMasterClass: formMasterClass,
+    hasQuranAccess: hasQuranAccess,
+    departmentAsHead: user.departmentAsHead
+  };
+};
+
 // Identify school based on username/email/admissionNumber
 router.post('/identify', async (req, res) => {
   try {
@@ -285,24 +473,12 @@ router.post('/login', async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000
     });
 
+    const fullUserPayload = await getFullUserPayload(user.id, user.schoolId, user.role);
+
     res.json({
       success: true,
       token,
-      user: {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        schoolId: user.schoolId,
-        schoolSlug: user.school?.slug,
-        schoolLogo: user.school?.logoUrl,
-        schoolName: user.school?.name,
-        signatureUrl: user.signatureUrl,
-        mustChangePassword: user.mustChangePassword,
-        photoUrl: user.photoUrl,
-        departmentAsHead: user.departmentAsHead
-      }
+      user: fullUserPayload
     });
 
     // Log login success here (Moved from /me for better performance)
@@ -337,201 +513,27 @@ router.post('/logout', authenticate, (req, res) => {
 // GET /api/auth/me - Get current user data
 router.get('/me', authenticate, async (req, res) => {
   try {
-    const role = req.user.role;
-
-    // Build a minimal select to avoid loading heavy JSON columns (gradingSystem etc.)
-    const schoolSelect = {
-      id: true, slug: true, name: true, logoUrl: true,
-      motto: true, isActivated: true, packageType: true
-    };
-
-    // Role-specific includes — only what's actually needed
-    let include = { school: { select: schoolSelect } };
-    if (role === 'teacher') {
-      include.teacher = { select: { id: true, staffId: true, specialization: true, photoUrl: true } };
-      include.classesAsTeacher = { select: { id: true, name: true, arm: true } };
-    } else if (role === 'student') {
-      include.student = {
-        select: {
-          id: true, admissionNumber: true, photoUrl: true, classId: true,
-          classModel: { 
-            select: { 
-              id: true, name: true, arm: true,
-              classTeacher: {
-                select: {
-                  firstName: true,
-                  lastName: true,
-                  signatureUrl: true
-                }
-              }
-            } 
-          }
-        }
-      };
-    } else if (role === 'parent') {
-      include.Parent = {
-        include: {
-          parentChildren: {
-            include: {
-              user: { select: { firstName: true, lastName: true, photoUrl: true } },
-              classModel: {
-                include: {
-                  classTeacher: {
-                    select: {
-                      firstName: true,
-                      lastName: true,
-                      phone: true,
-                      photoUrl: true,
-                      username: true,
-                      teacher: {
-                        select: {
-                          publicPhone: true,
-                          publicEmail: true,
-                          publicWhatsapp: true
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      };
-    }
-
-    const user = await prisma.user.findUnique({
+    const fullUser = await prisma.user.findUnique({
       where: { id: req.user.id },
       select: {
-        id: true, username: true, role: true, schoolId: true,
-        firstName: true, lastName: true, email: true,
-        signatureUrl: true, mustChangePassword: true, photoUrl: true,
-        departmentAsHead: { select: { id: true, name: true } },
-        ...include
+        id: true,
+        schoolId: true,
+        role: true,
+        isActive: true,
+        school: { select: { isActivated: true } }
       }
     });
 
-    if (!user) {
+    if (!fullUser) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (user.schoolId && user.school && user.school.isActivated === false && user.role !== 'superadmin') {
+    if (fullUser.schoolId && fullUser.school && fullUser.school.isActivated === false && fullUser.role !== 'superadmin') {
       return res.status(403).json({ error: 'Your school account has been deactivated. Please contact your administrator.' });
     }
 
-    // Perform essential lookups in parallel for the /me response
-    const [unreadCount, formMasterClass, hasQuranAccess] = await Promise.all([
-      // Unread message count
-      prisma.parentTeacherMessage.count({
-        where: { receiverId: req.user.id, isRead: false, schoolId: req.schoolId }
-      }),
-      // Form Master check
-      role === 'teacher' ? prisma.class.findFirst({
-        where: { classTeacherId: req.user.id, schoolId: req.schoolId },
-        select: { id: true, name: true }
-      }) : null,
-      // Quran access check — lightweight: use findFirst to short-circuit instead of loading all records
-      (async () => {
-        if (role === 'admin' || role === 'principal' || role === 'superadmin') return true;
-        
-        const studentClassId = user?.student?.classId || user?.student?.classModel?.id;
-        
-        if (role === 'teacher') {
-          // 1. Check if they are HOD of a Quran-related department
-          if (user.departmentAsHead) {
-            const deptName = user.departmentAsHead.name.toLowerCase();
-            if (deptName.includes('quran') || deptName.includes("qur'an")) {
-              return true;
-            }
-          }
-
-          // 2. Find ANY single Quran-related assignment — stops at first match
-          const quranAssignment = await prisma.teacherAssignment.findFirst({
-            where: {
-              teacherId: req.user.id,
-              schoolId: req.schoolId,
-              classSubject: {
-                subject: {
-                  OR: [
-                    { name: { contains: 'quran', mode: 'insensitive' } },
-                    { name: { contains: "qur'an", mode: 'insensitive' } }
-                  ]
-                }
-              }
-            },
-            select: { id: true }
-          });
-          
-          return !!quranAssignment;
-        }
-        
-        if (role === 'student' && studentClassId) {
-          const quranSubject = await prisma.classSubject.findFirst({
-            where: {
-              classId: studentClassId,
-              schoolId: req.schoolId,
-              subject: {
-                name: { contains: 'quran', mode: 'insensitive' }
-              }
-            },
-            select: { id: true }
-          });
-
-          if (!quranSubject && studentClassId) {
-             const quranAltSubject = await prisma.classSubject.findFirst({
-                where: {
-                  classId: studentClassId,
-                  schoolId: req.schoolId,
-                  subject: {
-                    name: { contains: "qur'an", mode: 'insensitive' }
-                  }
-                },
-                select: { id: true }
-             });
-             return !!quranAltSubject;
-          }
-          return !!quranSubject;
-        }
-        return false;
-      })()
-    ]);
-
-    // Build parent profile for response if applicable
-    const parentProfile = user.Parent ? {
-      id: user.Parent.id,
-      phone: user.Parent.phone,
-      address: user.Parent.address,
-      students: (user.Parent.parentChildren || []).map(s => ({
-        ...s,
-        displayName: s.user ? `${s.user.firstName || ''} ${s.user.lastName || ''}`.trim() : (s.name || s.admissionNumber)
-      }))
-    } : null;
-
-    res.json({
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      schoolId: user.schoolId,
-      schoolSlug: user.school?.slug,
-      schoolLogo: user.school?.logoUrl,
-      schoolName: user.school?.name,
-      schoolMotto: user.school?.motto,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      signatureUrl: user.signatureUrl,
-      mustChangePassword: user.mustChangePassword,
-      teacher: user.teacher,
-      student: user.student,
-      parent: parentProfile,
-      classesAsTeacher: user.classesAsTeacher,
-      photoUrl: user.photoUrl,
-      unreadMessageCount: unreadCount,
-      isFormMaster: !!formMasterClass,
-      formMasterClass: formMasterClass,
-      hasQuranAccess: hasQuranAccess,
-      departmentAsHead: user.departmentAsHead
-    });
+    const fullUserPayload = await getFullUserPayload(req.user.id, req.schoolId, req.user.role);
+    res.json(fullUserPayload);
   } catch (error) {
     console.error('Me error:', error);
     res.status(500).json({ error: 'Failed to fetch user data' });

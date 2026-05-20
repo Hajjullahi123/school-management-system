@@ -81,7 +81,7 @@ const Layout = () => {
   };
 
   const menuItems = [];
-  const isFormMaster = (user?.role === 'teacher' && user?.classesAsTeacher && user.classesAsTeacher.length > 0) || isFormMasterDynamic;
+  const isFormMaster = (['teacher', 'principal'].includes(user?.role) && user?.classesAsTeacher && user.classesAsTeacher.length > 0) || isFormMasterDynamic || user?.isFormMaster;
 
 
   // Logic-based Dashboard Link
@@ -415,7 +415,7 @@ const Layout = () => {
     label: 'HR Hub'
   };
 
-  if (user?.role === 'teacher' || user?.teacher) {
+  if (user?.role === 'teacher' || user?.teacher || user?.role === 'principal' || isFormMaster) {
     const teacherItems = [];
 
     // Always include profile if they have a teacher role/profile
