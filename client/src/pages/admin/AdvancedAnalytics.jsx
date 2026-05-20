@@ -1515,7 +1515,6 @@ const AdvancedAnalytics = () => {
             loading={loading}
           />
         </>
-      )}
     </div>
   );
 };

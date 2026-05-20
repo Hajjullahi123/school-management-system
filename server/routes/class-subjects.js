@@ -31,7 +31,7 @@ router.get('/', authenticate, async (req, res) => {
         assignments: {
           where: { 
             schoolId: req.schoolId,
-            ...(activeTerm ? { termId: activeTerm.id } : {})
+            ...(activeTerm ? { OR: [{ termId: activeTerm.id }, { termId: null }] } : {})
           },
           include: {
             teacher: {
@@ -101,7 +101,7 @@ router.get('/class/:classId', authenticate, async (req, res) => {
           assignments: {
             where: { 
               schoolId: req.schoolId,
-              ...(activeTerm ? { termId: activeTerm.id } : {})
+              ...(activeTerm ? { OR: [{ termId: activeTerm.id }, { termId: null }] } : {})
             },
             include: {
               teacher: {
@@ -178,7 +178,7 @@ router.get('/class/:classId/unassigned-count', authenticate, async (req, res) =>
         assignments: {
           where: { 
             schoolId: req.schoolId,
-            ...(activeTerm ? { termId: activeTerm.id } : {})
+            ...(activeTerm ? { OR: [{ termId: activeTerm.id }, { termId: null }] } : {})
           }
         }
       }
