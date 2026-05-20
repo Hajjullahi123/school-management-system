@@ -60,15 +60,19 @@ router.post('/', authenticate, authorize(['parent', 'teacher', 'principal', 'adm
       }
 
       // Verify receiver is the parent of this student
-      const studentWithParent = await prisma.student.findFirst({
+      const isParentOfStudent = await prisma.parent.findFirst({
         where: {
-          id: parseInt(studentId),
-          schoolId: req.schoolId
-        },
-        include: { parent: true }
+          userId: parseInt(receiverId),
+          schoolId: req.schoolId,
+          parentChildren: {
+            some: {
+              id: parseInt(studentId)
+            }
+          }
+        }
       });
 
-      if (!studentWithParent.parent || studentWithParent.parent.userId !== parseInt(receiverId)) {
+      if (!isParentOfStudent) {
         return res.status(403).json({ error: 'Invalid recipient' });
       }
     }
