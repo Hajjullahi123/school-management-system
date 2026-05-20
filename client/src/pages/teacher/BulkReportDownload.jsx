@@ -6,6 +6,8 @@ import { useReactToPrint } from 'react-to-print';
 import { Printer } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { formatDateVerbose } from '../../utils/formatters';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const BulkReportDownload = () => {
   const { user } = useAuth();
@@ -220,6 +222,47 @@ const BulkReportDownload = () => {
     `
   });
 
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    if (downloadingPDF || reports.length === 0) return;
+    setDownloadingPDF(true);
+    alert('Generating PDF bundle, please wait... This may take up to a minute for large classes.');
+
+    try {
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const cards = componentRef.current.querySelectorAll('.break-after-page');
+      
+      for (let i = 0; i < cards.length; i++) {
+        if (i > 0) {
+          pdf.addPage();
+        }
+
+        const canvas = await html2canvas(cards[i], {
+          scale: 2,
+          useCORS: true,
+          logging: false
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+      }
+
+      pdf.save(`BulkReports-${selectedClass}-${selectedTerm}.pdf`);
+      alert('PDF bundle downloaded successfully!');
+    } catch (error) {
+      console.error('Bulk PDF Generation failed:', error);
+      alert('Failed to generate PDF bundle: ' + error.message);
+    } finally {
+      setDownloadingPDF(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-20">
       {/* Header Section - Glassmorphism (Synced with Single Report) */}
@@ -236,13 +279,27 @@ const BulkReportDownload = () => {
           </div>
           
           {reports.length > 0 && (
-            <button 
-              onClick={handlePrint} 
-              className="group/btn bg-white text-primary px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white"
-            >
-              <Printer className="w-5 h-5 transition-transform group-hover/btn:rotate-12" />
-              Print All {reports.length} Reports
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button 
+                onClick={handleDownloadPDF} 
+                disabled={downloadingPDF}
+                className="group/btn bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-3 border border-emerald-500"
+              >
+                {downloadingPDF ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
+                ) : (
+                  <span>💾</span>
+                )}
+                Download PDF Bundle
+              </button>
+              <button 
+                onClick={handlePrint} 
+                className="group/btn bg-white text-primary px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white"
+              >
+                <Printer className="w-5 h-5 transition-transform group-hover/btn:rotate-12" />
+                Print All {reports.length} Reports
+              </button>
+            </div>
           )}
         </div>
       </div>
