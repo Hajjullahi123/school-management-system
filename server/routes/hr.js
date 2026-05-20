@@ -18,7 +18,16 @@ router.get('/my-records', authenticate, async (req, res) => {
         include: { 
           voucher: { select: { month: true, year: true, status: true } },
           allowances: true,
-          deductions: true
+          deductions: true,
+          staff: {
+            select: {
+              firstName: true,
+              lastName: true,
+              department: {
+                select: { name: true }
+              }
+            }
+          }
         },
         orderBy: { createdAt: 'desc' }
       }),
@@ -171,14 +180,35 @@ router.post('/admin/vouchers', authenticate, canManageHR, async (req, res) => {
       });
 
       for (const s of staff) {
+        const lastRecord = await tx.payrollRecord.findFirst({
+          where: { staffId: s.id },
+          orderBy: { createdAt: 'desc' },
+          include: { allowances: true }
+        });
+
+        const initialBaseSalary = lastRecord ? lastRecord.baseSalary : 0;
+
         const record = await tx.payrollRecord.create({
           data: {
             staffId: s.id,
             voucherId: voucher.id,
-            baseSalary: 0, 
-            netPay: 0
+            baseSalary: initialBaseSalary, 
+            netPay: initialBaseSalary
           }
         });
+
+        if (lastRecord && lastRecord.allowances.length > 0) {
+          for (const allowance of lastRecord.allowances) {
+            await tx.payrollAllowance.create({
+              data: {
+                payrollRecordId: record.id,
+                type: allowance.type,
+                amount: allowance.amount,
+                description: allowance.description
+              }
+            });
+          }
+        }
 
         // Automated Loan Repayment Detection
         const activeLoans = await tx.loanRequest.findMany({
@@ -327,6 +357,20 @@ router.patch('/admin/vouchers/:id/finalize', authenticate, canManageHR, async (r
   }
 });
 
+// Unlock/Revert Voucher to Draft
+router.patch('/admin/vouchers/:id/unlock', authenticate, canManageHR, async (req, res) => {
+  try {
+    const voucherId = parseInt(req.params.id);
+    const voucher = await prisma.payrollVoucher.update({
+      where: { id: voucherId, schoolId: req.schoolId },
+      data: { status: 'DRAFT' }
+    });
+    res.json(voucher);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Sync Voucher Records (Add missing staff)
 router.post('/admin/vouchers/:id/sync', authenticate, canManageHR, async (req, res) => {
   try {
@@ -353,16 +397,41 @@ router.post('/admin/vouchers/:id/sync', authenticate, canManageHR, async (req, r
       return res.json({ message: 'Personnel list already synchronized', count: 0 });
     }
 
-    const newRecords = await prisma.$transaction(
-      allStaff.map(s => prisma.payrollRecord.create({
-        data: {
-          staffId: s.id,
-          voucherId: voucher.id,
-          baseSalary: 0,
-          netPay: 0
+    const newRecords = [];
+    await prisma.$transaction(async (tx) => {
+      for (const s of allStaff) {
+        const lastRecord = await tx.payrollRecord.findFirst({
+          where: { staffId: s.id },
+          orderBy: { createdAt: 'desc' },
+          include: { allowances: true }
+        });
+
+        const initialBaseSalary = lastRecord ? lastRecord.baseSalary : 0;
+
+        const record = await tx.payrollRecord.create({
+          data: {
+            staffId: s.id,
+            voucherId: voucher.id,
+            baseSalary: initialBaseSalary,
+            netPay: initialBaseSalary
+          }
+        });
+
+        if (lastRecord && lastRecord.allowances.length > 0) {
+          for (const allowance of lastRecord.allowances) {
+            await tx.payrollAllowance.create({
+              data: {
+                payrollRecordId: record.id,
+                type: allowance.type,
+                amount: allowance.amount,
+                description: allowance.description
+              }
+            });
+          }
         }
-      }))
-    );
+        newRecords.push(record);
+      }
+    });
 
     res.json({ message: `Synchronized ${newRecords.length} new personnel records`, count: newRecords.length });
   } catch (error) {

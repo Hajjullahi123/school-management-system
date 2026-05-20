@@ -126,6 +126,17 @@ const HRAdminDashboard = () => {
     } catch (e) { toast.error('Finalization sequence failed'); }
   };
 
+  const handleUnlockVoucher = async (id) => {
+    if (!window.confirm('Are you sure you want to unlock this voucher? This will allow you to edit staff salary records again.')) return;
+    try {
+      const res = await api.patch(`/api/hr/admin/vouchers/${id}/unlock`);
+      if (res.ok) {
+        toast.success('Monthly payroll cycle unlocked and reverted to draft');
+        fetchVouchers();
+      }
+    } catch (e) { toast.error('Unlock sequence failed'); }
+  };
+
   if (loading) return <div className="p-20 text-center animate-pulse font-black text-gray-300 uppercase tracking-widest">Accessing HR Strategic Hub...</div>;
 
   return (
@@ -179,6 +190,9 @@ const HRAdminDashboard = () => {
                                <button onClick={() => handleOpenVoucher(v)} className="flex-1 py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 transition-all">Open Records</button>
                                {v.status === 'DRAFT' && (
                                   <button onClick={() => handleFinalizeVoucher(v.id)} className="px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all" title="Finalize & Lock">Finalize</button>
+                               )}
+                               {v.status === 'FINALIZED' && (
+                                  <button onClick={() => handleUnlockVoucher(v.id)} className="px-6 py-4 bg-amber-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-700 transition-all" title="Unlock Voucher">Unlock</button>
                                )}
                             </div>
                          </div>

@@ -33,9 +33,9 @@ export const generatePayslip = (record, schoolSettings) => {
   
   doc.setTextColor(30, 41, 59);
   doc.setFont('helvetica', 'bold');
-  doc.text(`${record.staff.firstName} ${record.staff.lastName}`, 60, 65);
-  doc.text(record.staff.department?.name || 'Academic Staff', 60, 72);
-  doc.text(`${new Date(0, record.voucher.month - 1).toLocaleString('default', { month: 'long' })} ${record.voucher.year}`, 60, 79);
+  doc.text(`${record.staff?.firstName || 'Staff'} ${record.staff?.lastName || ''}`, 60, 65);
+  doc.text(record.staff?.department?.name || 'Academic Staff', 60, 72);
+  doc.text(`${new Date(0, record.voucher?.month - 1).toLocaleString('default', { month: 'long' })} ${record.voucher?.year}`, 60, 79);
   
   // Financial Breakdown Table
   const tableData = [
