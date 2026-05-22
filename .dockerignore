@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
 # Keep package-lock if you want lock consistency, but usually ignored in some workflows. 
 # However, standard practice is to keeping package-lock.json. 
 # Re-thinking: node_modules is the big one.
