@@ -33,6 +33,7 @@ const UserManagement = () => {
     genotype: '',
     disability: 'None',
     isScholarship: false,
+    feeDiscount: 0,
     parentGuardianName: ''
   });
 
@@ -185,6 +186,7 @@ const UserManagement = () => {
       genotype: user.student?.genotype || '',
       disability: user.student?.disability || 'None',
       isScholarship: user.student?.isScholarship || false,
+      feeDiscount: user.student?.feeDiscount || 0,
       parentGuardianName: user.student?.parentGuardianName || '',
       classId: user.student?.classId || '',
       parentEmail: user.student?.parentEmail || '',
@@ -241,6 +243,7 @@ const UserManagement = () => {
       genotype: '',
       disability: 'None',
       isScholarship: false,
+      feeDiscount: 0,
       parentGuardianName: ''
     });
   };
@@ -667,6 +670,19 @@ const UserManagement = () => {
                     <input type="checkbox" id="isScholarship" checked={formData.isScholarship} onChange={(e) => setFormData(prev => ({ ...prev, isScholarship: e.target.checked }))} className="w-6 h-6 accent-primary rounded-lg" />
                     <label htmlFor="isScholarship" className="text-xs font-black text-blue-700 uppercase tracking-tight">On Scholarship (Fees Exempt)</label>
                   </div>
+                  {!formData.isScholarship && (
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Partial Fee Discount (₦)</label>
+                      <input 
+                        type="number" 
+                        min="0"
+                        placeholder="e.g. 50000"
+                        value={formData.feeDiscount} 
+                        onChange={(e) => setFormData(prev => ({ ...prev, feeDiscount: e.target.value }))} 
+                        className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
               {(formData.role === 'teacher' || (editingUser && editingUser.role === 'teacher')) && (

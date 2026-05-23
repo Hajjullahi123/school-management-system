@@ -912,6 +912,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
       genotype,
       disability,
       isScholarship,
+      feeDiscount,
       clubs
     } = req.body;
 
@@ -1027,6 +1028,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
         name: middleName ? `${firstName} ${middleName} ${lastName}` : `${firstName} ${lastName}`,
         rollNo: uniqueAdmissionNumber,
         isScholarship: isScholarship === 'true' || isScholarship === true,
+        feeDiscount: feeDiscount ? parseFloat(feeDiscount) : 0,
         clubs
       },
       include: {
@@ -1073,7 +1075,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
           studentId: student.id,
           termId: currentTerm.id,
           academicSessionId: currentTerm.academicSessionId,
-          expectedAmount: (isScholarship === 'true' || isScholarship === true) ? 0 : (feeStructure?.amount || 0),
+          expectedAmount: (isScholarship === 'true' || isScholarship === true) ? 0 : Math.max(0, (feeStructure?.amount || 0) - (feeDiscount ? parseFloat(feeDiscount) : 0)),
           paidAmount: 0
         });
       }
@@ -1183,6 +1185,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
       genotype,
       disability,
       isScholarship,
+      feeDiscount,
       isExamRestricted,
       examRestrictionReason,
       clubs,
@@ -1300,6 +1303,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
         ...(genotype && { genotype }),
         ...(disability && { disability }),
         ...(isScholarship !== undefined && { isScholarship: isScholarship === 'true' || isScholarship === true }),
+        ...(feeDiscount !== undefined && { feeDiscount: parseFloat(feeDiscount) }),
         ...(isExamRestricted !== undefined && { isExamRestricted: isExamRestricted === 'true' || isExamRestricted === true }),
         ...(examRestrictionReason !== undefined && { examRestrictionReason }),
         // Update full name if any component changed
@@ -1321,9 +1325,11 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
       }
     });
 
-    // Sync fee record if scholarship status changed
-    if (isScholarship !== undefined) {
-      const isScholarshipBool = isScholarship === 'true' || isScholarship === true;
+    // Sync fee record if scholarship or discount status changed
+    if (isScholarship !== undefined || feeDiscount !== undefined) {
+      const isScholarshipBool = isScholarship !== undefined ? (isScholarship === 'true' || isScholarship === true) : updatedStudent.isScholarship;
+      const discountAmount = feeDiscount !== undefined ? parseFloat(feeDiscount) : updatedStudent.feeDiscount;
+
       const currentTerm = await prisma.term.findFirst({
         where: { isCurrent: true, schoolId: parseInt(req.schoolId) }
       });
@@ -1345,7 +1351,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
           if (isScholarshipBool) {
             newExpected = 0;
           } else {
-            // If removed from scholarship, get class fee structure
+            // Get class fee structure
             const feeStructure = await prisma.classFeeStructure.findFirst({
               where: {
                 classId: updatedStudent.classId,
@@ -1355,7 +1361,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
               }
             });
             if (feeStructure) {
-              newExpected = feeStructure.amount;
+              newExpected = Math.max(0, feeStructure.amount - discountAmount);
             }
           }
 

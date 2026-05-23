@@ -290,6 +290,7 @@ model Student {
   status                  String                    @default("active")
   clubs                   String?
   isScholarship           Boolean                   @default(false)
+  feeDiscount             Float                     @default(0)
   isExamRestricted        Boolean                   @default(false)
   examRestrictionReason   String?
   alumniProfile           Alumni?

@@ -62,6 +62,7 @@ const StudentManagement = () => {
     bloodGroup: '',
     genotype: '',
     disability: 'None',
+    feeDiscount: 0,
     clubs: '',
     parentId: ''
   });
@@ -202,6 +203,7 @@ const StudentManagement = () => {
       bloodGroup: student.bloodGroup || '',
       genotype: student.genotype || '',
       disability: student.disability || 'None',
+      feeDiscount: student.feeDiscount || 0,
       clubs: student.clubs || '',
       isScholarship: student.isScholarship || false
     });
@@ -527,6 +529,7 @@ Note: Password must be changed on first login.
       bloodGroup: '',
       genotype: '',
       disability: 'None',
+      feeDiscount: 0,
       isScholarship: false
     });
     setEditingStudent(null);
@@ -1344,6 +1347,22 @@ Note: Password must be changed on first login.
                       </div>
                     </label>
                   </div>
+                  
+                  {!formData.isScholarship && (
+                    <div className="space-y-4">
+                      <div className="flex flex-col space-y-1">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Partial Fee Discount (₦)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={formData.feeDiscount}
+                          onChange={(e) => setFormData({ ...formData, feeDiscount: e.target.value })}
+                          placeholder="e.g. 50000"
+                          className="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 p-3 transition-all outline-none font-bold"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {editingStudent && (
                     <div className="bg-gray-50/50 p-4 rounded-2xl border border-dashed border-gray-200">

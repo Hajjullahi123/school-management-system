@@ -117,7 +117,7 @@ router.get('/students', authenticate, authorize(['admin', 'principal', 'accounta
       // No record for current term, calculate virtual data
       // Check if student joined after this term ended (mid-session joiner)
       const joinedAfterTerm = !shouldIgnoreJoinDate && targetTerm && student.createdAt > targetTerm.endDate;
-      const expected = (student.isScholarship || joinedAfterTerm) ? 0 : (structureMap[student.classId] || 0);
+      const expected = (student.isScholarship || joinedAfterTerm) ? 0 : Math.max(0, (structureMap[student.classId] || 0) - (student.feeDiscount || 0));
       const arrears = await calculatePreviousOutstanding(
         req.schoolId,
         student.id,
@@ -283,7 +283,7 @@ router.post('/record', authenticate, authorize(['admin', 'principal', 'accountan
     // Check if student details
     const student = await prisma.student.findUnique({
       where: { id: parseInt(studentId) },
-      select: { isScholarship: true, classId: true }
+      select: { isScholarship: true, classId: true, feeDiscount: true }
     });
 
     if (!student) {
@@ -296,7 +296,7 @@ router.post('/record', authenticate, authorize(['admin', 'principal', 'accountan
       studentId: parseInt(studentId),
       termId: parseInt(termId),
       academicSessionId: parseInt(academicSessionId),
-      expectedAmount: student.isScholarship ? 0 : parseFloat(expectedAmount),
+      expectedAmount: student.isScholarship ? 0 : Math.max(0, parseFloat(expectedAmount) - (student.feeDiscount || 0)),
       paidAmount: paidAmount !== undefined ? parseFloat(paidAmount) : undefined
     });
 
@@ -354,6 +354,9 @@ router.post('/record', authenticate, authorize(['admin', 'principal', 'accountan
       feeRecord,
       ...(student.isScholarship && {
         warning: 'This student is on scholarship. Fee amount has been automatically set to ₦0.'
+      }),
+      ...(student.feeDiscount > 0 && !student.isScholarship && {
+        warning: `This student has a discount of ₦${student.feeDiscount}. Expected amount adjusted.`
       })
     });
 
@@ -1014,7 +1017,7 @@ router.post('/toggle-clearance/:studentId', authenticate, authorize(['admin', 'p
       // Find class fee structure to get expected amount
       const student = await prisma.student.findUnique({
         where: { id: studentId },
-        select: { classId: true, isScholarship: true }
+        select: { classId: true, isScholarship: true, feeDiscount: true }
       });
 
       if (!student) {
@@ -1030,8 +1033,8 @@ router.post('/toggle-clearance/:studentId', authenticate, authorize(['admin', 'p
         }
       });
 
-      // Scholarship students get 0 fees
-      const expectedAmount = student.isScholarship ? 0 : (feeStructure?.amount || 0);
+      // Scholarship students get 0 fees, discount gets subtracted
+      const expectedAmount = student.isScholarship ? 0 : Math.max(0, (feeStructure?.amount || 0) - (student.feeDiscount || 0));
 
       feeRecord = await prisma.feeRecord.create({
         data: {
@@ -1108,7 +1111,7 @@ router.post('/clear/:studentId', authenticate, authorize(['admin', 'principal', 
     } else {
       const student = await prisma.student.findUnique({
         where: { id: studentId },
-        select: { classId: true, isScholarship: true }
+        select: { classId: true, isScholarship: true, feeDiscount: true }
       });
       if (!student) {
         return res.status(404).json({ error: 'Student not found' });
@@ -1117,8 +1120,8 @@ router.post('/clear/:studentId', authenticate, authorize(['admin', 'principal', 
         where: { schoolId: parseInt(req.schoolId), classId: student?.classId, termId: parseInt(termId), academicSessionId: parseInt(academicSessionId) }
       });
 
-      // Scholarship students get 0 fees
-      const expectedAmount = student.isScholarship ? 0 : (feeStructure?.amount || 0);
+      // Scholarship students get 0 fees, discount gets subtracted
+      const expectedAmount = student.isScholarship ? 0 : Math.max(0, (feeStructure?.amount || 0) - (student.feeDiscount || 0));
 
       await prisma.feeRecord.create({
         data: {
@@ -1164,7 +1167,7 @@ router.post('/revoke-clearance/:studentId', authenticate, authorize(['admin', 'p
       // If no record exists, we create one to store the restriction.
       const student = await prisma.student.findUnique({
         where: { id: studentId },
-        select: { classId: true, isScholarship: true }
+        select: { classId: true, isScholarship: true, feeDiscount: true }
       });
       if (!student) {
         return res.status(404).json({ error: 'Student not found' });
@@ -1173,8 +1176,8 @@ router.post('/revoke-clearance/:studentId', authenticate, authorize(['admin', 'p
         where: { schoolId: parseInt(req.schoolId), classId: student?.classId, termId: parseInt(termId), academicSessionId: parseInt(academicSessionId) }
       });
 
-      // Scholarship students get 0 fees
-      const expectedAmount = student.isScholarship ? 0 : (feeStructure?.amount || 0);
+      // Scholarship students get 0 fees, discount gets subtracted
+      const expectedAmount = student.isScholarship ? 0 : Math.max(0, (feeStructure?.amount || 0) - (student.feeDiscount || 0));
 
       await prisma.feeRecord.create({
         data: {
@@ -1288,7 +1291,7 @@ router.get('/summary', authenticate, authorize(['admin', 'principal', 'accountan
         // Calculate virtual record - use term-specific expected for stats
         // Check if student joined after this term ended (mid-session joiner)
         const joinedAfterTerm = !shouldIgnoreJoinDate && targetTerm && student.createdAt > targetTerm.endDate;
-        const classExpected = (student.isScholarship || joinedAfterTerm) ? 0 : (structureMap[student.classId] || 0);
+        const classExpected = (student.isScholarship || joinedAfterTerm) ? 0 : Math.max(0, (structureMap[student.classId] || 0) - (student.feeDiscount || 0));
 
         expected = classExpected;
         paid = 0;
@@ -1490,7 +1493,7 @@ router.post('/sync-records', authenticate, authorize(['admin', 'principal', 'acc
           noStructureCount++;
         }
 
-        const stAmount = student.isScholarship ? 0 : (amount || 0);
+        const stAmount = student.isScholarship ? 0 : Math.max(0, (amount || 0) - (student.feeDiscount || 0));
 
         // Check if record exists just to track counts
         const existing = await prisma.feeRecord.findUnique({
