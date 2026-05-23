@@ -40,7 +40,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       { header: 'Parent Phone', key: 'parentPhone', width: 20 },
       { header: 'Address', key: 'address', width: 40 },
       { header: 'Date of Birth (YYYY-MM-DD)', key: 'dob', width: 25 },
-      { header: 'Scholarship (Yes/No)', key: 'isScholarship', width: 20 }
+      { header: 'Scholarship (Yes/No)', key: 'isScholarship', width: 20 },
+      { header: 'Discount Amount (₦)', key: 'feeDiscount', width: 25 }
     ];
 
     // Styling the header row
@@ -67,7 +68,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
         parentPhone: '08000000000',
         address: '123 School Road',
         dob: '2015-05-15',
-        isScholarship: 'No'
+        isScholarship: 'No',
+        feeDiscount: 0
       });
     }
 
@@ -137,7 +139,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       '3. Fields marked with * are required (First Name, Surname, Class ID, Parent Name).',
       '4. Date of Birth must follow the format YYYY-MM-DD (e.g., 2012-10-25).',
       '5. Use the drop-down menus for columns with selections (Class ID, Gender, Genotype, Disability, Scholarship).',
-      '6. Save this file as .xlsx before uploading (CSV might lose dropdowns).'
+      '6. Use the "Discount Amount" column to apply a permanent partial fee discount (e.g. 50000). Leave blank if none.',
+      '7. Save this file as .xlsx before uploading (CSV might lose dropdowns).'
     ].forEach(text => helpSheet.addRow({ step: text }));
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -198,6 +201,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
           else if (header.includes('address')) headers.address = colNumber;
           else if (header.includes('date of birth') || header.includes('dob')) headers.dateOfBirth = colNumber;
           else if (header.includes('scholarship')) headers.isScholarship = colNumber;
+          else if (header.includes('discount')) headers.feeDiscount = colNumber;
           else if (header.includes('password')) headers.password = colNumber;
         });
 
@@ -235,6 +239,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
             address: getVal('address'),
             dateOfBirth: getVal('dateOfBirth'),
             isScholarship: getVal('isScholarship'),
+            feeDiscount: getVal('feeDiscount'),
             password: getVal('password')
           });
         }
@@ -428,7 +433,8 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
             parentGuardianPhone: studentData.parentGuardianPhone,
             parentEmail: studentData.parentEmail || null,
             nationality: 'Nigerian',
-            isScholarship: studentData.isScholarship?.toLowerCase() === 'yes' || studentData.isScholarship?.toLowerCase() === 'true'
+            isScholarship: studentData.isScholarship?.toLowerCase() === 'yes' || studentData.isScholarship?.toLowerCase() === 'true',
+            feeDiscount: studentData.feeDiscount && !isNaN(parseFloat(studentData.feeDiscount)) ? parseFloat(studentData.feeDiscount) : 0
           }
         });
 
@@ -452,7 +458,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
             studentId: student.id,
             termId: currentTerm.id,
             academicSessionId: currentTerm.academicSessionId,
-            expectedAmount: student.isScholarship ? 0 : (feeStructure?.amount || 0),
+            expectedAmount: student.isScholarship ? 0 : Math.max(0, (feeStructure?.amount || 0) - (student.feeDiscount || 0)),
             paidAmount: 0
           });
         }
@@ -655,7 +661,8 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'princi
             bloodGroup: studentData.bloodGroup || null,
             genotype: studentData.genotype || null,
             disability: studentData.disability || 'None',
-            isScholarship: studentData.isScholarship?.toLowerCase() === 'yes' || studentData.isScholarship?.toLowerCase() === 'true'
+            isScholarship: studentData.isScholarship?.toLowerCase() === 'yes' || studentData.isScholarship?.toLowerCase() === 'true',
+            feeDiscount: studentData.feeDiscount && !isNaN(parseFloat(studentData.feeDiscount)) ? parseFloat(studentData.feeDiscount) : 0
           }
         });
 
@@ -683,7 +690,7 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'princi
             studentId: student.id,
             termId: currentTerm.id,
             academicSessionId: currentTerm.academicSessionId,
-            expectedAmount: student.isScholarship ? 0 : (feeStructure?.amount || 0),
+            expectedAmount: student.isScholarship ? 0 : Math.max(0, (feeStructure?.amount || 0) - (student.feeDiscount || 0)),
             paidAmount: 0
           });
         }

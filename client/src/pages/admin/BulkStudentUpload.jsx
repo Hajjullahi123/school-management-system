@@ -230,8 +230,9 @@ const BulkStudentUpload = () => {
       '3. Fill in the student data. Ensure First Name, Last Name, and Class ID are provided.',
       '4. For the "Class ID" column, select the class from the drop-down menu.',
       '5. Use the drop-down menus for Gender, Genotype, Disability, and Scholarship columns.',
-      '6. Save your file as an "Excel Workbook (.xlsx)" to keep the dropdowns working.',
-      '7. Upload the saved Excel file through the system to complete import.'
+      '6. Use the "Discount Amount" column to apply a permanent partial fee discount (e.g., 50000).',
+      '7. Save your file as an "Excel Workbook (.xlsx)" to keep the dropdowns working.',
+      '8. Upload the saved Excel file through the system to complete import.'
     ];
     doc.text(instructions, 20, 45);
 
@@ -618,6 +619,7 @@ const BulkStudentUpload = () => {
               <li><code className="bg-gray-100 px-1">Gender</code> (select from dropdown)</li>
               <li><code className="bg-gray-100 px-1">Email</code></li>
               <li><code className="bg-gray-100 px-1">Scholarship</code> (select from dropdown)</li>
+              <li><code className="bg-gray-100 px-1">Discount Amount</code> (numeric value)</li>
               <li>...and more (see template)</li>
             </ul>
           </div>

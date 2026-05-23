@@ -730,8 +730,9 @@ Note: Password must be changed on first login.
       '3. Fill in the student data. First Name, Surname, and Class ID are REQUIRED.',
       '4. The "Class ID" column MUST use the Numeric ID from the table below.',
       '5. For the "Scholarship" column, use "Yes" for scholarship students and "No" for others.',
-      '6. Save your file as Excel (.xlsx) or Comma Separated Values (.csv).',
-      '7. Click "Bulk Import" on the dashboard to upload your file.'
+      '6. Use the "Discount Amount" column to apply a permanent partial fee discount (e.g., 50000).',
+      '7. Save your file as Excel (.xlsx) or Comma Separated Values (.csv).',
+      '8. Click "Bulk Import" on the dashboard to upload your file.'
     ];
     doc.text(instructions, 20, 45);
 
