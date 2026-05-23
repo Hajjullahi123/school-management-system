@@ -5,7 +5,7 @@
 const isProduction = import.meta.env.PROD;
 const isElectron = window.navigator.userAgent.toLowerCase().includes('electron') || window.location.origin.includes('file://');
 
-const PRODUCTION_URL = 'https://school-management-system-bkat.onrender.com';
+const PRODUCTION_URL = 'https://educatechportal.com';
 const DEFAULT_API_PORT = '5115';
 
 // Helper to determine the correct API base URL
