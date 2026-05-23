@@ -240,6 +240,14 @@ const Settings = () => {
 
       // 4. Update settings
       console.log('Saving settings...');
+      
+      // STRIP MASSIVE BASE64 STRINGS before sending!
+      // If we send these back, the payload easily exceeds the 10MB limit and causes a connection reset (Failed to fetch).
+      delete updatedSettings.logoUrl;
+      delete updatedSettings.principalSignatureUrl;
+      delete updatedSettings.brochureFileUrl;
+      delete updatedSettings.admissionGuideFileUrl;
+
       const response = await api.put('/api/settings', updatedSettings);
       const data = await response.json();
 

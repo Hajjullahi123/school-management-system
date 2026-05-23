@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { api, API_BASE_URL } from '../api';
+import { api, apiCall, API_BASE_URL } from '../api';
 
 const PhotoUpload = ({ studentId, currentPhotoUrl, onPhotoUpload }) => {
   const [uploading, setUploading] = useState(false);
@@ -44,24 +44,26 @@ const PhotoUpload = ({ studentId, currentPhotoUrl, onPhotoUpload }) => {
       const formData = new FormData();
       formData.append('photo', selectedFile);
 
-      const response = await api.post(`/api/upload/${studentId}/photo`, formData);
+      // We use apiCall which handles response parsing and returns { data, ok, status }
+      const { data, ok, status } = await apiCall(`/api/upload/${studentId}/photo`, {
+        method: 'POST',
+        body: formData
+      });
 
-      const result = await response.json();
-
-      if (response.ok) {
+      if (ok) {
         alert('Photo uploaded successfully!');
-        setPreview(result.photoUrl);
+        setPreview(data.photoUrl);
         setSelectedFile(null);
         if (onPhotoUpload) {
-          onPhotoUpload(result.photoUrl);
+          onPhotoUpload(data.photoUrl);
         }
       } else {
-        const errorMsg = result.message || result.error;
-        alert(`Error: ${errorMsg}`);
+        const errorMsg = data.message || data.error || `Server error (${status})`;
+        alert(`Failed to upload photo: ${errorMsg}`);
       }
     } catch (error) {
       console.error('Error uploading photo:', error);
-      alert('Failed to upload photo');
+      alert(`Failed to upload photo: ${error.message || 'Network error or file too large'}`);
     } finally {
       setUploading(false);
     }

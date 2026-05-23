@@ -130,7 +130,7 @@ const StudentProfile = () => {
       }
     } catch (error) {
       console.error('Error uploading photo:', error);
-      alert(`Failed to upload photo: ${error.message}`);
+      alert(`Failed to upload photo: ${error.message || 'Network error or file too large'}`);
     } finally {
       setUploadingPhoto(false);
     }
