@@ -9,7 +9,7 @@ import html2canvas from 'html2canvas';
 const MiscFeePayments = () => {
   const { user } = useAuth();
   const { settings: schoolSettings } = useSchoolSettings();
-  const isViewOnly = ['admin', 'superadmin', 'proprietor'].includes(user?.role?.toLowerCase());
+  const isViewOnly = !['admin', 'superadmin', 'proprietor', 'accountant'].includes(user?.role?.toLowerCase());
   const [students, setStudents] = useState([]);
   const [fees, setFees] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -18,6 +18,7 @@ const MiscFeePayments = () => {
   const [loading, setLoading] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
   const [formData, setFormData] = useState({
     feeId: '',
     amount: '',
@@ -636,8 +637,11 @@ const MiscFeePayments = () => {
     }
   };
 
+  const uniqueClasses = [...new Set(students.map(s => s.classModel?.name).filter(Boolean))].sort();
+
   const filteredStudents = students.filter(student => {
     if (!student) return false;
+    if (selectedClass && student.classModel?.name !== selectedClass) return false;
     const firstName = student.user?.firstName || 'Student';
     const lastName = student.user?.lastName || '';
     const middleName = student.middleName || '';
@@ -658,13 +662,25 @@ const MiscFeePayments = () => {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow-md p-4">
             <h2 className="font-semibold text-lg mb-4">Select Student</h2>
-            <input
-              type="text"
-              placeholder="Search by name or admission number..."
-              className="w-full border border-gray-300 rounded-md px-3 py-2 mb-3"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <div className="flex flex-col space-y-3 mb-4">
+              <select
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+              >
+                <option value="">All Classes</option>
+                {uniqueClasses.map(cls => (
+                  <option key={cls} value={cls}>{cls}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="Search by name or admission number..."
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
             <div className="max-h-96 overflow-y-auto space-y-2">
               {filteredStudents.length === 0 ? (
                 <p className="text-center text-gray-500 py-4">No students found</p>
