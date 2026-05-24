@@ -14,7 +14,6 @@ if (!global.__prisma__) {
     errorFormat: 'pretty'
   });
 }
-}
 
 // Define models that support soft deletion
 const softDeleteModels = ['Student', 'FeeRecord', 'FeePayment', 'MiscellaneousFeePayment'];
