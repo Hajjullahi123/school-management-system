@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node --max-old-space-size=480 index.js",
+    "start": "npx prisma generate && node --max-old-space-size=480 index.js",
     "dev": "nodemon index.js",
     "db:push": "prisma db push",
     "seed:production": "node prisma/seed-production.js",
