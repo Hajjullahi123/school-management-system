@@ -3,7 +3,6 @@ import { toast } from '../../utils/toast';
 import { api, API_BASE_URL } from '../../api';
 
 import DocumentUploader from '../../components/DocumentUploader';
-import { compressImage } from '../../utils/imageCompressor';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('branding');
@@ -156,8 +155,12 @@ const Settings = () => {
   const handleSignatureChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
-        toast.error('File size must be less than 2MB');
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error('File size must be less than 5MB');
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select a valid image file (PNG, JPG, etc.)');
         return;
       }
       setSignatureFile(file);
@@ -172,40 +175,13 @@ const Settings = () => {
     try {
       let updatedSettings = { ...settings };
 
-      // 1. Upload logo if changed (Use base64 with aggressive compression)
+      // 1. Upload logo if changed (file-based upload)
       if (logoFile) {
-        toast.loading('Compressing logo image...', { id: 'logo-upload' });
-        let processedLogo = logoFile;
-        try {
-          // Compress aggressively: 300x300 at 0.7 quality to keep base64 small
-          processedLogo = await compressImage(logoFile, 300, 300, 0.7);
-          console.log(`Logo compressed: ${(logoFile.size / 1024).toFixed(1)}KB -> ${(processedLogo.size / 1024).toFixed(1)}KB`);
-        } catch (e) {
-          console.warn('Logo compression failed, using original', e);
-        }
-
-        const reader = new FileReader();
-        const base64Data = await new Promise((resolve, reject) => {
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = () => reject(new Error('Failed to read logo file. It may be unsupported or corrupted.'));
-          reader.readAsDataURL(processedLogo);
-        });
-
-        // Check base64 size - reject if over 2MB (way too large for DB storage)
-        const base64SizeKB = (base64Data.length / 1024).toFixed(1);
-        console.log(`Logo base64 size: ${base64SizeKB}KB`);
-        if (base64Data.length > 2 * 1024 * 1024) {
-          toast.error(`Logo image is too large (${base64SizeKB}KB after compression). Please use a smaller image.`, { id: 'logo-upload' });
-          setSaving(false);
-          return;
-        }
-
         toast.loading('Uploading logo...', { id: 'logo-upload' });
-        const logoResponse = await api.post('/api/settings/logo-base64', {
-          imageData: base64Data,
-          fileName: processedLogo.name || logoFile.name
-        });
+        const formData = new FormData();
+        formData.append('logo', logoFile);
 
+        const logoResponse = await api.postForm('/api/settings/upload-logo', formData);
         const logoData = await logoResponse.json();
         if (logoResponse.ok) {
           updatedSettings.logoUrl = logoData.logoUrl;
@@ -215,30 +191,19 @@ const Settings = () => {
         }
       }
 
-      // 1b. Upload Principal Signature if changed (Use base64!)
+      // 1b. Upload Principal Signature if changed (file-based upload)
       if (signatureFile) {
-        let processedSig = signatureFile;
-        try {
-          processedSig = await compressImage(signatureFile, 800, 400, 0.85);
-        } catch (e) {
-          console.warn('Signature compression failed, using original', e);
-        }
+        toast.loading('Uploading signature...', { id: 'sig-upload' });
+        const formData = new FormData();
+        formData.append('signature', signatureFile);
 
-        const reader = new FileReader();
-        const base64Data = await new Promise((resolve, reject) => {
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = () => reject(new Error('Failed to read signature file. It may be unsupported or corrupted.'));
-          reader.readAsDataURL(processedSig);
-        });
-
-        const sigResponse = await api.post('/api/settings/principal-signature-base64', {
-          imageData: base64Data,
-          fileName: processedSig.name || signatureFile.name
-        });
-
+        const sigResponse = await api.postForm('/api/settings/upload-signature', formData);
         const sigData = await sigResponse.json();
         if (sigResponse.ok) {
           updatedSettings.principalSignatureUrl = sigData.principalSignatureUrl;
+          toast.success('Signature uploaded!', { id: 'sig-upload' });
+        } else {
+          toast.error(`Signature upload failed: ${sigData.error || 'Unknown error'}`, { id: 'sig-upload' });
         }
       }
 

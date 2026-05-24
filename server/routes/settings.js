@@ -365,53 +365,62 @@ router.put('/', authenticate, async (req, res) => {
   }
 });
 
-// NEW: Simple Base64 Logo Upload (No multipart!)\n// Updated to store base64 in database to persist across server restarts
-router.post('/logo-base64', authenticate, async (req, res) => {
-  const payloadSizeKB = req.headers['content-length'] ? (parseInt(req.headers['content-length']) / 1024).toFixed(1) : 'unknown';
-  console.log(`===Base64 logo upload received=== (payload: ${payloadSizeKB}KB, school: ${req.schoolId})`);
+// ========== FILE-BASED IMAGE UPLOADS (multer) ==========
+const multer = require('multer');
+
+// Configure multer storage for school branding images
+const brandingStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = file.fieldname === 'logo' ? 'uploads/logos' : 'uploads/signatures';
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    // Use schoolId for deterministic naming so re-uploads overwrite the old file
+    const ext = path.extname(file.originalname) || '.jpg';
+    const prefix = file.fieldname === 'logo' ? 'logo' : 'signature';
+    cb(null, `${prefix}-school-${req.schoolId}${ext}`);
+  }
+});
+
+const brandingUpload = multer({
+  storage: brandingStorage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed (PNG, JPG, WEBP, etc.)'), false);
+    }
+  },
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB max
+});
+
+// Upload School Logo (file-based)
+router.post('/upload-logo', authenticate, brandingUpload.single('logo'), async (req, res) => {
+  console.log(`===Logo file upload=== school: ${req.schoolId}`);
 
   try {
-    const { imageData, fileName } = req.body;
-
-    if (!imageData) {
-      return res.status(400).json({ error: 'No image data provided' });
+    if (!req.file) {
+      return res.status(400).json({ error: 'No logo file provided' });
     }
 
-    // Validate that imageData is a proper data URL
-    if (typeof imageData !== 'string' || !imageData.startsWith('data:image/')) {
-      return res.status(400).json({ error: 'Invalid image data format. Expected a data:image/... URL.' });
-    }
+    const logoUrl = `/uploads/logos/${req.file.filename}`;
+    console.log(`Logo saved: ${logoUrl} (${(req.file.size / 1024).toFixed(1)}KB)`);
 
-    // Check base64 size - reject if over 5MB to prevent DB bloat
-    const dataSizeKB = (imageData.length / 1024).toFixed(1);
-    console.log(`Logo data size: ${dataSizeKB}KB, fileName: ${fileName}`);
-    if (imageData.length > 5 * 1024 * 1024) {
-      return res.status(400).json({ error: `Logo data is too large (${dataSizeKB}KB). Please compress the image further or use a smaller image.` });
-    }
-
-    // Store the FULL base64 data URL (including prefix) in database
-    // This ensures it persists across server restarts
-    const logoData = imageData; // Keep as data:image/png;base64,xxx format
-
-    // Update database with base64 data
+    // Store only the file path in the database
     await prisma.school.update({
       where: { id: req.schoolId },
-      data: {
-        logoUrl: logoData  // Store base64 data URL directly
-      }
+      data: { logoUrl }
     });
 
-    res.json({ success: true, logoUrl: logoData });
+    res.json({ success: true, logoUrl });
 
-    // Log the action
     logAction({
       schoolId: req.schoolId,
       userId: req.user.id,
       action: 'UPDATE',
       resource: 'SCHOOL_LOGO',
-      details: {
-        method: 'base64_database_storage'
-      },
+      details: { method: 'file_upload', size: req.file.size, filename: req.file.filename },
       ipAddress: req.ip
     });
   } catch (error) {
@@ -420,43 +429,35 @@ router.post('/logo-base64', authenticate, async (req, res) => {
   }
 });
 
-// NEW: Simple Base64 Principal Signature Upload
-router.post('/principal-signature-base64', authenticate, async (req, res) => {
-  console.log('===Base64 principal signature upload received===');
+// Upload Principal Signature (file-based)
+router.post('/upload-signature', authenticate, brandingUpload.single('signature'), async (req, res) => {
+  console.log(`===Signature file upload=== school: ${req.schoolId}`);
 
   try {
-    const { imageData } = req.body;
-
-    if (!imageData) {
-      return res.status(400).json({ error: 'No image data provided' });
+    if (!req.file) {
+      return res.status(400).json({ error: 'No signature file provided' });
     }
 
-    // Store the FULL base64 data URL (including prefix) in database
-    const signatureData = imageData;
+    const signatureUrl = `/uploads/signatures/${req.file.filename}`;
+    console.log(`Signature saved: ${signatureUrl} (${(req.file.size / 1024).toFixed(1)}KB)`);
 
-    // Update database with base64 data
     await prisma.school.update({
       where: { id: req.schoolId },
-      data: {
-        principalSignatureUrl: signatureData
-      }
+      data: { principalSignatureUrl: signatureUrl }
     });
 
-    res.json({ success: true, principalSignatureUrl: signatureData });
+    res.json({ success: true, principalSignatureUrl: signatureUrl });
 
-    // Log the action
     logAction({
       schoolId: req.schoolId,
       userId: req.user.id,
       action: 'UPDATE',
       resource: 'PRINCIPAL_SIGNATURE',
-      details: {
-        method: 'base64_database_storage'
-      },
+      details: { method: 'file_upload', size: req.file.size, filename: req.file.filename },
       ipAddress: req.ip
     });
   } catch (error) {
-    console.error('Error uploading principal signature:', error);
+    console.error('Error uploading signature:', error);
     res.status(500).json({ error: 'Failed to save signature: ' + error.message });
   }
 });
