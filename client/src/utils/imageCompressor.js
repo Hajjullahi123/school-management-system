@@ -5,13 +5,12 @@ export const compressImage = (file, maxWidth = 500, maxHeight = 500, quality = 0
       return;
     }
 
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        let width = img.width;
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let width = img.width;
         let height = img.height;
 
         // Calculate the new dimensions
@@ -56,9 +55,14 @@ export const compressImage = (file, maxWidth = 500, maxHeight = 500, quality = 0
           'image/jpeg',
           quality
         );
-      };
-      img.onerror = () => reject(new Error('Failed to load image into canvas for compression'));
+        );
     };
-    reader.onerror = () => reject(new Error('FileReader failed to read the selected file'));
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Failed to load image into canvas for compression. The file format might be unsupported (e.g., HEIC).'));
+    };
+    
+    img.src = objectUrl;
   });
 };
