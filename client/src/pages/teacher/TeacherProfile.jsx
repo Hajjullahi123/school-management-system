@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api, apiCall, API_BASE_URL } from '../../api';
 import { toast } from '../../utils/toast';
+import { compressImage } from '../../utils/imageCompressor';
 
 const TeacherProfile = () => {
   const { user } = useAuth();
@@ -99,7 +100,9 @@ const TeacherProfile = () => {
 
       // Add photo if selected
       if (photoFile) {
-        formDataToSend.append('photo', photoFile);
+        // Compress the image before uploading to avoid server OOM / "Failed to fetch" errors
+        const compressedPhoto = await compressImage(photoFile, 500, 500, 0.85);
+        formDataToSend.append('photo', compressedPhoto);
       }
 
       console.log('Sending update request...');
@@ -111,11 +114,12 @@ const TeacherProfile = () => {
 
       // Upload Signature if changed
       if (ok && signatureFile) {
+        const compressedSignature = await compressImage(signatureFile, 400, 200, 0.9);
         const reader = new FileReader();
         const base64Data = await new Promise((resolve, reject) => {
           reader.onload = () => resolve(reader.result);
           reader.onerror = reject;
-          reader.readAsDataURL(signatureFile);
+          reader.readAsDataURL(compressedSignature);
         });
 
         await apiCall('/api/teachers/signature-base64', {

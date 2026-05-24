@@ -84,7 +84,9 @@ const QuranTracker = () => {
     pages: '',
     status: 'Good',
     comments: '',
-    subjectId: ''
+    subjectId: '',
+    notifyParent: false,
+    audioFile: null
   });
 
   useEffect(() => {
@@ -683,6 +685,61 @@ const QuranTracker = () => {
                     </div>
                   ) : (
                     <>
+                      {/* Advanced Visual Analytics Dashboard */}
+                      {(() => {
+                        const totalStudents = classSummary.length;
+                        const allRecords = classSummary.flatMap(student => student.quranRecords || []);
+                        const excellentCount = allRecords.filter(r => r.status === 'Excellent').length;
+                        const goodCount = allRecords.filter(r => r.status === 'Good').length;
+                        const fairCount = allRecords.filter(r => r.status === 'Fair').length;
+                        const poorCount = allRecords.filter(r => r.status === 'Poor').length;
+                        const totalRecords = allRecords.length || 1;
+                        
+                        return (
+                          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 mb-6">
+                            <div className="flex justify-between items-center mb-6">
+                               <h3 className="text-lg font-black uppercase tracking-tighter text-slate-800">Class Performance Overview</h3>
+                               <div className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-full">Analytics</div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                              <div className="p-5 bg-gray-50 rounded-2xl flex flex-col justify-center items-center text-center">
+                                <p className="text-[10px] uppercase font-black text-gray-400 mb-1 tracking-widest">Total Students</p>
+                                <p className="text-4xl font-black text-indigo-900">{totalStudents}</p>
+                              </div>
+                              <div className="p-5 bg-emerald-50 rounded-2xl flex flex-col justify-center items-center text-center">
+                                <p className="text-[10px] uppercase font-black text-emerald-600 mb-1 tracking-widest">Excellent Rate</p>
+                                <p className="text-4xl font-black text-emerald-600">{Math.round((excellentCount/totalRecords)*100)}%</p>
+                              </div>
+                              <div className="p-5 bg-blue-50 rounded-2xl flex flex-col justify-center items-center text-center">
+                                <p className="text-[10px] uppercase font-black text-blue-600 mb-1 tracking-widest">Total Records</p>
+                                <p className="text-4xl font-black text-blue-600">{allRecords.length}</p>
+                              </div>
+                              <div className="p-5 bg-rose-50 rounded-2xl flex flex-col justify-center items-center text-center">
+                                <p className="text-[10px] uppercase font-black text-rose-600 mb-1 tracking-widest">Needs Attention</p>
+                                <p className="text-4xl font-black text-rose-600">{poorCount}</p>
+                              </div>
+                            </div>
+                            
+                            <div>
+                               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Recitation Quality Distribution</p>
+                               <div className="flex justify-between text-xs font-bold mb-2">
+                                  <span className="text-emerald-600">Excellent ({excellentCount})</span>
+                                  <span className="text-blue-600">Good ({goodCount})</span>
+                                  <span className="text-amber-500">Fair ({fairCount})</span>
+                                  <span className="text-rose-500">Poor ({poorCount})</span>
+                               </div>
+                               <div className="flex w-full h-3 rounded-full overflow-hidden bg-gray-100">
+                                  <div style={{width: `${(excellentCount/totalRecords)*100}%`}} className="bg-emerald-500 h-full transition-all duration-1000"></div>
+                                  <div style={{width: `${(goodCount/totalRecords)*100}%`}} className="bg-blue-500 h-full transition-all duration-1000"></div>
+                                  <div style={{width: `${(fairCount/totalRecords)*100}%`}} className="bg-amber-400 h-full transition-all duration-1000"></div>
+                                  <div style={{width: `${(poorCount/totalRecords)*100}%`}} className="bg-rose-500 h-full transition-all duration-1000"></div>
+                               </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       {selectedStudentIds.length > 0 && (
                         <div className="sticky top-0 z-20 bg-primary/10 backdrop-blur-md border-b border-primary/20 p-4 flex justify-between items-center animate-slideIn">
                           <div className="flex items-center gap-3">
@@ -745,10 +802,20 @@ const QuranTracker = () => {
                                 />
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-semibold text-gray-900">
-                                  {student.user.firstName} {student.user.lastName}
+                                <div className="flex items-center gap-2">
+                                  <div>
+                                    <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                      {student.user.firstName} {student.user.lastName}
+                                      {student.quranRecords?.filter(r => r.status === 'Excellent').length >= 5 && (
+                                         <span title="Hafiz Scholar - 5+ Excellent Records" className="text-sm cursor-help bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100">🌟</span>
+                                      )}
+                                      {student.quranRecords?.length >= 10 && (
+                                         <span title="Consistent - 10+ Records Logged" className="text-sm cursor-help bg-blue-50 px-1.5 py-0.5 rounded-full border border-blue-100">🔥</span>
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-gray-400 font-medium tracking-widest uppercase mt-0.5">{student.admissionNumber}</div>
+                                  </div>
                                 </div>
-                                <div className="text-xs text-gray-400">{student.admissionNumber}</div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                 <span className="bg-gray-100 px-2 py-0.5 rounded-full font-medium">{student.quranRecords.length} entries</span>
@@ -1132,6 +1199,33 @@ const QuranTracker = () => {
                   className="w-full border rounded-2xl px-4 py-3 bg-gray-50/50 min-h-[100px] outline-none focus:ring-2 focus:ring-primary/10"
                   placeholder="Optional notes about performance..."
                 />
+              </div>
+
+              <div className="bg-primary/5 p-4 rounded-2xl space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black text-primary uppercase tracking-widest mb-2">Voice Note / Audio Submission (Optional)</label>
+                  <div className="flex items-center gap-3">
+                    <input 
+                      type="file" 
+                      accept="audio/*"
+                      onChange={(e) => setRecordForm({ ...recordForm, audioFile: e.target.files[0] })}
+                      className="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition cursor-pointer w-full"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-primary/10">
+                  <input
+                    type="checkbox"
+                    id="notifyParent"
+                    checked={recordForm.notifyParent}
+                    onChange={(e) => setRecordForm({ ...recordForm, notifyParent: e.target.checked })}
+                    className="w-5 h-5 rounded text-primary focus:ring-primary"
+                  />
+                  <label htmlFor="notifyParent" className="text-sm font-bold text-gray-700 cursor-pointer select-none">
+                    Send instant SMS/Email alert to Parent
+                  </label>
+                </div>
               </div>
 
               <div className="flex gap-4 pt-4">

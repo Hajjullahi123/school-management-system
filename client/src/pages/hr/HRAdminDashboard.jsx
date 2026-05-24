@@ -187,6 +187,7 @@ const HRAdminDashboard = () => {
              <div className="flex flex-wrap gap-3">
                 <button onClick={() => setActiveTab('vouchers')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'vouchers' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>Payroll Vouchers</button>
                 <button onClick={() => setActiveTab('requests')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'requests' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>Approval Center</button>
+                <button onClick={() => setActiveTab('analytics')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'analytics' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>Analytics</button>
              </div>
           </div>
        </div>
@@ -496,6 +497,72 @@ const HRAdminDashboard = () => {
                 </div>
              </motion.div>
           )}
+          {activeTab === 'analytics' && (
+             <motion.div key="analytics" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                   <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+                      <p className="text-gray-400 text-[10px] uppercase font-black tracking-widest mb-2">Total Staff</p>
+                      <h3 className="text-4xl font-black text-indigo-900">{staffPool.length}</h3>
+                   </div>
+                   <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+                      <p className="text-gray-400 text-[10px] uppercase font-black tracking-widest mb-2">Pending Leaves</p>
+                      <h3 className="text-4xl font-black text-amber-500">{requests.leaves?.filter(l => l.status === 'PENDING').length || 0}</h3>
+                   </div>
+                   <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+                      <p className="text-gray-400 text-[10px] uppercase font-black tracking-widest mb-2">Pending Loans</p>
+                      <h3 className="text-4xl font-black text-emerald-500">{requests.loans?.filter(l => l.status === 'PENDING').length || 0}</h3>
+                   </div>
+                   <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+                      <p className="text-gray-400 text-[10px] uppercase font-black tracking-widest mb-2">Approved Vouchers</p>
+                      <h3 className="text-4xl font-black text-blue-500">{vouchers.filter(v => v.status === 'APPROVED').length}</h3>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                     <h3 className="text-lg font-black uppercase tracking-tighter mb-4 text-slate-800">Department Breakdown</h3>
+                     <div className="space-y-4">
+                        {/* Calculate dynamic breakdown based on staffPool roles */}
+                        {Array.from(new Set(staffPool.map(s => s.role))).map(role => {
+                           const count = staffPool.filter(s => s.role === role).length;
+                           const percentage = Math.round((count / Math.max(staffPool.length, 1)) * 100);
+                           return (
+                              <div key={role}>
+                                 <div className="flex justify-between text-xs font-bold mb-1">
+                                    <span className="uppercase tracking-widest text-gray-500">{role.replace('_', ' ')}</span>
+                                    <span>{percentage}%</span>
+                                 </div>
+                                 <div className="w-full bg-gray-100 rounded-full h-2">
+                                    <div className="bg-indigo-500 h-2 rounded-full" style={{ width: `${percentage}%` }}></div>
+                                 </div>
+                              </div>
+                           );
+                        })}
+                     </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                     <h3 className="text-lg font-black uppercase tracking-tighter mb-4 text-slate-800">Financial Overview (Latest Draft)</h3>
+                     {vouchers.find(v => v.status === 'DRAFT') ? (
+                        <div className="flex flex-col h-full justify-center">
+                           <p className="text-sm text-gray-500 mb-2 font-bold uppercase tracking-widest">Total Monthly Projection</p>
+                           <h2 className="text-5xl font-black text-indigo-900 tracking-tighter">
+                              {schoolSettings?.currencySymbol || '₦'}
+                              {vouchers.find(v => v.status === 'DRAFT')?.totalAmount?.toLocaleString() || '0.00'}
+                           </h2>
+                           <p className="text-xs text-emerald-500 font-bold mt-2 bg-emerald-50 inline-block px-3 py-1 rounded-lg w-max">
+                              {vouchers.find(v => v.status === 'DRAFT')?.records?.length || 0} Employees Processed
+                           </p>
+                        </div>
+                     ) : (
+                        <div className="flex flex-col items-center justify-center h-40 text-center border-2 border-dashed border-gray-200 rounded-2xl">
+                           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No Active Drafts to Analyze</p>
+                        </div>
+                     )}
+                  </div>
+                </div>
+             </motion.div>
+           )}
        </AnimatePresence>
 
        {showVoucherModal && (

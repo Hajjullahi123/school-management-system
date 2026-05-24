@@ -104,6 +104,7 @@ const StaffHRDashboard = () => {
                   <button onClick={() => setActiveTab('loans')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'loans' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>Loan Center</button>
                   <button onClick={() => setActiveTab('requests')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'requests' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>Requisitions</button>
                   <button onClick={() => setActiveTab('messages')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'messages' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>HR Messages</button>
+                  <button onClick={() => setActiveTab('analytics')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'analytics' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>Analytics</button>
                </div>
             </div>
 
@@ -345,6 +346,57 @@ const StaffHRDashboard = () => {
              </div>
           </motion.div>
         )}
+          {activeTab === 'analytics' && (
+            <motion.div key="analytics" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+                    <p className="text-gray-400 text-[10px] uppercase font-black tracking-widest mb-2">Total Salary Received</p>
+                    <h3 className="text-3xl font-black text-emerald-600">
+                       {schoolSettings?.currencySymbol || '₦'}
+                       {data.salaries.reduce((sum, s) => sum + (s.netPay || 0), 0).toLocaleString()}
+                    </h3>
+                 </div>
+                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+                    <p className="text-gray-400 text-[10px] uppercase font-black tracking-widest mb-2">Active Loans</p>
+                    <h3 className="text-4xl font-black text-rose-500">{data.loans.filter(l => l.status === 'APPROVED' && l.amountRemaining > 0).length}</h3>
+                 </div>
+                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+                    <p className="text-gray-400 text-[10px] uppercase font-black tracking-widest mb-2">Leave Requests (YTD)</p>
+                    <h3 className="text-4xl font-black text-blue-500">{data.leaves.length}</h3>
+                 </div>
+                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+                    <p className="text-gray-400 text-[10px] uppercase font-black tracking-widest mb-2">Pending Requisitions</p>
+                    <h3 className="text-4xl font-black text-amber-500">{data.materials.filter(m => m.status === 'PENDING').length}</h3>
+                 </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 mt-6">
+                 <h3 className="text-lg font-black uppercase tracking-tighter mb-4 text-slate-800">Income Overview (Last 6 Months)</h3>
+                 <div className="h-64 flex items-end gap-2 px-4 pb-4 border-b border-gray-100 relative">
+                    {data.salaries.slice(0, 6).reverse().map((s, idx) => {
+                       const maxSalary = Math.max(...data.salaries.slice(0, 6).map(s => s.netPay || 0), 1);
+                       const heightPercentage = Math.round(((s.netPay || 0) / maxSalary) * 100);
+                       return (
+                          <div key={idx} className="flex-1 flex flex-col justify-end items-center group relative">
+                             <div className="w-full max-w-[40px] bg-indigo-500 rounded-t-lg transition-all duration-500 group-hover:bg-indigo-400" style={{ height: `${heightPercentage}%`, minHeight: '10%' }}></div>
+                             <p className="text-[8px] font-bold text-gray-400 mt-2 origin-left whitespace-nowrap">
+                                {new Date(0, s.voucher.month - 1).toLocaleString('default', { month: 'short' })} '{s.voucher.year.toString().slice(-2)}
+                             </p>
+                             <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap z-10">
+                                ₦{s.netPay?.toLocaleString()}
+                             </div>
+                          </div>
+                       );
+                    })}
+                    {data.salaries.length === 0 && (
+                       <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm font-bold uppercase tracking-widest">
+                          No Income Data Available
+                       </div>
+                    )}
+                 </div>
+              </div>
+            </motion.div>
+          )}
       </AnimatePresence>
 
       {/* Modals */}

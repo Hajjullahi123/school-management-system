@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api, apiCall, API_BASE_URL } from '../api';
+import { compressImage } from '../utils/imageCompressor';
 
 const PhotoUpload = ({ studentId, currentPhotoUrl, onPhotoUpload }) => {
   const [uploading, setUploading] = useState(false);
@@ -41,8 +42,11 @@ const PhotoUpload = ({ studentId, currentPhotoUrl, onPhotoUpload }) => {
 
     setUploading(true);
     try {
+      // Compress the image before uploading to avoid server OOM / "Failed to fetch" errors
+      const compressedFile = await compressImage(selectedFile, 500, 500, 0.85);
+
       const formData = new FormData();
-      formData.append('photo', selectedFile);
+      formData.append('photo', compressedFile);
 
       // We use apiCall which handles response parsing and returns { data, ok, status }
       const { data, ok, status } = await apiCall(`/api/upload/${studentId}/photo`, {

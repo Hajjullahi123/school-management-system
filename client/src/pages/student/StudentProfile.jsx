@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../../api';
 import { formatDateVerbose } from '../../utils/formatters';
+import { compressImage } from '../../utils/imageCompressor';
 
 const StudentProfile = () => {
   const [student, setStudent] = useState(null);
@@ -114,10 +115,12 @@ const StudentProfile = () => {
 
     setUploadingPhoto(true);
 
-    const uploadData = new FormData();
-    uploadData.append('photo', file);
-
     try {
+      // Compress the image before uploading to avoid server OOM / "Failed to fetch" errors
+      const compressedFile = await compressImage(file, 500, 500, 0.85);
+      const uploadData = new FormData();
+      uploadData.append('photo', compressedFile);
+
       const response = await api.post('/api/students/my-photo', uploadData);
       const result = await response.json();
 
