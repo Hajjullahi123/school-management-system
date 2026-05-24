@@ -5,6 +5,8 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../db');
 const { JWT_SECRET, authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
+const { validate } = require('../middleware/validate');
+const { loginSchema, identifySchema, changePasswordSchema, resetPasswordSchema } = require('../schemas/authSchema');
 
 // Helper to construct the unified, rich user object returned during login & /me sessions
 const getFullUserPayload = async (userId, schoolId, role) => {
@@ -195,12 +197,9 @@ const getFullUserPayload = async (userId, schoolId, role) => {
 };
 
 // Identify school based on username/email/admissionNumber
-router.post('/identify', async (req, res) => {
+router.post('/identify', validate(identifySchema), async (req, res) => {
   try {
     const { identifier, schoolSlug } = req.body;
-    if (!identifier) {
-      return res.status(400).json({ error: 'Username or Email is required' });
-    }
 
     const searchId = identifier.trim();
 
@@ -298,13 +297,9 @@ router.post('/identify', async (req, res) => {
 });
 
 // Login endpoint
-router.post('/login', async (req, res) => {
+router.post('/login', validate(loginSchema), async (req, res) => {
   try {
     let { username, password, schoolSlug } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
-    }
 
     const searchId = username.trim();
 
@@ -545,17 +540,9 @@ router.get('/me', authenticate, async (req, res) => {
  * @desc    Change current user's password
  * @access  Private
  */
-router.post('/change-password', authenticate, async (req, res) => {
+router.post('/change-password', authenticate, validate(changePasswordSchema), async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: 'Current and new passwords are required' });
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters long' });
-    }
 
     // Fetch user from DB
     const user = await prisma.user.findUnique({
@@ -607,17 +594,9 @@ router.post('/change-password', authenticate, async (req, res) => {
  * @desc    Admin reset user password
  * @access  Private (Admin/Principal only)
  */
-router.post('/reset-password', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.post('/reset-password', authenticate, authorize(['admin', 'principal']), validate(resetPasswordSchema), async (req, res) => {
   try {
     const { userId, newPassword } = req.body;
-
-    if (!userId || !newPassword) {
-      return res.status(400).json({ error: 'User ID and new password are required' });
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters long' });
-    }
 
     // Hash new password
     const salt = await bcrypt.genSalt(10);
