@@ -59,7 +59,8 @@ export const compressImage = (file, maxWidth = 500, maxHeight = 500, quality = 0
     
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error('Failed to load image into canvas for compression. The file format might be unsupported (e.g., HEIC).'));
+      console.warn('Failed to load image into canvas for compression. Falling back to original file.');
+      resolve(file); // Fallback to the original file to prevent blocking the upload
     };
     
     img.src = objectUrl;
