@@ -1,128 +1,58 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { api, API_BASE_URL } from '../../api';
 import { formatNumber, formatDateVerbose } from '../../utils/formatters';
 
 const StudentDashboard = ({ user, currentTerm, currentSession }) => {
-  const [studentData, setStudentData] = useState(null);
-  const [studentFeeRecord, setStudentFeeRecord] = useState(null);
-  const [miscFeeSummary, setMiscFeeSummary] = useState([]);
-  const [previousPerformance, setPreviousPerformance] = useState(null);
-  const [previousTermName, setPreviousTermName] = useState('');
-  const [notices, setNotices] = useState([]);
-  const [stats, setStats] = useState({
-    currentTermAverage: 0,
-    totalSubjects: 0,
-    attendanceRate: 0,
-    overallPosition: 0
+  const studentId = user?.student?.id;
+
+  // 1. Fetch Notices
+  const { data: notices = [] } = useQuery({
+    queryKey: ['notices'],
+    queryFn: async () => {
+      const res = await api.get('/api/notices');
+      return res.ok ? res.json() : [];
+    }
   });
 
-  useEffect(() => {
-    fetchDashboardData();
-    fetchNotices();
-  }, [user, currentTerm, currentSession]);
+  // 2. Fetch Student Profile
+  const { data: studentData } = useQuery({
+    queryKey: ['studentProfile', studentId],
+    queryFn: async () => {
+      const res = await api.get(`/api/students/${studentId}`);
+      return res.ok ? res.json() : null;
+    },
+    enabled: !!studentId
+  });
 
-  const fetchNotices = async () => {
-    try {
-      const response = await api.get('/api/notices');
-      if (response.ok) {
-        const data = await response.json();
-        setNotices(Array.isArray(data) ? data : []);
-      }
-    } catch (e) {
-      console.error('Failed to fetch notices');
-    }
-  };
+  // 3. Fetch Fee Record
+  const { data: studentFeeRecord } = useQuery({
+    queryKey: ['studentFeeRecord', studentId, currentTerm?.id, currentSession?.id],
+    queryFn: async () => {
+      const res = await api.get(`/api/fees/student/${studentId}/summary?termId=${currentTerm.id}&academicSessionId=${currentSession.id}`);
+      return res.ok ? res.json() : null;
+    },
+    enabled: !!studentId && !!currentTerm && !!currentSession
+  });
 
-  const fetchDashboardData = async () => {
-    if (!user?.student?.id) return;
-
-    try {
-      // Find previous term for performance summary
-      if (currentTerm) {
-        const allTermsResponse = await api.get('/api/terms');
-        if (allTermsResponse.ok) {
-          const allTermsData = await allTermsResponse.json();
-          const allTerms = Array.isArray(allTermsData) ? allTermsData : [];
-          const sortedTerms = allTerms.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-          const currentIndex = sortedTerms.findIndex(t => t.id === currentTerm.id);
-          if (currentIndex > 0) {
-            const prevTerm = sortedTerms[currentIndex - 1];
-            try {
-              const reportCardRes = await api.get(`/api/report-card/${user.student.id}/${prevTerm.id}`);
-              if (reportCardRes.ok) {
-                const reportData = await reportCardRes.json();
-                setPreviousPerformance(reportData.summary);
-                setPreviousTermName(prevTerm.name);
-              }
-            } catch (err) { }
-          }
-        }
-      }
-
-      // Fetch student details
-      const studentResponse = await api.get(`/api/students/${user.student.id}`);
-      if (studentResponse.ok) {
-        const student = await studentResponse.json();
-        setStudentData(student);
-      }
-
-      // Fetch fee record
-      if (currentTerm && currentSession) {
-        try {
-          const feeResponse = await api.get(
-            `/api/fees/student/${user.student.id}/summary?termId=${currentTerm.id}&academicSessionId=${currentSession.id}`
-          );
-          if (feeResponse.ok) {
-            const feeData = await feeResponse.json();
-            setStudentFeeRecord(feeData);
-          }
-        } catch (error) { }
-      }
-
-      // Fetch attendance summary
+  // 4. Fetch Attendance and Stats (Combined for simplicity)
+  const { data: stats = { attendanceRate: 0 } } = useQuery({
+    queryKey: ['studentStats', studentId],
+    queryFn: async () => {
       let attendanceRate = 0;
       try {
-        const attendanceRes = await api.get(`/api/attendance/student/${user.student.id}/summary`);
-        if (attendanceRes.ok) {
-          const summary = await attendanceRes.json();
-          attendanceRate = summary.total > 0
-            ? ((summary.present + summary.late) / summary.total * 100).toFixed(1)
-            : 0;
+        const attRes = await api.get(`/api/attendance/student/${studentId}/summary`);
+        if (attRes.ok) {
+          const summary = await attRes.json();
+          attendanceRate = summary.total > 0 ? ((summary.present + summary.late) / summary.total * 100).toFixed(1) : 0;
         }
-      } catch (e) { }
-
-      // Fetch Miscellanous fees
-      try {
-        const miscFeeResponse = await api.get(`/api/misc-fees/student/${user.student.id}`);
-        if (miscFeeResponse.ok) {
-          const miscFeeData = await miscFeeResponse.json();
-          setMiscFeeSummary(Array.isArray(miscFeeData) ? miscFeeData : []);
-        }
-      } catch (error) { }
-
-      // Fetch current term results
-      const resultsResponse = await api.get(`/api/results?studentId=${user.student.id}`);
-      if (resultsResponse.ok) {
-        const resultsData = await resultsResponse.json();
-        const results = Array.isArray(resultsData) ? resultsData : [];
-        if (results.length > 0) {
-          const totalScore = results.reduce((sum, r) => sum + (r.totalScore || 0), 0);
-          const average = (totalScore / results.length).toFixed(2);
-          setStats({
-            currentTermAverage: average,
-            totalSubjects: results.length,
-            attendanceRate: attendanceRate,
-            overallPosition: results[0]?.positionInClass || 0
-          });
-        } else {
-          setStats(prev => ({ ...prev, attendanceRate }));
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching student dashboard info:', error);
-    }
-  };
+      } catch (e) {}
+      
+      return { attendanceRate };
+    },
+    enabled: !!studentId
+  });
 
   return (
     <div className="space-y-3 sm:space-y-6">
