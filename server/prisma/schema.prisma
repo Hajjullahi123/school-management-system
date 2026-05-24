@@ -196,6 +196,7 @@ model School {
   payrollVouchers             PayrollVoucher[]
   leaveRequests               LeaveRequest[]
   materialRequests            MaterialRequest[]
+  hrMessages                  HRMessage[]
   DepartmentResource          DepartmentResource[]
   PushSubscription            PushSubscription[]
 }
@@ -253,6 +254,8 @@ model User {
   processedLoans     LoanRequest[]        @relation("LoanProcessor")
   processedLeaves    LeaveRequest[]       @relation("LeaveProcessor")
   processedMaterials MaterialRequest[]    @relation("MaterialProcessor")
+  hrMessages         HRMessage[]
+  processedHRMessages HRMessage[]         @relation("MessageProcessor")
   departmentResources DepartmentResource[] @relation("ResourceUploader")
 
   @@unique([schoolId, username])
@@ -1542,6 +1545,27 @@ model MaterialRequest {
   school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   staff           User      @relation(fields: [staffId], references: [id], onDelete: Cascade)
   processor       User?     @relation("MaterialProcessor", fields: [processedById], references: [id])
+
+  @@index([schoolId])
+  @@index([staffId])
+}
+
+model HRMessage {
+  id              Int       @id @default(autoincrement())
+  schoolId        Int
+  staffId         Int
+  subject         String
+  message         String
+  status          String    @default("PENDING") // PENDING, RESPONDED, CLOSED
+  response        String?
+  processedById   Int?
+  processedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staff           User      @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  processor       User?     @relation("MessageProcessor", fields: [processedById], references: [id])
 
   @@index([schoolId])
   @@index([staffId])

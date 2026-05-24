@@ -42,10 +42,14 @@ router.get('/my-records', authenticate, async (req, res) => {
       prisma.materialRequest.findMany({
         where: { staffId: req.user.id },
         orderBy: { createdAt: 'desc' }
+      }),
+      prisma.hRMessage.findMany({
+        where: { staffId: req.user.id },
+        orderBy: { createdAt: 'desc' }
       })
     ]);
 
-    res.json({ salaries, loans, leaves, materials });
+    res.json({ salaries, loans, leaves, materials, messages });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -102,6 +106,24 @@ router.post('/material-request', authenticate, async (req, res) => {
       }
     });
     res.json(request);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Send HR Message
+router.post('/message', authenticate, async (req, res) => {
+  try {
+    const { subject, message } = req.body;
+    const hrMessage = await prisma.hRMessage.create({
+      data: {
+        schoolId: req.schoolId,
+        staffId: req.user.id,
+        subject,
+        message
+      }
+    });
+    res.json(hrMessage);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -497,15 +519,16 @@ router.post('/admin/vouchers/:id/sync', authenticate, canManageHR, async (req, r
 // Manage Requests (Loan, Leave, Material)
 router.get('/admin/requests', authenticate, canManageHR, async (req, res) => {
   try {
-    const [loans, leaves, materials] = await Promise.all([
+    const [loans, leaves, materials, messages] = await Promise.all([
       prisma.loanRequest.findMany({ 
         where: { staff: { schoolId: req.schoolId } },
         include: { staff: { select: { firstName: true, middleName: true, lastName: true } } } 
       }),
       prisma.leaveRequest.findMany({ where: { schoolId: req.schoolId }, include: { staff: { select: { firstName: true, middleName: true, lastName: true } } } }),
-      prisma.materialRequest.findMany({ where: { schoolId: req.schoolId }, include: { staff: { select: { firstName: true, middleName: true, lastName: true } } } })
+      prisma.materialRequest.findMany({ where: { schoolId: req.schoolId }, include: { staff: { select: { firstName: true, middleName: true, lastName: true } } } }),
+      prisma.hRMessage.findMany({ where: { schoolId: req.schoolId }, include: { staff: { select: { firstName: true, middleName: true, lastName: true } } } })
     ]);
-    res.json({ loans, leaves, materials });
+    res.json({ loans, leaves, materials, messages });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -564,6 +587,27 @@ router.patch('/admin/material-requests/:id', authenticate, canManageHR, async (r
       data: { 
         status, 
         rejectionReason,
+        processedById: req.user.id, 
+        processedAt: new Date() 
+      }
+    });
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.patch('/admin/messages/:id', authenticate, canManageHR, async (req, res) => {
+  try {
+    const { status, response } = req.body;
+    const updated = await prisma.hRMessage.update({
+      where: { 
+        id: parseInt(req.params.id),
+        schoolId: req.schoolId // Security check
+      },
+      data: { 
+        status, 
+        response,
         processedById: req.user.id, 
         processedAt: new Date() 
       }

@@ -6,16 +6,18 @@ import { generatePayslip } from '../../utils/payslipGenerator';
 import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 
 const StaffHRDashboard = () => {
-  const [data, setData] = useState({ salaries: [], loans: [], leaves: [], materials: [] });
+  const [data, setData] = useState({ salaries: [], loans: [], leaves: [], materials: [], messages: [] });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('payroll'); // payroll, loans, requests
   const [showLoanModal, setShowLoanModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
 
   const [loanForm, setLoanForm] = useState({ amount: '', reason: '', repaymentMonths: '1' });
   const [leaveForm, setLeaveForm] = useState({ type: 'ANNUAL', startDate: '', endDate: '', reason: '' });
   const [materialForm, setMaterialForm] = useState({ items: '', priority: 'NORMAL' });
+  const [messageForm, setMessageForm] = useState({ subject: '', message: '' });
   const { settings: schoolSettings } = useSchoolSettings();
 
   useEffect(() => {
@@ -70,6 +72,19 @@ const StaffHRDashboard = () => {
     } catch (e) { toast.error('Sync failed'); }
   };
 
+  const handleMessageSubmit = async () => {
+    if (!messageForm.subject || !messageForm.message) return toast.error('Subject and message required');
+    try {
+      const res = await api.post('/api/hr/message', messageForm);
+      if (res.ok) {
+        toast.success('Message sent to HR successfully');
+        setShowMessageModal(false);
+        setMessageForm({ subject: '', message: '' });
+        fetchRecords();
+      }
+    } catch (e) { toast.error('Submission failed'); }
+  };
+
   if (loading) return <div className="p-20 text-center animate-pulse font-black text-gray-300 uppercase tracking-widest">Accessing Personnel Files...</div>;
 
   return (
@@ -88,6 +103,7 @@ const StaffHRDashboard = () => {
                   <button onClick={() => setActiveTab('payroll')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'payroll' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>Payroll History</button>
                   <button onClick={() => setActiveTab('loans')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'loans' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>Loan Center</button>
                   <button onClick={() => setActiveTab('requests')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'requests' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>Requisitions</button>
+                  <button onClick={() => setActiveTab('messages')} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'messages' ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>HR Messages</button>
                </div>
             </div>
 
@@ -288,6 +304,47 @@ const StaffHRDashboard = () => {
              </div>
           </motion.div>
         )}
+
+        {activeTab === 'messages' && (
+          <motion.div key="messages" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
+             <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-gray-100">
+                <div className="flex justify-between items-center mb-8">
+                   <div>
+                      <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter italic mb-1">Direct HR Comms</h3>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">General inquiries, complaints, and direct lines to administration</p>
+                   </div>
+                   <button onClick={() => setShowMessageModal(true)} className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all">Send Message</button>
+                </div>
+                <div className="space-y-4">
+                   {data.messages?.length === 0 ? (
+                      <div className="py-20 text-center font-black text-gray-300 uppercase tracking-widest border-2 border-dashed border-gray-50 rounded-[2rem]">No communication history</div>
+                   ) : data.messages?.map(msg => (
+                      <div key={msg.id} className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                         <div className="flex justify-between items-start mb-4">
+                            <div>
+                               <h4 className="font-black text-gray-900 uppercase">{msg.subject}</h4>
+                               <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1">{new Date(msg.createdAt).toLocaleString()}</p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+                               msg.status === 'RESPONDED' ? 'bg-emerald-50 text-emerald-600' : 
+                               msg.status === 'PENDING' ? 'bg-amber-50 text-amber-600' : 'bg-gray-200 text-gray-500'
+                            }`}>{msg.status}</span>
+                         </div>
+                         <p className="text-sm font-medium text-gray-700 mb-4 whitespace-pre-wrap">{msg.message}</p>
+                         
+                         {msg.response && (
+                            <div className="mt-4 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 relative">
+                               <div className="absolute -top-2 left-4 px-2 bg-indigo-100 text-indigo-600 text-[8px] font-black uppercase tracking-widest rounded-full">Admin Response</div>
+                               <p className="text-sm font-medium text-indigo-900 whitespace-pre-wrap">{msg.response}</p>
+                               {msg.processedAt && <p className="text-[8px] font-bold text-indigo-400 uppercase tracking-widest mt-2">{new Date(msg.processedAt).toLocaleString()}</p>}
+                            </div>
+                         )}
+                      </div>
+                   ))}
+                </div>
+             </div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Modals */}
@@ -375,6 +432,28 @@ const StaffHRDashboard = () => {
                   <div className="flex gap-4 pt-4">
                      <button onClick={() => setShowMaterialModal(false)} className="flex-1 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400">Abort</button>
                      <button onClick={handleMaterialRequest} className="flex-2 bg-emerald-600 text-white py-4 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-600/20 hover:scale-105 transition-all">Synchronize Requisition</button>
+                  </div>
+               </div>
+            </div>
+         </div>
+      )}
+
+      {showMessageModal && (
+         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+            <div className="bg-white rounded-[3rem] w-full max-w-lg p-10 shadow-2xl border border-gray-100">
+               <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter italic mb-8">HR Communication</h2>
+               <div className="space-y-6">
+                  <div>
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Subject</label>
+                     <input type="text" value={messageForm.subject} onChange={e => setMessageForm({...messageForm, subject: e.target.value})} className="w-full bg-gray-50 border-2 border-gray-50 rounded-2xl py-4 px-6 outline-none font-black text-sm focus:ring-4 focus:ring-indigo-500/10 transition-all" placeholder="e.g. Salary Discrepancy, General Inquiry..." />
+                  </div>
+                  <div>
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Message content</label>
+                     <textarea value={messageForm.message} onChange={e => setMessageForm({...messageForm, message: e.target.value})} className="w-full bg-gray-50 border-2 border-gray-50 rounded-2xl py-4 px-6 outline-none font-medium text-sm h-32 resize-none focus:ring-4 focus:ring-indigo-500/10 transition-all" placeholder="Write your message here..."></textarea>
+                  </div>
+                  <div className="flex gap-4 pt-4">
+                     <button onClick={() => setShowMessageModal(false)} className="flex-1 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400">Abort</button>
+                     <button onClick={handleMessageSubmit} className="flex-2 bg-indigo-600 text-white py-4 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all">Transmit Message</button>
                   </div>
                </div>
             </div>

@@ -9,7 +9,7 @@ const HRAdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('vouchers'); // vouchers, requests, records
   const [vouchers, setVouchers] = useState([]);
-  const [requests, setRequests] = useState({ loans: [], leaves: [], materials: [] });
+  const [requests, setRequests] = useState({ loans: [], leaves: [], materials: [], messages: [] });
   const [staffPool, setStaffPool] = useState([]);
   
   const [showVoucherModal, setShowVoucherModal] = useState(false);
@@ -19,6 +19,7 @@ const HRAdminDashboard = () => {
   const [selectedVoucher, setSelectedVoucher] = useState(null);
   const [recordForm, setRecordForm] = useState({ baseSalary: 0, allowances: [], deductions: [] });
   const [rejectionModal, setRejectionModal] = useState({ show: false, type: '', id: '', reason: '' });
+  const [responseModal, setResponseModal] = useState({ show: false, id: '', response: '' });
   const { settings: schoolSettings } = useSchoolSettings();
 
   useEffect(() => {
@@ -88,8 +89,12 @@ const HRAdminDashboard = () => {
   };
 
   const handleProcessRequest = async (type, id, status, reason = null) => {
-    if (status === 'REJECTED' && !reason) {
+    if (status === 'REJECTED' && !reason && type !== 'message') {
        setRejectionModal({ show: true, type, id, reason: '' });
+       return;
+    }
+    if (type === 'message' && !reason) {
+       setResponseModal({ show: true, id, response: '' });
        return;
     }
     try {
@@ -97,11 +102,16 @@ const HRAdminDashboard = () => {
       if (type === 'loan') endpoint = `/api/hr/admin/loan-requests/${id}`;
       else if (type === 'leave') endpoint = `/api/hr/admin/leave-requests/${id}`;
       else if (type === 'material') endpoint = `/api/hr/admin/material-requests/${id}`;
+      else if (type === 'message') endpoint = `/api/hr/admin/messages/${id}`;
 
-      const res = await api.patch(endpoint, { status, rejectionReason: reason });
+      let body = { status, rejectionReason: reason };
+      if (type === 'message') body = { status: 'RESPONDED', response: reason };
+
+      const res = await api.patch(endpoint, body);
       if (res.ok) {
-        toast.success(`Request ${status.toLowerCase()} successfully`);
+        toast.success(type === 'message' ? 'Response sent successfully' : `Request ${status.toLowerCase()} successfully`);
         setRejectionModal({ show: false, type: '', id: '', reason: '' });
+        setResponseModal({ show: false, id: '', response: '' });
         fetchRequests();
       }
     } catch (e) { toast.error('Processing failed'); }
@@ -362,6 +372,48 @@ const HRAdminDashboard = () => {
                       ))}
                    </div>
                 </section>
+
+                <section>
+                   <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter mb-6 italic px-4">HR Communications & Complaints</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {requests.messages?.map(msg => (
+                         <div key={msg.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-xl space-y-4 flex flex-col justify-between">
+                            <div>
+                               <div className="flex justify-between items-start border-b border-gray-50 pb-4 mb-4">
+                                  <div>
+                                     <p className="text-sm font-black text-gray-900 uppercase">{msg.staff.firstName} {msg.staff.lastName}</p>
+                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{new Date(msg.createdAt).toLocaleString()}</p>
+                                  </div>
+                                  <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+                                     msg.status === 'RESPONDED' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                                  }`}>{msg.status}</span>
+                               </div>
+                               
+                               <div>
+                                  <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-widest mb-2">{msg.subject}</h4>
+                                  <p className="text-sm font-medium text-gray-700 whitespace-pre-wrap">{msg.message}</p>
+                               </div>
+                            </div>
+
+                            {msg.status === 'PENDING' ? (
+                               <div className="pt-2">
+                                  <button onClick={() => handleProcessRequest('message', msg.id, 'RESPONDED')} className="w-full bg-indigo-50 text-indigo-600 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">Reply to Message</button>
+                               </div>
+                            ) : (
+                               <div className="mt-4 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 relative">
+                                  <div className="absolute -top-2 left-4 px-2 bg-indigo-100 text-indigo-600 text-[8px] font-black uppercase tracking-widest rounded-full">Your Response</div>
+                                  <p className="text-sm font-medium text-indigo-900 whitespace-pre-wrap">{msg.response}</p>
+                               </div>
+                            )}
+                         </div>
+                      ))}
+                      {requests.messages?.length === 0 && (
+                         <div className="col-span-1 md:col-span-2 py-10 text-center border-2 border-dashed border-gray-100 rounded-[2.5rem]">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No pending communications</p>
+                         </div>
+                      )}
+                   </div>
+                </section>
              </motion.div>
           )}
 
@@ -566,6 +618,34 @@ const HRAdminDashboard = () => {
               </div>
            </div>
         )}
+         {responseModal.show && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+               <div className="bg-white rounded-[3rem] w-full max-w-sm p-10 shadow-2xl border border-gray-100">
+                  <h2 className="text-3xl font-black text-indigo-600 uppercase tracking-tighter italic mb-2">Respond</h2>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-8">Write a response to the staff member</p>
+                  
+                  <div className="space-y-6">
+                     <div>
+                        <textarea 
+                           value={responseModal.response} 
+                           onChange={e => setResponseModal({...responseModal, response: e.target.value})} 
+                           className="w-full bg-gray-50 border-2 border-gray-50 rounded-2xl py-4 px-6 outline-none font-bold text-sm h-32 resize-none focus:ring-4 focus:ring-indigo-500/10 transition-all" 
+                           placeholder="Enter your response here..."
+                        ></textarea>
+                     </div>
+                     <div className="flex gap-4 pt-4">
+                        <button onClick={() => setResponseModal({ show: false, id: '', response: '' })} className="flex-1 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400">Abort</button>
+                        <button 
+                           onClick={() => handleProcessRequest('message', responseModal.id, 'RESPONDED', responseModal.response)} 
+                           className="flex-2 bg-indigo-600 text-white py-4 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all"
+                        >
+                           Send Response
+                        </button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         )}
     </div>
   );
 };
