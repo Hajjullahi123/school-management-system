@@ -319,12 +319,17 @@ router.post('/payments', authenticate, authorize(['admin', 'superadmin', 'accoun
   try {
     const { studentId, feeId, amount, paymentMethod, receiptNumber } = req.body;
 
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({ error: 'A valid positive payment amount is required' });
+    }
+
     const payment = await prisma.miscellaneousFeePayment.create({
       data: {
         schoolId: parseInt(req.schoolId),
         studentId: parseInt(studentId),
         feeId: parseInt(feeId),
-        amount: parseFloat(amount),
+        amount: parsedAmount,
         paymentMethod,
         receiptNumber,
         recordedBy: req.user.id
