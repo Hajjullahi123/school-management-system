@@ -89,11 +89,13 @@ const SuperAdminDashboard = () => {
         setLoading(true);
         const t = Date.now();
         
-        // Fetch data sequentially to minimize concurrent database connections on limited tiers
-        const statsRes = await apiCall(`/api/superadmin/stats?t=${t}`);
-        const schoolsRes = await apiCall(`/api/superadmin/schools?t=${t}`);
-        const auditsRes = await apiCall(`/api/superadmin/audit?limit=50&t=${t}`);
-        const settingsRes = await apiCall(`/api/superadmin/global-settings?t=${t}`);
+        // Fetch data in parallel for much faster load times
+        const [statsRes, schoolsRes, auditsRes, settingsRes] = await Promise.all([
+          apiCall(`/api/superadmin/stats?t=${t}`),
+          apiCall(`/api/superadmin/schools?t=${t}`),
+          apiCall(`/api/superadmin/audit?limit=50&t=${t}`),
+          apiCall(`/api/superadmin/global-settings?t=${t}`)
+        ]);
 
         if (!isMounted) return;
 
@@ -123,17 +125,19 @@ const SuperAdminDashboard = () => {
       setLoading(true);
       const t = Date.now();
       
-      // Fetch data sequentially to minimize concurrent database connections
-      const statsRes = await apiCall(`/api/superadmin/stats?t=${t}`);
-      const schoolsRes = await apiCall(`/api/superadmin/schools?t=${t}`);
-      const auditsRes = await apiCall(`/api/superadmin/audit?limit=50&t=${t}`);
-      const settingsRes = await apiCall(`/api/superadmin/global-settings?t=${t}`);
+      // Fetch data in parallel for much faster load times
+      const [statsRes, schoolsRes, auditsRes, settingsRes] = await Promise.all([
+        apiCall(`/api/superadmin/stats?t=${t}`),
+        apiCall(`/api/superadmin/schools?t=${t}`),
+        apiCall(`/api/superadmin/audit?limit=50&t=${t}`),
+        apiCall(`/api/superadmin/global-settings?t=${t}`)
+      ]);
 
       setStats(statsRes.data);
-      if (schoolsRes.ok) {
+      if (schoolsRes.ok || schoolsRes.data) {
         setSchools(Array.isArray(schoolsRes.data) ? schoolsRes.data : []);
       }
-      if (auditsRes.ok) {
+      if (auditsRes.ok || auditsRes.data) {
         setAudits(Array.isArray(auditsRes.data?.logs) ? auditsRes.data.logs : []);
       }
       if (settingsRes.data) {

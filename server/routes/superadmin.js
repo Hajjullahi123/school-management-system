@@ -12,13 +12,14 @@ const { generateAdminUsername } = require('../utils/usernameGenerator');
  */
 router.get('/stats', authenticate, authorize(['superadmin']), async (req, res) => {
   try {
-    // Fetch counts sequentially to minimize concurrent database connections
-    // (Crucial for limited-connection tiers like Supabase Free)
-    const schoolCount = await prisma.school.count();
-    const userCount = await prisma.user.count();
-    const studentCount = await prisma.student.count();
-    const teacherCount = await prisma.teacher.count();
-    const auditCount = await prisma.auditLog.count();
+    // Fetch counts in parallel to minimize response time
+    const [schoolCount, userCount, studentCount, teacherCount, auditCount] = await Promise.all([
+      prisma.school.count(),
+      prisma.user.count(),
+      prisma.student.count(),
+      prisma.teacher.count(),
+      prisma.auditLog.count()
+    ]);
 
     // 1. School with most active users
     const schoolActivity = await prisma.school.findMany({
