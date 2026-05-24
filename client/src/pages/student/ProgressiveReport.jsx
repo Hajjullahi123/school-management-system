@@ -100,7 +100,7 @@ const ProgressiveReport = () => {
       const data = await response.json();
       const classesArray = Array.isArray(data) ? data : [];
       if (user?.role === 'teacher') {
-        const teacherClasses = classesArray.filter(c => c.classTeacherId === user.id);
+        const teacherClasses = classesArray.filter(c => Number(c.classTeacherId) === Number(user.id));
         setClasses(teacherClasses);
         if (teacherClasses.length === 1) {
           setSelectedClassId(teacherClasses[0].id.toString());

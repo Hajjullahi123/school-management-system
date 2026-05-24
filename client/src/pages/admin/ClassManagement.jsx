@@ -509,7 +509,7 @@ const ClassManagement = () => {
                     >
                       <option value="">No Form Master</option>
                       {teachers.map((teacher) => {
-                        const isAssigned = classes.some(c => c.classTeacherId === teacher.id && (!editingClass || c.id !== editingClass.id));
+                        const isAssigned = classes.some(c => Number(c.classTeacherId) === Number(teacher.id) && (!editingClass || c.id !== editingClass.id));
                         return (
                           <option key={teacher.id} value={teacher.id} disabled={isAssigned}>
                             {teacher.firstName} {teacher.lastName} {isAssigned ? '(Assigned)' : ''}

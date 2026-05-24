@@ -75,7 +75,7 @@ const Attendance = () => {
 
       // Filter classes: Only show classes where user is the Form Master
       if (user?.role === 'teacher') {
-        classesArr = classesArr.filter(c => c.classTeacherId == user.id);
+        classesArr = classesArr.filter(c => Number(c.classTeacherId) === Number(user.id));
       }
 
       setClasses(classesArr);

@@ -201,7 +201,7 @@ const DirectoryExport = () => {
 
         staffRaw.forEach((u, index) => {
           const masterClasses = classes
-            .filter(c => c.classTeacherId === u.id)
+            .filter(c => Number(c.classTeacherId) === Number(u.id))
             .map(c => `${c.name} ${c.arm || ''}`.trim());
           
           ws.addRow([
