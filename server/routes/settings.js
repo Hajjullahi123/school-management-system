@@ -367,13 +367,26 @@ router.put('/', authenticate, async (req, res) => {
 
 // NEW: Simple Base64 Logo Upload (No multipart!)\n// Updated to store base64 in database to persist across server restarts
 router.post('/logo-base64', authenticate, async (req, res) => {
-  console.log('===Base64 logo upload received===');
+  const payloadSizeKB = req.headers['content-length'] ? (parseInt(req.headers['content-length']) / 1024).toFixed(1) : 'unknown';
+  console.log(`===Base64 logo upload received=== (payload: ${payloadSizeKB}KB, school: ${req.schoolId})`);
 
   try {
     const { imageData, fileName } = req.body;
 
     if (!imageData) {
       return res.status(400).json({ error: 'No image data provided' });
+    }
+
+    // Validate that imageData is a proper data URL
+    if (typeof imageData !== 'string' || !imageData.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Invalid image data format. Expected a data:image/... URL.' });
+    }
+
+    // Check base64 size - reject if over 5MB to prevent DB bloat
+    const dataSizeKB = (imageData.length / 1024).toFixed(1);
+    console.log(`Logo data size: ${dataSizeKB}KB, fileName: ${fileName}`);
+    if (imageData.length > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: `Logo data is too large (${dataSizeKB}KB). Please compress the image further or use a smaller image.` });
     }
 
     // Store the FULL base64 data URL (including prefix) in database

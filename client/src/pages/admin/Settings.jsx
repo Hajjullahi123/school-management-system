@@ -140,8 +140,12 @@ const Settings = () => {
   const handleLogoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
-        toast.error('File size must be less than 2MB');
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit for original file
+        toast.error('File size must be less than 5MB');
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select a valid image file (PNG, JPG, etc.)');
         return;
       }
       setLogoFile(file);
@@ -168,12 +172,14 @@ const Settings = () => {
     try {
       let updatedSettings = { ...settings };
 
-      // 1. Upload logo if changed (NEW: Use base64!)
+      // 1. Upload logo if changed (Use base64 with aggressive compression)
       if (logoFile) {
-        // ... (existing base64 logo logic)
+        toast.loading('Compressing logo image...', { id: 'logo-upload' });
         let processedLogo = logoFile;
         try {
-          processedLogo = await compressImage(logoFile, 500, 500, 0.85);
+          // Compress aggressively: 300x300 at 0.7 quality to keep base64 small
+          processedLogo = await compressImage(logoFile, 300, 300, 0.7);
+          console.log(`Logo compressed: ${(logoFile.size / 1024).toFixed(1)}KB -> ${(processedLogo.size / 1024).toFixed(1)}KB`);
         } catch (e) {
           console.warn('Logo compression failed, using original', e);
         }
@@ -185,6 +191,16 @@ const Settings = () => {
           reader.readAsDataURL(processedLogo);
         });
 
+        // Check base64 size - reject if over 2MB (way too large for DB storage)
+        const base64SizeKB = (base64Data.length / 1024).toFixed(1);
+        console.log(`Logo base64 size: ${base64SizeKB}KB`);
+        if (base64Data.length > 2 * 1024 * 1024) {
+          toast.error(`Logo image is too large (${base64SizeKB}KB after compression). Please use a smaller image.`, { id: 'logo-upload' });
+          setSaving(false);
+          return;
+        }
+
+        toast.loading('Uploading logo...', { id: 'logo-upload' });
         const logoResponse = await api.post('/api/settings/logo-base64', {
           imageData: base64Data,
           fileName: processedLogo.name || logoFile.name
@@ -193,6 +209,9 @@ const Settings = () => {
         const logoData = await logoResponse.json();
         if (logoResponse.ok) {
           updatedSettings.logoUrl = logoData.logoUrl;
+          toast.success('Logo uploaded!', { id: 'logo-upload' });
+        } else {
+          toast.error(`Logo upload failed: ${logoData.error || 'Unknown error'}`, { id: 'logo-upload' });
         }
       }
 
