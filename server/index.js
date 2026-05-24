@@ -205,21 +205,68 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
+// Security Middleware Imports
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
+// Basic Security Headers (CSP disabled to not break React frontend)
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
+
+// Rate Limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // limit each IP to 500 requests per windowMs
+  message: { error: 'Too many requests from this IP, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // limit each IP to 50 requests per windowMs for auth routes
+  message: { error: 'Too many authentication attempts from this IP, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Middleware
 // CORS configuration
+const allowedOrigins = [
+  'https://educatechportal.com',
+  'https://www.educatechportal.com',
+  'capacitor://localhost',
+  'ionic://localhost',
+  'http://localhost',
+  'http://localhost:5173',
+  'http://localhost:3000'
+];
+
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || process.env.NODE_ENV === 'production') {
+    if (!origin) return callback(null, true);
+    
+    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
       return callback(null, true);
     }
-    if (origin.includes('localhost')) return callback(null, true);
-    callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.educatechportal.com')) {
+      callback(null, true);
+    } else {
+      console.warn(`[CORS] Blocked request from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
   },
   credentials: true
 }));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// Apply Rate Limiters
+app.use('/api/', apiLimiter);
 app.use(cookieParser());
 
 app.post('/api/log-client-error', (req, res) => {
@@ -324,7 +371,7 @@ app.get('/api/public/global-settings', async (req, res) => {
 });
 
 // Use Routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', authenticate, checkSubscription, userRoutes);
 app.use('/api/students', authenticate, checkSubscription, studentRoutes);
 app.use('/api/subjects', authenticate, checkSubscription, subjectRoutes);
