@@ -5,7 +5,7 @@ import { formatNumber } from '../../utils/formatters';
 
 const FeeStructureSetup = () => {
   const { user } = useAuth();
-  const isViewOnly = ['admin', 'superadmin', 'proprietor'].includes(user?.role?.toLowerCase());
+  const isViewOnly = !['admin', 'superadmin', 'proprietor', 'accountant'].includes(user?.role?.toLowerCase());
   const [classes, setClasses] = useState([]);
   const [terms, setTerms] = useState([]);
   const [sessions, setSessions] = useState([]);
