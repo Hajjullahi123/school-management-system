@@ -1194,6 +1194,9 @@ model FeePayment {
   FeeRecord     FeeRecord @relation(fields: [feeRecordId], references: [id])
   recordedByUser User      @relation(fields: [recordedBy], references: [id])
   School        School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([feeRecordId])
+  @@index([schoolId, paymentDate])
 }
 
 model FeeRecord {
@@ -1220,6 +1223,7 @@ model FeeRecord {
   OnlinePayment     OnlinePayment[]
 
   @@unique([schoolId, studentId, termId, academicSessionId])
+  @@index([schoolId, termId, academicSessionId])
 }
 
 model GalleryImage {
@@ -1334,6 +1338,9 @@ model MiscellaneousFeePayment {
   MiscellaneousFee MiscellaneousFee @relation(fields: [feeId], references: [id], onDelete: Cascade)
   Student          Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
   School           School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([feeId])
+  @@index([schoolId, studentId])
 }
 
 model OnlinePayment {
