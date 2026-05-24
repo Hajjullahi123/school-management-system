@@ -3,6 +3,7 @@ import { toast } from '../../utils/toast';
 import { api, API_BASE_URL } from '../../api';
 
 import DocumentUploader from '../../components/DocumentUploader';
+import { compressImage } from '../../utils/imageCompressor';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('branding');
@@ -170,16 +171,23 @@ const Settings = () => {
       // 1. Upload logo if changed (NEW: Use base64!)
       if (logoFile) {
         // ... (existing base64 logo logic)
+        let processedLogo = logoFile;
+        try {
+          processedLogo = await compressImage(logoFile, 500, 500, 0.85);
+        } catch (e) {
+          console.warn('Logo compression failed, using original', e);
+        }
+
         const reader = new FileReader();
         const base64Data = await new Promise((resolve, reject) => {
           reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(logoFile);
+          reader.onerror = () => reject(new Error('Failed to read logo file. It may be unsupported or corrupted.'));
+          reader.readAsDataURL(processedLogo);
         });
 
         const logoResponse = await api.post('/api/settings/logo-base64', {
           imageData: base64Data,
-          fileName: logoFile.name
+          fileName: processedLogo.name || logoFile.name
         });
 
         const logoData = await logoResponse.json();
@@ -190,16 +198,23 @@ const Settings = () => {
 
       // 1b. Upload Principal Signature if changed (Use base64!)
       if (signatureFile) {
+        let processedSig = signatureFile;
+        try {
+          processedSig = await compressImage(signatureFile, 800, 400, 0.85);
+        } catch (e) {
+          console.warn('Signature compression failed, using original', e);
+        }
+
         const reader = new FileReader();
         const base64Data = await new Promise((resolve, reject) => {
           reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(signatureFile);
+          reader.onerror = () => reject(new Error('Failed to read signature file. It may be unsupported or corrupted.'));
+          reader.readAsDataURL(processedSig);
         });
 
         const sigResponse = await api.post('/api/settings/principal-signature-base64', {
           imageData: base64Data,
-          fileName: signatureFile.name
+          fileName: processedSig.name || signatureFile.name
         });
 
         const sigData = await sigResponse.json();
@@ -263,7 +278,8 @@ const Settings = () => {
       }, 1000);
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast.error('Failed to save settings: ' + error.message);
+      const errorMessage = error?.message || error || 'Unknown error occurred';
+      toast.error(`Failed to save settings: ${errorMessage}`);
     } finally {
       setSaving(false);
     }

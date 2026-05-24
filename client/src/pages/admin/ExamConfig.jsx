@@ -177,7 +177,8 @@ const ExamConfig = () => {
       toast.success('Exam configuration saved successfully');
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast.error('Failed to save exam settings: ' + error.message);
+      const errorMessage = error?.message || error || 'Unknown error occurred';
+      toast.error(`Failed to save settings: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
