@@ -55,7 +55,6 @@ export const compressImage = (file, maxWidth = 500, maxHeight = 500, quality = 0
           'image/jpeg',
           quality
         );
-        );
     };
     
     img.onerror = () => {
