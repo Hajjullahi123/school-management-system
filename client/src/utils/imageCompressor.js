@@ -43,8 +43,11 @@ export const compressImage = (file, maxWidth = 500, maxHeight = 500, quality = 0
               reject(new Error('Canvas is empty'));
               return;
             }
+            // Ensure the new filename ends with .jpg to pass backend filters
+            const newFilename = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+            
             // Create a new File from the blob
-            const compressedFile = new File([blob], file.name, {
+            const compressedFile = new File([blob], newFilename, {
               type: 'image/jpeg',
               lastModified: Date.now(),
             });
@@ -54,8 +57,8 @@ export const compressImage = (file, maxWidth = 500, maxHeight = 500, quality = 0
           quality
         );
       };
-      img.onerror = (error) => reject(error);
+      img.onerror = () => reject(new Error('Failed to load image into canvas for compression'));
     };
-    reader.onerror = (error) => reject(error);
+    reader.onerror = () => reject(new Error('FileReader failed to read the selected file'));
   });
 };
