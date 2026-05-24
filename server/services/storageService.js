@@ -2,7 +2,6 @@ const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
 const path = require('path');
 const { Readable } = require('stream');
-const sharp = require('sharp');
 
 const isCloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && 
                                process.env.CLOUDINARY_API_KEY && 
@@ -40,18 +39,8 @@ const uploadFromBuffer = (buffer, options = {}) => {
 const uploadFile = async (file, folder = 'general') => {
   let finalBuffer = file.buffer;
 
-  // 1. AUTO-OPTIMIZE: Shrink student/teacher photos to save RAM and DB space
-  if (folder === 'students' || folder === 'teachers') {
-    try {
-      finalBuffer = await sharp(file.buffer)
-        .resize(300, 300, { fit: 'cover' }) // Square crop
-        .jpeg({ quality: 80 }) // Compress to 80% quality
-        .toBuffer();
-      console.log(`[Storage] Optimized ${folder} photo from ${Math.round(file.buffer.length/1024)}KB to ${Math.round(finalBuffer.length/1024)}KB`);
-    } catch (resizeErr) {
-      console.warn('[Storage] Resizing failed, using original buffer:', resizeErr.message);
-    }
-  }
+  // 1. AUTO-OPTIMIZE: Frontend already shrinks student/teacher photos to save RAM and DB space.
+  // We do NOT use sharp() here because processing raw HEIC files causes C++ segmentation faults (Failed to fetch).
 
   if (!isCloudinaryConfigured) {
     // Fallback: Convert to optimized Base64
