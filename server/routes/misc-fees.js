@@ -122,12 +122,7 @@ router.get('/detailed-analytics', authenticate, async (req, res) => {
 
     const fees = await prisma.miscellaneousFee.findMany({
       where,
-      include: {
-        payments: {
-          include: {
-            student: {
-              include: {
-                user: {
+      include: { MiscellaneousFeePayment: { include: { Student: { include: { user: {
                   select: { firstName: true, lastName: true }
                 }
               }
@@ -157,7 +152,7 @@ router.get('/detailed-analytics', authenticate, async (req, res) => {
 
       const classesData = applicableClasses.map(cls => {
         const studentsInClass = cls.students.map(student => {
-          const studentPayments = fee.payments.filter(p => p.studentId === student.id);
+          const studentPayments = fee.MiscellaneousFeePayment.filter(p => p.studentId === student.id);
           const totalPaid = studentPayments.reduce((sum, p) => sum + p.amount, 0);
           return {
             id: student.id,
@@ -227,9 +222,7 @@ router.get('/analytics', authenticate, async (req, res) => {
   try {
     const fees = await prisma.miscellaneousFee.findMany({
       where: { schoolId: parseInt(req.schoolId) },
-      include: {
-        payments: true
-      }
+      include: { MiscellaneousFeePayment: true }
     });
 
     const classes = await prisma.class.findMany({
@@ -252,7 +245,7 @@ router.get('/analytics', authenticate, async (req, res) => {
       totalExpected += fee.amount * studentCount;
 
       // Calculate received amount
-      const received = fee.payments.reduce((sum, payment) => sum + payment.amount, 0);
+      const received = fee.MiscellaneousFeePayment.reduce((sum, payment) => sum + payment.amount, 0);
       totalReceived += received;
     });
 
@@ -284,18 +277,14 @@ router.get('/student/:studentId', authenticate, async (req, res) => {
     // Get all fees applicable to this student's class
     const fees = await prisma.miscellaneousFee.findMany({
       where: { schoolId: parseInt(req.schoolId) },
-      include: {
-        payments: {
-          where: { studentId: parseInt(studentId) }
-        }
-      }
+      include: { MiscellaneousFeePayment: { where: { studentId: parseInt(studentId) } } }
     });
 
     const applicableFees = fees.filter(fee => {
       const classIds = JSON.parse(fee.classIds || '[]');
       return classIds.includes(student.classId?.toString());
     }).map(fee => {
-      const totalPaid = fee.payments.reduce((sum, p) => sum + p.amount, 0);
+      const totalPaid = fee.MiscellaneousFeePayment.reduce((sum, p) => sum + p.amount, 0);
       return {
         id: fee.id,
         title: fee.title,
@@ -304,7 +293,7 @@ router.get('/student/:studentId', authenticate, async (req, res) => {
         isCompulsory: fee.isCompulsory,
         paid: totalPaid,
         balance: fee.amount - totalPaid,
-        payments: fee.payments
+        payments: fee.MiscellaneousFeePayment
       };
     });
 
@@ -334,23 +323,17 @@ router.post('/payments', authenticate, authorize(['admin', 'superadmin', 'accoun
         receiptNumber,
         recordedBy: req.user.id
       },
-      include: {
-        student: {
-          include: {
-            user: true
-          }
-        },
-        fee: true
-      }
+      include: { Student: { include: { user: true } }, MiscellaneousFee: true }
     });
 
     // Patch: Ensure student.user exists to prevent frontend crashes in older versions
     const patchedPayment = {
       ...payment,
       student: {
-        ...payment.student,
-        user: payment.student.user || { firstName: 'Student', lastName: '' }
-      }
+        ...payment.Student,
+        user: payment.Student?.user || { firstName: 'Student', lastName: '' }
+      },
+      fee: payment.MiscellaneousFee
     };
 
     res.status(201).json(patchedPayment);
@@ -370,14 +353,7 @@ router.get('/payments', authenticate, async (req, res) => {
 
     const payments = await prisma.miscellaneousFeePayment.findMany({
       where,
-      include: {
-        student: {
-          include: {
-            user: true
-          }
-        },
-        fee: true
-      },
+      include: { Student: { include: { user: true } }, MiscellaneousFee: true },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -385,9 +361,10 @@ router.get('/payments', authenticate, async (req, res) => {
     const patchedPayments = payments.map(p => ({
       ...p,
       student: {
-        ...p.student,
-        user: p.student?.user || { firstName: 'Student', lastName: '' }
-      }
+        ...p.Student,
+        user: p.Student?.user || { firstName: 'Student', lastName: '' }
+      },
+      fee: p.MiscellaneousFee
     }));
 
     res.json(patchedPayments);
@@ -421,16 +398,7 @@ router.get('/receipt/:paymentId', authenticate, async (req, res) => {
 
     const payment = await prisma.miscellaneousFeePayment.findUnique({
       where: { id: parseInt(paymentId) },
-      include: {
-        student: {
-          include: {
-            user: true,
-            classModel: true
-          }
-        },
-        fee: true,
-        school: true
-      }
+      include: { Student: { include: { user: true, classModel: true } }, MiscellaneousFee: true, School: true }
     });
 
     if (!payment || payment.schoolId !== parseInt(req.schoolId)) {
@@ -441,9 +409,11 @@ router.get('/receipt/:paymentId', authenticate, async (req, res) => {
     const patchedPayment = {
       ...payment,
       student: {
-        ...payment.student,
-        user: payment.student.user || { firstName: 'Student', lastName: '' }
-      }
+        ...payment.Student,
+        user: payment.Student?.user || { firstName: 'Student', lastName: '' }
+      },
+      fee: payment.MiscellaneousFee,
+      school: payment.School
     };
 
     res.json(patchedPayment);
