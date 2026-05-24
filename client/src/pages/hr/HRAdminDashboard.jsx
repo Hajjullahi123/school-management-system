@@ -13,7 +13,7 @@ const HRAdminDashboard = () => {
   const [staffPool, setStaffPool] = useState([]);
   
   const [showVoucherModal, setShowVoucherModal] = useState(false);
-  const [voucherForm, setVoucherForm] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
+  const [voucherForm, setVoucherForm] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear(), id: null });
   
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [selectedVoucher, setSelectedVoucher] = useState(null);
@@ -63,16 +63,28 @@ const HRAdminDashboard = () => {
 
   const handleCreateVoucher = async () => {
     try {
-      const res = await api.post('/api/hr/admin/vouchers', voucherForm);
-      if (res.ok) {
-        toast.success('Monthly payroll voucher drafted');
-        setShowVoucherModal(false);
-        fetchVouchers();
+      if (voucherForm.id) {
+         const res = await api.patch(`/api/hr/admin/vouchers/${voucherForm.id}`, { month: voucherForm.month, year: voucherForm.year });
+         if (res.ok) {
+           toast.success('Voucher updated successfully');
+           setShowVoucherModal(false);
+           fetchVouchers();
+         } else {
+           const err = await res.json();
+           toast.error(err.error || 'Voucher update failed');
+         }
       } else {
-        const err = await res.json();
-        toast.error(err.error || 'Voucher creation failed');
+         const res = await api.post('/api/hr/admin/vouchers', voucherForm);
+         if (res.ok) {
+           toast.success('Monthly payroll voucher drafted');
+           setShowVoucherModal(false);
+           fetchVouchers();
+         } else {
+           const err = await res.json();
+           toast.error(err.error || 'Voucher creation failed');
+         }
       }
-    } catch (e) { toast.error('Drafting failed'); }
+    } catch (e) { toast.error('Operation failed'); }
   };
 
   const handleProcessRequest = async (type, id, status, reason = null) => {
@@ -137,6 +149,20 @@ const HRAdminDashboard = () => {
     } catch (e) { toast.error('Unlock sequence failed'); }
   };
 
+  const handleDeleteVoucher = async (id) => {
+    if (!window.confirm('Are you sure you want to permanently delete this draft voucher? All associated records will be lost.')) return;
+    try {
+      const res = await api.delete(`/api/hr/admin/vouchers/${id}`);
+      if (res.ok) {
+        toast.success('Voucher deleted successfully');
+        fetchVouchers();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Deletion sequence failed');
+      }
+    } catch (e) { toast.error('Deletion sequence failed'); }
+  };
+
   if (loading) return <div className="p-20 text-center animate-pulse font-black text-gray-300 uppercase tracking-widest">Accessing HR Strategic Hub...</div>;
 
   return (
@@ -163,7 +189,10 @@ const HRAdminDashboard = () => {
                       <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter">Strategic Payroll</h3>
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Manage monthly vouchers & disbursement</p>
                    </div>
-                   <button onClick={() => setShowVoucherModal(true)} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all">Draft New Voucher</button>
+                   <button onClick={() => {
+                        setVoucherForm({ month: new Date().getMonth() + 1, year: new Date().getFullYear(), id: null });
+                        setShowVoucherModal(true);
+                    }} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all">Draft New Voucher</button>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -189,7 +218,16 @@ const HRAdminDashboard = () => {
                             <div className="flex gap-2 mt-4">
                                <button onClick={() => handleOpenVoucher(v)} className="flex-1 py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 transition-all">Open Records</button>
                                {v.status === 'DRAFT' && (
-                                  <button onClick={() => handleFinalizeVoucher(v.id)} className="px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all" title="Finalize & Lock">Finalize</button>
+                                  <>
+                                     <button onClick={() => {
+                                         setVoucherForm({ month: v.month, year: v.year, id: v.id });
+                                         setShowVoucherModal(true);
+                                     }} className="px-3 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-all" title="Edit Month/Year">Edit</button>
+                                     <button onClick={() => handleFinalizeVoucher(v.id)} className="px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all" title="Finalize & Lock">Finalize</button>
+                                     <button onClick={() => handleDeleteVoucher(v.id)} className="px-3 py-4 bg-rose-50 text-rose-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all" title="Delete Draft">
+                                        <svg className="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                     </button>
+                                  </>
                                )}
                                {v.status === 'FINALIZED' && (
                                   <button onClick={() => handleUnlockVoucher(v.id)} className="px-6 py-4 bg-amber-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-700 transition-all" title="Unlock Voucher">Unlock</button>
@@ -411,7 +449,7 @@ const HRAdminDashboard = () => {
        {showVoucherModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
              <div className="bg-white rounded-[3rem] w-full max-w-sm p-10 shadow-2xl border border-gray-100">
-                <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter italic mb-8">Draft Voucher</h2>
+                <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter italic mb-8">{voucherForm.id ? 'Edit Voucher' : 'Draft Voucher'}</h2>
                 <div className="space-y-6">
                    <div className="grid grid-cols-2 gap-4">
                       <div>
@@ -427,7 +465,7 @@ const HRAdminDashboard = () => {
                    </div>
                    <div className="flex gap-4 pt-4">
                       <button onClick={() => setShowVoucherModal(false)} className="flex-1 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400">Abort</button>
-                      <button onClick={handleCreateVoucher} className="flex-2 bg-indigo-600 text-white py-4 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all">Initialize Sequence</button>
+                      <button onClick={handleCreateVoucher} className="flex-2 bg-indigo-600 text-white py-4 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all">{voucherForm.id ? 'Update Sequence' : 'Initialize Sequence'}</button>
                    </div>
                 </div>
              </div>

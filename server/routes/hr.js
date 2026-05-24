@@ -260,6 +260,61 @@ router.post('/admin/vouchers', authenticate, canManageHR, async (req, res) => {
   }
 });
 
+// Edit/Update a Draft voucher's month/year
+router.patch('/admin/vouchers/:id', authenticate, canManageHR, async (req, res) => {
+  try {
+    const voucherId = parseInt(req.params.id);
+    const { month, year } = req.body;
+    
+    const voucher = await prisma.payrollVoucher.findUnique({
+      where: { id: voucherId, schoolId: req.schoolId }
+    });
+
+    if (!voucher) return res.status(404).json({ error: 'Voucher not found' });
+    if (voucher.status === 'FINALIZED') return res.status(400).json({ error: 'Cannot edit finalized voucher' });
+
+    // Check if new month/year exists
+    const existing = await prisma.payrollVoucher.findUnique({
+      where: { schoolId_month_year: { schoolId: req.schoolId, month: parseInt(month), year: parseInt(year) } }
+    });
+    
+    if (existing && existing.id !== voucherId) {
+      return res.status(400).json({ error: 'Another voucher already exists for this period' });
+    }
+
+    const updated = await prisma.payrollVoucher.update({
+      where: { id: voucherId },
+      data: { month: parseInt(month), year: parseInt(year) }
+    });
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a Draft voucher
+router.delete('/admin/vouchers/:id', authenticate, canManageHR, async (req, res) => {
+  try {
+    const voucherId = parseInt(req.params.id);
+    
+    const voucher = await prisma.payrollVoucher.findUnique({
+      where: { id: voucherId, schoolId: req.schoolId }
+    });
+
+    if (!voucher) return res.status(404).json({ error: 'Voucher not found' });
+    if (voucher.status === 'FINALIZED') return res.status(400).json({ error: 'Cannot delete finalized voucher' });
+
+    await prisma.payrollVoucher.delete({
+      where: { id: voucherId }
+    });
+
+    res.json({ message: 'Voucher deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Update payroll record (Salary, Deductions, Allowances)
 router.patch('/admin/payroll-records/:id', authenticate, canManageHR, async (req, res) => {
   try {
