@@ -2,6 +2,24 @@
 // This file provides a single place to manage all API endpoints
 
 import { API_BASE_URL } from './config';
+import toast from 'react-hot-toast';
+
+// Global error handler for fetch responses
+const handleGlobalResponse = (response) => {
+  if (!response.ok) {
+    if (response.status === 401 && !window.location.pathname.includes('/login')) {
+      toast.error('Session expired or unauthorized. Please log in again.');
+      // Automatically clear token on 401 to prevent infinite loops
+      localStorage.removeItem('token');
+      if (window.location.pathname !== '/') {
+         setTimeout(() => { window.location.href = '/login'; }, 1500);
+      }
+    } else if (response.status >= 500) {
+      toast.error('Server error encountered. Our team has been notified.');
+    }
+  }
+  return response;
+};
 
 // Helper function to make API calls
 export const apiCall = async (endpoint, options = {}) => {
@@ -88,7 +106,7 @@ export const api = {
     console.log(`[API GET] ${url} - Token: ${token ? 'Yes' : 'No'}`);
     const headers = { 'Content-Type': 'application/json', ...options.headers };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(url, { ...options, method: 'GET', headers, credentials: 'include' });
+    return fetch(url, { ...options, method: 'GET', headers, credentials: 'include' }).then(handleGlobalResponse);
   },
 
   post: async (endpoint, data, options = {}) => {
@@ -104,7 +122,7 @@ export const api = {
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const body = isFormData ? data : JSON.stringify(data);
-    return fetch(url, { ...options, method: 'POST', headers, credentials: 'include', body });
+    return fetch(url, { ...options, method: 'POST', headers, credentials: 'include', body }).then(handleGlobalResponse);
   },
 
   put: async (endpoint, data, options = {}) => {
@@ -120,7 +138,7 @@ export const api = {
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const body = isFormData ? data : JSON.stringify(data);
-    return fetch(url, { ...options, method: 'PUT', headers, credentials: 'include', body });
+    return fetch(url, { ...options, method: 'PUT', headers, credentials: 'include', body }).then(handleGlobalResponse);
   },
 
   delete: async (endpoint, options = {}) => {
@@ -129,7 +147,7 @@ export const api = {
     const token = localStorage.getItem('token');
     const headers = { 'Content-Type': 'application/json', ...options.headers };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(url, { ...options, method: 'DELETE', headers, credentials: 'include' });
+    return fetch(url, { ...options, method: 'DELETE', headers, credentials: 'include' }).then(handleGlobalResponse);
   },
 
   patch: async (endpoint, data, options = {}) => {
@@ -138,7 +156,7 @@ export const api = {
     const token = localStorage.getItem('token');
     const headers = { 'Content-Type': 'application/json', ...options.headers };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(url, { ...options, method: 'PATCH', headers, credentials: 'include', body: JSON.stringify(data) });
+    return fetch(url, { ...options, method: 'PATCH', headers, credentials: 'include', body: JSON.stringify(data) }).then(handleGlobalResponse);
   },
 
   postForm: async (endpoint, formData, options = {}) => {
@@ -148,7 +166,7 @@ export const api = {
     // For FormData, we must NOT set Content-Type header so the browser sets it with the boundary
     const headers = { ...options.headers };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(url, { ...options, method: 'POST', headers, credentials: 'include', body: formData });
+    return fetch(url, { ...options, method: 'POST', headers, credentials: 'include', body: formData }).then(handleGlobalResponse);
   }
 };
 
