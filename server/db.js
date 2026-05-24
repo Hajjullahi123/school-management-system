@@ -47,13 +47,15 @@ const prisma = global.__prisma__.$extends({
       // Automatically hide deleted records from list queries
       async findMany({ model, args, query }) {
         if (softDeleteModels.includes(model)) {
-          args.where = { ...args.where, isDeleted: false };
+          args = args || {};
+          args.where = { ...(args.where || {}), isDeleted: false };
         }
         return query(args);
       },
       async findFirst({ model, args, query }) {
         if (softDeleteModels.includes(model)) {
-          args.where = { ...args.where, isDeleted: false };
+          args = args || {};
+          args.where = { ...(args.where || {}), isDeleted: false };
         }
         return query(args);
       }
