@@ -212,7 +212,8 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
       if (role === 'student') {
         finalPassword = admissionNumber;
       } else {
-        finalPassword = Math.random().toString(36).slice(-8).toUpperCase();
+        const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
+        finalPassword = `${firstName}${lastInitial}@123`;
       }
     }
 
@@ -328,8 +329,9 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
       const nextSequence = String(maxSequence + 1).padStart(3, '0');
       const generatedStaffId = `${schoolInitials}/${currentYear}/${nextSequence}`;
 
-      // Auto-generate random password
-      const generatedPassword = Math.random().toString(36).slice(-8).toUpperCase();
+      // Auto-generate password based on new requirements
+      const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
+      const generatedPassword = `${firstName}${lastInitial}@123`;
       const autoPasswordHash = await bcrypt.hash(generatedPassword, 10);
 
       // Use auto-generated credentials
@@ -362,7 +364,8 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
       };
     } else if (role === 'accountant') {
       // Auto-generate password for accountant
-      const generatedPassword = Math.random().toString(36).slice(-8).toUpperCase();
+      const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
+      const generatedPassword = `${firstName}${lastInitial}@123`;
       const finalPasswordHash = password ? await bcrypt.hash(password, 10) : await bcrypt.hash(generatedPassword, 10);
 
       user = await prisma.user.create({
@@ -379,8 +382,8 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
         role: 'Financial Accountant'
       };
     } else {
-      // Admin or other roles
-      const generatedPassword = Math.random().toString(36).slice(-8).toUpperCase();
+      const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
+      const generatedPassword = `${firstName}${lastInitial}@123`;
       const finalPasswordHash = password ? await bcrypt.hash(password, 10) : await bcrypt.hash(generatedPassword, 10);
 
       user = await prisma.user.create({

@@ -1028,3 +1028,280 @@ router.post('/results', authenticate, authorize(['admin', 'teacher', 'principal'
 });
 
 module.exports = router;
+
+// Download Bulk Staff Template (XLSX)
+router.get('/template/staff', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Staff Template');
+
+    worksheet.columns = [
+      { header: 'First Name*', key: 'firstName', width: 20 },
+      { header: 'Surname*', key: 'lastName', width: 20 },
+      { header: 'Other Name', key: 'middleName', width: 20 },
+      { header: 'Role (Drop-down)*', key: 'role', width: 25 },
+      { header: 'Email', key: 'email', width: 25 },
+      { header: 'Phone', key: 'phone', width: 20 },
+      { header: 'Specialization (For Teachers)', key: 'specialization', width: 30 }
+    ];
+
+    // Styling the header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    // Add example row
+    worksheet.addRow({
+      firstName: 'Amina',
+      lastName: 'Ibrahim',
+      middleName: '',
+      role: 'teacher',
+      email: 'amina@example.com',
+      phone: '08000000000',
+      specialization: 'Mathematics'
+    });
+
+    // Add Data Validation (Dropdowns) - Processing from row 2 up to 200
+    for (let i = 2; i <= 200; i++) {
+      worksheet.getCell(`D${i}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: ['"teacher,admin,principal,accountant,examination_officer,attendance_admin"']
+      };
+    }
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=Staff_Bulk_Upload_Template.xlsx');
+    
+    await workbook.xlsx.write(res);
+  } catch (error) {
+    console.error('Template generation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk upload staff from file
+router.post('/upload-staff', authenticate, authorize(['admin', 'principal']), upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const staffRaw = [];
+    const headers = {};
+
+    try {
+      const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(worksheet, { header: 1, raw: false });
+
+      if (data.length > 0) {
+        let headerRowIndex = 0;
+        while (headerRowIndex < data.length) {
+          const row = data[headerRowIndex];
+          if (row && row.some(cell => cell !== undefined && cell !== null && cell.toString().trim() !== '')) {
+            break;
+          }
+          headerRowIndex++;
+        }
+
+        if (headerRowIndex >= data.length) {
+          return res.status(400).json({ error: 'No data found in file' });
+        }
+
+        const headerRow = data[headerRowIndex].map(h => (h !== undefined && h !== null) ? h.toString().toLowerCase().trim() : '');
+        
+        headerRow.forEach((header, colNumber) => {
+          if (!header) return;
+          if (header.includes('first name')) headers.firstName = colNumber;
+          else if (header.includes('surname') || header.includes('last name')) headers.lastName = colNumber;
+          else if (header.includes('other name') || header.includes('middle name')) headers.middleName = colNumber;
+          else if (header.includes('role')) headers.role = colNumber;
+          else if (header === 'email' || header.includes('staff email')) headers.email = colNumber;
+          else if (header.includes('phone')) headers.phone = colNumber;
+          else if (header.includes('specialization')) headers.specialization = colNumber;
+        });
+
+        for (let i = headerRowIndex + 1; i < data.length; i++) {
+          const row = data[i];
+          if (!row || row.length === 0) continue;
+
+          const getVal = (key) => {
+            const idx = headers[key];
+            if (idx !== undefined && row[idx] !== undefined && row[idx] !== null) {
+              return row[idx].toString().trim();
+            }
+            return '';
+          };
+
+          const firstName = getVal('firstName');
+          const lastName = getVal('lastName');
+
+          if (!firstName && !lastName) continue;
+
+          staffRaw.push({
+            firstName,
+            lastName,
+            middleName: getVal('middleName'),
+            role: getVal('role') || 'teacher',
+            email: getVal('email'),
+            phone: getVal('phone'),
+            specialization: getVal('specialization')
+          });
+        }
+      }
+    } catch (parseError) {
+      console.error('File parsing error:', parseError);
+      return res.status(400).json({ error: 'Failed to parse file. Please make sure you are using a valid Excel (.xlsx) or CSV file.' });
+    }
+
+    if (staffRaw.length === 0) {
+      return res.status(400).json({ error: 'No staff data found in file' });
+    }
+
+    const results = { successful: [], failed: [] };
+    const schoolIdInt = parseInt(req.schoolId);
+
+    const school = await prisma.school.findUnique({ where: { id: schoolIdInt } });
+    const schoolCode = school?.code || 'SCH';
+    const schoolInitials = school?.name
+      ? school.name.split(' ').filter(word => word.length > 0).map(word => word[0].toUpperCase()).join('').substring(0, 3)
+      : 'SCH';
+    const currentYear = new Date().getFullYear();
+
+    for (const staff of staffRaw) {
+      try {
+        if (!staff.firstName || !staff.lastName || !staff.role) {
+          results.failed.push({
+            data: staff,
+            error: `Missing required fields: ${!staff.firstName ? 'firstName ' : ''}${!staff.lastName ? 'lastName ' : ''}${!staff.role ? 'role' : ''}`.trim()
+          });
+          continue;
+        }
+
+        const allowedRoles = ['teacher', 'admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin'];
+        if (!allowedRoles.includes(staff.role.toLowerCase())) {
+          results.failed.push({
+            data: staff,
+            error: `Invalid role: ${staff.role}. Allowed: ${allowedRoles.join(', ')}`
+          });
+          continue;
+        }
+
+        if (['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin'].includes(staff.role.toLowerCase())) {
+          const existingSingleton = await prisma.user.findFirst({
+            where: { schoolId: schoolIdInt, role: staff.role.toLowerCase() }
+          });
+          if (existingSingleton) {
+            results.failed.push({
+              data: staff,
+              error: `A ${staff.role} account already exists. Only one is allowed.`
+            });
+            continue;
+          }
+        }
+
+        const baseUsername = `${staff.firstName.toLowerCase()}.${staff.lastName.toLowerCase()}`.replace(/\s+/g, '');
+        let usernameExists = await prisma.user.findFirst({
+          where: { username: baseUsername, schoolId: schoolIdInt }
+        });
+        let counter = 1;
+        let finalUsername = baseUsername;
+
+        while (usernameExists) {
+          finalUsername = `${baseUsername}${counter}`;
+          usernameExists = await prisma.user.findFirst({
+            where: { username: finalUsername, schoolId: schoolIdInt }
+          });
+          counter++;
+        }
+
+        // Auto password generation
+        const lastInitial = staff.lastName.charAt(0).toUpperCase();
+        const generatedPassword = `${staff.firstName}${lastInitial}@123`;
+        const passwordHash = await bcrypt.hash(generatedPassword, 10);
+
+        let userEmailToUse = staff.email || null;
+        if (userEmailToUse) {
+          const existingEmailUser = await prisma.user.findUnique({
+            where: { schoolId_email: { schoolId: schoolIdInt, email: userEmailToUse } }
+          });
+          if (existingEmailUser) {
+            userEmailToUse = null; 
+          }
+        }
+
+        const user = await prisma.user.create({
+          data: {
+            schoolId: schoolIdInt,
+            username: finalUsername,
+            passwordHash,
+            email: userEmailToUse,
+            phone: staff.phone || null,
+            role: staff.role.toLowerCase(),
+            firstName: staff.firstName,
+            lastName: staff.lastName,
+            middleName: staff.middleName || null,
+            isActive: true,
+            mustChangePassword: false
+          }
+        });
+
+        if (staff.role.toLowerCase() === 'teacher') {
+          const existingTeachers = await prisma.teacher.findMany({
+            where: {
+              schoolId: schoolIdInt,
+              staffId: { startsWith: `${schoolInitials}/${currentYear}/` }
+            },
+            select: { staffId: true }
+          });
+
+          let maxSequence = 0;
+          const pattern = new RegExp(`${schoolInitials.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\/\\d{4}\\/(\\d{3})`);
+          existingTeachers.forEach(t => {
+            const match = t.staffId.match(pattern);
+            if (match) {
+              const seq = parseInt(match[1], 10);
+              if (seq > maxSequence) maxSequence = seq;
+            }
+          });
+
+          const nextSequence = String(maxSequence + 1).padStart(3, '0');
+          const generatedStaffId = `${schoolInitials}/${currentYear}/${nextSequence}`;
+
+          await prisma.teacher.create({
+            data: {
+              schoolId: schoolIdInt,
+              userId: user.id,
+              staffId: generatedStaffId,
+              specialization: staff.specialization || null
+            }
+          });
+        }
+
+        results.successful.push({
+          username: finalUsername,
+          password: generatedPassword,
+          name: `${staff.firstName} ${staff.lastName}`,
+          role: staff.role
+        });
+
+      } catch (err) {
+        console.error(`Error importing staff ${staff.firstName}:`, err);
+        results.failed.push({ data: staff, error: err.message });
+      }
+    }
+
+    res.json({
+      message: `Import completed. ${results.successful.length} successful, ${results.failed.length} failed.`,
+      successful: results.successful,
+      failed: results.failed
+    });
+
+  } catch (error) {
+    console.error('Bulk staff import error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
