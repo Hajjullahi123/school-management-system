@@ -14,8 +14,53 @@ if (!global.__prisma__) {
     errorFormat: 'pretty'
   });
 }
-const prisma = global.__prisma__;
+}
 
+// Define models that support soft deletion
+const softDeleteModels = ['Student', 'FeeRecord', 'FeePayment', 'MiscellaneousFeePayment'];
+
+// Extend Prisma Client with Soft Deletes
+const prisma = global.__prisma__.$extends({
+  query: {
+    $allModels: {
+      async delete({ model, args, query }) {
+        if (softDeleteModels.includes(model)) {
+          return global.__prisma__[model].update({
+            ...args,
+            data: { isDeleted: true, deletedAt: new Date() }
+          });
+        }
+        return query(args);
+      },
+      async deleteMany({ model, args, query }) {
+        if (softDeleteModels.includes(model)) {
+          if (args.data) {
+            args.data.isDeleted = true;
+            args.data.deletedAt = new Date();
+          }
+          return global.__prisma__[model].updateMany({
+            ...args,
+            data: { isDeleted: true, deletedAt: new Date() }
+          });
+        }
+        return query(args);
+      },
+      // Automatically hide deleted records from list queries
+      async findMany({ model, args, query }) {
+        if (softDeleteModels.includes(model)) {
+          args.where = { ...args.where, isDeleted: false };
+        }
+        return query(args);
+      },
+      async findFirst({ model, args, query }) {
+        if (softDeleteModels.includes(model)) {
+          args.where = { ...args.where, isDeleted: false };
+        }
+        return query(args);
+      }
+    }
+  }
+});
 // Optimization: Set SQLite pragmas for performance and concurrency
 // WAL mode allows multiple readers and one writer concurrently.
 async function applyPragmas() {

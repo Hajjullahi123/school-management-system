@@ -315,6 +315,8 @@ model Student {
   school                  School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   reportCards             StudentReportCard[]
   testimonial             Testimonial?
+  isDeleted               Boolean                   @default(false)
+  deletedAt               DateTime?
 
   @@unique([schoolId, admissionNumber])
   @@unique([schoolId, rollNo])
@@ -1191,6 +1193,8 @@ model FeePayment {
   paymentDate   DateTime  @default(now())
   recordedBy    Int
   createdAt     DateTime  @default(now())
+  isDeleted     Boolean   @default(false)
+  deletedAt     DateTime?
   FeeRecord     FeeRecord @relation(fields: [feeRecordId], references: [id])
   recordedByUser User      @relation(fields: [recordedBy], references: [id])
   School        School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -1221,6 +1225,8 @@ model FeeRecord {
   User              User?           @relation(fields: [clearedBy], references: [id])
   School            School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   OnlinePayment     OnlinePayment[]
+  isDeleted         Boolean         @default(false)
+  deletedAt         DateTime?
 
   @@unique([schoolId, studentId, termId, academicSessionId])
   @@index([schoolId, termId, academicSessionId])
@@ -1335,6 +1341,8 @@ model MiscellaneousFeePayment {
   receiptNumber    String?
   recordedBy       Int?
   createdAt        DateTime         @default(now())
+  isDeleted        Boolean          @default(false)
+  deletedAt        DateTime?
   MiscellaneousFee MiscellaneousFee @relation(fields: [feeId], references: [id], onDelete: Cascade)
   Student          Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
   School           School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
