@@ -125,51 +125,19 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
         console.warn('Fast stats fetch failed');
       }
 
-      const [studentsRes, classesRes, termsRes, sessionsRes, subjectsRes] = await Promise.all([
-        api.get('/api/students').catch(err => ({ ok: false, error: err })),
-        api.get('/api/classes').catch(err => ({ ok: false, error: err })),
+      const [termsRes, sessionsRes] = await Promise.all([
         api.get('/api/terms').catch(err => ({ ok: false, error: err })),
-        api.get('/api/academic-sessions').catch(err => ({ ok: false, error: err })),
-        (user?.role === 'admin' || user?.role === 'principal') ? api.get('/api/subjects').catch(err => ({ ok: false, error: err })) : Promise.resolve({ ok: true, json: () => [] })
+        api.get('/api/academic-sessions').catch(err => ({ ok: false, error: err }))
       ]);
 
-      // Parse safely
-      const studentsData = studentsRes.ok ? await studentsRes.json() : [];
-      const classesData = classesRes.ok ? await classesRes.json() : [];
       const terms = termsRes.ok ? await termsRes.json() : [];
       const sessions = sessionsRes.ok ? await sessionsRes.json() : [];
 
-      if (!studentsRes.ok) console.warn('Student fetch failed:', studentsRes.status);
-      if (!classesRes.ok) console.error('Classes fetch failed:', classesRes.status);
-
-      // Always recalculate from the authoritative class list to ensure
-      // enrollment counts are accurate after promotions/transfers.
-      // The fast stats serve as a placeholder only until classes load.
-      if (classesRes.ok) {
-        if (subjectsRes?.ok) {
-          const subjectsData = await subjectsRes.json();
-          setTotalSubjectsCount(Array.isArray(subjectsData) ? subjectsData.length : 0);
-        }
-
-        const students = Array.isArray(studentsData) ? studentsData : [];
-        const classes = Array.isArray(classesData) ? classesData : [];
-
-        let totalStudentsCount = 0;
-        let activeClassesCount = 0;
-
-        if (user?.role === 'teacher') {
-          // API already returns only classes relevant to this teacher (form master OR subject assignments)
-          totalStudentsCount = classes.reduce((acc, c) => acc + (c._count?.students || 0), 0);
-          activeClassesCount = classes.length;
-        } else {
-          if (students.length === 0 && classes.length > 0) {
-            totalStudentsCount = classes.reduce((acc, curr) => acc + (curr._count?.students || 0), 0);
-          } else {
-            totalStudentsCount = students.length;
-          }
-          activeClassesCount = classes.length;
-        }
-        setTeacherStats({ totalStudents: totalStudentsCount, activeClasses: activeClassesCount });
+      // We rely completely on the fast stats above for TeacherStats instead of over-fetching
+      if (!fastStatsLoaded) {
+         console.warn('Fast stats failed, falling back to 0 counts');
+         setTeacherStats({ totalStudents: 0, activeClasses: 0 });
+         setTotalSubjectsCount(0);
       }
 
       setAllTerms(Array.isArray(terms) ? terms : []);
