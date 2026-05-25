@@ -131,10 +131,10 @@ const BulkStaffUpload = () => {
   const downloadResults = () => {
     if (!results || !results.successful || results.successful.length === 0) return;
 
-    const headers = ['Name', 'Admission Number', 'Username', 'Default Password'];
+    const headers = ['Name', 'Role', 'Username', 'Default Password'];
     const rows = results.successful.map(s => [
       s.name,
-      s.admissionNumber,
+      s.role || '',
       s.username,
       s.password
     ]);
@@ -327,7 +327,6 @@ const BulkStaffUpload = () => {
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-2 text-left">Admission No.</th>
                       <th className="px-4 py-2 text-left">Name</th>
                       <th className="px-4 py-2 text-left">Username</th>
                       <th className="px-4 py-2 text-left">Role</th>
@@ -336,7 +335,6 @@ const BulkStaffUpload = () => {
                   <tbody className="divide-y divide-gray-200">
                     {results.successful.map((student, idx) => (
                       <tr key={idx} className="hover:bg-gray-50">
-                        <td className="px-4 py-2 font-medium text-primary">{student.admissionNumber}</td>
                         <td className="px-4 py-2">{student.name}</td>
                         <td className="px-4 py-2 font-mono text-xs">{student.username}</td>
                         <td className="px-4 py-2">{student.role}</td>
