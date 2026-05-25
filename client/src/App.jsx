@@ -38,6 +38,7 @@ const StudentManagement = lazyRetry(() => import('./pages/admin/StudentManagemen
 const BulkStudentUpload = lazyRetry(() => import('./pages/admin/BulkStudentUpload'));
 const BulkStaffUpload = lazyRetry(() => import('./pages/admin/BulkStaffUpload'));
 const AcademicSetup = lazyRetry(() => import('./pages/admin/AcademicSetup'));
+const SchoolSetupUpload = lazyRetry(() => import('./pages/admin/SchoolSetupUpload'));
 const ClassManagement = lazyRetry(() => import('./pages/admin/ClassManagement'));
 const AlumniManagement = lazyRetry(() => import('./pages/admin/AlumniManagement'));
 const SubjectManagement = lazyRetry(() => import('./pages/admin/SubjectManagement'));
@@ -500,6 +501,11 @@ function App() {
               <Route path="academic-setup" element={
                 <ProtectedRoute roles={['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']}>
                   <AcademicSetup />
+                </ProtectedRoute>
+              } />
+              <Route path="school-setup" element={
+                <ProtectedRoute roles={['admin', 'principal']}>
+                  <SchoolSetupUpload />
                 </ProtectedRoute>
               } />
               <Route path="class-management" element={
