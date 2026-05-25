@@ -1,3 +1,4 @@
+import { saveAs } from 'file-saver';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
@@ -399,7 +400,7 @@ const StudentManagement = () => {
         doc.text('Note: Student linked to existing account. Use your current password.', 105, startY, { align: 'center' });
       }
 
-      doc.save(`${newParentCredentials.name}_ParentCredentials.pdf`);
+      saveAs(doc.output('blob'), `${newParentCredentials.name}_ParentCredentials.pdf`);
     } catch (pdfError) {
       console.error('PDF Generation Error:', pdfError);
       alert('Failed to generate PDF. Please try the Print option.');
@@ -481,7 +482,7 @@ const StudentManagement = () => {
       doc.setTextColor(156, 163, 175); // gray-400
       doc.text('Please keep these credentials secure.', 105, 95, { align: 'center' });
 
-      doc.save(`credentials_${newStudentCredentials.username}.pdf`);
+      saveAs(doc.output('blob'), `credentials_${newStudentCredentials.username}.pdf`);
     } catch (error) {
       console.error('PDF Generation Error:', error);
       alert('Failed to generate PDF. Downloading text file instead.');
@@ -755,7 +756,7 @@ Note: Password must be changed on first login.
     doc.setTextColor(150, 0, 0);
     doc.text('IMPORTANT: Date of Birth must be in YYYY-MM-DD format (e.g., 2015-05-15).', 20, finalY);
 
-    doc.save('Student_Bulk_Upload_Guide.pdf');
+    saveAs(doc.output('blob'), 'Student_Bulk_Upload_Guide.pdf');
   };
 
   const handleDownloadPrintableForm = async () => {
@@ -898,7 +899,7 @@ Note: Password must be changed on first login.
     doc.text('Class Assigned: ___________________', 25, y + 22);
     doc.text('Admin Signature: __________________', 110, y + 22);
 
-    doc.save(`Admission_Form_${schoolSettings?.schoolName?.replace(/\s+/g, '_') || 'Student'}.pdf`);
+    saveAs(doc.output('blob'), `Admission_Form_${schoolSettings?.schoolName?.replace(/\s+/g, '_') || 'Student'}.pdf`);
   };
 
   const handleBulkUpload = async (e) => {
@@ -1941,3 +1942,4 @@ Note: Password must be changed on first login.
 };
 
 export default StudentManagement;
+

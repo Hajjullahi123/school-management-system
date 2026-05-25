@@ -1,3 +1,4 @@
+import { saveAs } from 'file-saver';
 import { api, API_BASE_URL } from '../api';
 import useSchoolSettings from '../hooks/useSchoolSettings';
 import { formatDateTime } from '../utils/formatters';
@@ -608,7 +609,7 @@ export default function PrintScholarshipModal({ student, isOpen, onClose, curren
       });
 
       pdf.addImage(imgData, 'PNG', 0, 0, 105, 148);
-      pdf.save(`ScholarshipCard-${student.admissionNumber}.pdf`);
+      saveAs(pdf.output('blob'), `ScholarshipCard-${student.admissionNumber}.pdf`);
 
       document.body.removeChild(iframe);
     } catch (error) {
@@ -691,3 +692,4 @@ export default function PrintScholarshipModal({ student, isOpen, onClose, curren
     </div>
   );
 }
+

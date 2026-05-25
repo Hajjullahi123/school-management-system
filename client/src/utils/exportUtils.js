@@ -1,3 +1,4 @@
+import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
@@ -60,5 +61,6 @@ export const exportToPDF = ({ title, headers, data, fileName, orientation = 'por
     margin: { top: 35 },
   });
 
-  doc.save(`${fileName}.pdf`);
+  saveAs(doc.output('blob'), `${fileName}.pdf`);
 };
+

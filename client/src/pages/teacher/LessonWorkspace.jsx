@@ -1,3 +1,4 @@
+import { saveAs } from 'file-saver';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
 import toast from 'react-hot-toast';
@@ -394,7 +395,7 @@ const LessonWorkspace = () => {
         const splitContent = doc.splitTextToSize(formData.content, width);
         doc.text(splitContent, margin, 75);
         
-        doc.save(`${view}_${formData.topic || 'no_topic'}.pdf`);
+        saveAs(doc.output('blob'), `${view}_${formData.topic || 'no_topic'}.pdf`);
         toast.success("PDF Downloaded!");
     };
 
@@ -845,3 +846,4 @@ const LessonWorkspace = () => {
 };
 
 export default LessonWorkspace;
+

@@ -1,3 +1,4 @@
+import { saveAs } from 'file-saver';
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -229,7 +230,7 @@ const Analytics = () => {
       doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.height - 10, { align: 'center' });
     }
 
-    doc.save(`analytics_report_${studentId}.pdf`);
+    saveAs(doc.output('blob'), `analytics_report_${studentId}.pdf`);
   };
 
   if (loading) {
@@ -521,3 +522,4 @@ const Analytics = () => {
 };
 
 export default Analytics;
+

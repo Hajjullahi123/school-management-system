@@ -1,3 +1,4 @@
+import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -88,5 +89,6 @@ export const generatePayslip = (record, schoolSettings) => {
   const footerText = `This is a computer-generated document. Generated on ${new Date().toLocaleString()}.`;
   doc.text(footerText, pageWidth / 2, 280, { align: 'center' });
   
-  doc.save(`Payslip_${record.staff.lastName}_${record.voucher.month}_${record.voucher.year}.pdf`);
+  saveAs(doc.output('blob'), `Payslip_${record.staff.lastName}_${record.voucher.month}_${record.voucher.year}.pdf`);
 };
+

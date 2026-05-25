@@ -834,7 +834,7 @@ export default function FeeManagement() {
       });
 
       pdf.addImage(imgData, 'PNG', 0, 0, 74, 100);
-      pdf.save(`MiscReceipt-${payment.receiptNumber || payment.id}.pdf`);
+      saveAs(pdf.output('blob'), `MiscReceipt-${payment.receiptNumber || payment.id}.pdf`);
 
       document.body.removeChild(iframe);
       toast.success('Receipt downloaded successfully', { id: toastId });
@@ -2103,7 +2103,7 @@ export default function FeeManagement() {
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      pdf.save(`DetailedReport-${fee.title}-${new Date().getTime()}.pdf`);
+      saveAs(pdf.output('blob'), `DetailedReport-${fee.title}-${new Date().getTime()}.pdf`);
 
       document.body.removeChild(iframe);
       toast.success('Report downloaded successfully', { id: toastId });
@@ -4283,3 +4283,4 @@ export default function FeeManagement() {
     </div>
   );
 }
+

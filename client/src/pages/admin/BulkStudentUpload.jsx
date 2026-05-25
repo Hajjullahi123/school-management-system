@@ -1,3 +1,4 @@
+import { saveAs } from 'file-saver';
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api, apiCall, API_BASE_URL } from '../../api';
@@ -255,7 +256,7 @@ const BulkStudentUpload = () => {
     doc.setTextColor(150, 0, 0);
     doc.text('IMPORTANT: Dates must be in YYYY-MM-DD format (e.g., 2015-05-15).', 20, finalY);
 
-    doc.save('Bulk_Upload_Guidance_IDs.pdf');
+    saveAs(doc.output('blob'), 'Bulk_Upload_Guidance_IDs.pdf');
   };
 
   const downloadPrintableForm = () => {
@@ -377,7 +378,7 @@ const BulkStudentUpload = () => {
     doc.text('Class Assigned: ___________________', 25, y + 22);
     doc.text('Admin Signature: __________________', 110, y + 22);
 
-    doc.save(`Admission_Form_${settings?.schoolName?.replace(/\s+/g, '_') || 'Student'}.pdf`);
+    saveAs(doc.output('blob'), `Admission_Form_${settings?.schoolName?.replace(/\s+/g, '_') || 'Student'}.pdf`);
   };
 
 
@@ -630,3 +631,4 @@ const BulkStudentUpload = () => {
 };
 
 export default BulkStudentUpload;
+

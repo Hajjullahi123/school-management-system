@@ -1,3 +1,4 @@
+import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -72,7 +73,7 @@ export const exportOverviewPDF = (schoolSettings, subjectComparison, classCompar
     headStyles: { fillColor: [16, 185, 129] }
   });
 
-  doc.save(`${schoolName}_Analytics_Overview_${new Date().toISOString().split('T')[0]}.pdf`);
+  saveAs(doc.output('blob'), `${schoolName}_Analytics_Overview_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
 export const exportSubjectsPDF = (schoolSettings, subjectComparison) => {
@@ -104,7 +105,7 @@ export const exportSubjectsPDF = (schoolSettings, subjectComparison) => {
     bodyStyles: { fontSize: 9 }
   });
 
-  doc.save(`${schoolName}_Subject_Analysis_${new Date().toISOString().split('T')[0]}.pdf`);
+  saveAs(doc.output('blob'), `${schoolName}_Subject_Analysis_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
 export const exportSubjectsExcel = (schoolSettings, subjectComparison) => {
@@ -153,7 +154,7 @@ export const exportClassesPDF = (schoolSettings, classComparison) => {
     bodyStyles: { fontSize: 9 }
   });
 
-  doc.save(`${schoolName}_Class_Comparison_${new Date().toISOString().split('T')[0]}.pdf`);
+  saveAs(doc.output('blob'), `${schoolName}_Class_Comparison_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
 export const exportClassesExcel = (schoolSettings, classComparison) => {
@@ -209,7 +210,7 @@ export const exportAtRiskPDF = (schoolSettings, atRiskStudents) => {
     }
   });
 
-  doc.save(`${schoolName}_At_Risk_Students_${new Date().toISOString().split('T')[0]}.pdf`);
+  saveAs(doc.output('blob'), `${schoolName}_At_Risk_Students_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
 export const exportAtRiskExcel = (schoolSettings, atRiskStudents) => {
@@ -230,3 +231,4 @@ export const exportAtRiskExcel = (schoolSettings, atRiskStudents) => {
 
   XLSX.writeFile(wb, `${schoolName}_At_Risk_Students_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
+

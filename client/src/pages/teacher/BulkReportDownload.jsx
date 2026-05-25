@@ -1,3 +1,4 @@
+import { saveAs } from 'file-saver';
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { api, API_BASE_URL } from '../../api';
@@ -253,7 +254,7 @@ const BulkReportDownload = () => {
         pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
       }
 
-      pdf.save(`BulkReports-${selectedClass}-${selectedTerm}.pdf`);
+      saveAs(pdf.output('blob'), `BulkReports-${selectedClass}-${selectedTerm}.pdf`);
       alert('PDF bundle downloaded successfully!');
     } catch (error) {
       console.error('Bulk PDF Generation failed:', error);
@@ -808,3 +809,4 @@ const BulkReportDownload = () => {
 };
 
 export default BulkReportDownload;
+
