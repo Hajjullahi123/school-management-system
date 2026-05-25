@@ -1,4 +1,5 @@
 import { saveAs } from 'file-saver';
+import { safeDocumentDownload } from '../utils/mobileDownload';
 import React, { useState, useEffect } from 'react';
 import EmailConfig from '../components/EmailConfig';
 import { api, API_BASE_URL } from '../api';
@@ -201,7 +202,7 @@ const ReportCard = () => {
       });
 
       pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
-      saveAs(pdf.output('blob'), `ReportCard-${reportData.student.admissionNumber.replace(/\//g, '-')}.pdf`);
+      safeDocumentDownload(pdf, `ReportCard-${reportData.student.admissionNumber.replace(/\//g, '-')}.pdf`);
       toast.success('PDF downloaded successfully!');
     } catch (error) {
       console.error('PDF Generation failed:', error);

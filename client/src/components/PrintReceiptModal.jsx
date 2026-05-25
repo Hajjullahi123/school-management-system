@@ -1,4 +1,5 @@
 import { saveAs } from 'file-saver';
+import { safeDocumentDownload } from '../utils/mobileDownload';
 import { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../api';
 import useSchoolSettings from '../hooks/useSchoolSettings';
@@ -837,7 +838,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
       });
 
       pdf.addImage(imgData, 'PNG', 0, 0, canvas.width * 0.264583, canvas.height * 0.264583);
-      saveAs(pdf.output('blob'), `Receipt-${student.admissionNumber}-${new Date().getTime()}.pdf`);
+      safeDocumentDownload(pdf, `Receipt-${student.admissionNumber}-${new Date().getTime()}.pdf`);
 
       document.body.removeChild(iframe);
     } catch (error) {

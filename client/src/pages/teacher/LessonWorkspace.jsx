@@ -1,4 +1,5 @@
 import { saveAs } from 'file-saver';
+import { safeDocumentDownload } from '../../utils/mobileDownload';
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
 import toast from 'react-hot-toast';
@@ -395,7 +396,7 @@ const LessonWorkspace = () => {
         const splitContent = doc.splitTextToSize(formData.content, width);
         doc.text(splitContent, margin, 75);
         
-        saveAs(doc.output('blob'), `${view}_${formData.topic || 'no_topic'}.pdf`);
+        safeDocumentDownload(doc, `${view}_${formData.topic || 'no_topic'}.pdf`);
         toast.success("PDF Downloaded!");
     };
 

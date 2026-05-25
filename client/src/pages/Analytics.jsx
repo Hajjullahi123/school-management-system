@@ -1,4 +1,5 @@
 import { saveAs } from 'file-saver';
+import { safeDocumentDownload } from '../utils/mobileDownload';
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -230,7 +231,7 @@ const Analytics = () => {
       doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.height - 10, { align: 'center' });
     }
 
-    saveAs(doc.output('blob'), `analytics_report_${studentId}.pdf`);
+    safeDocumentDownload(doc, `analytics_report_${studentId}.pdf`);
   };
 
   if (loading) {

@@ -1,4 +1,5 @@
 import { saveAs } from 'file-saver';
+import { safeDocumentDownload } from '../utils/mobileDownload';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -83,6 +84,6 @@ export const generatePayrollReport = (voucher, schoolSettings) => {
   const footerText = `Payroll Cycle Finalized - ID: #${voucher.id} | Generated on ${new Date().toLocaleString()}`;
   doc.text(footerText, pageWidth / 2, 200, { align: 'center' });
   
-  saveAs(doc.output('blob'), `Payroll_${new Date(0, voucher.month - 1).toLocaleString('default', { month: 'short' })}_${voucher.year}.pdf`);
+  safeDocumentDownload(doc, `Payroll_${new Date(0, voucher.month - 1).toLocaleString('default', { month: 'short' })}_${voucher.year}.pdf`);
 };
 

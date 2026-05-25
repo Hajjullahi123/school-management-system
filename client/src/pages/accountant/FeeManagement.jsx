@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { saveAs } from 'file-saver';
+import { safeDocumentDownload } from '../../utils/mobileDownload';
 import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import PrintReceiptModal from '../../components/PrintReceiptModal';
@@ -834,7 +835,7 @@ export default function FeeManagement() {
       });
 
       pdf.addImage(imgData, 'PNG', 0, 0, 74, 100);
-      saveAs(pdf.output('blob'), `MiscReceipt-${payment.receiptNumber || payment.id}.pdf`);
+      safeDocumentDownload(pdf, `MiscReceipt-${payment.receiptNumber || payment.id}.pdf`);
 
       document.body.removeChild(iframe);
       toast.success('Receipt downloaded successfully', { id: toastId });
@@ -2103,7 +2104,7 @@ export default function FeeManagement() {
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      saveAs(pdf.output('blob'), `DetailedReport-${fee.title}-${new Date().getTime()}.pdf`);
+      safeDocumentDownload(pdf, `DetailedReport-${fee.title}-${new Date().getTime()}.pdf`);
 
       document.body.removeChild(iframe);
       toast.success('Report downloaded successfully', { id: toastId });

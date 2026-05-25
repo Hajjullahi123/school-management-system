@@ -2,6 +2,7 @@ import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import { safeDocumentDownload } from './mobileDownload';
 
 /**
  * Export data to Excel (.xlsx)
@@ -61,6 +62,6 @@ export const exportToPDF = ({ title, headers, data, fileName, orientation = 'por
     margin: { top: 35 },
   });
 
-  saveAs(doc.output('blob'), `${fileName}.pdf`);
+  safeDocumentDownload(doc, `${fileName}.pdf`);
 };
 

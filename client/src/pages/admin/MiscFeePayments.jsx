@@ -1,4 +1,5 @@
 import { saveAs } from 'file-saver';
+import { safeDocumentDownload } from '../../utils/mobileDownload';
 import React, { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../../api';
 import { useAuth } from '../../context/AuthContext';
@@ -247,7 +248,7 @@ const MiscFeePayments = () => {
       });
 
       pdf.addImage(imgData, 'PNG', 0, 0, 74, 100);
-      saveAs(pdf.output('blob'), `MiscReceipt-${payment.receiptNumber || payment.id}.pdf`);
+      safeDocumentDownload(pdf, `MiscReceipt-${payment.receiptNumber || payment.id}.pdf`);
 
       document.body.removeChild(iframe);
       toast.success('Receipt downloaded successfully', { id: toastId });
