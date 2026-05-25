@@ -18,17 +18,34 @@ if (isCloudinaryConfigured) {
 
 const uploadFromBuffer = (buffer, options = {}) => {
   return new Promise((resolve, reject) => {
+    // Timeout to prevent hanging connections
+    const timeoutId = setTimeout(() => {
+      reject(new Error('Cloudinary upload timed out after 15 seconds'));
+    }, 15000);
+
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: 'school_management',
         resource_type: 'auto',
+        timeout: 15000,
         ...options
       },
       (error, result) => {
-        if (result) resolve(result.secure_url);
-        else reject(error);
+        clearTimeout(timeoutId);
+        if (result && result.secure_url) {
+          resolve(result.secure_url);
+        } else {
+          reject(error || new Error('Unknown Cloudinary upload error'));
+        }
       }
     );
+
+    // Handle stream errors
+    uploadStream.on('error', (err) => {
+      clearTimeout(timeoutId);
+      reject(err);
+    });
+
     Readable.from(buffer).pipe(uploadStream);
   });
 };
