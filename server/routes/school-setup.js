@@ -476,8 +476,14 @@ router.post('/upload', authenticate, authorize(['admin', 'principal']), upload.s
               });
 
               if (!subjectRecord) {
-                // Generate a code from the name
-                const code = subName.substring(0, 4).toUpperCase().replace(/\s/g, '');
+                // Generate a unique code from the name
+                const baseCode = subName.substring(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, '');
+                let code = baseCode || 'SUBJ';
+                let suffix = 1;
+                while (await prisma.subject.findFirst({ where: { schoolId: schoolIdInt, code } })) {
+                  code = `${baseCode.substring(0, 3)}${suffix++}`;
+                }
+
                 subjectRecord = await prisma.subject.create({
                   data: { schoolId: schoolIdInt, name: subName, code }
                 });
