@@ -424,7 +424,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
             user: true,
             parent: {
               include: {
-                User: true
+                user: true
               }
             },
             classModel: true
@@ -492,7 +492,7 @@ router.post('/payment', authenticate, authorize(['admin', 'principal', 'accounta
               user: true,
               parent: {
                 include: {
-                  User: true
+                  user: true
                 }
               },
               classModel: true
