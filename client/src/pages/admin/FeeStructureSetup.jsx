@@ -11,6 +11,9 @@ const FeeStructureSetup = () => {
   const [sessions, setSessions] = useState([]);
   const [feeStructures, setFeeStructures] = useState([]);
   const [schoolData, setSchoolData] = useState(null);
+  
+  const [filterTermId, setFilterTermId] = useState('');
+  const [filterClassId, setFilterClassId] = useState('');
 
   const [formData, setFormData] = useState({
     classId: '',
@@ -364,13 +367,39 @@ const FeeStructureSetup = () => {
         {/* Existing Ledger Table */}
         <div className="lg:col-span-7 animate-slide" style={{ animationDelay: '0.1s' }}>
           <div className="bg-white rounded-[32px] shadow-2xl border border-slate-100 overflow-hidden">
-            <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-              <div>
-                <h2 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em]">Active Ledger Configuration</h2>
-                <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Master Fee Schematics</p>
+            <div className="p-8 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em]">Active Ledger Configuration</h2>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Master Fee Schematics</p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <select
+                  className="flex-1 bg-white border-2 border-slate-100 rounded-2xl px-4 py-3 text-xs font-bold text-slate-600 focus:border-indigo-600 outline-none transition-colors cursor-pointer"
+                  value={filterTermId}
+                  onChange={e => setFilterTermId(e.target.value)}
+                >
+                  <option value="">All Terms</option>
+                  {terms.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+                <select
+                  className="flex-1 bg-white border-2 border-slate-100 rounded-2xl px-4 py-3 text-xs font-bold text-slate-600 focus:border-indigo-600 outline-none transition-colors cursor-pointer"
+                  value={filterClassId}
+                  onChange={e => setFilterClassId(e.target.value)}
+                >
+                  <option value="">All Classes</option>
+                  {classes.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} {c.arm || ''}</option>
+                  ))}
+                </select>
               </div>
             </div>
             
@@ -385,7 +414,11 @@ const FeeStructureSetup = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {feeStructures.map((fs) => (
+                  {feeStructures.filter(fs => {
+                    if (filterTermId && fs.termId.toString() !== filterTermId) return false;
+                    if (filterClassId && fs.classId.toString() !== filterClassId) return false;
+                    return true;
+                  }).map((fs) => (
                     <tr key={fs.id} className={`group hover:bg-indigo-50/30 transition-all ${editingStructure?.id === fs.id ? 'bg-indigo-50' : ''}`}>
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-4">
@@ -429,7 +462,11 @@ const FeeStructureSetup = () => {
                       </td>
                     </tr>
                   ))}
-                  {feeStructures.length === 0 && (
+                  {feeStructures.filter(fs => {
+                    if (filterTermId && fs.termId.toString() !== filterTermId) return false;
+                    if (filterClassId && fs.classId.toString() !== filterClassId) return false;
+                    return true;
+                  }).length === 0 && (
                     <tr>
                       <td colSpan="4" className="px-8 py-32 text-center">
                          <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-slate-100 shadow-inner group">
