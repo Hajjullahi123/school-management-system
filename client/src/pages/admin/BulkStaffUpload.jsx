@@ -9,25 +9,9 @@ const BulkStaffUpload = () => {
   const [csvData, setCsvData] = useState('');
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [classes, setClasses] = useState([]);
-  const [settings, setSettings] = useState(null);
-
   useEffect(() => {
-    fetchClasses();
-    fetchSettings();
+    // Settings or Classes not needed for staff bulk upload
   }, []);
-
-  const fetchSettings = async () => {
-    try {
-      const response = await api.get('/api/settings');
-      if (response.ok) {
-        const data = await response.json();
-        setSettings(data);
-      }
-    } catch (error) {
-      console.error('Error fetching settings:', error);
-    }
-  };
 
 
 
