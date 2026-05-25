@@ -122,14 +122,12 @@ function addInstructionsSheet(workbook, templateType) {
   const instructions = templateType === 'student' ? [
     '1. Use the "Students Template" sheet to fill in student information.',
     '2. In the "Class ID" column, select the class from the dropdown menu (e.g., "1 - Class Name").',
-    '3. Fields marked with * are required (First Name, Surname, Class ID, Parent Name).',
-    '4. Date of Birth must follow the format YYYY-MM-DD (e.g., 2012-10-25).',
-    '5. Use the drop-down menus for columns with selections (Class ID, Gender, Genotype, Disability, Scholarship).',
-    '6. Use the "Discount Amount" column to apply a permanent partial fee discount (e.g. 50000). Leave blank if none.',
-    '7. Save this file as .xlsx before uploading (CSV might lose dropdowns).',
-    '8. Do NOT delete or modify the header rows (rows 1-8). Start entering data from the example row below the column headers.',
-    '9. The example row (first data row) can be overwritten with real data.',
-    '10. Maximum of 500 students per upload.'
+    '3. Fields marked with * are required (First Name, Surname, Class ID).',
+    '4. Use the drop-down menus for columns with selections (Class ID, Gender).',
+    '5. Save this file as .xlsx before uploading (CSV might lose dropdowns).',
+    '6. Do NOT delete or modify the header rows (rows 1-8). Start entering data from the example row below the column headers.',
+    '7. The example row (first data row) can be overwritten with real data.',
+    '8. Maximum of 500 students per upload.'
   ] : [
     '1. Use the "Staff Template" sheet to fill in staff information.',
     '2. Fields marked with * are required (First Name, Surname, Role).',
@@ -168,18 +166,11 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       { header: 'Class ID*', key: 'classId', width: 12 },
       { header: 'Class Name (Optional)', key: 'className', width: 25 },
       { header: 'Gender (Male/Female)', key: 'gender', width: 20 },
-      { header: 'Genotype (Drop-down)', key: 'genotype', width: 20 },
-      { header: 'Disability (Drop-down)', key: 'disability', width: 25 },
-      { header: 'Email', key: 'email', width: 25 },
-      { header: 'Parent Name*', key: 'parentName', width: 25 },
-      { header: 'Parent Phone', key: 'parentPhone', width: 20 },
-      { header: 'Address', key: 'address', width: 40 },
-      { header: 'Date of Birth (YYYY-MM-DD)', key: 'dob', width: 25 },
-      { header: 'Scholarship (Yes/No)', key: 'isScholarship', width: 20 },
-      { header: 'Discount Amount (₦)', key: 'feeDiscount', width: 25 }
+      { header: 'Parent Name', key: 'parentName', width: 25 },
+      { header: 'Parent Phone', key: 'parentPhone', width: 20 }
     ];
 
-    await addSchoolHeader(workbook, worksheet, school, 'O', 'student');
+    await addSchoolHeader(workbook, worksheet, school, 'H', 'student');
 
     // Styling the header row (now at row 8)
     worksheet.getRow(8).font = { bold: true };
@@ -198,15 +189,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
         classId: 1, // First class in this school (Local ID)
         className: `${classes[0].name} ${classes[0].arm || ''} (ID: 1)`,
         gender: 'Male',
-        genotype: 'AA',
-        disability: 'None',
-        email: 'abdulllawal@example.com',
         parentName: 'Lawal Musa',
-        parentPhone: '08000000000',
-        address: '123 School Road',
-        dob: '2015-05-15',
-        isScholarship: 'No',
-        feeDiscount: 0
+        parentPhone: '08000000000'
       });
     }
 
@@ -245,25 +229,6 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
         type: 'list',
         allowBlank: true,
         formulae: ['"Male,Female"']
-      };
-      
-      // Genotype (Column G)
-      worksheet.getCell(`G${i}`).dataValidation = {
-        type: 'list',
-        allowBlank: true,
-        formulae: ['"AA,AS,AC,SS,SC,CC"']
-      };
-      // Disability (Column H)
-      worksheet.getCell(`H${i}`).dataValidation = {
-        type: 'list',
-        allowBlank: true,
-        formulae: ['"None,Visual,Hearing,Physical,Intellectual,Other"']
-      };
-      // Scholarship (Column N)
-      worksheet.getCell(`N${i}`).dataValidation = {
-        type: 'list',
-        allowBlank: true,
-        formulae: ['"Yes,No"']
       };
     }
 

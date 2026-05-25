@@ -1176,22 +1176,20 @@ Note: Password must be changed on first login.
                       required
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      Admission Number {editingStudent ? '(Editable)' : '(Auto-generated)'}
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.admissionNumber || (editingStudent ? '' : 'Auto-generated upon registration')}
-                      onChange={(e) => editingStudent && setFormData({ ...formData, admissionNumber: e.target.value })}
-                      readOnly={!editingStudent}
-                      disabled={!editingStudent && !formData.admissionNumber}
-                      className={`w-full border rounded-xl px-4 py-3 font-bold transition-all ${editingStudent 
-                        ? 'bg-white border-gray-200 focus:ring-4 focus:ring-primary/10 focus:border-primary text-gray-700' 
-                        : 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed opacity-75'}`}
-                      placeholder={editingStudent ? "Enter Admission Number" : ""}
-                    />
-                  </div>
+                  {editingStudent && (
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Admission Number (Editable)
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.admissionNumber || ''}
+                        onChange={(e) => setFormData({ ...formData, admissionNumber: e.target.value })}
+                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                        placeholder="Enter Admission Number"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 text-indigo-600 font-black uppercase text-[10px] tracking-widest mb-6">
@@ -1199,15 +1197,17 @@ Note: Password must be changed on first login.
                    Personal Background
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Date of Birth</label>
-                    <input
-                      type="date"
-                      value={formData.dateOfBirth}
-                      onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
-                    />
-                  </div>
+                  {editingStudent && (
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Date of Birth</label>
+                      <input
+                        type="date"
+                        value={formData.dateOfBirth}
+                        onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      />
+                    </div>
+                  )}
                   <div className="space-y-1">
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Gender</label>
                     <select
@@ -1220,24 +1220,28 @@ Note: Password must be changed on first login.
                       <option value="Female">Female</option>
                     </select>
                   </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">State of Origin</label>
-                    <input
-                      type="text"
-                      value={formData.stateOfOrigin}
-                      onChange={(e) => setFormData({ ...formData, stateOfOrigin: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
-                    />
-                  </div>
-                  <div className="space-y-1 lg:col-span-2">
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Home Address</label>
-                    <input
-                      type="text"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
-                    />
-                  </div>
+                  {editingStudent && (
+                    <>
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">State of Origin</label>
+                        <input
+                          type="text"
+                          value={formData.stateOfOrigin}
+                          onChange={(e) => setFormData({ ...formData, stateOfOrigin: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                        />
+                      </div>
+                      <div className="space-y-1 lg:col-span-2">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Home Address</label>
+                        <input
+                          type="text"
+                          value={formData.address}
+                          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1269,15 +1273,17 @@ Note: Password must be changed on first login.
                         ))}
                       </select>
                     </div>
-                    <div className="space-y-1">
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Admission Year</label>
-                      <input
-                        type="number"
-                        value={formData.admissionYear}
-                        onChange={(e) => setFormData({ ...formData, admissionYear: e.target.value })}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
-                      />
-                    </div>
+                    {editingStudent && (
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Admission Year</label>
+                        <input
+                          type="number"
+                          value={formData.admissionYear}
+                          onChange={(e) => setFormData({ ...formData, admissionYear: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1307,67 +1313,69 @@ Note: Password must be changed on first login.
                         className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
                       />
                     </div>
-                    <div className="space-y-1">
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Link to Parent Account</label>
-                      <select
-                        value={formData.parentId}
-                        onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700 appearance-none"
-                      >
-                        <option value="">No Linked Account</option>
-                        {parents.map((parent) => (
-                          <option key={parent.id} value={parent.id}>
-                            {parent.user?.firstName} {parent.user?.lastName} ({parent.phone})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    {editingStudent && (
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Link to Parent Account</label>
+                        <select
+                          value={formData.parentId}
+                          onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700 appearance-none"
+                        >
+                          <option value="">No Linked Account</option>
+                          {parents.map((parent) => (
+                            <option key={parent.id} value={parent.id}>
+                              {parent.user?.firstName} {parent.user?.lastName} ({parent.phone})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Administrative & Media Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-rose-600 font-black uppercase text-[10px] tracking-widest mb-6">
-                   <div className="w-8 h-px bg-rose-600/20"></div>
-                   Administrative & Media
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                  <div className="space-y-4">
-                    <label className="flex items-center space-x-3 cursor-pointer group p-4 bg-rose-50/30 border border-rose-100 rounded-2xl hover:bg-rose-50 transition-all">
-                      <div className="relative">
-                        <input
-                          type="checkbox"
-                          checked={formData.isScholarship}
-                          onChange={(e) => setFormData({ ...formData, isScholarship: e.target.checked })}
-                          className="peer sr-only"
-                        />
-                        <div className="w-10 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-rose-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-black text-rose-900 uppercase tracking-tight">Scholarship Status</span>
-                        <span className="text-[10px] text-rose-600 font-bold uppercase tracking-widest">Exempt student from all tuition fees</span>
-                      </div>
-                    </label>
+              {editingStudent && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-rose-600 font-black uppercase text-[10px] tracking-widest mb-6">
+                     <div className="w-8 h-px bg-rose-600/20"></div>
+                     Administrative & Media
                   </div>
-                  
-                  {!formData.isScholarship && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                     <div className="space-y-4">
-                      <div className="flex flex-col space-y-1">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Partial Fee Discount (₦)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={formData.feeDiscount}
-                          onChange={(e) => setFormData({ ...formData, feeDiscount: e.target.value })}
-                          placeholder="e.g. 50000"
-                          className="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 p-3 transition-all outline-none font-bold"
-                        />
-                      </div>
+                      <label className="flex items-center space-x-3 cursor-pointer group p-4 bg-rose-50/30 border border-rose-100 rounded-2xl hover:bg-rose-50 transition-all">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={formData.isScholarship}
+                            onChange={(e) => setFormData({ ...formData, isScholarship: e.target.checked })}
+                            className="peer sr-only"
+                          />
+                          <div className="w-10 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-rose-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black text-rose-900 uppercase tracking-tight">Scholarship Status</span>
+                          <span className="text-[10px] text-rose-600 font-bold uppercase tracking-widest">Exempt student from all tuition fees</span>
+                        </div>
+                      </label>
                     </div>
-                  )}
+                    
+                    {!formData.isScholarship && (
+                      <div className="space-y-4">
+                        <div className="flex flex-col space-y-1">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Partial Fee Discount (₦)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={formData.feeDiscount}
+                            onChange={(e) => setFormData({ ...formData, feeDiscount: e.target.value })}
+                            placeholder="e.g. 50000"
+                            className="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 p-3 transition-all outline-none font-bold"
+                          />
+                        </div>
+                      </div>
+                    )}
 
-                  {editingStudent && (
                     <div className="bg-gray-50/50 p-4 rounded-2xl border border-dashed border-gray-200">
                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Update Student Photo</h4>
                       <PhotoUpload
@@ -1379,9 +1387,9 @@ Note: Password must be changed on first login.
                         }}
                       />
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex justify-end gap-4 pt-8 border-t">
                 <button
