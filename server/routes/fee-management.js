@@ -106,9 +106,31 @@ router.get('/students', authenticate, authorize(['admin', 'principal', 'accounta
       structureMap[fs.classId] = fs.amount;
     });
 
+    // BULK OPTIMIZATION: Pre-calculate arrears for all students to avoid N+1 queries
+    let arrearsMap = {};
+    if (targetTerm) {
+      const allPreviousRecords = await prisma.feeRecord.findMany({
+        where: {
+          schoolId: schoolIdInt,
+          Term: {
+            startDate: { lt: targetTerm.startDate }
+          }
+        },
+        select: {
+          studentId: true,
+          expectedAmount: true,
+          paidAmount: true
+        }
+      });
+
+      allPreviousRecords.forEach(rec => {
+        if (!arrearsMap[rec.studentId]) arrearsMap[rec.studentId] = 0;
+        arrearsMap[rec.studentId] += (parseFloat(rec.expectedAmount) || 0) - (parseFloat(rec.paidAmount) || 0);
+      });
+    }
+
     // Populate missing records with virtual data for display
-    // IMPORTANT: We also calculate previous outstanding for everyone to show true arrears
-    const processedStudents = await Promise.all(students.map(async (student) => {
+    const processedStudents = students.map((student) => {
       // If student has records, we use the first one (most recent for this term)
       if (student.feeRecords && student.feeRecords.length > 0) {
         return student;
@@ -118,12 +140,8 @@ router.get('/students', authenticate, authorize(['admin', 'principal', 'accounta
       // Check if student joined after this term ended (mid-session joiner)
       const joinedAfterTerm = !shouldIgnoreJoinDate && targetTerm && student.createdAt > targetTerm.endDate;
       const expected = (student.isScholarship || joinedAfterTerm) ? 0 : Math.max(0, (structureMap[student.classId] || 0) - (student.feeDiscount || 0));
-      const arrears = await calculatePreviousOutstanding(
-        req.schoolId,
-        student.id,
-        sessionInt,
-        termInt
-      );
+      
+      const arrears = arrearsMap[student.id] || 0;
 
       // We attach a virtual record so frontend displays correct 'Expected', 'Arrears' and 'Balance'
       student.feeRecords = [{
@@ -139,7 +157,7 @@ router.get('/students', authenticate, authorize(['admin', 'principal', 'accounta
       }];
 
       return student;
-    }));
+    });
 
     res.json(processedStudents);
   } catch (error) {
