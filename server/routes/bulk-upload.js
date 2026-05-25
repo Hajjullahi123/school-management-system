@@ -10,7 +10,51 @@ const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const ExcelJS = require('exceljs');
 const xlsx = require('xlsx');
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 const storage = multer.memoryStorage();
+
+async function addSchoolHeader(workbook, worksheet, school, lastColLetter) {
+  worksheet.spliceRows(1, 0, [], [], [], []);
+  worksheet.mergeCells(`A1:${lastColLetter}4`);
+  
+  const cell = worksheet.getCell('A1');
+  cell.value = `${school.name.toUpperCase()}\nBULK UPLOAD TEMPLATE`;
+  cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  cell.font = { size: 16, bold: true, color: { argb: 'FF000000' } };
+  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+
+  if (school?.logoUrl) {
+    try {
+      let buffer;
+      let ext = 'png';
+      if (!school.logoUrl.startsWith('http')) {
+         if (school.logoUrl.startsWith('/uploads')) {
+           const localPath = path.join(__dirname, '..', school.logoUrl);
+           if (fs.existsSync(localPath)) {
+             buffer = fs.readFileSync(localPath);
+             const urlExt = school.logoUrl.split('.').pop().toLowerCase();
+             ext = ['png', 'jpg', 'jpeg'].includes(urlExt) ? (urlExt === 'jpg' ? 'jpeg' : urlExt) : 'png';
+           }
+         }
+      } else {
+        const response = await axios.get(school.logoUrl, { responseType: 'arraybuffer' });
+        buffer = Buffer.from(response.data, 'binary');
+      }
+      
+      if (buffer) {
+        const imageId = workbook.addImage({ buffer, extension: ext });
+        worksheet.addImage(imageId, {
+          tl: { col: 0.2, row: 0.2 },
+          ext: { width: 70, height: 70 }
+        });
+      }
+    } catch (err) {
+      console.log('Error adding logo to template:', err.message);
+    }
+  }
+}
 const upload = multer({ storage: storage });
 
 // Download Bulk Student Template (XLSX)
@@ -25,6 +69,7 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       orderBy: { id: 'asc' }, // Stable sort by creation order
       select: { id: true, name: true, arm: true }
     });
+    const school = await prisma.school.findUnique({ where: { id: req.schoolId } });
 
     worksheet.columns = [
       { header: 'First Name*', key: 'firstName', width: 20 },
@@ -44,9 +89,11 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       { header: 'Discount Amount (₦)', key: 'feeDiscount', width: 25 }
     ];
 
-    // Styling the header row
-    worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(1).fill = {
+    await addSchoolHeader(workbook, worksheet, school, 'O');
+
+    // Styling the header row (now at row 5)
+    worksheet.getRow(5).font = { bold: true };
+    worksheet.getRow(5).fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: 'FFE0E0E0' }
@@ -92,8 +139,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       });
     });
 
-    // Add Data Validation (Dropdowns) - Processing from row 2 up to 500
-    for (let i = 2; i <= 500; i++) {
+    // Add Data Validation (Dropdowns) - Processing from row 6 up to 500
+    for (let i = 6; i <= 500; i++) {
       // Class ID (Column D) - Dropdown referencing the Class IDs Reference sheet
       if (classes.length > 0) {
         worksheet.getCell(`D${i}`).dataValidation = {
@@ -173,7 +220,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
         let headerRowIndex = 0;
         while (headerRowIndex < data.length) {
           const row = data[headerRowIndex];
-          if (row && row.some(cell => cell !== undefined && cell !== null && cell.toString().trim() !== '')) {
+          if (row && row.some(cell => cell && cell.toString().toLowerCase().includes('first name'))) {
             break;
           }
           headerRowIndex++;
@@ -1034,6 +1081,7 @@ router.get('/template/staff', authenticate, authorize(['admin', 'principal']), a
   try {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Staff Template');
+    const school = await prisma.school.findUnique({ where: { id: req.schoolId } });
 
     worksheet.columns = [
       { header: 'First Name*', key: 'firstName', width: 20 },
@@ -1045,9 +1093,11 @@ router.get('/template/staff', authenticate, authorize(['admin', 'principal']), a
       { header: 'Specialization (For Teachers)', key: 'specialization', width: 30 }
     ];
 
+    await addSchoolHeader(workbook, worksheet, school, 'G');
+
     // Styling the header row
-    worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(1).fill = {
+    worksheet.getRow(5).font = { bold: true };
+    worksheet.getRow(5).fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: 'FFE0E0E0' }
@@ -1064,8 +1114,8 @@ router.get('/template/staff', authenticate, authorize(['admin', 'principal']), a
       specialization: 'Mathematics'
     });
 
-    // Add Data Validation (Dropdowns) - Processing from row 2 up to 200
-    for (let i = 2; i <= 200; i++) {
+    // Add Data Validation (Dropdowns) - Processing from row 6 up to 200
+    for (let i = 6; i <= 200; i++) {
       worksheet.getCell(`D${i}`).dataValidation = {
         type: 'list',
         allowBlank: true,
@@ -1101,7 +1151,7 @@ router.post('/upload-staff', authenticate, authorize(['admin', 'principal']), up
         let headerRowIndex = 0;
         while (headerRowIndex < data.length) {
           const row = data[headerRowIndex];
-          if (row && row.some(cell => cell !== undefined && cell !== null && cell.toString().trim() !== '')) {
+          if (row && row.some(cell => cell && cell.toString().toLowerCase().includes('first name'))) {
             break;
           }
           headerRowIndex++;
