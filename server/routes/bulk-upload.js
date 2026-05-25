@@ -5,7 +5,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 const { generateAdmissionNumber, getUniqueAdmissionNumber } = require('../utils/studentUtils');
 const { createOrUpdateFeeRecordWithOpening } = require('../utils/feeCalculations');
-const { generateStudentUsername } = require('../utils/usernameGenerator');
+const { generateStudentUsername, generateTeacherUsername } = require('../utils/usernameGenerator');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const ExcelJS = require('exceljs');
@@ -1203,19 +1203,44 @@ router.post('/upload-staff', authenticate, authorize(['admin', 'principal']), up
           }
         }
 
-        const baseUsername = `${staff.firstName.toLowerCase()}.${staff.lastName.toLowerCase()}`.replace(/\s+/g, '');
-        let usernameExists = await prisma.user.findFirst({
-          where: { username: baseUsername, schoolId: schoolIdInt }
-        });
-        let counter = 1;
-        let finalUsername = baseUsername;
+        let finalUsername = '';
+        if (staff.role.toLowerCase() === 'teacher') {
+          finalUsername = await generateTeacherUsername(
+            schoolIdInt,
+            schoolCode,
+            staff.firstName,
+            staff.lastName
+          );
+        } else if (['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin'].includes(staff.role.toLowerCase())) {
+          let position = staff.role.toLowerCase();
+          if (staff.role.toLowerCase() === 'examination_officer') position = 'exam_off';
+          if (staff.role.toLowerCase() === 'attendance_admin') position = 'attend_off';
 
-        while (usernameExists) {
-          finalUsername = `${baseUsername}${counter}`;
-          usernameExists = await prisma.user.findFirst({
-            where: { username: finalUsername, schoolId: schoolIdInt }
+          let usernameExists = true;
+          while (usernameExists) {
+            const randomNums = Math.floor(100 + Math.random() * 900); // 3-digit random number
+            finalUsername = `${position}/${schoolInitials}@${randomNums}`;
+
+            const existing = await prisma.user.findFirst({
+              where: { username: finalUsername, schoolId: schoolIdInt }
+            });
+            if (!existing) usernameExists = false;
+          }
+        } else {
+          const baseUsername = `${staff.firstName.toLowerCase()}.${staff.lastName.toLowerCase()}`.replace(/\s+/g, '');
+          let usernameExists = await prisma.user.findFirst({
+            where: { username: baseUsername, schoolId: schoolIdInt }
           });
-          counter++;
+          let counter = 1;
+          finalUsername = baseUsername;
+
+          while (usernameExists) {
+            finalUsername = `${baseUsername}${counter}`;
+            usernameExists = await prisma.user.findFirst({
+              where: { username: finalUsername, schoolId: schoolIdInt }
+            });
+            counter++;
+          }
         }
 
         // Auto password generation
