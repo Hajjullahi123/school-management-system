@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Great+Vibes&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,6 +9,11 @@
   --color-primary: 15 118 110;
   --color-secondary: 13 148 136;
   --color-accent: 20 184 166;
+}
+
+/* Custom Signature Font */
+.font-signature {
+  font-family: 'Caveat', cursive;
 }
 
 /* Force apply these defaults if JS fails */

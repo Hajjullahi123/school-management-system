@@ -498,12 +498,16 @@ const ReportCard = () => {
               {/* HEAD SECTION */}
               <div className="flex justify-between items-start gap-4">
                 <div className="w-24 h-24 flex-shrink-0">
-                  {schoolSettings?.logoUrl && (
+                  {schoolSettings?.logoUrl ? (
                     <img
                       src={schoolSettings.logoUrl.startsWith('data:') || schoolSettings.logoUrl.startsWith('http') ? schoolSettings.logoUrl : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${schoolSettings.logoUrl.startsWith('/') ? schoolSettings.logoUrl : '/' + schoolSettings.logoUrl}`}
                       alt="Logo"
                       className="w-full h-full object-contain object-left"
                     />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full border-4 flex items-center justify-center font-black text-3xl shadow-sm tracking-tighter" style={{ borderColor: reportColor || '#0f766e', color: reportColor || '#0f766e', backgroundColor: `${reportColor || '#0f766e'}10` }}>
+                       {(schoolSettings?.schoolName || 'SCH').split(' ').slice(0,3).map(n => n[0]).join('').toUpperCase()}
+                    </div>
                   )}
                 </div>
 
@@ -858,11 +862,7 @@ const ReportCard = () => {
                     {reportData.student?.formMasterSignatureUrl ? (
                       <img src={reportData.student.formMasterSignatureUrl.startsWith('data:') || reportData.student.formMasterSignatureUrl.startsWith('http') ? reportData.student.formMasterSignatureUrl : `${API_BASE_URL}${reportData.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-[40px] w-auto mix-blend-multiply" />
                     ) : (
-                      <svg width="50" height="50" viewBox="0 0 100 100" className="opacity-15">
-                        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
-                        <text x="50" y="45" textAnchor="middle" fontSize="8" fontWeight="bold">OFFICIAL</text>
-                        <text x="50" y="55" textAnchor="middle" fontSize="10" fontWeight="black">SEAL</text>
-                      </svg>
+                      <div className="text-3xl font-signature text-gray-800 tracking-wider mix-blend-multiply pt-2 transform -rotate-2">{reportData.student?.formMaster || 'Verified'}</div>
                     )}
                   </div>
                   <div className="border-b-2 border-black w-full mb-1 opacity-80"></div>
@@ -875,10 +875,7 @@ const ReportCard = () => {
                     {reportData.term?.principalSignatureUrl ? (
                       <img src={reportData.term.principalSignatureUrl.startsWith('data:') || reportData.term.principalSignatureUrl.startsWith('http') ? reportData.term.principalSignatureUrl : `${API_BASE_URL}${reportData.term.principalSignatureUrl}`} alt="Principal Signature" className="h-[40px] w-auto mix-blend-multiply" />
                     ) : (
-                      <svg width="60" height="60" viewBox="0 0 100 100" className="opacity-20" style={{ color: schoolSettings?.primaryColor }}>
-                        <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
-                        <text x="50" y="52" textAnchor="middle" fontSize="6" fontWeight="bold" transform="rotate(-15 50 50)">CERTIFIED OFFICIAL</text>
-                      </svg>
+                      <div className="text-[32px] font-signature tracking-wider mix-blend-multiply pt-2 transform -rotate-3" style={{ color: schoolSettings?.primaryColor || '#065f46' }}>{schoolSettings?.principalName || 'Principal'}</div>
                     )}
                   </div>
                   <div className="border-b-2 w-full mb-1" style={{ borderColor: schoolSettings?.primaryColor || '#065f46' }}></div>

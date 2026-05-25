@@ -399,7 +399,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
       : null;
     const logoHTML = logoUrl
       ? `<img src="${logoUrl}" alt="School Logo" style="height: 70px; width: auto; max-width: 250px; object-fit: contain; margin-bottom: 8px;" />`
-      : '';
+      : `<div style="height: 70px; width: 70px; border-radius: 50%; background-color: ${primaryColor}10; border: 3px solid ${primaryColor}; color: ${primaryColor}; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; margin-bottom: 8px;">${(schoolSettings?.schoolName || 'SCH').split(' ').slice(0,3).map(n => n[0]).join('').toUpperCase()}</div>`;
 
     // Fetch fee record for term totals
     let feeRecord = null;
@@ -590,7 +590,7 @@ export default function PrintReceiptModal({ student, isOpen, onClose, currentTer
       : null;
     const logoHTML = logoUrl
       ? `<img src="${logoUrl}" alt="School Logo" style="height: 65px; width: auto; max-width: 250px; object-fit: contain; margin-bottom: 5px;" />`
-      : '';
+      : `<div style="height: 65px; width: 65px; border-radius: 50%; background-color: ${primaryColor}10; border: 3px solid ${primaryColor}; color: ${primaryColor}; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 900; margin-bottom: 5px;">${(schoolSettings?.schoolName || 'SCH').split(' ').slice(0,3).map(n => n[0]).join('').toUpperCase()}</div>`;
 
     // Fetch all fee records for the student in the selected session
     let allFeeRecords = [];
