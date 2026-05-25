@@ -15,45 +15,135 @@ const fs = require('fs');
 const path = require('path');
 const storage = multer.memoryStorage();
 
-async function addSchoolHeader(workbook, worksheet, school, lastColLetter) {
-  worksheet.spliceRows(1, 0, [], [], [], []);
-  worksheet.mergeCells(`A1:${lastColLetter}4`);
-  
-  const cell = worksheet.getCell('A1');
-  cell.value = `${school.name.toUpperCase()}\nBULK UPLOAD TEMPLATE`;
-  cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-  cell.font = { size: 16, bold: true, color: { argb: 'FF000000' } };
-  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+async function getLogoBuffer(logoUrl) {
+  try {
+    if (!logoUrl) return null;
+    let buffer = null;
+    let ext = 'png';
+    if (!logoUrl.startsWith('http')) {
+      if (logoUrl.startsWith('/uploads')) {
+        const localPath = path.join(__dirname, '..', logoUrl);
+        if (fs.existsSync(localPath)) {
+          buffer = fs.readFileSync(localPath);
+          const urlExt = logoUrl.split('.').pop().toLowerCase();
+          ext = ['png', 'jpg', 'jpeg'].includes(urlExt) ? (urlExt === 'jpg' ? 'jpeg' : urlExt) : 'png';
+        }
+      }
+    } else {
+      const response = await axios.get(logoUrl, { responseType: 'arraybuffer', timeout: 10000 });
+      buffer = Buffer.from(response.data, 'binary');
+      const urlExt = logoUrl.split('.').pop().split('?')[0].toLowerCase();
+      ext = ['png', 'jpg', 'jpeg'].includes(urlExt) ? (urlExt === 'jpg' ? 'jpeg' : urlExt) : 'png';
+    }
+    return buffer ? { buffer, ext } : null;
+  } catch (err) {
+    console.log('Error fetching logo:', err.message);
+    return null;
+  }
+}
 
-  if (school?.logoUrl) {
+async function addSchoolHeader(workbook, worksheet, school, lastColLetter, templateType) {
+  // Insert 7 blank rows at top for the header area
+  worksheet.spliceRows(1, 0, [], [], [], [], [], [], []);
+
+  // --- Row 1-2: Logo + School Name ---
+  worksheet.mergeCells(`A1:${lastColLetter}2`);
+  const nameCell = worksheet.getCell('A1');
+  nameCell.value = school.name.toUpperCase();
+  nameCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  nameCell.font = { size: 18, bold: true, color: { argb: 'FF1B3A5C' } };
+  nameCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F7' } };
+
+  // --- Row 3: Address line ---
+  worksheet.mergeCells(`A3:${lastColLetter}3`);
+  const addressParts = [school.address, school.phone, school.email].filter(Boolean);
+  const addressCell = worksheet.getCell('A3');
+  addressCell.value = addressParts.length > 0 ? addressParts.join('  |  ') : 'School Address  |  Phone  |  Email';
+  addressCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  addressCell.font = { size: 10, italic: true, color: { argb: 'FF555555' } };
+  addressCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F7' } };
+  worksheet.getRow(3).height = 20;
+
+  // --- Row 4: Divider ---
+  worksheet.mergeCells(`A4:${lastColLetter}4`);
+  const dividerCell = worksheet.getCell('A4');
+  dividerCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B3A5C' } };
+  worksheet.getRow(4).height = 4;
+
+  // --- Row 5: Template type label ---
+  worksheet.mergeCells(`A5:${lastColLetter}5`);
+  const typeLabel = templateType === 'staff' ? 'STAFF BULK UPLOAD TEMPLATE' : 'STUDENT BULK UPLOAD TEMPLATE';
+  const typeCell = worksheet.getCell('A5');
+  typeCell.value = typeLabel;
+  typeCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  typeCell.font = { size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
+  typeCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E7D32' } };
+  worksheet.getRow(5).height = 28;
+
+  // --- Row 6: Spacer ---
+  worksheet.mergeCells(`A6:${lastColLetter}6`);
+  worksheet.getRow(6).height = 6;
+
+  // --- Row 7: Empty spacer before column headers (row 8) ---
+  worksheet.mergeCells(`A7:${lastColLetter}7`);
+  worksheet.getRow(7).height = 6;
+
+  // Add borders to the header block (rows 1-5)
+  for (let r = 1; r <= 5; r++) {
+    const row = worksheet.getRow(r);
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      cell.border = {
+        left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+        right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+      };
+    });
+  }
+
+  // Add the school logo
+  const logo = await getLogoBuffer(school?.logoUrl);
+  if (logo) {
     try {
-      let buffer;
-      let ext = 'png';
-      if (!school.logoUrl.startsWith('http')) {
-         if (school.logoUrl.startsWith('/uploads')) {
-           const localPath = path.join(__dirname, '..', school.logoUrl);
-           if (fs.existsSync(localPath)) {
-             buffer = fs.readFileSync(localPath);
-             const urlExt = school.logoUrl.split('.').pop().toLowerCase();
-             ext = ['png', 'jpg', 'jpeg'].includes(urlExt) ? (urlExt === 'jpg' ? 'jpeg' : urlExt) : 'png';
-           }
-         }
-      } else {
-        const response = await axios.get(school.logoUrl, { responseType: 'arraybuffer' });
-        buffer = Buffer.from(response.data, 'binary');
-      }
-      
-      if (buffer) {
-        const imageId = workbook.addImage({ buffer, extension: ext });
-        worksheet.addImage(imageId, {
-          tl: { col: 0.2, row: 0.2 },
-          ext: { width: 70, height: 70 }
-        });
-      }
+      const imageId = workbook.addImage({ buffer: logo.buffer, extension: logo.ext });
+      worksheet.addImage(imageId, {
+        tl: { col: 0.15, row: 0.15 },
+        ext: { width: 65, height: 55 }
+      });
     } catch (err) {
-      console.log('Error adding logo to template:', err.message);
+      console.log('Error embedding logo:', err.message);
     }
   }
+}
+
+function addInstructionsSheet(workbook, templateType) {
+  const helpSheet = workbook.addWorksheet('Instructions');
+  helpSheet.columns = [{ header: 'Instructions', key: 'step', width: 90 }];
+  helpSheet.getRow(1).font = { bold: true, size: 13 };
+
+  const instructions = templateType === 'student' ? [
+    '1. Use the "Students Template" sheet to fill in student information.',
+    '2. In the "Class ID" column, select the class from the dropdown menu (e.g., "1 - Class Name").',
+    '3. Fields marked with * are required (First Name, Surname, Class ID, Parent Name).',
+    '4. Date of Birth must follow the format YYYY-MM-DD (e.g., 2012-10-25).',
+    '5. Use the drop-down menus for columns with selections (Class ID, Gender, Genotype, Disability, Scholarship).',
+    '6. Use the "Discount Amount" column to apply a permanent partial fee discount (e.g. 50000). Leave blank if none.',
+    '7. Save this file as .xlsx before uploading (CSV might lose dropdowns).',
+    '8. Do NOT delete or modify the header rows (rows 1-8). Start entering data from the example row below the column headers.',
+    '9. The example row (first data row) can be overwritten with real data.',
+    '10. Maximum of 500 students per upload.'
+  ] : [
+    '1. Use the "Staff Template" sheet to fill in staff information.',
+    '2. Fields marked with * are required (First Name, Surname, Role).',
+    '3. Select the role from the dropdown in the "Role" column.',
+    '4. Available roles: teacher, admin, principal, accountant, examination_officer, attendance_admin.',
+    '5. The "Specialization" column is only required for teachers (e.g., Mathematics, English, Science).',
+    '6. Each staff member will be assigned an auto-generated username and a default password.',
+    '7. Save this file as .xlsx before uploading.',
+    '8. Do NOT delete or modify the header rows (rows 1-8). Start entering data from the example row below the column headers.',
+    '9. The example row (first data row) can be overwritten with real data.',
+    '10. Maximum of 200 staff per upload.'
+  ];
+
+  instructions.forEach(text => helpSheet.addRow({ step: text }));
 }
 const upload = multer({ storage: storage });
 
@@ -89,11 +179,11 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       { header: 'Discount Amount (₦)', key: 'feeDiscount', width: 25 }
     ];
 
-    await addSchoolHeader(workbook, worksheet, school, 'O');
+    await addSchoolHeader(workbook, worksheet, school, 'O', 'student');
 
-    // Styling the header row (now at row 5)
-    worksheet.getRow(5).font = { bold: true };
-    worksheet.getRow(5).fill = {
+    // Styling the header row (now at row 8)
+    worksheet.getRow(8).font = { bold: true };
+    worksheet.getRow(8).fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: 'FFE0E0E0' }
@@ -139,8 +229,8 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       });
     });
 
-    // Add Data Validation (Dropdowns) - Processing from row 6 up to 500
-    for (let i = 6; i <= 500; i++) {
+    // Add Data Validation (Dropdowns) - Processing from row 9 up to 500
+    for (let i = 9; i <= 500; i++) {
       // Class ID (Column D) - Dropdown referencing the Class IDs Reference sheet
       if (classes.length > 0) {
         worksheet.getCell(`D${i}`).dataValidation = {
@@ -178,17 +268,7 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
     }
 
     // Add instructions sheet
-    const helpSheet = workbook.addWorksheet('Instructions');
-    helpSheet.columns = [{ header: 'Step', key: 'step', width: 80 }];
-    [
-      '1. Use the "Students Template" sheet to fill in student information.',
-      '2. In the "Class ID" column, select the class from the dropdown menu (e.g., "1 - Class Name").',
-      '3. Fields marked with * are required (First Name, Surname, Class ID, Parent Name).',
-      '4. Date of Birth must follow the format YYYY-MM-DD (e.g., 2012-10-25).',
-      '5. Use the drop-down menus for columns with selections (Class ID, Gender, Genotype, Disability, Scholarship).',
-      '6. Use the "Discount Amount" column to apply a permanent partial fee discount (e.g. 50000). Leave blank if none.',
-      '7. Save this file as .xlsx before uploading (CSV might lose dropdowns).'
-    ].forEach(text => helpSheet.addRow({ step: text }));
+    addInstructionsSheet(workbook, 'student');
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=Student_Bulk_Upload_Template.xlsx');
@@ -1093,11 +1173,11 @@ router.get('/template/staff', authenticate, authorize(['admin', 'principal']), a
       { header: 'Specialization (For Teachers)', key: 'specialization', width: 30 }
     ];
 
-    await addSchoolHeader(workbook, worksheet, school, 'G');
+    await addSchoolHeader(workbook, worksheet, school, 'G', 'staff');
 
-    // Styling the header row
-    worksheet.getRow(5).font = { bold: true };
-    worksheet.getRow(5).fill = {
+    // Styling the header row (now at row 8)
+    worksheet.getRow(8).font = { bold: true };
+    worksheet.getRow(8).fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: 'FFE0E0E0' }
@@ -1114,14 +1194,17 @@ router.get('/template/staff', authenticate, authorize(['admin', 'principal']), a
       specialization: 'Mathematics'
     });
 
-    // Add Data Validation (Dropdowns) - Processing from row 6 up to 200
-    for (let i = 6; i <= 200; i++) {
+    // Add Data Validation (Dropdowns) - Processing from row 9 up to 200
+    for (let i = 9; i <= 200; i++) {
       worksheet.getCell(`D${i}`).dataValidation = {
         type: 'list',
         allowBlank: true,
         formulae: ['"teacher,admin,principal,accountant,examination_officer,attendance_admin"']
       };
     }
+
+    // Add instructions sheet
+    addInstructionsSheet(workbook, 'staff');
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=Staff_Bulk_Upload_Template.xlsx');
