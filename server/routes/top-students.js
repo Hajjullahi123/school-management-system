@@ -177,12 +177,14 @@ router.get('/top-performers', async (req, res) => {
       }
     });
 
+    const publications = await prisma.resultPublication.findMany({
+      where: { schoolId: finalSchoolId, termId: finalTermId, isPublished: true }
+    });
+    const publishedClassIds = new Set(publications.map(p => p.classId));
+
     const studentsWithAveragePromises = students.map(async student => {
       if (student.classModel) {
-        const publication = await prisma.resultPublication.findUnique({
-          where: { schoolId_classId_termId: { schoolId: finalSchoolId, classId: student.classModel.id, termId: finalTermId } }
-        });
-        if (!publication || !publication.isPublished) {
+        if (!publishedClassIds.has(student.classModel.id)) {
           return null;
         }
       }
