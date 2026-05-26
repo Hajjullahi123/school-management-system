@@ -463,4 +463,109 @@ router.post('/certificate/:certificateId/photo', authenticate, authorize(['admin
   }
 });
 
+// ============ BULK STUDENT PHOTO UPLOAD ============
+
+// Upload multiple student photos at once (matched by admission number in filename)
+const bulkPhotoUpload = multer({
+  storage: memoryStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB per file
+    files: 200 // Max 200 photos per batch
+  },
+  fileFilter: imageFileFilter
+});
+
+router.post('/bulk-photos', authenticate, authorize(['admin', 'principal']), bulkPhotoUpload.array('photos', 200), async (req, res) => {
+  try {
+    const schoolId = parseInt(req.schoolId);
+
+    if (isNaN(schoolId)) {
+      return res.status(401).json({ error: 'Session expired or school ID missing. Please log in again.' });
+    }
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
+    }
+
+    // Fetch all students in this school for matching
+    const students = await prisma.student.findMany({
+      where: { schoolId },
+      select: { id: true, admissionNumber: true, userId: true },
+    });
+
+    // Build lookup maps: admissionNumber (case-insensitive) -> student
+    const admissionMap = new Map();
+    students.forEach(s => {
+      if (s.admissionNumber) {
+        admissionMap.set(s.admissionNumber.toLowerCase().trim(), s);
+      }
+    });
+
+    const results = { matched: [], unmatched: [], errors: [] };
+
+    for (const file of req.files) {
+      try {
+        // Extract admission number from filename (strip extension)
+        const baseName = path.basename(file.originalname, path.extname(file.originalname)).trim();
+        const matchKey = baseName.toLowerCase();
+
+        const student = admissionMap.get(matchKey);
+        if (!student) {
+          results.unmatched.push(file.originalname);
+          continue;
+        }
+
+        // Upload the photo
+        const photoUrl = await uploadFile(file, 'students');
+
+        // Update student record
+        await prisma.student.update({
+          where: { id: student.id },
+          data: { photoUrl }
+        });
+
+        // Also update User record
+        if (student.userId) {
+          await prisma.user.update({
+            where: { id: student.userId },
+            data: { photoUrl }
+          });
+        }
+
+        results.matched.push({
+          filename: file.originalname,
+          admissionNumber: student.admissionNumber
+        });
+      } catch (fileErr) {
+        console.error(`[BulkPhoto] Error processing ${file.originalname}:`, fileErr.message);
+        results.errors.push({ filename: file.originalname, error: fileErr.message });
+      }
+    }
+
+    res.json({
+      message: `Bulk photo upload complete. ${results.matched.length} matched, ${results.unmatched.length} unmatched, ${results.errors.length} errors.`,
+      totalUploaded: req.files.length,
+      ...results
+    });
+
+    // Log the bulk upload
+    logAction({
+      schoolId,
+      userId: req.user.id,
+      action: 'BULK_PHOTO_UPLOAD',
+      resource: 'STUDENT',
+      details: {
+        totalFiles: req.files.length,
+        matched: results.matched.length,
+        unmatched: results.unmatched.length,
+        errors: results.errors.length
+      },
+      ipAddress: req.ip
+    });
+  } catch (error) {
+    console.error('[BulkPhoto] Fatal error:', error);
+    res.status(500).json({ error: 'Server error: ' + error.message });
+  }
+});
+
 module.exports = router;

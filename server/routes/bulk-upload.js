@@ -541,6 +541,31 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
           }
         });
 
+        // Auto-link to parent account by phone number
+        if (studentData.parentGuardianPhone) {
+          try {
+            const sanitizedPhone = studentData.parentGuardianPhone.replace(/\s+/g, '');
+            const matchingParent = await prisma.parent.findFirst({
+              where: {
+                schoolId: schoolIdInt,
+                OR: [
+                  { phone: sanitizedPhone },
+                  { phone: { contains: sanitizedPhone.startsWith('0') ? sanitizedPhone.substring(1) : sanitizedPhone } }
+                ]
+              }
+            });
+            if (matchingParent) {
+              await prisma.student.update({
+                where: { id: student.id },
+                data: { parentId: matchingParent.id }
+              });
+            }
+          } catch (autoLinkErr) {
+            // Non-fatal — continue processing
+            console.error('[BulkAutoLink] Error:', autoLinkErr.message);
+          }
+        }
+
         // Initialize Fee Record
         if (currentTerm) {
           const feeStructure = await prisma.classFeeStructure.findUnique({
