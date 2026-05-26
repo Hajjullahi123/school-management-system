@@ -1335,7 +1335,7 @@ Note: Password must be changed on first login.
               </div>
 
               {/* Administrative & Media Section */}
-              {editingStudent && (
+
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-rose-600 font-black uppercase text-[10px] tracking-widest mb-6">
                      <div className="w-8 h-px bg-rose-600/20"></div>
@@ -1389,7 +1389,7 @@ Note: Password must be changed on first login.
                     </div>
                   </div>
                 </div>
-              )}
+
 
               <div className="flex justify-end gap-4 pt-8 border-t">
                 <button

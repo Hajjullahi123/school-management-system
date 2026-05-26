@@ -167,10 +167,12 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
       { header: 'Class Name (Optional)', key: 'className', width: 25 },
       { header: 'Gender (Male/Female)', key: 'gender', width: 20 },
       { header: 'Parent Name', key: 'parentName', width: 25 },
-      { header: 'Parent Phone', key: 'parentPhone', width: 20 }
+      { header: 'Parent Phone', key: 'parentPhone', width: 20 },
+      { header: 'Scholarship (Yes/No)', key: 'isScholarship', width: 20 },
+      { header: 'Discount Amount (₦)', key: 'feeDiscount', width: 25 }
     ];
 
-    await addSchoolHeader(workbook, worksheet, school, 'H', 'student');
+    await addSchoolHeader(workbook, worksheet, school, 'J', 'student');
 
     // Styling the header row (now at row 8)
     worksheet.getRow(8).font = { bold: true };
@@ -190,7 +192,9 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
         className: `${classes[0].name} ${classes[0].arm || ''} (ID: 1)`,
         gender: 'Male',
         parentName: 'Lawal Musa',
-        parentPhone: '08000000000'
+        parentPhone: '08000000000',
+        isScholarship: 'No',
+        feeDiscount: 0
       });
     }
 
@@ -229,6 +233,13 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
         type: 'list',
         allowBlank: true,
         formulae: ['"Male,Female"']
+      };
+
+      // Scholarship (Column I)
+      worksheet.getCell(`I${i}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: ['"Yes,No"']
       };
     }
 
