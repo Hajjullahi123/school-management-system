@@ -20,22 +20,41 @@ async function getLogoBuffer(logoUrl) {
     if (!logoUrl) return null;
     let buffer = null;
     let ext = 'png';
-    if (!logoUrl.startsWith('http')) {
-      if (logoUrl.startsWith('/uploads')) {
-        const localPath = path.join(__dirname, '..', logoUrl);
-        if (fs.existsSync(localPath)) {
-          buffer = fs.readFileSync(localPath);
-          const urlExt = logoUrl.split('.').pop().toLowerCase();
-          ext = ['png', 'jpg', 'jpeg'].includes(urlExt) ? (urlExt === 'jpg' ? 'jpeg' : urlExt) : 'png';
-        }
+
+    // 1. Handle Base64 Data URIs directly
+    if (logoUrl.startsWith('data:image/')) {
+      const matches = logoUrl.match(/^data:image\/([a-zA-Z+]+);base64,(.+)$/);
+      if (matches && matches.length === 3) {
+        const format = matches[1].toLowerCase();
+        ext = ['png', 'jpg', 'jpeg'].includes(format) ? (format === 'jpg' ? 'jpeg' : format) : 'png';
+        buffer = Buffer.from(matches[2], 'base64');
+        return { buffer, ext };
       }
-    } else {
+    }
+
+    // 2. Handle local uploads (bypass local HTTP loopback issues by reading straight from disk)
+    if (logoUrl.includes('/uploads/')) {
+      const uploadsIndex = logoUrl.indexOf('/uploads/');
+      const relativePath = logoUrl.substring(uploadsIndex); // e.g. "/uploads/logo.png"
+      const localPath = path.join(__dirname, '..', relativePath);
+      if (fs.existsSync(localPath)) {
+        buffer = fs.readFileSync(localPath);
+        const urlExt = relativePath.split('.').pop().toLowerCase();
+        ext = ['png', 'jpg', 'jpeg'].includes(urlExt) ? (urlExt === 'jpg' ? 'jpeg' : urlExt) : 'png';
+        return { buffer, ext };
+      }
+    }
+
+    // 3. Fallback to external HTTP request (for remote Cloudinary, etc.)
+    if (logoUrl.startsWith('http')) {
       const response = await axios.get(logoUrl, { responseType: 'arraybuffer', timeout: 10000 });
       buffer = Buffer.from(response.data, 'binary');
       const urlExt = logoUrl.split('.').pop().split('?')[0].toLowerCase();
       ext = ['png', 'jpg', 'jpeg'].includes(urlExt) ? (urlExt === 'jpg' ? 'jpeg' : urlExt) : 'png';
+      return { buffer, ext };
     }
-    return buffer ? { buffer, ext } : null;
+
+    return null;
   } catch (err) {
     console.log('Error fetching logo:', err.message);
     return null;
