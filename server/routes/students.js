@@ -1049,22 +1049,24 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
     // Auto-link to parent account by phone number (if no explicit parentId was provided)
     if (!parentId && parentGuardianPhone) {
       try {
-        const sanitizedPhone = parentGuardianPhone.replace(/\s+/g, '');
-        const matchingParent = await prisma.parent.findFirst({
-          where: {
-            schoolId: parseInt(req.schoolId),
-            OR: [
-              { phone: sanitizedPhone },
-              { phone: { contains: sanitizedPhone.startsWith('0') ? sanitizedPhone.substring(1) : sanitizedPhone } }
-            ]
-          }
-        });
-        if (matchingParent) {
-          await prisma.student.update({
-            where: { id: student.id },
-            data: { parentId: matchingParent.id }
+        const sanitizedPhone = parentGuardianPhone.replace(/[^\d+]/g, '');
+        if (sanitizedPhone.length >= 7) {
+          const matchingParent = await prisma.parent.findFirst({
+            where: {
+              schoolId: parseInt(req.schoolId),
+              OR: [
+                { phone: sanitizedPhone },
+                { phone: { contains: sanitizedPhone.startsWith('0') ? sanitizedPhone.substring(1) : sanitizedPhone } }
+              ]
+            }
           });
-          console.log(`[AutoLink] Linked student ${student.admissionNumber} to parent ${matchingParent.id} by phone ${sanitizedPhone}`);
+          if (matchingParent) {
+            await prisma.student.update({
+              where: { id: student.id },
+              data: { parentId: matchingParent.id }
+            });
+            console.log(`[AutoLink] Linked student ${student.admissionNumber} to parent ${matchingParent.id} by phone ${sanitizedPhone}`);
+          }
         }
       } catch (autoLinkErr) {
         console.error('[AutoLink] Non-fatal error auto-linking parent:', autoLinkErr.message);
