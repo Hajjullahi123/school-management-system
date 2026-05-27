@@ -200,24 +200,33 @@ const PublicCustomPage = () => {
               {/* Top accent bar */}
               <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-3xl" style={{ background: `linear-gradient(90deg, ${primaryColor}, ${secondaryColor}, transparent)` }}></div>
               
-              <div className="prose prose-lg md:prose-xl max-w-none
-                prose-headings:font-black prose-headings:tracking-tight prose-headings:text-gray-900
-                prose-h2:text-2xl prose-h2:md:text-3xl prose-h2:border-l-4 prose-h2:pl-4 prose-h2:py-1 prose-h2:mt-12 prose-h2:mb-6
-                prose-h3:text-xl prose-h3:md:text-2xl
-                prose-p:text-gray-600 prose-p:leading-relaxed
-                prose-a:font-bold prose-a:no-underline hover:prose-a:underline
-                prose-strong:text-gray-900
-                prose-blockquote:border-l-4 prose-blockquote:bg-gray-50 prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:not-italic prose-blockquote:text-gray-600
-                prose-li:text-gray-600 prose-li:marker:text-gray-400
-                prose-ol:text-gray-600
-                prose-img:rounded-2xl prose-img:shadow-lg
-                prose-hr:border-gray-200
-              " style={{ '--tw-prose-links': primaryColor, '--tw-prose-quotes': primaryColor, '--tw-prose-headings': '#111827' }}>
+              <div className="prose max-w-none" style={{ '--tw-prose-links': primaryColor, '--tw-prose-quotes': primaryColor, '--tw-prose-headings': '#111827' }}>
                 <style>{`
-                  .prose h2 { border-color: ${primaryColor}; }
-                  .prose blockquote { border-color: ${primaryColor}40; }
+                  .custom-prose * { text-align: left !important; }
+                  .custom-prose { width: 100%; }
+                  .custom-prose p,
+                  .custom-prose li,
+                  .custom-prose blockquote,
+                  .custom-prose td,
+                  .custom-prose th { font-size: 1rem; line-height: 1.75; color: #4b5563; }
+                  .custom-prose h1 { font-size: 2rem; font-weight: 900; letter-spacing: -0.025em; color: #111827; margin-top: 2.5rem; margin-bottom: 1rem; }
+                  .custom-prose h2 { font-size: 1.65rem; font-weight: 900; letter-spacing: -0.025em; color: #111827; border-left: 4px solid ${primaryColor}; padding-left: 1rem; padding-top: 0.25rem; padding-bottom: 0.25rem; margin-top: 2.5rem; margin-bottom: 1.25rem; }
+                  .custom-prose h3 { font-size: 1.35rem; font-weight: 800; color: #111827; margin-top: 2rem; margin-bottom: 0.75rem; }
+                  .custom-prose h4 { font-size: 1.15rem; font-weight: 700; color: #1f2937; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+                  .custom-prose strong { color: #111827; font-weight: 700; }
+                  .custom-prose a { color: ${primaryColor}; font-weight: 600; text-decoration: none; }
+                  .custom-prose a:hover { text-decoration: underline; }
+                  .custom-prose blockquote { border-left: 4px solid ${primaryColor}40; background: #f9fafb; padding: 1rem 1.5rem; border-radius: 0 0.75rem 0.75rem 0; font-style: normal; margin: 1.5rem 0; }
+                  .custom-prose blockquote p { color: #6b7280; }
+                  .custom-prose ul, .custom-prose ol { padding-left: 1.5rem; margin: 1rem 0; }
+                  .custom-prose li { margin: 0.5rem 0; }
+                  .custom-prose li::marker { color: #9ca3af; }
+                  .custom-prose img { border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,.1); }
+                  .custom-prose hr { border-color: #e5e7eb; margin: 2rem 0; }
                 `}</style>
-                <ReactMarkdown>{page.content}</ReactMarkdown>
+                <div className="custom-prose">
+                  <ReactMarkdown>{page.content}</ReactMarkdown>
+                </div>
               </div>
             </div>
           </article>
