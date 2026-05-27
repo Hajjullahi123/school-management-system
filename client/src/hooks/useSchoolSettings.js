@@ -32,9 +32,14 @@ export const useSchoolSettings = () => {
         const urlParams = new URLSearchParams(window.location.search);
 
         // Priority: 1. Path slug (e.g. /amana-academy/), 2. Query param (?school=), 3. localStorage
+        // Ignore localStorage on authenticated dashboards/portals so the backend can use the JWT token.
         let slug = pathParts[0] && !['login', 'news-events', 'contact', 'gallery', 'alumni', 'demo', 'verify', 'dashboard', 'superadmin', 'school-home', 'verify-dashboard'].includes(pathParts[0])
           ? pathParts[0]
-          : urlParams.get('school') || localStorage.getItem('schoolSlug');
+          : urlParams.get('school');
+
+        if (!slug && !['dashboard', 'superadmin', 'school-home'].includes(pathParts[0])) {
+          slug = localStorage.getItem('schoolSlug');
+        }
 
         if (slug === 'null' || slug === 'undefined') {
           slug = null;
