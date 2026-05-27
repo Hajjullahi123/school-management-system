@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiCall } from '../../api';
+import { apiCall, api } from '../../api';
 import toast from 'react-hot-toast';
 import { FiPlus, FiEdit2, FiTrash2, FiLink, FiCheck, FiX } from 'react-icons/fi';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
@@ -88,10 +88,10 @@ const CustomPages = () => {
 
     try {
       if (editingPage) {
-        await apiCall(`/api/custom-pages/admin/${editingPage.id}`, 'PUT', formData);
+        await api.put(`/api/custom-pages/admin/${editingPage.id}`, formData);
         toast.success('Page updated successfully');
       } else {
-        await apiCall('/api/custom-pages/admin', 'POST', formData);
+        await api.post('/api/custom-pages/admin', formData);
         toast.success('Page created successfully');
       }
       closeModal();
