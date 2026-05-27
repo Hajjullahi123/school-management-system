@@ -210,7 +210,7 @@ const CustomPages = () => {
                     value={formData.title}
                     onChange={handleInputChange}
                     required
-                    className="w-full border-gray-300 rounded-lg shadow-sm focus:border-primary focus:ring-primary"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                     placeholder="e.g. Admissions Policy"
                   />
                 </div>
@@ -222,7 +222,7 @@ const CustomPages = () => {
                     value={formData.slug}
                     onChange={handleInputChange}
                     required
-                    className="w-full border-gray-300 rounded-lg shadow-sm focus:border-primary focus:ring-primary font-mono text-sm"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-mono text-sm"
                     placeholder="e.g. admissions-policy"
                   />
                 </div>
@@ -240,16 +240,19 @@ const CustomPages = () => {
                     value={formData.content}
                     onChange={handleInputChange}
                     required
-                    className="w-full h-full border-gray-300 rounded-lg shadow-sm focus:border-primary focus:ring-primary font-mono text-sm p-4 resize-none"
+                    className="w-full h-full border border-gray-300 rounded-lg px-4 py-3 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-mono text-sm resize-none"
                     placeholder="Write your page content here... You can use # for headings, **bold**, and *italics*."
                   ></textarea>
                   
                   {/* Live Preview */}
-                  <div className="w-full h-full border border-gray-200 rounded-lg bg-gray-50 p-4 overflow-y-auto prose prose-sm max-w-none">
+                  <div className="w-full h-full border border-gray-300 rounded-lg bg-gray-50/80 p-4 overflow-y-auto prose prose-sm max-w-none shadow-inner">
                     {formData.content ? (
                       <ReactMarkdown>{formData.content}</ReactMarkdown>
                     ) : (
-                      <div className="text-gray-400 h-full flex items-center justify-center text-center">Live Preview</div>
+                      <div className="text-gray-400 h-full flex flex-col items-center justify-center text-center">
+                        <svg className="w-8 h-8 mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        Live Preview
+                      </div>
                     )}
                   </div>
                 </div>
