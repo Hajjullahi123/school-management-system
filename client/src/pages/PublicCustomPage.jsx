@@ -138,11 +138,15 @@ const PublicCustomPage = () => {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-6 py-12 md:py-20">
-        <article className="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-gray-100">
-          <h1 className="text-3xl md:text-5xl font-black text-gray-900 mb-8 tracking-tight" style={{ color: school.primaryColor }}>
+        <article className="bg-white rounded-3xl p-8 md:p-14 shadow-xl border border-gray-100 text-left relative overflow-hidden">
+          {/* Decorative element */}
+          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[var(--color-primary)] to-transparent opacity-50"></div>
+          
+          <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-10 tracking-tight leading-tight" style={{ color: school.primaryColor }}>
             {page.title}
           </h1>
-          <div className="prose prose-lg max-w-none prose-headings:font-black prose-a:text-[var(--color-primary)]">
+          
+          <div className="prose prose-lg md:prose-xl max-w-none prose-headings:font-black prose-headings:tracking-tight prose-a:text-[var(--color-primary)] prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-img:shadow-md">
             <ReactMarkdown>{page.content}</ReactMarkdown>
           </div>
         </article>
