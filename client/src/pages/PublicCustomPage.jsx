@@ -202,13 +202,30 @@ const PublicCustomPage = () => {
               
               <div className="prose max-w-none" style={{ '--tw-prose-links': primaryColor, '--tw-prose-quotes': primaryColor, '--tw-prose-headings': '#111827' }}>
                 <style>{`
+                  .custom-prose,
                   .custom-prose * { text-align: left !important; }
                   .custom-prose { width: 100%; }
+                  .custom-prose > *,
+                  .custom-prose p,
+                  .custom-prose h1,
+                  .custom-prose h2,
+                  .custom-prose h3,
+                  .custom-prose h4,
+                  .custom-prose h5,
+                  .custom-prose h6,
+                  .custom-prose ul,
+                  .custom-prose ol,
+                  .custom-prose blockquote,
+                  .custom-prose pre,
+                  .custom-prose table,
+                  .custom-prose hr,
+                  .custom-prose img { max-width: 100% !important; width: 100%; box-sizing: border-box; }
+                  .custom-prose img { width: auto; }
                   .custom-prose p,
                   .custom-prose li,
                   .custom-prose blockquote,
                   .custom-prose td,
-                  .custom-prose th { font-size: 1rem; line-height: 1.75; color: #4b5563; }
+                  .custom-prose th { font-size: 1.05rem; line-height: 1.8; color: #4b5563; }
                   .custom-prose h1 { font-size: 2rem; font-weight: 900; letter-spacing: -0.025em; color: #111827; margin-top: 2.5rem; margin-bottom: 1rem; }
                   .custom-prose h2 { font-size: 1.65rem; font-weight: 900; letter-spacing: -0.025em; color: #111827; border-left: 4px solid ${primaryColor}; padding-left: 1rem; padding-top: 0.25rem; padding-bottom: 0.25rem; margin-top: 2.5rem; margin-bottom: 1.25rem; }
                   .custom-prose h3 { font-size: 1.35rem; font-weight: 800; color: #111827; margin-top: 2rem; margin-bottom: 0.75rem; }
@@ -217,7 +234,7 @@ const PublicCustomPage = () => {
                   .custom-prose a { color: ${primaryColor}; font-weight: 600; text-decoration: none; }
                   .custom-prose a:hover { text-decoration: underline; }
                   .custom-prose blockquote { border-left: 4px solid ${primaryColor}40; background: #f9fafb; padding: 1rem 1.5rem; border-radius: 0 0.75rem 0.75rem 0; font-style: normal; margin: 1.5rem 0; }
-                  .custom-prose blockquote p { color: #6b7280; }
+                  .custom-prose blockquote p { color: #6b7280; width: auto; }
                   .custom-prose ul, .custom-prose ol { padding-left: 1.5rem; margin: 1rem 0; }
                   .custom-prose li { margin: 0.5rem 0; }
                   .custom-prose li::marker { color: #9ca3af; }
