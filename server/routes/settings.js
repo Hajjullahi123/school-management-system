@@ -104,19 +104,28 @@ router.get('/', async (req, res) => {
                 const jwt = require('jsonwebtoken');
                 const JWT_SECRET = process.env.JWT_SECRET || 'darul-quran-secret-key-change-in-production';
                 const decoded = jwt.verify(token, JWT_SECRET);
+                
                 if (decoded?.schoolId) {
                   return prisma.school.findUnique({ where: { id: decoded.schoolId } });
+                }
+                
+                // If it's a superadmin (no schoolId), return a mocked global config
+                if (decoded?.role === 'superadmin') {
+                  return {
+                    id: 'global-superadmin',
+                    schoolName: 'EduTechAI System',
+                    schoolMotto: 'Global Management Console',
+                    primaryColor: '#1d4ed8',
+                    secondaryColor: '#2563eb',
+                    accentColor: '#3b82f6',
+                    logoUrl: null
+                  };
                 }
               } catch (e) {}
             }
             return prisma.school.findFirst(); // Final fallback
           })(),
-      (async () => {
-        // We can only get the session if we have the school ID, 
-        // so we'll do this parallel lookup with a placeholder if needed
-        // but it's better to fetch school first or use a subquery if supported
-        return null; // Will handle session below for now to ensure ID is correct
-      })()
+      Promise.resolve(null)
     ]);
 
     if (!settings) {
@@ -124,15 +133,22 @@ router.get('/', async (req, res) => {
     }
 
     // Fetch current academic session now that we definitely have settings.id
-    // Fetch current academic session and term in parallel
-    const [academicSession, currentTerm] = await Promise.all([
-      prisma.academicSession.findFirst({
-        where: { schoolId: settings.id, isCurrent: true }
-      }),
-      prisma.term.findFirst({
-        where: { schoolId: settings.id, isCurrent: true }
-      })
-    ]);
+    // Only fetch if it's a real school (id is an integer/uuid, not the string 'global-superadmin')
+    let academicSession = null;
+    let currentTerm = null;
+
+    if (settings.id !== 'global-superadmin') {
+      const results = await Promise.all([
+        prisma.academicSession.findFirst({
+          where: { schoolId: settings.id, isCurrent: true }
+        }),
+        prisma.term.findFirst({
+          where: { schoolId: settings.id, isCurrent: true }
+        })
+      ]);
+      academicSession = results[0];
+      currentTerm = results[1];
+    }
 
     // Sanitize sensitive fields
     const sanitizedSettings = { ...settings };
