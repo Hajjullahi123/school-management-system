@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiLogOut, FiMail, FiPhone, FiMapPin, FiArrowRight, FiFacebook, FiInstagram, FiMessageCircle, FiGlobe, FiChevronRight } from 'react-icons/fi';
+import { FiLogOut, FiMail, FiPhone, FiMapPin, FiArrowRight, FiFacebook, FiInstagram, FiMessageCircle, FiGlobe, FiChevronRight, FiMenu, FiX } from 'react-icons/fi';
 import ReactMarkdown from 'react-markdown';
 import { apiCall } from '../api';
 import { API_BASE_URL } from '../config';
@@ -14,6 +14,7 @@ const PublicSchoolLandingPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchSchool = async () => {
@@ -119,13 +120,43 @@ const PublicSchoolLandingPage = () => {
             </nav>
             <button
               onClick={() => navigate(`/${school.slug}/login`)}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-full text-white font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+              className="hidden md:flex items-center gap-2 px-6 py-2.5 rounded-full text-white font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+              style={{ backgroundColor: primaryColor }}
+            >
+              Portal Login <FiArrowRight />
+            </button>
+            <button 
+              className="md:hidden p-2 text-gray-900"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <FiX className="w-6 h-6" /> : <FiMenu className="w-6 h-6" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Menu Overlay */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-20 left-0 w-full bg-white border-b border-gray-100 shadow-lg px-6 py-4 flex flex-col gap-4">
+            {school.customPages?.map(page => (
+              <Link 
+                key={page.slug} 
+                to={`/${school.slug}/page/${page.slug}`} 
+                className="text-lg font-bold text-gray-700 hover:text-gray-900 transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {page.title}
+              </Link>
+            ))}
+            {school.customPages?.length > 0 && <div className="h-px bg-gray-100 my-2"></div>}
+            <button 
+              onClick={() => navigate(`/${school.slug}/login`)}
+              className="flex items-center justify-center gap-2 w-full px-6 py-3 rounded-full text-white font-bold transition-all shadow-lg"
               style={{ backgroundColor: primaryColor }}
             >
               Portal Login <FiArrowRight />
             </button>
           </div>
-        </div>
+        )}
       </header>
 
 

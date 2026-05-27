@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiArrowRight, FiMapPin, FiPhone, FiMail } from 'react-icons/fi';
+import { FiArrowRight, FiMapPin, FiPhone, FiMail, FiMenu, FiX } from 'react-icons/fi';
 import ReactMarkdown from 'react-markdown';
 import { API_BASE_URL } from '../../config';
 
 const ThemeModern = ({ school, getLogoUrl }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const heroImages = school.GalleryImage?.length > 0
     ? school.GalleryImage.map(img => img.imageUrl.startsWith('http') ? img.imageUrl : `${API_BASE_URL}${img.imageUrl.startsWith('/') ? '' : '/'}${img.imageUrl}`)
     : ['https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop'];
@@ -49,8 +50,38 @@ const ThemeModern = ({ school, getLogoUrl }) => {
             <Link to={`/${school.slug}/login`} className="flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold text-white transition-transform hover:scale-105 active:scale-95 shadow-lg shadow-black/10" style={{ backgroundColor: school.primaryColor }}>
               Portal Login <FiArrowRight />
             </Link>
+            <button 
+              className="md:hidden p-2 text-gray-900"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <FiX className="w-6 h-6" /> : <FiMenu className="w-6 h-6" />}
+            </button>
           </nav>
         </div>
+        
+        {/* Mobile Menu Overlay */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-20 left-0 w-full bg-white border-b border-gray-100 shadow-lg px-6 py-4 flex flex-col gap-4">
+            {school.customPages?.map(page => (
+              <Link 
+                key={page.slug} 
+                to={`/${school.slug}/page/${page.slug}`} 
+                className="text-lg font-bold text-gray-700 hover:text-[var(--theme-color)] transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {page.title}
+              </Link>
+            ))}
+            {school.customPages?.length > 0 && <div className="h-px bg-gray-100 my-2"></div>}
+            <Link 
+              to={`/${school.slug}/login`} 
+              className="flex items-center justify-center gap-2 w-full px-6 py-3 rounded-full text-white font-bold transition-all shadow-lg"
+              style={{ backgroundColor: school.primaryColor }}
+            >
+              Portal Login <FiArrowRight />
+            </Link>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}

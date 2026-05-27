@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
+import { FiMenu, FiX, FiArrowRight } from 'react-icons/fi';
 import { API_BASE_URL } from '../../config';
 
 const PublicCustomPage = () => {
+  const navigate = useNavigate();
   const { schoolSlug, pageSlug } = useParams();
   const [school, setSchool] = useState(null);
   const [page, setPage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,13 +83,57 @@ const PublicCustomPage = () => {
             <span className="text-xl md:text-2xl font-black tracking-tight text-gray-900 hidden sm:block group-hover:text-[var(--color-primary)] transition-colors">{school.name}</span>
           </Link>
           
-          <nav className="flex items-center gap-6">
-            <Link to={`/${schoolSlug}`} className="text-sm font-bold text-gray-500 hover:text-gray-900">Home</Link>
-            <Link to={`/${schoolSlug}/login`} className="text-sm font-bold text-white px-5 py-2 rounded-full shadow-md" style={{ backgroundColor: school.primaryColor }}>
-              Portal Login
+          <div className="flex items-center gap-6">
+            <nav className="hidden md:flex items-center gap-6 mr-2">
+              <Link to={`/${schoolSlug}`} className="text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors">Home</Link>
+              {school.customPages?.map(p => (
+                <Link key={p.slug} to={`/${schoolSlug}/page/${p.slug}`} className={`text-sm font-bold transition-colors ${p.slug === pageSlug ? 'text-gray-900 border-b-2 border-gray-900 pb-1' : 'text-gray-500 hover:text-gray-900'}`}>
+                  {p.title}
+                </Link>
+              ))}
+            </nav>
+            <Link to={`/${schoolSlug}/login`} className="hidden md:flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold text-white transition-transform hover:scale-105 active:scale-95 shadow-md" style={{ backgroundColor: school.primaryColor }}>
+              Portal Login <FiArrowRight />
             </Link>
-          </nav>
+            <button 
+              className="md:hidden p-2 text-gray-900"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <FiX className="w-6 h-6" /> : <FiMenu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Menu Overlay */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-20 left-0 w-full bg-white border-b border-gray-100 shadow-lg px-6 py-4 flex flex-col gap-4">
+            <Link 
+              to={`/${schoolSlug}`} 
+              className="text-lg font-bold text-gray-700 hover:text-gray-900 transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Home
+            </Link>
+            {school.customPages?.map(p => (
+              <Link 
+                key={p.slug} 
+                to={`/${schoolSlug}/page/${p.slug}`} 
+                className={`text-lg font-bold transition-colors ${p.slug === pageSlug ? 'text-gray-900' : 'text-gray-700 hover:text-gray-900'}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {p.title}
+              </Link>
+            ))}
+            <div className="h-px bg-gray-100 my-2"></div>
+            <Link 
+              to={`/${schoolSlug}/login`} 
+              className="flex items-center justify-center gap-2 w-full px-6 py-3 rounded-full text-white font-bold transition-all shadow-lg"
+              style={{ backgroundColor: school.primaryColor }}
+            >
+              Portal Login <FiArrowRight />
+            </Link>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
