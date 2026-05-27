@@ -177,11 +177,13 @@ router.get('/template', authenticate, authorize(['admin', 'principal']), async (
       { header: 'Class Name*', key: 'className', width: 20 },
       { header: 'Arm', key: 'arm', width: 10 },
       { header: 'Subjects (comma-separated)*', key: 'subjects', width: 55 },
-      { header: 'Fee Amount Per Term (₦)', key: 'feeAmount', width: 25 },
+      { header: 'Term 1 Fee (₦)', key: 'term1Fee', width: 18 },
+      { header: 'Term 2 Fee (₦)', key: 'term2Fee', width: 18 },
+      { header: 'Term 3 Fee (₦)', key: 'term3Fee', width: 18 },
       { header: 'Fee Description', key: 'feeDescription', width: 30 }
     ];
 
-    await addSchoolHeader(workbook, classSheet, school, 'E');
+    await addSchoolHeader(workbook, classSheet, school, 'G');
 
     // Style header row (row 8)
     classSheet.getRow(8).font = { bold: true };
@@ -192,14 +194,18 @@ router.get('/template', authenticate, authorize(['admin', 'principal']), async (
       className: 'PP1',
       arm: 'A',
       subjects: 'Mathematics, English, Arabic, Islamic Studies, Science',
-      feeAmount: 25000,
+      term1Fee: 25000,
+      term2Fee: 25000,
+      term3Fee: 25000,
       feeDescription: 'Tuition Fee'
     });
     classSheet.addRow({
       className: 'PRI1',
       arm: 'A',
       subjects: 'Mathematics, English, Arabic, Islamic Studies, Science, Social Studies',
-      feeAmount: 30000,
+      term1Fee: 30000,
+      term2Fee: 28000,
+      term3Fee: 28000,
       feeDescription: 'Tuition Fee'
     });
 
@@ -225,7 +231,7 @@ router.get('/template', authenticate, authorize(['admin', 'principal']), async (
       '   • Class Name: The name of the class (e.g., PP1, NUR1, PRI1, JSS 1).',
       '   • Arm: Optional class arm/section (e.g., A, B, Gold). Leave blank for single section.',
       '   • Subjects: List all subjects for this class, separated by commas.',
-      '   • Fee Amount: The tuition fee for this class per term. Leave blank if not setting fees yet.',
+      '   • Term 1, 2, 3 Fee: The tuition fee for this class per term. Leave blank if not setting fees.',
       '   • Fee Description: Optional label (e.g., "Tuition Fee", "School Fees").',
       '',
       '⚙️ WHAT HAPPENS WHEN YOU UPLOAD',
@@ -234,7 +240,7 @@ router.get('/template', authenticate, authorize(['admin', 'principal']), async (
       '   3. Classes are created (existing ones are skipped, not duplicated).',
       '   4. Subjects are created school-wide (reused if they already exist).',
       '   5. Subjects are linked to their respective classes.',
-      '   6. Fee structures are set for each class for the current term.',
+      '   6. Fee structures are set for each term if specified in the columns.',
       '',
       '✅ SAFETY',
       '   • This process ONLY adds new data. It never deletes or overwrites existing records.',
@@ -342,7 +348,14 @@ router.post('/upload', authenticate, authorize(['admin', 'principal']), upload.s
           if (hl.includes('class name')) headers.className = idx;
           else if (hl.includes('arm')) headers.arm = idx;
           else if (hl.includes('subject')) headers.subjects = idx;
-          else if (hl.includes('fee amount') || hl.includes('fee')) headers.feeAmount = idx;
+          else if (hl.includes('term 1 fee')) headers.term1Fee = idx;
+          else if (hl.includes('term 2 fee')) headers.term2Fee = idx;
+          else if (hl.includes('term 3 fee')) headers.term3Fee = idx;
+          else if (hl.includes('fee amount') || hl.includes('fee')) {
+            if (headers.feeAmount === undefined && !hl.includes('term 1') && !hl.includes('term 2') && !hl.includes('term 3')) {
+              headers.feeAmount = idx;
+            }
+          }
           else if (hl.includes('description')) headers.feeDescription = idx;
         });
       }
@@ -362,6 +375,9 @@ router.post('/upload', authenticate, authorize(['admin', 'principal']), upload.s
           arm: getVal('arm') || null,
           subjects: getVal('subjects'),
           feeAmount: getVal('feeAmount'),
+          term1Fee: getVal('term1Fee'),
+          term2Fee: getVal('term2Fee'),
+          term3Fee: getVal('term3Fee'),
           feeDescription: getVal('feeDescription') || 'School Fees'
         });
       }
@@ -533,24 +549,30 @@ router.post('/upload', authenticate, authorize(['admin', 'principal']), upload.s
         }
 
         // 3d. Set Fee Structure
-        if (row.feeAmount && currentTerm && parseFloat(row.feeAmount) > 0) {
-          const amount = parseFloat(row.feeAmount);
+        const sessionTerms = await prisma.term.findMany({
+          where: { schoolId: schoolIdInt, academicSessionId: academicSession.id },
+          orderBy: { startDate: 'asc' }
+        });
 
+        const processFee = async (termRecord, amountVal) => {
+          if (!termRecord || !amountVal || parseFloat(amountVal) <= 0) return;
+          const amount = parseFloat(amountVal);
+          
           await prisma.classFeeStructure.upsert({
             where: {
               schoolId_classId_termId_academicSessionId: {
                 schoolId: schoolIdInt,
                 classId: classRecord.id,
-                termId: currentTerm.id,
-                academicSessionId: currentTerm.academicSessionId
+                termId: termRecord.id,
+                academicSessionId: termRecord.academicSessionId
               }
             },
             update: { amount, description: row.feeDescription },
             create: {
               schoolId: schoolIdInt,
               classId: classRecord.id,
-              termId: currentTerm.id,
-              academicSessionId: currentTerm.academicSessionId,
+              termId: termRecord.id,
+              academicSessionId: termRecord.academicSessionId,
               amount,
               description: row.feeDescription
             }
@@ -558,9 +580,17 @@ router.post('/upload', authenticate, authorize(['admin', 'principal']), upload.s
           results.feeStructures.push({
             class: `${row.className} ${row.arm || 'A'}`,
             amount,
-            term: currentTerm.name,
+            term: termRecord.name,
             status: 'set'
           });
+        };
+
+        if (row.term1Fee || row.term2Fee || row.term3Fee) {
+          if (row.term1Fee && sessionTerms[0]) await processFee(sessionTerms[0], row.term1Fee);
+          if (row.term2Fee && sessionTerms[1]) await processFee(sessionTerms[1], row.term2Fee);
+          if (row.term3Fee && sessionTerms[2]) await processFee(sessionTerms[2], row.term3Fee);
+        } else if (row.feeAmount && currentTerm && parseFloat(row.feeAmount) > 0) {
+          await processFee(currentTerm, row.feeAmount);
         } else if (row.feeAmount && !currentTerm) {
           results.errors.push(`Fee skipped for ${row.className}: No current term found. Session/Terms may not have been created.`);
         }
