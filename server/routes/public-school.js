@@ -32,7 +32,11 @@ router.get('/:slug', async (req, res) => {
         alumniNetworkUrl: true,
         brochureFileUrl: true,
         admissionGuideFileUrl: true,
-        isActivated: true
+        isActivated: true,
+        GalleryImage: {
+          where: { category: 'hero', isActive: true },
+          select: { imageUrl: true }
+        }
       }
     });
 

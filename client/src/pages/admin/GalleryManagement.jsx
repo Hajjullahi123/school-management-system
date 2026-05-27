@@ -22,7 +22,8 @@ const GalleryManagement = () => {
     { value: 'events', label: 'Events' },
     { value: 'facilities', label: 'Facilities' },
     { value: 'students', label: 'Students' },
-    { value: 'staff', label: 'Staff' }
+    { value: 'staff', label: 'Staff' },
+    { value: 'hero', label: 'Landing Page Hero' }
   ];
 
   useEffect(() => {

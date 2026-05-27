@@ -11,6 +11,7 @@ const PublicSchoolLandingPage = () => {
   const [school, setSchool] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     const fetchSchool = async () => {
@@ -65,6 +66,23 @@ const PublicSchoolLandingPage = () => {
   const primaryColor = school.primaryColor || '#4f46e5'; // fallback indigo-600
   const secondaryColor = school.secondaryColor || '#6366f1'; // fallback indigo-500
   const accentColor = school.accentColor || '#818cf8'; // fallback indigo-400
+
+  const heroImages = school?.GalleryImage?.length > 0
+    ? school.GalleryImage.map(g => getLogoUrl(g.imageUrl))
+    : [
+        "/images/hero_exterior.png",
+        "/images/hero_students.png",
+        "/images/hero_lab.png",
+        "/images/hero_library.png"
+      ];
+
+  useEffect(() => {
+    if (!heroImages || heroImages.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [heroImages?.length]);
 
   return (
     <div className="min-h-screen font-inter flex flex-col selection:bg-black/10" style={{ '--school-primary': primaryColor, '--school-secondary': secondaryColor, '--school-accent': accentColor }}>
@@ -149,34 +167,34 @@ const PublicSchoolLandingPage = () => {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative hidden lg:block"
+            className="relative w-full h-[350px] sm:h-[450px] lg:h-full lg:min-h-[500px] mt-8 lg:mt-0"
           >
-            {/* Abstract visual representation of the school portal */}
-            <div className="aspect-square relative rounded-[40px] overflow-hidden shadow-2xl border-8 border-white bg-gray-50 flex items-center justify-center p-12">
-               {/* Use School Logo as central centerpiece if available */}
-               <div className="absolute inset-0 opacity-5" style={{ backgroundImage: `radial-gradient(circle at center, ${primaryColor} 0%, transparent 70%)` }}></div>
+            <div className="absolute inset-0 rounded-[40px] overflow-hidden shadow-2xl border-[8px] border-white bg-gray-100 group">
+               {heroImages.map((img, index) => (
+                 <img
+                   key={index}
+                   src={img}
+                   alt={`School Image ${index + 1}`}
+                   className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'}`}
+                 />
+               ))}
                
-               {school.logoUrl ? (
-                 <img src={getLogoUrl(school.logoUrl)} alt="Emblem" className="w-2/3 h-2/3 object-contain relative z-10 drop-shadow-2xl" />
-               ) : (
-                 <div className="w-2/3 h-2/3 rounded-full bg-white shadow-xl flex items-center justify-center relative z-10 border border-gray-100">
-                    <span className="text-[120px] font-black" style={{ color: primaryColor }}>{school.name.charAt(0)}</span>
+               {/* Elegant Gradient Overlay */}
+               <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-transparent opacity-80 mix-blend-multiply pointer-events-none"></div>
+               
+               {/* Decorative Logo Badge if available */}
+               {school.logoUrl && (
+                 <div className="absolute bottom-6 left-6 p-3 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl transform group-hover:scale-105 transition-transform">
+                   <img src={getLogoUrl(school.logoUrl)} alt="Emblem" className="w-16 h-16 object-contain" />
                  </div>
                )}
-               
-               {/* Floating elements to make it dynamic */}
-               <div className="absolute top-10 left-10 p-4 bg-white rounded-2xl shadow-xl animate-bounce-slow">
-                 <div className="w-12 h-2 rounded-full mb-2" style={{ backgroundColor: secondaryColor }}></div>
-                 <div className="w-8 h-2 rounded-full bg-gray-200"></div>
-               </div>
-               <div className="absolute bottom-20 right-10 p-4 bg-white rounded-2xl shadow-xl animate-pulse">
-                 <div className="w-16 h-16 rounded-full flex items-center justify-center border-4" style={{ borderColor: accentColor }}>
-                    <span className="font-black text-xl" style={{ color: primaryColor }}>A+</span>
-                 </div>
-               </div>
+
+               {/* Elegant accents */}
+               <div className="absolute top-6 right-6 w-20 h-20 border-t-4 border-r-4 border-white/50 rounded-tr-3xl pointer-events-none"></div>
+               <div className="absolute bottom-6 right-6 w-20 h-20 border-b-4 border-r-4 border-white/50 rounded-br-3xl pointer-events-none"></div>
             </div>
           </motion.div>
         </div>
