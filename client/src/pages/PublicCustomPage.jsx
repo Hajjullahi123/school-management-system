@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import { FiMenu, FiX, FiArrowRight } from 'react-icons/fi';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL } from '../config';
 
 const PublicCustomPage = () => {
   const navigate = useNavigate();
