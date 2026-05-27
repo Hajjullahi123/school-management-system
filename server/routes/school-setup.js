@@ -137,26 +137,26 @@ router.get('/template', authenticate, authorize(['admin', 'principal']), async (
     sessionSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
 
     const sessionFields = [
-      { field: 'Session Name*', value: '2025-2026', notes: 'e.g. 2025-2026 or 2024/2025' },
-      { field: 'Session Start Date*', value: '2025-09-01', notes: 'Format: YYYY-MM-DD' },
-      { field: 'Session End Date*', value: '2026-07-31', notes: 'Format: YYYY-MM-DD' },
+      { field: 'Session Name*', value: '', notes: 'e.g. 2025-2026 or 2024/2025' },
+      { field: 'Session Start Date*', value: '', notes: 'Format: YYYY-MM-DD' },
+      { field: 'Session End Date*', value: '', notes: 'Format: YYYY-MM-DD' },
       { field: '', value: '', notes: '' },
-      { field: 'Term 1 Name*', value: 'First Term', notes: 'e.g. First Term, 1st Term' },
-      { field: 'Term 1 Start Date*', value: '2025-09-01', notes: 'Format: YYYY-MM-DD' },
-      { field: 'Term 1 End Date*', value: '2025-12-20', notes: 'Format: YYYY-MM-DD' },
-      { field: 'Term 1 Next Term Begins', value: '2026-01-10', notes: 'Optional' },
+      { field: 'Term 1 Name*', value: '', notes: 'e.g. First Term, 1st Term' },
+      { field: 'Term 1 Start Date*', value: '', notes: 'Format: YYYY-MM-DD' },
+      { field: 'Term 1 End Date*', value: '', notes: 'Format: YYYY-MM-DD' },
+      { field: 'Term 1 Next Term Begins', value: '', notes: 'Optional' },
       { field: '', value: '', notes: '' },
-      { field: 'Term 2 Name', value: 'Second Term', notes: 'Leave blank if only 1 term' },
-      { field: 'Term 2 Start Date', value: '2026-01-10', notes: 'Format: YYYY-MM-DD' },
-      { field: 'Term 2 End Date', value: '2026-04-15', notes: 'Format: YYYY-MM-DD' },
-      { field: 'Term 2 Next Term Begins', value: '2026-04-28', notes: 'Optional' },
+      { field: 'Term 2 Name', value: '', notes: 'Leave blank if only 1 term' },
+      { field: 'Term 2 Start Date', value: '', notes: 'Format: YYYY-MM-DD' },
+      { field: 'Term 2 End Date', value: '', notes: 'Format: YYYY-MM-DD' },
+      { field: 'Term 2 Next Term Begins', value: '', notes: 'Optional' },
       { field: '', value: '', notes: '' },
-      { field: 'Term 3 Name', value: 'Third Term', notes: 'Leave blank if only 2 terms' },
-      { field: 'Term 3 Start Date', value: '2026-04-28', notes: 'Format: YYYY-MM-DD' },
-      { field: 'Term 3 End Date', value: '2026-07-31', notes: 'Format: YYYY-MM-DD' },
+      { field: 'Term 3 Name', value: '', notes: 'Leave blank if only 2 terms' },
+      { field: 'Term 3 Start Date', value: '', notes: 'Format: YYYY-MM-DD' },
+      { field: 'Term 3 End Date', value: '', notes: 'Format: YYYY-MM-DD' },
       { field: 'Term 3 Next Term Begins', value: '', notes: 'Optional' },
       { field: '', value: '', notes: '' },
-      { field: 'Set As Current Term*', value: 'First Term', notes: 'Must match one of the term names above' }
+      { field: 'Set As Current Term*', value: '', notes: 'Must match one of the term names above' }
     ];
 
     sessionFields.forEach(row => {
@@ -166,9 +166,35 @@ router.get('/template', authenticate, authorize(['admin', 'principal']), async (
       }
     });
 
-    // Style the value column cells
+    // Protect the sheet so only the value column can be edited
+    sessionSheet.protect('schoolsetup', { selectLockedCells: true, selectUnlockedCells: true });
+
+    // Format the cells and enforce validation
     for (let i = 2; i <= sessionFields.length + 1; i++) {
-      sessionSheet.getCell(`B${i}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF9C4' } };
+      const field = sessionFields[i - 2];
+      const valueCell = sessionSheet.getCell(`B${i}`);
+      
+      // Unlock the value cell for user input
+      if (field.field !== '') {
+        valueCell.protection = { locked: false };
+      }
+
+      if (field.notes) {
+        sessionSheet.getCell(`C${i}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF9C4' } };
+      }
+
+      // Enforce Date format
+      if (field.notes && field.notes.includes('YYYY-MM-DD')) {
+        valueCell.numFmt = 'yyyy-mm-dd';
+        valueCell.dataValidation = {
+          type: 'date',
+          operator: 'greaterThan',
+          formula1: new Date('1900-01-01'),
+          showErrorMessage: true,
+          errorTitle: 'Invalid Date Format',
+          error: 'Please enter a valid date. Excel will format it to YYYY-MM-DD automatically.'
+        };
+      }
     }
 
     // ---- SHEET 2: Classes & Setup ----
