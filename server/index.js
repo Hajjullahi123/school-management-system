@@ -431,6 +431,7 @@ app.use('/api/holidays', authenticate, checkSubscription, holidayRoutes);
 app.use('/api/academics', authenticate, checkSubscription, academicsRoutes);
 app.use('/api/showcase', showcaseRoutes);
 app.use('/api/adverts', advertRoutes);
+app.use('/api/public-school', require('./routes/public-school'));
 app.use('/api/departments', authenticate, checkSubscription, departmentRoutes);
 app.use('/api/broadsheet', authenticate, checkSubscription, broadsheetRoutes);
 app.use('/api/push', pushRoutes);
