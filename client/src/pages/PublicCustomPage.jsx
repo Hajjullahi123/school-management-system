@@ -191,8 +191,8 @@ const PublicCustomPage = () => {
       </section>
 
       {/* ===== MAIN CONTENT ===== */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-10 md:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10 md:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           
           {/* Main Article */}
           <article className="lg:col-span-3">
@@ -249,13 +249,13 @@ const PublicCustomPage = () => {
           </article>
 
           {/* Sidebar */}
-          <aside className="lg:col-span-1">
-            <div className="sticky top-28 space-y-6">
+          <aside className="lg:col-span-2">
+            <div className="sticky top-28 space-y-5 w-full">
               {/* School Info Card */}
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 overflow-hidden relative">
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 overflow-hidden relative w-full">
                 <div className="absolute top-0 left-0 right-0 h-24 opacity-10 rounded-t-2xl" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}></div>
-                <div className="relative z-10 text-center">
-                  <div className="w-16 h-16 mx-auto rounded-2xl bg-white shadow-md flex items-center justify-center overflow-hidden border border-gray-200 mb-3">
+                <div className="relative z-10 flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-white shadow-md flex items-center justify-center overflow-hidden border border-gray-200 flex-shrink-0">
                     {school.logoUrl ? (
                       <>
                         <img src={getLogoUrl(school.logoUrl)} alt="" className="w-full h-full object-contain p-1.5" onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }} />
@@ -265,38 +265,40 @@ const PublicCustomPage = () => {
                       <span className="text-xl font-black text-gray-300">{school.name.charAt(0)}</span>
                     )}
                   </div>
-                  <h3 className="font-black text-gray-900 text-sm leading-tight">{school.name}</h3>
-                  {school.motto && <p className="text-xs text-gray-400 mt-1 italic">"{school.motto}"</p>}
+                  <div className="min-w-0">
+                    <h3 className="font-black text-gray-900 text-sm leading-tight">{school.name}</h3>
+                    {school.motto && <p className="text-xs text-gray-400 mt-1 italic truncate">"{school.motto}"</p>}
+                  </div>
                 </div>
               </div>
 
               {/* Contact Info Card */}
               {(school.phone || school.email || school.address) && (
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 w-full">
                   <h4 className="font-black text-gray-900 text-sm uppercase tracking-wider mb-4">Contact Us</h4>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {school.phone && (
-                      <a href={`tel:${school.phone}`} className="flex items-center gap-3 text-sm text-gray-600 hover:text-gray-900 transition-colors group">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors" style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}>
+                      <a href={`tel:${school.phone}`} className="flex items-center gap-3 text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}>
                           <FiPhone className="w-4 h-4" />
                         </div>
-                        <span className="font-medium">{school.phone}</span>
+                        <span className="font-semibold">{school.phone}</span>
                       </a>
                     )}
                     {school.email && (
-                      <a href={`mailto:${school.email}`} className="flex items-center gap-3 text-sm text-gray-600 hover:text-gray-900 transition-colors group">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors" style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}>
+                      <a href={`mailto:${school.email}`} className="flex items-center gap-3 text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}>
                           <FiMail className="w-4 h-4" />
                         </div>
-                        <span className="font-medium break-all">{school.email}</span>
+                        <span className="font-semibold min-w-0" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>{school.email}</span>
                       </a>
                     )}
                     {school.address && (
                       <div className="flex items-start gap-3 text-sm text-gray-600">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}>
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}>
                           <FiMapPin className="w-4 h-4" />
                         </div>
-                        <span className="font-medium">{school.address}</span>
+                        <span className="font-semibold">{school.address}</span>
                       </div>
                     )}
                   </div>
@@ -305,7 +307,7 @@ const PublicCustomPage = () => {
 
               {/* Quick Links */}
               {school.customPages?.length > 0 && (
-                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 w-full">
                   <h4 className="font-black text-gray-900 text-sm uppercase tracking-wider mb-4">Quick Links</h4>
                   <div className="space-y-2">
                     {school.customPages.map(p => (
@@ -328,7 +330,7 @@ const PublicCustomPage = () => {
               )}
 
               {/* CTA Card */}
-              <div className="rounded-2xl p-6 text-white text-center relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${darkenColor(primaryColor, 0.12)})` }}>
+              <div className="rounded-2xl p-6 text-white text-center relative overflow-hidden w-full" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${darkenColor(primaryColor, 0.12)})` }}>
                 <div className="absolute inset-0 opacity-10" style={{
                   backgroundImage: `radial-gradient(circle, white 1px, transparent 1px)`,
                   backgroundSize: '20px 20px'
