@@ -20,6 +20,7 @@ const ResultManager = lazyRetry(() => import('./pages/ResultManager'));
 const ReportCard = lazyRetry(() => import('./pages/ReportCard'));
 const LandingPage = lazyRetry(() => import('./pages/LandingPage'));
 const PublicSchoolLandingPage = lazyRetry(() => import('./pages/PublicSchoolLandingPage'));
+const PublicCustomPage = lazyRetry(() => import('./pages/PublicCustomPage'));
 const Contact = lazyRetry(() => import('./pages/Contact'));
 const NewsEvents = lazyRetry(() => import('./pages/NewsEvents'));
 const Gallery = lazyRetry(() => import('./pages/Gallery'));
@@ -81,6 +82,7 @@ const Timetable = lazyRetry(() => import('./pages/Timetable'));
 const NoticeBoard = lazyRetry(() => import('./pages/admin/NoticeBoard'));
 const NewsEventsManagement = lazyRetry(() => import('./pages/admin/NewsEventsManagement'));
 const GalleryManagement = lazyRetry(() => import('./pages/admin/GalleryManagement'));
+const CustomPages = lazyRetry(() => import('./pages/admin/CustomPages'));
 const Homework = lazyRetry(() => import('./pages/Homework'));
 const LearningResources = lazyRetry(() => import('./pages/LearningResources'));
 const ParentManagement = lazyRetry(() => import('./pages/admin/ParentManagement'));
@@ -172,6 +174,7 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/:schoolSlug" element={<PublicSchoolLandingPage />} />
+            <Route path="/:schoolSlug/page/:pageSlug" element={<PublicCustomPage />} />
             <Route path="/:schoolSlug/login" element={<Login />} />
             <Route path="/alumni" element={<AlumniPortal />} />
             <Route path="/alumni/directory" element={<AlumniDirectory />} />
@@ -623,6 +626,11 @@ function App() {
               <Route path="gallery-management" element={
                 <ProtectedRoute roles={['admin', 'principal', 'examination_officer']}>
                   <GalleryManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="custom-pages" element={
+                <ProtectedRoute roles={['admin', 'principal']}>
+                  <CustomPages />
                 </ProtectedRoute>
               } />
               <Route path="password-reset" element={

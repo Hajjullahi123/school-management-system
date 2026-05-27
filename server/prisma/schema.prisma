@@ -136,9 +136,12 @@ model School {
   testimBorderType            String?                   @default("modern")
   testimPrimaryColor          String?                   @default("")
   testimSecondaryColor        String?                   @default("")
+  websiteTheme                String?                   @default("classic")
+  aboutUsText                 String?
   createdAt                   DateTime                  @default(now())
   updatedAt                   DateTime                  @updatedAt
   academicSessions            AcademicSession[]
+  customPages                 CustomPage[]
   alumni                      Alumni[]
   AlumniDonation              AlumniDonation[]
   AlumniEvent                 AlumniEvent[]
@@ -740,6 +743,21 @@ model Department {
   resources DepartmentResource[]
 
   @@unique([schoolId, name])
+}
+
+
+model CustomPage {
+  id          Int      @id @default(autoincrement())
+  schoolId    Int
+  title       String
+  slug        String
+  content     String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, slug])
 }
 
 model Nudge {

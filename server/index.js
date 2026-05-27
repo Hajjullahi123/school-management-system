@@ -354,6 +354,7 @@ const departmentRoutes = require('./routes/departments');
 const broadsheetRoutes = require('./routes/broadsheet');
 const hrRoutes = require('./routes/hr');
 const pushRoutes = require('./routes/push');
+const customPagesRoutes = require('./routes/custom-pages');
 
 console.log('[Server] All route modules imported.');
 
@@ -436,6 +437,7 @@ app.use('/api/departments', authenticate, checkSubscription, departmentRoutes);
 app.use('/api/broadsheet', authenticate, checkSubscription, broadsheetRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/hr', authenticate, checkSubscription, hrRoutes);
+app.use('/api/custom-pages', customPagesRoutes);
 
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {

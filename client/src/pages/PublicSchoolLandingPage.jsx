@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiLogOut, FiMail, FiPhone, FiMapPin, FiArrowRight, FiFacebook, FiInstagram, FiMessageCircle, FiGlobe, FiChevronRight } from 'react-icons/fi';
+import ReactMarkdown from 'react-markdown';
 import { apiCall } from '../api';
 import { API_BASE_URL } from '../config';
+import ThemeModern from './themes/ThemeModern';
 
 const PublicSchoolLandingPage = () => {
   const { schoolSlug } = useParams();
@@ -84,6 +86,10 @@ const PublicSchoolLandingPage = () => {
   const secondaryColor = school.secondaryColor || '#6366f1'; // fallback indigo-500
   const accentColor = school.accentColor || '#818cf8'; // fallback indigo-400
 
+  if (school.websiteTheme === 'modern') {
+    return <ThemeModern school={school} getLogoUrl={getLogoUrl} />;
+  }
+
   return (
     <div className="min-h-screen font-inter flex flex-col selection:bg-black/10" style={{ '--school-primary': primaryColor, '--school-secondary': secondaryColor, '--school-accent': accentColor }}>
       {/* Header */}
@@ -103,7 +109,14 @@ const PublicSchoolLandingPage = () => {
             <span className="text-xl md:text-2xl font-black tracking-tight text-gray-900 hidden sm:block">{school.name}</span>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
+            <nav className="hidden md:flex items-center gap-6 mr-2">
+              {school.customPages?.map(page => (
+                <Link key={page.slug} to={`/${school.slug}/page/${page.slug}`} className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">
+                  {page.title}
+                </Link>
+              ))}
+            </nav>
             <button
               onClick={() => navigate(`/${school.slug}/login`)}
               className="flex items-center gap-2 px-6 py-2.5 rounded-full text-white font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
@@ -114,6 +127,7 @@ const PublicSchoolLandingPage = () => {
           </div>
         </div>
       </header>
+
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-6 relative overflow-hidden flex-1 flex flex-col justify-center">
@@ -202,6 +216,21 @@ const PublicSchoolLandingPage = () => {
           </motion.div>
         </div>
       </section>
+
+      {/* About Us Markdown Section for Classic Theme */}
+      {school.aboutUsText && (
+        <section className="py-20 px-6 bg-white relative z-20 border-t border-gray-100">
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-12">
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4" style={{ color: primaryColor }}>About Us</h2>
+              <div className="w-16 h-1.5 rounded-full" style={{ backgroundColor: secondaryColor }}></div>
+            </div>
+            <div className="prose prose-lg max-w-none text-gray-600 prose-headings:font-black" style={{ '--tw-prose-links': primaryColor }}>
+              <ReactMarkdown>{school.aboutUsText}</ReactMarkdown>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Footer / Contact Information */}
       <footer className="mt-auto bg-gray-900 text-white py-16 relative overflow-hidden border-t-4" style={{ borderColor: primaryColor }}>

@@ -33,6 +33,12 @@ router.get('/:slug', async (req, res) => {
         brochureFileUrl: true,
         admissionGuideFileUrl: true,
         isActivated: true,
+        websiteTheme: true,
+        aboutUsText: true,
+        customPages: {
+          where: { isActive: true },
+          select: { title: true, slug: true }
+        },
         GalleryImage: {
           where: { category: 'hero', isActive: true },
           select: { imageUrl: true }

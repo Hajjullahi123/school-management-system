@@ -81,7 +81,9 @@ const Settings = () => {
     s3AccessKey: '',
     s3SecretKey: '',
     s3BucketName: '',
-    s3Region: 'us-east-1'
+    s3Region: 'us-east-1',
+    websiteTheme: 'classic',
+    aboutUsText: ''
   });
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
@@ -674,6 +676,36 @@ const Settings = () => {
                     rows="3"
                     placeholder="Enter a brief welcome message for the landing page hero section..."
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  ></textarea>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Website Theme (Layout)
+                  </label>
+                  <select
+                    name="websiteTheme"
+                    value={settings.websiteTheme || 'classic'}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
+                  >
+                    <option value="classic">Classic Design (Side-by-side Hero)</option>
+                    <option value="modern">Modern Design (Centered Hero Overlay)</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Choose the layout structure for your public portal page.</p>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    About Us / Principal's Message (Markdown Supported)
+                  </label>
+                  <textarea
+                    name="aboutUsText"
+                    value={settings.aboutUsText || ''}
+                    onChange={handleInputChange}
+                    rows="6"
+                    placeholder="Write a detailed About Us section here. You can use markdown for **bolding**, *italics*, and lists..."
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 font-mono text-sm"
                   ></textarea>
                 </div>
               </div>
