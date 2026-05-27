@@ -92,7 +92,10 @@ const PublicSchoolLandingPage = () => {
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-200 shadow-sm">
               {school.logoUrl ? (
-                <img src={getLogoUrl(school.logoUrl)} alt={school.name} className="w-full h-full object-contain p-1" />
+                <>
+                  <img src={getLogoUrl(school.logoUrl)} alt="" className="w-full h-full object-contain p-1" onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }} />
+                  <span className="text-2xl font-black text-gray-300 hidden items-center justify-center w-full h-full">{school.name.charAt(0)}</span>
+                </>
               ) : (
                 <span className="text-2xl font-black text-gray-300">{school.name.charAt(0)}</span>
               )}
@@ -188,7 +191,7 @@ const PublicSchoolLandingPage = () => {
                {/* Decorative Logo Badge if available */}
                {school.logoUrl && (
                  <div className="absolute bottom-6 left-6 p-3 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl transform group-hover:scale-105 transition-transform">
-                   <img src={getLogoUrl(school.logoUrl)} alt="Emblem" className="w-16 h-16 object-contain" />
+                   <img src={getLogoUrl(school.logoUrl)} alt="" className="w-16 h-16 object-contain" onError={(e) => { e.target.parentElement.style.display = 'none'; }} />
                  </div>
                )}
 
@@ -209,9 +212,12 @@ const PublicSchoolLandingPage = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12">
             <div className="space-y-6 lg:col-span-2">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden shrink-0">
                    {school.logoUrl ? (
-                     <img src={getLogoUrl(school.logoUrl)} alt="" className="w-8 h-8 object-contain" />
+                     <>
+                       <img src={getLogoUrl(school.logoUrl)} alt="" className="w-8 h-8 object-contain" onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }} />
+                       <span className="text-xl font-black text-gray-900 hidden items-center justify-center w-full h-full">{school.name.charAt(0)}</span>
+                     </>
                    ) : (
                      <span className="text-xl font-black text-gray-900">{school.name.charAt(0)}</span>
                    )}

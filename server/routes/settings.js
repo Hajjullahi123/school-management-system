@@ -365,23 +365,12 @@ router.put('/', authenticate, async (req, res) => {
   }
 });
 
-// ========== FILE-BASED IMAGE UPLOADS (multer) ==========
+// ========== FILE-BASED IMAGE UPLOADS (multer + storageService) ==========
 const multer = require('multer');
+const { uploadFile } = require('../services/storageService');
 
-// Configure multer storage for school branding images
-const brandingStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = file.fieldname === 'logo' ? 'uploads/logos' : 'uploads/signatures';
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    // Use schoolId for deterministic naming so re-uploads overwrite the old file
-    const ext = path.extname(file.originalname) || '.jpg';
-    const prefix = file.fieldname === 'logo' ? 'logo' : 'signature';
-    cb(null, `${prefix}-school-${req.schoolId}${ext}`);
-  }
-});
+// Configure multer storage to memory for cloud uploading
+const brandingStorage = multer.memoryStorage();
 
 const brandingUpload = multer({
   storage: brandingStorage,
@@ -395,7 +384,7 @@ const brandingUpload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB max
 });
 
-// Upload School Logo (file-based)
+// Upload School Logo (cloud)
 router.post('/upload-logo', authenticate, brandingUpload.single('logo'), async (req, res) => {
   console.log(`===Logo file upload=== school: ${req.schoolId}`);
 
@@ -404,10 +393,10 @@ router.post('/upload-logo', authenticate, brandingUpload.single('logo'), async (
       return res.status(400).json({ error: 'No logo file provided' });
     }
 
-    const logoUrl = `/uploads/logos/${req.file.filename}`;
-    console.log(`Logo saved: ${logoUrl} (${(req.file.size / 1024).toFixed(1)}KB)`);
+    const logoUrl = await uploadFile(req.file, `logos/school-${req.schoolId}`);
+    console.log(`Logo saved via storageService: ${logoUrl.substring(0, 50)}... (${(req.file.size / 1024).toFixed(1)}KB)`);
 
-    // Store only the file path in the database
+    // Store the URL in the database
     await prisma.school.update({
       where: { id: req.schoolId },
       data: { logoUrl }
@@ -420,7 +409,7 @@ router.post('/upload-logo', authenticate, brandingUpload.single('logo'), async (
       userId: req.user.id,
       action: 'UPDATE',
       resource: 'SCHOOL_LOGO',
-      details: { method: 'file_upload', size: req.file.size, filename: req.file.filename },
+      details: { method: 'cloud_upload', size: req.file.size, filename: req.file.originalname },
       ipAddress: req.ip
     });
   } catch (error) {
@@ -429,7 +418,7 @@ router.post('/upload-logo', authenticate, brandingUpload.single('logo'), async (
   }
 });
 
-// Upload Principal Signature (file-based)
+// Upload Principal Signature (cloud)
 router.post('/upload-signature', authenticate, brandingUpload.single('signature'), async (req, res) => {
   console.log(`===Signature file upload=== school: ${req.schoolId}`);
 
@@ -438,8 +427,8 @@ router.post('/upload-signature', authenticate, brandingUpload.single('signature'
       return res.status(400).json({ error: 'No signature file provided' });
     }
 
-    const signatureUrl = `/uploads/signatures/${req.file.filename}`;
-    console.log(`Signature saved: ${signatureUrl} (${(req.file.size / 1024).toFixed(1)}KB)`);
+    const signatureUrl = await uploadFile(req.file, `signatures/school-${req.schoolId}`);
+    console.log(`Signature saved via storageService: ${signatureUrl.substring(0, 50)}... (${(req.file.size / 1024).toFixed(1)}KB)`);
 
     await prisma.school.update({
       where: { id: req.schoolId },
@@ -453,7 +442,7 @@ router.post('/upload-signature', authenticate, brandingUpload.single('signature'
       userId: req.user.id,
       action: 'UPDATE',
       resource: 'PRINCIPAL_SIGNATURE',
-      details: { method: 'file_upload', size: req.file.size, filename: req.file.filename },
+      details: { method: 'cloud_upload', size: req.file.size, filename: req.file.originalname },
       ipAddress: req.ip
     });
   } catch (error) {
