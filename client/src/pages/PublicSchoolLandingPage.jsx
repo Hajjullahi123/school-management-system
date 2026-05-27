@@ -37,6 +37,23 @@ const PublicSchoolLandingPage = () => {
     return `${baseUrl}${path}`;
   };
 
+  const heroImages = school?.GalleryImage?.length > 0
+    ? school.GalleryImage.map(g => getLogoUrl(g.imageUrl))
+    : [
+        "/images/hero_exterior.png",
+        "/images/hero_students.png",
+        "/images/hero_lab.png",
+        "/images/hero_library.png"
+      ];
+
+  useEffect(() => {
+    if (!heroImages || heroImages.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [heroImages?.length]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -66,23 +83,6 @@ const PublicSchoolLandingPage = () => {
   const primaryColor = school.primaryColor || '#4f46e5'; // fallback indigo-600
   const secondaryColor = school.secondaryColor || '#6366f1'; // fallback indigo-500
   const accentColor = school.accentColor || '#818cf8'; // fallback indigo-400
-
-  const heroImages = school?.GalleryImage?.length > 0
-    ? school.GalleryImage.map(g => getLogoUrl(g.imageUrl))
-    : [
-        "/images/hero_exterior.png",
-        "/images/hero_students.png",
-        "/images/hero_lab.png",
-        "/images/hero_library.png"
-      ];
-
-  useEffect(() => {
-    if (!heroImages || heroImages.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [heroImages?.length]);
 
   return (
     <div className="min-h-screen font-inter flex flex-col selection:bg-black/10" style={{ '--school-primary': primaryColor, '--school-secondary': secondaryColor, '--school-accent': accentColor }}>
