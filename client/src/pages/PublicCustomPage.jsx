@@ -18,7 +18,7 @@ const PublicCustomPage = () => {
     const fetchData = async () => {
       try {
         const [schoolRes, pageRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/public/${schoolSlug}`),
+          axios.get(`${API_BASE_URL}/api/public-school/${schoolSlug}`),
           axios.get(`${API_BASE_URL}/api/custom-pages/public/${schoolSlug}/${pageSlug}`)
         ]);
         
