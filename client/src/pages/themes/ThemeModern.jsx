@@ -390,13 +390,13 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 Building Future-Ready <span style={{ color: primary }}>Leaders</span>
               </h2>
 
-              <div className="text-gray-600 leading-relaxed text-[15px] w-full text-left">
+              <div className="text-gray-600 leading-relaxed text-[15px] w-full text-justify">
                 {school?.aboutUsText ? (
-                  <div className="prose prose-sm max-w-none w-full text-left prose-headings:font-black prose-a:no-underline prose-p:text-left">
+                  <div className="prose prose-sm max-w-none w-full text-justify prose-headings:font-black prose-a:no-underline prose-p:text-justify">
                     <ReactMarkdown>{school.aboutUsText}</ReactMarkdown>
                   </div>
                 ) : (
-                  <p className="w-full text-left">
+                  <p className="w-full text-justify">
                     We provide a supportive and innovative learning environment where every student can achieve their full
                     potential. Our comprehensive programmes blend academic rigour, moral character development, and
                     vocational skills to prepare students for success in an ever-changing world.
