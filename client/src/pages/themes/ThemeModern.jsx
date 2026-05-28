@@ -270,7 +270,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
         }}></div>
 
         {/* Overlay Content */}
-        <div className="relative z-10 text-center px-6 max-w-4xl mx-auto pt-16 pb-36 md:pt-20 md:pb-48">
+        <div className="relative z-10 text-center px-6 max-w-4xl mx-auto pt-16 pb-44 md:pt-20 md:pb-56">
           <span className="inline-block py-1.5 px-4 rounded-full bg-white/10 backdrop-blur-md text-white text-xs font-bold tracking-widest uppercase mb-6 border border-white/20 animate-pulse">
             ✨ {school.motto || 'Excellence in Education'}
           </span>
@@ -292,7 +292,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
 
         {/* Slide Indicators */}
         {heroImages.length > 1 && (
-          <div className="absolute bottom-32 left-1/2 -translate-x-1/2 flex gap-2">
+          <div className="absolute bottom-36 md:bottom-40 left-1/2 -translate-x-1/2 flex gap-2">
             {heroImages.map((_, idx) => (
               <button
                 key={idx}
