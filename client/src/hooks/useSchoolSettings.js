@@ -17,6 +17,7 @@ export const useSchoolSettings = () => {
     primaryColor: '#0f766e',
     secondaryColor: '#0d9488',
     accentColor: '#14b8a6',
+    schoolSlug: null,
     isSetupComplete: true // Default to true to prevent flickering before load
   });
   const [loading, setLoading] = useState(true);
@@ -66,6 +67,7 @@ export const useSchoolSettings = () => {
             primaryColor: data.primaryColor || '#0f766e',
             secondaryColor: data.secondaryColor || '#0d9488',
             accentColor: data.accentColor || '#14b8a6',
+            schoolSlug: slug || data.slug || null,
             facebookUrl: data.facebookUrl || null,
             instagramUrl: data.instagramUrl || null,
             whatsappUrl: data.whatsappUrl || null,

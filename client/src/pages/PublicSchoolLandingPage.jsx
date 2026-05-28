@@ -117,6 +117,9 @@ const PublicSchoolLandingPage = () => {
                   {page.title}
                 </Link>
               ))}
+              <Link to={`/${school.slug}/gallery`} className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">
+                Gallery
+              </Link>
             </nav>
             <button
               onClick={() => navigate(`/${school.slug}/login`)}
@@ -137,7 +140,7 @@ const PublicSchoolLandingPage = () => {
         {/* Mobile Menu Overlay */}
         {isMobileMenuOpen && (
           <div className="md:hidden absolute top-20 left-0 w-full bg-white border-b border-gray-100 shadow-lg px-6 py-4 flex flex-col gap-4">
-            {school.customPages?.map(page => (
+              {school.customPages?.map(page => (
               <Link 
                 key={page.slug} 
                 to={`/${school.slug}/page/${page.slug}`} 
@@ -147,6 +150,13 @@ const PublicSchoolLandingPage = () => {
                 {page.title}
               </Link>
             ))}
+            <Link 
+              to={`/${school.slug}/gallery`} 
+              className="text-lg font-bold text-gray-700 hover:text-gray-900 transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Gallery
+            </Link>
             {school.customPages?.length > 0 && <div className="h-px bg-gray-100 my-2"></div>}
             <button 
               onClick={() => navigate(`/${school.slug}/login`)}

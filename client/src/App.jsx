@@ -177,6 +177,7 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/:schoolSlug" element={<PublicSchoolLandingPage />} />
+            <Route path="/:schoolSlug/gallery" element={<Gallery />} />
             <Route path="/:schoolSlug/staff" element={<MeetOurStaff />} />
             <Route path="/:schoolSlug/admissions" element={<PublicAdmissions />} />
             <Route path="/:schoolSlug/contact" element={<PublicContact />} />
