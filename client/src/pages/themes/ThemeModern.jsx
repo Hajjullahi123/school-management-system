@@ -614,27 +614,29 @@ const ThemeModern = ({ school, getLogoUrl }) => {
         <div className="max-w-7xl mx-auto px-5">
           <div className="grid lg:grid-cols-2 gap-16 items-stretch">
 
-            {/* Left – steps */}
-            <div className="flex flex-col space-y-10">
-              <div>
-                <span className="section-label">Join Our School</span>
-                <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight">
-                  Admissions <span style={{ color: primary }}>Process</span>
+            {/* Left – steps wrapped in single bordered container */}
+            <div className="flex flex-col rounded-3xl overflow-hidden shadow-xl border border-gray-100">
+              {/* Coloured header band — mirrors the form */}
+              <div className="px-8 py-6 text-white"
+                style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.14)})` }}>
+                <span className="text-white/60 text-[10px] font-black uppercase tracking-widest block mb-1">Join Our School</span>
+                <h2 className="text-xl font-black leading-tight">
+                  Admissions Process
                 </h2>
-                <p className="text-gray-500 mt-3 text-[15px] leading-relaxed">
-                  We are delighted you are considering <strong className="text-gray-700 font-black">{school?.name}</strong>.
+                <p className="text-white/70 text-xs mt-1 leading-relaxed">
+                  We are delighted you are considering <strong className="text-white font-black">{school?.name}</strong>.
                   Our admissions process is straightforward and welcoming.
                 </p>
               </div>
 
-              {/* Step cards */}
-              <div className="space-y-5">
+              {/* Step cards body */}
+              <div className="bg-white px-8 py-7 flex flex-col gap-4 flex-1">
                 {[
                   { step: 1, title: 'Submit an Enquiry', body: 'Fill in the enquiry form. Our admissions desk will reach out within 24 hours to guide you through next steps.' },
                   { step: 2, title: 'Entrance Assessment', body: 'Visit our campus, meet our dedicated staff, and your child will complete a friendly academic assessment.' },
                   { step: 3, title: 'Enrolment & Resumption', body: 'Submit required documents, set up portal access, and your child is ready to start their academic journey!' },
                 ].map((s, i) => (
-                  <div key={i} className="flex gap-5 items-start p-5 rounded-2xl border transition-all hover:shadow-sm"
+                  <div key={i} className="flex gap-4 items-start p-4 rounded-2xl border transition-all hover:shadow-sm"
                     style={{ borderColor: hexToRgba(primary, 0.12), backgroundColor: hexToRgba(primary, 0.02) }}>
                     <div className="w-11 h-11 rounded-xl flex items-center justify-center font-black text-white text-base shrink-0 shadow-md"
                       style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.15)})` }}>
@@ -646,15 +648,18 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                     </div>
                   </div>
                 ))}
-              </div>
 
-              {school?.admissionGuideFileUrl && (
-                <a href={school.admissionGuideFileUrl} target="_blank" rel="noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold border-2 transition-all hover:shadow-md"
-                  style={{ color: primary, borderColor: hexToRgba(primary, 0.3) }}>
-                  Download Admissions Guide <FiArrowRight className="w-4 h-4" />
-                </a>
-              )}
+                {/* Optional download link — sits at bottom */}
+                {school?.admissionGuideFileUrl && (
+                  <div className="pt-2 mt-auto">
+                    <a href={school.admissionGuideFileUrl} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold border-2 transition-all hover:shadow-md"
+                      style={{ color: primary, borderColor: hexToRgba(primary, 0.3) }}>
+                      Download Admissions Guide <FiArrowRight className="w-4 h-4" />
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Right – Enquiry Form */}
