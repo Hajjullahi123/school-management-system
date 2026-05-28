@@ -111,7 +111,15 @@ const Settings = () => {
     try {
       const response = await api.get('/api/settings');
       const data = await response.json();
-      setSettings(data);
+      setSettings(prev => ({
+        ...prev,
+        ...data,
+        schoolName: data.schoolName || data.name || '',
+        schoolAddress: data.schoolAddress || data.address || '',
+        schoolPhone: data.schoolPhone || data.phone || '',
+        schoolEmail: data.schoolEmail || data.email || '',
+        schoolMotto: data.schoolMotto || data.motto || ''
+      }));
       if (data.logoUrl) {
         setLogoPreview(data.logoUrl.startsWith('data:') || data.logoUrl.startsWith('http') ? data.logoUrl : `${API_BASE_URL}${data.logoUrl}`);
       }

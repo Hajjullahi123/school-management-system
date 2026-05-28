@@ -163,6 +163,10 @@ router.get('/', async (req, res) => {
     delete sanitizedSettings.groqApiKey;
 
     sanitizedSettings.schoolName = sanitizedSettings.name;
+    sanitizedSettings.schoolAddress = sanitizedSettings.address;
+    sanitizedSettings.schoolPhone = sanitizedSettings.phone;
+    sanitizedSettings.schoolEmail = sanitizedSettings.email;
+    sanitizedSettings.schoolMotto = sanitizedSettings.motto;
     sanitizedSettings.currentSession = academicSession;
     sanitizedSettings.currentTerm = currentTerm;
 
