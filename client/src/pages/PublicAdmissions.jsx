@@ -90,7 +90,7 @@ const PublicAdmissions = () => {
   const inputFocus = { boxShadow: `0 0 0 3px ${hexToRgba(primary, 0.18)}` };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans text-gray-800" style={{ backgroundColor: '#f0f7ff' }}>
+    <div className="min-h-screen flex flex-col font-sans text-gray-800 overflow-x-hidden" style={{ backgroundColor: '#f0f7ff' }}>
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
         .fade-in { animation: fadeIn 0.4s ease both; }

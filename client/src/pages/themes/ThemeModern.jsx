@@ -134,7 +134,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
   const inputFocus = { boxShadow: `0 0 0 3px ${hexToRgba(primary, 0.18)}` };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans text-gray-800" style={{ '--primary': primary, '--secondary': secondary, backgroundColor: '#f0f7ff' }}>
+    <div className="min-h-screen flex flex-col font-sans text-gray-800 overflow-x-hidden" style={{ '--primary': primary, '--secondary': secondary, backgroundColor: '#f0f7ff' }}>
 
       {/* ── Global Styles ── */}
       <style>{`
@@ -212,7 +212,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           </div>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-2">
+          <nav className="hidden lg:flex items-center gap-2">
             {school?.customPages?.map(p => (
               <Link key={p.slug} to={`/${school.slug}/page/${p.slug}`}
                 className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
@@ -239,7 +239,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           </nav>
 
           {/* Mobile Toggle */}
-          <button className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+          <button className="lg:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
             onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
           </button>
@@ -247,7 +247,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
 
         {/* Mobile Menu */}
         {mobileOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white px-5 py-4 flex flex-col gap-2 fade-in shadow-xl relative z-50">
+          <div className="lg:hidden border-t border-gray-100 bg-white px-5 py-4 flex flex-col gap-2 fade-in shadow-xl relative z-50">
             {school?.customPages?.map(p => (
               <Link key={p.slug} to={`/${school.slug}/page/${p.slug}`}
                 className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all"

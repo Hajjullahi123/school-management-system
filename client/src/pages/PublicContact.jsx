@@ -61,7 +61,7 @@ const PublicContact = () => {
   const primary = school?.primaryColor || '#4f46e5';
 
   return (
-    <div className="min-h-screen flex flex-col font-sans text-gray-800" style={{ backgroundColor: '#f0f7ff' }}>
+    <div className="min-h-screen flex flex-col font-sans text-gray-800 overflow-x-hidden" style={{ backgroundColor: '#f0f7ff' }}>
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
         .fade-in { animation: fadeIn 0.4s ease both; }
