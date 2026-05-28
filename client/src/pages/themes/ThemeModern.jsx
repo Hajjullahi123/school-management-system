@@ -1061,9 +1061,9 @@ const ThemeModern = ({ school, getLogoUrl }) => {
             </p>
           </div>
         </div>
+      </footer>
     </div>
   );
 };
 
 export default ThemeModern;
-
