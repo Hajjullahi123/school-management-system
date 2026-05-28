@@ -435,39 +435,48 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       ══════════════════════════════════ */}
       <section className="py-20 md:py-28 bg-gray-50 border-t border-gray-100">
         <div className="max-w-6xl mx-auto px-5">
-          <div className="text-center mb-14">
-            <span className="section-label">What Parents Say</span>
-            <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
-              Community Testimonials
-            </h2>
-            <p className="text-gray-500 mt-3 max-w-xl mx-auto text-sm leading-relaxed">
-              Real experiences from parents and guardians about the impact of our school.
+          {/* Header — side by side */}
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-14">
+            <div>
+              <span className="section-label">What Parents Say</span>
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
+                Community Testimonials
+              </h2>
+            </div>
+            <p className="text-gray-500 text-sm leading-relaxed max-w-sm">
+              Real experiences from parents and guardians who trust us with their children's future.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
             {testimonials.map((t, i) => (
-              <div key={i}
-                className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col">
+              <div key={i} className="relative bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 flex flex-col overflow-hidden">
+                {/* Accent top bar */}
+                <div className="absolute top-0 left-0 right-0 h-1 rounded-t-3xl" style={{ backgroundColor: primary }} />
+
+                {/* Large decorative quote */}
+                <span className="absolute top-5 right-6 text-7xl font-serif leading-none select-none pointer-events-none"
+                  style={{ color: hexToRgba(primary, 0.07) }}>❝</span>
+
                 {/* Stars */}
-                <div className="flex gap-1 mb-5">
+                <div className="flex gap-1 mb-5 mt-2">
                   {Array.from({ length: t.rating }).map((_, j) => (
                     <FiStar key={j} className="w-4 h-4 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
 
-                <p className="text-gray-700 italic leading-relaxed text-[15px] flex-1 mb-6">
+                <p className="text-gray-600 leading-relaxed text-[15px] flex-1 mb-6 relative z-10">
                   "{t.quote}"
                 </p>
 
                 <div className="flex items-center gap-3 pt-5 border-t border-gray-100">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-sm shrink-0"
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-sm shrink-0 shadow-sm"
                     style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
                     {getInitials(t.name)}
                   </div>
                   <div>
-                    <p className="font-bold text-gray-900 text-sm">{t.name}</p>
-                    <p className="text-xs text-gray-400">{t.subtitle}</p>
+                    <p className="font-black text-gray-900 text-sm">{t.name}</p>
+                    <p className="text-xs font-semibold" style={{ color: hexToRgba(primary, 0.8) }}>{t.subtitle}</p>
                   </div>
                 </div>
               </div>
@@ -529,9 +538,21 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-16 bg-gray-50 rounded-3xl border border-gray-100">
-              <FiAward className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-400 text-sm">Results not yet published for this term.</p>
+            <div className="relative rounded-3xl overflow-hidden border border-gray-100 py-14 px-8 text-center"
+              style={{ background: `linear-gradient(135deg, ${hexToRgba(primary, 0.04)} 0%, #f8fafc 100%)` }}>
+              {/* decorative rings */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 rounded-full border-2 border-dashed opacity-10 pointer-events-none" style={{ borderColor: primary }} />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 rounded-full border-2 border-dashed opacity-10 pointer-events-none" style={{ borderColor: primary }} />
+              <div className="relative z-10">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm"
+                  style={{ backgroundColor: hexToRgba(primary, 0.1), color: primary }}>
+                  <FiAward className="w-7 h-7" />
+                </div>
+                <h4 className="font-black text-gray-700 text-base mb-1">Results Not Yet Published</h4>
+                <p className="text-gray-400 text-sm max-w-xs mx-auto leading-relaxed">
+                  Top performers will appear here once term results are finalised and published.
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -588,127 +609,139 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           ADMISSIONS SECTION
       ══════════════════════════════════ */}
-      <section id="admission-process" className="py-20 md:py-28 bg-white border-t border-gray-100">
+      <section id="admission-process" className="py-20 md:py-28 border-t border-gray-100"
+        style={{ background: `linear-gradient(160deg, ${hexToRgba(primary, 0.03)} 0%, #ffffff 50%, ${hexToRgba(primary, 0.02)} 100%)` }}>
         <div className="max-w-7xl mx-auto px-5">
-          <div className="grid lg:grid-cols-2 gap-12 items-start">
+          <div className="grid lg:grid-cols-2 gap-16 items-start">
 
-            {/* Steps */}
-            <div className="space-y-8">
+            {/* Left – steps */}
+            <div className="space-y-10">
               <div>
                 <span className="section-label">Join Our School</span>
                 <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight">
                   Admissions <span style={{ color: primary }}>Process</span>
                 </h2>
-                <p className="text-gray-500 mt-3 text-sm leading-relaxed max-w-md">
-                  We are delighted you are considering {school?.name}. Our admissions process is simple and welcoming.
+                <p className="text-gray-500 mt-3 text-[15px] leading-relaxed">
+                  We are delighted you are considering <strong className="text-gray-700 font-black">{school?.name}</strong>.
+                  Our admissions process is straightforward and welcoming.
                 </p>
               </div>
 
-              <div className="relative pl-8 space-y-8" style={{ borderLeft: `2px solid ${hexToRgba(primary, 0.2)}` }}>
+              {/* Step cards */}
+              <div className="space-y-5">
                 {[
-                  { step: '1', title: 'Submit an Enquiry', body: 'Fill in the form on the right. Our admissions desk will reach out within 24 hours.' },
-                  { step: '2', title: 'Entrance Assessment', body: 'Visit the school, meet our staff, and complete a brief academic assessment.' },
-                  { step: '3', title: 'Enrolment & Resumption', body: 'Submit documents, complete portal setup, and your child is ready to begin!' },
+                  { step: 1, title: 'Submit an Enquiry', body: 'Fill in the enquiry form. Our admissions desk will reach out within 24 hours to guide you through next steps.' },
+                  { step: 2, title: 'Entrance Assessment', body: 'Visit our campus, meet our dedicated staff, and your child will complete a friendly academic assessment.' },
+                  { step: 3, title: 'Enrolment & Resumption', body: 'Submit required documents, set up portal access, and your child is ready to start their academic journey!' },
                 ].map((s, i) => (
-                  <div key={i} className="relative">
-                    <div className="absolute -left-[41px] w-7 h-7 rounded-full bg-white border-2 flex items-center justify-center text-xs font-black shadow-sm"
-                      style={{ borderColor: primary, color: primary }}>
+                  <div key={i} className="flex gap-5 items-start p-5 rounded-2xl border transition-all hover:shadow-sm"
+                    style={{ borderColor: hexToRgba(primary, 0.12), backgroundColor: hexToRgba(primary, 0.02) }}>
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center font-black text-white text-base shrink-0 shadow-md"
+                      style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.15)})` }}>
                       {s.step}
                     </div>
-                    <h4 className="font-bold text-gray-900 text-sm mb-1">{s.title}</h4>
-                    <p className="text-xs text-gray-500 leading-relaxed">{s.body}</p>
+                    <div className="pt-0.5">
+                      <h4 className="font-black text-gray-900 text-[15px] mb-1">{s.title}</h4>
+                      <p className="text-sm text-gray-500 leading-relaxed">{s.body}</p>
+                    </div>
                   </div>
                 ))}
               </div>
 
               {school?.admissionGuideFileUrl && (
                 <a href={school.admissionGuideFileUrl} target="_blank" rel="noreferrer"
-                  className="inline-flex items-center gap-2 text-sm font-bold hover:gap-3 transition-all"
-                  style={{ color: primary }}>
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold border-2 transition-all hover:shadow-md"
+                  style={{ color: primary, borderColor: hexToRgba(primary, 0.3) }}>
                   Download Admissions Guide <FiArrowRight className="w-4 h-4" />
                 </a>
               )}
             </div>
 
-            {/* Enquiry Form */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-lg p-8">
-              <h3 className="text-xl font-black text-gray-900 mb-1">Request Admission Info</h3>
-              <p className="text-sm text-gray-500 mb-6">We will contact you within 24 hours.</p>
+            {/* Right – Enquiry Form */}
+            <div className="rounded-3xl overflow-hidden shadow-xl border border-gray-100">
+              {/* Coloured header band */}
+              <div className="px-8 py-6 text-white"
+                style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.14)})` }}>
+                <h3 className="text-lg font-black">Request Admission Info</h3>
+                <p className="text-white/70 text-xs mt-0.5">Fill in the form — we'll respond within 24 hours.</p>
+              </div>
 
-              {submitted ? (
-                <div className="text-center py-12 fade-in">
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl"
-                    style={{ backgroundColor: hexToRgba(primary, 0.1), color: primary }}>
-                    ✓
+              <div className="bg-white px-8 py-7">
+                {submitted ? (
+                  <div className="text-center py-10 fade-in">
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"
+                      style={{ backgroundColor: hexToRgba(primary, 0.1), color: primary }}>
+                      ✓
+                    </div>
+                    <h4 className="font-black text-gray-900 text-lg mb-2">Request Received!</h4>
+                    <p className="text-sm text-gray-500 mb-5 max-w-xs mx-auto">
+                      Thank you! Our admissions team will be in touch with you very shortly.
+                    </p>
+                    <button onClick={() => setSubmitted(false)}
+                      className="text-xs font-bold underline" style={{ color: primary }}>
+                      Submit another request
+                    </button>
                   </div>
-                  <h4 className="font-black text-gray-900 text-lg mb-2">Request Received!</h4>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Thank you. Our admissions team will contact you shortly.
-                  </p>
-                  <button onClick={() => setSubmitted(false)}
-                    className="text-xs font-bold underline" style={{ color: primary }}>
-                    Submit another request
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleFormSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Parent / Guardian Name</label>
-                    <input type="text" required placeholder="e.g. Aisha Musa"
-                      className={inputCls}
-                      value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                      onFocus={e => Object.assign(e.target.style, inputFocus)}
-                      onBlur={e => { e.target.style.boxShadow = ''; }} />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
+                ) : (
+                  <form onSubmit={handleFormSubmit} className="space-y-4">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Email Address</label>
-                      <input type="email" required placeholder="you@email.com"
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Parent / Guardian Name</label>
+                      <input type="text" required placeholder="e.g. Aisha Musa"
                         className={inputCls}
-                        value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+                        value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
                         onFocus={e => Object.assign(e.target.style, inputFocus)}
                         onBlur={e => { e.target.style.boxShadow = ''; }} />
                     </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Email</label>
+                        <input type="email" required placeholder="you@email.com"
+                          className={inputCls}
+                          value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+                          onFocus={e => Object.assign(e.target.style, inputFocus)}
+                          onBlur={e => { e.target.style.boxShadow = ''; }} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Phone</label>
+                        <input type="tel" required placeholder="+234..."
+                          className={inputCls}
+                          value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
+                          onFocus={e => Object.assign(e.target.style, inputFocus)}
+                          onBlur={e => { e.target.style.boxShadow = ''; }} />
+                      </div>
+                    </div>
+
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Phone Number</label>
-                      <input type="tel" required placeholder="+234..."
-                        className={inputCls}
-                        value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Grade Level</label>
+                      <select required className={inputCls}
+                        value={form.grade} onChange={e => setForm({ ...form, grade: e.target.value })}
+                        onFocus={e => Object.assign(e.target.style, inputFocus)}
+                        onBlur={e => { e.target.style.boxShadow = ''; }}>
+                        <option value="">Select grade level</option>
+                        {['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'].map(g => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Message (optional)</label>
+                      <textarea rows={3} placeholder="Any questions or special notes..."
+                        className={`${inputCls} resize-none`}
+                        value={form.message} onChange={e => setForm({ ...form, message: e.target.value })}
                         onFocus={e => Object.assign(e.target.style, inputFocus)}
                         onBlur={e => { e.target.style.boxShadow = ''; }} />
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Grade Level Seeking</label>
-                    <select required className={inputCls}
-                      value={form.grade} onChange={e => setForm({ ...form, grade: e.target.value })}
-                      onFocus={e => Object.assign(e.target.style, inputFocus)}
-                      onBlur={e => { e.target.style.boxShadow = ''; }}>
-                      <option value="">Select grade level</option>
-                      {['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'].map(g => (
-                        <option key={g} value={g}>{g}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Message (optional)</label>
-                    <textarea rows={3} placeholder="Any questions or notes..."
-                      className={`${inputCls} resize-none`}
-                      value={form.message} onChange={e => setForm({ ...form, message: e.target.value })}
-                      onFocus={e => Object.assign(e.target.style, inputFocus)}
-                      onBlur={e => { e.target.style.boxShadow = ''; }} />
-                  </div>
-
-                  <button type="submit"
-                    className="w-full py-3.5 rounded-xl font-black text-white flex items-center justify-center gap-2 hover:opacity-90 hover:shadow-lg transition-all"
-                    style={{ backgroundColor: primary }}>
-                    <FiSend className="w-4 h-4" /> Send Enquiry
-                  </button>
-                </form>
-              )}
+                    <button type="submit"
+                      className="w-full py-3.5 rounded-xl font-black text-white flex items-center justify-center gap-2 hover:opacity-90 hover:shadow-xl transition-all mt-1"
+                      style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.14)})` }}>
+                      <FiSend className="w-4 h-4" /> Send Enquiry
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -717,36 +750,56 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           NEWSLETTER BANNER
       ══════════════════════════════════ */}
-      <section className="py-16 bg-gray-50 border-t border-gray-100">
-        <div className="max-w-3xl mx-auto px-5">
-          <div className="rounded-3xl p-10 text-white text-center relative overflow-hidden"
-            style={{ background: `linear-gradient(135deg, ${primary} 0%, ${darkenHex(primary, 0.18)} 100%)` }}>
-            {/* Subtle dot grid */}
-            <div className="absolute inset-0 opacity-10 pointer-events-none"
-              style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+      <section className="py-20 bg-gray-50 border-t border-gray-100">
+        <div className="max-w-5xl mx-auto px-5">
+          <div className="rounded-3xl relative overflow-hidden"
+            style={{ background: `linear-gradient(135deg, ${primary} 0%, ${darkenHex(primary, 0.2)} 100%)` }}>
 
-            <div className="relative z-10">
-              <h3 className="text-2xl font-black mb-2">Stay Connected</h3>
-              <p className="text-white/75 text-sm mb-6 max-w-sm mx-auto">
-                Subscribe for school news, event announcements, and academic updates.
-              </p>
+            {/* Decorative blobs */}
+            <div className="absolute -top-12 -left-12 w-52 h-52 rounded-full opacity-10 pointer-events-none bg-white" />
+            <div className="absolute -bottom-16 -right-12 w-72 h-72 rounded-full opacity-10 pointer-events-none bg-white" />
+            {/* Dot grid */}
+            <div className="absolute inset-0 opacity-[0.07] pointer-events-none"
+              style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '22px 22px' }} />
 
-              {subscribed ? (
-                <div className="inline-block px-6 py-3 rounded-xl bg-white/20 border border-white/30 text-white font-bold text-sm">
-                  ✓ Subscribed successfully!
+            {/* Side-by-side content */}
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 px-10 py-12">
+              <div className="text-left">
+                <div className="inline-flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
+                    <FiMail className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-white/70 text-xs font-bold uppercase tracking-widest">Newsletter</span>
                 </div>
-              ) : (
-                <form onSubmit={handleNewsletter} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-                  <input type="email" required placeholder="Enter your email address"
-                    value={newsletter} onChange={e => setNewsletter(e.target.value)}
-                    className="flex-1 px-4 py-3 rounded-full text-gray-800 text-sm focus:outline-none bg-white" />
-                  <button type="submit"
-                    className="px-6 py-3 rounded-full font-black text-sm bg-white hover:bg-gray-100 transition-colors whitespace-nowrap"
-                    style={{ color: primary }}>
-                    Subscribe
-                  </button>
-                </form>
-              )}
+                <h3 className="text-2xl md:text-3xl font-black text-white leading-tight mb-2">
+                  Stay in the Loop
+                </h3>
+                <p className="text-white/70 text-sm leading-relaxed max-w-xs">
+                  School news, upcoming events, and academic updates — straight to your inbox.
+                </p>
+              </div>
+
+              <div className="w-full md:w-auto shrink-0">
+                {subscribed ? (
+                  <div className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-white/15 border border-white/20 backdrop-blur-sm">
+                    <span className="text-2xl">✓</span>
+                    <div>
+                      <p className="font-black text-white text-sm">You're subscribed!</p>
+                      <p className="text-white/60 text-xs">Watch your inbox for updates.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleNewsletter} className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <input type="email" required placeholder="Enter your email address"
+                      value={newsletter} onChange={e => setNewsletter(e.target.value)}
+                      className="flex-1 sm:w-64 px-4 py-3.5 rounded-xl text-gray-800 text-sm focus:outline-none bg-white shadow-lg placeholder-gray-400" />
+                    <button type="submit"
+                      className="px-6 py-3.5 rounded-xl font-black text-sm border border-white/30 bg-white/15 hover:bg-white/25 text-white transition-all whitespace-nowrap backdrop-blur-sm">
+                      Subscribe →
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
           </div>
         </div>
