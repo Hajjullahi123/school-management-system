@@ -84,7 +84,8 @@ const Settings = () => {
     s3Region: 'us-east-1',
     websiteTheme: 'classic',
     aboutUsText: '',
-    testimonialsText: ''
+    testimonialsText: '',
+    foundedYear: ''
   });
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
@@ -650,6 +651,23 @@ const Settings = () => {
                     placeholder="Mon - Fri: 8:00 AM - 4:00 PM"
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Year Founded
+                  </label>
+                  <input
+                    type="number"
+                    name="foundedYear"
+                    value={settings.foundedYear || ''}
+                    onChange={handleInputChange}
+                    placeholder="e.g. 2005"
+                    min="1800"
+                    max={new Date().getFullYear()}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Displays as &quot;Est. YYYY&quot; on your public website.</p>
                 </div>
 
                 <div className="md:col-span-2">

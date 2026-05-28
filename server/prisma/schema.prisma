@@ -138,6 +138,7 @@ model School {
   testimSecondaryColor        String?                   @default("")
   websiteTheme                String?                   @default("classic")
   aboutUsText                 String?
+  foundedYear                 Int?
   testimonialsText            String?
   createdAt                   DateTime                  @default(now())
   updatedAt                   DateTime                  @updatedAt

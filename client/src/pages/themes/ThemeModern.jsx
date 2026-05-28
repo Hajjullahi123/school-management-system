@@ -400,7 +400,19 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                     We provide a supportive and innovative learning environment where every student can achieve their full
                     potential. Our comprehensive programmes blend academic rigour, moral character development, and
                     vocational skills to prepare students for success in an ever-changing world.
+                    {school?.foundedYear && (
+                      <span className="inline-flex items-center gap-1 ml-2 px-2.5 py-0.5 rounded-full text-xs font-black align-middle"
+                        style={{ backgroundColor: hexToRgba(primary, 0.1), color: primary }}>
+                        📅 Est. {school.foundedYear}
+                      </span>
+                    )}
                   </p>
+                )}
+                {school?.aboutUsText && school?.foundedYear && (
+                  <span className="inline-flex items-center gap-1 mt-1 px-2.5 py-0.5 rounded-full text-xs font-black"
+                    style={{ backgroundColor: hexToRgba(primary, 0.1), color: primary }}>
+                    📅 Est. {school.foundedYear}
+                  </span>
                 )}
               </div>
 
