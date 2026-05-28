@@ -718,19 +718,64 @@ const Settings = () => {
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Parent Testimonials (One per line: Name | Subtitle | Stars (1-5) | Testimony)
+                    Parent Testimonials
                   </label>
-                  <textarea
-                    name="testimonialsText"
-                    value={settings.testimonialsText || ''}
-                    onChange={handleInputChange}
-                    rows="4"
-                    placeholder="Mrs. Maryam Alabi | Parent since 2021 | 5 | The academic preparation here is second to none!&#10;Dr. Olanrewaju Ibrahim | Parent of SSS-2 Student | 5 | The coding and robotics curriculum is incredibly hands-on."
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 font-mono text-sm"
-                  ></textarea>
-                  <p className="text-xs text-gray-400 mt-1 text-left">
-                    Enter one testimonial per line, separating the fields with a vertical bar (|) symbol.
-                  </p>
+                  <div className="space-y-4">
+                    {((settings.testimonialsText || '').split('\n').filter(l => l.trim().length > 0)).map((line, i) => {
+                      const parts = line.split('|').map(s => s.trim());
+                      const name = parts[0] || '';
+                      const subtitle = parts[1] || '';
+                      const stars = parts[2] || '5';
+                      const quote = parts[3] || '';
+
+                      const updateTestimonial = (field, val) => {
+                         const cleanVal = val.replace(/\|/g, '').replace(/\n/g, ' ');
+                         const lines = (settings.testimonialsText || '').split('\n').filter(l => l.trim().length > 0);
+                         const currentParts = (lines[i] || '').split('|').map(s => s.trim());
+                         while(currentParts.length < 4) currentParts.push('');
+                         
+                         if(field === 'name') currentParts[0] = cleanVal;
+                         if(field === 'subtitle') currentParts[1] = cleanVal;
+                         if(field === 'stars') currentParts[2] = cleanVal;
+                         if(field === 'quote') currentParts[3] = cleanVal;
+                         
+                         lines[i] = currentParts.join(' | ');
+                         handleInputChange({ target: { name: 'testimonialsText', value: lines.join('\n') } });
+                      };
+
+                      return (
+                         <div key={i} className="border border-gray-200 p-4 rounded-xl bg-gray-50 flex flex-col gap-3">
+                             <div className="flex justify-between items-center">
+                                 <h4 className="font-bold text-gray-700 text-sm">Testimonial {i + 1}</h4>
+                                 <button type="button" onClick={() => {
+                                     const lines = (settings.testimonialsText || '').split('\n').filter(l => l.trim().length > 0);
+                                     lines.splice(i, 1);
+                                     handleInputChange({ target: { name: 'testimonialsText', value: lines.join('\n') } });
+                                 }} className="text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-wider">Remove</button>
+                             </div>
+                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                 <input type="text" placeholder="Name (e.g. Mrs. Maryam Alabi)" value={name} onChange={e => updateTestimonial('name', e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 w-full text-sm" />
+                                 <input type="text" placeholder="Subtitle (e.g. Parent since 2021)" value={subtitle} onChange={e => updateTestimonial('subtitle', e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 w-full text-sm" />
+                                 <select value={stars} onChange={e => updateTestimonial('stars', e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 w-full text-sm">
+                                     <option value="5">5 Stars</option>
+                                     <option value="4">4 Stars</option>
+                                     <option value="3">3 Stars</option>
+                                     <option value="2">2 Stars</option>
+                                     <option value="1">1 Star</option>
+                                 </select>
+                             </div>
+                             <textarea placeholder="Testimony quote..." value={quote} onChange={e => updateTestimonial('quote', e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 w-full text-sm" rows="2"></textarea>
+                         </div>
+                      );
+                    })}
+                    <button type="button" onClick={() => {
+                        const currentLines = (settings.testimonialsText || '').split('\n').filter(l => l.trim().length > 0);
+                        currentLines.push('New Name | Parent | 5 | New quote');
+                        handleInputChange({ target: { name: 'testimonialsText', value: currentLines.join('\n') } });
+                    }} className="w-full border-2 border-dashed border-gray-300 text-gray-500 px-4 py-3 rounded-xl text-sm font-bold hover:bg-gray-50 hover:text-gray-700 transition-colors flex items-center justify-center gap-2">
+                       + Add Testimonial
+                    </button>
+                  </div>
                 </div>
               </div>
 
