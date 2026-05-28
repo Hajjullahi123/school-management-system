@@ -212,28 +212,28 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           </div>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-2">
             {school?.customPages?.map(p => (
               <Link key={p.slug} to={`/${school.slug}/page/${p.slug}`}
-                className="text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors">
+                className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
                 {p.title}
               </Link>
             ))}
             <Link to={`/${school?.slug}/staff`}
-              className="text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors">
+              className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
               Our Staff
             </Link>
-            <a href="#admission-process"
-              className="text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors">
+            <Link to={`/${school?.slug}/admissions`}
+              className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
               Admissions
-            </a>
-            <a href="#contact-section"
-              className="text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors">
+            </Link>
+            <Link to={`/${school?.slug}/contact`}
+              className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
               Contact
-            </a>
+            </Link>
             <Link to={`/${school?.slug}/login`}
-              className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold text-white shadow-md hover:opacity-90 hover:shadow-lg transition-all"
-              style={{ backgroundColor: primary }}>
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow-md hover:-translate-y-0.5 hover:shadow-lg transition-all ml-2"
+              style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.14)})` }}>
               Portal Login <FiArrowRight className="w-4 h-4" />
             </Link>
           </nav>
@@ -247,20 +247,20 @@ const ThemeModern = ({ school, getLogoUrl }) => {
 
         {/* Mobile Menu */}
         {mobileOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white px-5 py-4 flex flex-col gap-3 fade-in">
+          <div className="md:hidden border-t border-gray-100 bg-white px-5 py-4 flex flex-col gap-2 fade-in shadow-xl relative z-50">
             {school?.customPages?.map(p => (
               <Link key={p.slug} to={`/${school.slug}/page/${p.slug}`}
-                className="text-sm font-semibold text-gray-700 py-2"
+                className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all"
                 onClick={() => setMobileOpen(false)}>
                 {p.title}
               </Link>
             ))}
-            <Link to={`/${school?.slug}/staff`} className="text-sm font-semibold text-gray-700 py-2" onClick={() => setMobileOpen(false)}>Our Staff</Link>
-            <a href="#admission-process" className="text-sm font-semibold text-gray-700 py-2" onClick={() => setMobileOpen(false)}>Admissions</a>
-            <a href="#contact-section" className="text-sm font-semibold text-gray-700 py-2" onClick={() => setMobileOpen(false)}>Contact</a>
+            <Link to={`/${school?.slug}/staff`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Our Staff</Link>
+            <Link to={`/${school?.slug}/admissions`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Admissions</Link>
+            <Link to={`/${school?.slug}/contact`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Contact</Link>
             <Link to={`/${school?.slug}/login`}
-              className="flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-bold text-white"
-              style={{ backgroundColor: primary }}
+              className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl text-sm font-bold text-white shadow-md mt-2"
+              style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.14)})` }}
               onClick={() => setMobileOpen(false)}>
               Portal Login <FiArrowRight className="w-4 h-4" />
             </Link>
@@ -633,151 +633,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
         </section>
       )}
 
-      {/* ══════════════════════════════════
-          ADMISSIONS SECTION
-      ══════════════════════════════════ */}
-      <section id="admission-process" className="py-10 md:py-14 border-t border-gray-100"
-        style={{ background: `linear-gradient(160deg, ${hexToRgba(primary, 0.03)} 0%, #ffffff 50%, ${hexToRgba(primary, 0.02)} 100%)` }}>
-        <div className="max-w-7xl mx-auto px-5">
-          <div className="grid lg:grid-cols-2 gap-16 items-stretch">
 
-            {/* Left – steps wrapped in single bordered container */}
-            <div className="flex flex-col rounded-3xl overflow-hidden shadow-xl border border-gray-100">
-              {/* Coloured header band — mirrors the form */}
-              <div className="px-8 py-6 text-white"
-                style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.14)})` }}>
-                <span className="text-white/60 text-[10px] font-black uppercase tracking-widest block mb-1">Join Our School</span>
-                <h2 className="text-xl font-black leading-tight w-full">
-                  Admissions Process
-                </h2>
-                <p className="text-white/70 text-xs mt-2 leading-relaxed w-full text-justify">
-                  We are delighted you are considering <strong className="text-white font-black">{school?.name}</strong>.
-                  Our admissions process is straightforward and welcoming.
-                </p>
-              </div>
-
-              {/* Step cards body */}
-              <div className="bg-white px-8 py-7 flex flex-col gap-4 flex-1">
-                {[
-                  { step: 1, title: 'Submit an Enquiry', body: 'Fill in the enquiry form. Our admissions desk will reach out within 24 hours to guide you through next steps.' },
-                  { step: 2, title: 'Entrance Assessment', body: 'Visit our campus, meet our dedicated staff, and your child will complete a friendly academic assessment.' },
-                  { step: 3, title: 'Enrolment & Resumption', body: 'Submit required documents, set up portal access, and your child is ready to start their academic journey!' },
-                ].map((s, i) => (
-                  <div key={i} className="flex gap-4 items-start p-4 rounded-2xl border transition-all hover:shadow-sm"
-                    style={{ borderColor: hexToRgba(primary, 0.12), backgroundColor: hexToRgba(primary, 0.02) }}>
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center font-black text-white text-base shrink-0 shadow-md"
-                      style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.15)})` }}>
-                      {s.step}
-                    </div>
-                    <div className="pt-0.5">
-                      <h4 className="font-black text-gray-900 text-[15px] mb-1">{s.title}</h4>
-                      <p className="text-sm text-gray-500 leading-relaxed">{s.body}</p>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Optional download link — sits at bottom */}
-                {school?.admissionGuideFileUrl && (
-                  <div className="pt-2 mt-auto">
-                    <a href={school.admissionGuideFileUrl} target="_blank" rel="noreferrer"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold border-2 transition-all hover:shadow-md"
-                      style={{ color: primary, borderColor: hexToRgba(primary, 0.3) }}>
-                      Download Admissions Guide <FiArrowRight className="w-4 h-4" />
-                    </a>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Right – Enquiry Form */}
-            <div className="rounded-3xl overflow-hidden shadow-xl border border-gray-100">
-              {/* Coloured header band */}
-              <div className="px-8 py-6 text-white"
-                style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.14)})` }}>
-                <h3 className="text-lg font-black">Request Admission Info</h3>
-                <p className="text-white/70 text-xs mt-0.5">Fill in the form — we'll respond within 24 hours.</p>
-              </div>
-
-              <div className="bg-white px-8 py-7">
-                {submitted ? (
-                  <div className="text-center py-10 fade-in">
-                    <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"
-                      style={{ backgroundColor: hexToRgba(primary, 0.1), color: primary }}>
-                      ✓
-                    </div>
-                    <h4 className="font-black text-gray-900 text-lg mb-2">Request Received!</h4>
-                    <p className="text-sm text-gray-500 mb-5 max-w-xs mx-auto">
-                      Thank you! Our admissions team will be in touch with you very shortly.
-                    </p>
-                    <button onClick={() => setSubmitted(false)}
-                      className="text-xs font-bold underline" style={{ color: primary }}>
-                      Submit another request
-                    </button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleFormSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Parent / Guardian Name</label>
-                      <input type="text" required placeholder="e.g. Aisha Musa"
-                        className={inputCls}
-                        value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                        onFocus={e => Object.assign(e.target.style, inputFocus)}
-                        onBlur={e => { e.target.style.boxShadow = ''; }} />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Email</label>
-                        <input type="email" required placeholder="you@email.com"
-                          className={inputCls}
-                          value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
-                          onFocus={e => Object.assign(e.target.style, inputFocus)}
-                          onBlur={e => { e.target.style.boxShadow = ''; }} />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Phone</label>
-                        <input type="tel" required placeholder="+234..."
-                          className={inputCls}
-                          value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
-                          onFocus={e => Object.assign(e.target.style, inputFocus)}
-                          onBlur={e => { e.target.style.boxShadow = ''; }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Grade Level</label>
-                      <select required className={inputCls}
-                        value={form.grade} onChange={e => setForm({ ...form, grade: e.target.value })}
-                        onFocus={e => Object.assign(e.target.style, inputFocus)}
-                        onBlur={e => { e.target.style.boxShadow = ''; }}>
-                        <option value="">Select grade level</option>
-                        {['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'].map(g => (
-                          <option key={g} value={g}>{g}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Message (optional)</label>
-                      <textarea rows={3} placeholder="Any questions or special notes..."
-                        className={`${inputCls} resize-none`}
-                        value={form.message} onChange={e => setForm({ ...form, message: e.target.value })}
-                        onFocus={e => Object.assign(e.target.style, inputFocus)}
-                        onBlur={e => { e.target.style.boxShadow = ''; }} />
-                    </div>
-
-                    <button type="submit"
-                      className="w-full py-3.5 rounded-xl font-black text-white flex items-center justify-center gap-2 hover:opacity-90 hover:shadow-xl transition-all mt-1"
-                      style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.14)})` }}>
-                      <FiSend className="w-4 h-4" /> Send Enquiry
-                    </button>
-                  </form>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ══════════════════════════════════
           NEWSLETTER BANNER
@@ -837,60 +693,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
         </div>
       </section>
 
-      {/* ══════════════════════════════════
-          CONTACT SECTION
-      ══════════════════════════════════ */}
-      <section id="contact-section" className="py-10 md:py-14 bg-white border-t border-gray-100">
-        <div className="max-w-7xl mx-auto px-5">
-          <div className="grid lg:grid-cols-2 gap-12">
 
-            {/* Info cards */}
-            <div className="space-y-6">
-              <div>
-                <span className="section-label">Get in Touch</span>
-                <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Contact Us</h2>
-                <p className="text-gray-500 mt-3 text-sm">
-                  Reach out directly or visit us during working hours.
-                </p>
-              </div>
-
-              <div className="grid sm:grid-cols-2 gap-4">
-                {[
-                  school?.address && { icon: <FiMapPin className="w-5 h-5" />, label: 'Our Campus', value: school.address },
-                  school?.phone   && { icon: <FiPhone className="w-5 h-5" />, label: 'Phone', value: school.phone, href: `tel:${school.phone}` },
-                  school?.email   && { icon: <FiMail className="w-5 h-5" />, label: 'Email', value: school.email, href: `mailto:${school.email}` },
-                  school?.openingHours && { icon: <FiClock className="w-5 h-5" />, label: 'Office Hours', value: school.openingHours },
-                ].filter(Boolean).map((c, i) => (
-                  <div key={i} className="p-5 rounded-2xl border border-blue-100 bg-blue-50/50 hover:bg-blue-100/40 transition-colors">
-                    <div className="mb-2" style={{ color: primary }}>{c.icon}</div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">{c.label}</p>
-                    {c.href
-                      ? <a href={c.href} className="text-sm font-semibold text-gray-800 hover:underline break-all">{c.value}</a>
-                      : <p className="text-sm font-semibold text-gray-800">{c.value}</p>
-                    }
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Map */}
-            <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm h-80 lg:h-auto lg:min-h-[360px] bg-gray-100">
-              {school?.address ? (
-                <iframe
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(school.address)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
-                  width="100%" height="100%"
-                  style={{ border: 0, minHeight: 300 }}
-                  allowFullScreen loading="lazy"
-                  title="School Location" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-300">
-                  <FiMapPin className="w-10 h-10" />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ══════════════════════════════════
           FOOTER
@@ -909,11 +712,11 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               </h3>
               <p className="text-sm text-gray-400 mt-0.5">Begin your child's journey with us — enquire today.</p>
             </div>
-            <a href="#admission-process"
+            <Link to={`/${school?.slug}/admissions`}
               className="shrink-0 px-6 py-2.5 rounded-xl font-black text-sm text-white transition-all hover:scale-105"
               style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.15)})` }}>
               Start Admission →
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -971,8 +774,8 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               <ul className="space-y-3">
                 {[
                   { label: 'Student Portal', href: `/${school?.slug}/login`, internal: true },
-                  { label: 'Admission Enquiry', href: '#admission-process' },
-                  { label: 'Admission Policy', href: '#admission-process' },
+                  { label: 'Admission Enquiry', href: `/${school?.slug}/admissions` },
+                  { label: 'Admission Policy', href: `/${school?.slug}/admissions` },
                   school?.eLibraryUrl && { label: 'E-Library', href: school.eLibraryUrl, external: true },
                   school?.alumniNetworkUrl && { label: 'Alumni Network', href: school.alumniNetworkUrl, external: true },
                   school?.academicCalendarUrl && { label: 'Academic Calendar', href: school.academicCalendarUrl, external: true },
@@ -1004,7 +807,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 {[
                   school?.brochureFileUrl && { label: 'School Prospectus', href: school.brochureFileUrl },
                   school?.admissionGuideFileUrl && { label: 'Admissions Guide', href: school.admissionGuideFileUrl },
-                  { label: 'Curriculum Overview', href: '#admission-process' },
+                  { label: 'Curriculum Overview', href: `/${school?.slug}/admissions` },
                 ].filter(Boolean).map((l, i) => (
                   <li key={i}>
                     <a href={l.href} target="_blank" rel="noreferrer"
