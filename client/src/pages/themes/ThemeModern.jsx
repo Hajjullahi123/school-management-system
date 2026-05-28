@@ -16,7 +16,10 @@ import {
   FiSend, 
   FiClock, 
   FiStar,
-  FiVolume2
+  FiVolume2,
+  FiFacebook,
+  FiInstagram,
+  FiTwitter
 } from 'react-icons/fi';
 import ReactMarkdown from 'react-markdown';
 import { API_BASE_URL } from '../../config';
@@ -82,7 +85,25 @@ const ThemeModern = ({ school, getLogoUrl }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f6fa] flex flex-col font-sans selection:bg-black selection:text-white" style={{ '--theme-color': primaryColor }}>
+    <div className="min-h-screen bg-[#f4f6fa] flex flex-col font-sans" style={{ '--theme-color': primaryColor }}>
+      <style>{`
+        ::selection {
+          background-color: ${hexToRgba(primaryColor, 0.15)} !important;
+          color: ${primaryColor} !important;
+        }
+        @keyframes ticker {
+          0% { transform: translate3d(0, 0, 0); }
+          100% { transform: translate3d(-50%, 0, 0); }
+        }
+        .animate-ticker {
+          display: inline-flex;
+          white-space: nowrap;
+          animation: ticker 30s linear infinite;
+        }
+        .animate-ticker:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
       
       {/* Dynamic Announcement Ticker Bar */}
       <div className="text-white py-2.5 overflow-hidden relative z-50 border-b border-white/10 shadow-sm flex items-center" style={{ background: `linear-gradient(90deg, ${primaryColor}, ${darkenColor(primaryColor, 0.15)})` }}>
@@ -91,20 +112,6 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           <span className="text-xs font-black uppercase tracking-widest whitespace-nowrap">Announcements</span>
         </div>
         <div className="w-full overflow-hidden whitespace-nowrap flex items-center relative pl-36">
-          <style>{`
-            @keyframes ticker {
-              0% { transform: translate3d(0, 0, 0); }
-              100% { transform: translate3d(-50%, 0, 0); }
-            }
-            .animate-ticker {
-              display: inline-flex;
-              white-space: nowrap;
-              animation: ticker 30s linear infinite;
-            }
-            .animate-ticker:hover {
-              animation-play-state: paused;
-            }
-          `}</style>
           <div className="animate-ticker text-xs font-semibold tracking-wide">
             <span className="mx-6">📣 Open Admissions for Next Academic Session is officially live!</span>
             <span className="opacity-40">•</span>
@@ -127,7 +134,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       </div>
 
       {/* Header */}
-      <header className="fixed top-10 w-full z-40 bg-white/90 backdrop-blur-xl border-b border-gray-100 shadow-sm transition-all duration-300">
+      <header className="sticky top-0 w-full z-45 bg-white/95 backdrop-blur-xl border-b border-gray-100 shadow-md transition-all duration-300">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-200 shadow-sm">
@@ -189,7 +196,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-28 flex-1 min-h-[90vh] flex items-center justify-center overflow-hidden bg-black">
+      <section className="relative pt-16 flex-1 min-h-[90vh] flex items-center justify-center overflow-hidden bg-black">
         {/* Background Slides */}
         {heroImages.map((img, index) => (
           <div
@@ -208,7 +215,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
         }}></div>
 
         {/* Overlay Content */}
-        <div className="relative z-10 text-center px-6 max-w-4xl mx-auto py-16">
+        <div className="relative z-10 text-center px-6 max-w-4xl mx-auto pt-16 pb-36 md:pt-20 md:pb-48">
           <span className="inline-block py-1.5 px-4 rounded-full bg-white/10 backdrop-blur-md text-white text-xs font-bold tracking-widest uppercase mb-6 border border-white/20 animate-pulse">
             ✨ {school.motto || 'Excellence in Education'}
           </span>
@@ -230,7 +237,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
 
         {/* Slide Indicators */}
         {heroImages.length > 1 && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-2">
+          <div className="absolute bottom-32 left-1/2 -translate-x-1/2 flex gap-2">
             {heroImages.map((_, idx) => (
               <button
                 key={idx}
@@ -694,45 +701,62 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-16">
+      <footer className="bg-slate-950 border-t border-slate-900 py-16 text-slate-400">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-12 text-left mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 text-left mb-12">
             
             <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+                <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center overflow-hidden shrink-0 border border-slate-800">
                   {school.logoUrl ? (
                     <img src={getLogoUrl(school.logoUrl)} alt="" className="w-6 h-6 object-contain" />
                   ) : (
-                    <span className="text-sm font-black text-gray-400">{school.name.charAt(0)}</span>
+                    <span className="text-sm font-black text-slate-600">{school.name.charAt(0)}</span>
                   )}
                 </div>
-                <span className="text-lg font-black tracking-tighter text-gray-900">{school.name}</span>
+                <span className="text-lg font-black tracking-tighter text-white">{school.name}</span>
               </div>
-              <p className="text-sm text-gray-500 leading-relaxed">
+              <p className="text-sm text-slate-400 leading-relaxed">
                 Empowering the next generation through academic excellence, moral godliness, and vocational innovation.
               </p>
             </div>
 
             <div>
-              <h4 className="text-xs font-black uppercase tracking-wider text-gray-400 mb-6">Quick Links</h4>
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 mb-6">Quick Links</h4>
               <ul className="space-y-3">
                 <li>
-                  <Link to={`/${school.slug}/login`} className="text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1">
-                    <FiChevronRight /> Student Portal
+                  <Link to={`/${school.slug}/login`} className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
+                    <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Student Portal
                   </Link>
                 </li>
-                {school.eLibraryUrl && (
+                <li>
+                  <a href="#admission-process" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
+                    <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Admissions Info
+                  </a>
+                </li>
+                {school.eLibraryUrl ? (
                   <li>
-                    <a href={school.eLibraryUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1">
-                      <FiChevronRight /> E-Library Hub
+                    <a href={school.eLibraryUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
+                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> E-Library Hub
                     </a>
                   </li>
-                )}
-                {school.alumniNetworkUrl && (
+                ) : (
                   <li>
-                    <a href={school.alumniNetworkUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1">
-                      <FiChevronRight /> Alumni Relations
+                    <Link to={`/${school.slug}/login`} className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
+                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Virtual Learning
+                    </Link>
+                  </li>
+                )}
+                {school.alumniNetworkUrl ? (
+                  <li>
+                    <a href={school.alumniNetworkUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
+                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Alumni Relations
+                    </a>
+                  </li>
+                ) : (
+                  <li>
+                    <a href="#admission-process" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
+                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Join Our Community
                     </a>
                   </li>
                 )}
@@ -740,39 +764,95 @@ const ThemeModern = ({ school, getLogoUrl }) => {
             </div>
 
             <div>
-              <h4 className="text-xs font-black uppercase tracking-wider text-gray-400 mb-6">Documents</h4>
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 mb-6">Documents</h4>
               <ul className="space-y-3">
-                {school.brochureFileUrl && (
+                {school.brochureFileUrl ? (
                   <li>
-                    <a href={school.brochureFileUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1">
-                      <FiChevronRight /> School Prospectus
+                    <a href={school.brochureFileUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
+                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> School Prospectus
+                    </a>
+                  </li>
+                ) : (
+                  <li>
+                    <a href="#admission-process" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group" onClick={(e) => {
+                      const el = document.getElementById('admission-process');
+                      if (el) {
+                        e.preventDefault();
+                        el.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}>
+                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Request Prospectus (PDF)
                     </a>
                   </li>
                 )}
-                {school.admissionGuideFileUrl && (
+                {school.admissionGuideFileUrl ? (
                   <li>
-                    <a href={school.admissionGuideFileUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1">
-                      <FiChevronRight /> Admissions Policy
+                    <a href={school.admissionGuideFileUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
+                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Admissions Policy
+                    </a>
+                  </li>
+                ) : (
+                  <li>
+                    <a href="#admission-process" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group" onClick={(e) => {
+                      const el = document.getElementById('admission-process');
+                      if (el) {
+                        e.preventDefault();
+                        el.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}>
+                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Admissions Handbook
                     </a>
                   </li>
                 )}
+                <li>
+                  <a href="#admission-process" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
+                    <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Curriculum Guide
+                  </a>
+                </li>
               </ul>
             </div>
 
             <div>
-              <h4 className="text-xs font-black uppercase tracking-wider text-gray-400 mb-6">Follow Us</h4>
-              <div className="flex gap-4">
-                {school.facebookUrl && <a href={school.facebookUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-gray-500 hover:text-gray-900">Facebook</a>}
-                {school.instagramUrl && <a href={school.instagramUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-gray-500 hover:text-gray-900">Instagram</a>}
-                {school.whatsappUrl && <a href={school.whatsappUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-gray-500 hover:text-gray-900">WhatsApp</a>}
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 mb-6">Follow Us</h4>
+              <div className="flex flex-wrap gap-3">
+                {school.facebookUrl ? (
+                  <a href={school.facebookUrl} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-[var(--theme-color)] hover:text-white transition-all flex items-center justify-center text-lg border border-slate-800" style={{ '--theme-color': primaryColor }} title="Facebook">
+                    <FiFacebook />
+                  </a>
+                ) : (
+                  <a href={`https://facebook.com/search/top/?q=${encodeURIComponent(school.name)}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center text-lg border border-slate-800" title="Facebook Page">
+                    <FiFacebook />
+                  </a>
+                )}
+                {school.instagramUrl ? (
+                  <a href={school.instagramUrl} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-[var(--theme-color)] hover:text-white transition-all flex items-center justify-center text-lg border border-slate-800" style={{ '--theme-color': primaryColor }} title="Instagram">
+                    <FiInstagram />
+                  </a>
+                ) : (
+                  <a href={`https://instagram.com/${school.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-pink-600 hover:text-white transition-all flex items-center justify-center text-lg border border-slate-800" title="Instagram Profile">
+                    <FiInstagram />
+                  </a>
+                )}
+                {school.whatsappUrl ? (
+                  <a href={school.whatsappUrl} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-green-600 hover:text-white transition-all flex items-center justify-center text-lg border border-slate-800" title="WhatsApp">
+                    <FiVolume2 />
+                  </a>
+                ) : (
+                  <a href={`https://wa.me/${school.phone ? school.phone.replace(/[^0-9]/g, '') : ''}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-green-600 hover:text-white transition-all flex items-center justify-center text-lg border border-slate-800" title="WhatsApp Chat">
+                    <FiPhone />
+                  </a>
+                )}
+                <a href={`mailto:${school.email || ''}`} className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center text-lg border border-slate-800" title="Email Us">
+                  <FiMail />
+                </a>
               </div>
             </div>
 
           </div>
 
-          <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">© {new Date().getFullYear()} {school.name}. All rights reserved.</p>
-            <p className="text-xs text-gray-400 font-medium">Powered by <span className="font-black text-gray-900">EduTechAI Platform</span></p>
+          <div className="border-t border-slate-900 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">© {new Date().getFullYear()} {school.name}. All rights reserved.</p>
+            <p className="text-xs text-slate-500 font-medium">Powered by <span className="font-black text-white">EduTechAI Platform</span></p>
           </div>
         </div>
       </footer>
