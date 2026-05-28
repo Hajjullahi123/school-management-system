@@ -179,7 +179,7 @@ router.put('/', authenticate, async (req, res) => {
     schoolName, schoolAddress, schoolPhone, schoolEmail, schoolMotto,
     primaryColor, secondaryColor, accentColor,
     paystackPublicKey, paystackSecretKey, flutterwavePublicKey, flutterwaveSecretKey, enableOnlinePayment,
-    facebookUrl, instagramUrl, whatsappUrl,
+    facebookUrl, instagramUrl, whatsappUrl, twitterUrl, youtubeUrl, linkedinUrl,
     academicCalendarUrl, eLibraryUrl, alumniNetworkUrl, brochureFileUrl, admissionGuideFileUrl,
     emailUser, emailPassword, emailHost, emailPort, emailSecure,
     smsUsername, smsApiKey, smsSenderId, enableSMS,
@@ -247,6 +247,9 @@ router.put('/', authenticate, async (req, res) => {
     if (facebookUrl !== undefined) updateData.facebookUrl = facebookUrl;
     if (instagramUrl !== undefined) updateData.instagramUrl = instagramUrl;
     if (whatsappUrl !== undefined) updateData.whatsappUrl = whatsappUrl;
+    if (twitterUrl !== undefined) updateData.twitterUrl = twitterUrl;
+    if (youtubeUrl !== undefined) updateData.youtubeUrl = youtubeUrl;
+    if (linkedinUrl !== undefined) updateData.linkedinUrl = linkedinUrl;
 
     if (academicCalendarUrl !== undefined) updateData.academicCalendarUrl = academicCalendarUrl;
     if (eLibraryUrl !== undefined) updateData.eLibraryUrl = eLibraryUrl;

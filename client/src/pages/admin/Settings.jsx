@@ -23,6 +23,9 @@ const Settings = () => {
     facebookUrl: '',
     instagramUrl: '',
     whatsappUrl: '',
+    twitterUrl: '',
+    youtubeUrl: '',
+    linkedinUrl: '',
     academicCalendarUrl: '',
     eLibraryUrl: '',
     alumniNetworkUrl: '',
@@ -955,36 +958,33 @@ const Settings = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-3">Facebook URL</label>
-                      <input
-                        type="url"
-                        name="facebookUrl"
-                        value={settings.facebookUrl || ''}
-                        onChange={handleInputChange}
-                        placeholder="https://facebook.com/yourschool"
-                        className="w-full border border-gray-300 rounded-xl px-4 py-3"
-                      />
+                      <input type="url" name="facebookUrl" value={settings.facebookUrl || ''} onChange={handleInputChange}
+                        placeholder="https://facebook.com/yourschool" className="w-full border border-gray-300 rounded-xl px-4 py-3" />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-3">Instagram URL</label>
-                      <input
-                        type="url"
-                        name="instagramUrl"
-                        value={settings.instagramUrl || ''}
-                        onChange={handleInputChange}
-                        placeholder="https://instagram.com/yourschool"
-                        className="w-full border border-gray-300 rounded-xl px-4 py-3"
-                      />
+                      <input type="url" name="instagramUrl" value={settings.instagramUrl || ''} onChange={handleInputChange}
+                        placeholder="https://instagram.com/yourschool" className="w-full border border-gray-300 rounded-xl px-4 py-3" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-3">Twitter / X URL</label>
+                      <input type="url" name="twitterUrl" value={settings.twitterUrl || ''} onChange={handleInputChange}
+                        placeholder="https://x.com/yourschool" className="w-full border border-gray-300 rounded-xl px-4 py-3" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-3">YouTube URL</label>
+                      <input type="url" name="youtubeUrl" value={settings.youtubeUrl || ''} onChange={handleInputChange}
+                        placeholder="https://youtube.com/@yourschool" className="w-full border border-gray-300 rounded-xl px-4 py-3" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-3">LinkedIn URL</label>
+                      <input type="url" name="linkedinUrl" value={settings.linkedinUrl || ''} onChange={handleInputChange}
+                        placeholder="https://linkedin.com/school/yourschool" className="w-full border border-gray-300 rounded-xl px-4 py-3" />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-3">WhatsApp Number</label>
-                      <input
-                        type="text"
-                        name="whatsappUrl"
-                        value={settings.whatsappUrl || ''}
-                        onChange={handleInputChange}
-                        placeholder="2348012345678"
-                        className="w-full border border-gray-300 rounded-xl px-4 py-3"
-                      />
+                      <input type="text" name="whatsappUrl" value={settings.whatsappUrl || ''} onChange={handleInputChange}
+                        placeholder="2348012345678" className="w-full border border-gray-300 rounded-xl px-4 py-3" />
                       <p className="text-xs text-gray-400 mt-1 italic">Digits only, no spaces or + sign.</p>
                     </div>
                   </div>

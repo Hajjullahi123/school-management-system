@@ -20,6 +20,9 @@ import {
   FiFacebook,
   FiInstagram,
   FiMessageCircle,
+  FiTwitter,
+  FiYoutube,
+  FiLinkedin,
 } from 'react-icons/fi';
 import ReactMarkdown from 'react-markdown';
 import { API_BASE_URL } from '../../config';
@@ -880,22 +883,22 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           FOOTER
       ══════════════════════════════════ */}
-      <footer style={{ backgroundColor: '#0a0f1e' }} className="text-gray-400">
+      <footer style={{ backgroundColor: '#1e293b' }} className="text-gray-400">
 
         {/* Top accent bar */}
         <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, transparent 0%, ${primary} 30%, ${darkenHex(primary, -0.2)} 70%, transparent 100%)` }} />
 
         {/* CTA Banner */}
-        <div className="border-b border-white/5" style={{ background: `linear-gradient(135deg, ${hexToRgba(primary, 0.12)} 0%, transparent 60%)` }}>
-          <div className="max-w-7xl mx-auto px-5 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="border-b border-white/5" style={{ background: `linear-gradient(135deg, ${hexToRgba(primary, 0.1)} 0%, transparent 60%)` }}>
+          <div className="max-w-7xl mx-auto px-5 py-7 flex flex-col md:flex-row items-center justify-between gap-4">
             <div>
-              <h3 className="text-xl md:text-2xl font-black text-white leading-tight">
+              <h3 className="text-lg md:text-xl font-black text-white leading-tight">
                 Ready to Join Our School Community?
               </h3>
-              <p className="text-sm text-gray-400 mt-1">Begin your child's journey with us — enquire today.</p>
+              <p className="text-sm text-gray-400 mt-0.5">Begin your child's journey with us — enquire today.</p>
             </div>
             <a href="#admission-process"
-              className="shrink-0 px-7 py-3 rounded-xl font-black text-sm text-white transition-all hover:scale-105 hover:shadow-lg"
+              className="shrink-0 px-6 py-2.5 rounded-xl font-black text-sm text-white transition-all hover:scale-105"
               style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.15)})` }}>
               Start Admission →
             </a>
@@ -903,8 +906,8 @@ const ThemeModern = ({ school, getLogoUrl }) => {
         </div>
 
         {/* Main footer grid */}
-        <div className="max-w-7xl mx-auto px-5 pt-14 pb-10">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+        <div className="max-w-7xl mx-auto px-5 pt-8 pb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
 
             {/* Brand column */}
             <div className="sm:col-span-2 lg:col-span-1 space-y-5">
@@ -928,32 +931,22 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 {school?.motto || 'Empowering the next generation through academic excellence, moral development, and innovation.'}
               </p>
 
-              {/* Social icons */}
-              <div className="flex gap-2.5 pt-1">
-                {school?.facebookUrl && (
-                  <a href={school.facebookUrl} target="_blank" rel="noreferrer"
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 border border-white/10 hover:bg-blue-600 hover:border-blue-600 hover:text-white transition-all duration-200">
-                    <FiFacebook className="w-4 h-4" />
+              {/* Social icons — all platforms horizontally */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {[
+                  { url: school?.facebookUrl, icon: <FiFacebook className="w-4 h-4" />, hover: 'hover:bg-blue-600 hover:border-blue-600', label: 'Facebook' },
+                  { url: school?.instagramUrl, icon: <FiInstagram className="w-4 h-4" />, hover: 'hover:bg-pink-600 hover:border-pink-600', label: 'Instagram' },
+                  { url: school?.twitterUrl, icon: <FiTwitter className="w-4 h-4" />, hover: 'hover:bg-sky-500 hover:border-sky-500', label: 'Twitter/X' },
+                  { url: school?.youtubeUrl, icon: <FiYoutube className="w-4 h-4" />, hover: 'hover:bg-red-600 hover:border-red-600', label: 'YouTube' },
+                  { url: school?.linkedinUrl, icon: <FiLinkedin className="w-4 h-4" />, hover: 'hover:bg-blue-700 hover:border-blue-700', label: 'LinkedIn' },
+                  { url: school?.whatsappUrl ? `https://wa.me/${school.whatsappUrl}` : null, icon: <FiMessageCircle className="w-4 h-4" />, hover: 'hover:bg-green-600 hover:border-green-600', label: 'WhatsApp' },
+                  { url: school?.email ? `mailto:${school.email}` : null, icon: <FiMail className="w-4 h-4" />, hover: 'hover:bg-rose-600 hover:border-rose-600', label: 'Email' },
+                ].filter(s => s.url).map((s, i) => (
+                  <a key={i} href={s.url} target="_blank" rel="noreferrer" title={s.label}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 border border-white/10 hover:text-white transition-all duration-200 ${s.hover}`}>
+                    {s.icon}
                   </a>
-                )}
-                {school?.instagramUrl && (
-                  <a href={school.instagramUrl} target="_blank" rel="noreferrer"
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 border border-white/10 hover:bg-pink-600 hover:border-pink-600 hover:text-white transition-all duration-200">
-                    <FiInstagram className="w-4 h-4" />
-                  </a>
-                )}
-                {school?.whatsappUrl && (
-                  <a href={school.whatsappUrl} target="_blank" rel="noreferrer"
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 border border-white/10 hover:bg-green-600 hover:border-green-600 hover:text-white transition-all duration-200">
-                    <FiMessageCircle className="w-4 h-4" />
-                  </a>
-                )}
-                {school?.email && (
-                  <a href={`mailto:${school.email}`}
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 border border-white/10 hover:bg-red-600 hover:border-red-600 hover:text-white transition-all duration-200">
-                    <FiMail className="w-4 h-4" />
-                  </a>
-                )}
+                ))}
               </div>
             </div>
 
@@ -1052,12 +1045,12 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           </div>
 
           {/* Bottom bar */}
-          <div className="border-t border-white/5 pt-7 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-gray-600 font-semibold tracking-wide text-center sm:text-left">
-              © {new Date().getFullYear()} <span className="text-gray-400">{school?.name}</span>. All Rights Reserved.
+          <div className="border-t border-white/5 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-xs text-gray-500 font-semibold tracking-wide text-center sm:text-left">
+              © {new Date().getFullYear()} <span className="text-gray-300">{school?.name}</span>. All Rights Reserved.
             </p>
-            <p className="text-xs text-gray-700">
-              Powered by <span className="font-black" style={{ color: primary }}>EduTechAI</span> <span className="text-gray-600">Platform</span>
+            <p className="text-xs text-slate-600">
+              Powered by <span className="font-black" style={{ color: primary }}>EduTechAI</span> <span className="text-slate-500">Platform</span>
             </p>
           </div>
         </div>
