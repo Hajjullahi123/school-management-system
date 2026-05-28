@@ -42,8 +42,13 @@ const ThemeModern = ({ school, getLogoUrl }) => {
   const [aboutSlideIndex, setAboutSlideIndex] = useState(0);
 
   const heroImages = school.GalleryImage?.length > 0
-    ? school.GalleryImage.map(img => img.imageUrl.startsWith('http') ? img.imageUrl : `${API_BASE_URL}${img.imageUrl.startsWith('/') ? '' : '/'}${img.imageUrl}`)
-    : ['https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop'];
+    ? school.GalleryImage.map(img => getLogoUrl(img.imageUrl))
+    : [
+        "/images/hero_exterior.png",
+        "/images/hero_students.png",
+        "/images/hero_lab.png",
+        "/images/hero_library.png"
+      ];
 
   useEffect(() => {
     if (heroImages.length > 1) {
