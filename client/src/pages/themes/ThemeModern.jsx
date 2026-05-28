@@ -620,10 +620,10 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               <div className="px-8 py-6 text-white"
                 style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.14)})` }}>
                 <span className="text-white/60 text-[10px] font-black uppercase tracking-widest block mb-1">Join Our School</span>
-                <h2 className="text-xl font-black leading-tight">
+                <h2 className="text-xl font-black leading-tight w-full">
                   Admissions Process
                 </h2>
-                <p className="text-white/70 text-xs mt-1 leading-relaxed">
+                <p className="text-white/70 text-xs mt-2 leading-relaxed w-full text-justify">
                   We are delighted you are considering <strong className="text-white font-black">{school?.name}</strong>.
                   Our admissions process is straightforward and welcoming.
                 </p>
