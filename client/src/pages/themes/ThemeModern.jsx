@@ -403,21 +403,28 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                     We provide a supportive and innovative learning environment where every student can achieve their full
                     potential. Our comprehensive programmes blend academic rigour, moral character development, and
                     vocational skills to prepare students for success in an ever-changing world.
-                    {school?.foundedYear && (
-                      <span className="inline-flex items-center gap-1 ml-2 px-2.5 py-0.5 rounded-full text-xs font-black align-middle"
-                        style={{ backgroundColor: hexToRgba(primary, 0.1), color: primary }}>
-                        📅 Est. {school.foundedYear}
-                      </span>
-                    )}
                   </p>
                 )}
-                {school?.aboutUsText && school?.foundedYear && (
-                  <span className="inline-flex items-center gap-1 mt-1 px-2.5 py-0.5 rounded-full text-xs font-black"
-                    style={{ backgroundColor: hexToRgba(primary, 0.1), color: primary }}>
-                    📅 Est. {school.foundedYear}
-                  </span>
-                )}
               </div>
+
+              {/* Founding Year — full-width prominent card */}
+              {school?.foundedYear && (
+                <div className="flex items-center gap-4 w-full px-4 py-3 rounded-2xl"
+                  style={{ backgroundColor: hexToRgba(primary, 0.07), border: `1px solid ${hexToRgba(primary, 0.2)}` }}>
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 text-xl"
+                    style={{ backgroundColor: hexToRgba(primary, 0.15) }}>
+                    🗓️
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Year Established</p>
+                    <p className="text-2xl font-black leading-none" style={{ color: primary }}>{school.foundedYear}</p>
+                  </div>
+                  <div className="ml-auto h-10 w-px" style={{ backgroundColor: hexToRgba(primary, 0.2) }} />
+                  <p className="text-xs text-gray-500 font-medium max-w-[120px] leading-snug text-right">
+                    Years of Educational Excellence
+                  </p>
+                </div>
+              )}
 
               {/* Core Pillars */}
               <div className="space-y-4 pt-2 w-full">
