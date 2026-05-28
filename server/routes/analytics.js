@@ -508,9 +508,9 @@ router.get('/cbt-tracking', authenticate, async (req, res) => {
         ...(teacherId ? { teacherId: parseInt(teacherId) } : {})
       },
       include: {
-        class: { select: { id: true, name: true, arm: true } },
-        subject: { select: { name: true } },
-        teacher: { select: { firstName: true, lastName: true } },
+        Class: { select: { id: true, name: true, arm: true } },
+        Subject: { select: { name: true } },
+        User: { select: { firstName: true, lastName: true } },
         _count: {
           select: { CBTResult: { where: { schoolId: req.schoolId } } }
         }
@@ -536,9 +536,9 @@ router.get('/cbt-tracking', authenticate, async (req, res) => {
         id: exam.id,
         teacherId: exam.teacherId,
         title: exam.title,
-        className: `${exam.class.name} ${exam.class.arm || ''}`.trim(),
-        subjectName: exam.subject.name,
-        teacherName: `${exam.teacher.firstName} ${exam.teacher.lastName}`,
+        className: `${exam.Class.name} ${exam.Class.arm || ''}`.trim(),
+        subjectName: exam.Subject.name,
+        teacherName: `${exam.User.firstName} ${exam.User.lastName}`,
         totalStudents,
         completedCount,
         participationRate: participationRate.toFixed(1),
