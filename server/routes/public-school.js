@@ -28,6 +28,10 @@ router.get('/:slug', async (req, res) => {
         facebookUrl: true,
         instagramUrl: true,
         whatsappUrl: true,
+        twitterUrl: true,
+        youtubeUrl: true,
+        linkedinUrl: true,
+        academicCalendarUrl: true,
         eLibraryUrl: true,
         alumniNetworkUrl: true,
         brochureFileUrl: true,
@@ -35,6 +39,7 @@ router.get('/:slug', async (req, res) => {
         isActivated: true,
         websiteTheme: true,
         aboutUsText: true,
+        foundedYear: true,
         testimonialsText: true,
         customPages: {
           where: { isActive: true },
