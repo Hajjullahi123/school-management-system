@@ -37,6 +37,9 @@ const ThemeModern = ({ school, getLogoUrl }) => {
     grade: '',
     message: ''
   });
+  
+  const [activeAboutTab, setActiveAboutTab] = useState('profile');
+  const [aboutSlideIndex, setAboutSlideIndex] = useState(0);
 
   const heroImages = school.GalleryImage?.length > 0
     ? school.GalleryImage.map(img => img.imageUrl.startsWith('http') ? img.imageUrl : `${API_BASE_URL}${img.imageUrl.startsWith('/') ? '' : '/'}${img.imageUrl}`)
@@ -47,6 +50,15 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       const timer = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % heroImages.length);
       }, 5000);
+      return () => clearInterval(timer);
+    }
+  }, [heroImages.length]);
+
+  useEffect(() => {
+    if (heroImages.length > 1) {
+      const timer = setInterval(() => {
+        setAboutSlideIndex((prev) => (prev + 1) % heroImages.length);
+      }, 4000);
       return () => clearInterval(timer);
     }
   }, [heroImages.length]);
@@ -297,35 +309,84 @@ const ThemeModern = ({ school, getLogoUrl }) => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             
-            {/* Left side: Accent container */}
-            <div className="relative">
-              <div className="absolute -inset-4 rounded-[40px] opacity-10 blur-xl" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}></div>
-              <div className="relative bg-white rounded-[32px] overflow-hidden shadow-2xl border border-gray-100 p-8">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 rounded-[24px] bg-slate-50 flex items-center justify-center border shadow-sm">
-                    {school.logoUrl ? (
-                      <img src={getLogoUrl(school.logoUrl)} alt="" className="w-10 h-10 object-contain" />
-                    ) : (
-                      <span className="text-2xl font-black text-gray-400">{school.name.charAt(0)}</span>
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-black text-gray-900 text-lg">{school.name}</h3>
-                    <p className="text-xs text-gray-400 tracking-wider font-bold uppercase mt-0.5">Institution of Excellence</p>
-                  </div>
+            {/* Left side: Accent container with dynamic switch */}
+            <div className="relative flex flex-col gap-4">
+              
+              {/* Segmented Switch Controller */}
+              <div className="flex justify-center mb-2">
+                <div className="bg-slate-100 p-1.5 rounded-2xl flex gap-1 shadow-inner border border-slate-200/40 select-none">
+                  <button
+                    onClick={() => setActiveAboutTab('profile')}
+                    className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${activeAboutTab === 'profile' ? 'bg-white text-gray-900 shadow-sm scale-105' : 'text-gray-400 hover:text-gray-700'}`}
+                  >
+                    School Profile
+                  </button>
+                  <button
+                    onClick={() => setActiveAboutTab('gallery')}
+                    className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${activeAboutTab === 'gallery' ? 'bg-white text-gray-900 shadow-sm scale-105' : 'text-gray-400 hover:text-gray-700'}`}
+                  >
+                    Campus Gallery
+                  </button>
                 </div>
-                
-                {school.aboutUsText ? (
-                  <div className="prose prose-slate max-w-none text-gray-600 text-sm leading-relaxed prose-headings:font-black">
-                    <ReactMarkdown>{school.aboutUsText}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 leading-relaxed">
-                    Providing a supportive and innovative environment where every student can achieve their full potential.
-                    Our comprehensive college blends discipline, faith-based godliness, and technological innovation.
-                  </p>
-                )}
               </div>
+
+              {activeAboutTab === 'profile' ? (
+                <div className="relative bg-white rounded-[32px] overflow-hidden shadow-2xl border border-gray-100 p-8 min-h-[380px] md:min-h-[420px] flex flex-col justify-center transition-all duration-500 animate-fadeIn">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-16 h-16 rounded-[24px] bg-slate-50 flex items-center justify-center border shadow-sm">
+                      {school.logoUrl ? (
+                        <img src={getLogoUrl(school.logoUrl)} alt="" className="w-10 h-10 object-contain" />
+                      ) : (
+                        <span className="text-2xl font-black text-gray-400">{school.name.charAt(0)}</span>
+                      )}
+                    </div>
+                    <div className="text-left">
+                      <h3 className="font-black text-gray-900 text-lg">{school.name}</h3>
+                      <p className="text-xs text-gray-400 tracking-wider font-bold uppercase mt-0.5">Institution of Excellence</p>
+                    </div>
+                  </div>
+                  
+                  {school.aboutUsText ? (
+                    <div className="prose prose-slate max-w-none text-gray-600 text-sm leading-relaxed prose-headings:font-black text-left">
+                      <ReactMarkdown>{school.aboutUsText}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 leading-relaxed text-left">
+                      Providing a supportive and innovative environment where every student can achieve their full potential.
+                      Our comprehensive college blends discipline, faith-based godliness, and technological innovation.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="relative w-full h-[380px] md:h-[420px] rounded-[40px] overflow-hidden shadow-2xl border-[8px] border-white bg-slate-100 transition-all duration-500 animate-fadeIn group">
+                  {heroImages.map((img, index) => (
+                    <img
+                      key={index}
+                      src={img}
+                      alt={`Campus Slide ${index + 1}`}
+                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${index === aboutSlideIndex ? 'opacity-100' : 'opacity-0'}`}
+                    />
+                  ))}
+                  
+                  {/* Elegant Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-transparent opacity-80 mix-blend-multiply pointer-events-none"></div>
+                  
+                  {/* Decorative Brand Badge */}
+                  {school.logoUrl && (
+                    <div className="absolute bottom-6 left-6 p-3 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl transform group-hover:scale-105 transition-transform flex items-center gap-3 border border-gray-100">
+                      <img src={getLogoUrl(school.logoUrl)} alt="" className="w-10 h-10 object-contain" onError={(e) => { e.target.parentElement.style.display = 'none'; }} />
+                      <div className="text-left">
+                        <h4 className="font-black text-gray-900 text-xs">{school.name}</h4>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Campus View</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Frame Accents just as basic page */}
+                  <div className="absolute top-6 right-6 w-16 h-16 border-t-4 border-r-4 border-white/60 rounded-tr-2xl pointer-events-none"></div>
+                  <div className="absolute bottom-6 right-6 w-16 h-16 border-b-4 border-r-4 border-white/60 rounded-br-2xl pointer-events-none"></div>
+                </div>
+              )}
             </div>
 
             {/* Right side: Core values checklist */}
