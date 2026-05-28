@@ -365,7 +365,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
             {/* Left – school image */}
             <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gray-100 min-h-[320px] h-full">
               {heroImages[0] && (
-                <img src={heroImages[0]} alt="Campus" className="absolute inset-0 w-full h-full object-contain" />
+                <img src={heroImages[0]} alt="Campus" className="absolute inset-0 w-full h-full object-cover" />
               )}
               {/* Gradient at bottom */}
               <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 via-transparent to-transparent" />
@@ -431,28 +431,29 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 </div>
               )}
 
-              {/* Core Pillars */}
-              <div className="space-y-4 pt-2 w-full">
-                {[
-                  { title: 'Expert Faculty & Departments', body: 'Certified, passionate educators delivering curriculum-aligned, rigorous instruction tailored to each student.' },
-                  { title: 'Modern Facilities & Labs', body: 'Science labs, coding suites, libraries, and sports infrastructure for holistic student development.' },
-                  { title: 'Technology & Vocational Blend', body: 'Robotics, digital literacy, and entrepreneurship programmes embedded across all classes.' },
-                ].map((pillar, i) => (
-                  <div key={i}
-                    className="flex gap-4 p-5 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                    style={{ backgroundColor: hexToRgba(primary, 0.04), borderColor: hexToRgba(primary, 0.15) }}>
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: primary, color: '#fff' }}>
-                      <FiCheckCircle className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-gray-900 text-sm mb-1 text-left">{pillar.title}</h4>
-                      <p className="text-xs text-gray-500 leading-relaxed text-left">{pillar.body}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
+          </div>
+
+          {/* Core Pillars — Moved below the About grid for a clean, balanced layout */}
+          <div className="grid md:grid-cols-3 gap-6 mt-12 w-full">
+            {[
+              { title: 'Expert Faculty & Departments', body: 'Certified, passionate educators delivering curriculum-aligned, rigorous instruction tailored to each student.' },
+              { title: 'Modern Facilities & Labs', body: 'Science labs, coding suites, libraries, and sports infrastructure for holistic student development.' },
+              { title: 'Technology & Vocational Blend', body: 'Robotics, digital literacy, and entrepreneurship programmes embedded across all classes.' },
+            ].map((pillar, i) => (
+              <div key={i}
+                className="flex gap-4 p-5 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                style={{ backgroundColor: hexToRgba(primary, 0.04), borderColor: hexToRgba(primary, 0.15) }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+                  style={{ backgroundColor: primary, color: '#fff' }}>
+                  <FiCheckCircle className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-gray-900 text-sm mb-1 text-left">{pillar.title}</h4>
+                  <p className="text-xs text-gray-500 leading-relaxed text-left">{pillar.body}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
