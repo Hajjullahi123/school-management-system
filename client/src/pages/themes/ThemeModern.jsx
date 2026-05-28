@@ -383,20 +383,20 @@ const ThemeModern = ({ school, getLogoUrl }) => {
             </div>
 
             {/* Right – text content */}
-            <div className="space-y-6">
+            <div className="space-y-6 w-full">
               <span className="section-label">About Our School</span>
 
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 leading-tight tracking-tight">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 leading-tight tracking-tight w-full text-left">
                 Building Future-Ready <span style={{ color: primary }}>Leaders</span>
               </h2>
 
-              <div className="text-gray-600 leading-relaxed text-[15px]">
+              <div className="text-gray-600 leading-relaxed text-[15px] w-full text-left">
                 {school?.aboutUsText ? (
-                  <div className="prose prose-sm max-w-none prose-headings:font-black prose-a:no-underline">
+                  <div className="prose prose-sm max-w-none w-full text-left prose-headings:font-black prose-a:no-underline prose-p:text-left">
                     <ReactMarkdown>{school.aboutUsText}</ReactMarkdown>
                   </div>
                 ) : (
-                  <p>
+                  <p className="w-full text-left">
                     We provide a supportive and innovative learning environment where every student can achieve their full
                     potential. Our comprehensive programmes blend academic rigour, moral character development, and
                     vocational skills to prepare students for success in an ever-changing world.
@@ -405,7 +405,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               </div>
 
               {/* Core Pillars */}
-              <div className="space-y-4 pt-2">
+              <div className="space-y-4 pt-2 w-full">
                 {[
                   { title: 'Expert Faculty & Departments', body: 'Certified, passionate educators delivering curriculum-aligned, rigorous instruction tailored to each student.' },
                   { title: 'Modern Facilities & Labs', body: 'Science labs, coding suites, libraries, and sports infrastructure for holistic student development.' },
@@ -418,9 +418,9 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                       style={{ backgroundColor: primary, color: '#fff' }}>
                       <FiCheckCircle className="w-5 h-5" />
                     </div>
-                    <div>
-                      <h4 className="font-bold text-gray-900 text-sm mb-1">{pillar.title}</h4>
-                      <p className="text-xs text-gray-500 leading-relaxed">{pillar.body}</p>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-gray-900 text-sm mb-1 text-left">{pillar.title}</h4>
+                      <p className="text-xs text-gray-500 leading-relaxed text-left">{pillar.body}</p>
                     </div>
                   </div>
                 ))}
