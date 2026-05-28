@@ -43,6 +43,12 @@ router.get('/:slug', async (req, res) => {
         GalleryImage: {
           where: { category: 'hero', isActive: true },
           select: { imageUrl: true }
+        },
+        newsEvents: {
+          where: { isPublished: true },
+          orderBy: { eventDate: 'desc' },
+          take: 3,
+          select: { id: true, title: true, type: true, eventDate: true, imageUrl: true, content: true }
         }
       }
     });
@@ -62,6 +68,72 @@ router.get('/:slug', async (req, res) => {
   } catch (error) {
     console.error('[PublicSchool] Error:', error);
     res.status(500).json({ error: 'Failed to fetch school details' });
+  }
+});
+
+// Submit admission inquiry
+router.post('/:slug/inquiry', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { parentName, email, phone, gradeLevel, message } = req.body;
+
+    const school = await prisma.school.findUnique({ where: { slug } });
+    if (!school) return res.status(404).json({ error: 'School not found' });
+
+    const inquiry = await prisma.admissionInquiry.create({
+      data: {
+        schoolId: school.id,
+        parentName,
+        email,
+        phone,
+        gradeLevel,
+        message
+      }
+    });
+
+    res.status(201).json({ success: true, message: 'Inquiry submitted successfully', inquiry });
+  } catch (error) {
+    console.error('[PublicSchool Inquiry] Error:', error);
+    res.status(500).json({ error: 'Failed to submit inquiry' });
+  }
+});
+
+// Subscribe to newsletter
+router.post('/:slug/subscribe', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { email } = req.body;
+
+    const school = await prisma.school.findUnique({ where: { slug } });
+    if (!school) return res.status(404).json({ error: 'School not found' });
+
+    // Check if already subscribed
+    const existing = await prisma.newsletterSubscriber.findUnique({
+      where: { schoolId_email: { schoolId: school.id, email } }
+    });
+
+    if (existing) {
+      if (!existing.isActive) {
+        await prisma.newsletterSubscriber.update({
+          where: { id: existing.id },
+          data: { isActive: true }
+        });
+        return res.json({ success: true, message: 'Subscription reactivated' });
+      }
+      return res.status(400).json({ error: 'Email is already subscribed' });
+    }
+
+    await prisma.newsletterSubscriber.create({
+      data: {
+        schoolId: school.id,
+        email
+      }
+    });
+
+    res.status(201).json({ success: true, message: 'Subscribed successfully' });
+  } catch (error) {
+    console.error('[PublicSchool Subscribe] Error:', error);
+    res.status(500).json({ error: 'Failed to subscribe to newsletter' });
   }
 });
 

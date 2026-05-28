@@ -30,6 +30,26 @@ const ThemeModern = ({ school, getLogoUrl }) => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [topStudents, setTopStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(true);
+
+  useEffect(() => {
+    const fetchTopStudents = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/top-students/top-students?limit=4&schoolId=${school.id}`);
+        const data = await response.json();
+        setTopStudents(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to fetch top students:', err);
+      } finally {
+        setLoadingStudents(false);
+      }
+    };
+    if (school?.id) {
+      fetchTopStudents();
+    }
+  }, [school?.id]);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -127,16 +147,44 @@ const ThemeModern = ({ school, getLogoUrl }) => {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
 
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitted(true);
-    setFormData({ name: '', email: '', phone: '', grade: '', message: '' });
+    try {
+      const response = await fetch(`/api/public-school/${school.slug}/inquiry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          parentName: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          gradeLevel: formData.grade,
+          message: formData.message
+        })
+      });
+      if (response.ok) {
+        setIsSubmitted(true);
+        setFormData({ name: '', email: '', phone: '', grade: '', message: '' });
+      }
+    } catch (error) {
+      console.error('Failed to submit inquiry:', error);
+    }
   };
 
-  const handleNewsletterSubmit = (e) => {
+  const handleNewsletterSubmit = async (e) => {
     e.preventDefault();
-    setIsSubscribed(true);
-    setNewsletterEmail('');
+    try {
+      const response = await fetch(`/api/public-school/${school.slug}/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newsletterEmail })
+      });
+      if (response.ok) {
+        setIsSubscribed(true);
+        setNewsletterEmail('');
+      }
+    } catch (error) {
+      console.error('Failed to subscribe:', error);
+    }
   };
 
   return (
@@ -811,6 +859,116 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           </div>
         </div>
       </section>
+
+      {/* Top Students Section */}
+      <div className="py-24 bg-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: primaryColor }}>
+              Excellence Recognized
+            </h2>
+            <h3 className="text-3xl md:text-5xl font-black text-gray-900 mb-6">Our Top Performers</h3>
+            <p className="text-gray-500 text-lg">Celebrating academic excellence and outstanding achievements across all classes.</p>
+          </div>
+
+          {loadingStudents ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="animate-pulse bg-gray-100 rounded-3xl h-96"></div>
+              ))}
+            </div>
+          ) : topStudents.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {topStudents.map((student, idx) => (
+                <div key={idx} className="group relative bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden hover:-translate-y-2 transition-all duration-300">
+                  <div className="absolute top-4 right-4 z-10">
+                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                      🏆 {student.position}
+                    </div>
+                  </div>
+                  <div className="relative h-48 bg-gradient-to-br from-primary/70 to-primary flex items-center justify-center">
+                    <div className="w-24 h-24 rounded-full bg-white shadow-xl flex items-center justify-center overflow-hidden border-4 border-white group-hover:scale-110 transition-transform duration-500">
+                      {student.photo ? (
+                        <img src={student.photo.startsWith('http') || student.photo.startsWith('data:') ? student.photo : `${API_BASE_URL}${student.photo}`} alt={student.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <svg className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-6 text-center">
+                    <h4 className="font-black text-gray-900 text-lg mb-1 group-hover:text-primary transition-colors">{student.name}</h4>
+                    <p className="text-sm font-bold text-gray-500 mb-4">{student.class}</p>
+                    <div className="mb-4">
+                      <div className="text-xs text-gray-400 uppercase font-bold mb-1">Average Score</div>
+                      <div className="text-3xl font-black text-primary">{student.average}</div>
+                    </div>
+                    <div className="text-xs font-medium text-gray-500 line-clamp-2">
+                      Best in: {student.subjects}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-gray-50 rounded-3xl border border-gray-100">
+              <p className="text-gray-500 text-lg">Results haven't been published yet for this term.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* News & Events Section */}
+      {school.newsEvents && school.newsEvents.length > 0 && (
+        <div className="py-24 bg-gray-50 border-t border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+              <div className="max-w-2xl">
+                <h2 className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: primaryColor }}>
+                  Stay Updated
+                </h2>
+                <h3 className="text-3xl md:text-5xl font-black text-gray-900">News & Events</h3>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {school.newsEvents.map((item, idx) => (
+                <div key={idx} className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 group flex flex-col">
+                  {item.imageUrl ? (
+                    <div className="h-48 overflow-hidden relative">
+                      <img src={item.imageUrl.startsWith('http') ? item.imageUrl : `${API_BASE_URL}${item.imageUrl}`} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-gray-800">
+                        {item.type}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-48 bg-gray-100 flex items-center justify-center relative">
+                      <FiVolume2 className="w-12 h-12 text-gray-300" />
+                      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-gray-800">
+                        {item.type}
+                      </div>
+                    </div>
+                  )}
+                  <div className="p-8 flex-1 flex flex-col">
+                    <div className="text-sm font-bold text-gray-400 mb-3">
+                      {new Date(item.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </div>
+                    <h4 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-primary transition-colors line-clamp-2">{item.title}</h4>
+                    <p className="text-gray-500 text-sm line-clamp-3 mb-6 flex-1">{item.content}</p>
+                    <button className="text-sm font-bold inline-flex items-center gap-2 self-start" style={{ color: primaryColor }}>
+                      Read More <FiArrowRight />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="bg-slate-950 border-t border-slate-900 py-16 text-slate-400">
