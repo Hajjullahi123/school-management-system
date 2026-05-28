@@ -403,38 +403,38 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 </p>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-6 w-full">
                 
                 {/* Pillar 1 */}
-                <div className="flex gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors duration-300">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: hexToRgba(primaryColor, 0.1), color: primaryColor }}>
+                <div className="flex gap-5 p-6 rounded-[24px] bg-blue-50/70 border border-blue-100/80 hover:bg-blue-50 hover:border-blue-200 hover:shadow-md hover:-translate-y-1 transition-all duration-300 w-full group transform text-left">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-500 text-white shadow-md shadow-blue-500/20 group-hover:scale-110 transition-transform">
                     <FiCheckCircle className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="font-black text-gray-900 text-base">Expert Department & Faculty</h4>
-                    <p className="text-sm text-gray-500 mt-1">Dedicated, certified educators delivering rigorous customized teaching tailored to standard curriculum goals.</p>
+                    <h4 className="font-black text-gray-950 text-base md:text-lg">Expert Department & Faculty</h4>
+                    <p className="text-sm text-gray-700 mt-2 leading-relaxed">Dedicated, certified educators delivering rigorous customized teaching tailored to standard curriculum goals.</p>
                   </div>
                 </div>
 
                 {/* Pillar 2 */}
-                <div className="flex gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors duration-300">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: hexToRgba(primaryColor, 0.1), color: primaryColor }}>
+                <div className="flex gap-5 p-6 rounded-[24px] bg-blue-50/70 border border-blue-100/80 hover:bg-blue-50 hover:border-blue-200 hover:shadow-md hover:-translate-y-1 transition-all duration-300 w-full group transform text-left">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-500 text-white shadow-md shadow-blue-500/20 group-hover:scale-110 transition-transform">
                     <FiCheckCircle className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="font-black text-gray-900 text-base">State-of-the-Art Facilities</h4>
-                    <p className="text-sm text-gray-500 mt-1">Modern classrooms, science/chemistry/physics laboratories, coding labs, and extensive sports facilities.</p>
+                    <h4 className="font-black text-gray-950 text-base md:text-lg">State-of-the-Art Facilities</h4>
+                    <p className="text-sm text-gray-700 mt-2 leading-relaxed">Modern classrooms, science/chemistry/physics laboratories, coding labs, and extensive sports facilities.</p>
                   </div>
                 </div>
 
                 {/* Pillar 3 */}
-                <div className="flex gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors duration-300">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: hexToRgba(primaryColor, 0.1), color: primaryColor }}>
+                <div className="flex gap-5 p-6 rounded-[24px] bg-blue-50/70 border border-blue-100/80 hover:bg-blue-50 hover:border-blue-200 hover:shadow-md hover:-translate-y-1 transition-all duration-300 w-full group transform text-left">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-500 text-white shadow-md shadow-blue-500/20 group-hover:scale-110 transition-transform">
                     <FiCheckCircle className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="font-black text-gray-900 text-base">Vocational & Tech Blending</h4>
-                    <p className="text-sm text-gray-500 mt-1">Preparing students directly for university and active entrepreneurship through robotics, coding, and arts programs.</p>
+                    <h4 className="font-black text-gray-950 text-base md:text-lg">Vocational & Tech Blending</h4>
+                    <p className="text-sm text-gray-700 mt-2 leading-relaxed">Preparing students directly for university and active entrepreneurship through robotics, coding, and arts programs.</p>
                   </div>
                 </div>
 
