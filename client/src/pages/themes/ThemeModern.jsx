@@ -365,7 +365,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
             {/* Left – school image */}
             <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gray-100 min-h-[320px] h-full">
               {heroImages[0] && (
-                <img src={heroImages[0]} alt="Campus" className="absolute inset-0 w-full h-full object-cover" />
+                <img src={heroImages[0]} alt="Campus" className="absolute inset-0 w-full h-full object-contain" />
               )}
               {/* Gradient at bottom */}
               <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 via-transparent to-transparent" />
