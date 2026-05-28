@@ -137,7 +137,7 @@ const UserManagement = () => {
 
       if (response.ok) {
         const result = await response.json();
-        const isAdminRole = ['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin', 'teacher'].includes(result.role);
+        const isAdminRole = ['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin', 'teacher', 'higher_student'].includes(result.role);
 
         if (result.generatedCredentials && (isAdminRole || !editingUser)) {
           setGeneratedCredentials({
@@ -346,6 +346,7 @@ const UserManagement = () => {
           <option value="examination_officer">Exam Officers</option>
           <option value="attendance_admin">Attendance Hub</option>
           <option value="teacher">Instructors</option>
+          <option value="higher_student">Higher Inst. Students</option>
           <option value="accountant">Audit/Account</option>
           <option value="principal">Head Office</option>
           <option value="parent">Guardians</option>
@@ -359,7 +360,7 @@ const UserManagement = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         ) : (
-          ['admin', 'examination_officer', 'attendance_admin', 'principal', 'teacher', 'accountant', 'parent', 'student'].map(role => {
+          ['admin', 'examination_officer', 'attendance_admin', 'principal', 'teacher', 'higher_student', 'accountant', 'parent', 'student'].map(role => {
             const usersInRole = filteredUsers.filter(u => {
               if (role === 'parent') {
                 return u.role === 'parent' || u.parent;
@@ -381,9 +382,10 @@ const UserManagement = () => {
                       role === 'attendance_admin' ? 'bg-fuchsia-600 hover:bg-fuchsia-700' :
                         role === 'principal' ? 'bg-purple-600 hover:bg-purple-700' :
                           role === 'teacher' ? 'bg-blue-600 hover:bg-blue-700' :
-                            role === 'accountant' ? 'bg-amber-600 hover:bg-amber-700' :
-                              role === 'parent' ? 'bg-rose-600 hover:bg-rose-700' :
-                                'bg-emerald-600 hover:bg-emerald-700'
+                            role === 'higher_student' ? 'bg-teal-600 hover:bg-teal-700' :
+                              role === 'accountant' ? 'bg-amber-600 hover:bg-amber-700' :
+                                role === 'parent' ? 'bg-rose-600 hover:bg-rose-700' :
+                                  'bg-emerald-600 hover:bg-emerald-700'
                     } text-white`}
                 >
                   <div className="flex items-center gap-3 mb-3 sm:mb-0">
@@ -398,6 +400,8 @@ const UserManagement = () => {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                       ) : role === 'teacher' ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                      ) : role === 'higher_student' ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /></svg>
                       ) : role === 'accountant' ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       ) : role === 'parent' ? (
@@ -406,7 +410,7 @@ const UserManagement = () => {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                       )}
                     </span>
-                    <h2 className="text-sm sm:text-lg font-black uppercase tracking-widest leading-none">Catalog: {role}s</h2>
+                    <h2 className="text-sm sm:text-lg font-black uppercase tracking-widest leading-none">Catalog: {role === 'higher_student' ? 'Students in Higher Institution' : `${role}s`}</h2>
                   </div>
                   <div className="flex items-center justify-between sm:justify-end gap-4">
                     <div className="bg-white/20 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider">
@@ -447,9 +451,10 @@ const UserManagement = () => {
                                       role === 'attendance_admin' ? 'bg-fuchsia-500' :
                                         role === 'principal' ? 'bg-purple-500' :
                                           role === 'teacher' ? 'bg-blue-500' :
-                                            role === 'accountant' ? 'bg-amber-500' :
-                                              role === 'parent' ? 'bg-rose-500' :
-                                                'bg-emerald-500'
+                                            role === 'higher_student' ? 'bg-teal-500' :
+                                              role === 'accountant' ? 'bg-amber-500' :
+                                                role === 'parent' ? 'bg-rose-500' :
+                                                  'bg-emerald-500'
                                     }`}>
                                     {(() => {
                                       const photoUrl = user.photoUrl || user.student?.photoUrl || user.teacher?.photoUrl;
@@ -477,6 +482,12 @@ const UserManagement = () => {
                                   <div className="space-y-1">
                                     <div className="flex items-center gap-1.5"><span className="text-[10px] font-black bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">STAFF</span> {user.teacher?.staffId}</div>
                                     <div className="flex items-center gap-1.5"><span className="text-[10px] font-black bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">FLD</span> {user.teacher?.specialization || 'General'}</div>
+                                  </div>
+                                )}
+                                {role === 'higher_student' && (
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5"><span className="text-[10px] font-black bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">HE-ID</span> {user.teacher?.staffId}</div>
+                                    <div className="flex items-center gap-1.5"><span className="text-[10px] font-black bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">INST</span> {user.teacher?.specialization || '---'}</div>
                                   </div>
                                 )}
                                 {role === 'accountant' && <div className="text-amber-700 font-bold text-xs bg-amber-50 px-3 py-1 rounded-full w-fit border border-amber-100 tracking-tight">FINANCIAL DEPT</div>}
@@ -572,6 +583,7 @@ const UserManagement = () => {
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Account Category</label>
                 <select name="role" value={formData.role} onChange={handleInputChange} className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 bg-gray-50 font-black focus:ring-4 focus:ring-primary/10 outline-none appearance-none transition-all">
                   <option value="teacher">Instructor / Teacher</option>
+                  <option value="higher_student">Student in Higher Institution</option>
                   <option value="examination_officer">Examination Officer</option>
                   <option value="attendance_admin">Attendance & Access Admin</option>
                   <option value="principal">School Principal</option>
@@ -696,16 +708,18 @@ const UserManagement = () => {
                   )}
                 </div>
               )}
-              {(formData.role === 'teacher' || (editingUser && editingUser.role === 'teacher')) && (
+              {(formData.role === 'teacher' || formData.role === 'higher_student' || (editingUser && (editingUser.role === 'teacher' || editingUser.role === 'higher_student'))) && (
                 <>
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Specialization / Subject Area</label>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                      {formData.role === 'higher_student' ? 'Higher Institution & Course' : 'Specialization / Subject Area'}
+                    </label>
                     <input
                       type="text"
                       name="specialization"
                       value={formData.specialization}
                       onChange={handleInputChange}
-                      placeholder="e.g., Mathematics, English, Science"
+                      placeholder={formData.role === 'higher_student' ? "e.g., B.Sc Computer Science at University of Lagos" : "e.g., Mathematics, English, Science"}
                       className="w-full border-2 border-gray-100 rounded-2xl py-3 px-4 focus:ring-4 focus:ring-primary/10 outline-none font-black transition-all"
                     />
                   </div>

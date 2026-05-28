@@ -117,6 +117,15 @@ const PublicSchoolLandingPage = () => {
                   {page.title}
                 </Link>
               ))}
+              <Link to={`/${school.slug}/staff`} className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">
+                Staff
+              </Link>
+              <Link to={`/${school.slug}/higher-students`} className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">
+                Higher Inst. Students
+              </Link>
+              <Link to="/alumni" className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">
+                Alumni
+              </Link>
               <Link to={`/${school.slug}/gallery`} className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">
                 Gallery
               </Link>
@@ -150,6 +159,27 @@ const PublicSchoolLandingPage = () => {
                 {page.title}
               </Link>
             ))}
+            <Link 
+              to={`/${school.slug}/staff`} 
+              className="text-lg font-bold text-gray-700 hover:text-gray-900 transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Staff
+            </Link>
+            <Link 
+              to={`/${school.slug}/higher-students`} 
+              className="text-lg font-bold text-gray-700 hover:text-gray-900 transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Higher Inst. Students
+            </Link>
+            <Link 
+              to="/alumni" 
+              className="text-lg font-bold text-gray-700 hover:text-gray-900 transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Alumni Portal
+            </Link>
             <Link 
               to={`/${school.slug}/gallery`} 
               className="text-lg font-bold text-gray-700 hover:text-gray-900 transition-colors"
@@ -348,6 +378,21 @@ const PublicSchoolLandingPage = () => {
                 <li>
                   <Link to={`/${school.slug}/login`} className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-sm font-medium">
                     <FiChevronRight style={{ color: accentColor }} /> Portal Login
+                  </Link>
+                </li>
+                <li>
+                  <Link to={`/${school.slug}/staff`} className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-sm font-medium">
+                    <FiChevronRight style={{ color: accentColor }} /> School Staff
+                  </Link>
+                </li>
+                <li>
+                  <Link to={`/${school.slug}/higher-students`} className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-sm font-medium">
+                    <FiChevronRight style={{ color: accentColor }} /> Higher Inst. Students
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/alumni" className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-sm font-medium">
+                    <FiChevronRight style={{ color: accentColor }} /> Alumni Directory
                   </Link>
                 </li>
                 {school.eLibraryUrl && (

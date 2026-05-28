@@ -223,6 +223,14 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
               Our Staff
             </Link>
+            <Link to={`/${school?.slug}/higher-students`}
+              className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
+              Higher Inst. Students
+            </Link>
+            <Link to="/alumni"
+              className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
+              Alumni
+            </Link>
             <Link to={`/${school?.slug}/admissions`}
               className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
               Admissions
@@ -256,6 +264,8 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               </Link>
             ))}
             <Link to={`/${school?.slug}/staff`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Our Staff</Link>
+            <Link to={`/${school?.slug}/higher-students`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Higher Inst. Students</Link>
+            <Link to="/alumni" className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Alumni</Link>
             <Link to={`/${school?.slug}/admissions`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Admissions</Link>
             <Link to={`/${school?.slug}/contact`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Contact</Link>
             <Link to={`/${school?.slug}/login`}
@@ -775,6 +785,9 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               <ul className="space-y-3">
                 {[
                   { label: 'Student Portal', href: `/${school?.slug}/login`, internal: true },
+                  { label: 'School Staff', href: `/${school?.slug}/staff`, internal: true },
+                  { label: 'Higher Inst. Students', href: `/${school?.slug}/higher-students`, internal: true },
+                  { label: 'Alumni Directory', href: '/alumni', internal: true },
                   { label: 'Admission Enquiry', href: `/${school?.slug}/admissions` },
                   { label: 'Admission Policy', href: `/${school?.slug}/admissions` },
                   school?.eLibraryUrl && { label: 'E-Library', href: school.eLibraryUrl, external: true },

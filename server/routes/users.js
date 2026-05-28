@@ -184,7 +184,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
 
     // Password is now optional for all roles - will be auto-generated if not provided
 
-    if (!['admin', 'teacher', 'student', 'accountant', 'principal', 'examination_officer', 'attendance_admin'].includes(role)) {
+    if (!['admin', 'teacher', 'student', 'accountant', 'principal', 'examination_officer', 'attendance_admin', 'higher_student'].includes(role)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
 
@@ -282,7 +282,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
           student: true
         }
       });
-    } else if (role === 'teacher') {
+    } else if (role === 'teacher' || role === 'higher_student') {
       // Fetch school information to get initials
       const school = await prisma.school.findUnique({
         where: { id: req.schoolId },
@@ -299,15 +299,16 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
           .substring(0, 3) // Take max 3 letters
         : 'SCH';
 
-      // Auto-generate Staff ID: INITIALS/YEAR/###
+      // Auto-generate Staff ID: INITIALS/YEAR/### (HE- prefix for higher education students)
       const currentYear = new Date().getFullYear();
+      const idPrefix = role === 'higher_student' ? `HE-${schoolInitials}/${currentYear}/` : `${schoolInitials}/${currentYear}/`;
 
       // Find the highest existing sequence number for the current year
       const existingTeachers = await prisma.teacher.findMany({
         where: {
           schoolId: parseInt(req.schoolId),
           staffId: {
-            startsWith: `${schoolInitials}/${currentYear}/`
+            startsWith: idPrefix
           }
         },
         select: {
@@ -317,7 +318,10 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
 
       // Extract sequence numbers and find the max
       let maxSequence = 0;
-      const pattern = new RegExp(`${schoolInitials.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\/\\d{4}\\/(\\d{3})`);
+      const escapedInitials = schoolInitials.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = role === 'higher_student'
+        ? new RegExp(`HE-${escapedInitials}\\/\\d{4}\\/(\\d{3})`)
+        : new RegExp(`${escapedInitials}\\/\\d{4}\\/(\\d{3})`);
       existingTeachers.forEach(teacher => {
         const match = teacher.staffId.match(pattern);
         if (match) {
@@ -327,7 +331,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
       });
 
       const nextSequence = String(maxSequence + 1).padStart(3, '0');
-      const generatedStaffId = `${schoolInitials}/${currentYear}/${nextSequence}`;
+      const generatedStaffId = `${role === 'higher_student' ? 'HE-' : ''}${schoolInitials}/${currentYear}/${nextSequence}`;
 
       // Auto-generate password based on new requirements
       const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
@@ -360,7 +364,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
         staffId: finalStaffId,
         password: password || generatedPassword,
         username: finalUsername,
-        role: 'Teacher'
+        role: role === 'higher_student' ? 'Student in Higher Institution' : 'Teacher'
       };
     } else if (role === 'accountant') {
       // Auto-generate password for accountant
@@ -505,7 +509,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
     };
 
     if (role) {
-      if (!['admin', 'teacher', 'student', 'accountant', 'principal', 'examination_officer'].includes(role)) {
+      if (!['admin', 'teacher', 'student', 'accountant', 'principal', 'examination_officer', 'attendance_admin', 'higher_student'].includes(role)) {
         return res.status(400).json({ error: 'Invalid role' });
       }
       updateData.role = role;
@@ -558,18 +562,40 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
       });
     }
 
-    if (user.teacher) {
+    if (user.teacher || role === 'teacher' || role === 'higher_student') {
       const teacherUpdate = {};
       if (specialization !== undefined) teacherUpdate.specialization = specialization;
       if (staffId) teacherUpdate.staffId = staffId;
 
-      await prisma.teacher.update({
-        where: {
-          userId: parseInt(id),
-          schoolId: parseInt(req.schoolId)
-        },
-        data: teacherUpdate
-      });
+      if (user.teacher) {
+        await prisma.teacher.update({
+          where: {
+            userId: parseInt(id),
+            schoolId: parseInt(req.schoolId)
+          },
+          data: teacherUpdate
+        });
+      } else {
+        // Create teacher backing profile if it doesn't exist
+        const school = await prisma.school.findUnique({
+          where: { id: req.schoolId },
+          select: { name: true }
+        });
+        const schoolInitials = school?.name
+          ? school.name.split(' ').filter(word => word.length > 0).map(word => word[0].toUpperCase()).join('').substring(0, 3)
+          : 'SCH';
+        const currentYear = new Date().getFullYear();
+        const generatedStaffId = `${role === 'higher_student' ? 'HE-' : ''}${schoolInitials}/${currentYear}/${Math.floor(100 + Math.random() * 900)}`;
+
+        await prisma.teacher.create({
+          data: {
+            schoolId: parseInt(req.schoolId),
+            userId: parseInt(id),
+            staffId: staffId || generatedStaffId,
+            specialization: specialization || null
+          }
+        });
+      }
     }
 
     // Fetch updated user with profile

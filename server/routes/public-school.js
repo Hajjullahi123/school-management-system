@@ -192,4 +192,52 @@ router.get('/:slug/staff', async (req, res) => {
   }
 });
 
+// Fetch all students in higher institution for the public display
+router.get('/:slug/higher-students', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const school = await prisma.school.findUnique({
+      where: { slug: slug.trim() },
+      select: { id: true, name: true, primaryColor: true, logoUrl: true, websiteTheme: true }
+    });
+
+    if (!school) return res.status(404).json({ error: 'School not found' });
+
+    const students = await prisma.user.findMany({
+      where: {
+        schoolId: school.id,
+        isActive: true,
+        role: 'higher_student'
+      },
+      select: {
+        id: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        photoUrl: true,
+        role: true,
+        teacher: {
+          select: {
+            specialization: true,
+            photoUrl: true,
+            publicEmail: true,
+            publicPhone: true,
+            publicWhatsapp: true
+          }
+        }
+      },
+      orderBy: [
+        { firstName: 'asc' }
+      ]
+    });
+
+    res.json({ school, students });
+  } catch (error) {
+    console.error('[PublicSchool HigherStudents] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch students in higher institution' });
+  }
+});
+
 module.exports = router;
