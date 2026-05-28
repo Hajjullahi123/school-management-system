@@ -334,7 +334,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               { icon: <FiActivity className="w-5 h-5" />, value: '15+', label: 'Extracurricular Clubs' },
               { icon: <FiAward className="w-5 h-5" />, value: '100%', label: 'University Admittance' },
             ].map((s, i) => (
-              <div key={i} className="flex flex-col items-center justify-center gap-2 py-8 px-4 group hover:bg-blue-50 transition-colors text-center">
+              <div key={i} className="flex flex-col items-center justify-center gap-2 py-5 px-4 group hover:bg-blue-50 transition-colors text-center">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-1"
                   style={{ backgroundColor: hexToRgba(primary, 0.1), color: primary }}>
                   {s.icon}
@@ -350,12 +350,12 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           ABOUT + CORE PILLARS
       ══════════════════════════════════ */}
-      <section className="py-20 md:py-28 bg-white">
+      <section className="py-10 md:py-14 bg-white">
         <div className="max-w-7xl mx-auto px-5">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="grid lg:grid-cols-2 gap-12 items-stretch">
 
             {/* Left – school image */}
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gray-100 aspect-[4/3] lg:aspect-auto lg:h-[480px]">
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gray-100 min-h-[320px]" style={{ height: '100%' }}>
               {heroImages[0] && (
                 <img src={heroImages[0]} alt="Campus" className="w-full h-full object-cover" />
               )}
@@ -433,10 +433,10 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           TESTIMONIALS
       ══════════════════════════════════ */}
-      <section className="py-20 md:py-28 border-t border-blue-100" style={{ backgroundColor: '#e8f4fd' }}>
+      <section className="py-10 md:py-14 border-t border-blue-100" style={{ backgroundColor: '#e8f4fd' }}>
         <div className="max-w-6xl mx-auto px-5">
           {/* Header — side by side */}
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-14">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
             <div>
               <span className="section-label">What Parents Say</span>
               <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
@@ -488,9 +488,9 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           TOP STUDENTS
       ══════════════════════════════════ */}
-      <section className="py-20 md:py-28 bg-white border-t border-gray-100">
+      <section className="py-10 md:py-14 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-5">
-          <div className="text-center mb-14">
+          <div className="text-center mb-8">
             <span className="section-label">Excellence Recognised</span>
             <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
               Our Top Performers
@@ -562,9 +562,9 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           NEWS & EVENTS
       ══════════════════════════════════ */}
       {school?.newsEvents?.length > 0 && (
-        <section className="py-20 md:py-28 border-t border-blue-100" style={{ backgroundColor: '#e8f4fd' }}>
+        <section className="py-10 md:py-14 border-t border-blue-100" style={{ backgroundColor: '#e8f4fd' }}>
           <div className="max-w-7xl mx-auto px-5">
-            <div className="text-center mb-14">
+            <div className="text-center mb-8">
               <span className="section-label">Stay Updated</span>
               <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
                 News &amp; Events
@@ -609,7 +609,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           ADMISSIONS SECTION
       ══════════════════════════════════ */}
-      <section id="admission-process" className="py-20 md:py-28 border-t border-gray-100"
+      <section id="admission-process" className="py-10 md:py-14 border-t border-gray-100"
         style={{ background: `linear-gradient(160deg, ${hexToRgba(primary, 0.03)} 0%, #ffffff 50%, ${hexToRgba(primary, 0.02)} 100%)` }}>
         <div className="max-w-7xl mx-auto px-5">
           <div className="grid lg:grid-cols-2 gap-16 items-stretch">
@@ -755,7 +755,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           NEWSLETTER BANNER
       ══════════════════════════════════ */}
-      <section className="py-20 border-t border-blue-100" style={{ backgroundColor: '#e8f4fd' }}>
+      <section className="py-10 border-t border-blue-100" style={{ backgroundColor: '#e8f4fd' }}>
         <div className="max-w-5xl mx-auto px-5">
           <div className="rounded-3xl relative overflow-hidden"
             style={{ background: `linear-gradient(135deg, ${primary} 0%, ${darkenHex(primary, 0.2)} 100%)` }}>
@@ -813,7 +813,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           CONTACT SECTION
       ══════════════════════════════════ */}
-      <section id="contact-section" className="py-20 md:py-28 bg-white border-t border-gray-100">
+      <section id="contact-section" className="py-10 md:py-14 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-5">
           <div className="grid lg:grid-cols-2 gap-12">
 
