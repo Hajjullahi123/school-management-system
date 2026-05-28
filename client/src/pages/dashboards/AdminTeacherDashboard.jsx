@@ -283,7 +283,7 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
       )}
 
       {/* Department Alerts for Teachers */}
-      {deptAlerts && !deptAlertDismissed && !localStorage.getItem(`dismissed_dept_alert_${user.id}`) && (
+      {deptAlerts && !deptAlertDismissed && (!localStorage.getItem(`snoozed_dept_alert_${user.id}`) || Date.now() > parseInt(localStorage.getItem(`snoozed_dept_alert_${user.id}`))) && (
         <div className="bg-rose-50 border-2 border-rose-100 rounded-3xl p-5 shadow-lg shadow-rose-200/20 relative overflow-hidden animate-bounce-slow">
            <div className="absolute top-0 right-0 w-24 h-24 bg-rose-200/20 rounded-full -mr-12 -mt-12"></div>
            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
@@ -316,11 +316,12 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
               <button
                 onClick={() => {
                   setDeptAlertDismissed(true);
-                  localStorage.setItem(`dismissed_dept_alert_${user.id}`, 'true');
+                  // Snooze for 24 hours
+                  localStorage.setItem(`snoozed_dept_alert_${user.id}`, (Date.now() + 24 * 60 * 60 * 1000).toString());
                 }}
                 className="w-full sm:w-auto px-6 py-3 bg-white border-2 border-rose-200 text-rose-700 text-[10px] font-black uppercase rounded-2xl hover:bg-rose-100 transition-all shadow-sm active:scale-95 whitespace-nowrap"
               >
-                Dismiss Permanently
+                Snooze Notice (24h)
               </button>
            </div>
         </div>
