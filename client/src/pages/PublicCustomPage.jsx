@@ -53,7 +53,7 @@ const PublicCustomPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f6fa]">
         <div className="w-16 h-16 border-4 border-gray-300 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
         <p className="text-gray-400 font-bold uppercase tracking-widest text-sm animate-pulse">Loading Page...</p>
       </div>
@@ -62,7 +62,7 @@ const PublicCustomPage = () => {
 
   if (error || !school || !page) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#f4f6fa]">
         <div className="text-center">
           <div className="w-24 h-24 bg-red-100 text-red-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">!</div>
           <h1 className="text-4xl font-black text-gray-900 mb-4">404</h1>
@@ -79,7 +79,7 @@ const PublicCustomPage = () => {
   const secondaryColor = school.secondaryColor || '#6366f1';
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 font-sans" style={{ '--color-primary': primaryColor, '--color-secondary': secondaryColor }}>
+    <div className="min-h-screen flex flex-col bg-[#f4f6fa] font-sans" style={{ '--color-primary': primaryColor, '--color-secondary': secondaryColor }}>
       
       {/* ===== HEADER ===== */}
       <header className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-xl border-b border-gray-100 shadow-sm">
@@ -185,7 +185,7 @@ const PublicCustomPage = () => {
         {/* Wave separator */}
         <div className="relative -mb-1">
           <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
-            <path d="M0,40 C360,80 720,0 1080,40 C1260,60 1380,50 1440,40 L1440,80 L0,80 Z" fill="#f9fafb"/>
+            <path d="M0,40 C360,80 720,0 1080,40 C1260,60 1380,50 1440,40 L1440,80 L0,80 Z" fill="#f4f6fa"/>
           </svg>
         </div>
       </section>
@@ -240,6 +240,28 @@ const PublicCustomPage = () => {
                   .custom-prose li::marker { color: #9ca3af; }
                   .custom-prose img { border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,.1); }
                   .custom-prose hr { border-color: #e5e7eb; margin: 2rem 0; }
+
+                  /* Custom Scrollbar for Sidebar */
+                  .custom-sidebar-scroll {
+                    max-height: calc(100vh - 9rem);
+                    overflow-y: auto;
+                    padding-right: 6px;
+                  }
+                  .custom-sidebar-scroll::-webkit-scrollbar {
+                    width: 6px;
+                  }
+                  .custom-sidebar-scroll::-webkit-scrollbar-track {
+                    background: #f1f5f9;
+                    border-radius: 9999px;
+                  }
+                  .custom-sidebar-scroll::-webkit-scrollbar-thumb {
+                    background: ${primaryColor};
+                    border-radius: 9999px;
+                    border: 1px solid #f1f5f9;
+                  }
+                  .custom-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+                    background: ${darkenColor(primaryColor, 0.12)};
+                  }
                 `}</style>
                 <div className="custom-prose">
                   <ReactMarkdown>{page.content}</ReactMarkdown>
@@ -250,7 +272,7 @@ const PublicCustomPage = () => {
 
           {/* Sidebar */}
           <aside className="lg:col-span-2">
-            <div className="sticky top-28 space-y-5 w-full">
+            <div className="sticky top-28 space-y-5 w-full custom-sidebar-scroll">
               {/* School Info Card */}
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 overflow-hidden relative w-full">
                 <div className="absolute top-0 left-0 right-0 h-24 opacity-10 rounded-t-2xl" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}></div>
@@ -278,24 +300,24 @@ const PublicCustomPage = () => {
                   <h4 className="font-black text-gray-900 text-sm uppercase tracking-wider mb-4">Contact Us</h4>
                   <div className="space-y-3">
                     {school.phone && (
-                      <a href={`tel:${school.phone}`} className="flex items-center gap-3 text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}>
+                      <a href={`tel:${school.phone}`} className="flex items-center gap-3 text-sm text-gray-600 hover:text-[var(--color-primary)] transition-all group/contact">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all group-hover/contact:scale-110 group-hover/contact:rotate-6" style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}>
                           <FiPhone className="w-4 h-4" />
                         </div>
                         <span className="font-semibold">{school.phone}</span>
                       </a>
                     )}
                     {school.email && (
-                      <a href={`mailto:${school.email}`} className="flex items-center gap-3 text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}>
+                      <a href={`mailto:${school.email}`} className="flex items-center gap-3 text-sm text-gray-600 hover:text-[var(--color-primary)] transition-all group/contact">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all group-hover/contact:scale-110 group-hover/contact:-rotate-6" style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}>
                           <FiMail className="w-4 h-4" />
                         </div>
                         <span className="font-semibold min-w-0" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>{school.email}</span>
                       </a>
                     )}
                     {school.address && (
-                      <div className="flex items-start gap-3 text-sm text-gray-600">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}>
+                      <div className="flex items-start gap-3 text-sm text-gray-600 group/contact">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 transition-all group-hover/contact:scale-110" style={{ backgroundColor: `${primaryColor}12`, color: primaryColor }}>
                           <FiMapPin className="w-4 h-4" />
                         </div>
                         <span className="font-semibold">{school.address}</span>
@@ -314,12 +336,12 @@ const PublicCustomPage = () => {
                       <Link
                         key={p.slug}
                         to={`/${schoolSlug}/page/${p.slug}`}
-                        className={`flex items-center gap-2 text-sm font-semibold py-2 px-3 rounded-xl transition-all ${
+                        className={`flex items-center gap-2 text-sm font-semibold py-2.5 px-3.5 rounded-xl transition-all border ${
                           p.slug === pageSlug
-                            ? 'text-white shadow-md'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                            ? 'text-white shadow-md shadow-black/10'
+                            : 'text-gray-600 bg-gray-50/50 border-gray-100 hover:bg-[var(--color-primary)]/[0.08] hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]/20'
                         }`}
-                        style={p.slug === pageSlug ? { backgroundColor: primaryColor } : {}}
+                        style={p.slug === pageSlug ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
                       >
                         <FiChevronRight className="w-4 h-4 flex-shrink-0" />
                         {p.title}
