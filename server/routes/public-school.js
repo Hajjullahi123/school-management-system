@@ -35,6 +35,7 @@ router.get('/:slug', async (req, res) => {
         isActivated: true,
         websiteTheme: true,
         aboutUsText: true,
+        testimonialsText: true,
         customPages: {
           where: { isActive: true },
           select: { title: true, slug: true }

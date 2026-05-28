@@ -83,7 +83,8 @@ const Settings = () => {
     s3BucketName: '',
     s3Region: 'us-east-1',
     websiteTheme: 'classic',
-    aboutUsText: ''
+    aboutUsText: '',
+    testimonialsText: ''
   });
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
@@ -692,6 +693,23 @@ const Settings = () => {
                     placeholder="Write a detailed About Us section here. You can use markdown for **bolding**, *italics*, and lists..."
                     className="w-full border border-gray-300 rounded-md px-3 py-2 font-mono text-sm"
                   ></textarea>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Parent Testimonials (One per line: Name | Subtitle | Stars (1-5) | Testimony)
+                  </label>
+                  <textarea
+                    name="testimonialsText"
+                    value={settings.testimonialsText || ''}
+                    onChange={handleInputChange}
+                    rows="4"
+                    placeholder="Mrs. Maryam Alabi | Parent since 2021 | 5 | The academic preparation here is second to none!&#10;Dr. Olanrewaju Ibrahim | Parent of SSS-2 Student | 5 | The coding and robotics curriculum is incredibly hands-on."
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 font-mono text-sm"
+                  ></textarea>
+                  <p className="text-xs text-gray-400 mt-1 text-left">
+                    Enter one testimonial per line, separating the fields with a vertical bar (|) symbol.
+                  </p>
                 </div>
               </div>
 

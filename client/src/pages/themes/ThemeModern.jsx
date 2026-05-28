@@ -71,6 +71,44 @@ const ThemeModern = ({ school, getLogoUrl }) => {
   const primaryColor = school.primaryColor || '#4f46e5';
   const secondaryColor = school.secondaryColor || '#6366f1';
 
+  // Helper to extract initials for avatar
+  const getInitials = (name) => {
+    if (!name) return 'MA';
+    return name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2);
+  };
+
+  const defaultTestimonials = [
+    {
+      name: "Mrs. Maryam Alabi",
+      subtitle: "Parent since 2021",
+      rating: 5,
+      quote: "The academic preparation my child received here is second to none. Not only did they score straight A's in their external examinations, but the character building and discipline set them up for university success."
+    },
+    {
+      name: "Dr. Olanrewaju Ibrahim",
+      subtitle: "Parent of SSS-2 Student",
+      rating: 5,
+      quote: "The coding and robotics curriculum is incredibly hands-on. My son is already building his own simple mobile applications and feels excited to learn science and math every single day."
+    }
+  ];
+
+  const parsedTestimonials = school.testimonialsText
+    ? school.testimonialsText.split('\n').map(line => {
+        const parts = line.split('|').map(p => p.trim());
+        if (parts.length >= 4) {
+          return {
+            name: parts[0],
+            subtitle: parts[1],
+            rating: parseInt(parts[2]) || 5,
+            quote: parts[3]
+          };
+        }
+        return null;
+      }).filter(Boolean)
+    : [];
+
+  const testimonials = parsedTestimonials.length > 0 ? parsedTestimonials : defaultTestimonials;
+
   // Helper to darken a hex color
   const darkenColor = (hex, percent) => {
     const num = parseInt(hex.replace('#', ''), 16);
@@ -456,7 +494,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           backgroundImage: `radial-gradient(circle, ${primaryColor} 1px, transparent 1px)`,
           backgroundSize: '24px 24px'
         }}></div>
-        <div className="max-w-5xl mx-auto px-6 relative z-10">
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-4" style={{ backgroundColor: hexToRgba(primaryColor, 0.1), color: primaryColor }}>
               Praise & Results
@@ -465,42 +503,50 @@ const ThemeModern = ({ school, getLogoUrl }) => {
             <p className="text-gray-500 mt-3 text-lg">What our community says about their experience and our outstanding results.</p>
           </div>
           
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-slate-50/50 p-8 rounded-3xl border border-gray-100 relative shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex gap-1 text-amber-500 mb-4">
-                <FiStar className="fill-amber-500" /><FiStar className="fill-amber-500" /><FiStar className="fill-amber-500" /><FiStar className="fill-amber-500" /><FiStar className="fill-amber-500" />
-              </div>
-              <p className="text-gray-600 italic leading-relaxed text-base">
-                "The academic preparation my child received here is second to none. Not only did they score straight A's in their external examinations, but the character building and discipline set them up for university success."
-              </p>
-              <div className="mt-6 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-slate-200 font-bold flex items-center justify-center text-sm text-slate-700" style={{ backgroundColor: hexToRgba(primaryColor, 0.15), color: primaryColor }}>
-                  MA
+          <div className="grid md:grid-cols-2 gap-8 w-full">
+            {testimonials.map((testim, index) => (
+              <div 
+                key={index}
+                className="bg-white/70 backdrop-blur-md border border-slate-100 shadow-xl shadow-slate-100/50 hover:shadow-2xl hover:shadow-slate-200/50 hover:-translate-y-1.5 transition-all duration-500 rounded-[32px] p-8 md:p-10 flex flex-col justify-between relative overflow-hidden group transform text-left"
+              >
+                {/* Brand Accent bar */}
+                <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-[32px]" style={{ backgroundColor: primaryColor }}></div>
+                
+                {/* Floating quotation mark */}
+                <span className="absolute top-4 right-6 text-slate-100 text-8xl font-serif pointer-events-none select-none group-hover:text-blue-100/40 transition-colors duration-300">“</span>
+                
+                <div className="relative z-10 flex-1">
+                  {/* Rating Stars */}
+                  <div className="text-amber-500 flex gap-1 mb-6 text-lg filter drop-shadow-[0_2px_4px_rgba(245,158,11,0.2)]">
+                    {Array.from({ length: testim.rating }).map((_, i) => (
+                      <FiStar key={i} className="fill-amber-500" />
+                    ))}
+                  </div>
+                  
+                  {/* Quote text */}
+                  <p className="text-gray-700 italic leading-relaxed text-base md:text-lg mb-8 font-medium">
+                    "{testim.quote}"
+                  </p>
                 </div>
-                <div>
-                  <h4 className="font-bold text-gray-900 text-sm">Mrs. Maryam Alabi</h4>
-                  <p className="text-xs text-gray-400">Parent since 2021</p>
+                
+                {/* Parent Profile */}
+                <div className="relative z-10 flex items-center gap-4 mt-auto border-t border-slate-100 pt-6">
+                  <div 
+                    className="w-12 h-12 rounded-2xl text-white font-black flex items-center justify-center shadow-lg text-base transform group-hover:rotate-6 transition-transform" 
+                    style={{ 
+                      background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                      boxShadow: `0 10px 15px -3px ${hexToRgba(primaryColor, 0.25)}`
+                    }}
+                  >
+                    {getInitials(testim.name)}
+                  </div>
+                  <div>
+                    <h4 className="font-black text-gray-950 text-base">{testim.name}</h4>
+                    <p className="text-xs text-gray-400 font-bold tracking-wide uppercase mt-0.5">{testim.subtitle}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="bg-slate-50/50 p-8 rounded-3xl border border-gray-100 relative shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex gap-1 text-amber-500 mb-4">
-                <FiStar className="fill-amber-500" /><FiStar className="fill-amber-500" /><FiStar className="fill-amber-500" /><FiStar className="fill-amber-500" /><FiStar className="fill-amber-500" />
-              </div>
-              <p className="text-gray-600 italic leading-relaxed text-base">
-                "The coding and robotics curriculum is incredibly hands-on. My son is already building his own simple mobile applications and feels excited to learn science and math every single day."
-              </p>
-              <div className="mt-6 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-slate-200 font-bold flex items-center justify-center text-sm text-slate-700" style={{ backgroundColor: hexToRgba(primaryColor, 0.15), color: primaryColor }}>
-                  OI
-                </div>
-                <div>
-                  <h4 className="font-bold text-gray-900 text-sm">Dr. Olanrewaju Ibrahim</h4>
-                  <p className="text-xs text-gray-400">Parent of SSS-2 Student</p>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>

@@ -197,7 +197,7 @@ router.put('/', authenticate, async (req, res) => {
     reportFontFamily, reportColorScheme, showPositionOnReport, showFeesOnReport, showAttendanceOnReport, reportLayout,
     certFontFamily, certBorderType, certPrimaryColor, certSecondaryColor,
     testimFontFamily, testimBorderType, testimPrimaryColor, testimSecondaryColor,
-    websiteTheme, aboutUsText
+    websiteTheme, aboutUsText, testimonialsText
   } = req.body;
 
   // Validate weightings if provided
@@ -230,6 +230,7 @@ router.put('/', authenticate, async (req, res) => {
     if (welcomeMessage !== undefined) updateData.welcomeMessage = welcomeMessage;
     if (websiteTheme !== undefined) updateData.websiteTheme = websiteTheme;
     if (aboutUsText !== undefined) updateData.aboutUsText = aboutUsText;
+    if (testimonialsText !== undefined) updateData.testimonialsText = testimonialsText;
 
     if (primaryColor !== undefined) updateData.primaryColor = primaryColor;
     if (secondaryColor !== undefined) updateData.secondaryColor = secondaryColor;
