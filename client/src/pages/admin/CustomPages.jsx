@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiCall, api } from '../../api';
 import toast from 'react-hot-toast';
-import { FiPlus, FiEdit2, FiTrash2, FiLink, FiCheck, FiX, FiLayout, FiGlobe } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiLink, FiCheck, FiX, FiLayout, FiGlobe, FiBookOpen, FiUsers, FiSave } from 'react-icons/fi';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import ReactMarkdown from 'react-markdown';
 
@@ -13,6 +13,9 @@ const CustomPages = () => {
   const [editingPage, setEditingPage] = useState(null);
   const [theme, setTheme] = useState('classic');
   const [isSavingTheme, setIsSavingTheme] = useState(false);
+  const [aboutUsText, setAboutUsText] = useState('');
+  const [testimonials, setTestimonials] = useState([]);
+  const [isSavingContent, setIsSavingContent] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -42,8 +45,72 @@ const CustomPages = () => {
       const res = await api.get('/api/settings');
       const data = await res.json();
       setTheme(data.websiteTheme || 'classic');
+      setAboutUsText(data.aboutUsText || '');
+      if (data.testimonialsText) {
+        const parsed = data.testimonialsText.split('\n')
+          .filter(l => l.trim().length > 0)
+          .map(line => {
+            const parts = line.split('|').map(s => s.trim());
+            return {
+              name: parts[0] || '',
+              subtitle: parts[1] || '',
+              stars: parts[2] || '5',
+              quote: parts[3] || ''
+            };
+          });
+        setTestimonials(parsed);
+      } else {
+        setTestimonials([]);
+      }
     } catch (err) {
       console.error('Failed to load theme settings:', err);
+    }
+  };
+
+  const handleSaveContent = async (e) => {
+    e.preventDefault();
+    setIsSavingContent(true);
+    const loadingToast = toast.loading('Saving website content...');
+    try {
+      // Fetch fresh settings first
+      const res = await api.get('/api/settings');
+      const settingsData = await res.json();
+      
+      // Strip massive base64 file payloads to prevent request body size limit issues
+      delete settingsData.logoUrl;
+      delete settingsData.principalSignatureUrl;
+      delete settingsData.brochureFileUrl;
+      delete settingsData.admissionGuideFileUrl;
+      
+      // Serialize testimonials
+      const serializedTestimonials = testimonials
+        .map(t => {
+          const cleanName = (t.name || '').replace(/\|/g, '').replace(/\n/g, ' ').trim();
+          const cleanSubtitle = (t.subtitle || '').replace(/\|/g, '').replace(/\n/g, ' ').trim();
+          const cleanStars = (t.stars || '5').trim();
+          const cleanQuote = (t.quote || '').replace(/\|/g, '').replace(/\n/g, ' ').trim();
+          return `${cleanName} | ${cleanSubtitle} | ${cleanStars} | ${cleanQuote}`;
+        })
+        .filter(line => line.trim().length > 0)
+        .join('\n');
+      
+      // Update values
+      settingsData.aboutUsText = aboutUsText;
+      settingsData.testimonialsText = serializedTestimonials;
+      
+      const saveRes = await api.put('/api/settings', settingsData);
+      if (saveRes.ok) {
+        toast.success('Website copywriting & testimonials saved successfully!', { id: loadingToast });
+        refreshSettings(); // Refresh settings hook context
+      } else {
+        const errorData = await saveRes.json();
+        toast.error(errorData.error || 'Failed to save website content', { id: loadingToast });
+      }
+    } catch (err) {
+      console.error('Error saving content:', err);
+      toast.error('Error occurred while saving content settings', { id: loadingToast });
+    } finally {
+      setIsSavingContent(false);
     }
   };
 
@@ -239,6 +306,166 @@ const CustomPages = () => {
             </div>
           </button>
         </div>
+      </div>
+
+      {/* Website Copywriting & Testimonials Section */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8 space-y-6">
+        <div className="border-b border-gray-100 pb-4">
+          <div className="flex items-center gap-3 mb-1">
+            <FiBookOpen className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-black text-gray-900">Website Content Management</h3>
+          </div>
+          <p className="text-sm text-gray-500">
+            Publish dynamic copy and reviews directly onto your public website homepage. Write rich explanations and showcase school success.
+          </p>
+        </div>
+
+        <form onSubmit={handleSaveContent} className="space-y-6">
+          {/* About Us / Principal's Message */}
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-gray-800">
+              About Us / Principal's Message (Markdown Supported)
+            </label>
+            <div className="bg-primary/[0.02] border border-primary/10 rounded-xl p-4 mb-3">
+              <h5 className="font-bold text-xs text-primary mb-1">ℹ️ How it works:</h5>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                This section displays prominently on the public homepage. Introduce your school, state your academic philosophy, or include a welcome message from the Principal. 
+                <br />
+                <strong>Supports Markdown formatting:</strong> Use <code># Heading</code> for titles, <code>**text**</code> for <strong>bold</strong>, <code>*text*</code> for <em>italics</em>, and standard hyphens <code>-</code> for list bullet points.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <textarea
+                value={aboutUsText}
+                onChange={(e) => setAboutUsText(e.target.value)}
+                rows="8"
+                placeholder="Write a welcoming message or about us text..."
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-mono text-sm resize-none"
+              ></textarea>
+              <div className="w-full h-full min-h-[12rem] max-h-[16rem] overflow-y-auto border border-gray-200 rounded-xl bg-gray-50/50 p-4 prose prose-sm max-w-none shadow-inner">
+                {aboutUsText ? (
+                  <ReactMarkdown>{aboutUsText}</ReactMarkdown>
+                ) : (
+                  <span className="text-gray-400 text-xs italic">Live markdown preview will appear here...</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <hr className="border-gray-100" />
+
+          {/* Parent Testimonials */}
+          <div className="space-y-3">
+            <label className="block text-sm font-bold text-gray-800">
+              Parent Testimonials
+            </label>
+            <div className="bg-primary/[0.02] border border-primary/10 rounded-xl p-4 mb-3">
+              <h5 className="font-bold text-xs text-primary mb-1">ℹ️ How it works:</h5>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Testimonials appear as an elegant, sliding carousel on the public website homepage. Positive feedback from parents builds high trust with prospective families.
+                <br />
+                Include the parent's full name, a subtitle (e.g. "Parent of 3 students" or "Alumni Parent"), a star rating, and a heartfelt quote describing their experience at the school.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {testimonials.map((t, i) => {
+                const updateTestimonialField = (field, val) => {
+                  setTestimonials(prev => {
+                    const updated = [...prev];
+                    updated[i] = { ...updated[i], [field]: val };
+                    return updated;
+                  });
+                };
+
+                return (
+                  <div key={i} className="border border-gray-200 p-5 rounded-2xl bg-gray-50/50 hover:bg-gray-50 transition-all flex flex-col gap-4 shadow-sm relative group">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <FiUsers className="text-primary w-4 h-4" />
+                        <h4 className="font-bold text-gray-800 text-sm">Testimonial #{i + 1}</h4>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => setTestimonials(prev => prev.filter((_, idx) => idx !== i))} 
+                        className="text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-wider transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Parent Name</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. Mrs. Maryam Alabi" 
+                          value={t.name} 
+                          onChange={e => updateTestimonialField('name', e.target.value)} 
+                          className="border border-gray-300 rounded-xl px-4 py-2 w-full text-sm outline-none focus:ring-2 focus:ring-primary/20" 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Subtitle / Context</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. Parent of JSS2 Student" 
+                          value={t.subtitle} 
+                          onChange={e => updateTestimonialField('subtitle', e.target.value)} 
+                          className="border border-gray-300 rounded-xl px-4 py-2 w-full text-sm outline-none focus:ring-2 focus:ring-primary/20" 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Rating</label>
+                        <select 
+                          value={t.stars} 
+                          onChange={e => updateTestimonialField('stars', e.target.value)} 
+                          className="border border-gray-300 rounded-xl px-4 py-2 w-full text-sm outline-none focus:ring-2 focus:ring-primary/20 bg-white"
+                        >
+                          <option value="5">⭐⭐⭐⭐⭐ (5 Stars)</option>
+                          <option value="4">⭐⭐⭐⭐ (4 Stars)</option>
+                          <option value="3">⭐⭐⭐ (3 Stars)</option>
+                          <option value="2">⭐⭐ (2 Stars)</option>
+                          <option value="1">⭐ (1 Star)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Review Quote / Statement</label>
+                      <textarea 
+                        placeholder="e.g. Albayyinah School has provided a stellar mix of Islamic values and top-notch academics..." 
+                        value={t.quote} 
+                        onChange={e => updateTestimonialField('quote', e.target.value)} 
+                        className="border border-gray-300 rounded-xl px-4 py-2 w-full text-sm outline-none focus:ring-2 focus:ring-primary/20 resize-none" 
+                        rows="2"
+                      ></textarea>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <button 
+                type="button" 
+                onClick={() => setTestimonials(prev => [...prev, { name: '', subtitle: 'Parent', stars: '5', quote: '' }])} 
+                className="w-full border-2 border-dashed border-gray-300 text-gray-500 hover:text-primary hover:border-primary px-4 py-3 rounded-2xl text-sm font-bold hover:bg-primary/[0.01] transition-all flex items-center justify-center gap-2"
+              >
+                + Add Testimonial Card
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-4">
+            <button
+              type="submit"
+              disabled={isSavingContent}
+              className="flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 text-sm"
+            >
+              <FiSave className="w-4 h-4" />
+              {isSavingContent ? 'Saving Content...' : 'Save Website Content'}
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Website Custom Pages List */}

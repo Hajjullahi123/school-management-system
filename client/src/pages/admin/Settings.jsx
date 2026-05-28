@@ -100,7 +100,6 @@ const Settings = () => {
   const [saving, setSaving] = useState(false);
   const [licenseKey, setLicenseKey] = useState('');
   const [licenseStatus, setLicenseStatus] = useState(null);
-  const [testimonials, setTestimonials] = useState([]);
 
   useEffect(() => {
     fetchSettings();
@@ -125,22 +124,6 @@ const Settings = () => {
       }
       if (data.principalSignatureUrl) {
         setSignaturePreview(data.principalSignatureUrl.startsWith('data:') || data.principalSignatureUrl.startsWith('http') ? data.principalSignatureUrl : `${API_BASE_URL}${data.principalSignatureUrl}`);
-      }
-      if (data.testimonialsText) {
-        const parsed = data.testimonialsText.split('\n')
-          .filter(l => l.trim().length > 0)
-          .map(line => {
-            const parts = line.split('|').map(s => s.trim());
-            return {
-              name: parts[0] || '',
-              subtitle: parts[1] || '',
-              stars: parts[2] || '5',
-              quote: parts[3] || ''
-            };
-          });
-        setTestimonials(parsed);
-      } else {
-        setTestimonials([]);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -206,18 +189,7 @@ const Settings = () => {
 
     try {
       let updatedSettings = { ...settings };
-      
-      // Serialize testimonials
-      updatedSettings.testimonialsText = testimonials
-        .map(t => {
-          const cleanName = (t.name || '').replace(/\|/g, '').replace(/\n/g, ' ').trim();
-          const cleanSubtitle = (t.subtitle || '').replace(/\|/g, '').replace(/\n/g, ' ').trim();
-          const cleanStars = (t.stars || '5').trim();
-          const cleanQuote = (t.quote || '').replace(/\|/g, '').replace(/\n/g, ' ').trim();
-          return `${cleanName} | ${cleanSubtitle} | ${cleanStars} | ${cleanQuote}`;
-        })
-        .filter(line => line.trim().length > 0)
-        .join('\n');
+
 
       // 1. Upload logo if changed (file-based upload)
       if (logoFile) {
@@ -736,69 +708,6 @@ const Settings = () => {
                     placeholder="Enter a brief welcome message for the landing page hero section..."
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                   ></textarea>
-                </div>
-
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    About Us / Principal's Message (Markdown Supported)
-                  </label>
-                  <textarea
-                    name="aboutUsText"
-                    value={settings.aboutUsText || ''}
-                    onChange={handleInputChange}
-                    rows="6"
-                    placeholder="Write a detailed About Us section here. You can use markdown for **bolding**, *italics*, and lists..."
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 font-mono text-sm"
-                  ></textarea>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Parent Testimonials
-                  </label>
-                  <div className="space-y-4">
-                    {testimonials.map((t, i) => {
-                      const updateTestimonialField = (field, val) => {
-                        setTestimonials(prev => {
-                          const updated = [...prev];
-                          updated[i] = {
-                            ...updated[i],
-                            [field]: val
-                          };
-                          return updated;
-                        });
-                      };
-
-                      return (
-                         <div key={i} className="border border-gray-200 p-4 rounded-xl bg-gray-50 flex flex-col gap-3">
-                             <div className="flex justify-between items-center">
-                                 <h4 className="font-bold text-gray-700 text-sm">Testimonial {i + 1}</h4>
-                                 <button type="button" onClick={() => {
-                                     setTestimonials(prev => prev.filter((_, idx) => idx !== i));
-                                 }} className="text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-wider">Remove</button>
-                             </div>
-                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                 <input type="text" placeholder="Name (e.g. Mrs. Maryam Alabi)" value={t.name} onChange={e => updateTestimonialField('name', e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 w-full text-sm" />
-                                 <input type="text" placeholder="Subtitle (e.g. Parent since 2021)" value={t.subtitle} onChange={e => updateTestimonialField('subtitle', e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 w-full text-sm" />
-                                 <select value={t.stars} onChange={e => updateTestimonialField('stars', e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 w-full text-sm">
-                                     <option value="5">5 Stars</option>
-                                     <option value="4">4 Stars</option>
-                                     <option value="3">3 Stars</option>
-                                     <option value="2">2 Stars</option>
-                                     <option value="1">1 Star</option>
-                                 </select>
-                             </div>
-                             <textarea placeholder="Testimony quote..." value={t.quote} onChange={e => updateTestimonialField('quote', e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 w-full text-sm" rows="2"></textarea>
-                         </div>
-                      );
-                    })}
-                    <button type="button" onClick={() => {
-                        setTestimonials(prev => [...prev, { name: '', subtitle: 'Parent', stars: '5', quote: '' }]);
-                    }} className="w-full border-2 border-dashed border-gray-300 text-gray-500 px-4 py-3 rounded-xl text-sm font-bold hover:bg-gray-50 hover:text-gray-700 transition-colors flex items-center justify-center gap-2">
-                       + Add Testimonial
-                    </button>
-                  </div>
                 </div>
               </div>
 
