@@ -880,47 +880,77 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           FOOTER
       ══════════════════════════════════ */}
-      <footer className="bg-gray-950 text-gray-400 pt-16 pb-8">
-        <div className="max-w-7xl mx-auto px-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-14">
+      <footer style={{ backgroundColor: '#0a0f1e' }} className="text-gray-400">
+
+        {/* Top accent bar */}
+        <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, transparent 0%, ${primary} 30%, ${darkenHex(primary, -0.2)} 70%, transparent 100%)` }} />
+
+        {/* CTA Banner */}
+        <div className="border-b border-white/5" style={{ background: `linear-gradient(135deg, ${hexToRgba(primary, 0.12)} 0%, transparent 60%)` }}>
+          <div className="max-w-7xl mx-auto px-5 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div>
+              <h3 className="text-xl md:text-2xl font-black text-white leading-tight">
+                Ready to Join Our School Community?
+              </h3>
+              <p className="text-sm text-gray-400 mt-1">Begin your child's journey with us — enquire today.</p>
+            </div>
+            <a href="#admission-process"
+              className="shrink-0 px-7 py-3 rounded-xl font-black text-sm text-white transition-all hover:scale-105 hover:shadow-lg"
+              style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.15)})` }}>
+              Start Admission →
+            </a>
+          </div>
+        </div>
+
+        {/* Main footer grid */}
+        <div className="max-w-7xl mx-auto px-5 pt-14 pb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
 
             {/* Brand column */}
-            <div className="sm:col-span-2 lg:col-span-1 space-y-4">
+            <div className="sm:col-span-2 lg:col-span-1 space-y-5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gray-900 border border-gray-800 flex items-center justify-center overflow-hidden shrink-0">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-white/10"
+                  style={{ background: `linear-gradient(135deg, ${hexToRgba(primary, 0.3)}, ${hexToRgba(primary, 0.1)})` }}>
                   {school?.logoUrl
-                    ? <img src={getLogoUrl(school.logoUrl)} alt="" className="w-7 h-7 object-contain" />
-                    : <span className="text-sm font-black text-gray-600">{school?.name?.[0]}</span>
+                    ? <img src={getLogoUrl(school.logoUrl)} alt="" className="w-8 h-8 object-contain" />
+                    : <span className="text-lg font-black text-white">{school?.name?.[0]}</span>
                   }
                 </div>
-                <span className="font-black text-white text-base tracking-tight">{school?.name}</span>
+                <div>
+                  <p className="font-black text-white text-base leading-tight">{school?.name}</p>
+                  {school?.foundedYear && (
+                    <p className="text-xs font-bold mt-0.5" style={{ color: primary }}>Est. {school.foundedYear}</p>
+                  )}
+                </div>
               </div>
-              <p className="text-sm text-gray-500 leading-relaxed max-w-xs">
-                Empowering the next generation through academic excellence, moral development, and innovation.
+
+              <p className="text-sm text-gray-500 leading-relaxed">
+                {school?.motto || 'Empowering the next generation through academic excellence, moral development, and innovation.'}
               </p>
+
               {/* Social icons */}
-              <div className="flex gap-2 pt-1">
+              <div className="flex gap-2.5 pt-1">
                 {school?.facebookUrl && (
                   <a href={school.facebookUrl} target="_blank" rel="noreferrer"
-                    className="w-9 h-9 rounded-xl bg-gray-900 border border-gray-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-blue-600 hover:border-blue-600 transition-all">
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 border border-white/10 hover:bg-blue-600 hover:border-blue-600 hover:text-white transition-all duration-200">
                     <FiFacebook className="w-4 h-4" />
                   </a>
                 )}
                 {school?.instagramUrl && (
                   <a href={school.instagramUrl} target="_blank" rel="noreferrer"
-                    className="w-9 h-9 rounded-xl bg-gray-900 border border-gray-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-pink-600 hover:border-pink-600 transition-all">
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 border border-white/10 hover:bg-pink-600 hover:border-pink-600 hover:text-white transition-all duration-200">
                     <FiInstagram className="w-4 h-4" />
                   </a>
                 )}
                 {school?.whatsappUrl && (
                   <a href={school.whatsappUrl} target="_blank" rel="noreferrer"
-                    className="w-9 h-9 rounded-xl bg-gray-900 border border-gray-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-green-600 hover:border-green-600 transition-all">
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 border border-white/10 hover:bg-green-600 hover:border-green-600 hover:text-white transition-all duration-200">
                     <FiMessageCircle className="w-4 h-4" />
                   </a>
                 )}
                 {school?.email && (
                   <a href={`mailto:${school.email}`}
-                    className="w-9 h-9 rounded-xl bg-gray-900 border border-gray-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-red-600 hover:border-red-600 transition-all">
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 border border-white/10 hover:bg-red-600 hover:border-red-600 hover:text-white transition-all duration-200">
                     <FiMail className="w-4 h-4" />
                   </a>
                 )}
@@ -929,22 +959,29 @@ const ThemeModern = ({ school, getLogoUrl }) => {
 
             {/* Quick Links */}
             <div>
-              <h4 className="text-xs font-black uppercase tracking-widest text-gray-600 mb-5">Quick Links</h4>
+              <div className="flex items-center gap-2 mb-5">
+                <span className="block w-4 h-0.5 rounded-full" style={{ backgroundColor: primary }} />
+                <h4 className="text-xs font-black uppercase tracking-widest text-white">Quick Links</h4>
+              </div>
               <ul className="space-y-3">
                 {[
                   { label: 'Student Portal', href: `/${school?.slug}/login`, internal: true },
                   { label: 'Admission Enquiry', href: '#admission-process' },
+                  { label: 'Admission Policy', href: '#admission-process' },
                   school?.eLibraryUrl && { label: 'E-Library', href: school.eLibraryUrl, external: true },
                   school?.alumniNetworkUrl && { label: 'Alumni Network', href: school.alumniNetworkUrl, external: true },
+                  school?.academicCalendarUrl && { label: 'Academic Calendar', href: school.academicCalendarUrl, external: true },
                 ].filter(Boolean).map((l, i) => (
                   <li key={i}>
                     {l.internal
-                      ? <Link to={l.href} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-white transition-colors">
-                          <FiChevronRight className="w-3.5 h-3.5" style={{ color: primary }} />{l.label}
+                      ? <Link to={l.href} className="group flex items-center gap-2 text-sm text-gray-500 hover:text-white transition-colors duration-200">
+                          <span className="w-1.5 h-1.5 rounded-full shrink-0 group-hover:w-3 transition-all duration-200" style={{ backgroundColor: primary }} />
+                          {l.label}
                         </Link>
                       : <a href={l.href} target={l.external ? '_blank' : undefined} rel="noreferrer"
-                          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-white transition-colors">
-                          <FiChevronRight className="w-3.5 h-3.5" style={{ color: primary }} />{l.label}
+                          className="group flex items-center gap-2 text-sm text-gray-500 hover:text-white transition-colors duration-200">
+                          <span className="w-1.5 h-1.5 rounded-full shrink-0 group-hover:w-3 transition-all duration-200" style={{ backgroundColor: primary }} />
+                          {l.label}
                         </a>
                     }
                   </li>
@@ -954,55 +991,60 @@ const ThemeModern = ({ school, getLogoUrl }) => {
 
             {/* Documents */}
             <div>
-              <h4 className="text-xs font-black uppercase tracking-widest text-gray-600 mb-5">Documents</h4>
+              <div className="flex items-center gap-2 mb-5">
+                <span className="block w-4 h-0.5 rounded-full" style={{ backgroundColor: primary }} />
+                <h4 className="text-xs font-black uppercase tracking-widest text-white">Documents</h4>
+              </div>
               <ul className="space-y-3">
                 {[
                   school?.brochureFileUrl && { label: 'School Prospectus', href: school.brochureFileUrl },
                   school?.admissionGuideFileUrl && { label: 'Admissions Guide', href: school.admissionGuideFileUrl },
+                  { label: 'Curriculum Overview', href: '#admission-process' },
                 ].filter(Boolean).map((l, i) => (
                   <li key={i}>
                     <a href={l.href} target="_blank" rel="noreferrer"
-                      className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-white transition-colors">
-                      <FiChevronRight className="w-3.5 h-3.5" style={{ color: primary }} />{l.label}
+                      className="group flex items-center gap-2 text-sm text-gray-500 hover:text-white transition-colors duration-200">
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0 group-hover:w-3 transition-all duration-200" style={{ backgroundColor: primary }} />
+                      {l.label}
                     </a>
                   </li>
                 ))}
-                <li>
-                  <a href="#admission-process"
-                    className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-white transition-colors">
-                    <FiChevronRight className="w-3.5 h-3.5" style={{ color: primary }} />Curriculum Overview
-                  </a>
-                </li>
               </ul>
             </div>
 
             {/* Contact */}
             <div>
-              <h4 className="text-xs font-black uppercase tracking-widest text-gray-600 mb-5">Contact</h4>
-              <ul className="space-y-3">
+              <div className="flex items-center gap-2 mb-5">
+                <span className="block w-4 h-0.5 rounded-full" style={{ backgroundColor: primary }} />
+                <h4 className="text-xs font-black uppercase tracking-widest text-white">Contact Us</h4>
+              </div>
+              <ul className="space-y-3.5">
                 {school?.address && (
-                  <li className="flex gap-2 text-sm text-gray-500">
+                  <li className="flex gap-3 text-sm text-gray-500">
                     <FiMapPin className="w-4 h-4 mt-0.5 shrink-0" style={{ color: primary }} />
                     <span className="leading-relaxed">{school.address}</span>
                   </li>
                 )}
                 {school?.phone && (
                   <li>
-                    <a href={`tel:${school.phone}`} className="flex gap-2 text-sm text-gray-500 hover:text-white transition-colors">
-                      <FiPhone className="w-4 h-4 shrink-0" style={{ color: primary }} />{school.phone}
+                    <a href={`tel:${school.phone}`} className="flex gap-3 text-sm text-gray-500 hover:text-white transition-colors group">
+                      <FiPhone className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform" style={{ color: primary }} />
+                      {school.phone}
                     </a>
                   </li>
                 )}
                 {school?.email && (
                   <li>
-                    <a href={`mailto:${school.email}`} className="flex gap-2 text-sm text-gray-500 hover:text-white transition-colors break-all">
-                      <FiMail className="w-4 h-4 shrink-0 mt-0.5" style={{ color: primary }} />{school.email}
+                    <a href={`mailto:${school.email}`} className="flex gap-3 text-sm text-gray-500 hover:text-white transition-colors break-all group">
+                      <FiMail className="w-4 h-4 shrink-0 mt-0.5 group-hover:scale-110 transition-transform" style={{ color: primary }} />
+                      {school.email}
                     </a>
                   </li>
                 )}
                 {school?.openingHours && (
-                  <li className="flex gap-2 text-sm text-gray-500">
-                    <FiClock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: primary }} />{school.openingHours}
+                  <li className="flex gap-3 text-sm text-gray-500">
+                    <FiClock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: primary }} />
+                    {school.openingHours}
                   </li>
                 )}
               </ul>
@@ -1010,18 +1052,18 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           </div>
 
           {/* Bottom bar */}
-          <div className="border-t border-gray-900 pt-8 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-gray-600 font-semibold uppercase tracking-widest">
-              © {new Date().getFullYear()} {school?.name}. All rights reserved.
+          <div className="border-t border-white/5 pt-7 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-xs text-gray-600 font-semibold tracking-wide text-center sm:text-left">
+              © {new Date().getFullYear()} <span className="text-gray-400">{school?.name}</span>. All Rights Reserved.
             </p>
             <p className="text-xs text-gray-700">
-              Powered by <span className="text-gray-500 font-black">EduTechAI Platform</span>
+              Powered by <span className="font-black" style={{ color: primary }}>EduTechAI</span> <span className="text-gray-600">Platform</span>
             </p>
           </div>
         </div>
-      </footer>
     </div>
   );
 };
 
 export default ThemeModern;
+
