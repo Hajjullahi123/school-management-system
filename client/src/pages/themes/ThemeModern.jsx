@@ -1,793 +1,748 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  FiArrowRight, 
-  FiMapPin, 
-  FiPhone, 
-  FiMail, 
-  FiMenu, 
-  FiX, 
-  FiAward, 
-  FiUsers, 
-  FiBookOpen, 
-  FiActivity, 
-  FiCheckCircle, 
-  FiChevronRight, 
-  FiSend, 
-  FiClock, 
+import {
+  FiArrowRight,
+  FiMapPin,
+  FiPhone,
+  FiMail,
+  FiMenu,
+  FiX,
+  FiAward,
+  FiUsers,
+  FiBookOpen,
+  FiActivity,
+  FiCheckCircle,
+  FiChevronRight,
+  FiSend,
+  FiClock,
   FiStar,
   FiVolume2,
   FiFacebook,
   FiInstagram,
-  FiTwitter
+  FiMessageCircle,
 } from 'react-icons/fi';
 import ReactMarkdown from 'react-markdown';
 import { API_BASE_URL } from '../../config';
 
+/* ─────────────────────────────────────────────
+   Helpers
+───────────────────────────────────────────── */
+const hexToRgba = (hex = '#4f46e5', alpha = 1) => {
+  const clean = hex.replace('#', '');
+  const full = clean.length === 3
+    ? clean.split('').map(c => c + c).join('')
+    : clean;
+  const num = parseInt(full, 16);
+  return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+};
+
+const darkenHex = (hex = '#4f46e5', pct = 0.15) => {
+  const clean = hex.replace('#', '');
+  const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean;
+  const num = parseInt(full, 16);
+  const r = Math.max(0, ((num >> 16) & 255) - Math.round(255 * pct));
+  const g = Math.max(0, ((num >> 8) & 255) - Math.round(255 * pct));
+  const b = Math.max(0, (num & 255) - Math.round(255 * pct));
+  return `rgb(${r},${g},${b})`;
+};
+
+const getInitials = (name = '') =>
+  name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'SC';
+
+/* ─────────────────────────────────────────────
+   Component
+───────────────────────────────────────────── */
 const ThemeModern = ({ school, getLogoUrl }) => {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [newsletterEmail, setNewsletterEmail] = useState('');
-  const [topStudents, setTopStudents] = useState([]);
+  const primary   = school?.primaryColor   || '#4f46e5';
+  const secondary = school?.secondaryColor || '#6366f1';
+
+  const [slide, setSlide]               = useState(0);
+  const [mobileOpen, setMobileOpen]     = useState(false);
+  const [submitted, setSubmitted]       = useState(false);
+  const [subscribed, setSubscribed]     = useState(false);
+  const [newsletter, setNewsletter]     = useState('');
+  const [topStudents, setTopStudents]   = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
+  const [form, setForm] = useState({ name: '', email: '', phone: '', grade: '', message: '' });
+
+  /* hero images */
+  const heroImages =
+    school?.GalleryImage?.length > 0
+      ? school.GalleryImage.map(g => getLogoUrl(g.imageUrl))
+      : ['/images/hero_exterior.png', '/images/hero_students.png', '/images/hero_lab.png'];
 
   useEffect(() => {
-    const fetchTopStudents = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/top-students/top-students?limit=4&schoolId=${school.id}`);
-        const data = await response.json();
-        setTopStudents(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Failed to fetch top students:', err);
-      } finally {
-        setLoadingStudents(false);
-      }
-    };
-    if (school?.id) {
-      fetchTopStudents();
-    }
+    if (heroImages.length <= 1) return;
+    const t = setInterval(() => setSlide(p => (p + 1) % heroImages.length), 5000);
+    return () => clearInterval(t);
+  }, [heroImages.length]);
+
+  /* top students */
+  useEffect(() => {
+    if (!school?.id) return;
+    fetch(`${API_BASE_URL}/api/top-students/top-students?limit=4&schoolId=${school.id}`)
+      .then(r => r.json())
+      .then(d => setTopStudents(Array.isArray(d) ? d : []))
+      .catch(() => {})
+      .finally(() => setLoadingStudents(false));
   }, [school?.id]);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    grade: '',
-    message: ''
-  });
-  
-  const [activeAboutTab, setActiveAboutTab] = useState('profile');
-  const [aboutSlideIndex, setAboutSlideIndex] = useState(0);
-
-  const heroImages = school.GalleryImage?.length > 0
-    ? school.GalleryImage.map(img => getLogoUrl(img.imageUrl))
-    : [
-        "/images/hero_exterior.png",
-        "/images/hero_students.png",
-        "/images/hero_lab.png",
-        "/images/hero_library.png"
-      ];
-
-  useEffect(() => {
-    if (heroImages.length > 1) {
-      const timer = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % heroImages.length);
-      }, 5000);
-      return () => clearInterval(timer);
-    }
-  }, [heroImages.length]);
-
-  useEffect(() => {
-    if (heroImages.length > 1) {
-      const timer = setInterval(() => {
-        setAboutSlideIndex((prev) => (prev + 1) % heroImages.length);
-      }, 4000);
-      return () => clearInterval(timer);
-    }
-  }, [heroImages.length]);
-
-  const primaryColor = school.primaryColor || '#4f46e5';
-  const secondaryColor = school.secondaryColor || '#6366f1';
-
-  // Helper to extract initials for avatar
-  const getInitials = (name) => {
-    if (!name) return 'MA';
-    return name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2);
-  };
-
+  /* testimonials */
   const defaultTestimonials = [
-    {
-      name: "Mrs. Maryam Alabi",
-      subtitle: "Parent since 2021",
-      rating: 5,
-      quote: "The academic preparation my child received here is second to none. Not only did they score straight A's in their external examinations, but the character building and discipline set them up for university success."
-    },
-    {
-      name: "Dr. Olanrewaju Ibrahim",
-      subtitle: "Parent of SSS-2 Student",
-      rating: 5,
-      quote: "The coding and robotics curriculum is incredibly hands-on. My son is already building his own simple mobile applications and feels excited to learn science and math every single day."
-    }
+    { name: 'Mrs. Fatima Bello', subtitle: 'Parent of JSS-3 Student', rating: 5, quote: 'The teachers are incredibly dedicated and the academic standard has improved my child tremendously. We are so proud of the results.' },
+    { name: 'Mr. Chukwuemeka Obi', subtitle: 'Parent since 2022', rating: 5, quote: 'Excellent school management. Communication is prompt, fees are transparent, and the overall environment is safe and disciplined.' },
   ];
-
-  const parsedTestimonials = school.testimonialsText
-    ? school.testimonialsText.split('\n').map(line => {
-        const parts = line.split('|').map(p => p.trim());
-        if (parts.length >= 4) {
-          return {
-            name: parts[0],
-            subtitle: parts[1],
-            rating: parseInt(parts[2]) || 5,
-            quote: parts[3]
-          };
-        }
+  const parsedTestimonials = school?.testimonialsText
+    ? school.testimonialsText.split('\n').map(l => {
+        const p = l.split('|').map(x => x.trim());
+        if (p.length >= 4) return { name: p[0], subtitle: p[1], rating: parseInt(p[2]) || 5, quote: p[3] };
         return null;
       }).filter(Boolean)
     : [];
-
   const testimonials = parsedTestimonials.length > 0 ? parsedTestimonials : defaultTestimonials;
 
-  // Helper to darken a hex color
-  const darkenColor = (hex, percent) => {
-    const num = parseInt(hex.replace('#', ''), 16);
-    const r = Math.max(0, (num >> 16) - Math.round(255 * percent));
-    const g = Math.max(0, ((num >> 8) & 0x00FF) - Math.round(255 * percent));
-    const b = Math.max(0, (num & 0x0000FF) - Math.round(255 * percent));
-    return `rgb(${r}, ${g}, ${b})`;
-  };
-
-  // Helper to convert hex to RGBA
-  const hexToRgba = (hex, alpha) => {
-    const num = parseInt(hex.replace('#', ''), 16);
-    const r = (num >> 16);
-    const g = ((num >> 8) & 0x00FF);
-    const b = (num & 0x0000FF);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  };
-
+  /* form handlers */
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`/api/public-school/${school.slug}/inquiry`, {
+      const res = await fetch(`${API_BASE_URL}/api/public-school/${school.slug}/inquiry`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          parentName: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          gradeLevel: formData.grade,
-          message: formData.message
-        })
+        body: JSON.stringify({ parentName: form.name, email: form.email, phone: form.phone, gradeLevel: form.grade, message: form.message }),
       });
-      if (response.ok) {
-        setIsSubmitted(true);
-        setFormData({ name: '', email: '', phone: '', grade: '', message: '' });
-      }
-    } catch (error) {
-      console.error('Failed to submit inquiry:', error);
-    }
+      if (res.ok) { setSubmitted(true); setForm({ name: '', email: '', phone: '', grade: '', message: '' }); }
+    } catch {}
   };
 
-  const handleNewsletterSubmit = async (e) => {
+  const handleNewsletter = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`/api/public-school/${school.slug}/subscribe`, {
+      const res = await fetch(`${API_BASE_URL}/api/public-school/${school.slug}/subscribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newsletterEmail })
+        body: JSON.stringify({ email: newsletter }),
       });
-      if (response.ok) {
-        setIsSubscribed(true);
-        setNewsletterEmail('');
-      }
-    } catch (error) {
-      console.error('Failed to subscribe:', error);
-    }
+      if (res.ok) { setSubscribed(true); setNewsletter(''); }
+    } catch {}
   };
 
+  /* ── shared style tokens ── */
+  const inputCls = 'w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-transparent transition-all';
+  const inputFocus = { boxShadow: `0 0 0 3px ${hexToRgba(primary, 0.18)}` };
+
   return (
-    <div className="min-h-screen bg-[#f4f6fa] flex flex-col font-sans" style={{ '--theme-color': primaryColor }}>
+    <div className="min-h-screen flex flex-col font-sans bg-white text-gray-800" style={{ '--primary': primary, '--secondary': secondary }}>
+
+      {/* ── Global Styles ── */}
       <style>{`
-        ::selection {
-          background-color: ${hexToRgba(primaryColor, 0.15)} !important;
-          color: ${primaryColor} !important;
-        }
+        ::selection { background: ${hexToRgba(primary, 0.15)}; color: ${primary}; }
+
         @keyframes ticker {
-          0% { transform: translate3d(0, 0, 0); }
-          100% { transform: translate3d(-50%, 0, 0); }
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
         }
-        .animate-ticker {
-          display: inline-flex;
-          white-space: nowrap;
-          animation: ticker 30s linear infinite;
-        }
-        .animate-ticker:hover {
-          animation-play-state: paused;
+        .ticker-track { display: flex; white-space: nowrap; animation: ticker 40s linear infinite; }
+        .ticker-track:hover { animation-play-state: paused; }
+
+        .fade-in { animation: fadeIn 0.4s ease both; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+        .section-label {
+          display: inline-block;
+          padding: 4px 14px;
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          background: ${hexToRgba(primary, 0.1)};
+          color: ${primary};
+          margin-bottom: 14px;
         }
       `}</style>
-      
-      {/* Dynamic Announcement Ticker Bar */}
-      <div className="text-white py-2.5 overflow-hidden relative z-50 border-b border-white/10 shadow-sm flex items-center" style={{ background: `linear-gradient(90deg, ${primaryColor}, ${darkenColor(primaryColor, 0.15)})` }}>
-        <div className="absolute left-0 bg-black/30 backdrop-blur-sm px-4 py-2.5 h-full z-10 flex items-center gap-2 border-r border-white/10 select-none">
-          <FiVolume2 className="w-4 h-4 animate-bounce" />
-          <span className="text-xs font-black uppercase tracking-widest whitespace-nowrap">Announcements</span>
+
+      {/* ══════════════════════════════════
+          ANNOUNCEMENT TICKER
+      ══════════════════════════════════ */}
+      <div
+        className="text-white py-2 overflow-hidden flex items-center relative z-50"
+        style={{ background: `linear-gradient(90deg, ${primary}, ${darkenHex(primary, 0.12)})` }}
+      >
+        <div className="shrink-0 flex items-center gap-2 px-4 bg-black/20 h-full absolute left-0 top-0 bottom-0 z-10 border-r border-white/10">
+          <FiVolume2 className="w-3.5 h-3.5" />
+          <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Announcements</span>
         </div>
-        <div className="w-full overflow-hidden whitespace-nowrap flex items-center relative pl-36">
-          <div className="animate-ticker text-xs font-semibold tracking-wide">
-            <span className="mx-6">📣 Open Admissions for Next Academic Session is officially live!</span>
-            <span className="opacity-40">•</span>
-            <span className="mx-6">🏫 Join a Christ-centered secondary school focused on godliness and academic distinction</span>
-            <span className="opacity-40">•</span>
-            <span className="mx-6">🚀 Blended Curriculums: coding, robotics, arts, and dynamic science laboratories</span>
-            <span className="opacity-40">•</span>
-            <span className="mx-6">📞 Inquiries? Reach us at {school.phone || 'our admin line'} or email {school.email || 'admissions office'}</span>
-            
-            {/* Duplicate for infinite loop */}
-            <span className="mx-6">📣 Open Admissions for Next Academic Session is officially live!</span>
-            <span className="opacity-40">•</span>
-            <span className="mx-6">🏫 Join a Christ-centered secondary school focused on godliness and academic distinction</span>
-            <span className="opacity-40">•</span>
-            <span className="mx-6">🚀 Blended Curriculums: coding, robotics, arts, and dynamic science laboratories</span>
-            <span className="opacity-40">•</span>
-            <span className="mx-6">📞 Inquiries? Reach us at {school.phone || 'our admin line'} or email {school.email || 'admissions office'}</span>
+        <div className="overflow-hidden pl-40 w-full">
+          <div className="ticker-track text-xs font-medium gap-0">
+            {[
+              `📣 Admissions open for the new academic session — ${school?.name}`,
+              `📞 Contact us: ${school?.phone || 'visit our school'}`,
+              `📧 Email: ${school?.email || 'for enquiries'}`,
+              `🏫 ${school?.motto || 'Excellence in Education'}`,
+              `📣 Admissions open for the new academic session — ${school?.name}`,
+              `📞 Contact us: ${school?.phone || 'visit our school'}`,
+              `📧 Email: ${school?.email || 'for enquiries'}`,
+              `🏫 ${school?.motto || 'Excellence in Education'}`,
+            ].map((t, i) => (
+              <span key={i} className="mx-8 opacity-90">{t}</span>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Header */}
-      <header className="sticky top-0 w-full z-45 bg-white/95 backdrop-blur-xl border-b border-gray-100 shadow-md transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-200 shadow-sm">
-              {school.logoUrl ? (
-                <>
-                  <img src={getLogoUrl(school.logoUrl)} alt="" className="w-full h-full object-contain p-1" onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }} />
-                  <span className="text-2xl font-black text-gray-300 hidden items-center justify-center w-full h-full">{school.name.charAt(0)}</span>
-                </>
-              ) : (
-                <span className="text-2xl font-black text-gray-300">{school.name.charAt(0)}</span>
-              )}
+      {/* ══════════════════════════════════
+          HEADER / NAVIGATION
+      ══════════════════════════════════ */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-gray-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-5 h-18 flex items-center justify-between" style={{ height: 68 }}>
+          {/* Brand */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center shrink-0">
+              {school?.logoUrl
+                ? <img src={getLogoUrl(school.logoUrl)} alt="" className="w-full h-full object-contain p-0.5" onError={e => { e.target.style.display = 'none'; }} />
+                : <span className="text-lg font-black text-gray-300">{school?.name?.[0]}</span>
+              }
             </div>
-            <span className="text-xl md:text-2xl font-black tracking-tight text-gray-900 hidden lg:block">{school.name}</span>
+            <span className="font-black text-gray-900 text-base md:text-lg tracking-tight leading-tight hidden sm:block max-w-[200px] md:max-w-none">
+              {school?.name}
+            </span>
           </div>
-          
-          <nav className="flex items-center gap-2 md:gap-8">
-            <div className="hidden md:flex items-center gap-6">
-              {school.customPages?.map(page => (
-                <Link key={page.slug} to={`/${school.slug}/page/${page.slug}`} className="text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors">
-                  {page.title}
-                </Link>
-              ))}
-            </div>
-            <Link to={`/${school.slug}/login`} className="flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold text-white transition-transform hover:scale-105 active:scale-95 shadow-lg shadow-black/10" style={{ backgroundColor: primaryColor }}>
-              Portal Login <FiArrowRight />
-            </Link>
-            <button 
-              className="md:hidden p-2 text-gray-900"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-              {isMobileMenuOpen ? <FiX className="w-6 h-6" /> : <FiMenu className="w-6 h-6" />}
-            </button>
-          </nav>
-        </div>
-        
-        {/* Mobile Menu Overlay */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden absolute top-20 left-0 w-full bg-white border-b border-gray-100 shadow-lg px-6 py-4 flex flex-col gap-4">
-            {school.customPages?.map(page => (
-              <Link 
-                key={page.slug} 
-                to={`/${school.slug}/page/${page.slug}`} 
-                className="text-lg font-bold text-gray-700 hover:text-[var(--theme-color)] transition-colors"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                {page.title}
+
+          {/* Desktop Nav */}
+          <nav className="hidden md:flex items-center gap-6">
+            {school?.customPages?.map(p => (
+              <Link key={p.slug} to={`/${school.slug}/page/${p.slug}`}
+                className="text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors">
+                {p.title}
               </Link>
             ))}
-            {school.customPages?.length > 0 && <div className="h-px bg-gray-100 my-2"></div>}
-            <Link 
-              to={`/${school.slug}/login`} 
-              className="flex items-center justify-center gap-2 w-full px-6 py-3 rounded-full text-white font-bold transition-all shadow-lg"
-              style={{ backgroundColor: primaryColor }}
-            >
-              Portal Login <FiArrowRight />
+            <a href="#admission-process"
+              className="text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors">
+              Admissions
+            </a>
+            <a href="#contact-section"
+              className="text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors">
+              Contact
+            </a>
+            <Link to={`/${school?.slug}/login`}
+              className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold text-white shadow-md hover:opacity-90 hover:shadow-lg transition-all"
+              style={{ backgroundColor: primary }}>
+              Portal Login <FiArrowRight className="w-4 h-4" />
+            </Link>
+          </nav>
+
+          {/* Mobile Toggle */}
+          <button className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+            onClick={() => setMobileOpen(!mobileOpen)}>
+            {mobileOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
+          </button>
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileOpen && (
+          <div className="md:hidden border-t border-gray-100 bg-white px-5 py-4 flex flex-col gap-3 fade-in">
+            {school?.customPages?.map(p => (
+              <Link key={p.slug} to={`/${school.slug}/page/${p.slug}`}
+                className="text-sm font-semibold text-gray-700 py-2"
+                onClick={() => setMobileOpen(false)}>
+                {p.title}
+              </Link>
+            ))}
+            <a href="#admission-process" className="text-sm font-semibold text-gray-700 py-2" onClick={() => setMobileOpen(false)}>Admissions</a>
+            <a href="#contact-section" className="text-sm font-semibold text-gray-700 py-2" onClick={() => setMobileOpen(false)}>Contact</a>
+            <Link to={`/${school?.slug}/login`}
+              className="flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-bold text-white"
+              style={{ backgroundColor: primary }}
+              onClick={() => setMobileOpen(false)}>
+              Portal Login <FiArrowRight className="w-4 h-4" />
             </Link>
           </div>
         )}
       </header>
 
-      {/* Hero Section */}
-      <section className="relative pt-16 flex-1 min-h-[90vh] flex items-center justify-center overflow-hidden bg-black">
-        {/* Background Slides */}
-        {heroImages.map((img, index) => (
-          <div
-            key={index}
-            className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-40' : 'opacity-0'}`}
-          >
-            <img src={img} alt="Hero" className="w-full h-full object-cover" />
+      {/* ══════════════════════════════════
+          HERO SECTION
+      ══════════════════════════════════ */}
+      <section className="relative min-h-[88vh] flex items-center justify-center overflow-hidden bg-gray-950">
+        {/* Background image slideshow */}
+        {heroImages.map((img, i) => (
+          <div key={i}
+            className="absolute inset-0 transition-opacity duration-1000"
+            style={{ opacity: i === slide ? 1 : 0 }}>
+            <img src={img} alt="" className="w-full h-full object-cover" />
           </div>
         ))}
-        
-        {/* Modern Elegant Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none"></div>
-        <div className="absolute inset-0 opacity-15 pointer-events-none" style={{
-          backgroundImage: `radial-gradient(circle, white 1px, transparent 1px)`,
-          backgroundSize: '24px 24px'
-        }}></div>
 
-        {/* Overlay Content */}
-        <div className="relative z-10 text-center px-6 max-w-4xl mx-auto pt-16 pb-44 md:pt-20 md:pb-56">
-          <span className="inline-block py-1.5 px-4 rounded-full bg-white/10 backdrop-blur-md text-white text-xs font-bold tracking-widest uppercase mb-6 border border-white/20 animate-pulse">
-            ✨ {school.motto || 'Excellence in Education'}
-          </span>
-          <h1 className="text-4xl md:text-7xl font-black text-white mb-6 tracking-tighter leading-[1.1] drop-shadow-md">
-            {school.welcomeTitle || `Welcome to ${school.name}`}
+        {/* Gradient overlays — give legible text on any image */}
+        <div className="absolute inset-0 bg-gradient-to-b from-gray-950/70 via-gray-950/50 to-gray-950/80" />
+        <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${hexToRgba(primary, 0.35)} 0%, transparent 60%)` }} />
+
+        {/* Content */}
+        <div className="relative z-10 text-center max-w-4xl mx-auto px-5 py-24">
+          {school?.motto && (
+            <span className="inline-block mb-5 px-4 py-1.5 rounded-full border border-white/20 bg-white/10 backdrop-blur-md text-white text-xs font-bold tracking-widest uppercase">
+              ✦ {school.motto}
+            </span>
+          )}
+
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white leading-[1.08] tracking-tight mb-6 drop-shadow-lg">
+            {school?.welcomeTitle || `Welcome to\n${school?.name}`}
           </h1>
-          <p className="text-base md:text-2xl text-gray-200 mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
-            {school.welcomeMessage || 'Discover a comprehensive, moral-driven secondary education preparing students for global success through blended academic curricula.'}
+
+          <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed mb-10">
+            {school?.welcomeMessage || 'Providing an environment where every student achieves their full potential through academic excellence, character, and innovation.'}
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to={`/${school.slug}/login`} className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-black font-black text-lg hover:scale-105 transition-transform shadow-xl hover:bg-slate-100">
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to={`/${school?.slug}/login`}
+              className="px-8 py-4 rounded-full font-black text-base text-white shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+              style={{ backgroundColor: primary }}>
               Access Student Portal
             </Link>
-            <a href="#admission-process" className="w-full sm:w-auto px-8 py-4 rounded-full bg-black/40 backdrop-blur-md border border-white/30 text-white font-bold text-lg hover:bg-black/60 transition-colors">
-              Apply Now
+            <a href="#admission-process"
+              className="px-8 py-4 rounded-full font-bold text-base text-white border border-white/30 bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all">
+              Apply for Admission
             </a>
           </div>
-        </div>
 
-        {/* Slide Indicators */}
-        {heroImages.length > 1 && (
-          <div className="absolute bottom-36 md:bottom-40 left-1/2 -translate-x-1/2 flex gap-2">
-            {heroImages.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentSlide(idx)}
-                className={`w-12 h-1.5 rounded-full transition-all ${idx === currentSlide ? 'bg-white' : 'bg-white/30'}`}
-              />
+          {/* Slide dots */}
+          {heroImages.length > 1 && (
+            <div className="flex justify-center gap-2 mt-10">
+              {heroImages.map((_, i) => (
+                <button key={i} onClick={() => setSlide(i)}
+                  className="rounded-full transition-all"
+                  style={{
+                    width: i === slide ? 28 : 8,
+                    height: 8,
+                    backgroundColor: i === slide ? 'white' : 'rgba(255,255,255,0.35)',
+                  }} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════
+          STATS BAR
+      ══════════════════════════════════ */}
+      <section className="bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-5 py-0">
+          <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-gray-100">
+            {[
+              { icon: <FiBookOpen className="w-5 h-5" />, value: '100%', label: 'Graduation Rate' },
+              { icon: <FiUsers className="w-5 h-5" />, value: '10:1', label: 'Student–Teacher Ratio' },
+              { icon: <FiActivity className="w-5 h-5" />, value: '15+', label: 'Extracurricular Clubs' },
+              { icon: <FiAward className="w-5 h-5" />, value: '100%', label: 'University Admittance' },
+            ].map((s, i) => (
+              <div key={i} className="flex flex-col items-center justify-center gap-2 py-8 px-4 group hover:bg-gray-50 transition-colors text-center">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-1"
+                  style={{ backgroundColor: hexToRgba(primary, 0.1), color: primary }}>
+                  {s.icon}
+                </div>
+                <span className="text-3xl font-black" style={{ color: primary }}>{s.value}</span>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{s.label}</span>
+              </div>
             ))}
           </div>
-        )}
-      </section>
-
-      {/* Floating Stat Grid Overlap */}
-      <section className="relative z-20 max-w-7xl mx-auto px-6 -mt-16 md:-mt-20 w-full mb-12">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          
-          {/* Stat 1 */}
-          <div className="bg-white rounded-[32px] p-6 shadow-xl border border-gray-100 flex flex-col items-center text-center transform hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110" style={{ backgroundColor: hexToRgba(primaryColor, 0.1), color: primaryColor }}>
-              <FiBookOpen className="w-6 h-6" />
-            </div>
-            <span className="text-3xl md:text-4xl font-black text-gray-900 group-hover:scale-105 transition-transform" style={{ color: primaryColor }}>100%</span>
-            <span className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-2">Graduation Success</span>
-          </div>
-
-          {/* Stat 2 */}
-          <div className="bg-white rounded-[32px] p-6 shadow-xl border border-gray-100 flex flex-col items-center text-center transform hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110" style={{ backgroundColor: hexToRgba(primaryColor, 0.1), color: primaryColor }}>
-              <FiUsers className="w-6 h-6" />
-            </div>
-            <span className="text-3xl md:text-4xl font-black text-gray-900 group-hover:scale-105 transition-transform" style={{ color: primaryColor }}>10:1</span>
-            <span className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-2">Student-Teacher Ratio</span>
-          </div>
-
-          {/* Stat 3 */}
-          <div className="bg-white rounded-[32px] p-6 shadow-xl border border-gray-100 flex flex-col items-center text-center transform hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110" style={{ backgroundColor: hexToRgba(primaryColor, 0.1), color: primaryColor }}>
-              <FiActivity className="w-6 h-6" />
-            </div>
-            <span className="text-3xl md:text-4xl font-black text-gray-900 group-hover:scale-105 transition-transform" style={{ color: primaryColor }}>15+</span>
-            <span className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-2">Extracurricular Clubs</span>
-          </div>
-
-          {/* Stat 4 */}
-          <div className="bg-white rounded-[32px] p-6 shadow-xl border border-gray-100 flex flex-col items-center text-center transform hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110" style={{ backgroundColor: hexToRgba(primaryColor, 0.1), color: primaryColor }}>
-              <FiAward className="w-6 h-6" />
-            </div>
-            <span className="text-3xl md:text-4xl font-black text-gray-900 group-hover:scale-105 transition-transform" style={{ color: primaryColor }}>100%</span>
-            <span className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-2">University Admittance</span>
-          </div>
-
         </div>
       </section>
 
-      {/* About Our School & Core Values */}
-      <section className="py-24 bg-white relative">
-        <div className="max-w-7xl mx-auto px-6">
+      {/* ══════════════════════════════════
+          ABOUT + CORE PILLARS
+      ══════════════════════════════════ */}
+      <section className="py-20 md:py-28 bg-white">
+        <div className="max-w-7xl mx-auto px-5">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            
-            {/* Left side: Accent container with dynamic switch */}
-            <div className="relative flex flex-col gap-4">
-              
-              {/* Segmented Switch Controller */}
-              <div className="flex justify-center mb-2">
-                <div className="bg-slate-100 p-1.5 rounded-2xl flex gap-1 shadow-inner border border-slate-200/40 select-none">
-                  <button
-                    onClick={() => setActiveAboutTab('profile')}
-                    className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${activeAboutTab === 'profile' ? 'bg-white text-gray-900 shadow-sm scale-105' : 'text-gray-400 hover:text-gray-700'}`}
-                  >
-                    School Profile
-                  </button>
-                  <button
-                    onClick={() => setActiveAboutTab('gallery')}
-                    className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${activeAboutTab === 'gallery' ? 'bg-white text-gray-900 shadow-sm scale-105' : 'text-gray-400 hover:text-gray-700'}`}
-                  >
-                    Campus Gallery
-                  </button>
-                </div>
-              </div>
 
-              {activeAboutTab === 'profile' ? (
-                <div className="relative bg-white rounded-[32px] overflow-hidden shadow-2xl border border-gray-100 p-8 min-h-[380px] md:min-h-[420px] flex flex-col justify-center transition-all duration-500 animate-fadeIn">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-16 h-16 rounded-[24px] bg-slate-50 flex items-center justify-center border shadow-sm">
-                      {school.logoUrl ? (
-                        <img src={getLogoUrl(school.logoUrl)} alt="" className="w-10 h-10 object-contain" />
-                      ) : (
-                        <span className="text-2xl font-black text-gray-400">{school.name.charAt(0)}</span>
-                      )}
-                    </div>
-                    <div className="text-left">
-                      <h3 className="font-black text-gray-900 text-lg">{school.name}</h3>
-                      <p className="text-xs text-gray-400 tracking-wider font-bold uppercase mt-0.5">Institution of Excellence</p>
-                    </div>
+            {/* Left – school image */}
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gray-100 aspect-[4/3] lg:aspect-auto lg:h-[480px]">
+              {heroImages[0] && (
+                <img src={heroImages[0]} alt="Campus" className="w-full h-full object-cover" />
+              )}
+              {/* Gradient at bottom */}
+              <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 via-transparent to-transparent" />
+
+              {/* School badge */}
+              {school?.logoUrl && (
+                <div className="absolute bottom-5 left-5 flex items-center gap-3 bg-white/95 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-lg border border-gray-100">
+                  <img src={getLogoUrl(school.logoUrl)} alt="" className="w-10 h-10 object-contain"
+                    onError={e => { e.target.parentElement.style.display = 'none'; }} />
+                  <div>
+                    <p className="font-black text-gray-900 text-sm leading-tight">{school?.name}</p>
+                    <p className="text-xs text-gray-400 font-semibold">Institution of Excellence</p>
                   </div>
-                  
-                  {school.aboutUsText ? (
-                    <div className="prose prose-slate max-w-none text-gray-600 text-sm leading-relaxed prose-headings:font-black text-left">
-                      <ReactMarkdown>{school.aboutUsText}</ReactMarkdown>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500 leading-relaxed text-left">
-                      Providing a supportive and innovative environment where every student can achieve their full potential.
-                      Our comprehensive college blends discipline, faith-based godliness, and technological innovation.
-                    </p>
-                  )}
                 </div>
-              ) : (
-                <div className="relative w-full h-[380px] md:h-[420px] rounded-[40px] overflow-hidden shadow-2xl border-[8px] border-white bg-slate-100 transition-all duration-500 animate-fadeIn group">
-                  {heroImages.map((img, index) => (
-                    <img
-                      key={index}
-                      src={img}
-                      alt={`Campus Slide ${index + 1}`}
-                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${index === aboutSlideIndex ? 'opacity-100' : 'opacity-0'}`}
-                    />
-                  ))}
-                  
-                  {/* Elegant Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-transparent opacity-80 mix-blend-multiply pointer-events-none"></div>
-                  
-                  {/* Decorative Brand Badge */}
-                  {school.logoUrl && (
-                    <div className="absolute bottom-6 left-6 p-3 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl transform group-hover:scale-105 transition-transform flex items-center gap-3 border border-gray-100">
-                      <img src={getLogoUrl(school.logoUrl)} alt="" className="w-10 h-10 object-contain" onError={(e) => { e.target.parentElement.style.display = 'none'; }} />
-                      <div className="text-left">
-                        <h4 className="font-black text-gray-900 text-xs">{school.name}</h4>
-                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Campus View</p>
-                      </div>
-                    </div>
-                  )}
+              )}
 
-                  {/* Frame Accents just as basic page */}
-                  <div className="absolute top-6 right-6 w-16 h-16 border-t-4 border-r-4 border-white/60 rounded-tr-2xl pointer-events-none"></div>
-                  <div className="absolute bottom-6 right-6 w-16 h-16 border-b-4 border-r-4 border-white/60 rounded-br-2xl pointer-events-none"></div>
+              {/* About us text overlay pill */}
+              {school?.motto && (
+                <div className="absolute top-5 right-5 px-3 py-1.5 rounded-full text-xs font-bold text-white border border-white/20 bg-black/30 backdrop-blur-sm">
+                  {school.motto}
                 </div>
               )}
             </div>
 
-            {/* Right side: Core values checklist */}
-            <div className="space-y-8">
-              <div>
-                <span className="inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-4" style={{ backgroundColor: hexToRgba(primaryColor, 0.1), color: primaryColor }}>
-                  Core Pillars
-                </span>
-                <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight">
-                  Educational <span style={{ color: primaryColor }}>Foundation</span>
-                </h2>
-                <p className="text-gray-500 mt-4 leading-relaxed">
-                  We blend high-calibre academics with deep moral character development to raise future-ready global leaders.
-                </p>
-              </div>
+            {/* Right – text content */}
+            <div className="space-y-6">
+              <span className="section-label">About Our School</span>
 
-              <div className="space-y-6 w-full">
-                
-                {/* Pillar 1 */}
-                <div className="flex gap-5 p-6 rounded-[24px] bg-blue-50/70 border border-blue-100/80 hover:bg-blue-50 hover:border-blue-200 hover:shadow-md hover:-translate-y-1 transition-all duration-300 w-full group transform text-left">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-500 text-white shadow-md shadow-blue-500/20 group-hover:scale-110 transition-transform">
-                    <FiCheckCircle className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-black text-gray-950 text-base md:text-lg">Expert Department & Faculty</h4>
-                    <p className="text-sm text-gray-700 mt-2 leading-relaxed">Dedicated, certified educators delivering rigorous customized teaching tailored to standard curriculum goals.</p>
-                  </div>
-                </div>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 leading-tight tracking-tight">
+                Building Future-Ready <span style={{ color: primary }}>Leaders</span>
+              </h2>
 
-                {/* Pillar 2 */}
-                <div className="flex gap-5 p-6 rounded-[24px] bg-blue-50/70 border border-blue-100/80 hover:bg-blue-50 hover:border-blue-200 hover:shadow-md hover:-translate-y-1 transition-all duration-300 w-full group transform text-left">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-500 text-white shadow-md shadow-blue-500/20 group-hover:scale-110 transition-transform">
-                    <FiCheckCircle className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-black text-gray-950 text-base md:text-lg">State-of-the-Art Facilities</h4>
-                    <p className="text-sm text-gray-700 mt-2 leading-relaxed">Modern classrooms, science/chemistry/physics laboratories, coding labs, and extensive sports facilities.</p>
-                  </div>
-                </div>
-
-                {/* Pillar 3 */}
-                <div className="flex gap-5 p-6 rounded-[24px] bg-blue-50/70 border border-blue-100/80 hover:bg-blue-50 hover:border-blue-200 hover:shadow-md hover:-translate-y-1 transition-all duration-300 w-full group transform text-left">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-500 text-white shadow-md shadow-blue-500/20 group-hover:scale-110 transition-transform">
-                    <FiCheckCircle className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-black text-gray-950 text-base md:text-lg">Vocational & Tech Blending</h4>
-                    <p className="text-sm text-gray-700 mt-2 leading-relaxed">Preparing students directly for university and active entrepreneurship through robotics, coding, and arts programs.</p>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials & Academic Honors Section */}
-      <section className="py-24 bg-white relative overflow-hidden border-t border-gray-100">
-        <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
-          backgroundImage: `radial-gradient(circle, ${primaryColor} 1px, transparent 1px)`,
-          backgroundSize: '24px 24px'
-        }}></div>
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
-          <div className="text-center mb-16">
-            <span className="inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-4" style={{ backgroundColor: hexToRgba(primaryColor, 0.1), color: primaryColor }}>
-              Praise & Results
-            </span>
-            <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">Academic Excellence</h2>
-            <p className="text-gray-500 mt-3 text-lg">What our community says about their experience and our outstanding results.</p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-8 w-full">
-            {testimonials.map((testim, index) => (
-              <div 
-                key={index}
-                className="bg-white/70 backdrop-blur-md border border-slate-100 shadow-xl shadow-slate-100/50 hover:shadow-2xl hover:shadow-slate-200/50 hover:-translate-y-1.5 transition-all duration-500 rounded-[32px] p-8 md:p-10 flex flex-col justify-between relative overflow-hidden group transform text-left"
-              >
-                {/* Brand Accent bar */}
-                <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-[32px]" style={{ backgroundColor: primaryColor }}></div>
-                
-                {/* Floating quotation mark */}
-                <span className="absolute top-4 right-6 text-slate-100 text-8xl font-serif pointer-events-none select-none group-hover:text-blue-100/40 transition-colors duration-300">“</span>
-                
-                <div className="relative z-10 flex-1">
-                  {/* Rating Stars */}
-                  <div className="text-amber-500 flex gap-1 mb-6 text-lg filter drop-shadow-[0_2px_4px_rgba(245,158,11,0.2)]">
-                    {Array.from({ length: testim.rating }).map((_, i) => (
-                      <FiStar key={i} className="fill-amber-500" />
-                    ))}
-                  </div>
-                  
-                  {/* Quote text */}
-                  <p className="text-gray-700 italic leading-relaxed text-base md:text-lg mb-8 font-medium">
-                    "{testim.quote}"
-                  </p>
-                </div>
-                
-                {/* Parent Profile */}
-                <div className="relative z-10 flex items-center gap-4 mt-auto border-t border-slate-100 pt-6">
-                  <div 
-                    className="w-12 h-12 rounded-2xl text-white font-black flex items-center justify-center shadow-lg text-base transform group-hover:rotate-6 transition-transform" 
-                    style={{ 
-                      background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                      boxShadow: `0 10px 15px -3px ${hexToRgba(primaryColor, 0.25)}`
-                    }}
-                  >
-                    {getInitials(testim.name)}
-                  </div>
-                  <div>
-                    <h4 className="font-black text-gray-950 text-base">{testim.name}</h4>
-                    <p className="text-xs text-gray-400 font-bold tracking-wide uppercase mt-0.5">{testim.subtitle}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Admissions Roadmap & Request Form */}
-      <section id="admission-process" className="py-24 bg-[#f4f6fa] border-t border-b border-gray-200 relative">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-12 items-stretch">
-            
-            {/* Left Column: Admission Steps */}
-            <div className="flex flex-col justify-center space-y-8">
-              <div>
-                <span className="inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-4" style={{ backgroundColor: hexToRgba(primaryColor, 0.1), color: primaryColor }}>
-                  Join Our Family
-                </span>
-                <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight">
-                  Admissions <span style={{ color: primaryColor }}>Process</span>
-                </h2>
-                <p className="text-gray-500 mt-4 max-w-lg leading-relaxed">
-                  We are delighted you're considering {school.name} for your child's education. Our admissions process is designed to be streamlined, welcoming, and thorough:
-                </p>
-              </div>
-
-              {/* Step Roadmap Timeline */}
-              <div className="relative border-l-2 pl-6 ml-2 space-y-6" style={{ borderColor: hexToRgba(primaryColor, 0.2) }}>
-                {/* Step 1 */}
-                <div className="relative">
-                  <div className="absolute -left-[35px] w-6 h-6 rounded-full bg-white border-4 flex items-center justify-center shadow-sm" style={{ borderColor: primaryColor }}></div>
-                  <h4 className="font-bold text-gray-900 text-base">Step 1: Submit Inquiry</h4>
-                  <p className="text-sm text-gray-500 mt-1">Fill out the brief enquiry form on the right to notify our admissions office.</p>
-                </div>
-                {/* Step 2 */}
-                <div className="relative">
-                  <div className="absolute -left-[35px] w-6 h-6 rounded-full bg-white border-4 flex items-center justify-center shadow-sm" style={{ borderColor: primaryColor }}></div>
-                  <h4 className="font-bold text-gray-900 text-base">Step 2: Entrance Assessment</h4>
-                  <p className="text-sm text-gray-500 mt-1">Schedule a physical tour, complete basic assessment, and meet our faculty counselors.</p>
-                </div>
-                {/* Step 3 */}
-                <div className="relative">
-                  <div className="absolute -left-[35px] w-6 h-6 rounded-full bg-white border-4 flex items-center justify-center shadow-sm" style={{ borderColor: primaryColor }}></div>
-                  <h4 className="font-bold text-gray-900 text-base">Step 3: Registration</h4>
-                  <p className="text-sm text-gray-500 mt-1">Submit enrollment documents, complete online portal access setup, and start resumption!</p>
-                </div>
-              </div>
-
-              {school.admissionGuideFileUrl && (
-                <div>
-                  <a href={school.admissionGuideFileUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-bold transition-all hover:translate-x-1" style={{ color: primaryColor }}>
-                    Download Admissions Guide <FiArrowRight />
-                  </a>
-                </div>
-              )}
-            </div>
-
-            {/* Right Column: Request Info Form */}
-            <div className="bg-white p-8 rounded-[32px] shadow-xl border border-gray-100 flex flex-col justify-between">
-              <div>
-                <h3 className="text-2xl font-black text-gray-900 mb-2">Request Admission Info</h3>
-                <p className="text-sm text-gray-500 mb-6">Fill in details and our desk will contact you within 24 hours.</p>
-                
-                {isSubmitted ? (
-                  <div className="py-12 flex flex-col items-center justify-center text-center space-y-4 animate-fadeIn">
-                    <div className="w-16 h-16 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-3xl">
-                      ✓
-                    </div>
-                    <h4 className="text-xl font-bold text-gray-900">Request Submitted!</h4>
-                    <p className="text-sm text-gray-500 max-w-sm">
-                      Thank you for your interest. A representative from {school.name} will contact you at your email or phone number shortly.
-                    </p>
-                    <button
-                      onClick={() => setIsSubmitted(false)}
-                      className="text-xs font-bold underline"
-                      style={{ color: primaryColor }}
-                    >
-                      Submit another request
-                    </button>
+              <div className="text-gray-600 leading-relaxed text-[15px]">
+                {school?.aboutUsText ? (
+                  <div className="prose prose-sm max-w-none prose-headings:font-black prose-a:no-underline">
+                    <ReactMarkdown>{school.aboutUsText}</ReactMarkdown>
                   </div>
                 ) : (
-                  <form onSubmit={handleFormSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Parent Name</label>
-                      <input
-                        type="text"
-                        required
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 transition-all text-sm focus:border-transparent"
-                        style={{ '--tw-ring-color': primaryColor }}
-                        placeholder="John Doe"
-                        value={formData.name}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Email</label>
-                        <input
-                          type="email"
-                          required
-                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 transition-all text-sm focus:border-transparent"
-                          style={{ '--tw-ring-color': primaryColor }}
-                          placeholder="johndoe@email.com"
-                          value={formData.email}
-                          onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Phone</label>
-                        <input
-                          type="tel"
-                          required
-                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 transition-all text-sm focus:border-transparent"
-                          style={{ '--tw-ring-color': primaryColor }}
-                          placeholder="+234..."
-                          value={formData.phone}
-                          onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Grade Level</label>
-                      <select
-                        required
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 transition-all text-sm focus:border-transparent"
-                        style={{ '--tw-ring-color': primaryColor }}
-                        value={formData.grade}
-                        onChange={(e) => setFormData({...formData, grade: e.target.value})}
-                      >
-                        <option value="">Select Target Grade</option>
-                        <option value="JSS 1">Junior JSS 1</option>
-                        <option value="JSS 2">Junior JSS 2</option>
-                        <option value="JSS 3">Junior JSS 3</option>
-                        <option value="SSS 1">Senior SSS 1</option>
-                        <option value="SSS 2">Senior SSS 2</option>
-                        <option value="SSS 3">Senior SSS 3</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Message</label>
-                      <textarea
-                        rows="3"
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 transition-all text-sm focus:border-transparent"
-                        style={{ '--tw-ring-color': primaryColor }}
-                        placeholder="Any questions or special notes..."
-                        value={formData.message}
-                        onChange={(e) => setFormData({...formData, message: e.target.value})}
-                      ></textarea>
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="w-full py-4 rounded-xl text-white font-black text-base shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-0.5"
-                      style={{ backgroundColor: primaryColor }}
-                    >
-                      <FiSend /> Send Admission Inquiry
-                    </button>
-                  </form>
+                  <p>
+                    We provide a supportive and innovative learning environment where every student can achieve their full
+                    potential. Our comprehensive programmes blend academic rigour, moral character development, and
+                    vocational skills to prepare students for success in an ever-changing world.
+                  </p>
                 )}
+              </div>
+
+              {/* Core Pillars */}
+              <div className="space-y-4 pt-2">
+                {[
+                  { title: 'Expert Faculty & Departments', body: 'Certified, passionate educators delivering curriculum-aligned, rigorous instruction tailored to each student.' },
+                  { title: 'Modern Facilities & Labs', body: 'Science labs, coding suites, libraries, and sports infrastructure for holistic student development.' },
+                  { title: 'Technology & Vocational Blend', body: 'Robotics, digital literacy, and entrepreneurship programmes embedded across all classes.' },
+                ].map((pillar, i) => (
+                  <div key={i}
+                    className="flex gap-4 p-5 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                    style={{ backgroundColor: hexToRgba(primary, 0.04), borderColor: hexToRgba(primary, 0.15) }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: primary, color: '#fff' }}>
+                      <FiCheckCircle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-sm mb-1">{pillar.title}</h4>
+                      <p className="text-xs text-gray-500 leading-relaxed">{pillar.body}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Newsletter Subscription */}
-      <section className="py-16 bg-[#f4f6fa]">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="rounded-[40px] p-8 md:p-12 text-white relative overflow-hidden shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${darkenColor(primaryColor, 0.15)})` }}>
-            <div className="absolute inset-0 opacity-10" style={{
-              backgroundImage: `radial-gradient(circle, white 1px, transparent 1px)`,
-              backgroundSize: '20px 20px'
-            }}></div>
-            
-            <div className="relative z-10 md:max-w-md text-left">
-              <h3 className="text-2xl md:text-3xl font-black mb-2 text-white">Stay Connected</h3>
-              <p className="text-white/80 text-sm">Subscribe to our newsletter for school updates, upcoming event announcements, and academic calendars.</p>
+      {/* ══════════════════════════════════
+          TESTIMONIALS
+      ══════════════════════════════════ */}
+      <section className="py-20 md:py-28 bg-gray-50 border-t border-gray-100">
+        <div className="max-w-6xl mx-auto px-5">
+          <div className="text-center mb-14">
+            <span className="section-label">What Parents Say</span>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
+              Community Testimonials
+            </h2>
+            <p className="text-gray-500 mt-3 max-w-xl mx-auto text-sm leading-relaxed">
+              Real experiences from parents and guardians about the impact of our school.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {testimonials.map((t, i) => (
+              <div key={i}
+                className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col">
+                {/* Stars */}
+                <div className="flex gap-1 mb-5">
+                  {Array.from({ length: t.rating }).map((_, j) => (
+                    <FiStar key={j} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+
+                <p className="text-gray-700 italic leading-relaxed text-[15px] flex-1 mb-6">
+                  "{t.quote}"
+                </p>
+
+                <div className="flex items-center gap-3 pt-5 border-t border-gray-100">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-sm shrink-0"
+                    style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
+                    {getInitials(t.name)}
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm">{t.name}</p>
+                    <p className="text-xs text-gray-400">{t.subtitle}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════
+          TOP STUDENTS
+      ══════════════════════════════════ */}
+      <section className="py-20 md:py-28 bg-white border-t border-gray-100">
+        <div className="max-w-7xl mx-auto px-5">
+          <div className="text-center mb-14">
+            <span className="section-label">Excellence Recognised</span>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
+              Our Top Performers
+            </h2>
+            <p className="text-gray-500 mt-3 max-w-xl mx-auto text-sm">
+              Celebrating outstanding academic achievement across all classes.
+            </p>
+          </div>
+
+          {loadingStudents ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="animate-pulse bg-gray-100 rounded-2xl h-64" />
+              ))}
+            </div>
+          ) : topStudents.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {topStudents.map((student, i) => (
+                <div key={i}
+                  className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+                  {/* Card top */}
+                  <div className="h-28 flex items-center justify-center relative"
+                    style={{ background: `linear-gradient(135deg, ${hexToRgba(primary, 0.12)}, ${hexToRgba(secondary, 0.08)})` }}>
+                    <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
+                      style={{ backgroundColor: primary }}>
+                      🏆 #{i + 1}
+                    </div>
+                    <div className="w-16 h-16 rounded-full bg-white border-2 overflow-hidden flex items-center justify-center shadow-md"
+                      style={{ borderColor: primary }}>
+                      {student.photo
+                        ? <img src={student.photo.startsWith('http') || student.photo.startsWith('data:') ? student.photo : `${API_BASE_URL}${student.photo}`}
+                            alt={student.name} className="w-full h-full object-cover" />
+                        : <span className="text-xl font-black text-gray-300">{getInitials(student.name)}</span>
+                      }
+                    </div>
+                  </div>
+                  {/* Card body */}
+                  <div className="p-4 text-center">
+                    <p className="font-bold text-gray-900 text-sm leading-tight mb-0.5">{student.name}</p>
+                    <p className="text-xs text-gray-400 mb-3">{student.class}</p>
+                    <div className="text-2xl font-black mb-0.5" style={{ color: primary }}>{student.average}</div>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold">Average Score</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 bg-gray-50 rounded-3xl border border-gray-100">
+              <FiAward className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-400 text-sm">Results not yet published for this term.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════
+          NEWS & EVENTS
+      ══════════════════════════════════ */}
+      {school?.newsEvents?.length > 0 && (
+        <section className="py-20 md:py-28 bg-gray-50 border-t border-gray-100">
+          <div className="max-w-7xl mx-auto px-5">
+            <div className="text-center mb-14">
+              <span className="section-label">Stay Updated</span>
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
+                News &amp; Events
+              </h2>
             </div>
 
-            <div className="relative z-10 w-full md:w-auto shrink-0">
-              {isSubscribed ? (
-                <span className="bg-white/20 backdrop-blur-md px-6 py-3 rounded-xl border border-white/20 text-white font-bold block text-center animate-fadeIn">✓ Subscribed Successfully!</span>
+            <div className="grid md:grid-cols-3 gap-6">
+              {school.newsEvents.map((item, i) => (
+                <div key={i}
+                  className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col">
+                  <div className="h-44 bg-gray-100 overflow-hidden relative">
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl.startsWith('http') ? item.imageUrl : `${API_BASE_URL}${item.imageUrl}`}
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center"
+                        style={{ backgroundColor: hexToRgba(primary, 0.08) }}>
+                        <FiVolume2 className="w-10 h-10" style={{ color: hexToRgba(primary, 0.4) }} />
+                      </div>
+                    )}
+                    <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold text-white"
+                      style={{ backgroundColor: primary }}>
+                      {item.type}
+                    </span>
+                  </div>
+                  <div className="p-5 flex flex-col flex-1">
+                    <p className="text-xs text-gray-400 font-semibold mb-2">
+                      {new Date(item.eventDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                    <h3 className="font-bold text-gray-900 text-sm leading-snug mb-2 line-clamp-2">{item.title}</h3>
+                    <p className="text-xs text-gray-500 leading-relaxed line-clamp-3 flex-1">{item.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ══════════════════════════════════
+          ADMISSIONS SECTION
+      ══════════════════════════════════ */}
+      <section id="admission-process" className="py-20 md:py-28 bg-white border-t border-gray-100">
+        <div className="max-w-7xl mx-auto px-5">
+          <div className="grid lg:grid-cols-2 gap-12 items-start">
+
+            {/* Steps */}
+            <div className="space-y-8">
+              <div>
+                <span className="section-label">Join Our School</span>
+                <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight">
+                  Admissions <span style={{ color: primary }}>Process</span>
+                </h2>
+                <p className="text-gray-500 mt-3 text-sm leading-relaxed max-w-md">
+                  We are delighted you are considering {school?.name}. Our admissions process is simple and welcoming.
+                </p>
+              </div>
+
+              <div className="relative pl-8 space-y-8" style={{ borderLeft: `2px solid ${hexToRgba(primary, 0.2)}` }}>
+                {[
+                  { step: '1', title: 'Submit an Enquiry', body: 'Fill in the form on the right. Our admissions desk will reach out within 24 hours.' },
+                  { step: '2', title: 'Entrance Assessment', body: 'Visit the school, meet our staff, and complete a brief academic assessment.' },
+                  { step: '3', title: 'Enrolment & Resumption', body: 'Submit documents, complete portal setup, and your child is ready to begin!' },
+                ].map((s, i) => (
+                  <div key={i} className="relative">
+                    <div className="absolute -left-[41px] w-7 h-7 rounded-full bg-white border-2 flex items-center justify-center text-xs font-black shadow-sm"
+                      style={{ borderColor: primary, color: primary }}>
+                      {s.step}
+                    </div>
+                    <h4 className="font-bold text-gray-900 text-sm mb-1">{s.title}</h4>
+                    <p className="text-xs text-gray-500 leading-relaxed">{s.body}</p>
+                  </div>
+                ))}
+              </div>
+
+              {school?.admissionGuideFileUrl && (
+                <a href={school.admissionGuideFileUrl} target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-bold hover:gap-3 transition-all"
+                  style={{ color: primary }}>
+                  Download Admissions Guide <FiArrowRight className="w-4 h-4" />
+                </a>
+              )}
+            </div>
+
+            {/* Enquiry Form */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-lg p-8">
+              <h3 className="text-xl font-black text-gray-900 mb-1">Request Admission Info</h3>
+              <p className="text-sm text-gray-500 mb-6">We will contact you within 24 hours.</p>
+
+              {submitted ? (
+                <div className="text-center py-12 fade-in">
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl"
+                    style={{ backgroundColor: hexToRgba(primary, 0.1), color: primary }}>
+                    ✓
+                  </div>
+                  <h4 className="font-black text-gray-900 text-lg mb-2">Request Received!</h4>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Thank you. Our admissions team will contact you shortly.
+                  </p>
+                  <button onClick={() => setSubmitted(false)}
+                    className="text-xs font-bold underline" style={{ color: primary }}>
+                    Submit another request
+                  </button>
+                </div>
               ) : (
-                <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
-                  <input
-                    type="email"
-                    required
-                    placeholder="Enter your email"
-                    className="px-4 py-3 rounded-full text-black text-sm focus:outline-none w-full sm:w-64"
-                    value={newsletterEmail}
-                    onChange={(e) => setNewsletterEmail(e.target.value)}
-                  />
-                  <button type="submit" className="bg-white px-6 py-3 rounded-full text-sm font-black transition-all hover:scale-105 active:scale-95 shadow-lg whitespace-nowrap" style={{ color: primaryColor }}>
+                <form onSubmit={handleFormSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Parent / Guardian Name</label>
+                    <input type="text" required placeholder="e.g. Aisha Musa"
+                      className={inputCls}
+                      value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                      onFocus={e => Object.assign(e.target.style, inputFocus)}
+                      onBlur={e => { e.target.style.boxShadow = ''; }} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Email Address</label>
+                      <input type="email" required placeholder="you@email.com"
+                        className={inputCls}
+                        value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+                        onFocus={e => Object.assign(e.target.style, inputFocus)}
+                        onBlur={e => { e.target.style.boxShadow = ''; }} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Phone Number</label>
+                      <input type="tel" required placeholder="+234..."
+                        className={inputCls}
+                        value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
+                        onFocus={e => Object.assign(e.target.style, inputFocus)}
+                        onBlur={e => { e.target.style.boxShadow = ''; }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Grade Level Seeking</label>
+                    <select required className={inputCls}
+                      value={form.grade} onChange={e => setForm({ ...form, grade: e.target.value })}
+                      onFocus={e => Object.assign(e.target.style, inputFocus)}
+                      onBlur={e => { e.target.style.boxShadow = ''; }}>
+                      <option value="">Select grade level</option>
+                      {['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'].map(g => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Message (optional)</label>
+                    <textarea rows={3} placeholder="Any questions or notes..."
+                      className={`${inputCls} resize-none`}
+                      value={form.message} onChange={e => setForm({ ...form, message: e.target.value })}
+                      onFocus={e => Object.assign(e.target.style, inputFocus)}
+                      onBlur={e => { e.target.style.boxShadow = ''; }} />
+                  </div>
+
+                  <button type="submit"
+                    className="w-full py-3.5 rounded-xl font-black text-white flex items-center justify-center gap-2 hover:opacity-90 hover:shadow-lg transition-all"
+                    style={{ backgroundColor: primary }}>
+                    <FiSend className="w-4 h-4" /> Send Enquiry
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════
+          NEWSLETTER BANNER
+      ══════════════════════════════════ */}
+      <section className="py-16 bg-gray-50 border-t border-gray-100">
+        <div className="max-w-3xl mx-auto px-5">
+          <div className="rounded-3xl p-10 text-white text-center relative overflow-hidden"
+            style={{ background: `linear-gradient(135deg, ${primary} 0%, ${darkenHex(primary, 0.18)} 100%)` }}>
+            {/* Subtle dot grid */}
+            <div className="absolute inset-0 opacity-10 pointer-events-none"
+              style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+
+            <div className="relative z-10">
+              <h3 className="text-2xl font-black mb-2">Stay Connected</h3>
+              <p className="text-white/75 text-sm mb-6 max-w-sm mx-auto">
+                Subscribe for school news, event announcements, and academic updates.
+              </p>
+
+              {subscribed ? (
+                <div className="inline-block px-6 py-3 rounded-xl bg-white/20 border border-white/30 text-white font-bold text-sm">
+                  ✓ Subscribed successfully!
+                </div>
+              ) : (
+                <form onSubmit={handleNewsletter} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+                  <input type="email" required placeholder="Enter your email address"
+                    value={newsletter} onChange={e => setNewsletter(e.target.value)}
+                    className="flex-1 px-4 py-3 rounded-full text-gray-800 text-sm focus:outline-none bg-white" />
+                  <button type="submit"
+                    className="px-6 py-3 rounded-full font-black text-sm bg-white hover:bg-gray-100 transition-colors whitespace-nowrap"
+                    style={{ color: primary }}>
                     Subscribe
                   </button>
                 </form>
@@ -797,332 +752,201 @@ const ThemeModern = ({ school, getLogoUrl }) => {
         </div>
       </section>
 
-      {/* Contact Section & Real Map */}
-      <section className="py-24 bg-white border-t border-gray-100">
-        <div className="max-w-7xl mx-auto px-6">
+      {/* ══════════════════════════════════
+          CONTACT SECTION
+      ══════════════════════════════════ */}
+      <section id="contact-section" className="py-20 md:py-28 bg-white border-t border-gray-100">
+        <div className="max-w-7xl mx-auto px-5">
           <div className="grid lg:grid-cols-2 gap-12">
-            
-            {/* Left side: Contact Cards */}
-            <div className="space-y-6 flex flex-col justify-center text-left">
+
+            {/* Info cards */}
+            <div className="space-y-6">
               <div>
-                <span className="inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-4" style={{ backgroundColor: hexToRgba(primaryColor, 0.1), color: primaryColor }}>
-                  Get in Touch
-                </span>
-                <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">Contact Us</h2>
-                <p className="text-gray-500 mt-2">Reach out directly with any questions or visit us physically during office hours.</p>
+                <span className="section-label">Get in Touch</span>
+                <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Contact Us</h2>
+                <p className="text-gray-500 mt-3 text-sm">
+                  Reach out directly or visit us during working hours.
+                </p>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
-                {school.address && (
-                  <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-100 shadow-sm text-left">
-                    <FiMapPin className="w-6 h-6 mb-3" style={{ color: primaryColor }} />
-                    <h4 className="font-bold text-gray-900 text-sm mb-1">Our Campus</h4>
-                    <p className="text-xs text-gray-500 leading-relaxed">{school.address}</p>
+                {[
+                  school?.address && { icon: <FiMapPin className="w-5 h-5" />, label: 'Our Campus', value: school.address },
+                  school?.phone   && { icon: <FiPhone className="w-5 h-5" />, label: 'Phone', value: school.phone, href: `tel:${school.phone}` },
+                  school?.email   && { icon: <FiMail className="w-5 h-5" />, label: 'Email', value: school.email, href: `mailto:${school.email}` },
+                  school?.openingHours && { icon: <FiClock className="w-5 h-5" />, label: 'Office Hours', value: school.openingHours },
+                ].filter(Boolean).map((c, i) => (
+                  <div key={i} className="p-5 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-gray-100/70 transition-colors">
+                    <div className="mb-2" style={{ color: primary }}>{c.icon}</div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">{c.label}</p>
+                    {c.href
+                      ? <a href={c.href} className="text-sm font-semibold text-gray-800 hover:underline break-all">{c.value}</a>
+                      : <p className="text-sm font-semibold text-gray-800">{c.value}</p>
+                    }
                   </div>
-                )}
-                {school.phone && (
-                  <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-100 shadow-sm text-left">
-                    <FiPhone className="w-6 h-6 mb-3" style={{ color: primaryColor }} />
-                    <h4 className="font-bold text-gray-900 text-sm mb-1">Call Directory</h4>
-                    <p className="text-xs text-gray-500 leading-relaxed font-mono font-semibold">{school.phone}</p>
-                  </div>
-                )}
-                {school.email && (
-                  <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-100 shadow-sm text-left">
-                    <FiMail className="w-6 h-6 mb-3" style={{ color: primaryColor }} />
-                    <h4 className="font-bold text-gray-900 text-sm mb-1">Electronic Mail</h4>
-                    <p className="text-xs text-gray-500 leading-relaxed break-words">{school.email}</p>
-                  </div>
-                )}
-                {school.openingHours && (
-                  <div className="bg-slate-50/50 p-6 rounded-2xl border border-gray-100 shadow-sm text-left">
-                    <FiClock className="w-6 h-6 mb-3" style={{ color: primaryColor }} />
-                    <h4 className="font-bold text-gray-900 text-sm mb-1">Office Hours</h4>
-                    <p className="text-xs text-gray-500 leading-relaxed">{school.openingHours}</p>
-                  </div>
-                )}
+                ))}
               </div>
             </div>
 
-            {/* Right side: Real Google Map Iframe */}
-            <div className="rounded-[32px] overflow-hidden shadow-lg border border-gray-100 h-96 md:h-[420px]">
-              <iframe
-                src={`https://maps.google.com/maps?q=${encodeURIComponent(school.address || school.name)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen=""
-                loading="lazy"
-                title="School Location Map"
-              ></iframe>
+            {/* Map */}
+            <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm h-80 lg:h-auto lg:min-h-[360px] bg-gray-100">
+              {school?.address ? (
+                <iframe
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(school.address)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                  width="100%" height="100%"
+                  style={{ border: 0, minHeight: 300 }}
+                  allowFullScreen loading="lazy"
+                  title="School Location" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                  <FiMapPin className="w-10 h-10" />
+                </div>
+              )}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Top Students Section */}
-      <div className="py-24 bg-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: primaryColor }}>
-              Excellence Recognized
-            </h2>
-            <h3 className="text-3xl md:text-5xl font-black text-gray-900 mb-6">Our Top Performers</h3>
-            <p className="text-gray-500 text-lg">Celebrating academic excellence and outstanding achievements across all classes.</p>
-          </div>
+      {/* ══════════════════════════════════
+          FOOTER
+      ══════════════════════════════════ */}
+      <footer className="bg-gray-950 text-gray-400 pt-16 pb-8">
+        <div className="max-w-7xl mx-auto px-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-14">
 
-          {loadingStudents ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="animate-pulse bg-gray-100 rounded-3xl h-96"></div>
-              ))}
-            </div>
-          ) : topStudents.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {topStudents.map((student, idx) => (
-                <div key={idx} className="group relative bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden hover:-translate-y-2 transition-all duration-300">
-                  <div className="absolute top-4 right-4 z-10">
-                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-                      🏆 {student.position}
-                    </div>
-                  </div>
-                  <div className="relative h-48 bg-gradient-to-br from-primary/70 to-primary flex items-center justify-center">
-                    <div className="w-24 h-24 rounded-full bg-white shadow-xl flex items-center justify-center overflow-hidden border-4 border-white group-hover:scale-110 transition-transform duration-500">
-                      {student.photo ? (
-                        <img src={student.photo.startsWith('http') || student.photo.startsWith('data:') ? student.photo : `${API_BASE_URL}${student.photo}`} alt={student.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <svg className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                      )}
-                    </div>
-                  </div>
-                  <div className="p-6 text-center">
-                    <h4 className="font-black text-gray-900 text-lg mb-1 group-hover:text-primary transition-colors">{student.name}</h4>
-                    <p className="text-sm font-bold text-gray-500 mb-4">{student.class}</p>
-                    <div className="mb-4">
-                      <div className="text-xs text-gray-400 uppercase font-bold mb-1">Average Score</div>
-                      <div className="text-3xl font-black text-primary">{student.average}</div>
-                    </div>
-                    <div className="text-xs font-medium text-gray-500 line-clamp-2">
-                      Best in: {student.subjects}
-                    </div>
-                  </div>
+            {/* Brand column */}
+            <div className="sm:col-span-2 lg:col-span-1 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gray-900 border border-gray-800 flex items-center justify-center overflow-hidden shrink-0">
+                  {school?.logoUrl
+                    ? <img src={getLogoUrl(school.logoUrl)} alt="" className="w-7 h-7 object-contain" />
+                    : <span className="text-sm font-black text-gray-600">{school?.name?.[0]}</span>
+                  }
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-3xl border border-gray-100">
-              <p className="text-gray-500 text-lg">Results haven't been published yet for this term.</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* News & Events Section */}
-      {school.newsEvents && school.newsEvents.length > 0 && (
-        <div className="py-24 bg-gray-50 border-t border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-              <div className="max-w-2xl">
-                <h2 className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: primaryColor }}>
-                  Stay Updated
-                </h2>
-                <h3 className="text-3xl md:text-5xl font-black text-gray-900">News & Events</h3>
+                <span className="font-black text-white text-base tracking-tight">{school?.name}</span>
               </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {school.newsEvents.map((item, idx) => (
-                <div key={idx} className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 group flex flex-col">
-                  {item.imageUrl ? (
-                    <div className="h-48 overflow-hidden relative">
-                      <img src={item.imageUrl.startsWith('http') ? item.imageUrl : `${API_BASE_URL}${item.imageUrl}`} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-gray-800">
-                        {item.type}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="h-48 bg-gray-100 flex items-center justify-center relative">
-                      <FiVolume2 className="w-12 h-12 text-gray-300" />
-                      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-gray-800">
-                        {item.type}
-                      </div>
-                    </div>
-                  )}
-                  <div className="p-8 flex-1 flex flex-col">
-                    <div className="text-sm font-bold text-gray-400 mb-3">
-                      {new Date(item.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </div>
-                    <h4 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-primary transition-colors line-clamp-2">{item.title}</h4>
-                    <p className="text-gray-500 text-sm line-clamp-3 mb-6 flex-1">{item.content}</p>
-                    <button className="text-sm font-bold inline-flex items-center gap-2 self-start" style={{ color: primaryColor }}>
-                      Read More <FiArrowRight />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Footer */}
-      <footer className="bg-slate-950 border-t border-slate-900 py-16 text-slate-400">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 text-left mb-12">
-            
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center overflow-hidden shrink-0 border border-slate-800">
-                  {school.logoUrl ? (
-                    <img src={getLogoUrl(school.logoUrl)} alt="" className="w-6 h-6 object-contain" />
-                  ) : (
-                    <span className="text-sm font-black text-slate-600">{school.name.charAt(0)}</span>
-                  )}
-                </div>
-                <span className="text-lg font-black tracking-tighter text-white">{school.name}</span>
-              </div>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                Empowering the next generation through academic excellence, moral godliness, and vocational innovation.
+              <p className="text-sm text-gray-500 leading-relaxed max-w-xs">
+                Empowering the next generation through academic excellence, moral development, and innovation.
               </p>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 mb-6">Quick Links</h4>
-              <ul className="space-y-3">
-                <li>
-                  <Link to={`/${school.slug}/login`} className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
-                    <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Student Portal
-                  </Link>
-                </li>
-                <li>
-                  <a href="#admission-process" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
-                    <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Admissions Info
-                  </a>
-                </li>
-                {school.eLibraryUrl ? (
-                  <li>
-                    <a href={school.eLibraryUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
-                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> E-Library Hub
-                    </a>
-                  </li>
-                ) : (
-                  <li>
-                    <Link to={`/${school.slug}/login`} className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
-                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Virtual Learning
-                    </Link>
-                  </li>
-                )}
-                {school.alumniNetworkUrl ? (
-                  <li>
-                    <a href={school.alumniNetworkUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
-                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Alumni Relations
-                    </a>
-                  </li>
-                ) : (
-                  <li>
-                    <a href="#admission-process" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
-                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Join Our Community
-                    </a>
-                  </li>
-                )}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 mb-6">Documents</h4>
-              <ul className="space-y-3">
-                {school.brochureFileUrl ? (
-                  <li>
-                    <a href={school.brochureFileUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
-                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> School Prospectus
-                    </a>
-                  </li>
-                ) : (
-                  <li>
-                    <a href="#admission-process" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group" onClick={(e) => {
-                      const el = document.getElementById('admission-process');
-                      if (el) {
-                        e.preventDefault();
-                        el.scrollIntoView({ behavior: 'smooth' });
-                      }
-                    }}>
-                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Request Prospectus (PDF)
-                    </a>
-                  </li>
-                )}
-                {school.admissionGuideFileUrl ? (
-                  <li>
-                    <a href={school.admissionGuideFileUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
-                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Admissions Policy
-                    </a>
-                  </li>
-                ) : (
-                  <li>
-                    <a href="#admission-process" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group" onClick={(e) => {
-                      const el = document.getElementById('admission-process');
-                      if (el) {
-                        e.preventDefault();
-                        el.scrollIntoView({ behavior: 'smooth' });
-                      }
-                    }}>
-                      <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Admissions Handbook
-                    </a>
-                  </li>
-                )}
-                <li>
-                  <a href="#admission-process" className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1 group">
-                    <FiChevronRight className="transition-transform group-hover:translate-x-1" /> Curriculum Guide
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 mb-6">Follow Us</h4>
-              <div className="flex flex-wrap gap-3">
-                {school.facebookUrl ? (
-                  <a href={school.facebookUrl} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-[var(--theme-color)] hover:text-white transition-all flex items-center justify-center text-lg border border-slate-800" style={{ '--theme-color': primaryColor }} title="Facebook">
-                    <FiFacebook />
-                  </a>
-                ) : (
-                  <a href={`https://facebook.com/search/top/?q=${encodeURIComponent(school.name)}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center text-lg border border-slate-800" title="Facebook Page">
-                    <FiFacebook />
+              {/* Social icons */}
+              <div className="flex gap-2 pt-1">
+                {school?.facebookUrl && (
+                  <a href={school.facebookUrl} target="_blank" rel="noreferrer"
+                    className="w-9 h-9 rounded-xl bg-gray-900 border border-gray-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-blue-600 hover:border-blue-600 transition-all">
+                    <FiFacebook className="w-4 h-4" />
                   </a>
                 )}
-                {school.instagramUrl ? (
-                  <a href={school.instagramUrl} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-[var(--theme-color)] hover:text-white transition-all flex items-center justify-center text-lg border border-slate-800" style={{ '--theme-color': primaryColor }} title="Instagram">
-                    <FiInstagram />
-                  </a>
-                ) : (
-                  <a href={`https://instagram.com/${school.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-pink-600 hover:text-white transition-all flex items-center justify-center text-lg border border-slate-800" title="Instagram Profile">
-                    <FiInstagram />
+                {school?.instagramUrl && (
+                  <a href={school.instagramUrl} target="_blank" rel="noreferrer"
+                    className="w-9 h-9 rounded-xl bg-gray-900 border border-gray-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-pink-600 hover:border-pink-600 transition-all">
+                    <FiInstagram className="w-4 h-4" />
                   </a>
                 )}
-                {school.whatsappUrl ? (
-                  <a href={school.whatsappUrl} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-green-600 hover:text-white transition-all flex items-center justify-center text-lg border border-slate-800" title="WhatsApp">
-                    <FiVolume2 />
-                  </a>
-                ) : (
-                  <a href={`https://wa.me/${school.phone ? school.phone.replace(/[^0-9]/g, '') : ''}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-green-600 hover:text-white transition-all flex items-center justify-center text-lg border border-slate-800" title="WhatsApp Chat">
-                    <FiPhone />
+                {school?.whatsappUrl && (
+                  <a href={school.whatsappUrl} target="_blank" rel="noreferrer"
+                    className="w-9 h-9 rounded-xl bg-gray-900 border border-gray-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-green-600 hover:border-green-600 transition-all">
+                    <FiMessageCircle className="w-4 h-4" />
                   </a>
                 )}
-                <a href={`mailto:${school.email || ''}`} className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center text-lg border border-slate-800" title="Email Us">
-                  <FiMail />
-                </a>
+                {school?.email && (
+                  <a href={`mailto:${school.email}`}
+                    className="w-9 h-9 rounded-xl bg-gray-900 border border-gray-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-red-600 hover:border-red-600 transition-all">
+                    <FiMail className="w-4 h-4" />
+                  </a>
+                )}
               </div>
             </div>
 
+            {/* Quick Links */}
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-widest text-gray-600 mb-5">Quick Links</h4>
+              <ul className="space-y-3">
+                {[
+                  { label: 'Student Portal', href: `/${school?.slug}/login`, internal: true },
+                  { label: 'Admission Enquiry', href: '#admission-process' },
+                  school?.eLibraryUrl && { label: 'E-Library', href: school.eLibraryUrl, external: true },
+                  school?.alumniNetworkUrl && { label: 'Alumni Network', href: school.alumniNetworkUrl, external: true },
+                ].filter(Boolean).map((l, i) => (
+                  <li key={i}>
+                    {l.internal
+                      ? <Link to={l.href} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-white transition-colors">
+                          <FiChevronRight className="w-3.5 h-3.5" style={{ color: primary }} />{l.label}
+                        </Link>
+                      : <a href={l.href} target={l.external ? '_blank' : undefined} rel="noreferrer"
+                          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-white transition-colors">
+                          <FiChevronRight className="w-3.5 h-3.5" style={{ color: primary }} />{l.label}
+                        </a>
+                    }
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Documents */}
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-widest text-gray-600 mb-5">Documents</h4>
+              <ul className="space-y-3">
+                {[
+                  school?.brochureFileUrl && { label: 'School Prospectus', href: school.brochureFileUrl },
+                  school?.admissionGuideFileUrl && { label: 'Admissions Guide', href: school.admissionGuideFileUrl },
+                ].filter(Boolean).map((l, i) => (
+                  <li key={i}>
+                    <a href={l.href} target="_blank" rel="noreferrer"
+                      className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-white transition-colors">
+                      <FiChevronRight className="w-3.5 h-3.5" style={{ color: primary }} />{l.label}
+                    </a>
+                  </li>
+                ))}
+                <li>
+                  <a href="#admission-process"
+                    className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-white transition-colors">
+                    <FiChevronRight className="w-3.5 h-3.5" style={{ color: primary }} />Curriculum Overview
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-widest text-gray-600 mb-5">Contact</h4>
+              <ul className="space-y-3">
+                {school?.address && (
+                  <li className="flex gap-2 text-sm text-gray-500">
+                    <FiMapPin className="w-4 h-4 mt-0.5 shrink-0" style={{ color: primary }} />
+                    <span className="leading-relaxed">{school.address}</span>
+                  </li>
+                )}
+                {school?.phone && (
+                  <li>
+                    <a href={`tel:${school.phone}`} className="flex gap-2 text-sm text-gray-500 hover:text-white transition-colors">
+                      <FiPhone className="w-4 h-4 shrink-0" style={{ color: primary }} />{school.phone}
+                    </a>
+                  </li>
+                )}
+                {school?.email && (
+                  <li>
+                    <a href={`mailto:${school.email}`} className="flex gap-2 text-sm text-gray-500 hover:text-white transition-colors break-all">
+                      <FiMail className="w-4 h-4 shrink-0 mt-0.5" style={{ color: primary }} />{school.email}
+                    </a>
+                  </li>
+                )}
+                {school?.openingHours && (
+                  <li className="flex gap-2 text-sm text-gray-500">
+                    <FiClock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: primary }} />{school.openingHours}
+                  </li>
+                )}
+              </ul>
+            </div>
           </div>
 
-          <div className="border-t border-slate-900 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">© {new Date().getFullYear()} {school.name}. All rights reserved.</p>
-            <p className="text-xs text-slate-500 font-medium">Powered by <span className="font-black text-white">EduTechAI Platform</span></p>
+          {/* Bottom bar */}
+          <div className="border-t border-gray-900 pt-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-xs text-gray-600 font-semibold uppercase tracking-widest">
+              © {new Date().getFullYear()} {school?.name}. All rights reserved.
+            </p>
+            <p className="text-xs text-gray-700">
+              Powered by <span className="text-gray-500 font-black">EduTechAI Platform</span>
+            </p>
           </div>
         </div>
       </footer>
