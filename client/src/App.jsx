@@ -21,6 +21,7 @@ const ReportCard = lazyRetry(() => import('./pages/ReportCard'));
 const LandingPage = lazyRetry(() => import('./pages/LandingPage'));
 const PublicSchoolLandingPage = lazyRetry(() => import('./pages/PublicSchoolLandingPage'));
 const PublicCustomPage = lazyRetry(() => import('./pages/PublicCustomPage'));
+const MeetOurStaff = lazyRetry(() => import('./pages/MeetOurStaff'));
 const Contact = lazyRetry(() => import('./pages/Contact'));
 const NewsEvents = lazyRetry(() => import('./pages/NewsEvents'));
 const Gallery = lazyRetry(() => import('./pages/Gallery'));
@@ -174,6 +175,7 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/:schoolSlug" element={<PublicSchoolLandingPage />} />
+            <Route path="/:schoolSlug/staff" element={<MeetOurStaff />} />
             <Route path="/:schoolSlug/page/:pageSlug" element={<PublicCustomPage />} />
             <Route path="/:schoolSlug/login" element={<Login />} />
             <Route path="/alumni" element={<AlumniPortal />} />

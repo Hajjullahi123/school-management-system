@@ -219,6 +219,10 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 {p.title}
               </Link>
             ))}
+            <Link to={`/${school?.slug}/staff`}
+              className="text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors">
+              Our Staff
+            </Link>
             <a href="#admission-process"
               className="text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors">
               Admissions
@@ -251,6 +255,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 {p.title}
               </Link>
             ))}
+            <Link to={`/${school?.slug}/staff`} className="text-sm font-semibold text-gray-700 py-2" onClick={() => setMobileOpen(false)}>Our Staff</Link>
             <a href="#admission-process" className="text-sm font-semibold text-gray-700 py-2" onClick={() => setMobileOpen(false)}>Admissions</a>
             <a href="#contact-section" className="text-sm font-semibold text-gray-700 py-2" onClick={() => setMobileOpen(false)}>Contact</a>
             <Link to={`/${school?.slug}/login`}

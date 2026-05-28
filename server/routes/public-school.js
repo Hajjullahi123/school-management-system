@@ -142,4 +142,54 @@ router.post('/:slug/subscribe', async (req, res) => {
   }
 });
 
+// Fetch all staff/teachers for the public 'Meet Our Staff' page
+router.get('/:slug/staff', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const school = await prisma.school.findUnique({
+      where: { slug: slug.trim() },
+      select: { id: true, name: true, primaryColor: true, logoUrl: true, websiteTheme: true }
+    });
+
+    if (!school) return res.status(404).json({ error: 'School not found' });
+
+    const staff = await prisma.user.findMany({
+      where: {
+        schoolId: school.id,
+        isActive: true,
+        role: { in: ['teacher', 'admin', 'principal', 'head_teacher'] } // Add roles you want public
+      },
+      select: {
+        id: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        photoUrl: true,
+        role: true,
+        department: { select: { id: true, name: true } },
+        teacher: {
+          select: {
+            specialization: true,
+            photoUrl: true,
+            publicEmail: true,
+            publicPhone: true,
+            publicWhatsapp: true
+          }
+        }
+      },
+      orderBy: [
+        { role: 'asc' }, // e.g. admin might show up before teacher or vice versa, modify if needed
+        { firstName: 'asc' }
+      ]
+    });
+
+    res.json({ school, staff });
+  } catch (error) {
+    console.error('[PublicSchool Staff] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch staff directory' });
+  }
+});
+
 module.exports = router;
