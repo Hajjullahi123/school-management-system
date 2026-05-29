@@ -313,7 +313,7 @@ const PublicSchoolLandingPage = () => {
         </section>
       )}
 
-      <InteractiveTimelineWidget school={school} />
+      {/* <InteractiveTimelineWidget school={school} /> */}
       <TuitionEstimatorWidget school={school} />
 
       {/* Footer / Contact Information */}
