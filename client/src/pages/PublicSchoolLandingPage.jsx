@@ -332,7 +332,7 @@ const PublicSchoolLandingPage = () => {
                 </div>
                 <span className="text-2xl font-black tracking-tighter">{school.name}</span>
               </div>
-              <p className="text-gray-400 font-medium max-w-sm">
+              <p className="text-gray-300 font-medium text-[15px] max-w-sm leading-relaxed">
                 Empowering the next generation through academic excellence, character development, and technological innovation.
               </p>
               
@@ -357,22 +357,22 @@ const PublicSchoolLandingPage = () => {
             </div>
 
             <div>
-              <h4 className="text-sm font-black uppercase tracking-widest mb-6 text-gray-500">Contact Us</h4>
+              <h4 className="text-[13px] font-black uppercase tracking-widest mb-6 text-gray-300">Contact Us</h4>
               <ul className="space-y-4">
                 {school.address && (
-                  <li className="flex items-start gap-3 text-gray-300 text-sm">
+                  <li className="flex items-start gap-3 text-gray-200 text-[15px]">
                     <FiMapPin className="mt-0.5 flex-shrink-0" style={{ color: accentColor }} />
                     <span>{school.address}</span>
                   </li>
                 )}
                 {school.phone && (
-                  <li className="flex items-center gap-3 text-gray-300 text-sm">
+                  <li className="flex items-center gap-3 text-gray-200 text-[15px]">
                     <FiPhone className="flex-shrink-0" style={{ color: accentColor }} />
                     <a href={`tel:${school.phone}`} className="hover:text-white transition-colors">{school.phone}</a>
                   </li>
                 )}
                 {school.email && (
-                  <li className="flex items-center gap-3 text-gray-300 text-sm">
+                  <li className="flex items-center gap-3 text-gray-200 text-[15px]">
                     <FiMail className="flex-shrink-0" style={{ color: accentColor }} />
                     <a href={`mailto:${school.email}`} className="hover:text-white transition-colors">{school.email}</a>
                   </li>
@@ -381,38 +381,38 @@ const PublicSchoolLandingPage = () => {
             </div>
 
             <div>
-              <h4 className="text-sm font-black uppercase tracking-widest mb-6 text-gray-500">Quick Links</h4>
+              <h4 className="text-[13px] font-black uppercase tracking-widest mb-6 text-gray-300">Quick Links</h4>
               <ul className="space-y-3">
                 <li>
-                  <Link to={`/${school.slug}/login`} className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-sm font-medium">
+                  <Link to={`/${school.slug}/login`} className="flex items-center gap-2 text-gray-200 hover:text-white transition-colors text-[15px] font-medium">
                     <FiChevronRight style={{ color: accentColor }} /> Portal Login
                   </Link>
                 </li>
                 <li>
-                  <Link to={`/${school.slug}/staff`} className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-sm font-medium">
+                  <Link to={`/${school.slug}/staff`} className="flex items-center gap-2 text-gray-200 hover:text-white transition-colors text-[15px] font-medium">
                     <FiChevronRight style={{ color: accentColor }} /> School Staff
                   </Link>
                 </li>
                 <li>
-                  <Link to={`/${school.slug}/higher-students`} className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-sm font-medium">
+                  <Link to={`/${school.slug}/higher-students`} className="flex items-center gap-2 text-gray-200 hover:text-white transition-colors text-[15px] font-medium">
                     <FiChevronRight style={{ color: accentColor }} /> Higher Inst. Students
                   </Link>
                 </li>
                 <li>
-                  <Link to="/alumni" className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-sm font-medium">
+                  <Link to="/alumni" className="flex items-center gap-2 text-gray-200 hover:text-white transition-colors text-[15px] font-medium">
                     <FiChevronRight style={{ color: accentColor }} /> Alumni Directory
                   </Link>
                 </li>
                 {school.eLibraryUrl && (
                   <li>
-                    <a href={school.eLibraryUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-sm font-medium">
+                    <a href={school.eLibraryUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-200 hover:text-white transition-colors text-[15px] font-medium">
                       <FiChevronRight style={{ color: accentColor }} /> E-Library
                     </a>
                   </li>
                 )}
                 {school.alumniNetworkUrl && (
                   <li>
-                    <a href={school.alumniNetworkUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-sm font-medium">
+                    <a href={school.alumniNetworkUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-200 hover:text-white transition-colors text-[15px] font-medium">
                       <FiChevronRight style={{ color: accentColor }} /> Alumni Network
                     </a>
                   </li>
@@ -422,11 +422,11 @@ const PublicSchoolLandingPage = () => {
           </div>
           
           <div className="border-t border-gray-800 mt-16 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-             <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">
+             <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
                &copy; {new Date().getFullYear()} {school.name}. All rights reserved.
              </p>
-             <p className="text-xs text-gray-600 font-medium">
-               Powered by <span className="font-black text-gray-400">EduTechAI Platform</span>
+             <p className="text-xs text-gray-400 font-medium">
+               Powered by <span className="font-black text-gray-300">EduTechAI Platform</span>
              </p>
           </div>
         </div>

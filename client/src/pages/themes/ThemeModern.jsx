@@ -760,7 +760,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 </div>
               </div>
 
-              <p className="text-sm text-gray-500 leading-relaxed">
+              <p className="text-sm text-gray-300 leading-relaxed text-left">
                 {school?.motto || 'Empowering the next generation through academic excellence, moral development, and innovation.'}
               </p>
 
@@ -776,7 +776,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                   { url: school?.email ? `mailto:${school.email}` : null, icon: <FiMail className="w-4 h-4" />, hover: 'hover:bg-rose-600 hover:border-rose-600', label: 'Email' },
                 ].filter(s => s.url).map((s, i) => (
                   <a key={i} href={s.url} target="_blank" rel="noreferrer" title={s.label}
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 border border-white/10 hover:text-white transition-all duration-200 ${s.hover}`}>
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center text-gray-300 border border-white/10 hover:text-white transition-all duration-200 ${s.hover}`}>
                     {s.icon}
                   </a>
                 ))}
@@ -803,12 +803,12 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 ].filter(Boolean).map((l, i) => (
                   <li key={i}>
                     {l.internal
-                      ? <Link to={l.href} className="group flex items-center gap-2 text-sm text-gray-500 hover:text-white transition-colors duration-200">
+                      ? <Link to={l.href} className="group flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors duration-200">
                           <span className="w-1.5 h-1.5 rounded-full shrink-0 group-hover:w-3 transition-all duration-200" style={{ backgroundColor: primary }} />
                           {l.label}
                         </Link>
                       : <a href={l.href} target={l.external ? '_blank' : undefined} rel="noreferrer"
-                          className="group flex items-center gap-2 text-sm text-gray-500 hover:text-white transition-colors duration-200">
+                          className="group flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors duration-200">
                           <span className="w-1.5 h-1.5 rounded-full shrink-0 group-hover:w-3 transition-all duration-200" style={{ backgroundColor: primary }} />
                           {l.label}
                         </a>
@@ -832,7 +832,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 ].filter(Boolean).map((l, i) => (
                   <li key={i}>
                     <a href={l.href} target="_blank" rel="noreferrer"
-                      className="group flex items-center gap-2 text-sm text-gray-500 hover:text-white transition-colors duration-200">
+                      className="group flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors duration-200">
                       <span className="w-1.5 h-1.5 rounded-full shrink-0 group-hover:w-3 transition-all duration-200" style={{ backgroundColor: primary }} />
                       {l.label}
                     </a>
@@ -849,14 +849,14 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               </div>
               <ul className="space-y-3.5">
                 {school?.address && (
-                  <li className="flex gap-3 text-sm text-gray-500">
+                  <li className="flex gap-3 text-sm text-gray-300 text-left">
                     <FiMapPin className="w-4 h-4 mt-0.5 shrink-0" style={{ color: primary }} />
-                    <span className="leading-relaxed">{school.address}</span>
+                    <span className="leading-relaxed text-left">{school.address}</span>
                   </li>
                 )}
                 {school?.phone && (
                   <li>
-                    <a href={`tel:${school.phone}`} className="flex gap-3 text-sm text-gray-500 hover:text-white transition-colors group">
+                    <a href={`tel:${school.phone}`} className="flex gap-3 text-sm text-gray-300 hover:text-white transition-colors group text-left">
                       <FiPhone className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform" style={{ color: primary }} />
                       {school.phone}
                     </a>
@@ -864,14 +864,14 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 )}
                 {school?.email && (
                   <li>
-                    <a href={`mailto:${school.email}`} className="flex gap-3 text-sm text-gray-500 hover:text-white transition-colors break-all group">
+                    <a href={`mailto:${school.email}`} className="flex gap-3 text-sm text-gray-300 hover:text-white transition-colors break-all group text-left">
                       <FiMail className="w-4 h-4 shrink-0 mt-0.5 group-hover:scale-110 transition-transform" style={{ color: primary }} />
                       {school.email}
                     </a>
                   </li>
                 )}
                 {school?.openingHours && (
-                  <li className="flex gap-3 text-sm text-gray-500">
+                  <li className="flex gap-3 text-sm text-gray-300 text-left">
                     <FiClock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: primary }} />
                     {school.openingHours}
                   </li>
@@ -882,10 +882,10 @@ const ThemeModern = ({ school, getLogoUrl }) => {
 
           {/* Bottom bar */}
           <div className="border-t border-white/5 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-gray-500 font-semibold tracking-wide text-center sm:text-left">
+            <p className="text-xs text-gray-400 font-semibold tracking-wide text-center sm:text-left">
               © {new Date().getFullYear()} <span className="text-gray-300">{school?.name}</span>. All Rights Reserved.
             </p>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-slate-400">
               Powered by <span className="font-black" style={{ color: primary }}>EduTechAI</span> <span className="text-slate-500">Platform</span>
             </p>
           </div>
