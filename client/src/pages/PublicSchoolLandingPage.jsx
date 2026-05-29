@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiLogOut, FiMail, FiPhone, FiMapPin, FiArrowRight, FiFacebook, FiInstagram, FiMessageCircle, FiGlobe, FiChevronRight, FiMenu, FiX } from 'react-icons/fi';
+import { FiLogOut, FiMail, FiPhone, FiMapPin, FiArrowRight, FiFacebook, FiInstagram, FiMessageCircle, FiGlobe, FiChevronRight, FiMenu, FiX, FiChevronDown } from 'react-icons/fi';
 import ReactMarkdown from 'react-markdown';
 import { apiCall } from '../api';
 import { API_BASE_URL } from '../config';
@@ -120,12 +120,19 @@ const PublicSchoolLandingPage = () => {
               <Link to={`/${school.slug}/staff`} className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">
                 Staff
               </Link>
-              <Link to={`/${school.slug}/higher-students`} className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">
-                Higher Inst. Students
-              </Link>
-              <Link to="/alumni" className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">
-                Alumni
-              </Link>
+              <div className="relative group py-2">
+                <button className="flex items-center gap-1 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors focus:outline-none">
+                  Alumni <FiChevronDown className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180" />
+                </button>
+                <div className="absolute right-0 mt-2 w-52 rounded-xl bg-white border border-gray-100 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-1">
+                  <Link to="/alumni" className="block px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all rounded-lg mx-1">
+                    Alumni Portal
+                  </Link>
+                  <Link to={`/${school.slug}/higher-students`} className="block px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all rounded-lg mx-1">
+                    Higher Inst. Students
+                  </Link>
+                </div>
+              </div>
               <Link to={`/${school.slug}/gallery`} className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">
                 Gallery
               </Link>

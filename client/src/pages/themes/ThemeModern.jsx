@@ -23,6 +23,7 @@ import {
   FiTwitter,
   FiYoutube,
   FiLinkedin,
+  FiChevronDown,
 } from 'react-icons/fi';
 import ReactMarkdown from 'react-markdown';
 import { API_BASE_URL } from '../../config';
@@ -223,14 +224,19 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
               Our Staff
             </Link>
-            <Link to={`/${school?.slug}/higher-students`}
-              className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
-              Higher Inst. Students
-            </Link>
-            <Link to="/alumni"
-              className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
-              Alumni
-            </Link>
+            <div className="relative group py-2">
+              <button className="flex items-center gap-1 text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all focus:outline-none">
+                Alumni <FiChevronDown className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180" />
+              </button>
+              <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white border border-gray-100 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-1.5">
+                <Link to="/alumni" className="block px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all rounded-xl mx-1.5">
+                  Alumni Portal
+                </Link>
+                <Link to={`/${school?.slug}/higher-students`} className="block px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all rounded-xl mx-1.5">
+                  Higher Inst. Students
+                </Link>
+              </div>
+            </div>
             <Link to={`/${school?.slug}/admissions`}
               className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
               Admissions
