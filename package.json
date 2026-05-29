@@ -5,7 +5,7 @@
   "main": "electron-main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
-    "build": "npm install --prefix client && npm run build --prefix client && npm install --prefix server && npx prisma@5.22.0 generate --schema=server/prisma/schema.prisma",
+    "build": "npm install --prefix client --include=dev && npm run build --prefix client && npm install --prefix server --include=dev && npx prisma@5.22.0 generate --schema=server/prisma/schema.prisma",
     "start": "npm run start --prefix server",
     "desktop:dev": "electron .",
     "desktop:dist": "node build-script.js --desktop && electron-builder",
