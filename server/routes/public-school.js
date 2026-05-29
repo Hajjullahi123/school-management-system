@@ -28,6 +28,7 @@ router.get('/:slug', async (req, res) => {
         facebookUrl: true,
         instagramUrl: true,
         whatsappUrl: true,
+        twitterUrl: true,
         youtubeUrl: true,
         linkedinUrl: true,
         academicCalendarUrl: true,
@@ -44,7 +45,7 @@ router.get('/:slug', async (req, res) => {
           where: { isActive: true },
           select: { title: true, slug: true }
         },
-        galleryImages: {
+        GalleryImage: {
           where: { category: 'hero', isActive: true },
           select: { imageUrl: true }
         },
@@ -68,10 +69,10 @@ router.get('/:slug', async (req, res) => {
           where: { isActive: true },
           select: { id: true, name: true, arm: true }
         },
-        classFeeStructures: {
+        ClassFeeStructure: {
           select: { classId: true, amount: true, termId: true, academicSessionId: true, description: true }
         },
-        miscellaneousFees: {
+        MiscellaneousFee: {
           select: { id: true, title: true, amount: true, description: true, isCompulsory: true }
         }
       }

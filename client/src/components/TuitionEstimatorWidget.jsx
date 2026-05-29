@@ -53,7 +53,7 @@ const TuitionEstimatorWidget = ({ school }) => {
 
   // Surcharges & Add-ons list
   // Dynamically extract boarding and other fees if they exist in the DB
-  const dbFees = Array.isArray(school.miscellaneousFees) ? school.miscellaneousFees : [];
+  const dbFees = Array.isArray(school.MiscellaneousFee) ? school.MiscellaneousFee : [];
   
   // Try to find a boarding fee specifically to power the Boarding Enrolment option
   const boardingFeeObj = dbFees.find(f => f.title.toLowerCase().includes('boarding') || f.title.toLowerCase().includes('hostel'));
@@ -91,10 +91,10 @@ const TuitionEstimatorWidget = ({ school }) => {
   const getBaseTuition = (classIdStr) => {
     if (!classIdStr) return 50000;
 
-    // Check classFeeStructures first
-    if (Array.isArray(school.classFeeStructures)) {
+    // Check ClassFeeStructure first
+    if (Array.isArray(school.ClassFeeStructure)) {
       const numericId = parseInt(classIdStr);
-      const match = school.classFeeStructures.find(fs => fs.classId === numericId);
+      const match = school.ClassFeeStructure.find(fs => fs.classId === numericId);
       if (match) return match.amount;
     }
 
