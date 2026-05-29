@@ -17,6 +17,7 @@ import { apiCall } from '../api';
 import { API_BASE_URL } from '../config';
 
 const TuitionEstimatorWidget = ({ school }) => {
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState('');
   const [isBoarding, setIsBoarding] = useState(false);
   const [selectedAddons, setSelectedAddons] = useState([]);
@@ -51,34 +52,48 @@ const TuitionEstimatorWidget = ({ school }) => {
 
   const activeClasses = classes.length > 0 ? classes : fallbackClasses;
 
+  let estimatorConfig = null;
+  if (school.tuitionEstimatorConfig) {
+    try {
+      estimatorConfig = JSON.parse(school.tuitionEstimatorConfig);
+    } catch(e) {}
+  }
+
   // Surcharges & Add-ons list
   // Dynamically extract boarding and other fees if they exist in the DB
   const dbFees = Array.isArray(school.MiscellaneousFee) ? school.MiscellaneousFee : [];
   
-  // Try to find a boarding fee specifically to power the Boarding Enrolment option
-  const boardingFeeObj = dbFees.find(f => f.title.toLowerCase().includes('boarding') || f.title.toLowerCase().includes('hostel'));
-  const boardingFee = boardingFeeObj ? boardingFeeObj.amount : 120000;
-  
-  // Filter out the boarding fee from general addons
-  const dynamicAddons = dbFees
-    .filter(f => f.id !== boardingFeeObj?.id)
-    .map(f => ({
-      id: f.id.toString(),
-      name: f.title,
-      price: f.amount,
-      desc: f.description || (f.isCompulsory ? 'Compulsory fee' : 'Optional service fee')
-    }));
+  let boardingFee = 120000;
+  let hasBoarding = true;
+  let addonsList = [];
 
-  const fallbackAddons = [
-    { id: 'bus', name: 'School Bus Transit (Daily Routing)', price: 18000, desc: 'Optional two-way transport logistics.' },
-    { id: 'meals', name: 'Premium Lunch & Meal Plan', price: 22000, desc: 'Freshly prepared, balanced hot lunches daily.' },
-    { id: 'books', name: 'Textbooks & Stationery Kit', price: 15000, desc: 'All curriculum-aligned books & writing tools.' },
-    { id: 'uniforms', name: 'Standard Uniform Set (2 sets + sportwear)', price: 25000, desc: 'Quality customized school attire sets.' }
-  ];
+  if (estimatorConfig) {
+    boardingFee = estimatorConfig.boarding || 120000;
+    hasBoarding = estimatorConfig.hasBoarding !== false;
+    addonsList = estimatorConfig.addons || [];
+  } else {
+    const boardingFeeObj = dbFees.find(f => f.title.toLowerCase().includes('boarding') || f.title.toLowerCase().includes('hostel'));
+    if (boardingFeeObj) boardingFee = boardingFeeObj.amount;
+    if (dbFees.length > 0 && !boardingFeeObj) hasBoarding = false; // if dbFees exist but no boarding, hide it
+    
+    const dynamicAddons = dbFees
+      .filter(f => f.id !== boardingFeeObj?.id)
+      .map(f => ({
+        id: f.id.toString(),
+        name: f.title,
+        price: f.amount,
+        desc: f.description || (f.isCompulsory ? 'Compulsory fee' : 'Optional service fee')
+      }));
 
-  // If the school has configured actual classes, we assume they should also configure actual addons.
-  // We only show fallback addons if they haven't configured any custom fees AND haven't configured classes.
-  const addonsList = dynamicAddons.length > 0 ? dynamicAddons : (classes.length === 0 ? fallbackAddons : []);
+    const fallbackAddons = [
+      { id: 'bus', name: 'School Bus Transit (Daily Routing)', price: 18000, desc: 'Optional two-way transport logistics.' },
+      { id: 'meals', name: 'Premium Lunch & Meal Plan', price: 22000, desc: 'Freshly prepared, balanced hot lunches daily.' },
+      { id: 'books', name: 'Textbooks & Stationery Kit', price: 15000, desc: 'All curriculum-aligned books & writing tools.' },
+      { id: 'uniforms', name: 'Standard Uniform Set (2 sets + sportwear)', price: 25000, desc: 'Quality customized school attire sets.' }
+    ];
+
+    addonsList = dynamicAddons.length > 0 ? dynamicAddons : (classes.length === 0 ? fallbackAddons : []);
+  }
 
   // Helper to convert hex colors to RGBA
   const hexToRgba = (hex = '#4f46e5', alpha = 1) => {
@@ -98,18 +113,27 @@ const TuitionEstimatorWidget = ({ school }) => {
       if (match) return match.amount;
     }
 
-    // Try name parsing for DB classes
+    const str = classIdStr.toLowerCase();
+    let name = '';
     const matchedClass = classes.find(c => c.id.toString() === classIdStr);
+    if (matchedClass) name = matchedClass.name.toLowerCase();
+
+    if (estimatorConfig) {
+       if (str.includes('nursery') || name.includes('nursery') || name.includes('creche') || name.includes('pre')) return estimatorConfig.nursery || 35000;
+       if (str.includes('primary') || name.includes('primary') || name.includes('grade')) return estimatorConfig.primary || 50000;
+       if (str.includes('jss') || str.includes('junior') || name.includes('jss') || name.includes('junior')) return estimatorConfig.junior || 80000;
+       if (str.includes('sss') || str.includes('senior') || name.includes('sss') || name.includes('senior')) return estimatorConfig.senior || 110000;
+       return 60000;
+    }
+
     if (matchedClass) {
-      const name = matchedClass.name.toLowerCase();
       if (name.includes('nursery') || name.includes('creche') || name.includes('pre')) return 35000;
-      if (name.includes('primary') || name.includes('grade') || name.includes('grade')) return 50000;
+      if (name.includes('primary') || name.includes('grade')) return 50000;
       if (name.includes('jss') || name.includes('junior')) return 80000;
       if (name.includes('sss') || name.includes('senior')) return 110000;
       return 60000;
     }
 
-    // Handle fallbacks
     if (classIdStr === 'f-nursery') return 35000;
     if (classIdStr === 'f-primary') return 55000;
     if (classIdStr === 'f-junior') return 85000;
@@ -193,6 +217,27 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
     }
   };
 
+  if (!isCalculatorOpen) {
+    return (
+      <section id="tuition-estimator" className="py-24 px-6 bg-slate-50 border-t border-gray-100 relative z-20 overflow-hidden text-center">
+        <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight mb-6">
+          Tuition Fee <span style={{ color: primary }}>Estimator</span>
+        </h2>
+        <p className="text-gray-500 max-w-xl mx-auto text-sm leading-relaxed font-semibold mb-8">
+          Curious about our fees? Use our interactive calculator to get a detailed per-term cost estimation.
+        </p>
+        <button
+          onClick={() => setIsCalculatorOpen(true)}
+          className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full text-white font-black text-sm uppercase tracking-widest shadow-xl hover:-translate-y-1 transition-all"
+          style={{ backgroundColor: primary }}
+        >
+          <FiSliders className="w-5 h-5" />
+          Open Fee Calculator
+        </button>
+      </section>
+    );
+  }
+
   return (
     <section id="tuition-estimator" className="py-24 px-6 bg-slate-50 border-t border-gray-100 relative z-20 overflow-hidden">
       {/* Dynamic Background Glowing Accents */}
@@ -257,7 +302,7 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
               </div>
 
               {/* Enrolment Type Selection */}
-              {(boardingFeeObj || classes.length === 0) && (
+              {hasBoarding && (
                 <div className="space-y-3">
                   <label className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 block ml-1">
                     Step 2: Choose Enrolment Mode

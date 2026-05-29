@@ -201,7 +201,7 @@ router.put('/', authenticate, async (req, res) => {
     reportFontFamily, reportColorScheme, showPositionOnReport, showFeesOnReport, showAttendanceOnReport, reportLayout,
     certFontFamily, certBorderType, certPrimaryColor, certSecondaryColor,
     testimFontFamily, testimBorderType, testimPrimaryColor, testimSecondaryColor,
-    websiteTheme, aboutUsText, testimonialsText, foundedYear
+    websiteTheme, aboutUsText, testimonialsText, foundedYear, tuitionEstimatorConfig
   } = req.body;
 
   // Validate weightings if provided
@@ -236,6 +236,7 @@ router.put('/', authenticate, async (req, res) => {
     if (aboutUsText !== undefined) updateData.aboutUsText = aboutUsText;
     if (testimonialsText !== undefined) updateData.testimonialsText = testimonialsText;
     if (foundedYear !== undefined) updateData.foundedYear = foundedYear ? Number(foundedYear) : null;
+    if (tuitionEstimatorConfig !== undefined) updateData.tuitionEstimatorConfig = tuitionEstimatorConfig;
 
     if (primaryColor !== undefined) updateData.primaryColor = primaryColor;
     if (secondaryColor !== undefined) updateData.secondaryColor = secondaryColor;

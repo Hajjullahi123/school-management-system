@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiCall, api } from '../../api';
 import toast from 'react-hot-toast';
-import { FiPlus, FiEdit2, FiTrash2, FiLink, FiCheck, FiX, FiLayout, FiGlobe, FiBookOpen, FiUsers, FiSave } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiLink, FiCheck, FiX, FiLayout, FiGlobe, FiBookOpen, FiUsers, FiSave, FiDollarSign } from 'react-icons/fi';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import ReactMarkdown from 'react-markdown';
 
@@ -16,6 +16,20 @@ const CustomPages = () => {
   const [aboutUsText, setAboutUsText] = useState('');
   const [testimonials, setTestimonials] = useState([]);
   const [isSavingContent, setIsSavingContent] = useState(false);
+  const [tuitionEstimatorConfig, setTuitionEstimatorConfig] = useState({
+    nursery: 35000,
+    primary: 50000,
+    junior: 80000,
+    senior: 110000,
+    hasBoarding: true,
+    boarding: 120000,
+    addons: [
+      { id: 'bus', name: 'School Bus Transit (Daily Routing)', price: 18000, desc: 'Optional two-way transport logistics.' },
+      { id: 'meals', name: 'Premium Lunch & Meal Plan', price: 22000, desc: 'Freshly prepared, balanced hot lunches daily.' },
+      { id: 'books', name: 'Textbooks & Stationery Kit', price: 15000, desc: 'All curriculum-aligned books & writing tools.' },
+      { id: 'uniforms', name: 'Standard Uniform Set (2 sets + sportwear)', price: 25000, desc: 'Quality customized school attire sets.' }
+    ]
+  });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -62,6 +76,16 @@ const CustomPages = () => {
       } else {
         setTestimonials([]);
       }
+      if (data.tuitionEstimatorConfig) {
+        try {
+          const parsedConfig = JSON.parse(data.tuitionEstimatorConfig);
+          // ensure hasBoarding defaults to true if not present for backwards compatibility
+          if (parsedConfig.hasBoarding === undefined) parsedConfig.hasBoarding = true;
+          setTuitionEstimatorConfig(parsedConfig);
+        } catch (e) {
+          console.error('Failed to parse tuition estimator config', e);
+        }
+      }
     } catch (err) {
       console.error('Failed to load theme settings:', err);
     }
@@ -97,6 +121,7 @@ const CustomPages = () => {
       // Update values
       settingsData.aboutUsText = aboutUsText;
       settingsData.testimonialsText = serializedTestimonials;
+      settingsData.tuitionEstimatorConfig = JSON.stringify(tuitionEstimatorConfig);
       
       const saveRes = await api.put('/api/settings', settingsData);
       if (saveRes.ok) {
@@ -466,6 +491,117 @@ const CustomPages = () => {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Tuition Fee Estimator Section */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8 space-y-6">
+        <div className="border-b border-gray-100 pb-4">
+          <div className="flex items-center gap-3 mb-1">
+            <FiDollarSign className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-black text-gray-900">Tuition Fee Estimator</h3>
+          </div>
+          <p className="text-sm text-gray-500">
+            Configure default fees and add-ons used by the public website fee calculator. 
+          </p>
+        </div>
+        <div className="space-y-6">
+          <div>
+            <h4 className="font-bold text-gray-800 text-sm mb-3">Base Tuitions</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              {['nursery', 'primary', 'junior', 'senior'].map(grade => (
+                <div key={grade} className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider capitalize">{grade} Base Fee</label>
+                  <input
+                    type="number"
+                    value={tuitionEstimatorConfig[grade]}
+                    onChange={e => setTuitionEstimatorConfig({ ...tuitionEstimatorConfig, [grade]: Number(e.target.value) })}
+                    className="border border-gray-300 rounded-xl px-4 py-2 w-full text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          <hr className="border-gray-100" />
+          <div>
+            <h4 className="font-bold text-gray-800 text-sm mb-3 flex items-center justify-between">
+              Boarding Configuration
+              <label className="flex items-center gap-2 text-sm font-normal cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={tuitionEstimatorConfig.hasBoarding}
+                  onChange={e => setTuitionEstimatorConfig({ ...tuitionEstimatorConfig, hasBoarding: e.target.checked })}
+                  className="rounded text-primary focus:ring-primary w-4 h-4"
+                />
+                School has Boarding Section
+              </label>
+            </h4>
+            {tuitionEstimatorConfig.hasBoarding && (
+              <div className="space-y-1 w-full sm:w-1/2 md:w-1/4">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Boarding Fee (Per Term)</label>
+                <input
+                  type="number"
+                  value={tuitionEstimatorConfig.boarding}
+                  onChange={e => setTuitionEstimatorConfig({ ...tuitionEstimatorConfig, boarding: Number(e.target.value) })}
+                  className="border border-gray-300 rounded-xl px-4 py-2 w-full text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            )}
+          </div>
+          <hr className="border-gray-100" />
+          <div>
+            <h4 className="font-bold text-gray-800 text-sm mb-3">Optional Add-ons</h4>
+            <div className="space-y-4">
+              {tuitionEstimatorConfig.addons.map((addon, i) => (
+                <div key={i} className="border border-gray-200 p-4 rounded-xl bg-gray-50/50 flex flex-col md:flex-row gap-4 items-start md:items-center">
+                  <div className="w-full md:w-1/4 space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Service Name</label>
+                    <input type="text" value={addon.name} onChange={e => {
+                      const newAddons = [...tuitionEstimatorConfig.addons];
+                      newAddons[i].name = e.target.value;
+                      setTuitionEstimatorConfig({ ...tuitionEstimatorConfig, addons: newAddons });
+                    }} className="border border-gray-300 rounded-xl px-3 py-2 w-full text-sm outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div className="w-full md:w-1/2 space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Description</label>
+                    <input type="text" value={addon.desc} onChange={e => {
+                      const newAddons = [...tuitionEstimatorConfig.addons];
+                      newAddons[i].desc = e.target.value;
+                      setTuitionEstimatorConfig({ ...tuitionEstimatorConfig, addons: newAddons });
+                    }} className="border border-gray-300 rounded-xl px-3 py-2 w-full text-sm outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div className="w-full md:w-1/4 space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Price (₦)</label>
+                    <div className="flex gap-2 items-center">
+                      <input type="number" value={addon.price} onChange={e => {
+                        const newAddons = [...tuitionEstimatorConfig.addons];
+                        newAddons[i].price = Number(e.target.value);
+                        setTuitionEstimatorConfig({ ...tuitionEstimatorConfig, addons: newAddons });
+                      }} className="border border-gray-300 rounded-xl px-3 py-2 w-full text-sm outline-none focus:ring-2 focus:ring-primary/20" />
+                      <button type="button" onClick={() => {
+                        const newAddons = tuitionEstimatorConfig.addons.filter((_, idx) => idx !== i);
+                        setTuitionEstimatorConfig({ ...tuitionEstimatorConfig, addons: newAddons });
+                      }} className="text-red-500 hover:text-red-700 p-2"><FiTrash2 /></button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <button type="button" onClick={() => {
+                setTuitionEstimatorConfig({
+                  ...tuitionEstimatorConfig,
+                  addons: [...tuitionEstimatorConfig.addons, { id: 'new-' + Date.now(), name: '', desc: '', price: 0 }]
+                });
+              }} className="w-full border-2 border-dashed border-gray-300 text-gray-500 hover:text-primary hover:border-primary px-4 py-3 rounded-2xl text-sm font-bold hover:bg-primary/[0.01] transition-all flex items-center justify-center gap-2">
+                + Add Optional Service
+              </button>
+            </div>
+          </div>
+          <div className="flex justify-end pt-4 border-t border-gray-100">
+            <button type="button" onClick={handleSaveContent} disabled={isSavingContent} className="flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 text-sm">
+              <FiSave className="w-4 h-4" />
+              {isSavingContent ? 'Saving...' : 'Save Estimator Config'}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Website Custom Pages List */}
