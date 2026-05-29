@@ -220,10 +220,15 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
   };
 
   return (
-    <section id="tuition-estimator" className="bg-slate-50 border-y border-gray-200 relative z-20">
+    <section id="tuition-estimator" className="border-y border-gray-200/60 relative z-20 overflow-hidden">
+      {/* Subtle theme gradient background (slightly different opacity to distinguish from timeline) */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-[0.05]"
+        style={{ background: `linear-gradient(90deg, ${primary}, ${secondary})` }}
+      />
       <button
         onClick={() => setIsCalculatorOpen(!isCalculatorOpen)}
-        className="w-full flex items-center justify-between px-6 py-4 text-sm font-bold text-gray-800 hover:bg-gray-100 transition-colors cursor-pointer"
+        className="w-full flex items-center justify-between px-6 py-[18px] text-sm font-bold text-gray-800 hover:bg-black/[0.02] transition-colors cursor-pointer relative z-10"
       >
         <div className="flex items-center gap-3">
           <FiSliders className="w-5 h-5" style={{ color: primary }} />
