@@ -21,6 +21,7 @@ ENV NODE_ENV="production"
 
 # Throw-away build stage to reduce size of final image
 FROM base AS build
+ENV NODE_ENV="development"
 
 # Install packages needed to build node modules
 RUN apt-get update -qq && \
