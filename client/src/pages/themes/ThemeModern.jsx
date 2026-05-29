@@ -27,6 +27,7 @@ import {
 } from 'react-icons/fi';
 import ReactMarkdown from 'react-markdown';
 import { API_BASE_URL } from '../../config';
+import FloatingContactWidget from '../../components/FloatingContactWidget';
 
 /* ─────────────────────────────────────────────
    Helpers
@@ -890,6 +891,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           </div>
         </div>
       </footer>
+      <FloatingContactWidget school={school} getLogoUrl={getLogoUrl} />
     </div>
   );
 };

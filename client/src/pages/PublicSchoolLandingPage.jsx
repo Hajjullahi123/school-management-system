@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import { apiCall } from '../api';
 import { API_BASE_URL } from '../config';
 import ThemeModern from './themes/ThemeModern';
+import FloatingContactWidget from '../components/FloatingContactWidget';
 
 const PublicSchoolLandingPage = () => {
   const { schoolSlug } = useParams();
@@ -430,6 +431,7 @@ const PublicSchoolLandingPage = () => {
           </div>
         </div>
       </footer>
+      <FloatingContactWidget school={school} getLogoUrl={getLogoUrl} />
     </div>
   );
 };
