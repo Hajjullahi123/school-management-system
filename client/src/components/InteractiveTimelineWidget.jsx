@@ -102,8 +102,8 @@ const InteractiveTimelineWidget = ({ school }) => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-6 relative z-20 mb-4 mt-8">
-      <section className="bg-white rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden transition-all hover:shadow-md">
+    <div className="w-full relative z-20 flex flex-col h-full">
+      <section className="bg-white rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden transition-all hover:shadow-md flex-1">
         {/* Subtle theme gradient background */}
         <div 
           className="absolute inset-0 pointer-events-none opacity-[0.03]"

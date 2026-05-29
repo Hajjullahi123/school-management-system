@@ -313,8 +313,10 @@ const PublicSchoolLandingPage = () => {
         </section>
       )}
 
-      <InteractiveTimelineWidget school={school} />
-      <TuitionEstimatorWidget school={school} />
+      <div className="w-[90%] max-w-7xl mx-auto grid lg:grid-cols-2 gap-6 items-start my-12 relative z-20">
+        <InteractiveTimelineWidget school={school} />
+        <TuitionEstimatorWidget school={school} />
+      </div>
 
       {/* Footer / Contact Information */}
       <footer className="mt-auto bg-gray-900 text-white py-16 relative overflow-hidden border-t-4" style={{ borderColor: primaryColor }}>
