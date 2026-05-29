@@ -52,8 +52,18 @@ router.get('/:slug', async (req, res) => {
         newsEvents: {
           where: { isPublished: true },
           orderBy: { eventDate: 'desc' },
-          take: 3,
+          take: 5,
           select: { id: true, title: true, type: true, eventDate: true, imageUrl: true, content: true }
+        },
+        schoolHolidays: {
+          orderBy: { startDate: 'asc' },
+          select: { id: true, name: true, startDate: true, endDate: true }
+        },
+        notices: {
+          where: { audience: 'all', isActive: true },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          select: { id: true, title: true, content: true, category: true, createdAt: true }
         }
       }
     });

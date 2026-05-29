@@ -7,6 +7,7 @@ import { apiCall } from '../api';
 import { API_BASE_URL } from '../config';
 import ThemeModern from './themes/ThemeModern';
 import FloatingContactWidget from '../components/FloatingContactWidget';
+import InteractiveTimelineWidget from '../components/InteractiveTimelineWidget';
 
 const PublicSchoolLandingPage = () => {
   const { schoolSlug } = useParams();
@@ -310,6 +311,8 @@ const PublicSchoolLandingPage = () => {
           </div>
         </section>
       )}
+
+      <InteractiveTimelineWidget school={school} />
 
       {/* Footer / Contact Information */}
       <footer className="mt-auto bg-gray-900 text-white py-16 relative overflow-hidden border-t-4" style={{ borderColor: primaryColor }}>

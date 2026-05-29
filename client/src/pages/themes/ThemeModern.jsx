@@ -28,6 +28,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import { API_BASE_URL } from '../../config';
 import FloatingContactWidget from '../../components/FloatingContactWidget';
+import InteractiveTimelineWidget from '../../components/InteractiveTimelineWidget';
 
 /* ─────────────────────────────────────────────
    Helpers
@@ -604,52 +605,9 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       </section>
 
       {/* ══════════════════════════════════
-          NEWS & EVENTS
+          NEWS, EVENTS & TIMELINE
       ══════════════════════════════════ */}
-      {school?.newsEvents?.length > 0 && (
-        <section className="py-10 md:py-14 border-t border-blue-100" style={{ backgroundColor: '#e8f4fd' }}>
-          <div className="max-w-7xl mx-auto px-5">
-            <div className="text-center mb-8">
-              <span className="section-label">Stay Updated</span>
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
-                News &amp; Events
-              </h2>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              {school.newsEvents.map((item, i) => (
-                <div key={i}
-                  className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col">
-                  <div className="h-44 bg-gray-100 overflow-hidden relative">
-                    {item.imageUrl ? (
-                      <img
-                        src={item.imageUrl.startsWith('http') ? item.imageUrl : `${API_BASE_URL}${item.imageUrl}`}
-                        alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center"
-                        style={{ backgroundColor: hexToRgba(primary, 0.08) }}>
-                        <FiVolume2 className="w-10 h-10" style={{ color: hexToRgba(primary, 0.4) }} />
-                      </div>
-                    )}
-                    <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold text-white"
-                      style={{ backgroundColor: primary }}>
-                      {item.type}
-                    </span>
-                  </div>
-                  <div className="p-5 flex flex-col flex-1">
-                    <p className="text-xs text-gray-400 font-semibold mb-2">
-                      {new Date(item.eventDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </p>
-                    <h3 className="font-bold text-gray-900 text-sm leading-snug mb-2 line-clamp-2">{item.title}</h3>
-                    <p className="text-xs text-gray-500 leading-relaxed line-clamp-3 flex-1">{item.content}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      <InteractiveTimelineWidget school={school} />
 
 
 
