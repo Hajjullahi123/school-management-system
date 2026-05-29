@@ -29,6 +29,7 @@ import ReactMarkdown from 'react-markdown';
 import { API_BASE_URL } from '../../config';
 import FloatingContactWidget from '../../components/FloatingContactWidget';
 import InteractiveTimelineWidget from '../../components/InteractiveTimelineWidget';
+import TuitionEstimatorWidget from '../../components/TuitionEstimatorWidget';
 
 /* ─────────────────────────────────────────────
    Helpers
@@ -608,6 +609,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           NEWS, EVENTS & TIMELINE
       ══════════════════════════════════ */}
       <InteractiveTimelineWidget school={school} />
+      <TuitionEstimatorWidget school={school} />
 
 
 

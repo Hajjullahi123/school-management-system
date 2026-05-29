@@ -8,6 +8,7 @@ import { API_BASE_URL } from '../config';
 import ThemeModern from './themes/ThemeModern';
 import FloatingContactWidget from '../components/FloatingContactWidget';
 import InteractiveTimelineWidget from '../components/InteractiveTimelineWidget';
+import TuitionEstimatorWidget from '../components/TuitionEstimatorWidget';
 
 const PublicSchoolLandingPage = () => {
   const { schoolSlug } = useParams();
@@ -313,6 +314,7 @@ const PublicSchoolLandingPage = () => {
       )}
 
       <InteractiveTimelineWidget school={school} />
+      <TuitionEstimatorWidget school={school} />
 
       {/* Footer / Contact Information */}
       <footer className="mt-auto bg-gray-900 text-white py-16 relative overflow-hidden border-t-4" style={{ borderColor: primaryColor }}>

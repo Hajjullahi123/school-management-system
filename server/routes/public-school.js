@@ -64,6 +64,13 @@ router.get('/:slug', async (req, res) => {
           orderBy: { createdAt: 'desc' },
           take: 5,
           select: { id: true, title: true, content: true, category: true, createdAt: true }
+        },
+        classes: {
+          where: { isActive: true },
+          select: { id: true, name: true, arm: true }
+        },
+        ClassFeeStructure: {
+          select: { classId: true, amount: true, termId: true, academicSessionId: true, description: true }
         }
       }
     });
