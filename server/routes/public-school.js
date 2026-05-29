@@ -69,10 +69,10 @@ router.get('/:slug', async (req, res) => {
           where: { isActive: true },
           select: { id: true, name: true, arm: true }
         },
-        ClassFeeStructure: {
+        classFeeStructures: {
           select: { classId: true, amount: true, termId: true, academicSessionId: true, description: true }
         },
-        MiscellaneousFee: {
+        miscellaneousFees: {
           select: { id: true, name: true, amount: true, description: true, isCompulsory: true }
         }
       }
