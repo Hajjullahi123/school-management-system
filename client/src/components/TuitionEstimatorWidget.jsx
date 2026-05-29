@@ -43,23 +43,42 @@ const TuitionEstimatorWidget = ({ school }) => {
 
   // Fallback classes if none are configured
   const fallbackClasses = [
-    { id: 'f-nursery', name: 'Nursery / Creche', arm: 'A' },
-    { id: 'f-primary', name: 'Primary (Grades 1-6)', arm: 'A' },
-    { id: 'f-junior', name: 'Junior Secondary (JSS 1-3)', arm: 'A' },
-    { id: 'f-senior', name: 'Senior Secondary (SSS 1-3)', arm: 'A' }
+    { id: 'f-nursery', name: 'Nursery / Creche' },
+    { id: 'f-primary', name: 'Primary (Grades 1-6)' },
+    { id: 'f-junior', name: 'Junior Secondary (JSS 1-3)' },
+    { id: 'f-senior', name: 'Senior Secondary (SSS 1-3)' }
   ];
 
   const activeClasses = classes.length > 0 ? classes : fallbackClasses;
 
   // Surcharges & Add-ons list
-  const boardingFee = 120000; // per term surcharge
-  const addonsList = [
+  // Dynamically extract boarding and other fees if they exist in the DB
+  const dbFees = Array.isArray(school.MiscellaneousFee) ? school.MiscellaneousFee : [];
+  
+  // Try to find a boarding fee specifically to power the Boarding Enrolment option
+  const boardingFeeObj = dbFees.find(f => f.name.toLowerCase().includes('boarding') || f.name.toLowerCase().includes('hostel'));
+  const boardingFee = boardingFeeObj ? boardingFeeObj.amount : 120000;
+  
+  // Filter out the boarding fee from general addons
+  const dynamicAddons = dbFees
+    .filter(f => f.id !== boardingFeeObj?.id)
+    .map(f => ({
+      id: f.id.toString(),
+      name: f.name,
+      price: f.amount,
+      desc: f.description || (f.isCompulsory ? 'Compulsory fee' : 'Optional service fee')
+    }));
+
+  const fallbackAddons = [
     { id: 'bus', name: 'School Bus Transit (Daily Routing)', price: 18000, desc: 'Optional two-way transport logistics.' },
     { id: 'meals', name: 'Premium Lunch & Meal Plan', price: 22000, desc: 'Freshly prepared, balanced hot lunches daily.' },
     { id: 'books', name: 'Textbooks & Stationery Kit', price: 15000, desc: 'All curriculum-aligned books & writing tools.' },
-    { id: 'uniforms', name: 'Standard Uniform Set (2 sets + sportwear)', price: 25000, desc: 'Quality customized school attire sets.' },
-    { id: 'clubs', name: 'Tech, STEM & Extra-Curricular Clubs', price: 10000, desc: 'Robotics, Coding, Music, & Varsity sports.' }
+    { id: 'uniforms', name: 'Standard Uniform Set (2 sets + sportwear)', price: 25000, desc: 'Quality customized school attire sets.' }
   ];
+
+  // If the school has configured actual classes, we assume they should also configure actual addons.
+  // We only show fallback addons if they haven't configured any custom fees AND haven't configured classes.
+  const addonsList = dynamicAddons.length > 0 ? dynamicAddons : (classes.length === 0 ? fallbackAddons : []);
 
   // Helper to convert hex colors to RGBA
   const hexToRgba = (hex = '#4f46e5', alpha = 1) => {
@@ -238,23 +257,24 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
               </div>
 
               {/* Enrolment Type Selection */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 block ml-1">
-                  Step 2: Choose Enrolment Mode
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Day Student Button */}
-                  <button
-                    onClick={() => {
-                      setIsBoarding(false);
-                      setShowInquiryForm(false);
-                    }}
-                    className={`p-5 rounded-2xl border-2 text-left flex items-start gap-4 transition-all ${
-                      !isBoarding
-                        ? 'border-indigo-600 bg-indigo-50/10 shadow-sm'
-                        : 'border-gray-100 bg-gray-50/40 hover:bg-gray-50 hover:border-gray-200'
-                    }`}
-                  >
+              {(boardingFeeObj || classes.length === 0) && (
+                <div className="space-y-3">
+                  <label className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 block ml-1">
+                    Step 2: Choose Enrolment Mode
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Day Student Button */}
+                    <button
+                      onClick={() => {
+                        setIsBoarding(false);
+                        setShowInquiryForm(false);
+                      }}
+                      className={`p-5 rounded-2xl border-2 text-left flex items-start gap-4 transition-all ${
+                        !isBoarding
+                          ? 'border-indigo-600 bg-indigo-50/10 shadow-sm'
+                          : 'border-gray-100 bg-gray-50/40 hover:bg-gray-50 hover:border-gray-200'
+                      }`}
+                    >
                     <div
                       className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
                         !isBoarding ? 'border-indigo-600' : 'border-gray-300'
@@ -306,71 +326,74 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                         🏰 Boarding Enrolment
                       </h4>
                       <p className="text-[10px] text-gray-400 leading-normal mt-1">
-                        Includes laundry, hostel residency &amp; 3 daily meals (+ ₦120,000).
+                        Includes laundry, hostel residency &amp; 3 daily meals (+ ₦{boardingFee.toLocaleString('en-NG')}).
                       </p>
                     </div>
                   </button>
                 </div>
               </div>
+              )}
 
               {/* Surcharges & Add-ons Checklist */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 block ml-1">
-                  Step 3: Add Optional Services / Utilities
-                </label>
-                <div className="space-y-2.5">
-                  {addonsList.map((addon) => {
-                    const isSelected = selectedAddons.includes(addon.id);
-                    return (
-                      <button
-                        key={addon.id}
-                        onClick={() => {
-                          handleAddonClick(addon.id);
-                          setShowInquiryForm(false);
-                        }}
-                        className={`w-full p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all ${
-                          isSelected
-                            ? 'border-indigo-600 bg-indigo-50/5 shadow-sm'
-                            : 'border-gray-100 bg-white hover:bg-gray-50/50 hover:border-gray-200'
-                        }`}
-                      >
-                        {/* Checkbox circle */}
-                        <div
-                          className={`w-5.5 h-5.5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-colors ${
+              {addonsList.length > 0 && (
+                <div className="space-y-3">
+                  <label className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 block ml-1">
+                    Step 3: Add Optional Services / Utilities
+                  </label>
+                  <div className="space-y-2.5">
+                    {addonsList.map((addon) => {
+                      const isSelected = selectedAddons.includes(addon.id);
+                      return (
+                        <button
+                          key={addon.id}
+                          onClick={() => {
+                            handleAddonClick(addon.id);
+                            setShowInquiryForm(false);
+                          }}
+                          className={`w-full p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all ${
                             isSelected
-                              ? 'bg-indigo-600 border-transparent text-white'
-                              : 'border-gray-200 bg-white'
+                              ? 'border-indigo-600 bg-indigo-50/5 shadow-sm'
+                              : 'border-gray-100 bg-white hover:bg-gray-50/50 hover:border-gray-200'
                           }`}
                         >
-                          {isSelected && <FiCheck className="w-3.5 h-3.5" />}
-                        </div>
-                        <div className="flex-1 min-w-0 pr-4">
-                          <h4
-                            className="text-xs font-bold truncate"
-                            style={{ color: isSelected ? primary : '#374151' }}
+                          {/* Checkbox circle */}
+                          <div
+                            className={`w-5.5 h-5.5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-colors ${
+                              isSelected
+                                ? 'bg-indigo-600 border-transparent text-white'
+                                : 'border-gray-200 bg-white'
+                            }`}
                           >
-                            {addon.name}
-                          </h4>
-                          <p className="text-[10px] text-gray-400 leading-none mt-1 truncate">
-                            {addon.desc}
-                          </p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span
-                            className="text-xs font-black italic"
-                            style={{ color: isSelected ? primary : '#1f2937' }}
-                          >
-                            + ₦{addon.price.toLocaleString('en-NG')}
-                          </span>
-                          <span className="text-[8px] text-gray-400 uppercase tracking-widest block mt-0.5">
-                            per term
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
+                            {isSelected && <FiCheck className="w-3.5 h-3.5" />}
+                          </div>
+                          <div className="flex-1 min-w-0 pr-4">
+                            <h4
+                              className="text-xs font-bold truncate"
+                              style={{ color: isSelected ? primary : '#374151' }}
+                            >
+                              {addon.name}
+                            </h4>
+                            <p className="text-[10px] text-gray-400 leading-none mt-1 truncate">
+                              {addon.desc}
+                            </p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span
+                              className="text-xs font-black italic"
+                              style={{ color: isSelected ? primary : '#1f2937' }}
+                            >
+                              + ₦{addon.price.toLocaleString('en-NG')}
+                            </span>
+                            <span className="text-[8px] text-gray-400 uppercase tracking-widest block mt-0.5">
+                              per term
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 

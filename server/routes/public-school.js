@@ -71,6 +71,9 @@ router.get('/:slug', async (req, res) => {
         },
         ClassFeeStructure: {
           select: { classId: true, amount: true, termId: true, academicSessionId: true, description: true }
+        },
+        MiscellaneousFee: {
+          select: { id: true, name: true, amount: true, description: true, isCompulsory: true }
         }
       }
     });
