@@ -102,16 +102,17 @@ const InteractiveTimelineWidget = ({ school }) => {
   };
 
   return (
-    <section className="border-t border-gray-200/60 relative z-20 overflow-hidden">
-      {/* Subtle theme gradient background */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-[0.03]"
-        style={{ background: `linear-gradient(90deg, ${primary}, ${secondary})` }}
-      />
-      <button
-        onClick={() => setIsTimelineOpen(!isTimelineOpen)}
-        className="w-full flex items-center justify-between px-6 py-[18px] text-sm font-bold text-gray-800 hover:bg-black/[0.02] transition-colors cursor-pointer relative z-10"
-      >
+    <div className="max-w-5xl mx-auto px-6 relative z-20 mb-4 mt-8">
+      <section className="bg-white rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden transition-all hover:shadow-md">
+        {/* Subtle theme gradient background */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-[0.03]"
+          style={{ background: `linear-gradient(90deg, ${primary}, ${secondary})` }}
+        />
+        <button
+          onClick={() => setIsTimelineOpen(!isTimelineOpen)}
+          className="w-full flex items-center justify-between px-6 py-[18px] text-sm font-bold text-gray-800 hover:bg-black/[0.02] transition-colors cursor-pointer relative z-10"
+        >
         <div className="flex items-center gap-3">
           <FiCalendar className="w-5 h-5" style={{ color: primary }} />
           <span className="uppercase tracking-wide">School Calendar Timeline</span>
@@ -269,7 +270,8 @@ const InteractiveTimelineWidget = ({ school }) => {
           </motion.div>
         )}
       </AnimatePresence>
-    </section>
+      </section>
+    </div>
   );
 };
 
