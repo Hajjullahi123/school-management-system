@@ -56,8 +56,8 @@ router.get('/:slug', async (req, res) => {
           select: { id: true, title: true, type: true, eventDate: true, imageUrl: true, content: true }
         },
         schoolHolidays: {
-          orderBy: { startDate: 'asc' },
-          select: { id: true, name: true, startDate: true, endDate: true }
+          orderBy: { date: 'asc' },
+          select: { id: true, name: true, date: true, type: true, description: true }
         },
         notices: {
           where: { audience: 'all', isActive: true },
@@ -92,7 +92,7 @@ router.get('/:slug', async (req, res) => {
     console.error('[PublicSchool] Stack:', error.stack);
     res.status(500).json({ 
       error: 'Failed to fetch school details',
-      details: error.message
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined
     });
   }
 });

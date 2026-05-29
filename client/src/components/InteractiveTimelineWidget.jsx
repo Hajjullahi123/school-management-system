@@ -61,8 +61,8 @@ const InteractiveTimelineWidget = ({ school }) => {
         items.push({
           id: `holiday-${h.id}`,
           title: h.name,
-          content: `School closure from ${new Date(h.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} to ${new Date(h.endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}.`,
-          date: new Date(h.startDate),
+          content: h.description || `School holiday on ${new Date(h.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}.`,
+          date: new Date(h.date),
           category: 'Holiday',
           badgeText: '🌴 Holiday',
           badgeStyle: { backgroundColor: '#d1fae5', color: '#059669', border: '1px solid #a7f3d0' }, // Soft green
