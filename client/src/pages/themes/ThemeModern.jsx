@@ -210,7 +210,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 : <span className="text-lg font-black text-gray-300">{school?.name?.[0]}</span>
               }
             </div>
-            <span className="font-black text-gray-900 text-base md:text-lg tracking-tight leading-tight hidden sm:block max-w-[200px] md:max-w-none">
+            <span className="font-black text-gray-900 text-sm md:text-lg tracking-tight leading-tight truncate max-w-[160px] sm:max-w-none">
               {school?.name}
             </span>
           </div>

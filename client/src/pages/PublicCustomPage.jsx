@@ -95,7 +95,7 @@ const PublicCustomPage = () => {
                 <span className="text-2xl font-black text-gray-300">{school.name.charAt(0)}</span>
               )}
             </div>
-            <span className="text-xl md:text-2xl font-black tracking-tight text-gray-900 hidden sm:block group-hover:text-[var(--color-primary)] transition-colors">{school.name}</span>
+            <span className="text-lg md:text-2xl font-black tracking-tight text-gray-900 truncate max-w-[160px] sm:max-w-none group-hover:text-[var(--color-primary)] transition-colors">{school.name}</span>
           </Link>
           
           <div className="flex items-center gap-6">

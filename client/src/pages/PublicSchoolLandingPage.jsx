@@ -110,7 +110,7 @@ const PublicSchoolLandingPage = () => {
                 <span className="text-2xl font-black text-gray-300">{school.name.charAt(0)}</span>
               )}
             </div>
-            <span className="text-xl md:text-2xl font-black tracking-tight text-gray-900 hidden sm:block">{school.name}</span>
+            <span className="text-lg md:text-2xl font-black tracking-tight text-gray-900 truncate max-w-[160px] sm:max-w-none">{school.name}</span>
           </div>
           
           <div className="flex items-center gap-6">
