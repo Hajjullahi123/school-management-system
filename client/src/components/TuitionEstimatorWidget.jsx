@@ -56,7 +56,7 @@ const TuitionEstimatorWidget = ({ school }) => {
   const dbFees = Array.isArray(school.miscellaneousFees) ? school.miscellaneousFees : [];
   
   // Try to find a boarding fee specifically to power the Boarding Enrolment option
-  const boardingFeeObj = dbFees.find(f => f.name.toLowerCase().includes('boarding') || f.name.toLowerCase().includes('hostel'));
+  const boardingFeeObj = dbFees.find(f => f.title.toLowerCase().includes('boarding') || f.title.toLowerCase().includes('hostel'));
   const boardingFee = boardingFeeObj ? boardingFeeObj.amount : 120000;
   
   // Filter out the boarding fee from general addons
@@ -64,7 +64,7 @@ const TuitionEstimatorWidget = ({ school }) => {
     .filter(f => f.id !== boardingFeeObj?.id)
     .map(f => ({
       id: f.id.toString(),
-      name: f.name,
+      name: f.title,
       price: f.amount,
       desc: f.description || (f.isCompulsory ? 'Compulsory fee' : 'Optional service fee')
     }));

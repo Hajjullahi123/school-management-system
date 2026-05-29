@@ -73,7 +73,7 @@ router.get('/:slug', async (req, res) => {
           select: { classId: true, amount: true, termId: true, academicSessionId: true, description: true }
         },
         miscellaneousFees: {
-          select: { id: true, name: true, amount: true, description: true, isCompulsory: true }
+          select: { id: true, title: true, amount: true, description: true, isCompulsory: true }
         }
       }
     });
