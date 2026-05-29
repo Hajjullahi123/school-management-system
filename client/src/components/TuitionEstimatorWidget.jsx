@@ -11,7 +11,9 @@ import {
   FiArrowRight,
   FiShield,
   FiLayers,
-  FiAlertCircle
+  FiAlertCircle,
+  FiChevronDown,
+  FiChevronUp
 } from 'react-icons/fi';
 import { apiCall } from '../api';
 import { API_BASE_URL } from '../config';
@@ -217,59 +219,57 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
     }
   };
 
-  if (!isCalculatorOpen) {
-    return (
-      <section id="tuition-estimator" className="py-24 px-6 bg-slate-50 border-t border-gray-100 relative z-20 overflow-hidden text-center">
-        <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight mb-6">
-          Tuition Fee <span style={{ color: primary }}>Estimator</span>
-        </h2>
-        <p className="text-gray-500 max-w-xl mx-auto text-sm leading-relaxed font-semibold mb-8">
-          Curious about our fees? Use our interactive calculator to get a detailed per-term cost estimation.
-        </p>
-        <button
-          onClick={() => setIsCalculatorOpen(true)}
-          className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full text-white font-black text-sm uppercase tracking-widest shadow-xl hover:-translate-y-1 transition-all"
-          style={{ backgroundColor: primary }}
-        >
-          <FiSliders className="w-5 h-5" />
-          Open Fee Calculator
-        </button>
-      </section>
-    );
-  }
-
   return (
-    <section id="tuition-estimator" className="py-24 px-6 bg-slate-50 border-t border-gray-100 relative z-20 overflow-hidden">
-      {/* Dynamic Background Glowing Accents */}
-      <div
-        className="absolute top-0 left-0 w-[500px] h-[500px] rounded-full blur-[140px] opacity-[0.03] pointer-events-none -translate-x-1/2 -translate-y-1/2"
-        style={{ backgroundColor: primary }}
-      />
-      <div
-        className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full blur-[140px] opacity-[0.03] pointer-events-none translate-x-1/2 translate-y-1/2"
-        style={{ backgroundColor: secondary }}
-      />
-
-      <div className="max-w-6xl mx-auto relative z-10">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <span
-            className="inline-block px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider mb-4 border"
-            style={{
-              backgroundColor: hexToRgba(primary, 0.08),
-              color: primary,
-              borderColor: hexToRgba(primary, 0.15)
-            }}
-          >
-            🧮 Interactive Calculator
-          </span>
-          <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">
-            Tuition Fee <span style={{ color: primary }}>Estimator</span>
-          </h2>
-          <p className="text-gray-500 mt-4 max-w-xl mx-auto text-sm leading-relaxed font-semibold">
-            Select your child's grade level, customized enrollment type, and optional services to calculate a detailed per-term cost estimation.
-          </p>
+    <section id="tuition-estimator" className="bg-slate-50 border-y border-gray-200 relative z-20">
+      <button
+        onClick={() => setIsCalculatorOpen(!isCalculatorOpen)}
+        className="w-full flex items-center justify-between px-6 py-4 text-sm font-bold text-gray-800 hover:bg-gray-100 transition-colors cursor-pointer"
+      >
+        <div className="flex items-center gap-3">
+          <FiSliders className="w-5 h-5" style={{ color: primary }} />
+          <span className="uppercase tracking-wide">Tuition Fee Estimator</span>
         </div>
+        <div className="text-gray-400">
+          {isCalculatorOpen ? <FiChevronUp className="w-5 h-5" /> : <FiChevronDown className="w-5 h-5" />}
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {isCalculatorOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="py-12 px-6 relative">
+              {/* Dynamic Background Glowing Accents */}
+              <div
+                className="absolute top-0 left-0 w-[500px] h-[500px] rounded-full blur-[140px] opacity-[0.03] pointer-events-none -translate-x-1/2 -translate-y-1/2"
+                style={{ backgroundColor: primary }}
+              />
+              <div
+                className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full blur-[140px] opacity-[0.03] pointer-events-none translate-x-1/2 translate-y-1/2"
+                style={{ backgroundColor: secondary }}
+              />
+
+              <div className="max-w-6xl mx-auto relative z-10">
+                {/* Header */}
+                <div className="text-center mb-12">
+                  <span
+                    className="inline-block px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider mb-4 border"
+                    style={{
+                      backgroundColor: hexToRgba(primary, 0.08),
+                      color: primary,
+                      borderColor: hexToRgba(primary, 0.15)
+                    }}
+                  >
+                    🧮 Interactive Calculator
+                  </span>
+                  <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">
+                    Tuition Fee <span style={{ color: primary }}>Estimator</span>
+                  </h2>
+                </div>
 
         <div className="grid lg:grid-cols-12 gap-8 items-start">
           {/* Settings Left Column */}
@@ -682,7 +682,11 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
             </AnimatePresence>
           </div>
         </div>
-      </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };

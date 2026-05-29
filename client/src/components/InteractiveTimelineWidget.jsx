@@ -6,11 +6,14 @@ import {
   FiCoffee,
   FiClock,
   FiInbox,
-  FiChevronRight
+  FiChevronRight,
+  FiChevronDown,
+  FiChevronUp
 } from 'react-icons/fi';
 import { API_BASE_URL } from '../config';
 
 const InteractiveTimelineWidget = ({ school }) => {
+  const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('All');
 
   if (!school) return null;
@@ -99,27 +102,46 @@ const InteractiveTimelineWidget = ({ school }) => {
   };
 
   return (
-    <section className="py-20 px-6 bg-white border-t border-gray-100 relative z-20">
-      {/* Decorative background grid elements */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
-
-      <div className="max-w-5xl mx-auto relative z-10">
-        {/* Section Header */}
-        <div className="text-center mb-12">
-          <span
-            className="inline-block px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider mb-3"
-            style={{ backgroundColor: hexToRgba(primary, 0.1), color: primary }}
-          >
-            School Calendar
-          </span>
-          <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">
-            Updates &amp; Upcoming <span style={{ color: primary }}>Timeline</span>
-          </h2>
-          <p className="text-gray-500 mt-3 max-w-lg mx-auto text-sm leading-relaxed font-medium">
-            Stay aligned with current academic calendars, emergency announcements, holiday schedules, and student events.
-          </p>
+    <section className="bg-white border-y border-gray-100 relative z-20">
+      <button
+        onClick={() => setIsTimelineOpen(!isTimelineOpen)}
+        className="w-full flex items-center justify-between px-6 py-4 text-sm font-bold text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
+      >
+        <div className="flex items-center gap-3">
+          <FiCalendar className="w-5 h-5" style={{ color: primary }} />
+          <span className="uppercase tracking-wide">School Calendar Timeline</span>
         </div>
+        <div className="text-gray-400">
+          {isTimelineOpen ? <FiChevronUp className="w-5 h-5" /> : <FiChevronDown className="w-5 h-5" />}
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {isTimelineOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="py-12 px-6 relative">
+              {/* Decorative background grid elements */}
+              <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+
+              <div className="max-w-5xl mx-auto relative z-10">
+                {/* Section Header */}
+                <div className="text-center mb-10">
+                  <span
+                    className="inline-block px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider mb-3"
+                    style={{ backgroundColor: hexToRgba(primary, 0.1), color: primary }}
+                  >
+                    School Calendar
+                  </span>
+                  <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">
+                    Updates &amp; Upcoming <span style={{ color: primary }}>Timeline</span>
+                  </h2>
+                </div>
 
         {/* Tab Filters */}
         <div className="flex flex-wrap justify-center gap-2 mb-12">
@@ -237,7 +259,11 @@ const InteractiveTimelineWidget = ({ school }) => {
             )}
           </AnimatePresence>
         </div>
-      </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };

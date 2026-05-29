@@ -608,7 +608,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           NEWS, EVENTS & TIMELINE
       ══════════════════════════════════ */}
-      {/* <InteractiveTimelineWidget school={school} /> */}
+      <InteractiveTimelineWidget school={school} />
       <TuitionEstimatorWidget school={school} />
 
 
