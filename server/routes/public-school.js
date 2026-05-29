@@ -88,8 +88,12 @@ router.get('/:slug', async (req, res) => {
 
     res.json(school);
   } catch (error) {
-    console.error('[PublicSchool] Error:', error);
-    res.status(500).json({ error: 'Failed to fetch school details' });
+    console.error('[PublicSchool] Error:', error.message);
+    console.error('[PublicSchool] Stack:', error.stack);
+    res.status(500).json({ 
+      error: 'Failed to fetch school details',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+    });
   }
 });
 
