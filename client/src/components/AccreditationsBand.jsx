@@ -11,9 +11,18 @@ const AccreditationsBand = ({ primary }) => {
   ];
 
   return (
-    <div className="bg-slate-900 border-y border-white/5 overflow-hidden relative py-5">
+    <div className="bg-slate-900 border-y border-white/5 overflow-hidden relative py-8">
       <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 50%, ${primary} 0%, transparent 70%)` }} />
-      <div className="max-w-7xl mx-auto px-6 relative z-10 flex items-center justify-center">
+      <div className="max-w-7xl mx-auto px-6 relative z-10 flex flex-col items-center justify-center">
+        
+        {/* Heading */}
+        <div className="text-center mb-6">
+          <h3 className="text-[10px] md:text-xs font-black tracking-[0.2em] text-gray-400 uppercase mb-3">
+            Standards & Accreditations
+          </h3>
+          <div className="w-12 h-0.5 mx-auto rounded-full bg-white/10" />
+        </div>
+
         <div className="flex items-center gap-3 md:gap-5 flex-wrap justify-center w-full">
           {accreditations.map((item, index) => (
             <div 
