@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FiLogOut, FiMail, FiPhone, FiMapPin, FiArrowRight, FiFacebook, FiInstagram, FiMessageCircle, FiGlobe, FiChevronRight, FiMenu, FiX, FiChevronDown } from 'react-icons/fi';
 import ReactMarkdown from 'react-markdown';
 import { apiCall } from '../api';
@@ -20,6 +20,7 @@ const PublicSchoolLandingPage = () => {
   const [error, setError] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isFaqModalOpen, setIsFaqModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchSchool = async () => {
@@ -122,9 +123,9 @@ const PublicSchoolLandingPage = () => {
                   {page.title}
                 </Link>
               ))}
-              <a href="#faq" className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">
+              <button onClick={() => setIsFaqModalOpen(true)} className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors focus:outline-none">
                 FAQs
-              </a>
+              </button>
               <Link to={`/${school.slug}/staff`} className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">
                 Staff
               </Link>
@@ -174,6 +175,12 @@ const PublicSchoolLandingPage = () => {
                 {page.title}
               </Link>
             ))}
+            <button 
+              onClick={() => { setIsFaqModalOpen(true); setIsMobileMenuOpen(false); }}
+              className="text-left text-lg font-bold text-gray-700 hover:text-gray-900 transition-colors focus:outline-none"
+            >
+              FAQs
+            </button>
             <Link 
               to={`/${school.slug}/staff`} 
               className="text-lg font-bold text-gray-700 hover:text-gray-900 transition-colors"
@@ -323,10 +330,6 @@ const PublicSchoolLandingPage = () => {
           <InteractiveTimelineWidget school={school} />
           <TuitionEstimatorWidget school={school} />
         </div>
-        
-        <div id="faq" className="w-[90%] max-w-4xl mx-auto mt-8 scroll-mt-24">
-          <FaqWidget school={school} />
-        </div>
       </section>
 
       <AccreditationsBand primary={primaryColor} />
@@ -452,6 +455,33 @@ const PublicSchoolLandingPage = () => {
         </div>
       </footer>
       <FloatingContactWidget school={school} getLogoUrl={getLogoUrl} />
+
+      {/* FAQ Modal */}
+      <AnimatePresence>
+        {isFaqModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsFaqModalOpen(false)}
+              className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm cursor-pointer"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-3xl max-h-[90vh] flex flex-col z-10"
+            >
+              <button 
+                onClick={() => setIsFaqModalOpen(false)} 
+                className="absolute -top-12 right-0 sm:-right-12 text-white hover:text-gray-300 transition-colors z-20 p-2 focus:outline-none"
+              >
+                <FiX className="w-8 h-8" />
+              </button>
+              <div className="w-full overflow-y-auto rounded-[32px] bg-transparent shadow-2xl hide-scrollbar">
+                <FaqWidget school={school} />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -26,6 +26,7 @@ import {
   FiChevronDown,
 } from 'react-icons/fi';
 import ReactMarkdown from 'react-markdown';
+import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '../../config';
 import FloatingContactWidget from '../../components/FloatingContactWidget';
 import InteractiveTimelineWidget from '../../components/InteractiveTimelineWidget';
@@ -73,6 +74,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
   const [topStudents, setTopStudents]   = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [form, setForm] = useState({ name: '', email: '', phone: '', grade: '', message: '' });
+  const [isFaqModalOpen, setIsFaqModalOpen] = useState(false);
 
   /* hero images */
   const heroImages =
@@ -225,10 +227,10 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 {p.title}
               </Link>
             ))}
-            <a href="#faq"
+            <button onClick={() => setIsFaqModalOpen(true)}
               className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
               FAQs
-            </a>
+            </button>
             <Link to={`/${school?.slug}/staff`}
               className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
               Our Staff
@@ -278,7 +280,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 {p.title}
               </Link>
             ))}
-            <a href="#faq" className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>FAQs</a>
+            <button onClick={() => { setIsFaqModalOpen(true); setMobileOpen(false); }} className="text-left text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all">FAQs</button>
             <Link to={`/${school?.slug}/staff`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Our Staff</Link>
             <Link to={`/${school?.slug}/higher-students`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Higher Inst. Students</Link>
             <Link to="/alumni" className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Alumni</Link>
@@ -620,10 +622,6 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           <InteractiveTimelineWidget school={school} />
           <TuitionEstimatorWidget school={school} />
         </div>
-        
-        <div id="faq" className="w-[90%] max-w-4xl mx-auto mt-8 scroll-mt-24">
-          <FaqWidget school={school} />
-        </div>
       </section>
 
 
@@ -869,6 +867,33 @@ const ThemeModern = ({ school, getLogoUrl }) => {
         </div>
       </footer>
       <FloatingContactWidget school={school} getLogoUrl={getLogoUrl} />
+
+      {/* FAQ Modal */}
+      <AnimatePresence>
+        {isFaqModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsFaqModalOpen(false)}
+              className="absolute inset-0 bg-gray-950/80 backdrop-blur-sm cursor-pointer"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-3xl max-h-[90vh] flex flex-col z-10"
+            >
+              <button 
+                onClick={() => setIsFaqModalOpen(false)} 
+                className="absolute -top-12 right-0 sm:-right-12 text-white hover:text-gray-300 transition-colors z-20 p-2 focus:outline-none"
+              >
+                <FiX className="w-8 h-8" />
+              </button>
+              <div className="w-full overflow-y-auto rounded-[32px] bg-transparent shadow-2xl hide-scrollbar">
+                <FaqWidget school={school} />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
