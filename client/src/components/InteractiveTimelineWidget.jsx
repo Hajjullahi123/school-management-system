@@ -102,9 +102,9 @@ const InteractiveTimelineWidget = ({ school }) => {
   };
 
   return (
-    <div className="w-full relative z-20 flex flex-col h-full">
+    <div className="w-full relative z-20 flex flex-col h-full transform-gpu">
       <section 
-        className="rounded-2xl shadow-md border border-white/10 relative overflow-hidden transition-all flex-1"
+        className="rounded-2xl shadow-md border border-white/10 relative overflow-hidden transition-all flex-1 transform-gpu"
         style={{ background: `linear-gradient(135deg, ${primary} 0%, #1e293b 100%)` }}
       >
         <button

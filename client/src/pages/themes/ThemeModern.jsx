@@ -470,7 +470,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               { title: 'Technology & Vocational Blend', body: 'Robotics, digital literacy, and entrepreneurship programmes embedded across all classes.' },
             ].map((pillar, i) => (
               <div key={i}
-                className="flex gap-4 p-5 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                className="flex gap-4 p-5 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md transform-gpu"
                 style={{ backgroundColor: hexToRgba(primary, 0.04), borderColor: hexToRgba(primary, 0.15) }}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
                   style={{ backgroundColor: primary, color: '#fff' }}>
@@ -506,7 +506,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
 
           <div className="grid md:grid-cols-2 gap-6">
             {testimonials.map((t, i) => (
-              <div key={i} className="relative bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 flex flex-col overflow-hidden">
+              <div key={i} className="relative bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 flex flex-col overflow-hidden transform-gpu">
                 {/* Accent top bar */}
                 <div className="absolute top-0 left-0 right-0 h-1 rounded-t-3xl" style={{ backgroundColor: primary }} />
 
