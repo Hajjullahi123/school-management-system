@@ -9,6 +9,8 @@ import ThemeModern from './themes/ThemeModern';
 import FloatingContactWidget from '../components/FloatingContactWidget';
 import InteractiveTimelineWidget from '../components/InteractiveTimelineWidget';
 import TuitionEstimatorWidget from '../components/TuitionEstimatorWidget';
+import AccreditationsBand from '../components/AccreditationsBand';
+import FaqWidget from '../components/FaqWidget';
 
 const PublicSchoolLandingPage = () => {
   const { schoolSlug } = useParams();
@@ -298,6 +300,8 @@ const PublicSchoolLandingPage = () => {
         </div>
       </section>
 
+      <AccreditationsBand primary={primaryColor} />
+
       {/* About Us Markdown Section for Classic Theme */}
       {school.aboutUsText && (
         <section className="py-20 px-6 bg-white relative z-20 border-t border-gray-100">
@@ -319,6 +323,8 @@ const PublicSchoolLandingPage = () => {
           <TuitionEstimatorWidget school={school} />
         </div>
       </section>
+
+      <FaqWidget primary={primaryColor} secondary={secondaryColor} />
 
       {/* Footer / Contact Information */}
       <footer className="mt-auto bg-gray-900 text-white py-16 relative overflow-hidden border-t-4" style={{ borderColor: primaryColor }}>

@@ -30,6 +30,8 @@ import { API_BASE_URL } from '../../config';
 import FloatingContactWidget from '../../components/FloatingContactWidget';
 import InteractiveTimelineWidget from '../../components/InteractiveTimelineWidget';
 import TuitionEstimatorWidget from '../../components/TuitionEstimatorWidget';
+import AccreditationsBand from '../../components/AccreditationsBand';
+import FaqWidget from '../../components/FaqWidget';
 
 /* ─────────────────────────────────────────────
    Helpers
@@ -375,6 +377,11 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       </section>
 
       {/* ══════════════════════════════════
+          ACCREDITATIONS & TRUST BAND
+      ══════════════════════════════════ */}
+      <AccreditationsBand primary={primary} />
+
+      {/* ══════════════════════════════════
           ABOUT + CORE PILLARS
       ══════════════════════════════════ */}
       <section className="py-10 md:py-14 bg-white">
@@ -476,6 +483,11 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           </div>
         </div>
       </section>
+
+      {/* ══════════════════════════════════
+          FAQ SECTION
+      ══════════════════════════════════ */}
+      <FaqWidget primary={primary} secondary={secondary} />
 
       {/* ══════════════════════════════════
           TESTIMONIALS
