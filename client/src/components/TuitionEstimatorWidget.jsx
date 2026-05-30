@@ -13,8 +13,10 @@ import {
   FiLayers,
   FiAlertCircle,
   FiChevronDown,
-  FiChevronUp
+  FiChevronUp,
+  FiInfo
 } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
 import { apiCall } from '../api';
 import { API_BASE_URL } from '../config';
 
@@ -64,21 +66,25 @@ const TuitionEstimatorWidget = ({ school }) => {
   // Surcharges & Add-ons list
   // Dynamically extract boarding and other fees if they exist in the DB
   const dbFees = Array.isArray(school.MiscellaneousFee) ? school.MiscellaneousFee : [];
+  const dbClasses = Array.isArray(school.ClassFeeStructure) ? school.ClassFeeStructure : [];
   
-  let boardingFee = 120000;
-  let hasBoarding = true;
+  // If no DB fees and no estimator config, then the school hasn't configured tuition yet
+  const isConfigured = !!estimatorConfig || dbClasses.length > 0 || dbFees.length > 0;
+
+  let boardingFee = 0;
+  let hasBoarding = false;
   let addonsList = [];
 
   if (estimatorConfig) {
-    boardingFee = estimatorConfig.boarding || 120000;
+    boardingFee = estimatorConfig.boarding || 0;
     hasBoarding = estimatorConfig.hasBoarding !== false;
     addonsList = estimatorConfig.addons || [];
-  } else {
+  } else if (isConfigured) {
     const boardingFeeObj = dbFees.find(f => f.title.toLowerCase().includes('boarding') || f.title.toLowerCase().includes('hostel'));
     if (boardingFeeObj) boardingFee = boardingFeeObj.amount;
     if (dbFees.length > 0 && !boardingFeeObj) hasBoarding = false; // if dbFees exist but no boarding, hide it
     
-    const dynamicAddons = dbFees
+    addonsList = dbFees
       .filter(f => f.id !== boardingFeeObj?.id)
       .map(f => ({
         id: f.id.toString(),
@@ -86,15 +92,6 @@ const TuitionEstimatorWidget = ({ school }) => {
         price: f.amount,
         desc: f.description || (f.isCompulsory ? 'Compulsory fee' : 'Optional service fee')
       }));
-
-    const fallbackAddons = [
-      { id: 'bus', name: 'School Bus Transit (Daily Routing)', price: 18000, desc: 'Optional two-way transport logistics.' },
-      { id: 'meals', name: 'Premium Lunch & Meal Plan', price: 22000, desc: 'Freshly prepared, balanced hot lunches daily.' },
-      { id: 'books', name: 'Textbooks & Stationery Kit', price: 15000, desc: 'All curriculum-aligned books & writing tools.' },
-      { id: 'uniforms', name: 'Standard Uniform Set (2 sets + sportwear)', price: 25000, desc: 'Quality customized school attire sets.' }
-    ];
-
-    addonsList = dynamicAddons.length > 0 ? dynamicAddons : (classes.length === 0 ? fallbackAddons : []);
   }
 
   // Helper to convert hex colors to RGBA
@@ -257,6 +254,24 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                 style={{ backgroundColor: secondary }}
               />
 
+              {!isConfigured ? (
+                <div className="text-center py-10 relative z-10">
+                  <div className="w-16 h-16 rounded-full bg-blue-50/50 flex items-center justify-center mx-auto mb-4 border border-blue-100">
+                    <FiInfo className="w-8 h-8 text-blue-500" />
+                  </div>
+                  <h4 className="text-xl font-black text-gray-900 mb-2">Fee Schedule Updating</h4>
+                  <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto leading-relaxed">
+                    We are currently finalizing our tuition and fee schedules for the upcoming academic session. Please contact the admissions office for the most up-to-date estimates.
+                  </p>
+                  <Link 
+                    to={`/${school?.slug}/contact`} 
+                    className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl font-bold text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all text-sm"
+                    style={{ background: `linear-gradient(135deg, ${primary}, ${secondary || primary})` }}
+                  >
+                    Contact Admissions
+                  </Link>
+                </div>
+              ) : (
               <div className="max-w-6xl mx-auto relative z-10">
                 {/* Header */}
                 <div className="text-center mb-12">
@@ -687,6 +702,7 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
           </div>
         </div>
               </div>
+              )}
             </div>
           </motion.div>
         )}
