@@ -25,14 +25,14 @@ const AccreditationsBand = ({ primary }) => {
           
           <div className="flex items-center gap-8 md:gap-12 flex-wrap justify-center overflow-x-auto hide-scrollbar">
             {accreditations.map((item, index) => (
-              <div key={index} className="flex items-center gap-2.5 opacity-60 hover:opacity-100 transition-opacity cursor-default group">
+              <div key={index} className="flex items-center gap-2.5 transition-all cursor-default group">
                 <div 
                   className="w-8 h-8 rounded-full flex items-center justify-center transition-all group-hover:-translate-y-1"
                   style={{ backgroundColor: `${primary}15`, color: primary }}
                 >
                   {React.cloneElement(item.icon, { className: 'w-4 h-4' })}
                 </div>
-                <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                <span className="text-xs font-black text-gray-700 uppercase tracking-wider">
                   {item.text}
                 </span>
               </div>
