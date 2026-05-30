@@ -103,21 +103,19 @@ const InteractiveTimelineWidget = ({ school }) => {
 
   return (
     <div className="w-full relative z-20 flex flex-col h-full">
-      <section className="bg-white rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden transition-all hover:shadow-md flex-1">
-        {/* Subtle theme gradient background */}
-        <div 
-          className="absolute inset-0 pointer-events-none opacity-[0.03]"
-          style={{ background: `linear-gradient(90deg, ${primary}, ${secondary})` }}
-        />
+      <section 
+        className="rounded-2xl shadow-md border border-white/10 relative overflow-hidden transition-all flex-1"
+        style={{ background: `linear-gradient(135deg, ${primary} 0%, #1e293b 100%)` }}
+      >
         <button
           onClick={() => setIsTimelineOpen(!isTimelineOpen)}
-          className="w-full flex items-center justify-between px-6 py-[18px] text-sm font-bold text-gray-800 hover:bg-black/[0.02] transition-colors cursor-pointer relative z-10"
+          className="w-full flex items-center justify-between px-6 py-[18px] text-sm font-bold text-white hover:bg-white/5 transition-colors cursor-pointer relative z-10"
         >
         <div className="flex items-center gap-3">
-          <FiCalendar className="w-5 h-5" style={{ color: primary }} />
-          <span className="uppercase tracking-wide">School Calendar Timeline</span>
+          <FiCalendar className="w-5 h-5 text-white" />
+          <span className="uppercase tracking-wide text-white">School Calendar Timeline</span>
         </div>
-        <div className="text-gray-400">
+        <div className="text-white/80">
           {isTimelineOpen ? <FiChevronUp className="w-5 h-5" /> : <FiChevronDown className="w-5 h-5" />}
         </div>
       </button>
@@ -128,9 +126,9 @@ const InteractiveTimelineWidget = ({ school }) => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
+            className="overflow-hidden bg-white rounded-b-2xl"
           >
-            <div className="py-12 px-6 relative">
+            <div className="py-12 px-6 relative border-t border-gray-100">
               {/* Decorative background grid elements */}
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
                 style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '32px 32px' }} />

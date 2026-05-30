@@ -221,21 +221,19 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
 
   return (
     <div className="w-full relative z-20 flex flex-col h-full">
-      <section id="tuition-estimator" className="bg-white rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden transition-all hover:shadow-md flex-1">
-        {/* Subtle theme gradient background (slightly different opacity to distinguish from timeline) */}
-        <div 
-          className="absolute inset-0 pointer-events-none opacity-[0.05]"
-          style={{ background: `linear-gradient(90deg, ${primary}, ${secondary})` }}
-        />
+      <section id="tuition-estimator" 
+        className="rounded-2xl shadow-md border border-white/10 relative overflow-hidden transition-all flex-1"
+        style={{ background: `linear-gradient(135deg, ${primary} 0%, #1e293b 100%)` }}
+      >
         <button
           onClick={() => setIsCalculatorOpen(!isCalculatorOpen)}
-          className="w-full flex items-center justify-between px-6 py-[18px] text-sm font-bold text-gray-800 hover:bg-black/[0.02] transition-colors cursor-pointer relative z-10"
+          className="w-full flex items-center justify-between px-6 py-[18px] text-sm font-bold text-white hover:bg-white/5 transition-colors cursor-pointer relative z-10"
         >
         <div className="flex items-center gap-3">
-          <FiSliders className="w-5 h-5" style={{ color: primary }} />
-          <span className="uppercase tracking-wide">Tuition Fee Estimator</span>
+          <FiSliders className="w-5 h-5 text-white" />
+          <span className="uppercase tracking-wide text-white">Tuition Fee Estimator</span>
         </div>
-        <div className="text-gray-400">
+        <div className="text-white/80">
           {isCalculatorOpen ? <FiChevronUp className="w-5 h-5" /> : <FiChevronDown className="w-5 h-5" />}
         </div>
       </button>
@@ -246,9 +244,9 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
+            className="overflow-hidden bg-white rounded-b-2xl"
           >
-            <div className="py-12 px-6 relative">
+            <div className="py-12 px-6 relative border-t border-gray-100">
               {/* Dynamic Background Glowing Accents */}
               <div
                 className="absolute top-0 left-0 w-[500px] h-[500px] rounded-full blur-[140px] opacity-[0.03] pointer-events-none -translate-x-1/2 -translate-y-1/2"
