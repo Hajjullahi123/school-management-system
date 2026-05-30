@@ -11,26 +11,25 @@ const AccreditationsBand = ({ primary }) => {
   ];
 
   return (
-    <div className="bg-[#0f172a] border-y border-[#1e293b] overflow-hidden relative">
-      <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-center">
-        <div className="flex items-center gap-2 flex-wrap justify-center overflow-x-auto hide-scrollbar w-full">
+    <div className="bg-slate-900 border-y border-white/5 overflow-hidden relative py-5">
+      <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 50%, ${primary} 0%, transparent 70%)` }} />
+      <div className="max-w-7xl mx-auto px-6 relative z-10 flex items-center justify-center">
+        <div className="flex items-center gap-3 md:gap-5 flex-wrap justify-center w-full">
           {accreditations.map((item, index) => (
             <div 
               key={index} 
-              className="flex items-center justify-center gap-1.5 bg-sky-500 rounded-[2px] px-2 h-[20px] transition-all cursor-default"
+              className="group flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 hover:bg-white/10 hover:border-white/20 transition-all cursor-default shadow-sm"
             >
-              {React.cloneElement(item.icon, { className: 'w-2.5 h-2.5 text-white' })}
-              <span className="text-[9px] font-black text-white uppercase tracking-wider leading-none mt-[1px]">
+              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 group-hover:scale-110 transition-transform">
+                {React.cloneElement(item.icon, { className: 'w-3 h-3' })}
+              </div>
+              <span className="text-[11px] md:text-xs font-semibold text-gray-300 tracking-wide uppercase group-hover:text-white transition-colors">
                 {item.text}
               </span>
             </div>
           ))}
         </div>
       </div>
-      <style dangerouslySetInnerHTML={{__html: `
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}} />
     </div>
   );
 };
