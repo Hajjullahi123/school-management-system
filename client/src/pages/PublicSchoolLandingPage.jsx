@@ -316,9 +316,12 @@ const PublicSchoolLandingPage = () => {
       )}
 
       <section className="py-12 bg-gray-50 border-t border-gray-200">
-        <div className="w-[90%] max-w-7xl mx-auto grid lg:grid-cols-3 gap-6 items-start relative z-20">
+        <div className="w-[90%] max-w-7xl mx-auto grid lg:grid-cols-2 gap-6 items-start relative z-20">
           <InteractiveTimelineWidget school={school} />
           <TuitionEstimatorWidget school={school} />
+        </div>
+        
+        <div className="w-[90%] max-w-4xl mx-auto mt-8">
           <FaqWidget school={school} />
         </div>
       </section>

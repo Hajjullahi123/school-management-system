@@ -611,9 +611,12 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           NEWS, EVENTS, TIMELINE, FAQ & TUITION
       ══════════════════════════════════ */}
       <section className="py-12 border-t border-blue-100" style={{ backgroundColor: '#e8f4fd' }}>
-        <div className="w-[90%] max-w-7xl mx-auto grid lg:grid-cols-3 gap-6 items-start relative z-20">
+        <div className="w-[90%] max-w-7xl mx-auto grid lg:grid-cols-2 gap-6 items-start relative z-20">
           <InteractiveTimelineWidget school={school} />
           <TuitionEstimatorWidget school={school} />
+        </div>
+        
+        <div className="w-[90%] max-w-4xl mx-auto mt-8">
           <FaqWidget school={school} />
         </div>
       </section>
