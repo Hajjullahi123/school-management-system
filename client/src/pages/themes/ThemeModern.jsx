@@ -485,11 +485,6 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       </section>
 
       {/* ══════════════════════════════════
-          FAQ SECTION
-      ══════════════════════════════════ */}
-      <FaqWidget primary={primary} secondary={secondary} />
-
-      {/* ══════════════════════════════════
           TESTIMONIALS
       ══════════════════════════════════ */}
       <section className="py-10 md:py-14 border-t border-blue-100" style={{ backgroundColor: '#e8f4fd' }}>
@@ -688,6 +683,11 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       </section>
 
 
+
+      {/* ══════════════════════════════════
+          FAQ SECTION
+      ══════════════════════════════════ */}
+      <FaqWidget primary={primary} secondary={secondary} />
 
       {/* ══════════════════════════════════
           FOOTER
