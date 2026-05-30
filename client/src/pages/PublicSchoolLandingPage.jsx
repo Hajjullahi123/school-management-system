@@ -300,8 +300,6 @@ const PublicSchoolLandingPage = () => {
         </div>
       </section>
 
-      <AccreditationsBand primary={primaryColor} />
-
       {/* About Us Markdown Section for Classic Theme */}
       {school.aboutUsText && (
         <section className="py-20 px-6 bg-white relative z-20 border-t border-gray-100">
@@ -324,6 +322,8 @@ const PublicSchoolLandingPage = () => {
           <FaqWidget school={school} />
         </div>
       </section>
+
+      <AccreditationsBand primary={primaryColor} />
 
       {/* Footer / Contact Information */}
       <footer className="mt-auto bg-gray-900 text-white py-16 relative overflow-hidden border-t-4" style={{ borderColor: primaryColor }}>

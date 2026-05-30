@@ -377,11 +377,6 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       </section>
 
       {/* ══════════════════════════════════
-          ACCREDITATIONS & TRUST BAND
-      ══════════════════════════════════ */}
-      <AccreditationsBand primary={primary} />
-
-      {/* ══════════════════════════════════
           ABOUT + CORE PILLARS
       ══════════════════════════════════ */}
       <section className="py-10 md:py-14 bg-white">
@@ -684,6 +679,8 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       </section>
 
 
+
+      <AccreditationsBand primary={primary} />
 
       {/* ══════════════════════════════════
           FOOTER
