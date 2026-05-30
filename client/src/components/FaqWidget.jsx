@@ -29,7 +29,7 @@ const FaqWidget = ({ primary, secondary }) => {
   ];
 
   return (
-    <div className="w-full relative z-20 py-16" style={{ backgroundColor: '#f8fafc' }}>
+    <div className="w-full relative z-20 py-16" style={{ backgroundColor: '#e8f4fd' }}>
       <div className="max-w-4xl mx-auto px-6">
         <div className="text-center mb-12">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 transform -rotate-6 shadow-lg border-2 border-white" style={{ background: `linear-gradient(135deg, ${primary}, ${secondary || primary})` }}>
@@ -38,7 +38,7 @@ const FaqWidget = ({ primary, secondary }) => {
           <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-4">
             Frequently Asked <span style={{ color: primary }}>Questions</span>
           </h2>
-          <p className="text-gray-500 text-sm max-w-2xl mx-auto leading-relaxed">
+          <p className="text-gray-600 text-sm max-w-2xl mx-auto leading-relaxed">
             We know choosing the right school is a big decision. Here are answers to some of the most common questions prospective parents ask us.
           </p>
         </div>
@@ -49,19 +49,19 @@ const FaqWidget = ({ primary, secondary }) => {
             return (
               <div 
                 key={index} 
-                className={`bg-white rounded-2xl border transition-all duration-300 overflow-hidden shadow-sm ${isOpen ? 'border-transparent ring-2' : 'border-gray-100 hover:border-gray-300'}`}
-                style={{ ringColor: isOpen ? `${primary}40` : 'transparent' }}
+                className={`rounded-2xl transition-all duration-300 overflow-hidden shadow-sm hover:shadow-md border border-white/10`}
+                style={{ backgroundColor: primary }}
               >
                 <button
                   onClick={() => setOpenIndex(isOpen ? -1 : index)}
                   className="w-full px-6 py-5 flex items-center justify-between gap-4 text-left focus:outline-none"
                 >
-                  <span className={`font-bold text-sm md:text-base ${isOpen ? 'text-gray-900' : 'text-gray-700'}`}>
+                  <span className="font-bold text-sm md:text-base text-white">
                     {faq.question}
                   </span>
                   <div 
-                    className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center transition-colors ${isOpen ? 'text-white' : 'bg-gray-50 text-gray-400'}`}
-                    style={{ backgroundColor: isOpen ? primary : '' }}
+                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center transition-colors text-white"
+                    style={{ backgroundColor: isOpen ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)' }}
                   >
                     {isOpen ? <FiMinus className="w-4 h-4" /> : <FiPlus className="w-4 h-4" />}
                   </div>
@@ -75,7 +75,7 @@ const FaqWidget = ({ primary, secondary }) => {
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3, ease: 'easeInOut' }}
                     >
-                      <div className="px-6 pb-6 pt-0 text-sm text-gray-500 leading-relaxed border-t border-gray-50 mt-2">
+                      <div className="px-6 pb-6 pt-0 text-sm text-white/80 leading-relaxed border-t border-white/10 mt-2">
                         <div className="pt-4">
                           {faq.answer}
                         </div>
