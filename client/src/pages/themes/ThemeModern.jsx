@@ -613,12 +613,13 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       </section>
 
       {/* ══════════════════════════════════
-          NEWS, EVENTS & TIMELINE
+          NEWS, EVENTS, TIMELINE, FAQ & TUITION
       ══════════════════════════════════ */}
       <section className="py-12 border-t border-blue-100" style={{ backgroundColor: '#e8f4fd' }}>
-        <div className="w-[90%] max-w-7xl mx-auto grid lg:grid-cols-2 gap-6 items-start relative z-20">
+        <div className="w-[90%] max-w-7xl mx-auto grid lg:grid-cols-3 gap-6 items-start relative z-20">
           <InteractiveTimelineWidget school={school} />
           <TuitionEstimatorWidget school={school} />
+          <FaqWidget school={school} />
         </div>
       </section>
 
@@ -683,11 +684,6 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       </section>
 
 
-
-      {/* ══════════════════════════════════
-          FAQ SECTION
-      ══════════════════════════════════ */}
-      <FaqWidget primary={primary} secondary={secondary} />
 
       {/* ══════════════════════════════════
           FOOTER

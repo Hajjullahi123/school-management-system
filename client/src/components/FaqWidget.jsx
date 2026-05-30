@@ -2,10 +2,22 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiPlus, FiMinus, FiHelpCircle } from 'react-icons/fi';
 
-const FaqWidget = ({ primary, secondary }) => {
+// Helper to convert hex colors to RGBA
+const hexToRgba = (hex, alpha = 1) => {
+  if (!hex) return `rgba(59, 130, 246, ${alpha})`;
+  const r = parseInt(hex.slice(1, 3), 16) || 59;
+  const g = parseInt(hex.slice(3, 5), 16) || 130;
+  const b = parseInt(hex.slice(5, 7), 16) || 246;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const FaqWidget = ({ school }) => {
   const [openIndex, setOpenIndex] = useState(0); // Open first by default
 
-  const faqs = [
+  const primary = school?.settings?.primaryColor || '#1e3a8a';
+  const secondary = school?.settings?.secondaryColor || '#3b82f6';
+
+  const defaultFaqs = [
     {
       question: "What is your admission process and requirements?",
       answer: "Our admission process is straightforward. First, you submit an online inquiry or application form. Next, your child will be scheduled for a brief assessment and interview. Once admitted, you will receive an offer letter with further instructions on enrollment and fee payment."
@@ -28,65 +40,91 @@ const FaqWidget = ({ primary, secondary }) => {
     }
   ];
 
+  let activeFaqs = defaultFaqs;
+  if (school?.faqConfig) {
+    try {
+      const parsed = JSON.parse(school.faqConfig);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        activeFaqs = parsed;
+      }
+    } catch (e) {}
+  }
+
   return (
-    <div className="w-full relative z-20 py-16" style={{ backgroundColor: '#e8f4fd' }}>
-      <div className="max-w-4xl mx-auto px-6">
-        <div className="text-center mb-12">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 transform -rotate-6 shadow-lg border-2 border-white" style={{ background: `linear-gradient(135deg, ${primary}, ${secondary || primary})` }}>
-            <FiHelpCircle className="w-8 h-8 text-white" />
-          </div>
-          <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-4">
-            Frequently Asked <span style={{ color: primary }}>Questions</span>
-          </h2>
-          <p className="text-gray-600 text-sm max-w-2xl mx-auto leading-relaxed">
-            We know choosing the right school is a big decision. Here are answers to some of the most common questions prospective parents ask us.
-          </p>
-        </div>
+    <div className="bg-white rounded-[32px] p-6 md:p-8 border border-gray-100 shadow-sm space-y-6 flex flex-col h-full text-left relative overflow-hidden group hover:shadow-md transition-all">
+      {/* Subtle glowing accent */}
+      <div 
+        className="absolute top-0 right-0 w-64 h-64 rounded-full blur-[80px] opacity-[0.03] pointer-events-none translate-x-1/3 -translate-y-1/3 transition-all group-hover:opacity-[0.06]"
+        style={{ backgroundColor: primary }}
+      />
 
-        <div className="space-y-4">
-          {faqs.map((faq, index) => {
-            const isOpen = openIndex === index;
-            return (
-              <div 
-                key={index} 
-                className={`rounded-2xl transition-all duration-300 overflow-hidden shadow-sm hover:shadow-md border border-white/10`}
-                style={{ backgroundColor: primary }}
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <span 
+            className="inline-block px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest mb-3 border"
+            style={{ 
+              backgroundColor: hexToRgba(primary, 0.08), 
+              color: primary,
+              borderColor: hexToRgba(primary, 0.15) 
+            }}
+          >
+            ❓ Common Questions
+          </span>
+          <h3 className="text-2xl font-black text-gray-900 tracking-tight leading-none">
+            Help & <span style={{ color: primary }}>FAQs</span>
+          </h3>
+        </div>
+        <div 
+          className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm shrink-0"
+          style={{ background: `linear-gradient(135deg, ${primary}, ${secondary || primary})` }}
+        >
+          <FiHelpCircle className="w-6 h-6 text-white" />
+        </div>
+      </div>
+
+      <div className="space-y-3 flex-1 overflow-y-auto pr-1" style={{ maxHeight: '400px' }}>
+        {activeFaqs.map((faq, index) => {
+          const isOpen = openIndex === index;
+          return (
+            <div 
+              key={index} 
+              className={`rounded-2xl transition-all duration-300 overflow-hidden shadow-sm hover:shadow-md border border-white/10`}
+              style={{ backgroundColor: primary }}
+            >
+              <button
+                onClick={() => setOpenIndex(isOpen ? -1 : index)}
+                className="w-full px-5 py-4 flex items-center justify-between gap-3 text-left focus:outline-none"
               >
-                <button
-                  onClick={() => setOpenIndex(isOpen ? -1 : index)}
-                  className="w-full px-6 py-5 flex items-center justify-between gap-4 text-left focus:outline-none"
+                <span className="font-bold text-xs md:text-sm text-white leading-tight pr-2">
+                  {faq.question}
+                </span>
+                <div 
+                  className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center transition-colors text-white"
+                  style={{ backgroundColor: isOpen ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)' }}
                 >
-                  <span className="font-bold text-sm md:text-base text-white">
-                    {faq.question}
-                  </span>
-                  <div 
-                    className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center transition-colors text-white"
-                    style={{ backgroundColor: isOpen ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)' }}
-                  >
-                    {isOpen ? <FiMinus className="w-4 h-4" /> : <FiPlus className="w-4 h-4" />}
-                  </div>
-                </button>
+                  {isOpen ? <FiMinus className="w-3 h-3" /> : <FiPlus className="w-3 h-3" />}
+                </div>
+              </button>
 
-                <AnimatePresence>
-                  {isOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: 'easeInOut' }}
-                    >
-                      <div className="px-6 pb-6 pt-0 text-sm text-white/80 leading-relaxed border-t border-white/10 mt-2">
-                        <div className="pt-4">
-                          {faq.answer}
-                        </div>
+              <AnimatePresence>
+                {isOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  >
+                    <div className="px-5 pb-5 pt-0 text-xs text-white/80 leading-relaxed border-t border-white/10 mt-1">
+                      <div className="pt-3">
+                        {faq.answer}
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
-        </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

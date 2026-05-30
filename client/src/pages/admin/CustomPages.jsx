@@ -15,6 +15,7 @@ const CustomPages = () => {
   const [isSavingTheme, setIsSavingTheme] = useState(false);
   const [aboutUsText, setAboutUsText] = useState('');
   const [testimonials, setTestimonials] = useState([]);
+  const [faqs, setFaqs] = useState([]);
   const [isSavingContent, setIsSavingContent] = useState(false);
   const [tuitionEstimatorConfig, setTuitionEstimatorConfig] = useState({
     nursery: 35000,
@@ -86,6 +87,15 @@ const CustomPages = () => {
           console.error('Failed to parse tuition estimator config', e);
         }
       }
+      if (data.faqConfig) {
+        try {
+          setFaqs(JSON.parse(data.faqConfig));
+        } catch (e) {
+          console.error('Failed to parse faq config', e);
+        }
+      } else {
+        setFaqs([]);
+      }
     } catch (err) {
       console.error('Failed to load theme settings:', err);
     }
@@ -122,6 +132,7 @@ const CustomPages = () => {
       settingsData.aboutUsText = aboutUsText;
       settingsData.testimonialsText = serializedTestimonials;
       settingsData.tuitionEstimatorConfig = JSON.stringify(tuitionEstimatorConfig);
+      settingsData.faqConfig = JSON.stringify(faqs);
       
       const saveRes = await api.put('/api/settings', settingsData);
       if (saveRes.ok) {
@@ -476,6 +487,82 @@ const CustomPages = () => {
                 className="w-full border-2 border-dashed border-gray-300 text-gray-500 hover:text-primary hover:border-primary px-4 py-3 rounded-2xl text-sm font-bold hover:bg-primary/[0.01] transition-all flex items-center justify-center gap-2"
               >
                 + Add Testimonial Card
+              </button>
+            </div>
+          </div>
+
+          <hr className="border-gray-100" />
+
+          {/* FAQ Builder */}
+          <div className="space-y-3">
+            <label className="block text-sm font-bold text-gray-800">
+              Interactive FAQ Builder
+            </label>
+            <div className="bg-primary/[0.02] border border-primary/10 rounded-xl p-4 mb-3">
+              <h5 className="font-bold text-xs text-primary mb-1">ℹ️ How it works:</h5>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Add common questions that prospective parents frequently ask. This automatically populates the interactive accordion section on your public homepage.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {faqs.map((f, i) => {
+                const updateFaqField = (field, val) => {
+                  setFaqs(prev => {
+                    const updated = [...prev];
+                    updated[i] = { ...updated[i], [field]: val };
+                    return updated;
+                  });
+                };
+
+                return (
+                  <div key={i} className="border border-gray-200 p-5 rounded-2xl bg-gray-50/50 hover:bg-gray-50 transition-all flex flex-col gap-4 shadow-sm relative group">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-md bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black">{i + 1}</span>
+                        <h4 className="font-bold text-gray-800 text-sm">FAQ Card</h4>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => setFaqs(prev => prev.filter((_, idx) => idx !== i))} 
+                        className="text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-wider transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Question</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. What is your admission process?" 
+                          value={f.question} 
+                          onChange={e => updateFaqField('question', e.target.value)} 
+                          className="border border-gray-300 rounded-xl px-4 py-2 w-full text-sm outline-none focus:ring-2 focus:ring-primary/20" 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Answer / Details</label>
+                        <textarea 
+                          placeholder="Provide a helpful, detailed answer..." 
+                          value={f.answer} 
+                          onChange={e => updateFaqField('answer', e.target.value)} 
+                          className="border border-gray-300 rounded-xl px-4 py-2 w-full text-sm outline-none focus:ring-2 focus:ring-primary/20 resize-none" 
+                          rows="2"
+                        ></textarea>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <button 
+                type="button" 
+                onClick={() => setFaqs(prev => [...prev, { question: '', answer: '' }])} 
+                className="w-full border-2 border-dashed border-gray-300 text-gray-500 hover:text-primary hover:border-primary px-4 py-3 rounded-2xl text-sm font-bold hover:bg-primary/[0.01] transition-all flex items-center justify-center gap-2"
+              >
+                + Add FAQ Item
               </button>
             </div>
           </div>

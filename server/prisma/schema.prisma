@@ -144,6 +144,7 @@ model School {
   foundedYear                 Int?
   testimonialsText            String?
   tuitionEstimatorConfig      String?
+  faqConfig                   String?
   createdAt                   DateTime                  @default(now())
   updatedAt                   DateTime                  @updatedAt
   academicSessions            AcademicSession[]
