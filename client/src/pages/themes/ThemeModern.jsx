@@ -225,6 +225,10 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 {p.title}
               </Link>
             ))}
+            <a href="#faq"
+              className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
+              FAQs
+            </a>
             <Link to={`/${school?.slug}/staff`}
               className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
               Our Staff
@@ -274,6 +278,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 {p.title}
               </Link>
             ))}
+            <a href="#faq" className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>FAQs</a>
             <Link to={`/${school?.slug}/staff`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Our Staff</Link>
             <Link to={`/${school?.slug}/higher-students`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Higher Inst. Students</Link>
             <Link to="/alumni" className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Alumni</Link>
@@ -616,7 +621,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           <TuitionEstimatorWidget school={school} />
         </div>
         
-        <div className="w-[90%] max-w-4xl mx-auto mt-8">
+        <div id="faq" className="w-[90%] max-w-4xl mx-auto mt-8 scroll-mt-24">
           <FaqWidget school={school} />
         </div>
       </section>

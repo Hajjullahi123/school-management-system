@@ -122,6 +122,9 @@ const PublicSchoolLandingPage = () => {
                   {page.title}
                 </Link>
               ))}
+              <a href="#faq" className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">
+                FAQs
+              </a>
               <Link to={`/${school.slug}/staff`} className="text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors">
                 Staff
               </Link>
@@ -321,7 +324,7 @@ const PublicSchoolLandingPage = () => {
           <TuitionEstimatorWidget school={school} />
         </div>
         
-        <div className="w-[90%] max-w-4xl mx-auto mt-8">
+        <div id="faq" className="w-[90%] max-w-4xl mx-auto mt-8 scroll-mt-24">
           <FaqWidget school={school} />
         </div>
       </section>
