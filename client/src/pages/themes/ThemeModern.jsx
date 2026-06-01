@@ -224,14 +224,14 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-5 h-18 flex items-center justify-between" style={{ height: 68 }}>
           {/* Brand */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0 pr-4">
             <div className="w-10 h-10 rounded-xl overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center shrink-0">
               {school?.logoUrl
                 ? <img src={getLogoUrl(school.logoUrl)} alt="" className="w-full h-full object-contain p-0.5" onError={e => { e.target.style.display = 'none'; }} />
                 : <span className="text-lg font-black text-gray-300">{school?.name?.[0]}</span>
               }
             </div>
-            <span className="font-black text-gray-900 dark:text-white text-sm md:text-lg tracking-tight leading-tight truncate max-w-[160px] sm:max-w-none">
+            <span className="font-black text-gray-900 dark:text-white text-xs md:text-lg tracking-tight leading-tight line-clamp-2">
               {school?.name}
             </span>
           </div>
