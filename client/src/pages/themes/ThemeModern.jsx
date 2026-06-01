@@ -207,8 +207,12 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       `}</style>
 
       {/* ══════════════════════════════════
-          ANNOUNCEMENT TICKER
+          STICKY HEADER WRAPPER
       ══════════════════════════════════ */}
+      <div className="sticky top-0 z-50 flex flex-col w-full shadow-sm">
+        {/* ══════════════════════════════════
+            ANNOUNCEMENT TICKER
+        ══════════════════════════════════ */}
       <div
         className="text-white py-2 flex items-stretch relative z-50"
         style={{ background: `linear-gradient(90deg, ${primary}, ${darkenHex(primary, 0.12)})` }}
@@ -237,7 +241,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
         </div>
       </div>
 
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 shadow-sm transition-all duration-300">
+      <header className="z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-5 h-18 flex items-center justify-between" style={{ height: 68 }}>
           {/* Brand */}
           <div className="flex items-center gap-3 flex-1 min-w-0 pr-4">
@@ -321,6 +325,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           </div>
         )}
       </header>
+      </div>
 
       {/* ══════════════════════════════════
           HERO SECTION
