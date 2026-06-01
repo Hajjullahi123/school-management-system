@@ -51,7 +51,7 @@ const FaqWidget = ({ school }) => {
   }
 
   return (
-    <div className="bg-white rounded-[32px] p-6 md:p-8 border border-gray-100 shadow-sm space-y-6 flex flex-col h-full text-left relative overflow-hidden group hover:shadow-md transition-all">
+    <div className="bg-white dark:bg-slate-900 rounded-[32px] p-6 md:p-8 border border-gray-100 dark:border-slate-800 shadow-sm space-y-6 flex flex-col h-full text-left relative overflow-hidden group hover:shadow-md transition-all">
       {/* Subtle glowing accent */}
       <div 
         className="absolute top-0 right-0 w-64 h-64 rounded-full blur-[80px] opacity-[0.03] pointer-events-none translate-x-1/3 -translate-y-1/3 transition-all group-hover:opacity-[0.06]"
@@ -70,7 +70,7 @@ const FaqWidget = ({ school }) => {
           >
             ❓ Common Questions
           </span>
-          <h3 className="text-2xl font-black text-gray-900 tracking-tight leading-none">
+          <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
             Help & <span style={{ color: primary }}>FAQs</span>
           </h3>
         </div>

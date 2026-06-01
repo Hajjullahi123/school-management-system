@@ -24,6 +24,8 @@ import {
   FiYoutube,
   FiLinkedin,
   FiChevronDown,
+  FiMoon,
+  FiSun,
 } from 'react-icons/fi';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -75,6 +77,20 @@ const ThemeModern = ({ school, getLogoUrl }) => {
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [form, setForm] = useState({ name: '', email: '', phone: '', grade: '', message: '' });
   const [isFaqModalOpen, setIsFaqModalOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') === 'dark';
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      localStorage.setItem('theme', 'dark');
+    } else {
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
 
   /* hero images */
   const heroImages =
@@ -142,7 +158,8 @@ const ThemeModern = ({ school, getLogoUrl }) => {
   const inputFocus = { boxShadow: `0 0 0 3px ${hexToRgba(primary, 0.18)}` };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans text-gray-800 overflow-x-hidden" style={{ '--primary': primary, '--secondary': secondary, backgroundColor: '#f0f7ff' }}>
+    <div className={isDarkMode ? 'dark' : ''}>
+      <div className="min-h-screen flex flex-col font-sans text-gray-800 dark:text-gray-100 overflow-x-hidden transition-colors duration-300" style={{ '--primary': primary, '--secondary': secondary, backgroundColor: isDarkMode ? '#0f172a' : '#f0f7ff' }}>
 
       {/* ── Global Styles ── */}
       <style>{`
@@ -204,7 +221,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           HEADER / NAVIGATION
       ══════════════════════════════════ */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-gray-100 shadow-sm">
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-5 h-18 flex items-center justify-between" style={{ height: 68 }}>
           {/* Brand */}
           <div className="flex items-center gap-3">
@@ -214,7 +231,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 : <span className="text-lg font-black text-gray-300">{school?.name?.[0]}</span>
               }
             </div>
-            <span className="font-black text-gray-900 text-sm md:text-lg tracking-tight leading-tight truncate max-w-[160px] sm:max-w-none">
+            <span className="font-black text-gray-900 dark:text-white text-sm md:text-lg tracking-tight leading-tight truncate max-w-[160px] sm:max-w-none">
               {school?.name}
             </span>
           </div>
@@ -223,39 +240,34 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           <nav className="hidden lg:flex items-center gap-2">
             {school?.customPages?.map(p => (
               <Link key={p.slug} to={`/${school.slug}/page/${p.slug}`}
-                className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
+                className="text-sm font-bold text-gray-600 dark:text-gray-300 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-gray-100 dark:hover:border-slate-700 hover:shadow-sm transition-all">
                 {p.title}
               </Link>
             ))}
             <button onClick={() => setIsFaqModalOpen(true)}
-              className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
+              className="text-sm font-bold text-gray-600 dark:text-gray-300 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-gray-100 dark:hover:border-slate-700 hover:shadow-sm transition-all">
               FAQs
             </button>
             <Link to={`/${school?.slug}/staff`}
-              className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
+              className="text-sm font-bold text-gray-600 dark:text-gray-300 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-gray-100 dark:hover:border-slate-700 hover:shadow-sm transition-all">
               Our Staff
             </Link>
             <div className="relative group py-2">
-              <button className="flex items-center gap-1 text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all focus:outline-none">
+              <button className="flex items-center gap-1 text-sm font-bold text-gray-600 dark:text-gray-300 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-gray-100 dark:hover:border-slate-700 hover:shadow-sm transition-all focus:outline-none">
                 Alumni <FiChevronDown className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180" />
               </button>
-              <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white border border-gray-100 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-1.5">
-                <Link to="/alumni" className="block px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all rounded-xl mx-1.5">
+              <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-1.5">
+                <Link to="/alumni" className="block px-4 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white transition-all rounded-xl mx-1.5">
                   Alumni Portal
                 </Link>
-                <Link to={`/${school?.slug}/higher-students`} className="block px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all rounded-xl mx-1.5">
+                <Link to={`/${school?.slug}/higher-students`} className="block px-4 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white transition-all rounded-xl mx-1.5">
                   Higher Inst. Students
                 </Link>
               </div>
             </div>
-            <Link to={`/${school?.slug}/admissions`}
-              className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
-              Admissions
-            </Link>
-            <Link to={`/${school?.slug}/contact`}
-              className="text-sm font-bold text-gray-600 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 hover:shadow-sm transition-all">
-              Contact
-            </Link>
+            <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-gray-600 dark:text-gray-300">
+              {isDarkMode ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
+            </button>
             <Link to={`/${school?.slug}/login`}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow-md hover:-translate-y-0.5 hover:shadow-lg transition-all ml-2"
               style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.14)})` }}>
@@ -264,7 +276,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           </nav>
 
           {/* Mobile Toggle */}
-          <button className="lg:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+          <button className="lg:hidden p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
             onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
           </button>
@@ -272,16 +284,14 @@ const ThemeModern = ({ school, getLogoUrl }) => {
 
         {/* Mobile Menu */}
         {mobileOpen && (
-          <div className="lg:hidden border-t border-gray-100 bg-white px-5 py-4 flex flex-col gap-2 fade-in shadow-xl relative z-50">
+          <div className="lg:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-slate-900 px-5 py-4 flex flex-col gap-2 fade-in shadow-xl relative z-50">
             {school?.customPages?.map(p => (
               <Link key={p.slug} to={`/${school.slug}/page/${p.slug}`}
-                className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all"
+                className="text-sm font-bold text-gray-600 dark:text-gray-300 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-gray-100 dark:hover:border-slate-700 transition-all"
                 onClick={() => setMobileOpen(false)}>
                 {p.title}
               </Link>
             ))}
-            <button onClick={() => { setIsFaqModalOpen(true); setMobileOpen(false); }} className="text-left text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all">FAQs</button>
-            <Link to={`/${school?.slug}/staff`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Our Staff</Link>
             <Link to={`/${school?.slug}/higher-students`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Higher Inst. Students</Link>
             <Link to="/alumni" className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Alumni</Link>
             <Link to={`/${school?.slug}/admissions`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Admissions</Link>
@@ -361,7 +371,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           STATS BAR
       ══════════════════════════════════ */}
-      <section className="bg-white border-b border-blue-100">
+      <section className="bg-white dark:bg-slate-900 border-b border-blue-100 dark:border-slate-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-5 py-0">
           <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-gray-100">
             {[
@@ -386,7 +396,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           ABOUT + CORE PILLARS
       ══════════════════════════════════ */}
-      <section className="py-10 md:py-14 bg-white">
+      <section className="py-10 md:py-14 bg-white dark:bg-slate-900 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-5">
           <div className="grid lg:grid-cols-2 gap-12 items-stretch">
 
@@ -422,11 +432,11 @@ const ThemeModern = ({ school, getLogoUrl }) => {
             <div className="space-y-6 w-full">
               <span className="section-label">About Our School</span>
 
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 leading-tight tracking-tight w-full text-left">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white leading-tight tracking-tight w-full text-left">
                 Building Future-Ready <span style={{ color: primary }}>Leaders</span>
               </h2>
 
-              <div className="text-gray-600 leading-relaxed text-[15px] w-full text-justify">
+              <div className="text-gray-600 dark:text-gray-300 leading-relaxed text-[15px] w-full text-justify">
                 {school?.aboutUsText ? (
                   <div className="prose prose-sm max-w-none w-full text-justify prose-headings:font-black prose-a:no-underline prose-p:text-justify">
                     <ReactMarkdown>{school.aboutUsText}</ReactMarkdown>
@@ -477,8 +487,8 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                   <FiCheckCircle className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-gray-900 text-sm mb-1 text-left">{pillar.title}</h4>
-                  <p className="text-xs text-gray-500 leading-relaxed text-left">{pillar.body}</p>
+                  <h4 className="font-bold text-gray-900 dark:text-white text-sm mb-1 text-left">{pillar.title}</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed text-left">{pillar.body}</p>
                 </div>
               </div>
             ))}
@@ -489,24 +499,24 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           TESTIMONIALS
       ══════════════════════════════════ */}
-      <section className="py-10 md:py-14 border-t border-blue-100" style={{ backgroundColor: '#e8f4fd' }}>
+      <section className="py-10 md:py-14 border-t border-blue-100 dark:border-slate-800 transition-colors duration-300" style={{ backgroundColor: isDarkMode ? '#0f172a' : '#e8f4fd' }}>
         <div className="max-w-6xl mx-auto px-5">
           {/* Header — side by side */}
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
             <div>
               <span className="section-label">What Parents Say</span>
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tight">
                 Community Testimonials
               </h2>
             </div>
-            <p className="text-gray-500 text-sm leading-relaxed max-w-sm">
+            <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed max-w-sm">
               Real experiences from parents and guardians who trust us with their children's future.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
             {testimonials.map((t, i) => (
-              <div key={i} className="relative bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 flex flex-col overflow-hidden transform-gpu">
+              <div key={i} className="relative bg-white dark:bg-slate-800 rounded-3xl p-8 border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 flex flex-col overflow-hidden transform-gpu">
                 {/* Accent top bar */}
                 <div className="absolute top-0 left-0 right-0 h-1 rounded-t-3xl" style={{ backgroundColor: primary }} />
 
@@ -521,17 +531,17 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                   ))}
                 </div>
 
-                <p className="text-gray-600 leading-relaxed text-[15px] flex-1 mb-6 relative z-10">
+                <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-[15px] flex-1 mb-6 relative z-10">
                   "{t.quote}"
                 </p>
 
-                <div className="flex items-center gap-3 pt-5 border-t border-gray-100">
+                <div className="flex items-center gap-3 pt-5 border-t border-gray-100 dark:border-slate-700">
                   <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-sm shrink-0 shadow-sm"
                     style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}>
                     {getInitials(t.name)}
                   </div>
                   <div>
-                    <p className="font-black text-gray-900 text-sm">{t.name}</p>
+                    <p className="font-black text-gray-900 dark:text-white text-sm">{t.name}</p>
                     <p className="text-xs font-semibold" style={{ color: hexToRgba(primary, 0.8) }}>{t.subtitle}</p>
                   </div>
                 </div>
@@ -544,14 +554,14 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           TOP STUDENTS
       ══════════════════════════════════ */}
-      <section className="py-10 md:py-14 bg-white border-t border-gray-100">
+      <section className="py-10 md:py-14 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-5">
           <div className="text-center mb-8">
             <span className="section-label">Excellence Recognised</span>
-            <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tight">
               Our Top Performers
             </h2>
-            <p className="text-gray-500 mt-3 max-w-xl mx-auto text-sm">
+            <p className="text-gray-500 dark:text-gray-400 mt-3 max-w-xl mx-auto text-sm">
               Celebrating outstanding academic achievement across all classes.
             </p>
           </div>
@@ -566,7 +576,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {topStudents.map((student, i) => (
                 <div key={i}
-                  className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+                  className="group bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden">
                   {/* Card top */}
                   <div className="h-28 flex items-center justify-center relative"
                     style={{ background: `linear-gradient(135deg, ${hexToRgba(primary, 0.12)}, ${hexToRgba(secondary, 0.08)})` }}>
@@ -585,7 +595,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                   </div>
                   {/* Card body */}
                   <div className="p-4 text-center">
-                    <p className="font-bold text-gray-900 text-sm leading-tight mb-0.5">{student.name}</p>
+                    <p className="font-bold text-gray-900 dark:text-white text-sm leading-tight mb-0.5">{student.name}</p>
                     <p className="text-xs text-gray-400 mb-3">{student.class}</p>
                     <div className="text-2xl font-black mb-0.5" style={{ color: primary }}>{student.average}</div>
                     <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold">Average Score</p>
@@ -617,7 +627,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           NEWS, EVENTS, TIMELINE, FAQ & TUITION
       ══════════════════════════════════ */}
-      <section className="py-12 border-t border-blue-100" style={{ backgroundColor: '#e8f4fd' }}>
+      <section className="py-12 border-t border-blue-100 dark:border-slate-800 transition-colors duration-300" style={{ backgroundColor: isDarkMode ? '#0f172a' : '#e8f4fd' }}>
         <div className="w-[90%] max-w-7xl mx-auto grid lg:grid-cols-2 gap-6 items-start relative z-20">
           <InteractiveTimelineWidget school={school} />
           <TuitionEstimatorWidget school={school} />
@@ -629,7 +639,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           NEWSLETTER BANNER
       ══════════════════════════════════ */}
-      <section className="py-10 border-t border-blue-100" style={{ backgroundColor: '#e8f4fd' }}>
+      <section className="py-10 border-t border-blue-100 dark:border-slate-800 transition-colors duration-300" style={{ backgroundColor: isDarkMode ? '#0f172a' : '#e8f4fd' }}>
         <div className="max-w-5xl mx-auto px-5">
           <div className="rounded-3xl relative overflow-hidden"
             style={{ background: `linear-gradient(135deg, ${primary} 0%, ${darkenHex(primary, 0.2)} 100%)` }}>
@@ -894,6 +904,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           </div>
         )}
       </AnimatePresence>
+    </div>
     </div>
   );
 };

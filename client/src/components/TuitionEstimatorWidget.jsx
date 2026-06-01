@@ -241,9 +241,9 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden bg-white rounded-b-2xl"
+            className="overflow-hidden bg-white dark:bg-slate-900 rounded-b-2xl"
           >
-            <div className="py-12 px-6 relative border-t border-gray-100">
+            <div className="py-12 px-6 relative border-t border-gray-100 dark:border-slate-800">
               {/* Dynamic Background Glowing Accents */}
               <div
                 className="absolute top-0 left-0 w-[500px] h-[500px] rounded-full blur-[140px] opacity-[0.03] pointer-events-none -translate-x-1/2 -translate-y-1/2"
@@ -259,7 +259,7 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                   <div className="w-16 h-16 rounded-full bg-blue-50/50 flex items-center justify-center mx-auto mb-4 border border-blue-100">
                     <FiInfo className="w-8 h-8 text-blue-500" />
                   </div>
-                  <h4 className="text-xl font-black text-gray-900 mb-2">Fee Schedule Updating</h4>
+                  <h4 className="text-xl font-black text-gray-900 dark:text-white mb-2">Fee Schedule Updating</h4>
                   <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto leading-relaxed">
                     We are currently finalizing our tuition and fee schedules for the upcoming academic session. Please contact the admissions office for the most up-to-date estimates.
                   </p>
@@ -285,7 +285,7 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                   >
                     🧮 Interactive Calculator
                   </span>
-                  <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">
+                  <h2 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
                     Tuition Fee <span style={{ color: primary }}>Estimator</span>
                   </h2>
                 </div>
@@ -293,7 +293,7 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
         <div className="grid lg:grid-cols-12 gap-8 items-start">
           {/* Settings Left Column */}
           <div className="lg:col-span-7 space-y-6">
-            <div className="bg-white rounded-[32px] p-6 md:p-8 border border-gray-100 shadow-sm space-y-6 text-left">
+            <div className="bg-white dark:bg-slate-800 rounded-[32px] p-6 md:p-8 border border-gray-100 dark:border-slate-700 shadow-sm space-y-6 text-left">
               {/* Class Select Dropdown */}
               <div className="space-y-2">
                 <label className="text-[10px] font-extrabold uppercase tracking-widest text-gray-400 block ml-1">
@@ -301,7 +301,7 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                 </label>
                 <div className="relative">
                   <select
-                    className="w-full bg-gray-50/70 border-2 border-gray-100 rounded-2xl px-5 py-4 text-xs font-bold text-gray-700 focus:outline-none focus:bg-white focus:border-indigo-500 hover:bg-gray-100/50 transition-all cursor-pointer appearance-none"
+                    className="w-full bg-gray-50/70 dark:bg-slate-900 border-2 border-gray-100 dark:border-slate-700 rounded-2xl px-5 py-4 text-xs font-bold text-gray-700 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 hover:bg-gray-100/50 dark:hover:bg-slate-700 transition-all cursor-pointer appearance-none"
                     value={selectedClassId}
                     onChange={(e) => {
                       setSelectedClassId(e.target.value);
@@ -336,7 +336,7 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                       className={`p-5 rounded-2xl border-2 text-left flex items-start gap-4 transition-all ${
                         !isBoarding
                           ? 'border-indigo-600 bg-indigo-50/10 shadow-sm'
-                          : 'border-gray-100 bg-gray-50/40 hover:bg-gray-50 hover:border-gray-200'
+                          : 'border-gray-100 dark:border-slate-700 bg-gray-50/40 dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-200 dark:hover:border-slate-600'
                       }`}
                     >
                     <div
@@ -350,8 +350,8 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                     </div>
                     <div>
                       <h4
-                        className="text-xs font-black"
-                        style={{ color: !isBoarding ? primary : '#1f2937' }}
+                        className="text-xs font-black dark:text-white"
+                        style={{ color: !isBoarding ? primary : undefined }}
                       >
                         🌞 Day Student
                       </h4>
@@ -370,7 +370,7 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                     className={`p-5 rounded-2xl border-2 text-left flex items-start gap-4 transition-all ${
                       isBoarding
                         ? 'border-indigo-600 bg-indigo-50/10 shadow-sm'
-                        : 'border-gray-100 bg-gray-50/40 hover:bg-gray-50 hover:border-gray-200'
+                        : 'border-gray-100 dark:border-slate-700 bg-gray-50/40 dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-200 dark:hover:border-slate-600'
                     }`}
                   >
                     <div
@@ -384,8 +384,8 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                     </div>
                     <div>
                       <h4
-                        className="text-xs font-black"
-                        style={{ color: isBoarding ? primary : '#1f2937' }}
+                        className="text-xs font-black dark:text-white"
+                        style={{ color: isBoarding ? primary : undefined }}
                       >
                         🏰 Boarding Enrolment
                       </h4>
@@ -417,7 +417,7 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                           className={`w-full p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all ${
                             isSelected
                               ? 'border-indigo-600 bg-indigo-50/5 shadow-sm'
-                              : 'border-gray-100 bg-white hover:bg-gray-50/50 hover:border-gray-200'
+                              : 'border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-gray-50/50 dark:hover:bg-slate-700 hover:border-gray-200 dark:hover:border-slate-600'
                           }`}
                         >
                           {/* Checkbox circle */}
@@ -425,15 +425,15 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                             className={`w-5.5 h-5.5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-colors ${
                               isSelected
                                 ? 'bg-indigo-600 border-transparent text-white'
-                                : 'border-gray-200 bg-white'
+                                : 'border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800'
                             }`}
                           >
                             {isSelected && <FiCheck className="w-3.5 h-3.5" />}
                           </div>
                           <div className="flex-1 min-w-0 pr-4">
                             <h4
-                              className="text-xs font-bold truncate"
-                              style={{ color: isSelected ? primary : '#374151' }}
+                              className="text-xs font-bold truncate dark:text-white"
+                              style={{ color: isSelected ? primary : undefined }}
                             >
                               {addon.name}
                             </h4>
@@ -443,8 +443,8 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                           </div>
                           <div className="text-right shrink-0">
                             <span
-                              className="text-xs font-black italic"
-                              style={{ color: isSelected ? primary : '#1f2937' }}
+                              className="text-xs font-black italic dark:text-white"
+                              style={{ color: isSelected ? primary : undefined }}
                             >
                               + ₦{addon.price.toLocaleString('en-NG')}
                             </span>
@@ -561,8 +561,8 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                   exit={{ opacity: 0, height: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="bg-white p-6 md:p-8 rounded-[32px] border border-gray-100 shadow-xl space-y-6 text-left">
-                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider flex items-center gap-3">
+                  <div className="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-[32px] border border-gray-100 dark:border-slate-700 shadow-xl space-y-6 text-left">
+                    <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-3">
                       <span className="w-1.5 h-6 bg-indigo-600 rounded-full inline-block" />
                       Instant Admission Inquiry
                     </h3>
@@ -576,7 +576,7 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                         <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-sm border border-emerald-100 text-2xl font-black">
                           ✓
                         </div>
-                        <h4 className="font-black text-gray-800 text-sm">
+                        <h4 className="font-black text-gray-800 dark:text-white text-sm">
                           Estimate Inquiry Staged!
                         </h4>
                         <p className="text-xs text-gray-400 max-w-xs mx-auto leading-relaxed">
@@ -587,7 +587,7 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                             setSubmitSuccess(false);
                             setShowInquiryForm(false);
                           }}
-                          className="px-6 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-500 hover:bg-gray-50 transition-colors"
+                          className="px-6 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-xs font-bold text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
                         >
                           Calculate New Estimate
                         </button>
@@ -615,7 +615,7 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                                 type="text"
                                 required
                                 placeholder="Full Name"
-                                className="w-full bg-gray-50/70 border-2 border-gray-100 rounded-xl pl-10 pr-4 py-3 text-xs font-bold text-gray-700 focus:outline-none focus:bg-white focus:border-indigo-500 transition-all"
+                                className="w-full bg-gray-50/70 dark:bg-slate-900 border-2 border-gray-100 dark:border-slate-700 rounded-xl pl-10 pr-4 py-3 text-xs font-bold text-gray-700 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 transition-all"
                                 value={inquiryForm.name}
                                 onChange={(e) =>
                                   setInquiryForm({ ...inquiryForm, name: e.target.value })
@@ -637,7 +637,7 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                                 type="tel"
                                 required
                                 placeholder="e.g. +234..."
-                                className="w-full bg-gray-50/70 border-2 border-gray-100 rounded-xl pl-10 pr-4 py-3 text-xs font-bold text-gray-700 focus:outline-none focus:bg-white focus:border-indigo-500 transition-all"
+                                className="w-full bg-gray-50/70 dark:bg-slate-900 border-2 border-gray-100 dark:border-slate-700 rounded-xl pl-10 pr-4 py-3 text-xs font-bold text-gray-700 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 transition-all"
                                 value={inquiryForm.phone}
                                 onChange={(e) =>
                                   setInquiryForm({ ...inquiryForm, phone: e.target.value })
@@ -660,7 +660,7 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                               type="email"
                               required
                               placeholder="parent@example.com"
-                              className="w-full bg-gray-50/70 border-2 border-gray-100 rounded-xl pl-10 pr-4 py-3 text-xs font-bold text-gray-700 focus:outline-none focus:bg-white focus:border-indigo-500 transition-all"
+                              className="w-full bg-gray-50/70 dark:bg-slate-900 border-2 border-gray-100 dark:border-slate-700 rounded-xl pl-10 pr-4 py-3 text-xs font-bold text-gray-700 dark:text-white focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 transition-all"
                               value={inquiryForm.email}
                               onChange={(e) =>
                                 setInquiryForm({ ...inquiryForm, email: e.target.value })
@@ -677,7 +677,7 @@ I would appreciate it if you could verify this setup and schedule a campus tour/
                           <textarea
                             rows="4"
                             required
-                            className="w-full bg-gray-50/70 border-2 border-gray-100 rounded-xl px-4 py-3 text-xs font-bold text-gray-600 focus:outline-none focus:bg-white focus:border-indigo-500 transition-all resize-none leading-relaxed"
+                            className="w-full bg-gray-50/70 dark:bg-slate-900 border-2 border-gray-100 dark:border-slate-700 rounded-xl px-4 py-3 text-xs font-bold text-gray-600 dark:text-gray-300 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-500 transition-all resize-none leading-relaxed"
                             value={inquiryForm.message}
                             onChange={(e) =>
                               setInquiryForm({ ...inquiryForm, message: e.target.value })

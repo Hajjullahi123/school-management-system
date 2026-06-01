@@ -69,7 +69,7 @@ const FloatingContactWidget = ({ school, getLogoUrl }) => {
     <div className="fixed bottom-6 right-6 z-50 font-sans" ref={widgetRef}>
       {/* Expanded Contact Drawer */}
       <div
-        className={`absolute bottom-16 right-0 w-80 rounded-[28px] bg-white border border-gray-100 shadow-2xl overflow-hidden transition-all duration-300 transform origin-bottom-right z-50 ${
+        className={`absolute bottom-16 right-0 w-80 rounded-[28px] bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 shadow-2xl overflow-hidden transition-all duration-300 transform origin-bottom-right z-50 ${
           isOpen
             ? 'scale-100 opacity-100 translate-y-0'
             : 'scale-90 opacity-0 translate-y-4 pointer-events-none'
@@ -118,7 +118,7 @@ const FloatingContactWidget = ({ school, getLogoUrl }) => {
         </div>
 
         {/* Action Options */}
-        <div className="p-5 space-y-3 bg-white">
+        <div className="p-5 space-y-3 bg-white dark:bg-slate-900">
           <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2 text-left">
             Connect With Us
           </p>
@@ -128,7 +128,7 @@ const FloatingContactWidget = ({ school, getLogoUrl }) => {
               href={wsLink}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-3 w-full p-3.5 rounded-2xl bg-green-50/60 border border-green-100 text-green-700 hover:bg-green-50 hover:shadow-sm transition-all text-left"
+              className="flex items-center gap-3 w-full p-3.5 rounded-2xl bg-green-50/60 dark:bg-green-900/30 border border-green-100 dark:border-green-800 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/50 hover:shadow-sm transition-all text-left"
             >
               <div className="w-9 h-9 rounded-xl bg-green-600 flex items-center justify-center shrink-0 shadow-sm text-white">
                 <FiMessageCircle className="w-5 h-5" />
@@ -143,7 +143,7 @@ const FloatingContactWidget = ({ school, getLogoUrl }) => {
           {phone && (
             <a
               href={`tel:${phone}`}
-              className="flex items-center gap-3 w-full p-3.5 rounded-2xl bg-blue-50/60 border border-blue-100 text-blue-700 hover:bg-blue-50 hover:shadow-sm transition-all text-left"
+              className="flex items-center gap-3 w-full p-3.5 rounded-2xl bg-blue-50/60 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 hover:shadow-sm transition-all text-left"
             >
               <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm text-white"
                 style={{ backgroundColor: primary }}>
@@ -159,7 +159,7 @@ const FloatingContactWidget = ({ school, getLogoUrl }) => {
           {email && (
             <a
               href={`mailto:${email}?subject=Admission Inquiry`}
-              className="flex items-center gap-3 w-full p-3.5 rounded-2xl bg-rose-50/60 border border-rose-100 text-rose-700 hover:bg-rose-50 hover:shadow-sm transition-all text-left"
+              className="flex items-center gap-3 w-full p-3.5 rounded-2xl bg-rose-50/60 dark:bg-rose-900/30 border border-rose-100 dark:border-rose-800 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/50 hover:shadow-sm transition-all text-left"
             >
               <div className="w-9 h-9 rounded-xl bg-rose-500 flex items-center justify-center shrink-0 shadow-sm text-white">
                 <FiMail className="w-4 h-4" />
@@ -174,7 +174,7 @@ const FloatingContactWidget = ({ school, getLogoUrl }) => {
 
         {/* Drawer Footer */}
         {school.openingHours && (
-          <div className="px-5 py-3.5 bg-gray-50 border-t border-gray-100 flex items-center gap-2 text-gray-400 text-left">
+          <div className="px-5 py-3.5 bg-gray-50 dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700 flex items-center gap-2 text-gray-400 text-left">
             <FiClock className="w-3.5 h-3.5 shrink-0" style={{ color: primary }} />
             <span className="text-[10px] font-bold text-gray-400 leading-none">
               Hours: {school.openingHours}

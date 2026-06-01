@@ -126,9 +126,9 @@ const InteractiveTimelineWidget = ({ school }) => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden bg-white rounded-b-2xl"
+            className="overflow-hidden bg-white dark:bg-slate-900 rounded-b-2xl"
           >
-            <div className="py-12 px-6 relative border-t border-gray-100">
+            <div className="py-12 px-6 relative border-t border-gray-100 dark:border-slate-800">
               {/* Decorative background grid elements */}
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
                 style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
@@ -142,7 +142,7 @@ const InteractiveTimelineWidget = ({ school }) => {
                   >
                     School Calendar
                   </span>
-                  <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">
+                  <h2 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
                     Updates &amp; Upcoming <span style={{ color: primary }}>Timeline</span>
                   </h2>
                 </div>
@@ -158,7 +158,7 @@ const InteractiveTimelineWidget = ({ school }) => {
                 className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all select-none focus:outline-none border shadow-sm ${
                   isActive
                     ? 'text-white border-transparent'
-                    : 'text-gray-500 bg-white border-gray-100 hover:bg-gray-50 hover:text-gray-800'
+                    : 'text-gray-500 bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-gray-800 dark:hover:text-white'
                 }`}
                 style={{
                   background: isActive
@@ -176,7 +176,7 @@ const InteractiveTimelineWidget = ({ school }) => {
         <div className="relative">
           {/* Vertical Timeline center-line */}
           {filteredItems.length > 0 && (
-            <div className="absolute left-6 md:left-1/2 top-4 bottom-4 w-0.5 bg-gray-100 -translate-x-1/2 pointer-events-none" />
+            <div className="absolute left-6 md:left-1/2 top-4 bottom-4 w-0.5 bg-gray-100 dark:bg-slate-700 -translate-x-1/2 pointer-events-none" />
           )}
 
           <AnimatePresence mode="popLayout">
@@ -196,14 +196,14 @@ const InteractiveTimelineWidget = ({ school }) => {
                       }`}
                     >
                       {/* Timeline Dot Indicator */}
-                      <div className="absolute left-6 md:left-1/2 w-10 h-10 rounded-2xl bg-white border-2 flex items-center justify-center -translate-x-1/2 z-10 shadow-md transition-transform group-hover:scale-115 shrink-0"
+                      <div className="absolute left-6 md:left-1/2 w-10 h-10 rounded-2xl bg-white dark:bg-slate-800 border-2 flex items-center justify-center -translate-x-1/2 z-10 shadow-md transition-transform group-hover:scale-115 shrink-0"
                         style={{ borderColor: primary }}>
                         {item.icon}
                       </div>
 
                       {/* Content Card Side */}
                       <div className="w-full md:w-[46%] pl-12 md:pl-0 text-left">
-                        <div className="bg-white rounded-[24px] border border-gray-100 p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative flex flex-col group h-full">
+                        <div className="bg-white dark:bg-slate-800 rounded-[24px] border border-gray-100 dark:border-slate-700 p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative flex flex-col group h-full">
                           {/* Top badge */}
                           <div className="flex items-center justify-between gap-3 mb-4">
                             <span
@@ -220,7 +220,7 @@ const InteractiveTimelineWidget = ({ school }) => {
 
                           {/* Event Image if available */}
                           {item.imageUrl && (
-                            <div className="rounded-xl overflow-hidden mb-4 bg-gray-50 max-h-44 border border-gray-100">
+                            <div className="rounded-xl overflow-hidden mb-4 bg-gray-50 dark:bg-slate-900 max-h-44 border border-gray-100 dark:border-slate-700">
                               <img
                                 src={item.imageUrl.startsWith('http') ? item.imageUrl : `${API_BASE_URL}${item.imageUrl}`}
                                 alt={item.title}
@@ -229,11 +229,11 @@ const InteractiveTimelineWidget = ({ school }) => {
                             </div>
                           )}
 
-                          <h3 className="text-base font-extrabold text-gray-900 leading-snug mb-2 group-hover:text-primary transition-colors"
+                          <h3 className="text-base font-extrabold text-gray-900 dark:text-white leading-snug mb-2 group-hover:text-primary transition-colors"
                             style={{ '--primary': primary }}>
                             {item.title}
                           </h3>
-                          <p className="text-xs text-gray-500 leading-relaxed text-justify flex-1">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed text-justify flex-1">
                             {item.content}
                           </p>
                         </div>
@@ -250,12 +250,12 @@ const InteractiveTimelineWidget = ({ school }) => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
-                className="text-center py-16 px-6 border border-dashed border-gray-200 rounded-[32px] bg-slate-50/50 max-w-md mx-auto"
+                className="text-center py-16 px-6 border border-dashed border-gray-200 dark:border-slate-700 rounded-[32px] bg-slate-50/50 dark:bg-slate-800/50 max-w-md mx-auto"
               >
-                <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4 text-gray-400 shadow-sm">
+                <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-slate-700 flex items-center justify-center mx-auto mb-4 text-gray-400 shadow-sm">
                   <FiInbox className="w-6 h-6" />
                 </div>
-                <h4 className="font-extrabold text-gray-800 text-sm mb-1">No Timeline Updates</h4>
+                <h4 className="font-extrabold text-gray-800 dark:text-white text-sm mb-1">No Timeline Updates</h4>
                 <p className="text-xs text-gray-400 leading-relaxed max-w-xs mx-auto">
                   There are currently no {activeTab === 'All' ? 'notices, events, or holidays' : `${activeTab.toLowerCase()}s`} scheduled for publication. Check back later!
                 </p>
