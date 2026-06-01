@@ -255,18 +255,18 @@ const MyStudents = () => {
 
       {/* Edit Modal */}
       {editingStudent && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl my-8 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-[100] overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
               <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                   <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                   <svg className="w-5 h-5 sm:w-6 sm:h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                    </svg>
                  </div>
                  <div>
-                    <h3 className="text-xl font-black text-gray-900 leading-none mb-1">Edit Student Details</h3>
-                    <p className="text-sm font-medium text-gray-500">
+                    <h3 className="text-lg sm:text-xl font-black text-gray-900 leading-none mb-1">Edit Student Details</h3>
+                    <p className="text-xs sm:text-sm font-medium text-gray-500">
                       Modifying records for <span className="text-primary font-bold">{editingStudent.admissionNumber}</span>
                     </p>
                  </div>
@@ -276,9 +276,9 @@ const MyStudents = () => {
               </button>
             </div>
 
-            <div className="p-6 space-y-8">
+            <div className="p-4 sm:p-6 space-y-6 sm:space-y-8 flex-1 overflow-y-auto custom-scrollbar">
               {/* Note about name restrictions */}
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-amber-800 text-sm">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 sm:p-4 flex gap-3 text-amber-800 text-xs sm:text-sm">
                  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                  <p>As a Form Master, you can update demographic and parent details. <strong>Editing student names or adding new records must be done by an Administrator.</strong></p>
               </div>
@@ -290,42 +290,42 @@ const MyStudents = () => {
                 onPhotoUpload={handlePhotoUpload} 
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 {/* Disabled Name fields for reference */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Student Name</label>
+                <div className="sm:col-span-2 md:col-span-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Student Name</label>
                   <input type="text" disabled value={`${editingStudent.user?.firstName || ''} ${editingStudent.user?.lastName || ''}`.trim() || editingStudent.name || ''} className="w-full bg-gray-100 border border-gray-300 rounded-lg p-2.5 text-gray-500 cursor-not-allowed" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                <div className="sm:col-span-2 md:col-span-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
                   <input 
                     type="date" 
                     name="dateOfBirth" 
                     value={formData.dateOfBirth} 
                     onChange={handleInputChange} 
-                    className="w-full bg-white border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" 
+                    className="w-full bg-white border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-sm" 
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Club(s)</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Club(s)</label>
                   <input 
                     type="text" 
                     name="clubs" 
                     placeholder="e.g. Jet Club, Press Club"
                     value={formData.clubs} 
                     onChange={handleInputChange} 
-                    className="w-full bg-white border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" 
+                    className="w-full bg-white border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-sm" 
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Genotype</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Genotype</label>
                   <select 
                     name="genotype" 
                     value={formData.genotype} 
                     onChange={handleInputChange} 
-                    className="w-full bg-white border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                    className="w-full bg-white border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-sm"
                   >
                     <option value="">Select Genotype</option>
                     <option value="AA">AA</option>
@@ -336,40 +336,40 @@ const MyStudents = () => {
                   </select>
                 </div>
                 
-                <div className="md:col-span-2 pt-4 border-t border-gray-100 mt-2">
-                   <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-4">Parent / Guardian Details</h4>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Parent/Guardian Name</label>
+                <div className="sm:col-span-2 pt-4 border-t border-gray-100 mt-2">
+                   <h4 className="text-xs sm:text-sm font-black text-gray-900 uppercase tracking-widest mb-4">Parent / Guardian Details</h4>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Parent/Guardian Name</label>
                         <input 
                           type="text" 
                           name="parentGuardianName" 
                           placeholder="Full Name"
                           value={formData.parentGuardianName} 
                           onChange={handleInputChange} 
-                          className="w-full bg-white border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" 
+                          className="w-full bg-white border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-sm" 
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Parent/Guardian Phone</label>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Parent/Guardian Phone</label>
                         <input 
                           type="text" 
                           name="parentGuardianPhone" 
                           placeholder="Phone Number"
                           value={formData.parentGuardianPhone} 
                           onChange={handleInputChange} 
-                          className="w-full bg-white border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" 
+                          className="w-full bg-white border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-sm" 
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Parent/Guardian Email</label>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Parent/Guardian Email</label>
                         <input 
                           type="email" 
                           name="parentEmail" 
                           placeholder="Email Address"
                           value={formData.parentEmail} 
                           onChange={handleInputChange} 
-                          className="w-full bg-white border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" 
+                          className="w-full bg-white border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-sm" 
                         />
                       </div>
                    </div>
@@ -377,17 +377,17 @@ const MyStudents = () => {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+            <div className="p-4 sm:p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-2 sm:gap-3 shrink-0">
                <button
                  onClick={() => setEditingStudent(null)}
-                 className="px-6 py-2.5 rounded-xl font-bold text-gray-600 hover:bg-gray-200 transition-colors"
+                 className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl font-bold text-gray-600 hover:bg-gray-200 transition-colors text-sm"
                >
                  Cancel
                </button>
                <button
                  onClick={handleSave}
                  disabled={saving}
-                 className="px-8 py-2.5 bg-primary text-white rounded-xl font-black shadow-lg shadow-primary/30 hover:brightness-110 active:scale-95 transition-all disabled:opacity-70 flex items-center gap-2"
+                 className="px-6 sm:px-8 py-2 sm:py-2.5 bg-primary text-white rounded-xl font-black shadow-lg shadow-primary/30 hover:brightness-110 active:scale-95 transition-all disabled:opacity-70 flex items-center gap-2 text-sm uppercase tracking-wider"
                >
                  {saving ? (
                    <>
