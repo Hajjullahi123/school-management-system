@@ -426,12 +426,14 @@ const ThemeModern = ({ school, getLogoUrl }) => {
 
               {/* School badge */}
               {school?.logoUrl && (
-                <div className="absolute bottom-5 left-5 flex items-center gap-3 bg-white/95 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-lg border border-gray-100">
-                  <img src={getLogoUrl(school.logoUrl)} alt="" className="w-10 h-10 object-contain"
-                    onError={e => { e.target.parentElement.style.display = 'none'; }} />
-                  <div>
-                    <p className="font-black text-gray-900 text-sm leading-tight">{school?.name}</p>
-                    <p className="text-xs text-gray-400 font-semibold">Institution of Excellence</p>
+                <div className="absolute bottom-5 left-5 right-5 sm:right-auto sm:max-w-sm flex items-center gap-3 bg-white/95 backdrop-blur-sm rounded-2xl px-3 sm:px-4 py-3 shadow-lg border border-gray-100 overflow-hidden">
+                  <div className="shrink-0">
+                    <img src={getLogoUrl(school.logoUrl)} alt="" className="w-10 h-10 object-contain"
+                      onError={e => { e.target.parentElement.style.display = 'none'; }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-gray-900 text-sm leading-tight line-clamp-2">{school?.name}</p>
+                    <p className="text-[10px] sm:text-xs text-gray-400 font-semibold truncate mt-0.5">Institution of Excellence</p>
                   </div>
                 </div>
               )}
@@ -468,18 +470,18 @@ const ThemeModern = ({ school, getLogoUrl }) => {
 
               {/* Founding Year — full-width prominent card */}
               {school?.foundedYear && (
-                <div className="flex items-center gap-4 w-full px-4 py-3 rounded-2xl"
+                <div className="flex items-center gap-2 sm:gap-4 w-full px-3 sm:px-4 py-3 rounded-2xl overflow-hidden"
                   style={{ backgroundColor: hexToRgba(primary, 0.07), border: `1px solid ${hexToRgba(primary, 0.2)}` }}>
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 text-xl"
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 text-xl"
                     style={{ backgroundColor: hexToRgba(primary, 0.15) }}>
                     🗓️
                   </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Year Established</p>
-                    <p className="text-2xl font-black leading-none" style={{ color: primary }}>{school.foundedYear}</p>
+                  <div className="shrink-0">
+                    <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">Year Established</p>
+                    <p className="text-xl sm:text-2xl font-black leading-none mt-1" style={{ color: primary }}>{school.foundedYear}</p>
                   </div>
-                  <div className="ml-auto h-10 w-px" style={{ backgroundColor: hexToRgba(primary, 0.2) }} />
-                  <p className="text-xs text-gray-500 font-medium max-w-[120px] leading-snug text-right">
+                  <div className="ml-auto h-8 sm:h-10 w-px shrink-0 mx-1 sm:mx-0" style={{ backgroundColor: hexToRgba(primary, 0.2) }} />
+                  <p className="text-[10px] sm:text-xs text-gray-500 font-medium leading-snug text-right flex-1 min-w-0 max-w-[100px] sm:max-w-[120px]">
                     Years of Educational Excellence
                   </p>
                 </div>
