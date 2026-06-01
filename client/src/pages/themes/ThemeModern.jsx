@@ -77,6 +77,8 @@ const ThemeModern = ({ school, getLogoUrl }) => {
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [form, setForm] = useState({ name: '', email: '', phone: '', grade: '', message: '' });
   const [isFaqModalOpen, setIsFaqModalOpen] = useState(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark';
@@ -91,6 +93,21 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       localStorage.setItem('theme', 'light');
     }
   }, [isDarkMode]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setIsHeaderVisible(false);
+      } else {
+        setIsHeaderVisible(true);
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   /* hero images */
   const heroImages =
@@ -193,15 +210,17 @@ const ThemeModern = ({ school, getLogoUrl }) => {
           ANNOUNCEMENT TICKER
       ══════════════════════════════════ */}
       <div
-        className="text-white py-2 overflow-hidden flex items-center relative z-50"
+        className="text-white py-2 flex items-stretch relative z-50"
         style={{ background: `linear-gradient(90deg, ${primary}, ${darkenHex(primary, 0.12)})` }}
       >
-        <div className="shrink-0 flex items-center gap-2 px-4 bg-black/20 h-full absolute left-0 top-0 bottom-0 z-10 border-r border-white/10">
+        <div className="shrink-0 flex items-center gap-2 px-4 bg-black/20 z-10 border-r border-white/10 relative">
           <FiVolume2 className="w-3.5 h-3.5" />
-          <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Announcements</span>
+          <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap hidden sm:inline">Announcements</span>
         </div>
-        <div className="overflow-hidden pl-40 w-full">
-          <div className="ticker-track text-xs font-medium gap-0">
+        
+        <div className="flex-1 overflow-hidden relative flex items-center">
+          <div className="absolute left-0 top-0 bottom-0 w-8 z-10 pointer-events-none" style={{ background: `linear-gradient(to right, ${primary}, transparent)` }}></div>
+          <div className="ticker-track text-xs font-medium gap-0 w-full flex items-center shrink-0">
             {[
               `📣 Admissions open for the new academic session — ${school?.name}`,
               `📞 Contact us: ${school?.phone || 'visit our school'}`,
@@ -212,7 +231,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               `📧 Email: ${school?.email || 'for enquiries'}`,
               `🏫 ${school?.motto || 'Excellence in Education'}`,
             ].map((t, i) => (
-              <span key={i} className="mx-8 opacity-90">{t}</span>
+              <span key={i} className="mx-8 opacity-90 shrink-0">{t}</span>
             ))}
           </div>
         </div>
@@ -221,7 +240,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
       {/* ══════════════════════════════════
           HEADER / NAVIGATION
       ══════════════════════════════════ */}
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 shadow-sm">
+      <header className={`sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 shadow-sm transition-transform duration-300 ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="max-w-7xl mx-auto px-5 h-18 flex items-center justify-between" style={{ height: 68 }}>
           {/* Brand */}
           <div className="flex items-center gap-3 flex-1 min-w-0 pr-4">
