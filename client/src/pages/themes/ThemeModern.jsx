@@ -237,10 +237,7 @@ const ThemeModern = ({ school, getLogoUrl }) => {
         </div>
       </div>
 
-      {/* ══════════════════════════════════
-          HEADER / NAVIGATION
-      ══════════════════════════════════ */}
-      <header className={`sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 shadow-sm transition-transform duration-300 ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 shadow-sm transition-all duration-300">
         <div className="max-w-7xl mx-auto px-5 h-18 flex items-center justify-between" style={{ height: 68 }}>
           {/* Brand */}
           <div className="flex items-center gap-3 flex-1 min-w-0 pr-4">
