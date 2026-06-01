@@ -77,6 +77,7 @@ const SystemSettings = lazyRetry(() => import('./pages/admin/SystemSettings'));
 const StudentFees = lazyRetry(() => import('./pages/student/StudentFees'));
 const PaymentVerify = lazyRetry(() => import('./pages/student/PaymentVerify'));
 const MyClass = lazyRetry(() => import('./pages/teacher/MyClass'));
+const MyStudents = lazyRetry(() => import('./pages/teacher/MyStudents'));
 const ChangePassword = lazyRetry(() => import('./pages/ChangePassword'));
 const PasswordReset = lazyRetry(() => import('./pages/admin/PasswordReset'));
 
@@ -398,6 +399,11 @@ function App() {
               <Route path="my-class" element={
                 <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
                   <MyClass />
+                </ProtectedRoute>
+              } />
+              <Route path="my-students" element={
+                <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
+                  <MyStudents />
                 </ProtectedRoute>
               } />
               <Route path="student/fees" element={
