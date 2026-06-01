@@ -623,8 +623,8 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               ))}
             </div>
           ) : (
-            <div className="relative rounded-3xl overflow-hidden border border-gray-100 py-14 px-8 text-center"
-              style={{ background: `linear-gradient(135deg, ${hexToRgba(primary, 0.04)} 0%, #f8fafc 100%)` }}>
+            <div className="relative rounded-3xl overflow-hidden border border-gray-100 dark:border-slate-800 py-14 px-8 text-center"
+              style={{ background: isDarkMode ? `linear-gradient(135deg, ${hexToRgba(primary, 0.1)} 0%, #1e293b 100%)` : `linear-gradient(135deg, ${hexToRgba(primary, 0.04)} 0%, #f8fafc 100%)` }}>
               {/* decorative rings */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 rounded-full border-2 border-dashed opacity-10 pointer-events-none" style={{ borderColor: primary }} />
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 rounded-full border-2 border-dashed opacity-10 pointer-events-none" style={{ borderColor: primary }} />
@@ -633,8 +633,8 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                   style={{ backgroundColor: hexToRgba(primary, 0.1), color: primary }}>
                   <FiAward className="w-7 h-7" />
                 </div>
-                <h4 className="font-black text-gray-700 text-base mb-1">Results Not Yet Published</h4>
-                <p className="text-gray-400 text-sm max-w-xs mx-auto leading-relaxed">
+                <h4 className="font-black text-gray-700 dark:text-white text-base mb-1">Results Not Yet Published</h4>
+                <p className="text-gray-400 dark:text-gray-300 text-sm max-w-xs mx-auto leading-relaxed">
                   Top performers will appear here once term results are finalised and published.
                 </p>
               </div>
