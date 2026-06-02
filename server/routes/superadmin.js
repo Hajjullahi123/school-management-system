@@ -275,7 +275,7 @@ const generateRandomPassword = () => {
  */
 router.post('/schools', authenticate, authorize(['superadmin']), async (req, res) => {
   try {
-    const { name, slug, address, phone, email } = req.body;
+    const { name, slug, address, phone, email, customDomain } = req.body;
 
     if (!name || !slug) {
       return res.status(400).json({ error: 'Name and Slug are required' });
@@ -320,7 +320,8 @@ router.post('/schools', authenticate, authorize(['superadmin']), async (req, res
           code,
           address,
           phone,
-          email
+          email,
+          customDomain: customDomain || null
         }
       });
 
@@ -480,7 +481,7 @@ router.post('/schools/:id/reset-admin', authenticate, authorize(['superadmin']),
 router.put('/schools/:id', authenticate, authorize(['superadmin']), async (req, res) => {
   try {
     const schoolId = parseInt(req.params.id);
-    const { name, slug, address, phone, email } = req.body;
+    const { name, slug, address, phone, email, customDomain } = req.body;
 
     if (slug) {
       const existing = await prisma.school.findFirst({
@@ -501,7 +502,8 @@ router.put('/schools/:id', authenticate, authorize(['superadmin']), async (req, 
         slug: slug?.toLowerCase().replace(/\s+/g, '-'),
         address,
         phone,
-        email
+        email,
+        customDomain: customDomain || null
       }
     });
 

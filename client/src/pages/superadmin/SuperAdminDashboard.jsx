@@ -27,7 +27,8 @@ const SuperAdminDashboard = () => {
     slug: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    customDomain: ''
   });
   const [globalSettings, setGlobalSettings] = useState({
     facebookUrl: '',
@@ -182,7 +183,7 @@ const SuperAdminDashboard = () => {
       });
       setShowCredsModal(true);
       setShowModal(false);
-      setNewSchool({ name: '', slug: '', email: '', phone: '', address: '' });
+      setNewSchool({ name: '', slug: '', email: '', phone: '', address: '', customDomain: '' });
 
       // Removed reload to keep modal visible
       fetchData();
@@ -435,7 +436,7 @@ const SuperAdminDashboard = () => {
           <TabButton active={activeTab === 'schools'} onClick={() => navigate('/dashboard/superadmin#schools')} icon={<FiBriefcase />} label="Schools" />
           <TabButton active={activeTab === 'academic'} onClick={() => navigate('/dashboard/superadmin#academic')} icon={<FiActivity />} label="Academic Intel" />
           <TabButton active={activeTab === 'showcase'} onClick={() => navigate('/dashboard/superadmin#showcase')} icon={<FiPlus />} label="Use Case Schools" />
-          <TabButton active={activeTab === 'adverts'} onClick={() => navigate('/dashboard/superadmin#adverts')} icon={<FiImage />} label="Advertisements" />
+          <TabButton active={activeTab === 'adverts'} onClick={() => navigate('/dashboard/superadmin#adverts')} icon={<FiImage />} label="Advertisement" />
           <TabButton active={activeTab === 'platform'} onClick={() => navigate('/dashboard/superadmin#platform')} icon={<FiGlobe />} label="Platform" />
           <TabButton active={activeTab === 'audits'} onClick={() => navigate('/dashboard/superadmin#audits')} icon={<FiShield />} label="Global Log" />
         </div>
@@ -1381,6 +1382,10 @@ const SuperAdminDashboard = () => {
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Contact Email</label>
                   <input type="email" value={newSchool.email} onChange={e => setNewSchool({ ...newSchool, email: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 transition-all" placeholder="admin@royal.com" />
                 </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Custom Domain</label>
+                  <input type="text" value={newSchool.customDomain || ''} onChange={e => setNewSchool({ ...newSchool, customDomain: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-indigo-600 transition-all font-mono text-sm" placeholder="e.g., myschool.com" />
+                </div>
               </div>
               <div className="pt-4 flex gap-3">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 px-6 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-colors">Cancel</button>
@@ -1529,6 +1534,19 @@ const SuperAdminDashboard = () => {
                     value={editingSchool.email || ''}
                     onChange={e => setEditingSchool({ ...editingSchool, email: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-600 transition-all text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                    <FiGlobe className="text-blue-500" /> Custom Domain
+                  </label>
+                  <input
+                    type="text"
+                    value={editingSchool.customDomain || ''}
+                    onChange={e => setEditingSchool({ ...editingSchool, customDomain: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-600 transition-all font-mono text-sm"
+                    placeholder="e.g., myschool.com"
                   />
                 </div>
 

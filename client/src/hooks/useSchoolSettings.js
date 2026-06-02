@@ -46,7 +46,16 @@ export const useSchoolSettings = () => {
           slug = null;
         }
 
-        const endpoint = slug ? `/api/settings?schoolSlug=${slug}` : '/api/settings';
+        let endpoint = '/api/settings';
+        const hostname = window.location.hostname;
+        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+
+        if (slug) {
+          endpoint = `/api/settings?schoolSlug=${slug}`;
+        } else if (!isLocalhost) {
+          endpoint = `/api/settings?customDomain=${hostname}`;
+        }
+
         const response = await api.get(endpoint);
         const data = await response.json();
 

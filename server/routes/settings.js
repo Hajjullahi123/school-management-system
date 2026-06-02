@@ -92,12 +92,17 @@ router.get('/stats-summary', authenticate, async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const schoolSlug = req.query.schoolSlug?.trim().toLowerCase();
-    console.log(`Settings request for School Slug: [${schoolSlug}]`);
+    const customDomain = req.query.customDomain?.trim().toLowerCase();
+    console.log(`Settings request for School Slug: [${schoolSlug}], Custom Domain: [${customDomain}]`);
     // Use Promise.all for parallel fetching of school and session data
     const [settings, currentSession] = await Promise.all([
       (schoolSlug && schoolSlug !== 'null' && schoolSlug !== 'undefined') 
-        ? prisma.school.findFirst({ where: { slug: schoolSlug } })
+        ? prisma.school.findFirst({ where: { OR: [{ slug: schoolSlug }, { customDomain: schoolSlug }] } })
         : (async () => {
+            if (customDomain) {
+              const domainSchool = await prisma.school.findFirst({ where: { customDomain } });
+              if (domainSchool) return domainSchool;
+            }
             const token = req.headers.authorization?.split(' ')[1];
             if (token) {
               try {
