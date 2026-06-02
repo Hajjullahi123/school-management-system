@@ -18,10 +18,10 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file('upload-keystore.jks')
-            storePassword 'schoolmanager2026'
-            keyAlias 'school-manager'
-            keyPassword 'schoolmanager2026'
+            storeFile file('release.keystore')
+            storePassword 'Edutech2026!'
+            keyAlias 'key0'
+            keyPassword 'Edutech2026!'
         }
     }
     buildTypes {
