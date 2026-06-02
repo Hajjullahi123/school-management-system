@@ -241,7 +241,7 @@ const BulkStaffUpload = () => {
   };
 
   const downloadTemplate = async () => {
-    const url = `${API_BASE_URL}/api/bulk-upload/template/staff`;
+    const url = `${API_BASE_URL}/api/bulk-upload/template/staff?t=${Date.now()}`;
     const token = localStorage.getItem('token');
 
     try {

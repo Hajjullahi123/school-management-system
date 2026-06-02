@@ -151,7 +151,7 @@ function addInstructionsSheet(workbook, templateType) {
     '1. Use the "Staff Template" sheet to fill in staff information.',
     '2. Fields marked with * are required (First Name, Surname, Role).',
     '3. Select the role from the dropdown in the "Role" column.',
-    '4. Available roles: teacher, admin, principal, accountant, examination_officer, attendance_admin.',
+    '4. Available roles: teacher, admin, sub_admin, principal, accountant, examination_officer, attendance_admin.',
     '5. The "Specialization" column is only required for teachers (e.g., Mathematics, English, Science).',
     '6. Each staff member will be assigned an auto-generated username and a default password.',
     '7. Save this file as .xlsx before uploading.',

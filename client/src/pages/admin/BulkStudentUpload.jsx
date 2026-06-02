@@ -181,7 +181,7 @@ const BulkStudentUpload = () => {
   };
 
   const downloadTemplate = async () => {
-    const url = `${API_BASE_URL}/api/bulk-upload/template/students`;
+    const url = `${API_BASE_URL}/api/bulk-upload/template/students?t=${Date.now()}`;
     const token = localStorage.getItem('token');
 
     try {
