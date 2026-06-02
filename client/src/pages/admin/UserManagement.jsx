@@ -291,25 +291,16 @@ const UserManagement = () => {
           <p className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-widest">System Access Control Hub</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <Link
-            to="/dashboard/bulk-student-upload"
-            className="flex-1 sm:flex-none bg-amber-500 text-white px-4 py-3 rounded-2xl hover:brightness-110 flex items-center justify-center shadow-lg transition-all active:scale-95 text-[10px] font-black uppercase tracking-widest"
-            title="Import Students"
-          >
-            <svg className="w-4 h-4 mr-2 shrink-0 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-            </svg>
-            Import Students
-          </Link>
+          {/* Import Students button has been hidden as requested */}
           <Link
             to="/dashboard/bulk-staff-upload"
             className="flex-1 sm:flex-none bg-blue-500 text-white px-4 py-3 rounded-2xl hover:brightness-110 flex items-center justify-center shadow-lg transition-all active:scale-95 text-[10px] font-black uppercase tracking-widest"
-            title="Import Staff"
+            title="Add Bulk Staff Record"
           >
             <svg className="w-4 h-4 mr-2 shrink-0 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
-            Import Staff
+            Add Bulk Staff Record
           </Link>
           <button
             onClick={() => setShowModal(true)}
@@ -318,7 +309,7 @@ const UserManagement = () => {
             <svg className="w-4 h-4 mr-2 shrink-0 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
             </svg>
-            Add New
+            Add Single Staff
           </button>
         </div>
       </div>
