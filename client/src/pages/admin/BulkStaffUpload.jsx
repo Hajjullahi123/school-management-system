@@ -4,8 +4,6 @@ import { api, apiCall, API_BASE_URL } from '../../api';
 import { toast } from '../../utils/toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
 import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 
 const BulkStaffUpload = () => {
@@ -136,6 +134,9 @@ const BulkStaffUpload = () => {
     if (!results || !results.successful || results.successful.length === 0) return;
 
     try {
+      const ExcelJS = (await import('exceljs')).default || await import('exceljs');
+      const { saveAs } = await import('file-saver');
+      
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'School Management System';
       workbook.created = new Date();
