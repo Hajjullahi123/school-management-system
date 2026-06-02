@@ -244,6 +244,41 @@ const allowedOrigins = [
   'http://localhost:3000'
 ];
 
+// Cache custom domains from DB for CORS validation (refreshes every 5 minutes)
+let cachedCustomDomains = [];
+let domainCacheTime = 0;
+const DOMAIN_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+const refreshCustomDomainCache = async () => {
+  try {
+    const prisma = require('./db');
+    const schools = await prisma.school.findMany({
+      where: { customDomain: { not: null } },
+      select: { customDomain: true }
+    });
+    cachedCustomDomains = schools.map(s => s.customDomain.toLowerCase());
+    domainCacheTime = Date.now();
+    if (cachedCustomDomains.length > 0) {
+      console.log(`[CORS] Loaded ${cachedCustomDomains.length} custom domain(s): ${cachedCustomDomains.join(', ')}`);
+    }
+  } catch (e) {
+    console.warn('[CORS] Failed to load custom domains from DB:', e.message);
+  }
+};
+
+// Load custom domains on startup
+refreshCustomDomainCache();
+
+const isAllowedCustomDomain = (origin) => {
+  if (!origin) return false;
+  try {
+    const originHost = new URL(origin).hostname.toLowerCase();
+    return cachedCustomDomains.some(d => originHost === d || originHost.endsWith('.' + d));
+  } catch {
+    return false;
+  }
+};
+
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
@@ -252,12 +287,23 @@ app.use(cors({
       return callback(null, true);
     }
 
+    // Allow platform domains
     if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.educatechportal.com')) {
-      callback(null, true);
-    } else {
-      console.warn(`[CORS] Blocked request from origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+      return callback(null, true);
     }
+
+    // Refresh cache if stale
+    if (Date.now() - domainCacheTime > DOMAIN_CACHE_TTL) {
+      refreshCustomDomainCache();
+    }
+
+    // Allow custom domains registered in the database
+    if (isAllowedCustomDomain(origin)) {
+      return callback(null, true);
+    }
+
+    console.warn(`[CORS] Blocked request from origin: ${origin}`);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true
 }));

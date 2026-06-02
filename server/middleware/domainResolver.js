@@ -9,16 +9,21 @@ const CACHE_TTL = 60000; // 1 minute
  * Example: 'portal.kingscollege.com' -> maps to schoolId for Kings College.
  */
 const resolveDomain = async (req, res, next) => {
-  const host = req.get('host'); // e.g., 'portal.kingscollege.com'
+  const rawHost = req.get('host'); // e.g., 'portal.kingscollege.com' or 'portal.kingscollege.com:443'
+
+  // Normalize: lowercase and strip port number
+  const host = rawHost ? rawHost.split(':')[0].toLowerCase().trim() : null;
 
   // Ignore local development hosts and platform's main domain
-  const platformDomain = process.env.PLATFORM_DOMAIN || 'localhost';
+  const platformDomain = process.env.PLATFORM_DOMAIN || 'educatechportal.com';
 
   // Skip for standard library/asset paths or common file extensions
   if (!host || 
       host.includes(platformDomain) || 
       host.includes('onrender.com') ||
+      host.includes('localhost') ||
       host.includes('127.0.0.1') ||
+      host.startsWith('192.168.') ||
       req.path.startsWith('/api/public') ||
       req.path.startsWith('/api/auth') ||
       req.path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/) ||
@@ -38,13 +43,14 @@ const resolveDomain = async (req, res, next) => {
   }
 
   try {
-    // Check if any school has this custom domain configured
-    const school = await prisma.school.findUnique({
-      where: { customDomain: host },
+    // Check if any school has this custom domain configured (case-insensitive via lowercase normalization)
+    const school = await prisma.school.findFirst({
+      where: { customDomain: { equals: host, mode: 'insensitive' } },
       select: { id: true, slug: true, isActivated: true }
     });
 
     if (school) {
+      console.log(`[DomainResolver] Resolved ${host} -> School ID: ${school.id}, Slug: ${school.slug}`);
       req.resolvedSchoolId = school.id;
       req.resolvedSlug = school.slug;
       req.viaCustomDomain = true;

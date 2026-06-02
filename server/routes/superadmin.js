@@ -321,7 +321,7 @@ router.post('/schools', authenticate, authorize(['superadmin']), async (req, res
           address,
           phone,
           email,
-          customDomain: customDomain || null
+          customDomain: customDomain ? customDomain.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '').toLowerCase().trim() : null
         }
       });
 
@@ -503,7 +503,7 @@ router.put('/schools/:id', authenticate, authorize(['superadmin']), async (req, 
         address,
         phone,
         email,
-        customDomain: customDomain || null
+        customDomain: customDomain ? customDomain.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '').toLowerCase().trim() : null
       }
     });
 

@@ -92,16 +92,28 @@ router.get('/stats-summary', authenticate, async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const schoolSlug = req.query.schoolSlug?.trim().toLowerCase();
-    const customDomain = req.query.customDomain?.trim().toLowerCase();
+    const customDomain = req.query.customDomain?.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '');
     console.log(`Settings request for School Slug: [${schoolSlug}], Custom Domain: [${customDomain}]`);
     // Use Promise.all for parallel fetching of school and session data
     const [settings, currentSession] = await Promise.all([
       (schoolSlug && schoolSlug !== 'null' && schoolSlug !== 'undefined') 
-        ? prisma.school.findFirst({ where: { OR: [{ slug: schoolSlug }, { customDomain: schoolSlug }] } })
+        ? prisma.school.findFirst({ where: { OR: [{ slug: schoolSlug }, { customDomain: { equals: schoolSlug, mode: 'insensitive' } }] } })
         : (async () => {
             if (customDomain) {
-              const domainSchool = await prisma.school.findFirst({ where: { customDomain } });
+              const domainSchool = await prisma.school.findFirst({ where: { customDomain: { equals: customDomain, mode: 'insensitive' } } });
               if (domainSchool) return domainSchool;
+              // customDomain was provided but didn't match any school — this is the platform's own domain
+              // Return platform-level branding so the frontend shows Login, not a random school's page
+              console.log(`[Settings] Custom domain "${customDomain}" is not a registered school domain — returning platform config`);
+              return {
+                id: 'global-superadmin',
+                schoolName: 'EduTechAI System',
+                schoolMotto: 'Smart School Management Platform',
+                primaryColor: '#1d4ed8',
+                secondaryColor: '#2563eb',
+                accentColor: '#3b82f6',
+                logoUrl: null
+              };
             }
             const token = req.headers.authorization?.split(' ')[1];
             if (token) {
@@ -128,7 +140,7 @@ router.get('/', async (req, res) => {
                 }
               } catch (e) {}
             }
-            return prisma.school.findFirst(); // Final fallback
+            return prisma.school.findFirst(); // Final fallback for localhost/dev only
           })(),
       Promise.resolve(null)
     ]);
