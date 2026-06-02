@@ -32,28 +32,35 @@ export const useSchoolSettings = () => {
         const pathParts = window.location.pathname.split('/').filter(Boolean);
         const urlParams = new URLSearchParams(window.location.search);
 
-        // Priority: 1. Path slug (e.g. /amana-academy/), 2. Query param (?school=), 3. localStorage
-        // Ignore localStorage on authenticated dashboards/portals so the backend can use the JWT token.
-        let slug = pathParts[0] && !['login', 'news-events', 'contact', 'gallery', 'alumni', 'demo', 'verify', 'dashboard', 'superadmin', 'school-home', 'verify-dashboard'].includes(pathParts[0])
+        // Priority: 1. Path slug (e.g. /amana-academy/), 2. Query param (?school=)
+        let urlSlug = pathParts[0] && !['login', 'news-events', 'contact', 'gallery', 'alumni', 'demo', 'verify', 'dashboard', 'superadmin', 'school-home', 'verify-dashboard'].includes(pathParts[0])
           ? pathParts[0]
           : urlParams.get('school');
 
-        if (!slug && !['dashboard', 'superadmin', 'school-home'].includes(pathParts[0])) {
-          slug = localStorage.getItem('schoolSlug');
+        // Priority 3: localStorage (only used if no explicit URL slug is provided)
+        let localSlug = null;
+        if (!urlSlug && !['dashboard', 'superadmin', 'school-home'].includes(pathParts[0])) {
+          localSlug = localStorage.getItem('schoolSlug');
         }
 
-        if (slug === 'null' || slug === 'undefined') {
-          slug = null;
-        }
+        if (urlSlug === 'null' || urlSlug === 'undefined') urlSlug = null;
+        if (localSlug === 'null' || localSlug === 'undefined') localSlug = null;
 
         let endpoint = '/api/settings';
         const hostname = window.location.hostname;
         const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
 
-        if (slug) {
-          endpoint = `/api/settings?schoolSlug=${slug}`;
-        } else if (!isLocalhost) {
+        // 1. Explicit URL Slug always wins
+        if (urlSlug) {
+          endpoint = `/api/settings?schoolSlug=${urlSlug}`;
+        } 
+        // 2. Custom Domain wins over localStorage
+        else if (!isLocalhost) {
           endpoint = `/api/settings?customDomain=${hostname}`;
+        } 
+        // 3. Fallback to localStorage
+        else if (localSlug) {
+          endpoint = `/api/settings?schoolSlug=${localSlug}`;
         }
 
         const response = await api.get(endpoint);
@@ -76,7 +83,7 @@ export const useSchoolSettings = () => {
             primaryColor: data.primaryColor || '#0f766e',
             secondaryColor: data.secondaryColor || '#0d9488',
             accentColor: data.accentColor || '#14b8a6',
-            schoolSlug: slug || data.slug || null,
+            schoolSlug: urlSlug || localSlug || data.slug || null,
             facebookUrl: data.facebookUrl || null,
             instagramUrl: data.instagramUrl || null,
             whatsappUrl: data.whatsappUrl || null,
