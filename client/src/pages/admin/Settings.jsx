@@ -894,6 +894,71 @@ const Settings = () => {
                 </div>
               </div>
 
+              <div className="mb-8 border-t border-gray-100 pt-8">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Website Theme</h3>
+                <p className="text-sm text-gray-500 mb-6">Select a visual theme for your public school portal.</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Classic Theme */}
+                  <label className={`relative flex flex-col p-4 cursor-pointer rounded-2xl border-2 transition-all ${settings.websiteTheme === 'classic' || !settings.websiteTheme ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input type="radio" name="websiteTheme" value="classic" checked={settings.websiteTheme === 'classic' || !settings.websiteTheme} onChange={handleInputChange} className="sr-only" />
+                    <div className="h-24 bg-white border border-gray-200 rounded-xl mb-4 overflow-hidden shadow-sm flex flex-col">
+                      <div className="h-6 border-b border-gray-100 flex items-center px-2"><div className="w-4 h-4 rounded-full bg-indigo-500"></div></div>
+                      <div className="flex-1 bg-gray-50 p-2 flex gap-2"><div className="w-1/3 bg-gray-200 rounded"></div><div className="w-2/3 bg-white border border-gray-100 rounded"></div></div>
+                    </div>
+                    <span className="font-bold text-gray-900">Classic Default</span>
+                    <span className="text-xs text-gray-500 mt-1">Clean, balanced, and professional.</span>
+                  </label>
+
+                  {/* Modern Theme */}
+                  <label className={`relative flex flex-col p-4 cursor-pointer rounded-2xl border-2 transition-all ${settings.websiteTheme === 'modern' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input type="radio" name="websiteTheme" value="modern" checked={settings.websiteTheme === 'modern'} onChange={handleInputChange} className="sr-only" />
+                    <div className="h-24 bg-white border border-gray-200 rounded-xl mb-4 overflow-hidden shadow-sm flex flex-col relative">
+                      <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500 rounded-full blur-xl opacity-20 transform translate-x-4 -translate-y-4"></div>
+                      <div className="h-8 flex items-center justify-center px-2 z-10"><div className="w-2/3 h-2 bg-gray-200 rounded-full"></div></div>
+                      <div className="flex-1 px-4 flex flex-col items-center justify-center z-10"><div className="w-full h-8 bg-blue-500 rounded-xl opacity-80"></div></div>
+                    </div>
+                    <span className="font-bold text-gray-900">Modern Glassmorphism</span>
+                    <span className="text-xs text-gray-500 mt-1">Sleek, transparent, and vibrant.</span>
+                  </label>
+
+                  {/* Elite Theme */}
+                  <label className={`relative flex flex-col p-4 cursor-pointer rounded-2xl border-2 transition-all ${settings.websiteTheme === 'elite' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input type="radio" name="websiteTheme" value="elite" checked={settings.websiteTheme === 'elite'} onChange={handleInputChange} className="sr-only" />
+                    <div className="h-24 bg-[#0a0a0a] border border-gray-800 rounded-xl mb-4 overflow-hidden shadow-sm flex flex-col">
+                      <div className="h-6 border-b border-white/10 flex items-center justify-center"><div className="w-8 h-1 bg-[#d4af37]"></div></div>
+                      <div className="flex-1 p-3 flex flex-col items-center justify-center gap-2"><div className="w-3/4 h-3 bg-white/20 rounded"></div><div className="w-1/2 h-2 bg-white/10 rounded"></div></div>
+                    </div>
+                    <span className="font-bold text-gray-900">Elite Premium</span>
+                    <span className="text-xs text-gray-500 mt-1">Dark, rich vibe with serif typography.</span>
+                  </label>
+
+                  {/* Playful Theme */}
+                  <label className={`relative flex flex-col p-4 cursor-pointer rounded-2xl border-2 transition-all ${settings.websiteTheme === 'playful' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input type="radio" name="websiteTheme" value="playful" checked={settings.websiteTheme === 'playful'} onChange={handleInputChange} className="sr-only" />
+                    <div className="h-24 bg-white border border-gray-200 rounded-[2rem] mb-4 overflow-hidden shadow-sm flex flex-col relative">
+                      <div className="absolute -top-2 -left-2 w-10 h-10 bg-yellow-300 rounded-full"></div>
+                      <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-pink-400 rounded-full"></div>
+                      <div className="flex-1 flex items-center justify-center z-10"><div className="w-20 h-8 bg-teal-400 rounded-full shadow-lg"></div></div>
+                    </div>
+                    <span className="font-bold text-gray-900">Vibrant Playful</span>
+                    <span className="text-xs text-gray-500 mt-1">Rounded corners, perfect for early years.</span>
+                  </label>
+
+                  {/* Academic Theme */}
+                  <label className={`relative flex flex-col p-4 cursor-pointer rounded-2xl border-2 transition-all ${settings.websiteTheme === 'academic' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input type="radio" name="websiteTheme" value="academic" checked={settings.websiteTheme === 'academic'} onChange={handleInputChange} className="sr-only" />
+                    <div className="h-24 bg-stone-50 border border-stone-300 rounded-xl mb-4 overflow-hidden shadow-sm flex flex-col">
+                      <div className="h-4 bg-[#0f172a]"></div>
+                      <div className="h-8 bg-white border-b border-stone-200 flex items-center px-2 gap-2"><div className="w-4 h-4 border border-blue-900 flex items-center justify-center"><div className="w-1 h-1 bg-blue-900"></div></div><div className="w-12 h-2 bg-stone-200"></div></div>
+                      <div className="flex-1 p-2 flex gap-2"><div className="w-1/2 h-full bg-white border border-stone-200"></div><div className="w-1/2 h-full bg-stone-100 border border-stone-200"></div></div>
+                    </div>
+                    <span className="font-bold text-gray-900">Traditional Academic</span>
+                    <span className="text-xs text-gray-500 mt-1">Structured, formal, and data-focused.</span>
+                  </label>
+                </div>
+              </div>
+
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Theme Colors</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
