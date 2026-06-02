@@ -12,8 +12,9 @@ import TuitionEstimatorWidget from '../components/TuitionEstimatorWidget';
 import AccreditationsBand from '../components/AccreditationsBand';
 import FaqWidget from '../components/FaqWidget';
 
-const PublicSchoolLandingPage = () => {
-  const { schoolSlug } = useParams();
+const PublicSchoolLandingPage = ({ overrideSlug }) => {
+  const params = useParams();
+  const schoolSlug = overrideSlug || params.schoolSlug;
   const navigate = useNavigate();
   const [school, setSchool] = useState(null);
   const [loading, setLoading] = useState(true);
