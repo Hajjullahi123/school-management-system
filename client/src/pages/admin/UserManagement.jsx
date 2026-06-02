@@ -343,6 +343,7 @@ const UserManagement = () => {
         >
           <option value="all">Global Catalog</option>
           <option value="admin">Administrators</option>
+          <option value="sub_admin">Sub Admins</option>
           <option value="examination_officer">Exam Officers</option>
           <option value="attendance_admin">Attendance Hub</option>
           <option value="teacher">Instructors</option>
@@ -360,7 +361,7 @@ const UserManagement = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         ) : (
-          ['admin', 'examination_officer', 'attendance_admin', 'principal', 'teacher', 'higher_student', 'accountant', 'parent', 'student'].map(role => {
+          ['admin', 'sub_admin', 'examination_officer', 'attendance_admin', 'principal', 'teacher', 'higher_student', 'accountant', 'parent', 'student'].map(role => {
             const usersInRole = filteredUsers.filter(u => {
               if (role === 'parent') {
                 return u.role === 'parent' || u.parent;
@@ -378,6 +379,7 @@ const UserManagement = () => {
                 <div
                   onClick={() => toggleRole(role)}
                   className={`px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between sm:items-center cursor-pointer select-none transition-colors border-b border-white/10 ${role === 'admin' ? 'bg-indigo-600 hover:bg-indigo-700' :
+                    role === 'sub_admin' ? 'bg-indigo-500 hover:bg-indigo-600' :
                     role === 'examination_officer' ? 'bg-cyan-600 hover:bg-cyan-700' :
                       role === 'attendance_admin' ? 'bg-fuchsia-600 hover:bg-fuchsia-700' :
                         role === 'principal' ? 'bg-purple-600 hover:bg-purple-700' :
@@ -390,7 +392,7 @@ const UserManagement = () => {
                 >
                   <div className="flex items-center gap-3 mb-3 sm:mb-0">
                     <span className="p-2 bg-white/20 rounded-lg shrink-0">
-                      {role === 'admin' ? (
+                      {(role === 'admin' || role === 'sub_admin') ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                       ) : role === 'examination_officer' ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -447,6 +449,7 @@ const UserManagement = () => {
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
                                   <div className={`h-11 w-11 rounded-2xl flex items-center justify-center text-white font-black shadow-lg transform transition-transform group-hover:rotate-6 overflow-hidden ${role === 'admin' ? 'bg-indigo-500' :
+                                    role === 'sub_admin' ? 'bg-indigo-400' :
                                     role === 'examination_officer' ? 'bg-cyan-500' :
                                       role === 'attendance_admin' ? 'bg-fuchsia-500' :
                                         role === 'principal' ? 'bg-purple-500' :
@@ -498,6 +501,7 @@ const UserManagement = () => {
                                   </div>
                                 )}
                                 {role === 'admin' && <div className="text-indigo-700 font-bold text-xs bg-indigo-50 px-3 py-1 rounded-full w-fit border border-indigo-100 tracking-tight">SYSTEM ADMIN</div>}
+                                {role === 'sub_admin' && <div className="text-indigo-700 font-bold text-xs bg-indigo-50 px-3 py-1 rounded-full w-fit border border-indigo-100 tracking-tight">SUB ADMIN</div>}
                                 {role === 'attendance_admin' && <div className="text-fuchsia-700 font-bold text-xs bg-fuchsia-50 px-3 py-1 rounded-full w-fit border border-fuchsia-100 tracking-tight text-center">ATTENDANCE & ACCESS</div>}
                                 {role === 'parent' && (
                                   <div className="space-y-1">
@@ -588,6 +592,7 @@ const UserManagement = () => {
                   <option value="attendance_admin">Attendance & Access Admin</option>
                   <option value="principal">School Principal</option>
                   <option value="accountant">Financial Accountant</option>
+                  <option value="sub_admin">Sub Admin</option>
                   <option value="admin">System Admin</option>
                 </select>
                 {/* Singleton role warning */}

@@ -184,7 +184,7 @@ const Layout = () => {
 
 
   // Academic Setup Group
-  if (user?.role === 'admin' || user?.role === 'principal' || user?.role === 'examination_officer' || user?.role === 'attendance_admin') {
+  if (user?.role === 'admin' || user?.role === 'sub_admin' || user?.role === 'principal' || user?.role === 'examination_officer' || user?.role === 'attendance_admin') {
     // Academic Setup Group - NOT for examination officer or attendance admin
     if (true) { // Allow all admin-level roles to see items in this group
       menuItems.push({
@@ -871,7 +871,8 @@ const Layout = () => {
 
   // Add Admin-only items
   // Add Admin/Principal/ExamOfficer/AttendanceAdmin items
-  if (user?.role === 'admin' || user?.role === 'principal' || user?.role === 'examination_officer' || user?.role === 'attendance_admin') {
+  // Add Admin/Principal/ExamOfficer/AttendanceAdmin/SubAdmin items
+  if (user?.role === 'admin' || user?.role === 'sub_admin' || user?.role === 'principal' || user?.role === 'examination_officer' || user?.role === 'attendance_admin') {
 
     // Fee Management Group - ADMIN ONLY
     if (user?.role === 'admin') {

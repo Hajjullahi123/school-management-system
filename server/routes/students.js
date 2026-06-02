@@ -209,7 +209,7 @@ router.put('/my-profile', authenticate, async (req, res) => {
 });
 
 // Delete Student
-router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.delete('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -319,7 +319,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
 });
 
 // Create User Account for Legacy Student
-router.post('/:id/create-account', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.post('/:id/create-account', authenticate, authorize(['admin', 'sub_admin', 'principal']), async (req, res) => {
   try {
     const { id } = req.params;
     const studentId = parseInt(id);
@@ -557,7 +557,7 @@ router.delete('/my-photo', authenticate, async (req, res) => {
 // Recover missing firstName/lastName from legacy data (Admin/Principal only)
 // GET  /api/students/fix-names         → dry-run preview
 // POST /api/students/fix-names?apply=true → apply fixes
-router.post('/fix-names', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.post('/fix-names', authenticate, authorize(['admin', 'sub_admin', 'principal']), async (req, res) => {
   try {
     const applyFixes = req.query.apply === 'true';
     const schoolIdInt = parseInt(req.schoolId);
@@ -700,7 +700,7 @@ router.post('/fix-names', authenticate, authorize(['admin', 'principal']), async
 });
 
 // Fix Legacy Admission Numbers
-router.post('/fix-admission-numbers', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+router.post('/fix-admission-numbers', authenticate, authorize(['admin', 'sub_admin', 'principal']), async (req, res) => {
   try {
     const applyFixes = req.query.apply === 'true';
     const schoolIdInt = parseInt(req.schoolId);
@@ -880,7 +880,7 @@ router.get('/:id', authenticate, async (req, res) => {
 });
 
 // Create student with comprehensive information
-router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin', 'teacher']), async (req, res) => {
+router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin', 'teacher']), async (req, res) => {
   try {
     console.log('Creating student with data:', {
       firstName: req.body.firstName,
@@ -1190,7 +1190,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
 
 // Update student (Admin/Principal/Teacher)
 // WARNING: This route catches /:id, so it must be AFTER /my-profile
-router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin', 'teacher']), async (req, res) => {
+router.put('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin', 'teacher']), async (req, res) => {
   try {
     const {
       firstName,
@@ -1429,7 +1429,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
 });
 
 // Delete student
-router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin', 'teacher']), async (req, res) => {
+router.delete('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin', 'teacher']), async (req, res) => {
   try {
     const studentId = parseInt(req.params.id);
 
@@ -1515,7 +1515,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
 });
 
 // Create Parent Account from Student Details
-router.post('/:id/create-parent', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+router.post('/:id/create-parent', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const studentId = parseInt(req.params.id);
 

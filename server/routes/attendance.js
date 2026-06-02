@@ -49,7 +49,7 @@ function determineStaffStatus(checkInTime, lateMinutes) {
 }
 
 // 1. Get Attendance Sheet for a Class (on a specific date)
-router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'principal', 'attendance_admin', 'accountant', 'examination_officer']), async (req, res) => {
+router.get('/class/:classId', authenticate, authorize(['admin', 'sub_admin', 'teacher', 'principal', 'attendance_admin', 'accountant', 'examination_officer']), async (req, res) => {
   try {
     const { classId } = req.params;
     const { date } = req.query; // YYYY-MM-DD
@@ -209,7 +209,7 @@ router.get('/class/:classId', authenticate, authorize(['admin', 'teacher', 'prin
 });
 
 // 2. Mark Attendance (Bulk Upsert)
-router.post('/mark', authenticate, authorize(['admin', 'teacher', 'principal', 'attendance_admin', 'accountant', 'examination_officer']), async (req, res) => {
+router.post('/mark', authenticate, authorize(['admin', 'sub_admin', 'teacher', 'principal', 'attendance_admin', 'accountant', 'examination_officer']), async (req, res) => {
   try {
     const { classId, date, records, adminOverride } = req.body;
     // records: [{ studentId: 1, status: 'present', notes: '' }, ...]
@@ -554,7 +554,7 @@ router.get('/student/:studentId/summary', authenticate, async (req, res) => {
 });
 
 // Download attendance report (Admin/Principal only)
-router.get('/download', authenticate, authorize(['admin', 'teacher', 'principal', 'attendance_admin', 'accountant', 'examination_officer']), async (req, res) => {
+router.get('/download', authenticate, authorize(['admin', 'sub_admin', 'teacher', 'principal', 'attendance_admin', 'accountant', 'examination_officer']), async (req, res) => {
   try {
     const { classId, startDate, endDate, termId, sessionId } = req.query;
 
@@ -670,7 +670,7 @@ router.get('/download', authenticate, authorize(['admin', 'teacher', 'principal'
 });
 
 // 4. Student Scan (Safe-Arrival Notification)
-router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', 'staff', 'attendance_admin', 'accountant', 'examination_officer']), async (req, res) => {
+router.post('/scan', authenticate, authorize(['admin', 'sub_admin', 'teacher', 'principal', 'staff', 'attendance_admin', 'accountant', 'examination_officer']), async (req, res) => {
   try {
     let { admissionNumber } = req.body;
     console.log(`[SCAN DEBUG] Received Scan Request: "${admissionNumber}" for School ID: ${req.schoolId}`);
@@ -990,7 +990,7 @@ router.post('/scan', authenticate, authorize(['admin', 'teacher', 'principal', '
 });
 
 // 5. Get Arrival Statistics for Gate Scanner
-router.get('/arrival-stats', authenticate, authorize(['admin', 'principal', 'staff']), async (req, res) => {
+router.get('/arrival-stats', authenticate, authorize(['admin', 'sub_admin', 'principal', 'staff']), async (req, res) => {
   try {
     const { days = 5 } = req.query;
     const numDays = parseInt(days);

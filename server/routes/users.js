@@ -7,7 +7,7 @@ const { logAction } = require('../utils/audit');
 const { generateTeacherUsername, generateStudentUsername } = require('../utils/usernameGenerator');
 
 // Get all users (Admin/Principal only)
-router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+router.get('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const { role, search } = req.query;
 
@@ -69,7 +69,7 @@ router.get('/', authenticate, authorize(['admin', 'principal', 'accountant', 'ex
 });
 
 // Create user (Admin/Principal only)
-router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const {
       username,
@@ -446,7 +446,7 @@ router.post('/', authenticate, authorize(['admin', 'principal', 'accountant', 'e
 });
 
 // Update user (Admin/Principal only)
-router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+router.put('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -633,7 +633,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 
 });
 
 // Delete user (Admin/Principal only) - Hard Delete
-router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+router.delete('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const { id } = req.params;
     const userId = parseInt(id);
@@ -750,7 +750,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
 });
 
 // Bulk create students (Admin/Principal only)
-router.post('/bulk-students', authenticate, authorize(['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
+router.post('/bulk-students', authenticate, authorize(['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin']), async (req, res) => {
   try {
     const { students } = req.body; // Array of student data
 
