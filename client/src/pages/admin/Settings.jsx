@@ -900,8 +900,8 @@ const Settings = () => {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Classic Theme */}
-                  <label className={`relative flex flex-col p-4 cursor-pointer rounded-2xl border-2 transition-all ${settings.websiteTheme === 'classic' || !settings.websiteTheme ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
-                    <input type="radio" name="websiteTheme" value="classic" checked={settings.websiteTheme === 'classic' || !settings.websiteTheme} onChange={handleInputChange} className="sr-only" />
+                  <label className={`relative flex flex-col p-4 cursor-pointer rounded-2xl border-2 transition-all ${settings.websiteTheme === 'classic' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input type="radio" name="websiteTheme" value="classic" checked={settings.websiteTheme === 'classic'} onChange={handleInputChange} className="sr-only" />
                     <div className="h-24 bg-white border border-gray-200 rounded-xl mb-4 overflow-hidden shadow-sm flex flex-col">
                       <div className="h-6 border-b border-gray-100 flex items-center px-2"><div className="w-4 h-4 rounded-full bg-indigo-500"></div></div>
                       <div className="flex-1 bg-gray-50 p-2 flex gap-2"><div className="w-1/3 bg-gray-200 rounded"></div><div className="w-2/3 bg-white border border-gray-100 rounded"></div></div>
@@ -911,8 +911,8 @@ const Settings = () => {
                   </label>
 
                   {/* Modern Theme */}
-                  <label className={`relative flex flex-col p-4 cursor-pointer rounded-2xl border-2 transition-all ${settings.websiteTheme === 'modern' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
-                    <input type="radio" name="websiteTheme" value="modern" checked={settings.websiteTheme === 'modern'} onChange={handleInputChange} className="sr-only" />
+                  <label className={`relative flex flex-col p-4 cursor-pointer rounded-2xl border-2 transition-all ${settings.websiteTheme === 'modern' || !settings.websiteTheme ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input type="radio" name="websiteTheme" value="modern" checked={settings.websiteTheme === 'modern' || !settings.websiteTheme} onChange={handleInputChange} className="sr-only" />
                     <div className="h-24 bg-white border border-gray-200 rounded-xl mb-4 overflow-hidden shadow-sm flex flex-col relative">
                       <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500 rounded-full blur-xl opacity-20 transform translate-x-4 -translate-y-4"></div>
                       <div className="h-8 flex items-center justify-center px-2 z-10"><div className="w-2/3 h-2 bg-gray-200 rounded-full"></div></div>

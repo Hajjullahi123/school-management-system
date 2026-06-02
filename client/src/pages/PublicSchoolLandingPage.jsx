@@ -67,18 +67,17 @@ const PublicSchoolLandingPage = ({ overrideSlug }) => {
 
   // Theme Router
   switch (school.websiteTheme) {
-    case 'modern':
-      return <ThemeModern school={school} getLogoUrl={getLogoUrl} />;
     case 'elite':
       return <ThemeElite school={school} getLogoUrl={getLogoUrl} />;
     case 'playful':
       return <ThemePlayful school={school} getLogoUrl={getLogoUrl} />;
     case 'academic':
       return <ThemeAcademic school={school} getLogoUrl={getLogoUrl} />;
-    // Future themes will be added here
     case 'classic':
-    default:
       return <ThemeClassic school={school} getLogoUrl={getLogoUrl} />;
+    case 'modern':
+    default:
+      return <ThemeModern school={school} getLogoUrl={getLogoUrl} />;
   }
 };
 
