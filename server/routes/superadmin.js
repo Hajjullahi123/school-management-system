@@ -478,9 +478,13 @@ router.post('/schools/:id/reset-admin', authenticate, authorize(['superadmin']),
  * @desc    Update school details (name, slug, address, phone, email)
  * @access  SuperAdmin only
  */
-router.put('/schools/:id', authenticate, authorize(['superadmin']), async (req, res) => {
+router.put('/schools/:id', authenticate, authorize(['superadmin', 'admin']), async (req, res) => {
   try {
     const schoolId = parseInt(req.params.id);
+
+    if (req.user.role !== 'superadmin' && req.user.schoolId !== schoolId) {
+      return res.status(403).json({ error: 'You do not have permission to update this school' });
+    }
     const { name, slug, address, phone, email, customDomain } = req.body;
 
     if (slug) {
