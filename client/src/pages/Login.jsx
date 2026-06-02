@@ -227,11 +227,19 @@ const Login = () => {
         <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-accent/10 rounded-full blur-[120px] translate-x-1/3 translate-y-1/3 animate-pulse delay-700"></div>
 
         <div className="relative z-10">
-          <div className="flex items-center gap-4 mb-12">
+            <div className="flex items-center gap-4 mb-12">
             <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-2xl p-2 border border-white/20 overflow-hidden">
-               <img src="/logo-pwa.png" alt="EduTechAI Logo" className="w-full h-full object-contain" />
+               {schoolSettings?.schoolId !== 'global-superadmin' && schoolSettings?.logoUrl ? (
+                 <img src={schoolSettings.logoUrl} alt={`${schoolSettings.schoolName} Logo`} className="w-full h-full object-contain" />
+               ) : (
+                 <img src="/logo-pwa.png" alt="EduTechAI Logo" className="w-full h-full object-contain" />
+               )}
             </div>
-            <h1 className="text-3xl font-black tracking-tighter">EduTechAI PORTAL</h1>
+            <h1 className="text-3xl font-black tracking-tighter">
+              {schoolSettings?.schoolId !== 'global-superadmin' && schoolSettings?.schoolName 
+                ? schoolSettings.schoolName.toUpperCase() 
+                : "EduTechAI PORTAL"}
+            </h1>
             
             {/* Mobile-only Login Access Button */}
             <button 
