@@ -4,8 +4,12 @@ import { api, apiCall, API_BASE_URL } from '../../api';
 import { toast } from '../../utils/toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
+import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 
 const BulkStaffUpload = () => {
+  const { settings: schoolSettings } = useSchoolSettings();
   const [csvData, setCsvData] = useState('');
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -128,29 +132,111 @@ const BulkStaffUpload = () => {
     }
   };
 
-  const downloadResults = () => {
+  const downloadResults = async () => {
     if (!results || !results.successful || results.successful.length === 0) return;
 
-    const headers = ['Name', 'Role', 'Username', 'Default Password'];
-    const rows = results.successful.map(s => [
-      s.name,
-      s.role || '',
-      s.username,
-      s.password
-    ]);
+    try {
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'School Management System';
+      workbook.created = new Date();
+      const ws = workbook.addWorksheet('Staff Credentials');
+      
+      // Add School Header
+      const schoolRow = ws.addRow([schoolSettings?.schoolName?.toUpperCase() || 'SCHOOL DIRECTORY']);
+      schoolRow.font = { name: 'Arial Black', size: 16, bold: true };
+      schoolRow.alignment = { vertical: 'middle', horizontal: 'center' };
+      ws.mergeCells(`A${schoolRow.number}:D${schoolRow.number}`);
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(r => r.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
+      const mottoRow = ws.addRow([schoolSettings?.schoolMotto || '']);
+      mottoRow.font = { italic: true, size: 10 };
+      mottoRow.alignment = { horizontal: 'center' };
+      ws.mergeCells(`A${mottoRow.number}:D${mottoRow.number}`);
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `uploaded_staff_credentials_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+      const addressRow = ws.addRow([schoolSettings?.schoolAddress || '']);
+      addressRow.font = { size: 9 };
+      addressRow.alignment = { horizontal: 'center' };
+      ws.mergeCells(`A${addressRow.number}:D${addressRow.number}`);
+
+      const contactText = [
+        schoolSettings?.schoolPhone ? `Phone: ${schoolSettings.schoolPhone}` : '',
+        schoolSettings?.schoolEmail ? `Email: ${schoolSettings.schoolEmail}` : ''
+      ].filter(Boolean).join(' | ');
+      const contactRow = ws.addRow([contactText]);
+      contactRow.font = { size: 9, bold: true };
+      contactRow.alignment = { horizontal: 'center' };
+      ws.mergeCells(`A${contactRow.number}:D${contactRow.number}`);
+
+      ws.addRow([]); // Spacer
+
+      const titleRow = ws.addRow(['STAFF CREDENTIALS']);
+      titleRow.font = { size: 12, bold: true, color: { argb: 'FF1E40AF' } };
+      titleRow.alignment = { horizontal: 'center' };
+      ws.mergeCells(`A${titleRow.number}:D${titleRow.number}`);
+
+      const timeRow = ws.addRow([`Generated on: ${new Date().toLocaleString()}`]);
+      timeRow.font = { size: 8, color: { argb: 'FF6B7280' } };
+      timeRow.alignment = { horizontal: 'center' };
+      ws.mergeCells(`A${timeRow.number}:D${timeRow.number}`);
+
+      ws.addRow([]); // Spacer
+
+      // Add Headers
+      const headerRow = ws.addRow(['Name', 'Role', 'Username', 'Default Password']);
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF1E40AF' }
+        };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+
+      // Add Rows
+      results.successful.forEach(s => {
+        const row = ws.addRow([
+          s.name,
+          s.role || '',
+          s.username,
+          s.password
+        ]);
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+          cell.alignment = { vertical: 'middle' };
+        });
+      });
+
+      // Fit to content
+      ws.columns.forEach((column) => {
+        let maxColumnLength = 0;
+        column.eachCell({ includeEmpty: true }, (cell) => {
+          const columnLength = cell.value ? cell.value.toString().length : 10;
+          if (columnLength > maxColumnLength) {
+            maxColumnLength = columnLength;
+          }
+        });
+        column.width = maxColumnLength < 15 ? 15 : maxColumnLength + 2;
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const filename = `uploaded_staff_credentials_${new Date().toISOString().split('T')[0]}.xlsx`;
+      saveAs(new Blob([buffer]), filename);
+      
+    } catch (error) {
+      console.error('Error generating Excel file:', error);
+      toast.error('Failed to download credentials.');
+    }
   };
 
   const downloadTemplate = async () => {
@@ -312,7 +398,7 @@ const BulkStaffUpload = () => {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
-                  Download Credentials CSV
+                  Download Credentials Excel
                 </button>
                 <p className="text-xs text-gray-500 mt-2 italic">* Passwords have been auto-generated.</p>
               </div>
