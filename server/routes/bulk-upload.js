@@ -1221,7 +1221,7 @@ router.get('/template/staff', authenticate, authorize(['admin', 'principal']), a
       worksheet.getCell(`D${i}`).dataValidation = {
         type: 'list',
         allowBlank: true,
-        formulae: ['"teacher,admin,principal,accountant,examination_officer,attendance_admin"']
+        formulae: ['"teacher,admin,sub_admin,principal,accountant,examination_officer,attendance_admin"']
       };
     }
 
@@ -1336,7 +1336,7 @@ router.post('/upload-staff', authenticate, authorize(['admin', 'principal']), up
           continue;
         }
 
-        const allowedRoles = ['teacher', 'admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin'];
+        const allowedRoles = ['teacher', 'admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin'];
         if (!allowedRoles.includes(staff.role.toLowerCase())) {
           results.failed.push({
             data: staff,
@@ -1366,7 +1366,7 @@ router.post('/upload-staff', authenticate, authorize(['admin', 'principal']), up
             staff.firstName,
             staff.lastName
           );
-        } else if (['admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin'].includes(staff.role.toLowerCase())) {
+        } else if (['admin', 'sub_admin', 'principal', 'accountant', 'examination_officer', 'attendance_admin'].includes(staff.role.toLowerCase())) {
           let position = staff.role.toLowerCase();
           if (staff.role.toLowerCase() === 'examination_officer') position = 'exam_off';
           if (staff.role.toLowerCase() === 'attendance_admin') position = 'attend_off';
