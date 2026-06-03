@@ -49,16 +49,16 @@ export const subscribeToPush = async () => {
 };
 
 export const checkPushPermission = () => {
-    if (typeof window === 'undefined' || !('Notification' in window)) return 'denied';
-    return Notification.permission;
+    if (typeof window === 'undefined' || !('Notification' in window) || !window.Notification) return 'denied';
+    return window.Notification.permission;
 };
 
 export const requestPushPermission = async () => {
-    if (typeof window === 'undefined' || !('Notification' in window)) {
+    if (typeof window === 'undefined' || !('Notification' in window) || !window.Notification) {
         console.warn('This browser does not support notifications.');
         return false;
     }
-    const permission = await Notification.requestPermission();
+    const permission = await window.Notification.requestPermission();
     if (permission === 'granted') {
         return subscribeToPush();
     }
