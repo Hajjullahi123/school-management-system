@@ -131,6 +131,13 @@ const ModelCard = ({ model }) => {
 
 const ModelZooPage = () => {
   const [filter, setFilter] = useState('All');
+  const [flippedCards, setFlippedCards] = useState({});
+
+  const toggleFlip = (name) => {
+    setFlippedCards(prev => ({ ...prev, [name]: !prev[name] }));
+  };
+
+  const filteredModels = MODELS.filter(m => filter === 'All' || m.subject === filter);
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
