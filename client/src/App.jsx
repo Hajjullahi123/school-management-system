@@ -20,6 +20,7 @@ const ResultManager = lazyRetry(() => import('./pages/ResultManager'));
 const ReportCard = lazyRetry(() => import('./pages/ReportCard'));
 const LandingPage = lazyRetry(() => import('./pages/LandingPage'));
 const PublicSchoolLandingPage = lazyRetry(() => import('./pages/PublicSchoolLandingPage'));
+const SuperAdminLandingPage = lazyRetry(() => import('./pages/SuperAdminLandingPage'));
 const PublicCustomPage = lazyRetry(() => import('./pages/PublicCustomPage'));
 const MeetOurStaff = lazyRetry(() => import('./pages/MeetOurStaff'));
 const MeetHigherStudents = lazyRetry(() => import('./pages/MeetHigherStudents'));
@@ -194,6 +195,7 @@ function App() {
             <Route path="/news-events" element={<NewsEvents />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/gallery" element={<Gallery />} />
+            <Route path="/edutech" element={<SuperAdminLandingPage />} />
             <Route path="/:schoolSlug" element={<PublicSchoolLandingPage />} />
             <Route path="/:schoolSlug/gallery" element={<Gallery />} />
             <Route path="/:schoolSlug/staff" element={<MeetOurStaff />} />

@@ -1,0 +1,407 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@400;600;800&display=swap');
+
+.edutech-landing-page {
+  --primary-blue: #0a192f;
+  --primary-blue-light: #112240;
+  --accent-red: #e63946;
+  --accent-red-hover: #d62828;
+  --text-light: #ccd6f6;
+  --text-lighter: #e6f1ff;
+  --text-dark: #8892b0;
+  --bg-dark: #020c1b;
+  --bg-darker: #0a192f;
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --hiit-blue: #0b1c59;
+
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-darker);
+  color: var(--text-light);
+  line-height: 1.6;
+  overflow-x: hidden;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.edutech-landing-page h1, 
+.edutech-landing-page h2, 
+.edutech-landing-page h3, 
+.edutech-landing-page h4, 
+.edutech-landing-page h5, 
+.edutech-landing-page h6 {
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-lighter);
+}
+
+.edutech-landing-page a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Typography Utilities */
+.edutech-landing-page .text-center { text-align: center; }
+.edutech-landing-page .text-accent { color: var(--accent-red); }
+
+/* Layout Utilities */
+.edutech-landing-page .landing-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* Glassmorphism Components */
+.edutech-landing-page .glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.edutech-landing-page .glass-panel:hover {
+  transform: translateY(-5px);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Buttons */
+.edutech-landing-page .btn {
+  display: inline-block;
+  padding: 0.8rem 1.8rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.edutech-landing-page .btn-primary {
+  background-color: var(--accent-red);
+  color: white;
+  box-shadow: 0 4px 15px rgba(230, 57, 70, 0.4);
+}
+
+.edutech-landing-page .btn-primary:hover {
+  background-color: var(--accent-red-hover);
+  box-shadow: 0 6px 20px rgba(230, 57, 70, 0.6);
+  transform: translateY(-2px);
+}
+
+.edutech-landing-page .btn-outline {
+  background-color: transparent;
+  color: white;
+  border: 2px solid white;
+}
+
+.edutech-landing-page .btn-outline:hover {
+  background-color: white;
+  color: var(--primary-blue);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.edutech-landing-page .animate-fade-in {
+  animation: fadeIn 0.8s ease forwards;
+}
+
+.edutech-landing-page .delay-1 { animation-delay: 0.2s; opacity: 0; }
+.edutech-landing-page .delay-2 { animation-delay: 0.4s; opacity: 0; }
+.edutech-landing-page .delay-3 { animation-delay: 0.6s; opacity: 0; }
+
+/* Navbar */
+.edutech-landing-page .navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 5%;
+  background: rgba(2, 12, 27, 0.8);
+  backdrop-filter: blur(10px);
+  position: fixed;
+  width: 100%;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.edutech-landing-page .nav-logo {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-lighter);
+}
+
+.edutech-landing-page .nav-links {
+  display: flex;
+  gap: 2rem;
+  list-style: none;
+  margin: 0;
+}
+
+.edutech-landing-page .nav-links a {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: color 0.3s;
+}
+
+.edutech-landing-page .nav-links a:hover {
+  color: var(--accent-red);
+}
+
+/* Hero Section */
+.edutech-landing-page .hero {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 0 5%;
+  background: linear-gradient(135deg, rgba(11, 28, 89, 0.9) 0%, rgba(2, 12, 27, 0.95) 100%),
+              url('https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80') center/cover;
+}
+
+.edutech-landing-page .hero-content {
+  max-width: 800px;
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
+
+.edutech-landing-page .hero-subtitle {
+  color: var(--accent-red);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.edutech-landing-page .hero h1 {
+  font-size: 4.5rem;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+}
+
+.edutech-landing-page .hero p {
+  font-size: 1.2rem;
+  color: var(--text-dark);
+  margin: 0 auto 2rem auto;
+  max-width: 600px;
+}
+
+.edutech-landing-page .hero-btns {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+/* Features/System Section */
+.edutech-landing-page .system-section {
+  padding: 8rem 5%;
+  background-color: var(--bg-dark);
+}
+
+.edutech-landing-page .section-title {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 3rem;
+}
+
+.edutech-landing-page .features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.edutech-landing-page .feature-card {
+  padding: 2.5rem;
+  text-align: center;
+}
+
+.edutech-landing-page .feature-icon {
+  font-size: 3rem;
+  color: var(--accent-red);
+  margin-bottom: 1.5rem;
+}
+
+/* Top Schools / Performers Section */
+.edutech-landing-page .top-schools {
+  padding: 8rem 5%;
+  background-color: var(--bg-darker);
+}
+
+.edutech-landing-page .schools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.edutech-landing-page .school-card {
+  background: var(--bg-dark);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  overflow: hidden;
+  text-align: center;
+  padding-bottom: 2rem;
+  transition: transform 0.3s ease;
+}
+
+.edutech-landing-page .school-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--accent-red);
+}
+
+.edutech-landing-page .school-img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  margin-bottom: 1.5rem;
+}
+
+/* News & Events Section */
+.edutech-landing-page .news-events {
+  padding: 8rem 5%;
+  background-color: var(--bg-dark);
+}
+
+.edutech-landing-page .news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.edutech-landing-page .news-card {
+  padding: 2rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  text-align: left;
+}
+
+.edutech-landing-page .news-date {
+  color: var(--accent-red);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.edutech-landing-page .news-card h3 {
+  margin-bottom: 1rem;
+}
+
+/* Gallery Section */
+.edutech-landing-page .gallery {
+  padding: 8rem 5%;
+  background-color: var(--bg-darker);
+}
+
+.edutech-landing-page .gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.edutech-landing-page .gallery-img {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 8px;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  cursor: pointer;
+}
+
+.edutech-landing-page .gallery-img:hover {
+  transform: scale(1.05);
+  opacity: 0.8;
+}
+
+/* Testimonials / Why Choose Us */
+.edutech-landing-page .testimonials {
+  padding: 8rem 5%;
+  background: linear-gradient(rgba(2, 12, 27, 0.9), rgba(2, 12, 27, 0.9)),
+              url('https://www.transparenttextures.com/patterns/cubes.png');
+  background-color: var(--hiit-blue);
+  position: relative;
+}
+
+.edutech-landing-page .testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+}
+
+.edutech-landing-page .testimonial-card {
+  background: white;
+  color: #111;
+  padding: 2.5rem;
+  border-radius: 12px;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.edutech-landing-page .quote-icon {
+  color: var(--accent-red);
+  font-size: 4rem;
+  position: absolute;
+  top: 1rem;
+  left: 1.5rem;
+  opacity: 0.15;
+  font-family: serif;
+}
+
+.edutech-landing-page .testimonial-text {
+  font-style: italic;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+  color: #333;
+}
+
+.edutech-landing-page .testimonial-author {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: #111;
+}
+
+.edutech-landing-page .author-img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Footer */
+.edutech-landing-page footer {
+  padding: 5rem 5% 3rem;
+  background-color: var(--bg-darker);
+  border-top: 1px solid var(--glass-border);
+  text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .edutech-landing-page .hero h1 {
+    font-size: 3rem;
+  }
+  .edutech-landing-page .nav-links {
+    display: none;
+  }
+}
