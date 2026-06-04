@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiCall } from '../api';
 import { motion } from 'framer-motion';
-import { Network, Database, Shield, Code, ChevronRight, Zap, Globe, Server, FileText, CheckCircle2 } from 'lucide-react';
+import { Network, Database, Shield, Code, ChevronRight, Zap, Globe, Server, FileText, CircleCheck } from 'lucide-react';
 
 import TransparencyConsole from '../components/TechHub/TransparencyConsole';
 import LoadTestSimulator from '../components/TechHub/LoadTestSimulator';
@@ -223,7 +223,7 @@ const SuperAdminLandingPage = () => {
                   <Globe size={14} className="text-blue-500" /> GDPR Ready
                 </div>
                 <div className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-white/5 px-2 py-1 rounded border border-white/10">
-                  <CheckCircle2 size={14} className="text-purple-500" /> WCAG 2.1 AA
+                  <CircleCheck size={14} className="text-purple-500" /> WCAG 2.1 AA
                 </div>
               </div>
             </div>
