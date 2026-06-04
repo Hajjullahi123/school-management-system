@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
     // Format response to look like a "school" object so the frontend PublicSchoolLandingPage component can digest it perfectly.
     const fakeSchool = {
       id: 'superadmin',
-      slug: 'edutech-slug',
+      slug: 'edutech',
       name: settings?.heroTitle || 'EduTech Systems',
       motto: settings?.heroSubtitle || 'Transforming Education',
       welcomeTitle: settings?.heroTitle || 'EduTech Systems',

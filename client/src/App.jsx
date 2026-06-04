@@ -198,8 +198,8 @@ function App() {
             <Route path="/news-events" element={<NewsEvents />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/gallery" element={<Gallery />} />
-            <Route path="/edutech-slug" element={<SuperAdminLandingPage />} />
-            <Route path="/edutech-slug/login" element={<Navigate to="/login" replace />} />
+            <Route path="/edutech" element={<SuperAdminLandingPage />} />
+            <Route path="/edutech/login" element={<Navigate to="/login" replace />} />
             <Route path="/:schoolSlug" element={<PublicSchoolLandingPage />} />
             <Route path="/:schoolSlug/gallery" element={<Gallery />} />
             <Route path="/:schoolSlug/staff" element={<MeetOurStaff />} />
