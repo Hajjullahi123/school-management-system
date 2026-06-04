@@ -135,7 +135,6 @@ const ModelZooPage = () => {
   return (
     <div className="min-h-screen bg-[#050505] text-white">
       {/* Hero */}
-      <section className="relative h-[400px] flex items-center justify-center border-b border-gray-800 overflow-hidden">
       <section className="tech-hero py-24 px-6 border-b border-gray-800 relative z-10">
         <div className="absolute inset-0 opacity-40 mix-blend-screen bg-cover bg-center" style={{ backgroundImage: `url(${MOCK_BG})` }} />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#050505]" />
