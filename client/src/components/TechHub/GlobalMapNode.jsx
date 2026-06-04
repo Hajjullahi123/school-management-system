@@ -72,17 +72,10 @@ const GlobalMapNode = () => {
 
         {/* Nodes */}
         {MOCK_NODES.map((node, i) => (
-          <div key={i} className="absolute flex flex-col items-center justify-center transform -translate-x-1/2 -translate-y-1/2 group" style={{ top: node.top, left: node.left }}>
-            <div className="relative flex items-center justify-center">
-              <motion.div 
-                className="absolute w-8 h-8 bg-indigo-500 rounded-full opacity-20"
-                animate={{ scale: [1, 2.5, 1], opacity: [0.2, 0, 0.2] }}
-                transition={{ duration: 2 + Math.random() * 2, repeat: Infinity }}
-              />
-              <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full shadow-[0_0_10px_#818CF8] z-10"></div>
-            </div>
-            <div className="absolute top-6 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 border border-gray-700 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-30 shadow-xl">
-              {node.name}
+          <div key={i} className="absolute flex flex-col items-center justify-center transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer" style={{ top: node.top, left: node.left }}>
+            <div className="pulse-dot"></div>
+            <div className="absolute top-6 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 border border-gray-700 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-30 shadow-xl pointer-events-none">
+              {node.name} · {Math.floor(Math.random() * 50 + 10)}ms
             </div>
           </div>
         ))}

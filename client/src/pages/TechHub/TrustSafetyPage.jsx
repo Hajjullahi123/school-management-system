@@ -33,24 +33,24 @@ const TrustSafetyPage = () => {
   return (
     <div className="min-h-screen bg-[#050505] text-white pb-32">
       {/* Hero */}
-      <section className="py-24 px-6 border-b border-gray-800 relative overflow-hidden">
+      <section className="tech-hero py-24 px-6 border-b border-gray-800 relative overflow-hidden">
         <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none"></div>
-        <div className="max-w-7xl mx-auto text-center relative z-10">
-          <div className="w-20 h-20 mx-auto bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center mb-8 rotate-12">
+        <div className="max-w-[1400px] mx-auto text-center relative z-10">
+          <div className="w-20 h-20 mx-auto bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center mb-8 rotate-12 animate-fade-up">
             <ShieldCheck size={40} className="text-blue-400 -rotate-12" />
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6">Safety is not a feature.<br/><span className="text-blue-400">It's our architecture.</span></h1>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">We process millions of student interactions daily. Zero PII stored. Zero data sold. 100% auditable.</p>
+          <h1 className="tech-fluid-h1 font-bold mb-6 animate-fade-up delay-100">Safety is not a feature.<br/><span className="text-blue-400">It's our architecture.</span></h1>
+          <p className="tech-fluid-base text-gray-400 max-w-2xl mx-auto animate-fade-up delay-200">We process millions of student interactions daily. Zero PII stored. Zero data sold. 100% auditable.</p>
         </div>
       </section>
 
       {/* Compliance Grid */}
       <section className="py-16 px-6">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-8 text-center">Global Compliance Standards</h2>
+        <div className="max-w-[1400px] mx-auto">
+          <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-8 text-center animate-fade-up">Global Compliance Standards</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {COMPLIANCE_BADGES.map(badge => (
-              <div key={badge.name} className="bg-[#0A0A0A] border border-gray-800 rounded-xl p-6 flex flex-col items-center justify-center hover:border-blue-500/50 hover:bg-blue-900/10 transition-all cursor-pointer group shadow-lg">
+            {COMPLIANCE_BADGES.map((badge, i) => (
+              <div key={badge.name} className={`tech-glass-dark rounded-xl p-6 flex flex-col items-center justify-center hover:bg-blue-900/10 transition-all cursor-pointer group shadow-lg animate-fade-up delay-${(i % 6 + 1) * 100}`}>
                 <div className="text-gray-600 group-hover:text-blue-400 transition-colors mb-4">{badge.icon}</div>
                 <h3 className="font-bold text-center mb-1">{badge.name}</h3>
                 <p className="text-[10px] text-gray-500 uppercase text-center">{badge.date}</p>
@@ -62,11 +62,11 @@ const TrustSafetyPage = () => {
 
       {/* Transparency Dashboard */}
       <section className="py-24 px-6 bg-[#0A0A0A] border-y border-gray-800">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between mb-12">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between mb-12 animate-fade-up">
             <div>
-              <h2 className="text-3xl font-bold mb-2">Live Transparency</h2>
-              <p className="text-gray-400">Real-time moderation metrics across our global network.</p>
+              <h2 className="tech-fluid-h2 mb-2">Live Transparency</h2>
+              <p className="tech-fluid-base text-gray-400">Real-time moderation metrics across our global network.</p>
             </div>
             <div className="mt-4 md:mt-0 flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-full text-red-400 text-sm font-medium">
               <span className="relative flex h-2 w-2">
@@ -78,15 +78,15 @@ const TrustSafetyPage = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-[#111] border border-gray-800 rounded-2xl p-8">
+            <div className="tech-glass-dark rounded-2xl p-8 animate-fade-up delay-100">
               <div className="text-sm text-gray-500 font-bold uppercase mb-4 flex items-center gap-2"><AlertTriangle size={16}/> Requests blocked (Today)</div>
               <div className="text-5xl font-mono font-bold text-white">{toxicityFlags.toLocaleString()}</div>
             </div>
-            <div className="bg-[#111] border border-gray-800 rounded-2xl p-8">
+            <div className="tech-glass-dark rounded-2xl p-8 animate-fade-up delay-200">
               <div className="text-sm text-gray-500 font-bold uppercase mb-4 flex items-center gap-2"><ShieldCheck size={16}/> Human Reviews Triggered</div>
               <div className="text-5xl font-mono font-bold text-white">47</div>
             </div>
-            <div className="bg-[#111] border border-gray-800 rounded-2xl p-8">
+            <div className="tech-glass-dark rounded-2xl p-8 animate-fade-up delay-300">
               <div className="text-sm text-gray-500 font-bold uppercase mb-4 flex items-center gap-2"><CircleCheck size={16}/> Data Deletion Fulfillment</div>
               <div className="text-5xl font-mono font-bold text-emerald-400">100%</div>
             </div>
@@ -96,9 +96,9 @@ const TrustSafetyPage = () => {
 
       {/* Adversarial Testing */}
       <section className="py-24 px-6">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold mb-8">Red Teaming Results</h2>
-          <div className="bg-[#0A0A0A] border border-gray-800 rounded-2xl overflow-hidden">
+        <div className="max-w-[1400px] mx-auto animate-fade-up">
+          <h2 className="tech-fluid-h2 mb-8">Red Teaming Results</h2>
+          <div className="tech-glass-dark rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-[#111] border-b border-gray-800">

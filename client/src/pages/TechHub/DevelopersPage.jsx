@@ -44,22 +44,22 @@ print(response.next_question)`;
   return (
     <div className="min-h-screen bg-[#050505] text-white">
       {/* Hero */}
-      <section className="py-24 px-6 border-b border-gray-800">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16">
-          <div className="flex-1">
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6">Build the future <br/><span className="text-emerald-400">of learning.</span></h1>
-            <p className="text-xl text-gray-400 mb-8 max-w-lg">Zero marketing fluff. Just raw educational intelligence. Get your API keys in 60 seconds.</p>
+      <section className="tech-hero py-24 px-6 border-b border-gray-800">
+        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center gap-16 relative z-10">
+          <div className="flex-1 animate-fade-up">
+            <h1 className="tech-fluid-h1 font-bold mb-6">Build the future <br/><span className="text-emerald-400">of learning.</span></h1>
+            <p className="tech-fluid-base text-gray-400 mb-8 max-w-lg">Zero marketing fluff. Just raw educational intelligence. Get your API keys in 60 seconds.</p>
             <div className="flex gap-4">
-              <button className="bg-emerald-500 hover:bg-emerald-400 text-black px-6 py-3 rounded-md font-bold transition-colors">
+              <button className="active-scale bg-emerald-500 hover:bg-emerald-400 text-black px-6 py-3 rounded-md font-bold transition-colors">
                 Generate API Key
               </button>
-              <button className="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-6 py-3 rounded-md font-bold transition-colors flex items-center gap-2">
+              <button className="active-scale bg-white/5 hover:bg-white/10 border border-white/10 text-white px-6 py-3 rounded-md font-bold transition-colors flex items-center gap-2">
                 <Code2 size={18} /> Read Docs
               </button>
             </div>
           </div>
-          <div className="flex-1 w-full">
-            <div className="bg-[#0A0A0A] rounded-xl border border-gray-800 p-6 font-mono text-sm shadow-2xl shadow-emerald-500/10">
+          <div className="flex-1 w-full animate-fade-up delay-200">
+            <div className="tech-glass-dark rounded-xl p-6 font-mono text-sm shadow-2xl shadow-emerald-500/10">
               <div className="flex items-center gap-2 mb-4 text-gray-500 border-b border-gray-800 pb-4">
                 <Terminal size={16} /> <span className="text-emerald-500 font-bold">bash</span>
               </div>
@@ -76,18 +76,18 @@ print(response.next_question)`;
 
       {/* Live Sandbox */}
       <section className="py-24 px-6">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-[1400px] mx-auto animate-fade-up">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-bold">Live Sandbox</h2>
+            <h2 className="tech-fluid-h2">Live Sandbox</h2>
             <div className="flex items-center gap-2 text-sm font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
               <Activity size={14} /> All systems operational
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-4">
+          <div className="grid lg:grid-cols-2 gap-8">
             {/* Editor */}
-            <div className="bg-[#0A0A0A] rounded-xl border border-gray-800 flex flex-col overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 bg-[#111] border-b border-gray-800">
+            <div className="tech-glass-dark rounded-xl flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 bg-black/40 border-b border-white/10">
                 <div className="flex gap-2">
                   <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
                   <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
@@ -116,8 +116,8 @@ print(response.next_question)`;
             </div>
 
             {/* Output */}
-            <div className="bg-[#050505] rounded-xl border border-gray-800 flex flex-col overflow-hidden relative">
-              <div className="px-4 py-3 bg-[#0A0A0A] border-b border-gray-800 flex items-center justify-between">
+            <div className="tech-glass-dark rounded-xl flex flex-col overflow-hidden relative">
+              <div className="px-4 py-3 bg-black/40 border-b border-white/10 flex items-center justify-between">
                 <span className="text-xs font-mono text-gray-500 uppercase tracking-widest">Output</span>
                 {output && (
                   <span className="text-xs font-mono text-emerald-500 flex items-center gap-1">
@@ -141,11 +141,11 @@ print(response.next_question)`;
 
       {/* SDKs */}
       <section className="py-16 px-6 bg-[#0A0A0A] border-t border-gray-800">
-        <div className="max-w-7xl mx-auto">
-          <h3 className="text-xl font-bold mb-8">Official SDKs</h3>
+        <div className="max-w-[1400px] mx-auto animate-fade-up">
+          <h3 className="tech-fluid-h2 text-xl font-bold mb-8">Official SDKs</h3>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {['Python', 'JavaScript', 'Java', 'Go', 'C#'].map((lang) => (
-              <div key={lang} className="bg-[#111] border border-gray-800 rounded-lg p-6 flex flex-col items-center justify-center hover:border-emerald-500/30 transition-colors cursor-pointer group">
+            {['Python', 'JavaScript', 'Java', 'Go', 'C#'].map((lang, i) => (
+              <div key={lang} className={`tech-glass-dark rounded-lg p-6 flex flex-col items-center justify-center hover:border-emerald-500/50 transition-colors cursor-pointer group animate-fade-up delay-${(i % 5 + 1) * 100}`}>
                 <span className="text-gray-500 group-hover:text-emerald-400 font-bold mb-2 transition-colors">{lang}</span>
                 <span className="text-xs text-gray-600 font-mono opacity-0 group-hover:opacity-100 transition-opacity">npm i edutech-{lang.toLowerCase()}</span>
               </div>

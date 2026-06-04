@@ -136,55 +136,93 @@ const ModelZooPage = () => {
     <div className="min-h-screen bg-[#050505] text-white">
       {/* Hero */}
       <section className="relative h-[400px] flex items-center justify-center border-b border-gray-800 overflow-hidden">
-        {/* We use the AI generated image as a deeply integrated background */}
-        <div 
-          className="absolute inset-0 opacity-40 mix-blend-screen bg-cover bg-center"
-          style={{ backgroundImage: `url(${MOCK_BG})` }}
-        />
+      <section className="tech-hero py-24 px-6 border-b border-gray-800 relative z-10">
+        <div className="absolute inset-0 opacity-40 mix-blend-screen bg-cover bg-center" style={{ backgroundImage: `url(${MOCK_BG})` }} />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#050505]" />
-        
-        <div className="relative z-10 text-center px-6">
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-4">Our AI Menagerie</h1>
-          <p className="text-xl text-indigo-200/80 max-w-2xl mx-auto">Open, audited, and pedagogically tuned. Explore the models powering the future of education.</p>
+        <div className="max-w-[1400px] mx-auto relative z-10">
+          <h1 className="tech-fluid-h1 font-bold mb-6 animate-fade-up">Our AI Menagerie <br/><span className="text-purple-400">Open. Audited. Pedagogically tuned.</span></h1>
+          <p className="tech-fluid-base text-gray-400 max-w-2xl animate-fade-up delay-100">Explore our catalog of foundational models built specifically for global education systems.</p>
         </div>
       </section>
 
-      {/* Filter Bar */}
-      <section className="border-b border-gray-800 bg-[#0A0A0A] sticky top-20 z-40">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center gap-4 overflow-x-auto hide-scrollbar">
+      <section className="py-6 px-6 border-b border-gray-800 bg-[#0A0A0A] relative z-10">
+        <div className="max-w-[1400px] mx-auto flex flex-wrap gap-4 items-center animate-fade-up delay-200">
           <span className="text-sm text-gray-500 font-semibold uppercase tracking-widest mr-4">Filter:</span>
           {['All', 'Math', 'Science', 'Language'].map(f => (
             <button 
               key={f} 
               onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filter === f ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${filter === f ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}
             >
               {f}
             </button>
           ))}
-          <div className="w-px h-6 bg-gray-800 mx-2" />
-          <button className="px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors ml-auto flex items-center gap-2">
-            Compare Models
-          </button>
         </div>
       </section>
 
-      {/* Grid */}
-      <section className="py-24 px-6 max-w-7xl mx-auto min-h-screen">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <AnimatePresence>
-            {MODELS.filter(m => filter === 'All' || m.subject === filter).map(model => (
-              <motion.div
-                key={model.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.3 }}
-              >
-                <ModelCard model={model} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
+      <section className="py-16 px-6 relative z-10">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+            <AnimatePresence>
+              {filteredModels.map((model, i) => (
+                <motion.div 
+                  key={model.name}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.3 }}
+                  className={`perspective-1000 h-[450px] animate-fade-up`}
+                >
+                  <motion.div
+                    className="relative w-full h-full transform-style-3d cursor-pointer"
+                    animate={{ rotateY: flippedCards[model.name] ? 180 : 0 }}
+                    transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
+                    onClick={() => toggleFlip(model.name)}
+                  >
+                    <div className="tech-glass-dark absolute w-full h-full rounded-2xl p-8 flex flex-col items-center justify-center text-center backface-hidden shadow-2xl bg-[#111]/80 backdrop-blur-xl border border-white/10">
+                      <div className="w-16 h-16 bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center justify-center mb-6">
+                        {model.icon}
+                      </div>
+                      <h3 className="text-2xl font-bold mb-2">{model.name}</h3>
+                      <p className="text-purple-400 font-mono text-sm mb-4">{model.params}</p>
+                      <p className="text-gray-400 text-sm mb-8 px-4">{model.desc}</p>
+                      <div className="flex gap-2 flex-wrap justify-center mt-auto">
+                        <span className="bg-white/5 border border-white/10 px-3 py-1 rounded-full text-xs text-gray-300">{model.license}</span>
+                        <span className="bg-white/5 border border-white/10 px-3 py-1 rounded-full text-xs text-gray-300">{model.age}</span>
+                      </div>
+                    </div>
+
+                    <div className="tech-glass-dark absolute w-full h-full rounded-2xl p-8 flex flex-col backface-hidden [transform:rotateY(180deg)] shadow-2xl bg-[#111]/80 backdrop-blur-xl border border-purple-500/30">
+                      <h4 className="font-bold text-lg mb-4 pb-4 border-b border-gray-800 flex items-center justify-between">
+                        Specifications <Cpu size={18} className="text-purple-400"/>
+                      </h4>
+                      <div className="space-y-4 flex-1">
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase font-bold mb-1">Strengths</div>
+                          <div className="text-sm text-gray-300">{model.strengths}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase font-bold mb-1">Context Window</div>
+                          <div className="text-sm font-mono text-purple-400">{model.context}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase font-bold mb-1 text-red-400 flex items-center gap-1"><ShieldAlert size={12}/> Safety Filters</div>
+                          <div className="text-sm text-gray-300">{model.safety}</div>
+                        </div>
+                      </div>
+                      <button 
+                        className="active-scale w-full mt-4 bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors active:scale-95"
+                        onClick={(e) => { e.stopPropagation(); }}
+                      >
+                        <Download size={16} /> Deploy Model
+                      </button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
         </div>
       </section>
       

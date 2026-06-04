@@ -76,7 +76,7 @@ const TechHubLayout = () => {
               <a 
                 key={link.path}
                 onClick={() => navigate(link.path)} 
-                className={`cursor-pointer transition-colors ${location.pathname === link.path ? 'text-white font-bold border-b-2 border-indigo-500 pb-1' : 'hover:text-white'}`}
+                className={`tech-nav-link cursor-pointer transition-colors ${location.pathname === link.path ? 'text-white font-bold active' : 'hover:text-white'}`}
               >
                 {link.label}
               </a>
