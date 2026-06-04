@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiCall } from '../api';
 import { motion } from 'framer-motion';
-import { Network, Database, Shield, Code, ChevronRight, Zap, Globe, Server, FileText, CircleCheck } from 'lucide-react';
+import { Network, Database, Shield, ShieldCheck, Code, ChevronRight, Zap, Globe, Server, FileText, CircleCheck } from 'lucide-react';
 
 import TransparencyConsole from '../components/TechHub/TransparencyConsole';
 import LoadTestSimulator from '../components/TechHub/LoadTestSimulator';
