@@ -51,18 +51,19 @@ const TransparencyConsole = () => {
         </div>
       </div>
       
-      <div className="p-4 h-64 overflow-hidden relative">
-        <div className="absolute top-0 left-0 w-full h-8 bg-gradient-to-b from-[#0A0A0A] to-transparent z-10"></div>
-        <AnimatePresence>
-          {logs.map((log) => (
-            <motion.div
-              key={log.id}
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.4 }}
-              className="flex items-center gap-3 py-2 border-b border-gray-800/50 text-gray-300"
-            >
+      <div className="p-4 h-64 overflow-y-hidden overflow-x-auto custom-scrollbar relative">
+        <div className="absolute top-0 left-0 w-full h-8 bg-gradient-to-b from-[#0A0A0A] to-transparent z-10 pointer-events-none"></div>
+        <div className="min-w-[450px]">
+          <AnimatePresence>
+            {logs.map((log) => (
+              <motion.div
+                key={log.id}
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.4 }}
+                className="flex items-center gap-3 py-2 border-b border-gray-800/50 text-gray-300"
+              >
               <span className="text-gray-500">[{new Date().toLocaleTimeString()}]</span>
               <Globe size={14} className="text-indigo-400" />
               <span className="text-indigo-300 w-20 truncate">{log.region}</span>
@@ -77,10 +78,11 @@ const TransparencyConsole = () => {
                   <ShieldCheck size={14} /> {log.confidence}% safe
                 </span>
               </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-        <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-[#0A0A0A] to-transparent z-10"></div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+        <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-[#0A0A0A] to-transparent z-10 pointer-events-none"></div>
       </div>
     </div>
   );

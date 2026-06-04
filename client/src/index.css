@@ -353,9 +353,10 @@ nav a svg,
 }
 
 .tech-fluid-h1 {
-    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    font-size: clamp(2rem, 6vw, 4.5rem);
     letter-spacing: -0.02em;
     line-height: 1.1;
+    word-break: break-word;
 }
 
 .tech-fluid-h2 {

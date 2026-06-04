@@ -146,7 +146,7 @@ const LoadTestSimulator = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6 relative z-10">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 relative z-10">
         <div className="bg-[#111] border border-gray-800 rounded-xl p-4">
           <div className="text-gray-400 text-xs uppercase tracking-wider mb-1">Current Latency</div>
           <div className="text-2xl font-mono text-white">{dataPoints[dataPoints.length - 1]}<span className="text-sm text-gray-500 ml-1">ms</span></div>
