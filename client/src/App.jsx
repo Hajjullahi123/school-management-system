@@ -21,6 +21,11 @@ const ReportCard = lazyRetry(() => import('./pages/ReportCard'));
 const LandingPage = lazyRetry(() => import('./pages/LandingPage'));
 const PublicSchoolLandingPage = lazyRetry(() => import('./pages/PublicSchoolLandingPage'));
 const SuperAdminLandingPage = lazyRetry(() => import('./pages/SuperAdminLandingPage'));
+const TechHubLayout = lazyRetry(() => import('./components/TechHub/TechHubLayout'));
+const ModelZooPage = lazyRetry(() => import('./pages/TechHub/ModelZooPage'));
+const DevelopersPage = lazyRetry(() => import('./pages/TechHub/DevelopersPage'));
+const TrustSafetyPage = lazyRetry(() => import('./pages/TechHub/TrustSafetyPage'));
+const GlobalNetworkPage = lazyRetry(() => import('./pages/TechHub/GlobalNetworkPage'));
 const PublicCustomPage = lazyRetry(() => import('./pages/PublicCustomPage'));
 const MeetOurStaff = lazyRetry(() => import('./pages/MeetOurStaff'));
 const MeetHigherStudents = lazyRetry(() => import('./pages/MeetHigherStudents'));
@@ -198,7 +203,13 @@ function App() {
             <Route path="/news-events" element={<NewsEvents />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/gallery" element={<Gallery />} />
-            <Route path="/edutech" element={<SuperAdminLandingPage />} />
+            <Route path="/edutech" element={<TechHubLayout />}>
+              <Route index element={<SuperAdminLandingPage />} />
+              <Route path="model-zoo" element={<ModelZooPage />} />
+              <Route path="developers" element={<DevelopersPage />} />
+              <Route path="trust-safety" element={<TrustSafetyPage />} />
+              <Route path="global-network" element={<GlobalNetworkPage />} />
+            </Route>
             <Route path="/edutech/login" element={<Navigate to="/login" replace />} />
             <Route path="/:schoolSlug" element={<PublicSchoolLandingPage />} />
             <Route path="/:schoolSlug/gallery" element={<Gallery />} />
