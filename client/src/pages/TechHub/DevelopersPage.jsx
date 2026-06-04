@@ -45,15 +45,15 @@ print(response.next_question)`;
     <div className="min-h-screen bg-[#050505] text-white">
       {/* Hero */}
       <section className="tech-hero py-24 px-6 border-b border-gray-800">
-        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center gap-16 relative z-10">
+        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center gap-10 md:gap-16 relative z-10">
           <div className="flex-1 animate-fade-up">
             <h1 className="tech-fluid-h1 font-bold mb-6">Build the future <br/><span className="text-emerald-400">of learning.</span></h1>
             <p className="tech-fluid-base text-gray-400 mb-8 max-w-lg">Zero marketing fluff. Just raw educational intelligence. Get your API keys in 60 seconds.</p>
-            <div className="flex gap-4">
-              <button className="active-scale bg-emerald-500 hover:bg-emerald-400 text-black px-6 py-3 rounded-md font-bold transition-colors">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button className="active-scale w-full sm:w-auto text-center justify-center bg-emerald-500 hover:bg-emerald-400 text-black px-6 py-3 rounded-md font-bold transition-colors">
                 Generate API Key
               </button>
-              <button className="active-scale bg-white/5 hover:bg-white/10 border border-white/10 text-white px-6 py-3 rounded-md font-bold transition-colors flex items-center gap-2">
+              <button className="active-scale w-full sm:w-auto text-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 text-white px-6 py-3 rounded-md font-bold transition-colors flex items-center gap-2">
                 <Code2 size={18} /> Read Docs
               </button>
             </div>

@@ -58,8 +58,8 @@ const GlobalNetworkPage = () => {
           <h2 className="tech-fluid-h2 mb-4 animate-fade-up">Check your region</h2>
           <p className="tech-fluid-base text-gray-400 mb-8 animate-fade-up delay-100">Enter your city or country to ping the nearest EduTechAI edge node.</p>
           
-          <form onSubmit={handleSearch} className="flex gap-2 max-w-lg mx-auto mb-12 animate-fade-up delay-200">
-            <div className="relative flex-1">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 sm:gap-2 max-w-lg mx-auto mb-12 animate-fade-up delay-200">
+            <div className="relative flex-1 w-full">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
               <input 
                 type="text" 
@@ -69,7 +69,7 @@ const GlobalNetworkPage = () => {
                 className="w-full bg-[#111] border border-gray-700 rounded-full py-3 pl-12 pr-4 text-white focus:outline-none focus:border-cyan-500 transition-colors"
               />
             </div>
-            <button type="submit" className="active-scale bg-cyan-600 hover:bg-cyan-500 text-white px-8 py-3 rounded-full font-bold transition-colors">
+            <button type="submit" className="active-scale w-full sm:w-auto bg-cyan-600 hover:bg-cyan-500 text-white px-8 py-3 rounded-full font-bold transition-colors">
               Ping
             </button>
           </form>

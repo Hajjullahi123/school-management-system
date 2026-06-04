@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { apiCall } from '../../api';
-import { Network, ShieldCheck, Globe, CheckCircle2, CircleCheck } from 'lucide-react';
+import { Network, ShieldCheck, Globe, CheckCircle2, CircleCheck, Menu, X } from 'lucide-react';
 
 const TechHubLayout = () => {
   const navigate = useNavigate();
@@ -12,6 +12,12 @@ const TechHubLayout = () => {
   
   // Accessibility and Theme States
   const [fontMode, setFontMode] = useState('standard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     const fetchSchool = async () => {
@@ -83,10 +89,10 @@ const TechHubLayout = () => {
             ))}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button 
               onClick={() => setFontMode(prev => prev === 'standard' ? 'dyslexia' : 'standard')}
-              className="text-xs px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 text-gray-300 transition-colors border border-white/10"
+              className="hidden sm:block text-xs px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 text-gray-300 transition-colors border border-white/10"
               title="Toggle Accessibility Font"
             >
               {fontMode === 'standard' ? 'Aa (Standard)' : 'Aa (Dyslexic)'}
@@ -94,8 +100,41 @@ const TechHubLayout = () => {
             <button onClick={() => navigate('/login')} className="hidden sm:block bg-white text-black px-6 py-2 rounded-full text-sm font-bold hover:bg-gray-200 transition-colors">
               Console Login
             </button>
+            <button 
+              className="lg:hidden p-2 text-gray-400 hover:text-white"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden bg-[#050505] border-b border-white/10 absolute top-20 left-0 w-full shadow-2xl">
+            <div className="flex flex-col py-4 px-6 gap-4">
+              {navLinks.map((link) => (
+                <a 
+                  key={link.path}
+                  onClick={() => navigate(link.path)} 
+                  className={`text-lg font-medium cursor-pointer transition-colors ${location.pathname === link.path ? 'text-indigo-400 font-bold' : 'text-gray-400 hover:text-white'}`}
+                >
+                  {link.label}
+                </a>
+              ))}
+              <hr className="border-white/10 my-2" />
+              <button 
+                onClick={() => setFontMode(prev => prev === 'standard' ? 'dyslexia' : 'standard')}
+                className="w-full text-left text-sm py-2 text-gray-300"
+              >
+                Toggle Font: {fontMode === 'standard' ? 'Standard' : 'Dyslexic'}
+              </button>
+              <button onClick={() => navigate('/login')} className="w-full bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold mt-2">
+                Console Login
+              </button>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Main Content Area */}
@@ -117,14 +156,14 @@ const TechHubLayout = () => {
               <p className="text-gray-400 text-sm max-w-sm mb-6 leading-relaxed">
                 Building the ethical infrastructure for the future of global education. Open-source, accessible, and radically transparent.
               </p>
-              <div className="flex gap-4">
-                <div className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-white/5 px-2 py-1 rounded border border-white/10">
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-white/5 px-2 py-1 rounded border border-white/10 whitespace-nowrap">
                   <ShieldCheck size={14} className="text-emerald-500" /> SOC2 Type II
                 </div>
-                <div className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-white/5 px-2 py-1 rounded border border-white/10">
+                <div className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-white/5 px-2 py-1 rounded border border-white/10 whitespace-nowrap">
                   <Globe size={14} className="text-blue-500" /> GDPR Ready
                 </div>
-                <div className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-white/5 px-2 py-1 rounded border border-white/10">
+                <div className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-white/5 px-2 py-1 rounded border border-white/10 whitespace-nowrap">
                   <CircleCheck size={14} className="text-purple-500" /> WCAG 2.1 AA
                 </div>
               </div>
@@ -151,9 +190,9 @@ const TechHubLayout = () => {
             </div>
           </div>
           
-          <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between text-xs text-gray-500">
-            <p>&copy; {new Date().getFullYear()} {school.name || 'EduTechAI'} Inc. All rights reserved.</p>
-            <div className="flex gap-6 mt-4 md:mt-0">
+          <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between text-xs text-gray-500 gap-4">
+            <p className="text-center md:text-left">&copy; {new Date().getFullYear()} {school.name || 'EduTechAI'} Inc. All rights reserved.</p>
+            <div className="flex flex-wrap justify-center gap-6 mt-2 md:mt-0">
               <a onClick={() => navigate('/edutech/trust-safety')} className="cursor-pointer hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
               <a href="#" className="hover:text-white transition-colors">Cookie Settings</a>

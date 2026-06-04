@@ -14,8 +14,8 @@ const SuperAdminLandingPage = () => {
   return (
     <>
       {/* Hero Section */}
-      <section className="tech-hero pt-32 pb-32 px-6 relative overflow-hidden">
-        <div className="max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-16 items-center z-10 relative">
+      <section className="tech-hero pt-24 sm:pt-32 pb-24 sm:pb-32 px-6 relative overflow-hidden">
+        <div className="max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-10 lg:gap-16 items-center z-10 relative">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-6">
               <Zap size={14} /> EduTechAI Protocol v2.4 Live
@@ -26,11 +26,11 @@ const SuperAdminLandingPage = () => {
             <p className="tech-fluid-base text-gray-400 mb-10 max-w-lg leading-relaxed">
               {school.welcomeMessage || 'Deploy ethically trained AI models, manage global learning nodes, and scale educational experiences with sub-50ms latency.'}
             </p>
-            <div className="flex flex-wrap gap-4">
-              <button className="active-scale bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-xl font-bold flex items-center gap-2 transition-all">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button className="active-scale justify-center bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-xl font-bold flex items-center gap-2 transition-all">
                 Read the Documentation <ChevronRight size={18} />
               </button>
-              <button className="active-scale bg-white/5 hover:bg-white/10 border border-white/10 text-white px-8 py-4 rounded-xl font-bold transition-all">
+              <button className="active-scale justify-center bg-white/5 hover:bg-white/10 border border-white/10 text-white px-8 py-4 rounded-xl font-bold transition-all">
                 View Model Benchmarks
               </button>
             </div>
