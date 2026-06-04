@@ -64,7 +64,7 @@ const getInitials = (name = '') =>
 /* ─────────────────────────────────────────────
    Component
 ───────────────────────────────────────────── */
-const ThemeModern = ({ school, getLogoUrl }) => {
+const ThemeModern = ({ school, getLogoUrl, isSuperAdmin }) => {
   const primary   = school?.primaryColor   || '#4f46e5';
   const secondary = school?.secondaryColor || '#6366f1';
 
@@ -268,23 +268,27 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               className="text-sm font-bold text-gray-600 dark:text-gray-300 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-gray-100 dark:hover:border-slate-700 hover:shadow-sm transition-all">
               FAQs
             </button>
-            <Link to={`/${school?.slug}/staff`}
-              className="text-sm font-bold text-gray-600 dark:text-gray-300 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-gray-100 dark:hover:border-slate-700 hover:shadow-sm transition-all">
-              Our Staff
-            </Link>
-            <div className="relative group py-2">
-              <button className="flex items-center gap-1 text-sm font-bold text-gray-600 dark:text-gray-300 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-gray-100 dark:hover:border-slate-700 hover:shadow-sm transition-all focus:outline-none">
-                Alumni <FiChevronDown className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180" />
-              </button>
-              <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-1.5">
-                <Link to="/alumni" className="block px-4 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white transition-all rounded-xl mx-1.5">
-                  Alumni Portal
+            {!isSuperAdmin && (
+              <>
+                <Link to={`/${school?.slug}/staff`}
+                  className="text-sm font-bold text-gray-600 dark:text-gray-300 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-gray-100 dark:hover:border-slate-700 hover:shadow-sm transition-all">
+                  Our Staff
                 </Link>
-                <Link to={`/${school?.slug}/higher-students`} className="block px-4 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white transition-all rounded-xl mx-1.5">
-                  Higher Inst. Students
-                </Link>
-              </div>
-            </div>
+                <div className="relative group py-2">
+                  <button className="flex items-center gap-1 text-sm font-bold text-gray-600 dark:text-gray-300 px-4 py-2 rounded-xl border border-transparent hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-gray-100 dark:hover:border-slate-700 hover:shadow-sm transition-all focus:outline-none">
+                    Alumni <FiChevronDown className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180" />
+                  </button>
+                  <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-1.5">
+                    <Link to="/alumni" className="block px-4 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white transition-all rounded-xl mx-1.5">
+                      Alumni Portal
+                    </Link>
+                    <Link to={`/${school?.slug}/higher-students`} className="block px-4 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white transition-all rounded-xl mx-1.5">
+                      Higher Inst. Students
+                    </Link>
+                  </div>
+                </div>
+              </>
+            )}
             <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-gray-600 dark:text-gray-300">
               {isDarkMode ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
             </button>
@@ -312,9 +316,13 @@ const ThemeModern = ({ school, getLogoUrl }) => {
                 {p.title}
               </Link>
             ))}
-            <Link to={`/${school?.slug}/higher-students`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Higher Inst. Students</Link>
-            <Link to="/alumni" className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Alumni</Link>
-            <Link to={`/${school?.slug}/admissions`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Admissions</Link>
+            {!isSuperAdmin && (
+              <>
+                <Link to={`/${school?.slug}/higher-students`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Higher Inst. Students</Link>
+                <Link to="/alumni" className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Alumni</Link>
+                <Link to={`/${school?.slug}/admissions`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Admissions</Link>
+              </>
+            )}
             <Link to={`/${school?.slug}/contact`} className="text-sm font-bold text-gray-600 px-4 py-3 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-100 transition-all" onClick={() => setMobileOpen(false)}>Contact</Link>
             <Link to={`/${school?.slug}/login`}
               className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl text-sm font-bold text-white shadow-md mt-2"
@@ -366,10 +374,12 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               style={{ backgroundColor: primary }}>
               Access Student Portal
             </Link>
-            <a href="#admission-process"
-              className="px-8 py-4 rounded-full font-bold text-base text-white border border-white/30 bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all">
-              Apply for Admission
-            </a>
+            {!isSuperAdmin && (
+              <a href="#admission-process"
+                className="px-8 py-4 rounded-full font-bold text-base text-white border border-white/30 bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all">
+                Apply for Admission
+              </a>
+            )}
           </div>
 
           {/* Slide dots */}
@@ -738,11 +748,13 @@ const ThemeModern = ({ school, getLogoUrl }) => {
               </h3>
               <p className="text-sm text-gray-400 mt-0.5">Begin your child's journey with us — enquire today.</p>
             </div>
-            <Link to={`/${school?.slug}/admissions`}
-              className="shrink-0 px-6 py-2.5 rounded-xl font-black text-sm text-white transition-all hover:scale-105"
-              style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.15)})` }}>
-              Start Admission →
-            </Link>
+            {!isSuperAdmin && (
+              <Link to={`/${school?.slug}/admissions`}
+                className="shrink-0 px-6 py-2.5 rounded-xl font-black text-sm text-white transition-all hover:scale-105"
+                style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.15)})` }}>
+                Start Admission →
+              </Link>
+            )}
           </div>
         </div>
 

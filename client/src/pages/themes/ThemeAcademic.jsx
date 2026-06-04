@@ -9,7 +9,7 @@ import TuitionEstimatorWidget from '../../components/TuitionEstimatorWidget';
 import AccreditationsBand from '../../components/AccreditationsBand';
 import FaqWidget from '../../components/FaqWidget';
 
-const ThemeAcademic = ({ school, getLogoUrl }) => {
+const ThemeAcademic = ({ school, getLogoUrl, isSuperAdmin }) => {
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -45,10 +45,14 @@ const ThemeAcademic = ({ school, getLogoUrl }) => {
             {school.email && <span>{school.email}</span>}
           </div>
           <div className="flex gap-4">
-            <Link to={`/${school.slug}/staff`} className="hover:text-white opacity-80 hover:opacity-100 transition-opacity">Faculty Directory</Link>
-            <span className="opacity-40">|</span>
-            <Link to="/alumni" className="hover:text-white opacity-80 hover:opacity-100 transition-opacity">Alumni Network</Link>
-            <span className="opacity-40">|</span>
+            {!isSuperAdmin && (
+              <>
+                <Link to={`/${school.slug}/staff`} className="hover:text-white opacity-80 hover:opacity-100 transition-opacity">Faculty Directory</Link>
+                <span className="opacity-40">|</span>
+                <Link to="/alumni" className="hover:text-white opacity-80 hover:opacity-100 transition-opacity">Alumni Network</Link>
+                <span className="opacity-40">|</span>
+              </>
+            )}
             <a href={school.eLibraryUrl || '#'} className="hover:text-white opacity-80 hover:opacity-100 transition-opacity">E-Library</a>
           </div>
         </div>
@@ -82,9 +86,11 @@ const ThemeAcademic = ({ school, getLogoUrl }) => {
                   {page.title}
                 </Link>
               ))}
-              <button onClick={() => setIsFaqModalOpen(true)} className="text-slate-700 hover:text-black transition-colors focus:outline-none">
-                Admissions & FAQ
-              </button>
+              {!isSuperAdmin && (
+                <button onClick={() => setIsFaqModalOpen(true)} className="text-slate-700 hover:text-black transition-colors focus:outline-none">
+                  Admissions & FAQ
+                </button>
+              )}
               <Link to={`/${school.slug}/gallery`} className="text-slate-700 hover:text-black transition-colors">
                 Campus Life
               </Link>
@@ -115,9 +121,13 @@ const ThemeAcademic = ({ school, getLogoUrl }) => {
               exit={{ opacity: 0, height: 0 }}
               className="lg:hidden bg-stone-50 border-t border-stone-200 px-6 py-4 flex flex-col gap-4 font-sans font-semibold"
             >
-              <Link to={`/${school.slug}/staff`} className="text-slate-700 p-2" onClick={() => setIsMobileMenuOpen(false)}>Faculty Directory</Link>
-              <button onClick={() => { setIsFaqModalOpen(true); setIsMobileMenuOpen(false); }} className="text-left text-slate-700 p-2">Admissions & FAQ</button>
-              <Link to="/alumni" className="text-slate-700 p-2" onClick={() => setIsMobileMenuOpen(false)}>Alumni Network</Link>
+              {!isSuperAdmin && (
+                <>
+                  <Link to={`/${school.slug}/staff`} className="text-slate-700 p-2" onClick={() => setIsMobileMenuOpen(false)}>Faculty Directory</Link>
+                  <button onClick={() => { setIsFaqModalOpen(true); setIsMobileMenuOpen(false); }} className="text-left text-slate-700 p-2">Admissions & FAQ</button>
+                  <Link to="/alumni" className="text-slate-700 p-2" onClick={() => setIsMobileMenuOpen(false)}>Alumni Network</Link>
+                </>
+              )}
               <button 
                 onClick={() => navigate(`/${school.slug}/login`)}
                 className="mt-2 py-3 text-center text-white font-bold"
@@ -268,8 +278,12 @@ const ThemeAcademic = ({ school, getLogoUrl }) => {
               <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-6 border-b border-slate-700 pb-2 inline-block">Resources</h4>
               <ul className="space-y-3 text-sm font-medium">
                  <li><Link to={`/${school.slug}/login`} className="hover:text-white flex items-center gap-2"><FiArrowRight className="opacity-50" /> Portal Login</Link></li>
-                 <li><Link to={`/${school.slug}/staff`} className="hover:text-white flex items-center gap-2"><FiArrowRight className="opacity-50" /> Faculty Directory</Link></li>
-                 <li><Link to="/alumni" className="hover:text-white flex items-center gap-2"><FiArrowRight className="opacity-50" /> Alumni Network</Link></li>
+                 {!isSuperAdmin && (
+                   <>
+                     <li><Link to={`/${school.slug}/staff`} className="hover:text-white flex items-center gap-2"><FiArrowRight className="opacity-50" /> Faculty Directory</Link></li>
+                     <li><Link to="/alumni" className="hover:text-white flex items-center gap-2"><FiArrowRight className="opacity-50" /> Alumni Network</Link></li>
+                   </>
+                 )}
                  {school.eLibraryUrl && <li><a href={school.eLibraryUrl} className="hover:text-white flex items-center gap-2"><FiArrowRight className="opacity-50" /> E-Library</a></li>}
               </ul>
             </div>

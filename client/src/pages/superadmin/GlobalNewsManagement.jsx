@@ -1,0 +1,242 @@
+import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
+import { api } from '../../api';
+
+const GlobalNewsManagement = () => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    type: 'news',
+    date: new Date().toISOString().split('T')[0],
+    isPublished: true
+  });
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const fetchItems = async () => {
+    try {
+      const response = await api.get('/api/superadmin/cms/news');
+      if (response.ok) {
+        const data = await response.json();
+        setItems(data);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const url = editing
+        ? `/api/superadmin/cms/news/${editing.id}`
+        : `/api/superadmin/cms/news`;
+      
+      const method = editing ? 'PUT' : 'POST';
+      
+      const response = await api(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        toast.success(editing ? 'Updated successfully!' : 'Created successfully!');
+        setShowForm(false);
+        setEditing(null);
+        setFormData({ title: '', content: '', type: 'news', date: new Date().toISOString().split('T')[0], isPublished: true });
+        fetchItems();
+      } else {
+        const err = await response.json();
+        toast.error(err.error || 'Operation failed');
+      }
+    } catch (error) {
+      toast.error('Error occurred');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this item?')) return;
+    try {
+      const response = await api.delete(`/api/superadmin/cms/news/${id}`);
+      if (response.ok) {
+        toast.success('Deleted successfully!');
+        fetchItems();
+      }
+    } catch (error) {
+      toast.error('Delete failed');
+    }
+  };
+
+  const togglePublish = async (item) => {
+    try {
+      const response = await api.put(`/api/superadmin/cms/news/${item.id}`, {
+        ...item,
+        isPublished: !item.isPublished
+      });
+
+      if (response.ok) {
+        toast.success(item.isPublished ? 'Unpublished' : 'Published!');
+        fetchItems();
+      }
+    } catch (error) {
+      toast.error('Failed to toggle publish');
+    }
+  };
+
+  const startEdit = (item) => {
+    setEditing(item);
+    setFormData({
+      title: item.title,
+      content: item.content,
+      type: item.type,
+      date: new Date(item.date).toISOString().split('T')[0],
+      isPublished: item.isPublished
+    });
+    setShowForm(true);
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Global News & Events</h1>
+        <button
+          onClick={() => {
+            setShowForm(true);
+            setEditing(null);
+            setFormData({ title: '', content: '', type: 'news', date: new Date().toISOString().split('T')[0], isPublished: true });
+          }}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          + Add New
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">{editing ? 'Edit' : 'Create'} Item</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Type</label>
+                <select
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  className="w-full border rounded px-3 py-2"
+                  required
+                >
+                  <option value="news">News</option>
+                  <option value="event">Event</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Title</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full border rounded px-3 py-2"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Content</label>
+                <textarea
+                  value={formData.content}
+                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  className="w-full border rounded px-3 py-2 h-32"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Date</label>
+                <input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="w-full border rounded px-3 py-2"
+                  required
+                />
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="publish"
+                  checked={formData.isPublished}
+                  onChange={(e) => setFormData({ ...formData, isPublished: e.target.checked })}
+                  className="mr-2"
+                />
+                <label htmlFor="publish" className="text-sm">Publish immediately</label>
+              </div>
+              <div className="flex gap-2 pt-4">
+                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                  {editing ? 'Update' : 'Create'}
+                </button>
+                <button type="button" onClick={() => setShowForm(false)} className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        {loading ? (
+          <div className="p-8 text-center">Loading...</div>
+        ) : items.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">No items yet. Create one!</div>
+        ) : (
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Type</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Title</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Date</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Status</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {items.map((item) => (
+                <tr key={item.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded text-xs ${item.type === 'news' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+                      {item.type}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-medium">{item.title}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{new Date(item.date).toLocaleDateString()}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded text-xs ${item.isPublished ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {item.isPublished ? 'Published' : 'Draft'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2">
+                      <button onClick={() => togglePublish(item)} className="text-sm text-blue-600 hover:underline">
+                        {item.isPublished ? 'Unpublish' : 'Publish'}
+                      </button>
+                      <button onClick={() => startEdit(item)} className="text-sm text-yellow-600 hover:underline">Edit</button>
+                      <button onClick={() => handleDelete(item.id)} className="text-sm text-red-600 hover:underline">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default GlobalNewsManagement;

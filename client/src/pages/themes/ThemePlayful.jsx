@@ -9,7 +9,7 @@ import TuitionEstimatorWidget from '../../components/TuitionEstimatorWidget';
 import AccreditationsBand from '../../components/AccreditationsBand';
 import FaqWidget from '../../components/FaqWidget';
 
-const ThemePlayful = ({ school, getLogoUrl }) => {
+const ThemePlayful = ({ school, getLogoUrl, isSuperAdmin }) => {
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -58,7 +58,9 @@ const ThemePlayful = ({ school, getLogoUrl }) => {
                   {page.title}
                 </Link>
               ))}
-              <Link to={`/${school.slug}/staff`} className="px-4 py-2 rounded-full text-sm font-bold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">Teachers</Link>
+              {!isSuperAdmin && (
+                <Link to={`/${school.slug}/staff`} className="px-4 py-2 rounded-full text-sm font-bold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all">Teachers</Link>
+              )}
               <button onClick={() => setIsFaqModalOpen(true)} className="px-4 py-2 rounded-full text-sm font-bold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all focus:outline-none">
                 Questions?
               </button>
@@ -90,7 +92,9 @@ const ThemePlayful = ({ school, getLogoUrl }) => {
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               className="lg:hidden absolute top-24 left-4 right-4 bg-white rounded-[2rem] shadow-2xl p-6 flex flex-col gap-3 border-4 border-slate-100"
             >
-              <Link to={`/${school.slug}/staff`} className="p-4 rounded-[1.5rem] bg-slate-50 text-lg font-bold text-slate-700 hover:bg-slate-100 transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Teachers</Link>
+              {!isSuperAdmin && (
+                <Link to={`/${school.slug}/staff`} className="p-4 rounded-[1.5rem] bg-slate-50 text-lg font-bold text-slate-700 hover:bg-slate-100 transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Teachers</Link>
+              )}
               <button onClick={() => { setIsFaqModalOpen(true); setIsMobileMenuOpen(false); }} className="p-4 rounded-[1.5rem] bg-slate-50 text-left text-lg font-bold text-slate-700 hover:bg-slate-100 transition-colors">Questions & Answers</button>
               <button 
                 onClick={() => navigate(`/${school.slug}/login`)}
@@ -264,7 +268,9 @@ const ThemePlayful = ({ school, getLogoUrl }) => {
               <h4 className="text-xl font-black mb-6" style={{ color: accentColor }}>Explore</h4>
               <ul className="space-y-3 font-bold text-slate-300">
                  <li><Link to={`/${school.slug}/login`} className="hover:text-white transition-colors hover:translate-x-1 inline-block">Portal Login</Link></li>
-                 <li><Link to={`/${school.slug}/staff`} className="hover:text-white transition-colors hover:translate-x-1 inline-block">Meet the Teachers</Link></li>
+                 {!isSuperAdmin && (
+                   <li><Link to={`/${school.slug}/staff`} className="hover:text-white transition-colors hover:translate-x-1 inline-block">Meet the Teachers</Link></li>
+                 )}
                  <li><Link to={`/${school.slug}/gallery`} className="hover:text-white transition-colors hover:translate-x-1 inline-block">Photo Gallery</Link></li>
               </ul>
             </div>

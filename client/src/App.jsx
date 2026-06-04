@@ -105,6 +105,9 @@ const ArrivalScanner = lazyRetry(() => import('./pages/admin/ArrivalScanner'));
 const StaffAttendanceReport = lazyRetry(() => import('./pages/admin/StaffAttendanceReport'));
 const SuperAdminDashboard = lazyRetry(() => import('./pages/superadmin/SuperAdminDashboard'));
 const LicenseManagement = lazyRetry(() => import('./pages/superadmin/LicenseManagement'));
+const WebsiteSettings = lazyRetry(() => import('./pages/superadmin/WebsiteSettings'));
+const GlobalNewsManagement = lazyRetry(() => import('./pages/superadmin/GlobalNewsManagement'));
+const GlobalGalleryManagement = lazyRetry(() => import('./pages/superadmin/GlobalGalleryManagement'));
 const QuranTracker = lazyRetry(() => import('./pages/teacher/QuranTracker'));
 const QuranProgress = lazyRetry(() => import('./pages/student/QuranProgress'));
 const ParentQuranView = lazyRetry(() => import('./pages/parent/ParentQuranView'));
@@ -195,7 +198,8 @@ function App() {
             <Route path="/news-events" element={<NewsEvents />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/gallery" element={<Gallery />} />
-            <Route path="/edutech" element={<SuperAdminLandingPage />} />
+            <Route path="/edutech-slug" element={<SuperAdminLandingPage />} />
+            <Route path="/edutech-slug/login" element={<Navigate to="/login" replace />} />
             <Route path="/:schoolSlug" element={<PublicSchoolLandingPage />} />
             <Route path="/:schoolSlug/gallery" element={<Gallery />} />
             <Route path="/:schoolSlug/staff" element={<MeetOurStaff />} />
@@ -701,6 +705,24 @@ function App() {
               <Route path="license-management" element={
                 <ProtectedRoute roles={['superadmin']}>
                   <LicenseManagement />
+                </ProtectedRoute>
+              } />
+
+              <Route path="website-settings" element={
+                <ProtectedRoute roles={['superadmin']}>
+                  <WebsiteSettings />
+                </ProtectedRoute>
+              } />
+
+              <Route path="global-news" element={
+                <ProtectedRoute roles={['superadmin']}>
+                  <GlobalNewsManagement />
+                </ProtectedRoute>
+              } />
+
+              <Route path="global-gallery" element={
+                <ProtectedRoute roles={['superadmin']}>
+                  <GlobalGalleryManagement />
                 </ProtectedRoute>
               } />
 

@@ -9,7 +9,7 @@ import TuitionEstimatorWidget from '../../components/TuitionEstimatorWidget';
 import AccreditationsBand from '../../components/AccreditationsBand';
 import FaqWidget from '../../components/FaqWidget';
 
-const ThemeElite = ({ school, getLogoUrl }) => {
+const ThemeElite = ({ school, getLogoUrl, isSuperAdmin }) => {
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -69,10 +69,14 @@ const ThemeElite = ({ school, getLogoUrl }) => {
                   {page.title}
                 </Link>
               ))}
-              <Link to={`/${school.slug}/staff`} className="text-sm font-medium tracking-widest text-gray-300 hover:text-white transition-colors uppercase">Faculty</Link>
-              <button onClick={() => setIsFaqModalOpen(true)} className="text-sm font-medium tracking-widest text-gray-300 hover:text-white transition-colors uppercase focus:outline-none">
-                Inquiries
-              </button>
+              {!isSuperAdmin && (
+                <>
+                  <Link to={`/${school.slug}/staff`} className="text-sm font-medium tracking-widest text-gray-300 hover:text-white transition-colors uppercase">Faculty</Link>
+                  <button onClick={() => setIsFaqModalOpen(true)} className="text-sm font-medium tracking-widest text-gray-300 hover:text-white transition-colors uppercase focus:outline-none">
+                    Inquiries
+                  </button>
+                </>
+              )}
               <Link to={`/${school.slug}/gallery`} className="text-sm font-medium tracking-widest text-gray-300 hover:text-white transition-colors uppercase">Campus</Link>
             </nav>
             
@@ -101,9 +105,13 @@ const ThemeElite = ({ school, getLogoUrl }) => {
               exit={{ opacity: 0, height: 0 }}
               className="lg:hidden bg-[#0f0f0f] border-b border-white/10 px-6 py-6 flex flex-col gap-6"
             >
-              <Link to={`/${school.slug}/staff`} className="text-lg tracking-widest text-gray-300 hover:text-white transition-colors uppercase" onClick={() => setIsMobileMenuOpen(false)}>Faculty</Link>
-              <button onClick={() => { setIsFaqModalOpen(true); setIsMobileMenuOpen(false); }} className="text-left text-lg tracking-widest text-gray-300 hover:text-white transition-colors uppercase">Inquiries</button>
-              <Link to="/alumni" className="text-lg tracking-widest text-gray-300 hover:text-white transition-colors uppercase" onClick={() => setIsMobileMenuOpen(false)}>Alumni</Link>
+              {!isSuperAdmin && (
+                <>
+                  <Link to={`/${school.slug}/staff`} className="text-lg tracking-widest text-gray-300 hover:text-white transition-colors uppercase" onClick={() => setIsMobileMenuOpen(false)}>Faculty</Link>
+                  <button onClick={() => { setIsFaqModalOpen(true); setIsMobileMenuOpen(false); }} className="text-left text-lg tracking-widest text-gray-300 hover:text-white transition-colors uppercase">Inquiries</button>
+                  <Link to="/alumni" className="text-lg tracking-widest text-gray-300 hover:text-white transition-colors uppercase" onClick={() => setIsMobileMenuOpen(false)}>Alumni</Link>
+                </>
+              )}
               <button 
                 onClick={() => navigate(`/${school.slug}/login`)}
                 className="py-4 border border-white/20 text-center text-sm font-bold tracking-widest uppercase text-white transition-all hover:bg-white hover:text-black"
@@ -206,8 +214,12 @@ const ThemeElite = ({ school, getLogoUrl }) => {
                <h4 className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-8">Directories</h4>
                <ul className="space-y-4 text-sm uppercase tracking-wider">
                  <li><Link to={`/${school.slug}/login`} className="text-gray-500 hover:text-white transition-colors">Portal Sign In</Link></li>
-                 <li><Link to={`/${school.slug}/staff`} className="text-gray-500 hover:text-white transition-colors">Faculty Directory</Link></li>
-                 <li><Link to="/alumni" className="text-gray-500 hover:text-white transition-colors">Alumni Society</Link></li>
+                 {!isSuperAdmin && (
+                   <>
+                     <li><Link to={`/${school.slug}/staff`} className="text-gray-500 hover:text-white transition-colors">Faculty Directory</Link></li>
+                     <li><Link to="/alumni" className="text-gray-500 hover:text-white transition-colors">Alumni Society</Link></li>
+                   </>
+                 )}
                </ul>
             </div>
           </div>
