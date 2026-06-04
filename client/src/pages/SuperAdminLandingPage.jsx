@@ -9,7 +9,7 @@ import DeveloperApiPortal from '../components/TechHub/DeveloperApiPortal';
 import GlobalMapNode from '../components/TechHub/GlobalMapNode';
 
 const SuperAdminLandingPage = () => {
-  const { school } = useOutletContext(); // Passed down from TechHubLayout
+  const { school, openInquiryModal } = useOutletContext(); // Passed down from TechHubLayout
 
   return (
     <>
@@ -27,11 +27,11 @@ const SuperAdminLandingPage = () => {
               {school.welcomeMessage || 'Deploy ethically trained AI models, manage global learning nodes, and scale educational experiences with sub-50ms latency.'}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <button className="active-scale justify-center bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-xl font-bold flex items-center gap-2 transition-all">
-                Read the Documentation <ChevronRight size={18} />
+              <button onClick={openInquiryModal} className="active-scale justify-center bg-emerald-500 hover:bg-emerald-400 text-black px-8 py-4 rounded-xl font-bold flex items-center gap-2 transition-all">
+                Request Demo for Your School <ChevronRight size={18} />
               </button>
-              <button className="active-scale justify-center bg-white/5 hover:bg-white/10 border border-white/10 text-white px-8 py-4 rounded-xl font-bold transition-all">
-                View Model Benchmarks
+              <button onClick={() => { document.getElementById('models')?.scrollIntoView({ behavior: 'smooth' }) }} className="active-scale justify-center bg-white/5 hover:bg-white/10 border border-white/10 text-white px-8 py-4 rounded-xl font-bold transition-all">
+                Explore Capabilities
               </button>
             </div>
           </motion.div>
@@ -60,6 +60,31 @@ const SuperAdminLandingPage = () => {
           <div className="flex flex-col items-center justify-center text-center">
             <span className="text-4xl font-mono font-bold text-white mb-2">142</span>
             <span className="text-sm font-medium text-gray-500 uppercase tracking-widest">Countries Reached</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Why EduTechAI for Schools */}
+      <section className="py-24 px-6 relative overflow-hidden bg-[#050505]">
+        <div className="max-w-[1400px] mx-auto z-10 relative">
+          <div className="text-center mb-16 animate-fade-up">
+            <h2 className="tech-fluid-h2 mb-4">Why Top Schools Choose EduTechAI</h2>
+            <p className="tech-fluid-base text-gray-400 max-w-2xl mx-auto">Purpose-built intelligence that solves real institutional challenges.</p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              { title: 'Reduce Workload', desc: 'Automate grading, lesson planning, and administrative tasks, saving teachers up to 15 hours a week.', icon: '⚡' },
+              { title: 'Personalized Tutoring', desc: 'Give every student a 24/7 Socratic tutor trained strictly on your approved curriculum.', icon: '🧠' },
+              { title: 'Enterprise Privacy', desc: 'Your data is siloed and never used to train public models. Fully GDPR, FERPA, and COPPA compliant.', icon: '🛡️' },
+              { title: 'Seamless Integration', desc: 'Syncs instantly with your existing SIS and LMS (Canvas, Moodle) via our global API.', icon: '🔗' }
+            ].map((benefit, i) => (
+              <div key={i} className={`tech-glass-dark rounded-3xl p-8 hover:-translate-y-2 transition-all duration-300 animate-fade-up delay-${(i+1)*100}`}>
+                <div className="text-4xl mb-6">{benefit.icon}</div>
+                <h3 className="text-xl font-bold mb-3">{benefit.title}</h3>
+                <p className="text-gray-400 leading-relaxed text-sm">{benefit.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

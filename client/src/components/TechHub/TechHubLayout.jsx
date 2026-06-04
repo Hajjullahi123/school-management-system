@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { apiCall } from '../../api';
 import { Network, ShieldCheck, Globe, CheckCircle2, CircleCheck, Menu, X } from 'lucide-react';
+import InquiryModal from './InquiryModal';
 
 const TechHubLayout = () => {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ const TechHubLayout = () => {
   const [school, setSchool] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
   
   // Accessibility and Theme States
   const [fontMode, setFontMode] = useState('standard');
@@ -56,8 +58,8 @@ const TechHubLayout = () => {
   }
 
   const navLinks = [
-    { path: '/edutech', label: 'Overview' },
-    { path: '/edutech/model-zoo', label: 'Model Zoo' },
+    { path: '/edutech', label: 'Solutions' },
+    { path: '/edutech/model-zoo', label: 'AI Models' },
     { path: '/edutech/developers', label: 'Developers' },
     { path: '/edutech/trust-safety', label: 'Trust & Safety' },
     { path: '/edutech/global-network', label: 'Global Network' },
@@ -97,8 +99,14 @@ const TechHubLayout = () => {
             >
               {fontMode === 'standard' ? 'Aa (Standard)' : 'Aa (Dyslexic)'}
             </button>
-            <button onClick={() => navigate('/login')} className="hidden sm:block bg-white text-black px-6 py-2 rounded-full text-sm font-bold hover:bg-gray-200 transition-colors">
+            <button onClick={() => navigate('/login')} className="hidden sm:block bg-white/5 hover:bg-white/10 text-white px-6 py-2 rounded-full text-sm font-bold border border-white/10 transition-colors">
               Console Login
+            </button>
+            <button 
+              onClick={() => setIsInquiryModalOpen(true)} 
+              className="hidden sm:block active-scale bg-emerald-500 hover:bg-emerald-400 text-black px-6 py-2 rounded-full text-sm font-bold transition-colors"
+            >
+              Request Demo
             </button>
             <button 
               className="lg:hidden p-2 text-gray-400 hover:text-white"
@@ -129,17 +137,22 @@ const TechHubLayout = () => {
               >
                 Toggle Font: {fontMode === 'standard' ? 'Standard' : 'Dyslexic'}
               </button>
-              <button onClick={() => navigate('/login')} className="w-full bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold mt-2">
+              <button onClick={() => navigate('/login')} className="w-full bg-white/5 border border-white/10 text-white px-6 py-3 rounded-xl font-bold mt-2">
                 Console Login
+              </button>
+              <button onClick={() => { setIsMobileMenuOpen(false); setIsInquiryModalOpen(true); }} className="w-full bg-emerald-500 text-black px-6 py-3 rounded-xl font-bold mt-2">
+                Request Demo
               </button>
             </div>
           </div>
         )}
       </nav>
 
+      <InquiryModal isOpen={isInquiryModalOpen} onClose={() => setIsInquiryModalOpen(false)} />
+
       {/* Main Content Area */}
       <main className="flex-1 mt-20">
-        <Outlet context={{ school }} />
+        <Outlet context={{ school, openInquiryModal: () => setIsInquiryModalOpen(true) }} />
       </main>
 
       {/* Compliance Footer */}
