@@ -411,6 +411,15 @@ const SuperAdminDashboard = () => {
           >
             <FiArrowUpCircle className="mr-2" /> Backup
           </button>
+          {schools.find(s => s.slug === 'edutech') && (
+            <button
+              onClick={() => handleImpersonate(schools.find(s => s.slug === 'edutech').id)}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 transform hover:scale-[1.02]"
+              title="Edit the Super Admin Public Website Content"
+            >
+              <FiEdit2 className="mr-2" /> <span className="whitespace-nowrap">Edit Website</span>
+            </button>
+          )}
           <button
             onClick={() => setShowModal(true)}
             className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 transform hover:scale-[1.02]"
