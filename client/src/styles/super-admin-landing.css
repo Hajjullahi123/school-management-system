@@ -115,9 +115,9 @@
   animation: fadeIn 0.8s ease forwards;
 }
 
-.edutech-landing-page .delay-1 { animation-delay: 0.2s; opacity: 0; }
-.edutech-landing-page .delay-2 { animation-delay: 0.4s; opacity: 0; }
-.edutech-landing-page .delay-3 { animation-delay: 0.6s; opacity: 0; }
+.edutech-landing-page .delay-1 { animation: fadeIn 0.8s ease forwards; animation-delay: 0.2s; opacity: 0; }
+.edutech-landing-page .delay-2 { animation: fadeIn 0.8s ease forwards; animation-delay: 0.4s; opacity: 0; }
+.edutech-landing-page .delay-3 { animation: fadeIn 0.8s ease forwards; animation-delay: 0.6s; opacity: 0; }
 
 /* Navbar */
 .edutech-landing-page .navbar {
