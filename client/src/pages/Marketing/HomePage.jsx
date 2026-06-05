@@ -1,26 +1,53 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Monitor, BookOpen, Clock, Settings, Headphones, CheckCircle2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const HomePage = () => {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="bg-surface py-20 lg:py-28">
-        <div className="section-container text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate mb-6 max-w-4xl mx-auto leading-tight animate-fade-up">
-            All-in-One School Management System <span className="text-primary">+ Free Website</span> for Your School
-          </h1>
-          <p className="text-lg md:text-xl text-muted max-w-2xl mx-auto mb-10 animate-fade-up delay-100">
-            One platform for results, fees, CBT, alumni, attendance, payroll, and ID cards. Plus a free professional website with your own domain when you subscribe.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up delay-200">
-            <Link to="/contact" className="btn-primary w-full sm:w-auto text-center">
-              Request a Quote →
-            </Link>
-            <Link to="/services" className="btn-secondary w-full sm:w-auto text-center">
-              See All Services
-            </Link>
+      <section className="bg-surface py-20 lg:py-28 overflow-hidden">
+        <div className="section-container">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left Content */}
+            <div className="text-center lg:text-left z-10 relative">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate mb-6 leading-tight animate-fade-up">
+                All-in-One School Management System <span className="text-primary">+ Free Website</span> for Your School
+              </h1>
+              <p className="text-lg md:text-xl text-muted mb-10 animate-fade-up delay-100 max-w-2xl mx-auto lg:mx-0">
+                One platform for results, fees, CBT, alumni, attendance, payroll, and ID cards. Plus a free professional website with your own domain when you subscribe.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 animate-fade-up delay-200">
+                <Link to="/contact" className="btn-primary w-full sm:w-auto text-center shadow-lg hover:shadow-xl transition-shadow">
+                  Request a Quote →
+                </Link>
+                <Link to="/services" className="btn-secondary w-full sm:w-auto text-center">
+                  See All Services
+                </Link>
+              </div>
+            </div>
+            
+            {/* Right Graphics */}
+            <div className="relative z-0 mt-10 lg:mt-0 perspective-1000">
+              <motion.div
+                initial={{ opacity: 0, y: 50, rotateX: 5, rotateY: -10 }}
+                animate={{ opacity: 1, y: 0, rotateX: 0, rotateY: 0 }}
+                transition={{ duration: 1, delay: 0.2, ease: "easeOut" }}
+                className="relative rounded-2xl shadow-2xl overflow-hidden border-4 border-white/50 bg-white"
+              >
+                <img src="/images/hero-dashboard.png" alt="School Management Dashboard" className="w-full h-auto block" />
+              </motion.div>
+              
+              {/* Floating Widget */}
+              <motion.div
+                animate={{ y: [0, -15, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -bottom-6 -left-6 md:-bottom-10 md:-left-12 w-40 md:w-64 drop-shadow-2xl z-20"
+              >
+                <img src="/images/hero-floating-widget.png" alt="Analytics Widget" className="w-full h-auto rounded-xl bg-transparent" />
+              </motion.div>
+            </div>
           </div>
         </div>
       </section>
