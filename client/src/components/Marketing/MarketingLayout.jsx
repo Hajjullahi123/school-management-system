@@ -13,9 +13,9 @@ const MarketingLayout = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col font-sans text-slate bg-surface">
+    <div className="min-h-screen flex flex-col font-sans text-slate-100 bg-slate-900">
       {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <nav className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             {/* Logo Area */}
@@ -24,7 +24,7 @@ const MarketingLayout = () => {
                 <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
                   <span className="text-white font-heading font-bold text-xl">E</span>
                 </div>
-                <span className="font-heading font-bold text-xl text-slate">EduTech</span>
+                <span className="font-heading font-bold text-xl text-white">EduTech</span>
               </Link>
             </div>
 
@@ -35,7 +35,7 @@ const MarketingLayout = () => {
                   key={link.name}
                   to={link.path}
                   className={`text-[15px] font-medium transition-colors ${
-                    location.pathname === link.path ? 'text-primary' : 'text-muted hover:text-primary'
+                    location.pathname === link.path ? 'text-primary' : 'text-slate-300 hover:text-white'
                   }`}
                 >
                   {link.name}

@@ -36,18 +36,18 @@ const HomePage = () => {
               style={{ backgroundImage: `url(${bgImages[currentBg]})` }}
             />
           </AnimatePresence>
-          {/* Light overlay to ensure the dark text is readable */}
-          <div className="absolute inset-0 bg-white/85 backdrop-blur-[2px]"></div>
+          {/* Dark overlay to ensure text is readable */}
+          <div className="absolute inset-0 bg-slate-900/85 backdrop-blur-[2px]"></div>
         </div>
 
         <div className="section-container relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
-            <div className="text-center lg:text-left z-10 relative bg-white/50 backdrop-blur-md border border-white/80 p-6 md:p-10 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate mb-6 leading-tight animate-fade-up">
+            <div className="text-center lg:text-left z-10 relative bg-slate-800/60 backdrop-blur-md border border-slate-700 p-4 md:p-10 rounded-3xl shadow-2xl">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight animate-fade-up">
                 EduTech <br/> <span className="text-3xl md:text-4xl lg:text-5xl text-primary font-semibold">All-in-One School Management System + Free Website</span>
               </h1>
-              <p className="text-lg md:text-xl text-slate-700 mb-10 animate-fade-up delay-100 max-w-2xl mx-auto lg:mx-0 font-medium">
+              <p className="text-lg md:text-xl text-slate-300 mb-10 animate-fade-up delay-100 max-w-2xl mx-auto lg:mx-0 font-medium">
                 One platform for results, fees, CBT, alumni, attendance, payroll, and ID cards. Plus a free professional website with your own domain when you subscribe.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 animate-fade-up delay-200">
@@ -85,40 +85,40 @@ const HomePage = () => {
       </section>
 
       {/* 3 Benefit Cards */}
-      <section className="py-10 lg:py-16 bg-slate-50 border-t border-gray-100">
+      <section className="py-10 lg:py-16 bg-slate-900 border-t border-slate-800">
         <div className="section-container max-w-6xl mx-auto">
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 text-center flex flex-col items-center">
-              <div className="w-16 h-16 bg-blue-50 text-primary rounded-2xl flex items-center justify-center mb-6 shadow-inner">
+            <div className="bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-700 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 text-center flex flex-col items-center">
+              <div className="w-16 h-16 bg-slate-700 text-primary rounded-2xl flex items-center justify-center mb-6 shadow-inner">
                 <Monitor size={32} />
               </div>
-              <h3 className="text-xl font-bold mb-3 text-slate">Free Website + Custom Domain</h3>
-              <p className="text-slate-500 leading-relaxed">Every subscriber gets a beautiful, fully functional school website with their own domain name.</p>
+              <h3 className="text-xl font-bold mb-3 text-white">Free Website + Custom Domain</h3>
+              <p className="text-slate-400 leading-relaxed">Every subscriber gets a beautiful, fully functional school website with their own domain name.</p>
             </div>
-            <div className="bg-white p-8 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 text-center flex flex-col items-center">
-              <div className="w-16 h-16 bg-teal-50 text-accent rounded-2xl flex items-center justify-center mb-6 shadow-inner">
+            <div className="bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-700 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 text-center flex flex-col items-center">
+              <div className="w-16 h-16 bg-slate-700 text-accent rounded-2xl flex items-center justify-center mb-6 shadow-inner">
                 <Settings size={32} />
               </div>
-              <h3 className="text-xl font-bold mb-3 text-slate">Simple, Powerful Management</h3>
-              <p className="text-slate-500 leading-relaxed">Manage results, fees, attendance, and payroll from one dashboard – no training headaches.</p>
+              <h3 className="text-xl font-bold mb-3 text-white">Simple, Powerful Management</h3>
+              <p className="text-slate-400 leading-relaxed">Manage results, fees, attendance, and payroll from one dashboard – no training headaches.</p>
             </div>
-            <div className="bg-white p-8 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 text-center flex flex-col items-center">
-              <div className="w-16 h-16 bg-blue-50 text-secondary rounded-2xl flex items-center justify-center mb-6 shadow-inner">
+            <div className="bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-700 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 text-center flex flex-col items-center">
+              <div className="w-16 h-16 bg-slate-700 text-secondary rounded-2xl flex items-center justify-center mb-6 shadow-inner">
                 <Headphones size={32} />
               </div>
-              <h3 className="text-xl font-bold mb-3 text-slate">24/7 Support for Schools</h3>
-              <p className="text-slate-500 leading-relaxed">Real humans, not bots. We help your staff get started and stay running smoothly.</p>
+              <h3 className="text-xl font-bold mb-3 text-white">24/7 Support for Schools</h3>
+              <p className="text-slate-400 leading-relaxed">Real humans, not bots. We help your staff get started and stay running smoothly.</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Services Preview */}
-      <section className="py-10 lg:py-16 bg-white border-y border-gray-100">
+      <section className="py-10 lg:py-16 bg-slate-900 border-y border-slate-800">
         <div className="section-container max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-slate mb-4">Everything you need to run your school</h2>
-            <p className="text-lg text-slate-500 max-w-2xl mx-auto">A sneak peek at our most popular features designed for Nigerian schools.</p>
+            <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">Everything you need to run your school</h2>
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">A sneak peek at our most popular features designed for Nigerian schools.</p>
           </div>
           
           <div className="grid md:grid-cols-2 gap-6 mb-12">
@@ -149,39 +149,39 @@ const HomePage = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-10 lg:py-16 relative overflow-hidden">
+      <section className="py-10 lg:py-16 relative overflow-hidden bg-slate-900">
         {/* Background Image with Overlay */}
         <div 
-          className="absolute inset-0 z-0 bg-cover bg-center bg-fixed"
+          className="absolute inset-0 z-0 bg-cover bg-center bg-fixed opacity-60"
           style={{ backgroundImage: "url('/images/bg-how-it-works.png')" }}
         >
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px]"></div>
+          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-[2px]"></div>
         </div>
 
         <div className="section-container max-w-5xl mx-auto relative z-10">
           <div className="text-center mb-10 lg:mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-slate">How It Works</h2>
+            <h2 className="text-3xl lg:text-4xl font-bold text-white">How It Works</h2>
             <div className="w-16 h-1 bg-primary mx-auto mt-6 rounded-full"></div>
           </div>
           
           <div className="grid md:grid-cols-3 gap-12 relative">
             {/* Connecting line for desktop */}
-            <div className="hidden md:block absolute top-8 left-1/6 right-1/6 h-0.5 bg-gray-300 z-0"></div>
+            <div className="hidden md:block absolute top-8 left-1/6 right-1/6 h-0.5 bg-slate-700 z-0"></div>
             
             <div className="relative z-10 flex flex-col items-center text-center group">
-              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg border-4 border-white group-hover:scale-110 transition-transform">1</div>
-              <h4 className="font-bold text-xl mb-3 text-slate">Select Services</h4>
-              <p className="text-slate-500 leading-relaxed">School visits website & selects services of interest.</p>
+              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg border-4 border-slate-800 group-hover:scale-110 transition-transform">1</div>
+              <h4 className="font-bold text-xl mb-3 text-white">Select Services</h4>
+              <p className="text-slate-400 leading-relaxed">School visits website & selects services of interest.</p>
             </div>
             <div className="relative z-10 flex flex-col items-center text-center group">
-              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg border-4 border-white group-hover:scale-110 transition-transform">2</div>
-              <h4 className="font-bold text-xl mb-3 text-slate">Get in Touch</h4>
-              <p className="text-slate-500 leading-relaxed">Send inquiry or book a free demo with our team.</p>
+              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg border-4 border-slate-800 group-hover:scale-110 transition-transform">2</div>
+              <h4 className="font-bold text-xl mb-3 text-white">Get in Touch</h4>
+              <p className="text-slate-400 leading-relaxed">Send inquiry or book a free demo with our team.</p>
             </div>
             <div className="relative z-10 flex flex-col items-center text-center group">
-              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg border-4 border-white group-hover:scale-110 transition-transform">3</div>
-              <h4 className="font-bold text-xl mb-3 text-slate">Launch</h4>
-              <p className="text-slate-500 leading-relaxed">We set up your system + free website, train your staff, and go live.</p>
+              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg border-4 border-slate-800 group-hover:scale-110 transition-transform">3</div>
+              <h4 className="font-bold text-xl mb-3 text-white">Launch</h4>
+              <p className="text-slate-400 leading-relaxed">We set up your system + free website, train your staff, and go live.</p>
             </div>
           </div>
         </div>
@@ -200,7 +200,7 @@ const HomePage = () => {
       </section>
 
       {/* CTA Bottom */}
-      <section className="py-10 lg:py-16 bg-white">
+      <section className="py-10 lg:py-16 bg-slate-900">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-primary rounded-3xl p-10 md:p-16 text-center text-white shadow-2xl relative overflow-hidden">
             {/* Decorative background circle */}
