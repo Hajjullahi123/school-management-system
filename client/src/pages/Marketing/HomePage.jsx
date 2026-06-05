@@ -128,11 +128,11 @@ const HomePage = () => {
               { title: 'Fee Management', desc: 'Set fee schedules, send automatic reminders, accept online payments.' },
               { title: 'Attendance Management', desc: 'Digital register – daily or per subject. Mark attendance via web or app.' },
             ].map((service, i) => (
-              <div key={i} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex gap-4 items-start">
-                <CheckCircle2 className="text-accent shrink-0 mt-1" size={24} />
+              <div key={i} className="bg-blue-700 p-6 rounded-xl shadow-md flex gap-4 items-start text-white hover:bg-blue-800 transition-colors transform hover:-translate-y-1 duration-200">
+                <CheckCircle2 className="text-blue-200 shrink-0 mt-1" size={24} />
                 <div>
-                  <h4 className="font-bold text-lg text-slate mb-1">{service.title}</h4>
-                  <p className="text-muted text-sm">{service.desc}</p>
+                  <h4 className="font-bold text-lg mb-1">{service.title}</h4>
+                  <p className="text-blue-100 text-sm leading-relaxed">{service.desc}</p>
                 </div>
               </div>
             ))}
