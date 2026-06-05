@@ -11,10 +11,17 @@ export default {
         'spin-slow': 'spin 3s linear infinite',
       },
       colors: {
-        primary: 'rgb(var(--color-primary) / <alpha-value>)',
-        secondary: 'rgb(var(--color-secondary) / <alpha-value>)',
-        accent: 'rgb(var(--color-accent) / <alpha-value>)',
+        primary: '#1E3A8A',    // Deep Blue
+        secondary: '#3B82F6',  // Slate Blue
+        accent: '#14B8A6',     // Soft Teal
+        surface: '#F8FAFC',    // Off-white
+        slate: '#0F172A',      // Dark Slate
+        muted: '#64748B',      // Gray
       },
+      fontFamily: {
+        heading: ['Poppins', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
+      }
     },
   },
   plugins: [

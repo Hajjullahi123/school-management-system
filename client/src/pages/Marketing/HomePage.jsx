@@ -1,0 +1,153 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Monitor, BookOpen, Clock, Settings, Headphones, CheckCircle2 } from 'lucide-react';
+
+const HomePage = () => {
+  return (
+    <div className="flex flex-col min-h-screen">
+      {/* Hero Section */}
+      <section className="bg-surface py-20 lg:py-28">
+        <div className="section-container text-center">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate mb-6 max-w-4xl mx-auto leading-tight animate-fade-up">
+            All-in-One School Management System <span className="text-primary">+ Free Website</span> for Your School
+          </h1>
+          <p className="text-lg md:text-xl text-muted max-w-2xl mx-auto mb-10 animate-fade-up delay-100">
+            One platform for results, fees, CBT, alumni, attendance, payroll, and ID cards. Plus a free professional website with your own domain when you subscribe.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up delay-200">
+            <Link to="/contact" className="btn-primary w-full sm:w-auto text-center">
+              Request a Quote →
+            </Link>
+            <Link to="/services" className="btn-secondary w-full sm:w-auto text-center">
+              See All Services
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 3 Benefit Cards */}
+      <section className="py-16 bg-white">
+        <div className="section-container">
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="card text-center flex flex-col items-center">
+              <div className="w-16 h-16 bg-blue-50 text-primary rounded-full flex items-center justify-center mb-6">
+                <Monitor size={32} />
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-slate">Free Website + Custom Domain</h3>
+              <p className="text-muted">Every subscriber gets a beautiful, fully functional school website with their own domain name.</p>
+            </div>
+            <div className="card text-center flex flex-col items-center">
+              <div className="w-16 h-16 bg-teal-50 text-accent rounded-full flex items-center justify-center mb-6">
+                <Settings size={32} />
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-slate">Simple, Powerful Management</h3>
+              <p className="text-muted">Manage results, fees, attendance, and payroll from one dashboard – no training headaches.</p>
+            </div>
+            <div className="card text-center flex flex-col items-center">
+              <div className="w-16 h-16 bg-blue-50 text-secondary rounded-full flex items-center justify-center mb-6">
+                <Headphones size={32} />
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-slate">24/7 Support for Schools</h3>
+              <p className="text-muted">Real humans, not bots. We help your staff get started and stay running smoothly.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Services Preview */}
+      <section className="py-20 bg-surface border-y border-gray-200">
+        <div className="section-container">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-slate mb-4">Everything you need to run your school</h2>
+            <p className="text-lg text-muted">A sneak peek at our most popular features.</p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-12">
+            {[
+              { title: 'Free Website + Custom Domain', desc: 'We build and host a professional school website.' },
+              { title: 'Result Management', desc: 'Compute termly results, print report cards, generate transcripts.' },
+              { title: 'Fee Management', desc: 'Set fee schedules, send automatic reminders, accept online payments.' },
+              { title: 'Attendance Management', desc: 'Digital register – daily or per subject. Mark attendance via web or app.' },
+            ].map((service, i) => (
+              <div key={i} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex gap-4 items-start">
+                <CheckCircle2 className="text-accent shrink-0 mt-1" size={24} />
+                <div>
+                  <h4 className="font-bold text-lg text-slate mb-1">{service.title}</h4>
+                  <p className="text-muted text-sm">{service.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Link to="/services" className="btn-secondary">
+              View All 8 Services
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-20 bg-white">
+        <div className="section-container">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-slate">How It Works</h2>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8 relative max-w-5xl mx-auto">
+            {/* Connecting line for desktop */}
+            <div className="hidden md:block absolute top-8 left-1/6 right-1/6 h-0.5 bg-gray-200 z-0"></div>
+            
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-md border-4 border-white">1</div>
+              <h4 className="font-bold text-lg mb-2 text-slate">Select Services</h4>
+              <p className="text-muted text-sm">School visits website & selects services of interest.</p>
+            </div>
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-md border-4 border-white">2</div>
+              <h4 className="font-bold text-lg mb-2 text-slate">Get in Touch</h4>
+              <p className="text-muted text-sm">Send inquiry or book a free demo with our team.</p>
+            </div>
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-md border-4 border-white">3</div>
+              <h4 className="font-bold text-lg mb-2 text-slate">Launch</h4>
+              <p className="text-muted text-sm">We set up your system + free website, train your staff, and go live.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonial */}
+      <section className="py-20 bg-primary text-white">
+        <div className="section-container text-center max-w-4xl mx-auto">
+          <QuoteIcon className="mx-auto text-white/30 mb-8 w-16 h-16" />
+          <h3 className="text-2xl md:text-3xl font-medium leading-relaxed mb-8">
+            "The free website alone saved us thousands. Plus, fee collection is now 100% online – no more chasing parents."
+          </h3>
+          <p className="font-bold text-lg">Principal Adeyemi</p>
+          <p className="text-white/80">ABC International School</p>
+        </div>
+      </section>
+
+      {/* CTA Bottom */}
+      <section className="py-20 bg-surface">
+        <div className="section-container text-center">
+          <h2 className="text-3xl font-bold text-slate mb-6 max-w-2xl mx-auto">Ready to simplify your school operations?</h2>
+          <p className="text-xl text-muted mb-10">Get a free custom domain website when you subscribe.</p>
+          <Link to="/contact" className="btn-primary text-lg px-8">
+            Request a Quote →
+          </Link>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+// Simple Quote SVG Component
+const QuoteIcon = ({ className }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+    <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+  </svg>
+);
+
+export default HomePage;
