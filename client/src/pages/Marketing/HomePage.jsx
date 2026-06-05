@@ -85,61 +85,63 @@ const HomePage = () => {
       </section>
 
       {/* 3 Benefit Cards */}
-      <section className="py-16 bg-white">
-        <div className="section-container">
+      <section className="py-20 bg-slate-50 border-t border-gray-100">
+        <div className="section-container max-w-6xl mx-auto">
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="card text-center flex flex-col items-center">
-              <div className="w-16 h-16 bg-blue-50 text-primary rounded-full flex items-center justify-center mb-6">
+            <div className="bg-white p-8 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 text-center flex flex-col items-center">
+              <div className="w-16 h-16 bg-blue-50 text-primary rounded-2xl flex items-center justify-center mb-6 shadow-inner">
                 <Monitor size={32} />
               </div>
               <h3 className="text-xl font-bold mb-3 text-slate">Free Website + Custom Domain</h3>
-              <p className="text-muted">Every subscriber gets a beautiful, fully functional school website with their own domain name.</p>
+              <p className="text-slate-500 leading-relaxed">Every subscriber gets a beautiful, fully functional school website with their own domain name.</p>
             </div>
-            <div className="card text-center flex flex-col items-center">
-              <div className="w-16 h-16 bg-teal-50 text-accent rounded-full flex items-center justify-center mb-6">
+            <div className="bg-white p-8 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 text-center flex flex-col items-center">
+              <div className="w-16 h-16 bg-teal-50 text-accent rounded-2xl flex items-center justify-center mb-6 shadow-inner">
                 <Settings size={32} />
               </div>
               <h3 className="text-xl font-bold mb-3 text-slate">Simple, Powerful Management</h3>
-              <p className="text-muted">Manage results, fees, attendance, and payroll from one dashboard – no training headaches.</p>
+              <p className="text-slate-500 leading-relaxed">Manage results, fees, attendance, and payroll from one dashboard – no training headaches.</p>
             </div>
-            <div className="card text-center flex flex-col items-center">
-              <div className="w-16 h-16 bg-blue-50 text-secondary rounded-full flex items-center justify-center mb-6">
+            <div className="bg-white p-8 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 text-center flex flex-col items-center">
+              <div className="w-16 h-16 bg-blue-50 text-secondary rounded-2xl flex items-center justify-center mb-6 shadow-inner">
                 <Headphones size={32} />
               </div>
               <h3 className="text-xl font-bold mb-3 text-slate">24/7 Support for Schools</h3>
-              <p className="text-muted">Real humans, not bots. We help your staff get started and stay running smoothly.</p>
+              <p className="text-slate-500 leading-relaxed">Real humans, not bots. We help your staff get started and stay running smoothly.</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Services Preview */}
-      <section className="py-20 bg-surface border-y border-gray-200">
-        <div className="section-container">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate mb-4">Everything you need to run your school</h2>
-            <p className="text-lg text-muted">A sneak peek at our most popular features.</p>
+      <section className="py-24 bg-white border-y border-gray-100">
+        <div className="section-container max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl lg:text-4xl font-bold text-slate mb-4">Everything you need to run your school</h2>
+            <p className="text-lg text-slate-500 max-w-2xl mx-auto">A sneak peek at our most popular features designed for Nigerian schools.</p>
           </div>
           
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-12">
+          <div className="grid md:grid-cols-2 gap-6 mb-12">
             {[
               { title: 'Free Website + Custom Domain', desc: 'We build and host a professional school website.' },
               { title: 'Result Management', desc: 'Compute termly results, print report cards, generate transcripts.' },
               { title: 'Fee Management', desc: 'Set fee schedules, send automatic reminders, accept online payments.' },
               { title: 'Attendance Management', desc: 'Digital register – daily or per subject. Mark attendance via web or app.' },
             ].map((service, i) => (
-              <div key={i} className="bg-blue-700 p-6 rounded-xl shadow-md flex gap-4 items-start text-white hover:bg-blue-800 transition-colors transform hover:-translate-y-1 duration-200">
-                <CheckCircle2 className="text-blue-200 shrink-0 mt-1" size={24} />
+              <div key={i} className="bg-primary p-8 rounded-2xl shadow-lg flex gap-5 items-start text-white hover:bg-blue-800 transition-colors transform hover:-translate-y-1 duration-300">
+                <div className="bg-white/20 p-2 rounded-full shrink-0">
+                  <CheckCircle2 className="text-white" size={24} />
+                </div>
                 <div>
-                  <h4 className="font-bold text-lg mb-1">{service.title}</h4>
-                  <p className="text-blue-100 text-sm leading-relaxed">{service.desc}</p>
+                  <h4 className="font-bold text-xl mb-2">{service.title}</h4>
+                  <p className="text-blue-100 leading-relaxed">{service.desc}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="text-center">
-            <Link to="/services" className="btn-secondary">
+          <div className="text-center mt-10">
+            <Link to="/services" className="btn-secondary px-8 py-3 rounded-full text-lg font-medium">
               View All 8 Services
             </Link>
           </div>
@@ -147,30 +149,31 @@ const HomePage = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-white">
-        <div className="section-container">
+      <section className="py-24 bg-slate-50">
+        <div className="section-container max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-slate">How It Works</h2>
+            <h2 className="text-3xl lg:text-4xl font-bold text-slate">How It Works</h2>
+            <div className="w-16 h-1 bg-primary mx-auto mt-6 rounded-full"></div>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8 relative max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-12 relative">
             {/* Connecting line for desktop */}
-            <div className="hidden md:block absolute top-8 left-1/6 right-1/6 h-0.5 bg-gray-200 z-0"></div>
+            <div className="hidden md:block absolute top-8 left-1/6 right-1/6 h-0.5 bg-gray-300 z-0"></div>
             
-            <div className="relative z-10 flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-md border-4 border-white">1</div>
-              <h4 className="font-bold text-lg mb-2 text-slate">Select Services</h4>
-              <p className="text-muted text-sm">School visits website & selects services of interest.</p>
+            <div className="relative z-10 flex flex-col items-center text-center group">
+              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg border-4 border-white group-hover:scale-110 transition-transform">1</div>
+              <h4 className="font-bold text-xl mb-3 text-slate">Select Services</h4>
+              <p className="text-slate-500 leading-relaxed">School visits website & selects services of interest.</p>
             </div>
-            <div className="relative z-10 flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-md border-4 border-white">2</div>
-              <h4 className="font-bold text-lg mb-2 text-slate">Get in Touch</h4>
-              <p className="text-muted text-sm">Send inquiry or book a free demo with our team.</p>
+            <div className="relative z-10 flex flex-col items-center text-center group">
+              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg border-4 border-white group-hover:scale-110 transition-transform">2</div>
+              <h4 className="font-bold text-xl mb-3 text-slate">Get in Touch</h4>
+              <p className="text-slate-500 leading-relaxed">Send inquiry or book a free demo with our team.</p>
             </div>
-            <div className="relative z-10 flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-md border-4 border-white">3</div>
-              <h4 className="font-bold text-lg mb-2 text-slate">Launch</h4>
-              <p className="text-muted text-sm">We set up your system + free website, train your staff, and go live.</p>
+            <div className="relative z-10 flex flex-col items-center text-center group">
+              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg border-4 border-white group-hover:scale-110 transition-transform">3</div>
+              <h4 className="font-bold text-xl mb-3 text-slate">Launch</h4>
+              <p className="text-slate-500 leading-relaxed">We set up your system + free website, train your staff, and go live.</p>
             </div>
           </div>
         </div>
@@ -189,13 +192,21 @@ const HomePage = () => {
       </section>
 
       {/* CTA Bottom */}
-      <section className="py-20 bg-surface">
-        <div className="section-container text-center">
-          <h2 className="text-3xl font-bold text-slate mb-6 max-w-2xl mx-auto">Ready to simplify your school operations?</h2>
-          <p className="text-xl text-muted mb-10">Get a free custom domain website when you subscribe.</p>
-          <Link to="/contact" className="btn-primary text-lg px-8">
-            Request a Quote →
-          </Link>
+      <section className="py-24 bg-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-primary rounded-3xl p-10 md:p-16 text-center text-white shadow-2xl relative overflow-hidden">
+            {/* Decorative background circle */}
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-accent/20 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div className="relative z-10">
+              <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to simplify your school operations?</h2>
+              <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">Get a free custom domain website and modern management system when you subscribe.</p>
+              <Link to="/contact" className="inline-block bg-white text-primary font-bold text-lg px-10 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all">
+                Request a Quote →
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
     </div>
