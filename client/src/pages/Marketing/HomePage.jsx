@@ -85,7 +85,7 @@ const HomePage = () => {
       </section>
 
       {/* 3 Benefit Cards */}
-      <section className="py-20 bg-slate-50 border-t border-gray-100">
+      <section className="py-10 lg:py-16 bg-slate-50 border-t border-gray-100">
         <div className="section-container max-w-6xl mx-auto">
           <div className="grid md:grid-cols-3 gap-8">
             <div className="bg-white p-8 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 text-center flex flex-col items-center">
@@ -114,7 +114,7 @@ const HomePage = () => {
       </section>
 
       {/* Services Preview */}
-      <section className="py-24 bg-white border-y border-gray-100">
+      <section className="py-10 lg:py-16 bg-white border-y border-gray-100">
         <div className="section-container max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-slate mb-4">Everything you need to run your school</h2>
@@ -149,17 +149,17 @@ const HomePage = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-24 relative overflow-hidden">
+      <section className="py-10 lg:py-16 relative overflow-hidden">
         {/* Background Image with Overlay */}
         <div 
           className="absolute inset-0 z-0 bg-cover bg-center bg-fixed"
           style={{ backgroundImage: "url('/images/bg-how-it-works.png')" }}
         >
-          <div className="absolute inset-0 bg-white/90 backdrop-blur-[1px]"></div>
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px]"></div>
         </div>
 
         <div className="section-container max-w-5xl mx-auto relative z-10">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10 lg:mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-slate">How It Works</h2>
             <div className="w-16 h-1 bg-primary mx-auto mt-6 rounded-full"></div>
           </div>
@@ -200,7 +200,7 @@ const HomePage = () => {
       </section>
 
       {/* CTA Bottom */}
-      <section className="py-24 bg-white">
+      <section className="py-10 lg:py-16 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-primary rounded-3xl p-10 md:p-16 text-center text-white shadow-2xl relative overflow-hidden">
             {/* Decorative background circle */}
