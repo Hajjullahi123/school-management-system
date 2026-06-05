@@ -209,6 +209,9 @@ function App() {
               <Route path="pricing" element={<PricingPage />} />
               <Route path="contact" element={<ContactPage />} />
             </Route>
+
+            {/* Redirect old /edutech links to the new marketing home */}
+            <Route path="/edutech/*" element={<Navigate to="/" replace />} />
             <Route path="/:schoolSlug" element={<PublicSchoolLandingPage />} />
             <Route path="/:schoolSlug/gallery" element={<Gallery />} />
             <Route path="/:schoolSlug/staff" element={<MeetOurStaff />} />
