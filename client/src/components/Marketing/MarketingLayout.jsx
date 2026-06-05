@@ -54,11 +54,24 @@ const MarketingLayout = () => {
         <Outlet />
       </main>
 
+      {/* Global CTA Section - Hidden on Home and Contact pages since they have their own */}
+      {location.pathname !== '/' && !location.pathname.includes('/contact') && (
+        <section className="bg-primary py-16 text-center text-white">
+          <div className="max-w-3xl mx-auto px-4">
+            <h2 className="text-3xl font-heading font-bold mb-4">Ready to Transform Your School?</h2>
+            <p className="text-lg opacity-90 mb-8">Join hundreds of schools digitizing their operations with EduTech.</p>
+            <Link to="/contact" className="bg-white text-primary px-8 py-3 rounded-lg font-bold hover:bg-slate-100 transition-colors">
+              Get Started Today
+            </Link>
+          </div>
+        </section>
+      )}
+
       {/* Floating Widget */}
       <FloatingMessageWidget />
 
       {/* Footer */}
-      <footer className="bg-slate text-white py-12 mt-auto">
+      <footer className="bg-slate-950 text-white py-12 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
