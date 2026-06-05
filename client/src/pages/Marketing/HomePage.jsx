@@ -22,7 +22,7 @@ const HomePage = () => {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="relative pt-10 pb-20 lg:pt-16 lg:pb-28 overflow-hidden">
+      <section className="relative pt-2 pb-20 lg:pt-4 lg:pb-28 overflow-hidden">
         {/* Animated Background Images */}
         <div className="absolute inset-0 z-0">
           <AnimatePresence>
@@ -43,7 +43,7 @@ const HomePage = () => {
         <div className="section-container relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
-            <div className="text-center lg:text-left z-10 relative">
+            <div className="text-center lg:text-left z-10 relative bg-white/50 backdrop-blur-md border border-white/80 p-6 md:p-10 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate mb-6 leading-tight animate-fade-up">
                 EduTech <br/> <span className="text-3xl md:text-4xl lg:text-5xl text-primary font-semibold">All-in-One School Management System + Free Website</span>
               </h1>
