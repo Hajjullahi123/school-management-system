@@ -22,9 +22,9 @@ const MarketingLayout = () => {
             <div className="flex-shrink-0 flex items-center">
               <Link to="/" className="flex items-center gap-2">
                 <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-white font-heading font-bold text-xl">SM</span>
+                  <span className="text-white font-heading font-bold text-xl">E</span>
                 </div>
-                <span className="font-heading font-bold text-xl text-slate">SchoolManager</span>
+                <span className="font-heading font-bold text-xl text-slate">EduTech</span>
               </Link>
             </div>
 
@@ -64,9 +64,9 @@ const MarketingLayout = () => {
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 bg-white/10 rounded flex items-center justify-center">
-                  <span className="text-white font-heading font-bold">SM</span>
+                  <span className="text-white font-heading font-bold">E</span>
                 </div>
-                <span className="font-heading font-bold text-lg">SchoolManager Tech Hub</span>
+                <span className="font-heading font-bold text-lg">EduTech Platform</span>
               </div>
               <p className="text-gray-400 text-sm max-w-sm mb-6">
                 All-in-One School Management System + Free Website for Your School. 
@@ -100,7 +100,7 @@ const MarketingLayout = () => {
           </div>
           
           <div className="border-t border-white/10 mt-12 pt-8 text-center text-sm text-gray-500">
-            Copyright &copy; 2026 SchoolManager Tech Hub. All rights reserved.
+            Copyright &copy; 2026 EduTech. All rights reserved.
           </div>
         </div>
       </footer>

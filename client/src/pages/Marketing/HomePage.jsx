@@ -1,21 +1,53 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Monitor, BookOpen, Clock, Settings, Headphones, CheckCircle2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const bgImages = [
+  '/images/bg-school-1.png',
+  '/images/bg-school-2.png',
+  '/images/bg-school-3.png'
+];
 
 const HomePage = () => {
+  const [currentBg, setCurrentBg] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentBg((prev) => (prev + 1) % bgImages.length);
+    }, 5000); // switch every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="bg-surface py-20 lg:py-28 overflow-hidden">
-        <div className="section-container">
+      <section className="relative pt-10 pb-20 lg:pt-16 lg:pb-28 overflow-hidden">
+        {/* Animated Background Images */}
+        <div className="absolute inset-0 z-0">
+          <AnimatePresence>
+            <motion.div
+              key={currentBg}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.5 }}
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${bgImages[currentBg]})` }}
+            />
+          </AnimatePresence>
+          {/* Light overlay to ensure the dark text is readable */}
+          <div className="absolute inset-0 bg-white/85 backdrop-blur-[2px]"></div>
+        </div>
+
+        <div className="section-container relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div className="text-center lg:text-left z-10 relative">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate mb-6 leading-tight animate-fade-up">
-                All-in-One School Management System <span className="text-primary">+ Free Website</span> for Your School
+                EduTech <br/> <span className="text-3xl md:text-4xl lg:text-5xl text-primary font-semibold">All-in-One School Management System + Free Website</span>
               </h1>
-              <p className="text-lg md:text-xl text-muted mb-10 animate-fade-up delay-100 max-w-2xl mx-auto lg:mx-0">
+              <p className="text-lg md:text-xl text-slate-700 mb-10 animate-fade-up delay-100 max-w-2xl mx-auto lg:mx-0 font-medium">
                 One platform for results, fees, CBT, alumni, attendance, payroll, and ID cards. Plus a free professional website with your own domain when you subscribe.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 animate-fade-up delay-200">
