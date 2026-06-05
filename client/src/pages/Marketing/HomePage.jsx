@@ -149,39 +149,38 @@ const HomePage = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-10 lg:py-16 relative overflow-hidden bg-slate-900">
+      <section className="py-16 lg:py-24 relative overflow-hidden bg-slate-800">
         {/* Background Image with Overlay */}
         <div 
-          className="absolute inset-0 z-0 bg-cover bg-center bg-fixed opacity-60"
+          className="absolute inset-0 z-0 bg-cover bg-center bg-fixed opacity-40"
           style={{ backgroundImage: "url('/images/bg-how-it-works.png')" }}
         >
-          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-[2px]"></div>
+          <div className="absolute inset-0 bg-slate-800/50 backdrop-blur-md"></div>
         </div>
 
-        <div className="section-container max-w-5xl mx-auto relative z-10">
-          <div className="text-center mb-10 lg:mb-16">
+        <div className="section-container max-w-6xl mx-auto relative z-10">
+          <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-white">How It Works</h2>
             <div className="w-16 h-1 bg-primary mx-auto mt-6 rounded-full"></div>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-12 relative">
-            {/* Connecting line for desktop */}
-            <div className="hidden md:block absolute top-8 left-1/6 right-1/6 h-0.5 bg-slate-700 z-0"></div>
-            
-            <div className="relative z-10 flex flex-col items-center text-center group">
-              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg border-4 border-slate-800 group-hover:scale-110 transition-transform">1</div>
+          <div className="grid md:grid-cols-3 gap-8 relative">
+            <div className="relative z-10 flex flex-col items-start p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors shadow-xl">
+              <div className="font-heading font-black text-6xl text-white/10 mb-6">01</div>
               <h4 className="font-bold text-xl mb-3 text-white">Select Services</h4>
-              <p className="text-slate-400 leading-relaxed">School visits website & selects services of interest.</p>
+              <p className="text-slate-300 leading-relaxed">School visits website & selects services of interest.</p>
             </div>
-            <div className="relative z-10 flex flex-col items-center text-center group">
-              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg border-4 border-slate-800 group-hover:scale-110 transition-transform">2</div>
+            
+            <div className="relative z-10 flex flex-col items-start p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors shadow-xl">
+              <div className="font-heading font-black text-6xl text-white/10 mb-6">02</div>
               <h4 className="font-bold text-xl mb-3 text-white">Get in Touch</h4>
-              <p className="text-slate-400 leading-relaxed">Send inquiry or book a free demo with our team.</p>
+              <p className="text-slate-300 leading-relaxed">Send inquiry or book a free demo with our team.</p>
             </div>
-            <div className="relative z-10 flex flex-col items-center text-center group">
-              <div className="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg border-4 border-slate-800 group-hover:scale-110 transition-transform">3</div>
+            
+            <div className="relative z-10 flex flex-col items-start p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors shadow-xl">
+              <div className="font-heading font-black text-6xl text-white/10 mb-6">03</div>
               <h4 className="font-bold text-xl mb-3 text-white">Launch</h4>
-              <p className="text-slate-400 leading-relaxed">We set up your system + free website, train your staff, and go live.</p>
+              <p className="text-slate-300 leading-relaxed">We set up your system + free website, train your staff, and go live.</p>
             </div>
           </div>
         </div>
