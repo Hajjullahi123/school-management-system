@@ -23,31 +23,31 @@ const PricingPage = () => {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <section className="bg-surface py-20 text-center border-b border-gray-200">
+      <section className="bg-slate-900 py-20 text-center border-b border-slate-800">
         <div className="section-container">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 text-slate animate-fade-up">Simple, Transparent Pricing</h1>
-          <p className="text-xl text-muted max-w-2xl mx-auto animate-fade-up delay-100">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 text-white animate-fade-up">Simple, Transparent Pricing</h1>
+          <p className="text-xl text-slate-400 max-w-2xl mx-auto animate-fade-up delay-100">
             All plans include a free website + custom domain integration.
           </p>
         </div>
       </section>
 
       {/* Pricing Cards */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-slate-900">
         <div className="section-container">
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
             
             {/* Basic Tier */}
             <div className="card flex flex-col p-8 animate-fade-up delay-100 relative">
-              <h3 className="text-2xl font-bold text-slate mb-2">Basic</h3>
-              <p className="text-muted mb-6">Up to 300 students</p>
-              <div className="text-4xl font-bold text-slate mb-8">$XX<span className="text-lg text-muted font-normal">/month</span></div>
+              <h3 className="text-2xl font-bold text-white mb-2">Basic</h3>
+              <p className="text-slate-400 mb-6">Up to 300 students</p>
+              <div className="text-4xl font-bold text-white mb-8">$XX<span className="text-lg text-slate-400 font-normal">/month</span></div>
               
               <ul className="flex-grow space-y-4 mb-8">
-                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate">Free Website Integration</span></li>
-                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate">Result Management</span></li>
-                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate">Attendance Management</span></li>
-                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate">ID Card Generator</span></li>
+                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate-300">Free Website Integration</span></li>
+                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate-300">Result Management</span></li>
+                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate-300">Attendance Management</span></li>
+                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate-300">ID Card Generator</span></li>
               </ul>
               <Link to="/contact" className="btn-secondary text-center w-full mt-auto">Get Started</Link>
             </div>
@@ -72,23 +72,23 @@ const PricingPage = () => {
 
             {/* Enterprise Tier */}
             <div className="card flex flex-col p-8 animate-fade-up delay-300 relative">
-              <h3 className="text-2xl font-bold text-slate mb-2">Enterprise</h3>
-              <p className="text-muted mb-6">1000+ students</p>
-              <div className="text-4xl font-bold text-slate mb-8">Custom<span className="text-lg text-muted font-normal"> pricing</span></div>
+              <h3 className="text-2xl font-bold text-white mb-2">Enterprise</h3>
+              <p className="text-slate-400 mb-6">1000+ students</p>
+              <div className="text-4xl font-bold text-white mb-8">Custom<span className="text-lg text-slate-400 font-normal"> pricing</span></div>
               
               <ul className="flex-grow space-y-4 mb-8">
-                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="font-semibold text-slate">All 8 Features</span></li>
-                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate">Voucher & Payroll</span></li>
-                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate">Priority 24/7 Support</span></li>
-                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate">Dedicated Account Manager</span></li>
+                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="font-semibold text-white">All 8 Features</span></li>
+                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate-300">Voucher & Payroll</span></li>
+                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate-300">Priority 24/7 Support</span></li>
+                <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate-300">Dedicated Account Manager</span></li>
               </ul>
               <Link to="/contact" className="btn-secondary text-center w-full mt-auto">Contact Sales</Link>
             </div>
 
           </div>
 
-          <div className="text-center max-w-2xl mx-auto bg-blue-50 border border-blue-100 p-6 rounded-lg mb-20 animate-fade-up">
-            <p className="text-primary font-medium">
+          <div className="text-center max-w-2xl mx-auto bg-primary/20 border border-primary/30 p-6 rounded-lg mb-20 animate-fade-up">
+            <p className="text-blue-100 font-medium">
               Note: Free setup, training, and support are included in all plans. Domain registration is handled separately (approx. $10/year).
             </p>
           </div>
@@ -96,21 +96,21 @@ const PricingPage = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-surface border-t border-gray-200">
+      <section className="py-20 bg-slate-800 border-t border-slate-700">
         <div className="section-container max-w-3xl">
-          <h2 className="text-3xl font-bold text-slate mb-10 text-center">Frequently Asked Questions</h2>
+          <h2 className="text-3xl font-bold text-white mb-10 text-center">Frequently Asked Questions</h2>
           <div className="space-y-4">
             {faqs.map((faq, index) => (
-              <div key={index} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+              <div key={index} className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden shadow-sm">
                 <button 
-                  className="w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none"
+                  className="w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none hover:bg-slate-700/50 transition-colors"
                   onClick={() => toggleFaq(index)}
                 >
-                  <span className="font-bold text-slate">{faq.q}</span>
-                  {openFaq === index ? <ChevronUp className="text-primary" /> : <ChevronDown className="text-muted" />}
+                  <span className="font-bold text-white">{faq.q}</span>
+                  {openFaq === index ? <ChevronUp className="text-accent" /> : <ChevronDown className="text-slate-400" />}
                 </button>
                 {openFaq === index && (
-                  <div className="px-6 pb-4 pt-2 text-muted border-t border-gray-100 bg-gray-50">
+                  <div className="px-6 pb-4 pt-2 text-slate-300 border-t border-slate-700 bg-slate-800/50">
                     {faq.a}
                   </div>
                 )}

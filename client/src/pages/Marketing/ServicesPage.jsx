@@ -68,14 +68,14 @@ const ServicesPage = () => {
       </section>
 
       {/* Grid */}
-      <section className="py-20 bg-surface">
+      <section className="py-20 bg-slate-900">
         <div className="section-container">
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {SERVICES.map((service, index) => (
-              <div key={index} className="card flex flex-col items-start animate-fade-up" style={{ animationDelay: `${index * 50}ms` }}>
+              <div key={index} className="card flex flex-col items-start animate-fade-up border-slate-700 hover:border-primary/50" style={{ animationDelay: `${index * 50}ms` }}>
                 {service.icon}
-                <h3 className="text-xl font-bold mb-3 text-slate">{index + 1}. {service.title}</h3>
-                <p className="text-muted leading-relaxed">{service.desc}</p>
+                <h3 className="text-xl font-bold mb-3 text-white">{index + 1}. {service.title}</h3>
+                <p className="text-slate-400 leading-relaxed">{service.desc}</p>
               </div>
             ))}
           </div>
@@ -83,9 +83,9 @@ const ServicesPage = () => {
       </section>
 
       {/* Banner */}
-      <section className="py-20 bg-white border-t border-gray-200">
+      <section className="py-20 bg-slate-800 border-t border-slate-700">
         <div className="section-container text-center">
-          <h2 className="text-3xl font-bold text-slate mb-6">Get all 8 features – plus a free website.</h2>
+          <h2 className="text-3xl font-bold text-white mb-6">Get all 8 features – plus a free website.</h2>
           <Link to="/contact" className="btn-primary text-lg px-8 py-4">
             Request a Custom Quote →
           </Link>
