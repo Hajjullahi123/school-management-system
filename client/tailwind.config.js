@@ -1,4 +1,5 @@
-/** @type {import('tailwindcss').Config} */
+import colors from 'tailwindcss/colors';
+
 export default {
   content: [
     "./index.html",
@@ -15,7 +16,10 @@ export default {
         secondary: '#3B82F6',  // Slate Blue
         accent: '#14B8A6',     // Soft Teal
         surface: '#F8FAFC',    // Off-white
-        slate: '#0F172A',      // Dark Slate
+        slate: {
+          ...colors.slate,
+          DEFAULT: '#0F172A',  // Dark Slate
+        },
         muted: '#64748B',      // Gray
       },
       fontFamily: {
