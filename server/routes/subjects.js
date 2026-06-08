@@ -130,15 +130,15 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
       prisma.timetable.count({ where: { subjectId, schoolId: req.schoolId } }),
       prisma.homework.findMany({
         where: { subjectId, schoolId: req.schoolId },
-        include: { class: { select: { name: true, arm: true } } }
+        include: { Class: { select: { name: true, arm: true } } }
       }),
       prisma.learningResource.findMany({
         where: { subjectId, schoolId: req.schoolId },
-        include: { class: { select: { name: true, arm: true } } }
+        include: { Class: { select: { name: true, arm: true } } }
       }),
       prisma.cBTExam.findMany({
         where: { subjectId, schoolId: req.schoolId },
-        include: { class: { select: { name: true, arm: true } } }
+        include: { Class: { select: { name: true, arm: true } } }
       }),
       prisma.classSubject.findMany({
         where: { subjectId, schoolId: req.schoolId },
@@ -151,19 +151,19 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal', 'accountant
     if (timetableCount > 0) dependencies.push(`${timetableCount} Timetable Entry/Entries`);
 
     if (homeworks.length > 0) {
-      const classNames = [...new Set(homeworks.map(h => `${h.class.name}${h.class.arm ? ` ${h.class.arm}` : ''}`))].join(', ');
+      const classNames = [...new Set(homeworks.map(h => `${h.Class?.name}${h.Class?.arm ? ` ${h.Class.arm}` : ''}`))].join(', ');
       dependencies.push(`Homework Assignment(s) for: ${classNames}`);
     }
     if (resources.length > 0) {
-      const classNames = [...new Set(resources.map(r => `${r.class.name}${r.class.arm ? ` ${r.class.arm}` : ''}`))].join(', ');
+      const classNames = [...new Set(resources.map(r => `${r.Class?.name}${r.Class?.arm ? ` ${r.Class.arm}` : ''}`))].join(', ');
       dependencies.push(`Learning Resource(s) for: ${classNames}`);
     }
     if (cbtExams.length > 0) {
-      const classNames = [...new Set(cbtExams.map(e => `${e.class.name}${e.class.arm ? ` ${e.class.arm}` : ''}`))].join(', ');
+      const classNames = [...new Set(cbtExams.map(e => `${e.Class?.name}${e.Class?.arm ? ` ${e.Class.arm}` : ''}`))].join(', ');
       dependencies.push(`CBT Exam(s) for: ${classNames}`);
     }
     if (classSubjects.length > 0) {
-      const classNames = classSubjects.map(cs => `${cs.class.name}${cs.class.arm ? ` ${cs.class.arm}` : ''}`).join(', ');
+      const classNames = classSubjects.map(cs => `${cs.class?.name}${cs.class?.arm ? ` ${cs.class.arm}` : ''}`).join(', ');
       dependencies.push(`Class Assignment(s) for: ${classNames}`);
     }
 
