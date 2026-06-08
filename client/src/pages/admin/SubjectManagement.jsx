@@ -92,7 +92,7 @@ const SubjectManagement = () => {
 
       {/* Subject Form */}
       <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-4">
+        <h3 className="text-lg font-semibold mb-4 text-gray-900">
           {editingSubject ? 'Edit Subject' : 'Create New Subject'}
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -105,7 +105,7 @@ const SubjectManagement = () => {
                 type="text"
                 value={subjectForm.name}
                 onChange={(e) => setSubjectForm({ ...subjectForm, name: e.target.value })}
-                className="w-full border rounded-md px-3 py-2"
+                className="w-full border rounded-md px-3 py-2 text-gray-900 bg-white"
                 placeholder="Mathematics"
                 required
               />
@@ -118,7 +118,7 @@ const SubjectManagement = () => {
                 type="text"
                 value={subjectForm.code}
                 onChange={(e) => setSubjectForm({ ...subjectForm, code: e.target.value })}
-                className="w-full border rounded-md px-3 py-2"
+                className="w-full border rounded-md px-3 py-2 text-gray-900 bg-white"
                 placeholder="MATH101"
               />
             </div>
@@ -129,7 +129,7 @@ const SubjectManagement = () => {
               <select
                 value={subjectForm.departmentId}
                 onChange={(e) => setSubjectForm({ ...subjectForm, departmentId: e.target.value })}
-                className="w-full border rounded-md px-3 py-2"
+                className="w-full border rounded-md px-3 py-2 text-gray-900 bg-white"
               >
                 <option value="">No Department</option>
                 {departments.map(d => (
@@ -165,14 +165,14 @@ const SubjectManagement = () => {
       <div className="bg-white rounded-lg shadow">
         <div className="p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-            <h3 className="text-lg font-semibold">Existing Subjects ({filteredAndSortedSubjects.length})</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Existing Subjects ({filteredAndSortedSubjects.length})</h3>
             <div className="relative w-full md:w-64">
               <input
                 type="text"
                 placeholder="Search subjects..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-primary focus:border-primary"
+                className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-primary focus:border-primary text-gray-900 bg-white"
               />
               <div className="absolute left-3 top-2.5 text-gray-400">
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
