@@ -261,56 +261,56 @@ const ExamConfig = () => {
             <div className="space-y-8">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">1st Assgn (%)</label>
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block">1st Assgn (%)</label>
                   <input
                     type="number"
                     name="assignment1Weight"
                     value={settings.assignment1Weight}
                     onChange={handleInputChange}
-                    className="w-full bg-slate-50 border-0 rounded-[20px] px-6 py-4 focus:ring-2 ring-primary outline-none font-bold"
+                    className="w-full bg-slate-50 border-0 rounded-[20px] px-6 py-4 focus:ring-2 ring-primary outline-none font-bold text-slate-900"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">2nd Assgn (%)</label>
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block">2nd Assgn (%)</label>
                   <input
                     type="number"
                     name="assignment2Weight"
                     value={settings.assignment2Weight}
                     onChange={handleInputChange}
-                    className="w-full bg-slate-50 border-0 rounded-[20px] px-6 py-4 focus:ring-2 ring-primary outline-none font-bold"
+                    className="w-full bg-slate-50 border-0 rounded-[20px] px-6 py-4 focus:ring-2 ring-primary outline-none font-bold text-slate-900"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">1st Test (%)</label>
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block">1st Test (%)</label>
                   <input
                     type="number"
                     name="test1Weight"
                     value={settings.test1Weight}
                     onChange={handleInputChange}
-                    className="w-full bg-slate-50 border-0 rounded-[20px] px-6 py-4 focus:ring-2 ring-primary outline-none font-bold"
+                    className="w-full bg-slate-50 border-0 rounded-[20px] px-6 py-4 focus:ring-2 ring-primary outline-none font-bold text-slate-900"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">2nd Test (%)</label>
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block">2nd Test (%)</label>
                   <input
                     type="number"
                     name="test2Weight"
                     value={settings.test2Weight}
                     onChange={handleInputChange}
-                    className="w-full bg-slate-50 border-0 rounded-[20px] px-6 py-4 focus:ring-2 ring-primary outline-none font-bold"
+                    className="w-full bg-slate-50 border-0 rounded-[20px] px-6 py-4 focus:ring-2 ring-primary outline-none font-bold text-slate-900"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Final Examination (%)</label>
+                <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block">Final Examination (%)</label>
                 <input
                   type="number"
                   name="examWeight"
                   value={settings.examWeight}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-50 border-0 rounded-[20px] px-6 py-4 focus:ring-2 ring-primary outline-none font-bold"
+                  className="w-full bg-slate-50 border-0 rounded-[20px] px-6 py-4 focus:ring-2 ring-primary outline-none font-bold text-slate-900"
                 />
               </div>
             </div>
@@ -370,33 +370,33 @@ const ExamConfig = () => {
             <div className="bg-slate-50 rounded-3xl p-6 mb-8 border border-slate-100 animate-in fade-in zoom-in duration-300">
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Domain Name</label>
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">Domain Name</label>
                     <input 
                       type="text" 
                       value={domainFormData.name}
                       onChange={e => setDomainFormData({ ...domainFormData, name: e.target.value })}
                       placeholder="e.g. Handwriting"
-                      className="w-full bg-white border-0 rounded-xl px-4 py-3 focus:ring-2 ring-primary outline-none font-bold"
+                      className="w-full bg-white border-0 rounded-xl px-4 py-3 focus:ring-2 ring-primary outline-none font-bold text-slate-900 shadow-sm"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Max Points</label>
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">Max Points</label>
                     <select 
                       value={domainFormData.maxScore}
                       onChange={e => setDomainFormData({ ...domainFormData, maxScore: parseInt(e.target.value) })}
-                      className="w-full bg-white border-0 rounded-xl px-4 py-3 focus:ring-2 ring-primary outline-none font-bold"
+                      className="w-full bg-white border-0 rounded-xl px-4 py-3 focus:ring-2 ring-primary outline-none font-bold text-slate-900 shadow-sm"
                     >
                       {[3, 4, 5, 10].map(n => <option key={n} value={n}>{n} Points</option>)}
                     </select>
                   </div>
                </div>
                <div className="mt-4">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Description</label>
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">Description</label>
                   <input 
                     type="text" 
                     value={domainFormData.description}
                     onChange={e => setDomainFormData({ ...domainFormData, description: e.target.value })}
-                    className="w-full bg-white border-0 rounded-xl px-4 py-3 focus:ring-2 ring-primary outline-none font-bold text-sm"
+                    className="w-full bg-white border-0 rounded-xl px-4 py-3 focus:ring-2 ring-primary outline-none font-bold text-sm text-slate-900 shadow-sm"
                   />
                </div>
                <div className="flex gap-2 mt-6">
@@ -456,7 +456,7 @@ const ExamConfig = () => {
           <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto pb-4">
             <table className="w-full min-w-[700px] text-sm">
               <thead>
-                <tr className="text-left text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+                <tr className="text-left text-slate-600 font-bold uppercase tracking-widest text-[10px]">
                   <th className="pb-4 pr-4">Grade</th>
                   <th className="pb-4 px-4">Min Score</th>
                   <th className="pb-4 px-4">Max Score</th>
@@ -477,7 +477,7 @@ const ExamConfig = () => {
                           setSettings({ ...settings, gradingSystem: JSON.stringify(current) });
                         }}
                         placeholder="A"
-                        className="w-16 bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold focus:ring-1 ring-primary"
+                        className="w-16 bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold focus:ring-1 ring-primary text-slate-900"
                       />
                     </td>
                     <td className="py-3 px-4">
@@ -489,7 +489,7 @@ const ExamConfig = () => {
                           current[idx].min = parseFloat(e.target.value);
                           setSettings({ ...settings, gradingSystem: JSON.stringify(current) });
                         }}
-                        className="w-20 bg-slate-50 border-0 rounded-lg px-3 py-2 focus:ring-1 ring-primary"
+                        className="w-20 bg-slate-50 border-0 rounded-lg px-3 py-2 focus:ring-1 ring-primary text-slate-900 font-bold"
                       />
                     </td>
                     <td className="py-3 px-4">
@@ -501,7 +501,7 @@ const ExamConfig = () => {
                           current[idx].max = parseFloat(e.target.value);
                           setSettings({ ...settings, gradingSystem: JSON.stringify(current) });
                         }}
-                        className="w-20 bg-slate-50 border-0 rounded-lg px-3 py-2 focus:ring-1 ring-primary"
+                        className="w-20 bg-slate-50 border-0 rounded-lg px-3 py-2 focus:ring-1 ring-primary text-slate-900 font-bold"
                       />
                     </td>
                     <td className="py-3 px-4">
