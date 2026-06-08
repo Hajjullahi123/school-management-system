@@ -222,23 +222,35 @@ router.put('/', authenticate, async (req, res) => {
     websiteTheme, aboutUsText, testimonialsText, foundedYear, tuitionEstimatorConfig
   } = req.body;
 
-  // Validate weightings if provided
-  if (assignment1Weight !== undefined || assignment2Weight !== undefined || test1Weight !== undefined || test2Weight !== undefined || examWeight !== undefined) {
-    // If ANY weight is provided, we should probably check current weights if some are missing
-    // But for now, let's assume the frontend sends all or we use defaults if it's the first time
-    const total =
-      Number(assignment1Weight ?? 0) +
-      Number(assignment2Weight ?? 0) +
-      Number(test1Weight ?? 0) +
-      Number(test2Weight ?? 0) +
-      Number(examWeight ?? 0);
-
-    if (total !== 100) {
-      return res.status(400).json({ error: `Total weighting must equal 100%. Current total: ${total}%` });
-    }
-  }
-
   try {
+    const currentSettings = await prisma.school.findUnique({ where: { id: req.schoolId } });
+
+    // Validate weightings if provided
+    if (assignment1Weight !== undefined || assignment2Weight !== undefined || test1Weight !== undefined || test2Weight !== undefined || examWeight !== undefined) {
+      const total =
+        Number(assignment1Weight ?? currentSettings.assignment1Weight ?? 0) +
+        Number(assignment2Weight ?? currentSettings.assignment2Weight ?? 0) +
+        Number(test1Weight ?? currentSettings.test1Weight ?? 0) +
+        Number(test2Weight ?? currentSettings.test2Weight ?? 0) +
+        Number(examWeight ?? currentSettings.examWeight ?? 0);
+
+      if (total !== 100) {
+        return res.status(400).json({ error: `Total weighting must equal 100%. Current total: ${total}%` });
+      }
+    }
+
+    // Validate gradingSystem JSON
+    if (gradingSystem !== undefined) {
+      try {
+        const parsed = JSON.parse(gradingSystem);
+        if (!Array.isArray(parsed)) throw new Error('Must be an array');
+        const isValid = parsed.every(g => typeof g.grade === 'string' && typeof g.remark === 'string' && typeof g.min === 'number' && typeof g.max === 'number');
+        if (!isValid) throw new Error('Invalid grade schema');
+      } catch (e) {
+        return res.status(400).json({ error: 'Invalid grading system format' });
+      }
+    }
+
     // Build update object dynamically to avoid setting required fields to undefined
     const updateData = {};
 

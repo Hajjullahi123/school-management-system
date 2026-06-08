@@ -11,7 +11,7 @@ const ExamConfig = () => {
     test1Weight: 10,
     test2Weight: 10,
     examWeight: 70,
-    gradingSystem: '[{"grade":"A","min":70,"max":100,"remark":"Excellent"},{"grade":"B","min":60,"max":69.9,"remark":"Very Good"},{"grade":"C","min":50,"max":59.9,"remark":"Good"},{"grade":"D","min":40,"max":49.9,"remark":"Pass"},{"grade":"E","min":30,"max":39.9,"remark":"Weak Pass"},{"grade":"F","min":0,"max":29.9,"remark":"Fail"}]',
+    gradingSystem: [{"grade":"A","min":70,"max":100,"remark":"Excellent"},{"grade":"B","min":60,"max":69.9,"remark":"Very Good"},{"grade":"C","min":50,"max":59.9,"remark":"Good"},{"grade":"D","min":40,"max":49.9,"remark":"Pass"},{"grade":"E","min":30,"max":39.9,"remark":"Weak Pass"},{"grade":"F","min":0,"max":29.9,"remark":"Fail"}],
     passThreshold: 40
   });
   const [domains, setDomains] = useState([]);
@@ -131,7 +131,7 @@ const ExamConfig = () => {
         test1Weight: data.test1Weight || 10,
         test2Weight: data.test2Weight || 10,
         examWeight: data.examWeight || 70,
-        gradingSystem: data.gradingSystem || settings.gradingSystem,
+        gradingSystem: data.gradingSystem ? (typeof data.gradingSystem === 'string' ? JSON.parse(data.gradingSystem) : data.gradingSystem) : settings.gradingSystem,
         passThreshold: data.passThreshold || 40
       });
     } catch (error) {
@@ -165,9 +165,18 @@ const ExamConfig = () => {
       return;
     }
 
+    if (!Array.isArray(settings.gradingSystem) || settings.gradingSystem.some(g => !g.grade || !g.remark)) {
+      toast.error('Grade letters and remarks cannot be empty.');
+      return;
+    }
+
     setSaving(true);
     try {
-      const response = await api.put('/api/settings', settings);
+      const payload = {
+        ...settings,
+        gradingSystem: JSON.stringify(settings.gradingSystem)
+      };
+      const response = await api.put('/api/settings', payload);
       const data = await response.json();
 
       if (!response.ok) {
@@ -442,9 +451,8 @@ const ExamConfig = () => {
                <button
                 type="button"
                 onClick={() => {
-                  const current = JSON.parse(settings.gradingSystem || '[]');
-                  const updated = [...current, { grade: '', min: 0, max: 0, remark: '' }];
-                  setSettings({ ...settings, gradingSystem: JSON.stringify(updated) });
+                  const updated = [...settings.gradingSystem, { grade: '', min: 0, max: 0, remark: '' }];
+                  setSettings({ ...settings, gradingSystem: updated });
                 }}
                 className="text-xs font-bold text-primary bg-primary/10 px-4 py-2 rounded-full hover:bg-primary/20"
               >
@@ -465,16 +473,16 @@ const ExamConfig = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {JSON.parse(settings.gradingSystem || '[]').map((item, idx) => (
+                {(settings.gradingSystem || []).map((item, idx) => (
                   <tr key={idx} className="group">
                     <td className="py-3 pr-4">
                       <input
                         type="text"
                         value={item.grade}
                         onChange={(e) => {
-                          const current = JSON.parse(settings.gradingSystem);
-                          current[idx].grade = e.target.value.toUpperCase();
-                          setSettings({ ...settings, gradingSystem: JSON.stringify(current) });
+                          const updated = [...settings.gradingSystem];
+                          updated[idx].grade = e.target.value.toUpperCase();
+                          setSettings({ ...settings, gradingSystem: updated });
                         }}
                         placeholder="A"
                         className="w-16 bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold focus:ring-1 ring-primary text-slate-900"
@@ -485,9 +493,9 @@ const ExamConfig = () => {
                         type="number"
                         value={item.min}
                         onChange={(e) => {
-                          const current = JSON.parse(settings.gradingSystem);
-                          current[idx].min = parseFloat(e.target.value);
-                          setSettings({ ...settings, gradingSystem: JSON.stringify(current) });
+                          const updated = [...settings.gradingSystem];
+                          updated[idx].min = parseFloat(e.target.value);
+                          setSettings({ ...settings, gradingSystem: updated });
                         }}
                         className="w-20 bg-slate-50 border-0 rounded-lg px-3 py-2 focus:ring-1 ring-primary text-slate-900 font-bold"
                       />
@@ -497,9 +505,9 @@ const ExamConfig = () => {
                         type="number"
                         value={item.max}
                         onChange={(e) => {
-                          const current = JSON.parse(settings.gradingSystem);
-                          current[idx].max = parseFloat(e.target.value);
-                          setSettings({ ...settings, gradingSystem: JSON.stringify(current) });
+                          const updated = [...settings.gradingSystem];
+                          updated[idx].max = parseFloat(e.target.value);
+                          setSettings({ ...settings, gradingSystem: updated });
                         }}
                         className="w-20 bg-slate-50 border-0 rounded-lg px-3 py-2 focus:ring-1 ring-primary text-slate-900 font-bold"
                       />
@@ -509,9 +517,9 @@ const ExamConfig = () => {
                         type="text"
                         value={item.remark}
                         onChange={(e) => {
-                          const current = JSON.parse(settings.gradingSystem);
-                          current[idx].remark = e.target.value;
-                          setSettings({ ...settings, gradingSystem: JSON.stringify(current) });
+                          const updated = [...settings.gradingSystem];
+                          updated[idx].remark = e.target.value;
+                          setSettings({ ...settings, gradingSystem: updated });
                         }}
                         placeholder="Excellent"
                         className="w-full min-w-[200px] sm:min-w-full bg-slate-50 border-0 rounded-lg px-3 py-2 focus:ring-1 ring-primary font-bold text-slate-700"
@@ -521,9 +529,8 @@ const ExamConfig = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          const current = JSON.parse(settings.gradingSystem);
-                          const updated = current.filter((_, i) => i !== idx);
-                          setSettings({ ...settings, gradingSystem: JSON.stringify(updated) });
+                          const updated = settings.gradingSystem.filter((_, i) => i !== idx);
+                          setSettings({ ...settings, gradingSystem: updated });
                         }}
                         className="text-red-400 hover:text-red-600 p-2 opacity-0 group-hover:opacity-100 transition-opacity"
                       >

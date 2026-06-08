@@ -23,14 +23,19 @@ router.get('/domains', authenticate, async (req, res) => {
 router.post('/domains', authenticate, authorize(['admin', 'principal']), async (req, res) => {
   try {
     const { name, description, maxScore } = req.body;
-    if (!name) return res.status(400).json({ error: 'Domain name is required' });
+    if (!name || name.trim() === '') return res.status(400).json({ error: 'Domain name is required' });
+
+    let parsedMaxScore = maxScore ? parseInt(maxScore) : 5;
+    if (isNaN(parsedMaxScore) || parsedMaxScore < 1 || parsedMaxScore > 100) {
+      return res.status(400).json({ error: 'Max score must be between 1 and 100' });
+    }
 
     const domain = await prisma.psychomotorDomain.create({
       data: {
         schoolId: req.schoolId,
         name: name.trim(),
         description: description?.trim() || null,
-        maxScore: maxScore ? parseInt(maxScore) : 5,
+        maxScore: parsedMaxScore,
         isActive: true
       }
     });
@@ -49,12 +54,21 @@ router.put('/domains/:id', authenticate, authorize(['admin', 'principal']), asyn
     const { id } = req.params;
     const { name, description, maxScore, isActive } = req.body;
 
+    if (name !== undefined && name.trim() === '') {
+      return res.status(400).json({ error: 'Domain name cannot be empty' });
+    }
+
+    let parsedMaxScore = maxScore ? parseInt(maxScore) : undefined;
+    if (parsedMaxScore !== undefined && (isNaN(parsedMaxScore) || parsedMaxScore < 1 || parsedMaxScore > 100)) {
+      return res.status(400).json({ error: 'Max score must be between 1 and 100' });
+    }
+
     const domain = await prisma.psychomotorDomain.update({
       where: { id: parseInt(id), schoolId: req.schoolId },
       data: {
         name: name?.trim(),
         description: description?.trim() || null,
-        maxScore: maxScore ? parseInt(maxScore) : undefined,
+        maxScore: parsedMaxScore,
         isActive: isActive !== undefined ? !!isActive : undefined
       }
     });
