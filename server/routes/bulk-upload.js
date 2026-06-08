@@ -68,14 +68,14 @@ async function addSchoolHeader(workbook, worksheet, school, lastColLetter, templ
   // --- Row 1-2: Logo + School Name ---
   worksheet.mergeCells(`A1:${lastColLetter}2`);
   const nameCell = worksheet.getCell('A1');
-  nameCell.value = school.name.toUpperCase();
+  nameCell.value = school?.name?.toUpperCase() || 'SCHOOL DIRECTORY';
   nameCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
   nameCell.font = { size: 18, bold: true, color: { argb: 'FF1B3A5C' } };
   nameCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F7' } };
 
   // --- Row 3: Address line ---
   worksheet.mergeCells(`A3:${lastColLetter}3`);
-  const addressParts = [school.address, school.phone, school.email].filter(Boolean);
+  const addressParts = [school?.address, school?.phone, school?.email].filter(Boolean);
   const addressCell = worksheet.getCell('A3');
   addressCell.value = addressParts.length > 0 ? addressParts.join('  |  ') : 'School Address  |  Phone  |  Email';
   addressCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
@@ -171,12 +171,13 @@ router.get('/template/students', authenticate, authorize(['admin', 'teacher', 'p
     const worksheet = workbook.addWorksheet('Students Template');
 
     // Get classes for ID reference - Using school-specific indexing
+    const schoolIdInt = parseInt(req.schoolId) || 0;
     const classes = await prisma.class.findMany({
-      where: { schoolId: req.schoolId, isActive: true },
+      where: { schoolId: schoolIdInt, isActive: true },
       orderBy: { id: 'asc' }, // Stable sort by creation order
       select: { id: true, name: true, arm: true }
     });
-    const school = await prisma.school.findUnique({ where: { id: req.schoolId } });
+    const school = await prisma.school.findUnique({ where: { id: schoolIdInt } }) || {};
 
     worksheet.columns = [
       { header: 'First Name*', key: 'firstName', width: 20 },
@@ -1183,7 +1184,8 @@ router.get('/template/staff', authenticate, authorize(['admin', 'principal']), a
   try {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Staff Template');
-    const school = await prisma.school.findUnique({ where: { id: req.schoolId } });
+    const schoolIdInt = parseInt(req.schoolId) || 0;
+    const school = await prisma.school.findUnique({ where: { id: schoolIdInt } }) || {};
 
     worksheet.columns = [
       { header: 'First Name*', key: 'firstName', width: 20 },
