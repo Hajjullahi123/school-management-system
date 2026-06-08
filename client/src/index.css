@@ -11,6 +11,16 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading tracking-tight;
   }
+
+  /* FIX: Ensure all form inputs inherently use dark text */
+  select, input, textarea {
+    @apply text-slate-900;
+  }
+
+  /* FIX: Ensure any text inside a light background automatically switches to dark text */
+  .bg-white, .bg-slate-50, .bg-gray-50, .bg-indigo-50, .bg-blue-50 {
+    @apply text-slate-900;
+  }
 }
 
 /* Removed old redundant color classes */
