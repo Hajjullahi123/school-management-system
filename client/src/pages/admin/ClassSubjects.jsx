@@ -17,6 +17,7 @@ const ClassSubjects = () => {
   const [copyToSelectedClasses, setCopyToSelectedClasses] = useState([]);
   const [copyFromSelectedClass, setCopyFromSelectedClass] = useState('');
   const [isCopying, setIsCopying] = useState(false);
+  const [subjectSearchQuery, setSubjectSearchQuery] = useState('');
 
  useEffect(() => {
  fetchClasses();
@@ -269,6 +270,10 @@ const ClassSubjects = () => {
  );
  };
 
+  const sortedAndFilteredAvailableSubjects = availableSubjects
+    .filter(subject => subject.name.toLowerCase().includes(subjectSearchQuery.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
  return (
  <div className="space-y-6">
  <div className="flex justify-between items-center">
@@ -497,32 +502,75 @@ const ClassSubjects = () => {
  </p>
  ) : (
  <>
- <div className="mb-4">
- <button
- onClick={handleBatchAdd}
- disabled={selectedSubjects.length === 0 || loading}
- className={`px-4 py-2 rounded-md ${selectedSubjects.length === 0
- ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
- : 'bg-primary text-white hover:brightness-90'
- }`}
- >
- Add Selected ({selectedSubjects.length})
- </button>
- <button
- onClick={() => setSelectedSubjects(availableSubjects.map(s => s.id))}
- className="ml-2 px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50"
- >
- Select All
- </button>
- <button
- onClick={() => setSelectedSubjects([])}
- className="ml-2 px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50"
- >
- Clear
- </button>
- </div>
- <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
- {availableSubjects.map((subject) => (
+ <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6 bg-gray-50/50 p-3 rounded-xl border border-gray-100">
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        onClick={handleBatchAdd}
+        disabled={selectedSubjects.length === 0 || loading}
+        className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${selectedSubjects.length === 0
+          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          : 'bg-primary text-white hover:brightness-90 shadow-sm hover:shadow active:scale-95'
+        }`}
+      >
+        Add Selected ({selectedSubjects.length})
+      </button>
+      <div className="h-6 w-px bg-gray-200 mx-1 hidden sm:block"></div>
+      <button
+        onClick={() => setSelectedSubjects(sortedAndFilteredAvailableSubjects.map(s => s.id))}
+        className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-white hover:border-primary/30 hover:text-primary font-semibold text-sm transition-all"
+      >
+        Select All
+      </button>
+      <button
+        onClick={() => setSelectedSubjects([])}
+        className="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-white hover:border-red-300 hover:text-red-500 font-semibold text-sm transition-all"
+      >
+        Clear
+      </button>
+    </div>
+    
+    <div className="relative w-full sm:w-64">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+      <input
+        type="text"
+        placeholder="Search subjects..."
+        value={subjectSearchQuery}
+        onChange={(e) => setSubjectSearchQuery(e.target.value)}
+        className="block w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm font-medium transition-all"
+      />
+      {subjectSearchQuery && (
+        <button 
+          onClick={() => setSubjectSearchQuery('')}
+          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      )}
+    </div>
+  </div>
+  
+  {sortedAndFilteredAvailableSubjects.length === 0 ? (
+    <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
+        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+      </div>
+      <p className="text-gray-500 font-medium">No subjects match "{subjectSearchQuery}"</p>
+      <button 
+        onClick={() => setSubjectSearchQuery('')} 
+        className="mt-2 text-primary hover:text-primary/80 font-semibold text-sm transition-colors"
+      >
+        Clear search filter
+      </button>
+    </div>
+  ) : (
+  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+  {sortedAndFilteredAvailableSubjects.map((subject) => (
  <label
  key={subject.id}
  className={`border rounded-lg p-3 cursor-pointer transition-all ${selectedSubjects.includes(subject.id)
@@ -542,6 +590,7 @@ const ClassSubjects = () => {
  </label>
  ))}
  </div>
+ )}
  </>
  )}
  </div>
