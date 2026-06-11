@@ -381,7 +381,7 @@ const TeacherAssignments = () => {
                   required
                 >
                   <option value="">Select Teacher</option>
-                  {teachers.map((teacher) => (
+                  {[...teachers].sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)).map((teacher) => (
                     <option key={teacher.id} value={teacher.id}>
                       {teacher.firstName} {teacher.lastName}
                     </option>
