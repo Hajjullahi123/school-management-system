@@ -376,16 +376,40 @@ router.post('/batch', authenticate, authorize(['admin', 'principal']), async (re
       return res.status(400).json({ error: 'Invalid request format' });
     }
 
+    const activeTerm = await prisma.term.findFirst({
+      where: { schoolId: req.schoolId, isCurrent: true }
+    });
+    const termId = activeTerm?.id || null;
+    const academicSessionId = activeTerm?.academicSessionId || null;
+
     const created = [];
     const errors = [];
 
     for (const classSubjectId of classSubjectIds) {
       try {
+        const existing = await prisma.teacherAssignment.findFirst({
+          where: {
+            classSubjectId: parseInt(classSubjectId),
+            schoolId: req.schoolId,
+            termId: termId
+          }
+        });
+
+        if (existing) {
+          errors.push({
+            classSubjectId,
+            error: 'Subject is already assigned to a teacher for this term'
+          });
+          continue;
+        }
+
         const result = await prisma.teacherAssignment.create({
           data: {
             teacherId: parseInt(teacherId),
             classSubjectId: parseInt(classSubjectId),
-            schoolId: req.schoolId
+            schoolId: req.schoolId,
+            termId: termId,
+            academicSessionId: academicSessionId
           },
           include: {
             classSubject: {
