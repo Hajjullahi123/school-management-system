@@ -41,7 +41,7 @@ const TeacherAssignments = () => {
 
   const fetchAssignments = async () => {
     try {
-      const response = await api.get('/api/teacher-assignments');
+      const response = await api.get(`/api/teacher-assignments?t=${Date.now()}`);
       const data = await response.json();
       setAssignments(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -61,7 +61,7 @@ const TeacherAssignments = () => {
 
   const fetchClasses = async () => {
     try {
-      const response = await api.get('/api/classes');
+      const response = await api.get(`/api/classes?t=${Date.now()}`);
       const data = await response.json();
       setClasses(Array.isArray(data) ? data : []);
 
@@ -76,7 +76,7 @@ const TeacherAssignments = () => {
 
   const fetchAllClassSubjects = async () => {
     try {
-      const response = await api.get('/api/class-subjects');
+      const response = await api.get(`/api/class-subjects?t=${Date.now()}`);
       const data = await response.json();
       setClassSubjects(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -87,7 +87,7 @@ const TeacherAssignments = () => {
 
   const fetchUnassignedCount = async (classId) => {
     try {
-      const response = await api.get(`/api/class-subjects/class/${classId}/unassigned-count`);
+      const response = await api.get(`/api/class-subjects/class/${classId}/unassigned-count?t=${Date.now()}`);
       const data = await response.json();
       setUnassignedCounts(prev => ({ ...prev, [classId]: data }));
     } catch (error) {
@@ -188,6 +188,9 @@ const TeacherAssignments = () => {
         fetchAssignments();
         fetchAllClassSubjects();
         fetchClasses();
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error occurred' }));
+        alert(`Failed to delete assignment: ${errorData.error || 'Please check if this assignment is in use.'}`);
       }
     } catch (error) {
       console.error('Error deleting assignment:', error);
