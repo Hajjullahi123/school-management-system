@@ -146,7 +146,7 @@ const TeacherAssignments = () => {
       }
     } catch (error) {
       console.error('Error saving assignment:', error);
-      alert('Failed to save assignment');
+      alert(`Failed to save assignment: ${error.message || error}`);
     }
   };
 
