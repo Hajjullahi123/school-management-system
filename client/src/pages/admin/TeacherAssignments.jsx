@@ -498,7 +498,7 @@ const TeacherAssignments = () => {
             </div>
             <div className="p-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {data.assignments.map((assignment) => (
+                {data.assignments.sort((a, b) => (a.subject?.name || '').localeCompare(b.subject?.name || '')).map((assignment) => (
                   <div
                     key={assignment.id}
                     className="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow"
