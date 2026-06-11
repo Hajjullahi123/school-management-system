@@ -18,7 +18,6 @@ const TeacherAssignments = () => {
   });
   const [editingId, setEditingId] = useState(null);
   const [groupBy, setGroupBy] = useState('class'); // 'teacher' or 'class'
-  const [unassignedCounts, setUnassignedCounts] = useState({});
 
   useEffect(() => {
     fetchAssignments();
@@ -64,11 +63,6 @@ const TeacherAssignments = () => {
       const response = await api.get(`/api/classes?t=${Date.now()}`);
       const data = await response.json();
       setClasses(Array.isArray(data) ? data : []);
-
-      // Fetch unassigned counts for each class
-      for (const cls of data) {
-        fetchUnassignedCount(cls.id);
-      }
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
@@ -84,16 +78,6 @@ const TeacherAssignments = () => {
     }
   };
 
-
-  const fetchUnassignedCount = async (classId) => {
-    try {
-      const response = await api.get(`/api/class-subjects/class/${classId}/unassigned-count?t=${Date.now()}`);
-      const data = await response.json();
-      setUnassignedCounts(prev => ({ ...prev, [classId]: data }));
-    } catch (error) {
-      console.error('Error fetching unassigned count:', error);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -251,17 +235,22 @@ const TeacherAssignments = () => {
       acc[teacherName].assignments.push(assignment);
     } else {
       const className = assignment.class ? `${assignment.class.name} ${assignment.class.arm || ''}` : 'Unidentified Class';
-      const countData = unassignedCounts[assignment.classId] || { unassignedCount: 0, totalCount: 0 };
+      
       const matchedClass = classes.find(c => c.id === assignment.classId);
       const studentCount = matchedClass?._count?.students ?? 0;
+      
+      // Calculate unassigned count dynamically
+      const classSubjectsForClass = classSubjects.filter(cs => cs.classId === assignment.classId);
+      const assignedIds = new Set(assignments.filter(a => a.classId === assignment.classId).map(a => a.classSubjectId));
+      const dynamicUnassignedCount = classSubjectsForClass.filter(cs => !assignedIds.has(cs.id)).length;
 
       if (!acc[className]) {
         acc[className] = {
           title: className,
           subtitle: `${studentCount} Student${studentCount !== 1 ? 's' : ''}`,
           classId: assignment.classId,
-          unassignedCount: countData.unassignedCount,
-          totalCount: countData.totalCount,
+          unassignedCount: dynamicUnassignedCount,
+          totalCount: classSubjectsForClass.length,
           assignments: []
         };
       }
