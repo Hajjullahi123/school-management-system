@@ -366,7 +366,7 @@ const TeacherAssignments = () => {
 
       {/* Assignment Form */}
       {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div id="assignment-form" className="bg-white p-6 rounded-lg shadow transition-all duration-500">
           <h3 className="text-lg font-semibold mb-4">{editingId ? 'Edit Assignment' : 'Assign Teacher to Subject'}</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -570,7 +570,16 @@ const TeacherAssignments = () => {
                                   classSubjectIds: [cs.id] 
                                 });
                                 setShowForm(true);
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                                setTimeout(() => {
+                                  const formElement = document.getElementById('assignment-form');
+                                  if (formElement) {
+                                    formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    formElement.classList.add('ring-4', 'ring-primary', 'ring-offset-2');
+                                    setTimeout(() => {
+                                      formElement.classList.remove('ring-4', 'ring-primary', 'ring-offset-2');
+                                    }, 1500);
+                                  }
+                                }, 100);
                               }}
                               className="bg-white text-primary border border-primary/20 w-8 h-8 flex items-center justify-center rounded-full hover:bg-primary hover:text-white transition-all text-[10px] font-bold shadow-sm shrink-0 ml-2"
                               title="Assign Teacher"
