@@ -13,7 +13,7 @@ const TeacherAssignments = () => {
 
   const [formData, setFormData] = useState({
     teacherId: '',
-    classSubjectId: '',
+    classSubjectIds: [],
     selectedClassId: '' // Helper for filtering subjects
   });
   const [editingId, setEditingId] = useState(null);
@@ -98,31 +98,67 @@ const TeacherAssignments = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const url = editingId
-        ? `/api/teacher-assignments/${editingId}`
-        : '/api/teacher-assignments';
+      if (formData.classSubjectIds.length === 0) {
+        return alert("Please select at least one subject.");
+      }
 
-      const method = editingId ? 'PUT' : 'POST';
-
-      const payload = {
-        teacherId: formData.teacherId,
-        classSubjectId: formData.classSubjectId
-      };
-
-      const response = await api[method.toLowerCase()](url, payload);
-
-      const result = await response.json();
-
-      if (response.ok) {
-        alert(editingId ? 'Assignment updated!' : 'Teacher assigned successfully!');
-        setFormData({ teacherId: '', classSubjectId: '', selectedClassId: '' });
-        setEditingId(null);
-        setShowForm(false);
-        fetchAssignments();
-        fetchAllClassSubjects();
-        fetchClasses();
+      if (editingId) {
+        const payload = {
+          teacherId: formData.teacherId,
+          classSubjectId: formData.classSubjectIds[0]
+        };
+        const response = await api.put(`/api/teacher-assignments/${editingId}`, payload);
+        const result = await response.json();
+        
+        if (response.ok) {
+          alert('Assignment updated!');
+          setFormData({ teacherId: '', classSubjectIds: [], selectedClassId: '' });
+          setEditingId(null);
+          setShowForm(false);
+          fetchAssignments();
+          fetchAllClassSubjects();
+          fetchClasses();
+        } else {
+          alert(`Error: ${result.error}`);
+        }
       } else {
-        alert(`Error: ${result.error}`);
+        if (formData.classSubjectIds.length === 1) {
+          const payload = {
+            teacherId: formData.teacherId,
+            classSubjectId: formData.classSubjectIds[0]
+          };
+          const response = await api.post('/api/teacher-assignments', payload);
+          const result = await response.json();
+          if (response.ok) {
+            alert('Teacher assigned successfully!');
+            setFormData({ teacherId: '', classSubjectIds: [], selectedClassId: '' });
+            setEditingId(null);
+            setShowForm(false);
+            fetchAssignments();
+            fetchAllClassSubjects();
+            fetchClasses();
+          } else {
+            alert(`Error: ${result.error}`);
+          }
+        } else {
+          const payload = {
+            teacherId: formData.teacherId,
+            classSubjectIds: formData.classSubjectIds
+          };
+          const response = await api.post('/api/teacher-assignments/batch', payload);
+          const result = await response.json();
+          if (response.ok) {
+            alert('Teachers assigned successfully!');
+            setFormData({ teacherId: '', classSubjectIds: [], selectedClassId: '' });
+            setEditingId(null);
+            setShowForm(false);
+            fetchAssignments();
+            fetchAllClassSubjects();
+            fetchClasses();
+          } else {
+            alert(`Error: ${result.error}`);
+          }
+        }
       }
     } catch (error) {
       console.error('Error saving assignment:', error);
@@ -133,7 +169,7 @@ const TeacherAssignments = () => {
   const handleEdit = (assignment) => {
     setFormData({
       teacherId: assignment.teacherId,
-      classSubjectId: assignment.classSubjectId,
+      classSubjectIds: [assignment.classSubjectId],
       selectedClassId: assignment.classId
     });
     setEditingId(assignment.id);
@@ -292,7 +328,7 @@ const TeacherAssignments = () => {
               }
               if (showForm) {
                 setEditingId(null);
-                setFormData({ teacherId: '', classSubjectId: '', selectedClassId: '' });
+                setFormData({ teacherId: '', classSubjectIds: [], selectedClassId: '' });
               }
             }}
             className="flex-1 md:flex-none bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 text-sm font-bold shadow-sm"
@@ -341,49 +377,7 @@ const TeacherAssignments = () => {
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-4">{editingId ? 'Edit Assignment' : 'Assign Teacher to Subject'}</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Class <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.selectedClassId}
-                  onChange={(e) => setFormData({ ...formData, selectedClassId: e.target.value, classSubjectId: '' })}
-                  className="w-full border rounded-md px-3 py-2"
-                  required
-                >
-                  <option value="">Select Class</option>
-                  {classes.map((cls) => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.name} {cls.arm || ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Subject <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.classSubjectId}
-                  onChange={(e) => setFormData({ ...formData, classSubjectId: e.target.value })}
-                  className="w-full border rounded-md px-3 py-2"
-                  required
-                  disabled={!formData.selectedClassId}
-                >
-                  <option value="">Select Subject</option>
-                  {availableClassSubjects.map((cs) => (
-                    <option key={cs.id} value={cs.id}>
-                      {cs.subject.name}
-                    </option>
-                  ))}
-                </select>
-                {formData.selectedClassId && availableClassSubjects.length === 0 && (
-                  <p className="text-sm text-orange-600 mt-1">
-                    No unassigned subjects available for this class
-                  </p>
-                )}
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Teacher <span className="text-red-500">*</span>
@@ -402,6 +396,61 @@ const TeacherAssignments = () => {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Class <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.selectedClassId}
+                  onChange={(e) => setFormData({ ...formData, selectedClassId: e.target.value, classSubjectIds: [] })}
+                  className="w-full border rounded-md px-3 py-2"
+                  required
+                >
+                  <option value="">Select Class</option>
+                  {classes.map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.name} {cls.arm || ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Subjects <span className="text-red-500">*</span>
+              </label>
+              {formData.selectedClassId ? (
+                availableClassSubjects.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {availableClassSubjects.map((cs) => (
+                      <label key={cs.id} className="flex items-center space-x-2 border rounded p-2 hover:bg-gray-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.classSubjectIds.includes(cs.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData(prev => ({ ...prev, classSubjectIds: [...prev.classSubjectIds, cs.id] }));
+                            } else {
+                              setFormData(prev => ({ ...prev, classSubjectIds: prev.classSubjectIds.filter(id => id !== cs.id) }));
+                            }
+                          }}
+                          className="rounded text-primary focus:ring-primary w-4 h-4"
+                        />
+                        <span className="text-sm font-medium text-gray-700">{cs.subject.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-orange-600 mt-1">
+                    No unassigned subjects available for this class
+                  </p>
+                )
+              ) : (
+                <p className="text-sm text-gray-500 mt-1 bg-gray-50 p-3 rounded-md border border-gray-100">
+                  Please select a class first to view available subjects.
+                </p>
+              )}
             </div>
             <div className="flex gap-2">
               <button
@@ -415,7 +464,7 @@ const TeacherAssignments = () => {
                 onClick={() => {
                   setShowForm(false);
                   setEditingId(null);
-                  setFormData({ teacherId: '', classSubjectId: '', selectedClassId: '' });
+                  setFormData({ teacherId: '', classSubjectIds: [], selectedClassId: '' });
                 }}
                 className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600"
               >
@@ -526,7 +575,7 @@ const TeacherAssignments = () => {
                                 setFormData({ 
                                   ...formData, 
                                   selectedClassId: cs.classId.toString(), 
-                                  classSubjectId: cs.id.toString() 
+                                  classSubjectIds: [cs.id] 
                                 });
                                 setShowForm(true);
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
