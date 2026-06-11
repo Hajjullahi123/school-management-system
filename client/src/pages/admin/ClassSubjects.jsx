@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
 import { toast } from 'react-hot-toast';
+import { useSchoolSettings } from '../../hooks/useSchoolSettings';
+import { generateSubjectReportPDF, generateSubjectReportCSV } from '../../utils/subjectReportGenerator';
 
 const ClassSubjects = () => {
+  const { settings } = useSchoolSettings();
+  const [isExporting, setIsExporting] = useState(false);
  const [classes, setClasses] = useState([]);
  const [subjects, setSubjects] = useState([]);
  const [selectedClass, setSelectedClass] = useState(null);
@@ -270,14 +274,56 @@ const ClassSubjects = () => {
  );
  };
 
+  const handleExportReport = async (type) => {
+    setIsExporting(true);
+    try {
+      const response = await api.get('/api/class-subjects');
+      const data = await response.json();
+      
+      if (response.ok) {
+        if (type === 'pdf') {
+          await generateSubjectReportPDF(data, settings);
+        } else {
+          generateSubjectReportCSV(data);
+        }
+        toast.success(`Report exported as ${type.toUpperCase()} successfully`);
+      } else {
+        toast.error('Failed to fetch data for report');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('An error occurred during export');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const sortedAndFilteredAvailableSubjects = availableSubjects
     .filter(subject => subject.name.toLowerCase().includes(subjectSearchQuery.toLowerCase()))
     .sort((a, b) => a.name.localeCompare(b.name));
 
  return (
  <div className="space-y-6">
- <div className="flex justify-between items-center">
+ <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
  <h1 className="text-2xl font-bold text-gray-900">Class Subject Management</h1>
+ <div className="flex gap-2">
+   <button
+     onClick={() => handleExportReport('pdf')}
+     disabled={isExporting}
+     className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-semibold border border-red-100 hover:bg-red-100 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50"
+   >
+     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 13h6m-3-3v6" /></svg>
+     {isExporting ? 'Exporting...' : 'PDF Report'}
+   </button>
+   <button
+     onClick={() => handleExportReport('csv')}
+     disabled={isExporting}
+     className="px-4 py-2 bg-green-50 text-green-600 rounded-lg text-sm font-semibold border border-green-100 hover:bg-green-100 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50"
+   >
+     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+     {isExporting ? 'Exporting...' : 'CSV Export'}
+   </button>
+ </div>
  </div>
 
  {/* Class Selection Grid - Shown only when no class is selected */}
