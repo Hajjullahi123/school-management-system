@@ -16,6 +16,14 @@ echo ">>> Building client..."
 npm run build
 cd ..
 
+# 1b. Install Personal Website Dependencies & Build
+echo ">>> Installing personal website dependencies (memory-optimized)..."
+cd personal-website
+npm install --no-audit --no-fund
+echo ">>> Building personal website..."
+npm run build
+cd ..
+
 # 2. Install Server Dependencies
 echo ">>> Installing server dependencies..."
 cd server

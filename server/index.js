@@ -489,6 +489,16 @@ app.use('/api/custom-pages', customPagesRoutes);
 
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
+  // Serve personal website at /edutech
+  const personalDistPath = path.join(__dirname, '../personal-website/dist');
+  app.use('/edutech', express.static(personalDistPath, {
+    maxAge: '1y',
+    immutable: true
+  }));
+  app.get('/edutech*', (req, res) => {
+    res.sendFile(path.join(personalDistPath, 'index.html'));
+  });
+
   const clientDistPath = path.join(__dirname, '../client/dist');
   app.use('/assets', express.static(path.join(clientDistPath, 'assets'), {
     maxAge: '1y', // Assets are hashed, so cache for 1 year
