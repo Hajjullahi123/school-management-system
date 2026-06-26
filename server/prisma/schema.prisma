@@ -5,8 +5,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model GlobalSettings {
@@ -171,6 +171,8 @@ model School {
   testimonialsText            String?
   tuitionEstimatorConfig      String?
   faqConfig                   String?
+  enableOnlineAdmissionForm   Boolean                   @default(false)
+  admissionFormPrice          Float                     @default(0)
   createdAt                   DateTime                  @default(now())
   updatedAt                   DateTime                  @updatedAt
   academicSessions            AcademicSession[]
@@ -237,6 +239,7 @@ model School {
   PushSubscription            PushSubscription[]
   AdmissionInquiry            AdmissionInquiry[]
   NewsletterSubscriber        NewsletterSubscriber[]
+  AdmissionApplication        AdmissionApplication[]
 }
 
 model User {
@@ -1700,4 +1703,32 @@ model NewsletterSubscriber {
   School    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, email])
+}
+
+model AdmissionApplication {
+  id                  Int      @id @default(autoincrement())
+  schoolId            Int
+  applicationCode     String   @unique
+  parentName          String
+  parentEmail         String
+  parentPhone         String
+  parentAddress       String?
+  candidateFirstName  String
+  candidateLastName   String
+  candidateMiddleName String?
+  gender              String
+  dateOfBirth         DateTime
+  gradeLevel          String
+  previousSchool      String?
+  passportPhotoUrl    String?
+  birthCertUrl        String?
+  reportCardUrl       String?
+  paymentReference    String?  @unique
+  paymentStatus       String   @default("pending") // pending, paid, waived
+  status              String   @default("draft") // draft, submitted, under_review, admitted, rejected
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  School              School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
 }

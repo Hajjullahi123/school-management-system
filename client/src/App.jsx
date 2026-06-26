@@ -78,6 +78,7 @@ const ExamCardManagement = lazyRetry(() => import('./pages/admin/ExamCardManagem
 const IDCardGenerator = lazyRetry(() => import('./pages/IDCardGenerator'));
 const TeacherProfile = lazyRetry(() => import('./pages/teacher/TeacherProfile'));
 const Settings = lazyRetry(() => import('./pages/admin/Settings'));
+const AdmissionsManagement = lazyRetry(() => import('./pages/admin/AdmissionsManagement'));
 const SystemSettings = lazyRetry(() => import('./pages/admin/SystemSettings'));
 const StudentFees = lazyRetry(() => import('./pages/student/StudentFees'));
 const PaymentVerify = lazyRetry(() => import('./pages/student/PaymentVerify'));
@@ -664,6 +665,11 @@ function App() {
               <Route path="settings" element={
                 <ProtectedRoute roles={['admin']}>
                   <Settings />
+                </ProtectedRoute>
+              } />
+              <Route path="admissions" element={
+                <ProtectedRoute roles={['admin', 'principal']}>
+                  <AdmissionsManagement />
                 </ProtectedRoute>
               } />
               <Route path="billing" element={

@@ -201,6 +201,7 @@ router.put('/', authenticate, async (req, res) => {
     schoolName, schoolAddress, schoolPhone, schoolEmail, schoolMotto,
     primaryColor, secondaryColor, accentColor,
     paystackPublicKey, paystackSecretKey, flutterwavePublicKey, flutterwaveSecretKey, enableOnlinePayment,
+    enableOnlineAdmissionForm, admissionFormPrice,
     facebookUrl, instagramUrl, whatsappUrl, twitterUrl, youtubeUrl, linkedinUrl,
     academicCalendarUrl, eLibraryUrl, alumniNetworkUrl, brochureFileUrl, admissionGuideFileUrl,
     emailUser, emailPassword, emailHost, emailPort, emailSecure,
@@ -278,6 +279,8 @@ router.put('/', authenticate, async (req, res) => {
     if (flutterwavePublicKey !== undefined) updateData.flutterwavePublicKey = flutterwavePublicKey;
     if (flutterwaveSecretKey !== undefined) updateData.flutterwaveSecretKey = flutterwaveSecretKey;
     if (enableOnlinePayment !== undefined) updateData.enableOnlinePayment = !!enableOnlinePayment;
+    if (enableOnlineAdmissionForm !== undefined) updateData.enableOnlineAdmissionForm = !!enableOnlineAdmissionForm;
+    if (admissionFormPrice !== undefined) updateData.admissionFormPrice = Number(admissionFormPrice);
 
     if (facebookUrl !== undefined) updateData.facebookUrl = facebookUrl;
     if (instagramUrl !== undefined) updateData.instagramUrl = instagramUrl;
