@@ -171,6 +171,10 @@ function ExamCardSwitch() {
 import { PWAProvider } from './context/PWAContext';
 import useSchoolSettings from './hooks/useSchoolSettings';
 
+// CRITICAL: RootHandler manages domain-level routing. 
+// Do NOT remove settings?.schoolSlug check.
+// - On custom domains (e.g. schoolName.com), it must load PublicSchoolLandingPage.
+// - On the main platform domain (educatechportal.com), it must redirect to /login.
 const RootHandler = () => {
   const { settings, loading } = useSchoolSettings();
   if (loading) return <LoadingFallback />;
