@@ -489,10 +489,7 @@ app.use('/api/custom-pages', customPagesRoutes);
 
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
-  // Redirect /edutech to main marketing site
-  app.get('/edutech*', (req, res) => {
-    res.redirect(301, '/');
-  });
+
 
   const clientDistPath = path.join(__dirname, '../client/dist');
   app.use('/assets', express.static(path.join(clientDistPath, 'assets'), {
