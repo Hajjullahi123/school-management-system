@@ -172,6 +172,17 @@ import { PWAProvider } from './context/PWAContext';
 import useSchoolSettings from './hooks/useSchoolSettings';
 
 const RootHandler = () => {
+  const { settings, loading } = useSchoolSettings();
+  if (loading) return <LoadingFallback />;
+  
+  const hostname = window.location.hostname;
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+  
+  // If we fetched a school based on customDomain and we are at the root
+  if (settings?.schoolSlug && !isLocalhost && settings.schoolId !== 'global-superadmin') {
+    return <PublicSchoolLandingPage overrideSlug={settings.schoolSlug} />;
+  }
+  
   // Always redirect root to login page
   return <Navigate to="/login" replace />;
 };
