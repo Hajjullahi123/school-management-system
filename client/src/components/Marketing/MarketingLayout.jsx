@@ -6,10 +6,10 @@ const MarketingLayout = () => {
   const location = useLocation();
 
   const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Services', path: '/services' },
-    { name: 'Pricing', path: '/pricing' },
-    { name: 'Contact', path: '/contact' },
+    { name: 'Home', path: '/edutech' },
+    { name: 'Services', path: '/edutech/services' },
+    { name: 'Pricing', path: '/edutech/pricing' },
+    { name: 'Contact', path: '/edutech/contact' },
   ];
 
   return (
@@ -20,7 +20,7 @@ const MarketingLayout = () => {
           <div className="flex justify-between items-center h-20">
             {/* Logo Area */}
             <div className="flex-shrink-0 flex items-center">
-              <Link to="/" className="flex items-center gap-2">
+              <Link to="/edutech" className="flex items-center gap-2">
                 <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
                   <span className="text-white font-heading font-bold text-xl">E</span>
                 </div>
@@ -41,7 +41,7 @@ const MarketingLayout = () => {
                   {link.name}
                 </Link>
               ))}
-              <Link to="/contact" className="btn-primary py-2 px-5">
+              <Link to="/edutech/contact" className="btn-primary py-2 px-5">
                 Inquiry
               </Link>
             </div>
@@ -55,12 +55,12 @@ const MarketingLayout = () => {
       </main>
 
       {/* Global CTA Section - Hidden on Home and Contact pages since they have their own */}
-      {location.pathname !== '/' && !location.pathname.includes('/contact') && (
+      {location.pathname !== '/edutech' && !location.pathname.includes('/contact') && (
         <section className="bg-primary py-16 text-center text-white">
           <div className="max-w-3xl mx-auto px-4">
             <h2 className="text-3xl font-heading font-bold mb-4">Ready to Transform Your School?</h2>
             <p className="text-lg opacity-90 mb-8">Join hundreds of schools digitizing their operations with EduTech.</p>
-            <Link to="/contact" className="bg-white text-primary px-8 py-3 rounded-lg font-bold hover:bg-slate-100 transition-colors">
+            <Link to="/edutech/contact" className="bg-white text-primary px-8 py-3 rounded-lg font-bold hover:bg-slate-100 transition-colors">
               Get Started Today
             </Link>
           </div>

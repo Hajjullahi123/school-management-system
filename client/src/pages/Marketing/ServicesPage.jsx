@@ -86,7 +86,7 @@ const ServicesPage = () => {
       <section className="py-20 bg-slate-800 border-t border-slate-700">
         <div className="section-container text-center">
           <h2 className="text-3xl font-bold text-white mb-6">Get all 8 features – plus a free website.</h2>
-          <Link to="/contact" className="btn-primary text-lg px-8 py-4">
+          <Link to="/edutech/contact" className="btn-primary text-lg px-8 py-4">
             Request a Custom Quote →
           </Link>
         </div>

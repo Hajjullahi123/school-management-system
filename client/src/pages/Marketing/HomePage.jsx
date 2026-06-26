@@ -51,10 +51,10 @@ const HomePage = () => {
                 One platform for results, fees, CBT, alumni, attendance, payroll, and ID cards. Plus a free professional website with your own domain when you subscribe.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 animate-fade-up delay-200">
-                <Link to="/contact" className="btn-primary w-full sm:w-auto text-center shadow-lg hover:shadow-xl transition-shadow">
+                <Link to="/edutech/contact" className="btn-primary w-full sm:w-auto text-center shadow-lg hover:shadow-xl transition-shadow">
                   Request a Quote →
                 </Link>
-                <Link to="/services" className="btn-secondary w-full sm:w-auto text-center">
+                <Link to="/edutech/services" className="btn-secondary w-full sm:w-auto text-center">
                   See All Services
                 </Link>
               </div>
@@ -141,7 +141,7 @@ const HomePage = () => {
           </div>
 
           <div className="text-center mt-10">
-            <Link to="/services" className="btn-secondary px-8 py-3 rounded-full text-lg font-medium">
+            <Link to="/edutech/services" className="btn-secondary px-8 py-3 rounded-full text-lg font-medium">
               View All 8 Services
             </Link>
           </div>
@@ -209,7 +209,7 @@ const HomePage = () => {
             <div className="relative z-10">
               <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to simplify your school operations?</h2>
               <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">Get a free custom domain website and modern management system when you subscribe.</p>
-              <Link to="/contact" className="inline-block bg-white text-primary font-bold text-lg px-10 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all">
+              <Link to="/edutech/contact" className="inline-block bg-white text-primary font-bold text-lg px-10 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all">
                 Request a Quote →
               </Link>
             </div>

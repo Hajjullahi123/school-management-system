@@ -49,7 +49,7 @@ const PricingPage = () => {
                 <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate-300">Attendance Management</span></li>
                 <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate-300">ID Card Generator</span></li>
               </ul>
-              <Link to="/contact" className="btn-secondary text-center w-full mt-auto">Get Started</Link>
+              <Link to="/edutech/contact" className="btn-secondary text-center w-full mt-auto">Get Started</Link>
             </div>
 
             {/* Professional Tier */}
@@ -67,7 +67,7 @@ const PricingPage = () => {
                 <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-white/90">CBT Platform</span></li>
                 <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-white/90">Alumni Management</span></li>
               </ul>
-              <Link to="/contact" className="btn-accent text-center w-full mt-auto">Get Started</Link>
+              <Link to="/edutech/contact" className="btn-accent text-center w-full mt-auto">Get Started</Link>
             </div>
 
             {/* Enterprise Tier */}
@@ -82,7 +82,7 @@ const PricingPage = () => {
                 <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate-300">Priority 24/7 Support</span></li>
                 <li className="flex items-start gap-3"><CheckCircle2 className="text-accent shrink-0" size={20}/> <span className="text-slate-300">Dedicated Account Manager</span></li>
               </ul>
-              <Link to="/contact" className="btn-secondary text-center w-full mt-auto">Contact Sales</Link>
+              <Link to="/edutech/contact" className="btn-secondary text-center w-full mt-auto">Contact Sales</Link>
             </div>
 
           </div>
@@ -125,7 +125,7 @@ const PricingPage = () => {
         <div className="section-container">
           <h2 className="text-3xl font-bold mb-6">Not sure which plan is right for you?</h2>
           <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">Contact us for a personalized recommendation and quote based on your specific school needs.</p>
-          <Link to="/contact" className="btn-accent px-8 py-3">
+          <Link to="/edutech/contact" className="btn-accent px-8 py-3">
             Talk to our Team
           </Link>
         </div>
