@@ -375,10 +375,10 @@ const ThemeModern = ({ school, getLogoUrl, isSuperAdmin }) => {
               Access Student Portal
             </Link>
             {!isSuperAdmin && (
-              <a href="#admission-process"
+              <Link to={`/${school?.slug}/admissions`}
                 className="px-8 py-4 rounded-full font-bold text-base text-white border border-white/30 bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all">
                 Apply for Admission
-              </a>
+              </Link>
             )}
           </div>
 
