@@ -166,11 +166,17 @@ const AdmissionsManagement = () => {
 
   // Filter list
   const filteredApps = applications.filter(app => {
+    const candidateName = `${app.candidateFirstName || ''} ${app.candidateLastName || ''}`.toLowerCase();
+    const parentName = (app.parentName || '').toLowerCase();
+    const appCode = (app.applicationCode || '').toLowerCase();
+    const parentPhone = (app.parentPhone || '');
+    const searchLower = (searchTerm || '').toLowerCase();
+
     const matchesSearch = 
-      `${app.candidateFirstName} ${app.candidateLastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.parentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.applicationCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.parentPhone.includes(searchTerm);
+      candidateName.includes(searchLower) ||
+      parentName.includes(searchLower) ||
+      appCode.includes(searchLower) ||
+      parentPhone.includes(searchTerm);
       
     const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
     const matchesPayment = paymentFilter === 'all' || app.paymentStatus === paymentFilter;
