@@ -24,6 +24,7 @@ npm install --no-audit --no-fund
 # 3. Update Prisma Schema for PostgreSQL
 echo ">>> Updating Prisma schema for PostgreSQL..."
 sed -i 's/provider = "sqlite"/provider = "postgresql"/g' prisma/schema.prisma
+sed -i 's|url      = "file:./dev.db"|url      = env("DATABASE_URL")|g' prisma/schema.prisma
 
 # 4. Generate Prisma Client
 echo ">>> Generating Prisma Client..."
