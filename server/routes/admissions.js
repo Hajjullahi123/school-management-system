@@ -595,6 +595,52 @@ router.post('/application/:code/upload', upload.fields([
 /* ── ADMINISTRATIVE DASHBOARD ENDPOINTS [PROTECTED] ── */
 
 /**
+ * @route   POST /api/admissions/admin/generate-token
+ * @desc    Manually generate a printable admission token
+ */
+router.post('/admin/generate-token', authenticate, async (req, res) => {
+  try {
+    const { purchaserName, purchaserPhone, gradeLevel } = req.body;
+    
+    // Generate token in format: [2 nums][3 letters][3 nums][2-digit year]
+    // e.g. 42ABC78926
+    const randomNums = (len) => Math.floor(Math.random() * Math.pow(10, len)).toString().padStart(len, '0');
+    const randomLetters = (len) => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      let result = '';
+      for(let i=0; i<len; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
+      return result;
+    };
+    
+    const year = new Date().getFullYear().toString().slice(-2);
+    const code = `${randomNums(2)}${randomLetters(3)}${randomNums(3)}${year}`;
+
+    // Create draft application with empty strings for required strings to bypass schema constraints
+    const app = await prisma.admissionApplication.create({
+      data: {
+        schoolId: req.schoolId,
+        applicationCode: code,
+        parentName: purchaserName || 'Admin Generated',
+        parentPhone: purchaserPhone || '',
+        parentEmail: '',
+        candidateFirstName: '',
+        candidateLastName: '',
+        gender: 'male',
+        dateOfBirth: new Date('2000-01-01'),
+        gradeLevel: gradeLevel || '',
+        paymentStatus: 'paid',
+        status: 'draft'
+      }
+    });
+
+    res.json({ success: true, applicationCode: code, application: app });
+  } catch (error) {
+    console.error('Error generating token:', error);
+    res.status(500).json({ error: 'Failed to generate token' });
+  }
+});
+
+/**
  * @route   GET /api/admissions/admin/list
  * @desc    Retrieve all admissions applications for the current school
  */

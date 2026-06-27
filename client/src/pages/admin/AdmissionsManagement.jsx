@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../../api';
-import { FiSearch, FiFilter, FiEye, FiCheck, FiX, FiUserPlus, FiCreditCard, FiDownload, FiCheckCircle } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiEye, FiCheck, FiX, FiUserPlus, FiCreditCard, FiDownload, FiCheckCircle, FiPrinter } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import useSchoolSettings from '../../hooks/useSchoolSettings';
 
 const AdmissionsManagement = () => {
   const [applications, setApplications] = useState([]);
@@ -10,6 +11,12 @@ const AdmissionsManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
+  
+  const { settings: schoolSettings } = useSchoolSettings();
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [generateForm, setGenerateForm] = useState({ purchaserName: '', purchaserPhone: '', gradeLevel: '' });
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedTokenData, setGeneratedTokenData] = useState(null);
   
   // Modals state
   const [selectedApp, setSelectedApp] = useState(null);
@@ -25,6 +32,25 @@ const AdmissionsManagement = () => {
     fetchApplications();
     fetchClasses();
   }, []);
+
+  const handleGenerateToken = async (e) => {
+    e.preventDefault();
+    setIsGenerating(true);
+    try {
+      const res = await api.post('/api/admissions/admin/generate-token', generateForm);
+      const data = await res.json();
+      if (res.ok) {
+        setGeneratedTokenData(data.applicationCode);
+        fetchApplications();
+      } else {
+        toast.error(data.error || 'Failed to generate token');
+      }
+    } catch (err) {
+      toast.error('Network error generating token');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -159,6 +185,12 @@ const AdmissionsManagement = () => {
           <h1 className="text-2xl font-bold text-gray-900">Online Admissions Portal</h1>
           <p className="text-gray-500 text-sm">Review, verify, and convert online applicants to active school students.</p>
         </div>
+        <button
+          onClick={() => { setGenerateForm({ purchaserName: '', purchaserPhone: '', gradeLevel: '' }); setShowGenerateModal(true); }}
+          className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition-all"
+        >
+          <FiPrinter /> Generate Admission Token
+        </button>
       </div>
 
       {/* Filters & Search */}
@@ -432,6 +464,101 @@ const AdmissionsManagement = () => {
         </div>
       )}
 
+      {/* Generate Token Modal */}
+      {showGenerateModal && !generatedTokenData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-gray-900">Generate Admission Token</h3>
+              <button onClick={() => setShowGenerateModal(false)} className="text-gray-400 hover:text-gray-600">
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleGenerateToken} className="p-6 space-y-4">
+              <p className="text-xs text-gray-500 mb-4">Generate a pre-paid admission token after receiving offline payment. The printed token allows parents to apply online.</p>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Purchaser Name (Optional)</label>
+                <input type="text" placeholder="e.g. Aisha Musa" className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm" value={generateForm.purchaserName} onChange={e => setGenerateForm({ ...generateForm, purchaserName: e.target.value })} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Purchaser Phone (Optional)</label>
+                <input type="text" placeholder="+234..." className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm" value={generateForm.purchaserPhone} onChange={e => setGenerateForm({ ...generateForm, purchaserPhone: e.target.value })} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Target Grade (Optional)</label>
+                <select className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm" value={generateForm.gradeLevel} onChange={e => setGenerateForm({ ...generateForm, gradeLevel: e.target.value })}>
+                  <option value="">Select Grade</option>
+                  {classes.map(c => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button type="button" onClick={() => setShowGenerateModal(false)} className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                <button type="submit" disabled={isGenerating} className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-lg disabled:opacity-50">
+                  {isGenerating ? 'Generating...' : 'Generate & Print'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Printable Slip Modal */}
+      {showGenerateModal && generatedTokenData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 print:hidden">
+              <h3 className="font-bold text-gray-900">Token Generated Successfully</h3>
+              <button onClick={() => { setShowGenerateModal(false); setGeneratedTokenData(null); }} className="text-gray-400 hover:text-gray-600">
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 bg-white printable-token text-center" id="printable-token-area">
+              {schoolSettings?.logoUrl && (
+                <img src={`${API_BASE_URL}${schoolSettings.logoUrl}`} alt="Logo" className="w-16 h-16 mx-auto mb-2 object-contain grayscale" />
+              )}
+              <h2 className="font-black text-lg uppercase tracking-wider border-b-2 border-dashed pb-2 mb-4">{schoolSettings?.schoolName || 'Admissions'}</h2>
+              
+              <div className="mb-6">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Admission Token</p>
+                <div className="bg-gray-100 py-3 rounded-lg border-2 border-gray-300">
+                  <span className="font-mono text-2xl font-black tracking-widest">{generatedTokenData}</span>
+                </div>
+              </div>
+
+              <div className="text-left text-xs space-y-3 mb-6">
+                <p className="font-bold uppercase tracking-wider text-center text-gray-700">Instructions to Apply</p>
+                <ol className="list-decimal pl-4 space-y-2 text-gray-600">
+                  <li>Visit our website at <strong>educatechportal.com/{schoolSettings?.schoolSlug}</strong></li>
+                  <li>Click on <strong>Apply for Admission</strong></li>
+                  <li>In the <strong>Enter Admission Token</strong> section, type in the token printed above exactly as shown.</li>
+                  <li>Follow the on-screen steps to securely complete your application form.</li>
+                </ol>
+              </div>
+              
+              <div className="text-[9px] text-gray-400 uppercase tracking-wider border-t pt-2">
+                Keep this token secure. It provides full access to the online form.
+              </div>
+            </div>
+
+            <div className="p-4 bg-gray-50 border-t flex justify-end gap-3 print:hidden">
+              <button onClick={() => { setShowGenerateModal(false); setGeneratedTokenData(null); }} className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-lg">Close</button>
+              <button onClick={() => {
+                const printContent = document.getElementById('printable-token-area').innerHTML;
+                const originalContent = document.body.innerHTML;
+                document.body.innerHTML = printContent;
+                window.print();
+                document.body.innerHTML = originalContent;
+                window.location.reload(); // Quick way to restore app state after crude HTML swap
+              }} className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg">
+                <FiPrinter /> Print Slip
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

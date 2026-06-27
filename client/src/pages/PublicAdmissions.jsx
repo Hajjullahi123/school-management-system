@@ -478,11 +478,29 @@ const PublicAdmissions = () => {
             {activeStep === 1 && (
               <div className="grid md:grid-cols-12 gap-8 items-start">
                 
+                {/* Log In Box (Token Entry) */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:col-span-5 space-y-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg text-white" style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.14)})` }}>
+                    <FiLock />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-gray-900 text-lg">Enter Admission Token</h4>
+                    <p className="text-gray-500 text-xs leading-relaxed mt-0.5">Input your pre-purchased admission token to fill or resume filling your application form.</p>
+                  </div>
+                  
+                  <form onSubmit={handleVerifyCodeSubmit} className="space-y-3 pt-2">
+                    <input type="text" required placeholder="e.g. 42ABC78926" className={inputCls} value={inputCode} onChange={e => setInputCode(e.target.value)} />
+                    <button type="submit" disabled={isVerifyingCode} className="w-full py-4 hover:-translate-y-0.5 text-white font-black rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:translate-y-0 shadow-md" style={{ backgroundColor: primary }}>
+                      {isVerifyingCode ? 'Verifying...' : 'Unlock Application Form'}
+                    </button>
+                  </form>
+                </div>
+                
                 {/* Purchase Form Block */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden md:col-span-7">
-                  <div className="px-6 py-5 text-white" style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.14)})` }}>
-                    <h3 className="text-lg font-black">Purchase Application Form</h3>
-                    <p className="text-white/80 text-xs mt-0.5">Start your online admission application process.</p>
+                  <div className="px-6 py-5 text-gray-900 border-b border-gray-100 bg-gray-50">
+                    <h3 className="text-lg font-black">Or Buy Token Online</h3>
+                    <p className="text-gray-500 text-xs mt-0.5">Don't have a token? Purchase one right here.</p>
                   </div>
                   
                   {offlineSlip ? (
@@ -597,24 +615,6 @@ const PublicAdmissions = () => {
                     </form>
                   )}
                 </div>
-
-                {/* Log In Box */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:col-span-5 space-y-4">
-                  <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-lg text-gray-400">
-                    <FiLock />
-                  </div>
-                  <div>
-                    <h4 className="font-extrabold text-gray-900 text-md">Already Purchased?</h4>
-                    <p className="text-gray-400 text-xs leading-relaxed mt-0.5">Input your Application Code below to fill or resume filling your application form.</p>
-                  </div>
-                  
-                  <form onSubmit={handleVerifyCodeSubmit} className="space-y-3">
-                    <input type="text" required placeholder="e.g. ADM-2026-12345" className={inputCls} value={inputCode} onChange={e => setInputCode(e.target.value)} />
-                    <button type="submit" disabled={isVerifyingCode} className="w-full py-3 hover:-translate-y-0.5 text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:translate-y-0" style={{ backgroundColor: primary }}>
-                      {isVerifyingCode ? 'Verifying...' : 'Unlock Application Form'}
-                    </button>
-                  </form>
-                </div>
               </div>
             )}
 
@@ -626,60 +626,62 @@ const PublicAdmissions = () => {
                   <p className="text-gray-400 text-xs mt-0.5">Provide detailed biological information about the applicant.</p>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">First Name</label>
-                    <input type="text" className={inputCls} value={appData.candidateFirstName || ''} onChange={e => setAppData({ ...appData, candidateFirstName: e.target.value })} />
+                <form onSubmit={(e) => { e.preventDefault(); handleSaveFormDetails(); setActiveStep(3); }}>
+                  <div className="grid grid-cols-2 gap-4 mt-6">
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">First Name</label>
+                      <input type="text" required className={inputCls} value={appData.candidateFirstName || ''} onChange={e => setAppData({ ...appData, candidateFirstName: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Last Name</label>
+                      <input type="text" required className={inputCls} value={appData.candidateLastName || ''} onChange={e => setAppData({ ...appData, candidateLastName: e.target.value })} />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Last Name</label>
-                    <input type="text" className={inputCls} value={appData.candidateLastName || ''} onChange={e => setAppData({ ...appData, candidateLastName: e.target.value })} />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Middle Name (optional)</label>
-                    <input type="text" className={inputCls} value={appData.candidateMiddleName || ''} onChange={e => setAppData({ ...appData, candidateMiddleName: e.target.value })} />
+                  <div className="grid grid-cols-3 gap-4 mt-4">
+                    <div className="col-span-2">
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Middle Name (optional)</label>
+                      <input type="text" className={inputCls} value={appData.candidateMiddleName || ''} onChange={e => setAppData({ ...appData, candidateMiddleName: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Gender</label>
+                      <select required className={inputCls} value={appData.gender || 'male'} onChange={e => setAppData({ ...appData, gender: e.target.value })}>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Gender</label>
-                    <select className={inputCls} value={appData.gender || 'male'} onChange={e => setAppData({ ...appData, gender: e.target.value })}>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                    </select>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Date of Birth</label>
-                    <input type="date" className={inputCls} value={appData.dateOfBirth ? appData.dateOfBirth.split('T')[0] : ''} onChange={e => setAppData({ ...appData, dateOfBirth: e.target.value })} />
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Date of Birth</label>
+                      <input type="date" required className={inputCls} value={appData.dateOfBirth ? appData.dateOfBirth.split('T')[0] : ''} onChange={e => setAppData({ ...appData, dateOfBirth: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Grade Level</label>
+                      <select required className={inputCls} value={appData.gradeLevel || ''} onChange={e => setAppData({ ...appData, gradeLevel: e.target.value })}>
+                        <option value="">Select Grade</option>
+                        {['Creche', 'Nursery 1', 'Nursery 2', 'Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6', 'JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'].map(g => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Grade Level</label>
-                    <select className={inputCls} value={appData.gradeLevel || ''} onChange={e => setAppData({ ...appData, gradeLevel: e.target.value })}>
-                      <option value="">Select Grade</option>
-                      {['Creche', 'Nursery 1', 'Nursery 2', 'Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6', 'JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'].map(g => (
-                        <option key={g} value={g}>{g}</option>
-                      ))}
-                    </select>
+
+                  <div className="mt-4">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Previous School Attended</label>
+                    <input type="text" className={inputCls} placeholder="e.g. Hope Academy" value={appData.previousSchool || ''} onChange={e => setAppData({ ...appData, previousSchool: e.target.value })} />
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Previous School Attended</label>
-                  <input type="text" className={inputCls} placeholder="e.g. Hope Academy" value={appData.previousSchool || ''} onChange={e => setAppData({ ...appData, previousSchool: e.target.value })} />
-                </div>
-
-                <div className="flex justify-between pt-4 border-t border-gray-100">
-                  <button onClick={handleSaveFormDetails} className="px-4 py-2 border border-gray-200 hover:bg-gray-50 font-bold rounded-lg text-xs">
-                    Save Draft
-                  </button>
-                  <button onClick={() => { handleSaveFormDetails(); setActiveStep(3); }} className="px-5 py-2 text-white font-bold rounded-lg text-xs flex items-center gap-1" style={{ backgroundColor: primary }}>
-                    Next Step <FiArrowRight />
-                  </button>
-                </div>
+                  <div className="flex justify-between pt-4 border-t border-gray-100 mt-6">
+                    <button type="button" onClick={handleSaveFormDetails} className="px-4 py-2 border border-gray-200 hover:bg-gray-50 font-bold rounded-lg text-xs">
+                      Save Draft
+                    </button>
+                    <button type="submit" className="px-5 py-2 text-white font-bold rounded-lg text-xs flex items-center gap-1" style={{ backgroundColor: primary }}>
+                      Next Step <FiArrowRight />
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
 
@@ -691,40 +693,42 @@ const PublicAdmissions = () => {
                   <p className="text-gray-400 text-xs mt-0.5">Provide contact information for parent / guardian.</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Parent / Guardian Name</label>
-                    <input type="text" className={inputCls} value={appData.parentName || ''} onChange={e => setAppData({ ...appData, parentName: e.target.value })} />
+                <form onSubmit={(e) => { e.preventDefault(); handleSaveFormDetails(); setActiveStep(4); }}>
+                  <div className="grid grid-cols-2 gap-4 mt-6">
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Parent / Guardian Name</label>
+                      <input type="text" required className={inputCls} value={appData.parentName || ''} onChange={e => setAppData({ ...appData, parentName: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Parent Phone Number</label>
+                      <input type="tel" required className={inputCls} value={appData.parentPhone || ''} onChange={e => setAppData({ ...appData, parentPhone: e.target.value })} />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Parent Phone Number</label>
-                    <input type="tel" className={inputCls} value={appData.parentPhone || ''} onChange={e => setAppData({ ...appData, parentPhone: e.target.value })} />
+
+                  <div className="mt-4">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Parent Email Address</label>
+                    <input type="email" required className={inputCls} value={appData.parentEmail || ''} onChange={e => setAppData({ ...appData, parentEmail: e.target.value })} />
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Parent Email Address</label>
-                  <input type="email" className={inputCls} value={appData.parentEmail || ''} onChange={e => setAppData({ ...appData, parentEmail: e.target.value })} />
-                </div>
+                  <div className="mt-4">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Residential Address</label>
+                    <textarea rows={2} required className={`${inputCls} resize-none`} value={appData.parentAddress || ''} onChange={e => setAppData({ ...appData, parentAddress: e.target.value })} />
+                  </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Residential Address</label>
-                  <textarea rows={2} className={`${inputCls} resize-none`} value={appData.parentAddress || ''} onChange={e => setAppData({ ...appData, parentAddress: e.target.value })} />
-                </div>
-
-                <div className="flex justify-between pt-4 border-t border-gray-100">
-                  <button onClick={() => setActiveStep(2)} className="px-4 py-2 border border-gray-200 hover:bg-gray-50 font-bold rounded-lg text-xs flex items-center gap-1">
-                    <FiArrowLeft /> Back
-                  </button>
-                  <div className="flex gap-3">
-                    <button onClick={handleSaveFormDetails} className="px-4 py-2 border border-gray-200 hover:bg-gray-50 font-bold rounded-lg text-xs">
-                      Save Draft
+                  <div className="flex justify-between pt-4 border-t border-gray-100 mt-6">
+                    <button type="button" onClick={() => setActiveStep(2)} className="px-4 py-2 border border-gray-200 hover:bg-gray-50 font-bold rounded-lg text-xs flex items-center gap-1">
+                      <FiArrowLeft /> Back
                     </button>
-                    <button onClick={() => { handleSaveFormDetails(); setActiveStep(4); }} className="px-5 py-2 text-white font-bold rounded-lg text-xs flex items-center gap-1" style={{ backgroundColor: primary }}>
-                      Next Step <FiArrowRight />
-                    </button>
+                    <div className="flex gap-3">
+                      <button type="button" onClick={handleSaveFormDetails} className="px-4 py-2 border border-gray-200 hover:bg-gray-50 font-bold rounded-lg text-xs">
+                        Save Draft
+                      </button>
+                      <button type="submit" className="px-5 py-2 text-white font-bold rounded-lg text-xs flex items-center gap-1" style={{ backgroundColor: primary }}>
+                        Next Step <FiArrowRight />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                </form>
               </div>
             )}
 
