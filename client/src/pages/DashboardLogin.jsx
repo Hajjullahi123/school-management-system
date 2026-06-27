@@ -134,7 +134,7 @@ const DashboardLogin = () => {
             </div>
 
             <div className="mt-6 text-center">
-              <Link to="/school-home" className="text-primary hover:text-accent font-bold text-sm">
+              <Link to={schoolSettings?.schoolSlug ? `/${schoolSettings.schoolSlug}` : '/'} className="text-primary hover:text-accent font-bold text-sm">
                 Return to Home Page
               </Link>
             </div>

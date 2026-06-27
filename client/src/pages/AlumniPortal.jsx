@@ -33,7 +33,7 @@ const AlumniPortal = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Link to="/school-home" className="flex items-center gap-2 text-white/90 hover:text-white font-bold transition-all group backdrop-blur-md bg-white/10 px-4 py-2 rounded-full border border-white/20">
+              <Link to={settings?.schoolSlug ? `/${settings.schoolSlug}` : '/'} className="flex items-center gap-2 text-white/90 hover:text-white font-bold transition-all group backdrop-blur-md bg-white/10 px-4 py-2 rounded-full border border-white/20">
                 <svg className="w-5 h-5 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import useSchoolSettings from '../hooks/useSchoolSettings';
@@ -149,14 +149,14 @@ const AlumniLogin = () => {
           <div className="mt-6 text-center text-sm text-gray-600">
             <p>
               Not an alumni yet?{' '}
-              <a href="/alumni" className="text-primary font-semibold hover:underline">
+              <Link to="/alumni" className="text-primary font-semibold hover:underline">
                 Visit Alumni Portal
-              </a>
+              </Link>
             </p>
             <p className="mt-2">
-              <a href="/school-home" className="text-gray-500 hover:text-primary transition">
+              <Link to={settings?.schoolSlug ? `/${settings.schoolSlug}` : '/'} className="text-gray-500 hover:text-primary transition">
                 ← Back to School Home
-              </a>
+              </Link>
             </p>
           </div>
         </div>
