@@ -41,6 +41,10 @@ router.get('/:slug', async (req, res) => {
         aboutUsText: true,
         foundedYear: true,
         testimonialsText: true,
+        enableOnlineAdmissionForm: true,
+        admissionFormPrice: true,
+        paystackPublicKey: true,
+        flutterwavePublicKey: true,
         customPages: {
           where: { isActive: true },
           select: { title: true, slug: true }
