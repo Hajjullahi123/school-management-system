@@ -173,6 +173,7 @@ model School {
   faqConfig                   String?
   enableOnlineAdmissionForm   Boolean                   @default(false)
   admissionFormPrice          Float                     @default(0)
+  defaultInterviewDate        DateTime?
   createdAt                   DateTime                  @default(now())
   updatedAt                   DateTime                  @updatedAt
   academicSessions            AcademicSession[]
@@ -1726,6 +1727,7 @@ model AdmissionApplication {
   paymentReference    String?  @unique
   paymentStatus       String   @default("pending") // pending, paid, waived
   status              String   @default("draft") // draft, submitted, under_review, admitted, rejected
+  interviewDate       DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   School              School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)

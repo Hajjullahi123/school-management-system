@@ -121,6 +121,42 @@ const generateAppCode = () => {
 };
 
 /**
+ * @route   GET /api/admissions/public/check
+ * @desc    Public checker for candidates to check their admission status and interview date
+ */
+router.get('/public/check', async (req, res) => {
+  const { code } = req.query;
+
+  if (!code) {
+    return res.status(400).json({ error: 'Application token/code is required' });
+  }
+
+  try {
+    const application = await prisma.admissionApplication.findUnique({
+      where: { applicationCode: code },
+      select: {
+        applicationCode: true,
+        candidateFirstName: true,
+        candidateLastName: true,
+        gradeLevel: true,
+        status: true,
+        interviewDate: true,
+        paymentStatus: true
+      }
+    });
+
+    if (!application) {
+      return res.status(404).json({ error: 'No application found with this token.' });
+    }
+
+    res.json({ success: true, application });
+  } catch (error) {
+    console.error('Admission check error:', error);
+    res.status(500).json({ error: 'Failed to retrieve application status' });
+  }
+});
+
+/**
  * @route   POST /api/admissions/initialize-payment
  * @desc    Initialize admission form payment or register offline payment request
  */
@@ -527,7 +563,8 @@ router.post('/application/:code/submit', async (req, res) => {
 
   try {
     const application = await prisma.admissionApplication.findUnique({
-      where: { applicationCode: code }
+      where: { applicationCode: code },
+      include: { School: { select: { defaultInterviewDate: true } } }
     });
 
     if (!application) return res.status(404).json({ error: 'Application not found' });
@@ -537,7 +574,10 @@ router.post('/application/:code/submit', async (req, res) => {
 
     const updated = await prisma.admissionApplication.update({
       where: { applicationCode: code },
-      data: { status: 'submitted' }
+      data: { 
+        status: 'submitted',
+        interviewDate: application.School?.defaultInterviewDate || null
+      }
     });
 
     res.json({ success: true, application: updated });
@@ -654,6 +694,35 @@ router.get('/admin/list', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Get applications list error:', error);
     res.status(500).json({ error: 'Failed to retrieve applications' });
+  }
+});
+
+/**
+ * @route   PUT /api/admissions/admin/:id/interview
+ * @desc    Reschedule or set interview date for an application
+ */
+router.put('/admin/:id/interview', authenticate, async (req, res) => {
+  const { id } = req.params;
+  const { interviewDate } = req.body;
+
+  try {
+    const application = await prisma.admissionApplication.findFirst({
+      where: { id: parseInt(id), schoolId: req.schoolId }
+    });
+
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    const updated = await prisma.admissionApplication.update({
+      where: { id: parseInt(id) },
+      data: { interviewDate: interviewDate ? new Date(interviewDate) : null }
+    });
+
+    res.json({ success: true, application: updated });
+  } catch (error) {
+    console.error('Update interview date error:', error);
+    res.status(500).json({ error: 'Failed to update interview date' });
   }
 });
 

@@ -22,6 +22,7 @@ const Settings = () => {
     enableOnlinePayment: false,
     enableOnlineAdmissionForm: false,
     admissionFormPrice: 0,
+    defaultInterviewDate: '',
     facebookUrl: '',
     instagramUrl: '',
     whatsappUrl: '',
@@ -119,7 +120,8 @@ const Settings = () => {
         schoolAddress: data.schoolAddress || data.address || '',
         schoolPhone: data.schoolPhone || data.phone || '',
         schoolEmail: data.schoolEmail || data.email || '',
-        schoolMotto: data.schoolMotto || data.motto || ''
+        schoolMotto: data.schoolMotto || data.motto || '',
+        defaultInterviewDate: data.defaultInterviewDate ? new Date(data.defaultInterviewDate).toISOString().slice(0, 16) : ''
       }));
       if (data.logoUrl) {
         setLogoPreview(data.logoUrl.startsWith('data:') || data.logoUrl.startsWith('http') ? data.logoUrl : `${API_BASE_URL}${data.logoUrl}`);
@@ -1157,6 +1159,19 @@ const Settings = () => {
                         placeholder="e.g. 5000"
                       />
                       <p className="mt-1 text-xs text-gray-500">Set to 0 to make the application form free of charge.</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Default Interview Date
+                      </label>
+                      <input
+                        type="datetime-local"
+                        name="defaultInterviewDate"
+                        value={settings.defaultInterviewDate || ''}
+                        onChange={handleInputChange}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">Automatically assigned to applicants when they submit their form.</p>
                     </div>
                   </div>
                 )}

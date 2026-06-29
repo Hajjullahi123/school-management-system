@@ -43,6 +43,7 @@ router.get('/:slug', async (req, res) => {
         testimonialsText: true,
         enableOnlineAdmissionForm: true,
         admissionFormPrice: true,
+        defaultInterviewDate: true,
         paystackPublicKey: true,
         flutterwavePublicKey: true,
         customPages: {

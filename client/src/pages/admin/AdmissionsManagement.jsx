@@ -105,6 +105,28 @@ const AdmissionsManagement = () => {
     }
   };
 
+  const handleUpdateInterview = async (appId, newDate) => {
+    try {
+      const res = await api.put(`/api/admissions/admin/${appId}/interview`, {
+        interviewDate: newDate || null
+      });
+      if (res.ok) {
+        toast.success('Interview date updated successfully!');
+        fetchApplications();
+        if (selectedApp && selectedApp.id === appId) {
+          const updated = await res.json();
+          setSelectedApp(updated.application);
+        }
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to update interview date');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Connection error updating interview date');
+    }
+  };
+
   const handleAdmitSubmit = async (e) => {
     e.preventDefault();
     if (!targetClassId) {
@@ -367,6 +389,23 @@ const AdmissionsManagement = () => {
                   <div>
                     <strong>Admissions Status:</strong> {getStatusBadge(selectedApp.status)}
                   </div>
+                </div>
+
+                <div className="flex justify-between items-center text-xs pt-2">
+                  <div>
+                    <strong>Interview Date:</strong> {selectedApp.interviewDate ? new Date(selectedApp.interviewDate).toLocaleString() : 'Not Scheduled'}
+                  </div>
+                  <button
+                    onClick={() => {
+                      const newDate = prompt('Enter new interview date (YYYY-MM-DD HH:MM) or leave blank to clear:', selectedApp.interviewDate ? new Date(selectedApp.interviewDate).toISOString().slice(0,16) : '');
+                      if (newDate !== null) {
+                        handleUpdateInterview(selectedApp.id, newDate);
+                      }
+                    }}
+                    className="px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                  >
+                    Reschedule
+                  </button>
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200 justify-end">

@@ -45,6 +45,7 @@ const PublicAdmissions = () => {
   const [applicationCode, setApplicationCode] = useState(() => localStorage.getItem(`appCode_${schoolSlug}`) || '');
   const [appData, setAppData] = useState(null);
   const [activeStep, setActiveStep] = useState(1); // 1: Pay/Access, 2: Biodata, 3: Parent, 4: Uploads, 5: Review & Submit
+  const [tokenMode, setTokenMode] = useState('resume'); // 'resume' or 'check'
 
   // Purchase Form State
   const [purchaseForm, setPurchaseForm] = useState({
@@ -196,6 +197,27 @@ const PublicAdmissions = () => {
     try {
       await fetchApplicationDetails(inputCode.trim().toUpperCase());
       localStorage.setItem(`appCode_${schoolSlug}`, inputCode.trim().toUpperCase());
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  };
+
+  const [checkerResult, setCheckerResult] = useState(null);
+  const handleCheckStatus = async (e) => {
+    e.preventDefault();
+    if (!inputCode.trim()) return;
+    setIsVerifyingCode(true);
+    setCheckerResult(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admissions/public/check?code=${inputCode.trim().toUpperCase()}`);
+      const data = await res.json();
+      if (res.ok) {
+        setCheckerResult(data.application);
+      } else {
+        toast.error(data.error || 'Failed to retrieve application status');
+      }
+    } catch (error) {
+      toast.error('Network error checking status');
     } finally {
       setIsVerifyingCode(false);
     }
@@ -479,21 +501,65 @@ const PublicAdmissions = () => {
               <div className="grid md:grid-cols-12 gap-8 items-start">
                 
                 {/* Log In Box (Token Entry) */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:col-span-5 space-y-4">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg text-white" style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.14)})` }}>
-                    <FiLock />
-                  </div>
-                  <div>
-                    <h4 className="font-extrabold text-gray-900 text-lg">Enter Admission Token</h4>
-                    <p className="text-gray-500 text-xs leading-relaxed mt-0.5">Input your pre-purchased admission token to fill or resume filling your application form.</p>
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden md:col-span-5 flex flex-col">
+                  {/* Tabs */}
+                  <div className="flex border-b border-gray-100">
+                    <button
+                      onClick={() => { setTokenMode('resume'); setCheckerResult(null); }}
+                      className={`flex-1 py-3 text-xs font-bold transition-colors ${tokenMode === 'resume' ? 'text-gray-900 border-b-2 border-primary bg-gray-50' : 'text-gray-400 hover:text-gray-600'}`}
+                    >
+                      Fill Form
+                    </button>
+                    <button
+                      onClick={() => setTokenMode('check')}
+                      className={`flex-1 py-3 text-xs font-bold transition-colors ${tokenMode === 'check' ? 'text-gray-900 border-b-2 border-primary bg-gray-50' : 'text-gray-400 hover:text-gray-600'}`}
+                    >
+                      Check Status
+                    </button>
                   </div>
                   
-                  <form onSubmit={handleVerifyCodeSubmit} className="space-y-3 pt-2">
-                    <input type="text" required placeholder="e.g. 42ABC78926" className={inputCls} value={inputCode} onChange={e => setInputCode(e.target.value)} />
-                    <button type="submit" disabled={isVerifyingCode} className="w-full py-4 hover:-translate-y-0.5 text-white font-black rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:translate-y-0 shadow-md" style={{ backgroundColor: primary }}>
-                      {isVerifyingCode ? 'Verifying...' : 'Unlock Application Form'}
-                    </button>
-                  </form>
+                  <div className="p-6 space-y-4 flex-1">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg text-white" style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 0.14)})` }}>
+                      <FiLock />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-gray-900 text-lg">
+                        {tokenMode === 'resume' ? 'Enter Admission Token' : 'Admission Checker'}
+                      </h4>
+                      <p className="text-gray-500 text-xs leading-relaxed mt-0.5">
+                        {tokenMode === 'resume' ? 'Input your pre-purchased admission token to fill or resume filling your application form.' : 'Enter your application token to check your admission status and interview schedule.'}
+                      </p>
+                    </div>
+                    
+                    {tokenMode === 'resume' ? (
+                      <form onSubmit={handleVerifyCodeSubmit} className="space-y-3 pt-2">
+                        <input type="text" required placeholder="e.g. 42ABC78926" className={inputCls} value={inputCode} onChange={e => setInputCode(e.target.value)} />
+                        <button type="submit" disabled={isVerifyingCode} className="w-full py-4 hover:-translate-y-0.5 text-white font-black rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:translate-y-0 shadow-md" style={{ backgroundColor: primary }}>
+                          {isVerifyingCode ? 'Verifying...' : 'Unlock Application Form'}
+                        </button>
+                      </form>
+                    ) : (
+                      <div className="space-y-4 pt-2">
+                        <form onSubmit={handleCheckStatus} className="space-y-3">
+                          <input type="text" required placeholder="Enter Token" className={inputCls} value={inputCode} onChange={e => setInputCode(e.target.value)} />
+                          <button type="submit" disabled={isVerifyingCode} className="w-full py-3 hover:-translate-y-0.5 text-white font-black rounded-xl text-sm transition-all flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:translate-y-0 shadow-md" style={{ backgroundColor: primary }}>
+                            {isVerifyingCode ? 'Checking...' : 'Check Status'}
+                          </button>
+                        </form>
+
+                        {checkerResult && (
+                          <div className="mt-4 bg-gray-50 border border-gray-150 rounded-xl p-4 text-xs space-y-2 animate-fade-in">
+                            <p><strong>Candidate:</strong> {checkerResult.candidateFirstName} {checkerResult.candidateLastName}</p>
+                            <p><strong>Grade:</strong> {checkerResult.gradeLevel}</p>
+                            <p><strong>Status:</strong> <span className="capitalize font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">{checkerResult.status.replace('_', ' ')}</span></p>
+                            {checkerResult.interviewDate && (
+                              <p><strong>Interview Date:</strong> <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded block mt-1">{new Date(checkerResult.interviewDate).toLocaleString()}</span></p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 {/* Purchase Form Block */}
@@ -847,7 +913,14 @@ const PublicAdmissions = () => {
                       <p><strong>Application Code:</strong> <code className="bg-gray-200 px-1 py-0.5 rounded text-blue-700 font-bold">{appData.applicationCode}</code></p>
                       <p><strong>Admissions Status:</strong> <span className="capitalize font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">{appData.status.replace('_', ' ')}</span></p>
                       <p><strong>Form Payment:</strong> <span className="capitalize font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">{appData.paymentStatus}</span></p>
+                      {appData.interviewDate && (
+                        <p><strong>Scheduled Interview Date:</strong> <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">{new Date(appData.interviewDate).toLocaleString()}</span></p>
+                      )}
                     </div>
+
+                    <p className="text-[10px] text-gray-500 max-w-sm mx-auto">
+                      Please keep your Application Code safe. You can use it in the "Check Status" tab to view your admission progress.
+                    </p>
                     
                     <p className="text-gray-500 text-xs leading-relaxed max-w-sm mx-auto pt-2">
                       A copy of your code and registration details has been sent to your email. We will contact you via email, WhatsApp, or SMS regarding your assessment schedule.
