@@ -1127,55 +1127,7 @@ const Settings = () => {
                 </div>
               </div>
 
-              <div className="space-y-4 pt-4 border-t border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Online Admission Form Sales</h3>
-                <div className="flex items-center mb-2">
-                  <input
-                    type="checkbox"
-                    id="enableOnlineAdmissionForm"
-                    name="enableOnlineAdmissionForm"
-                    checked={settings.enableOnlineAdmissionForm}
-                    onChange={handleInputChange}
-                    className="h-4 w-4 text-primary"
-                  />
-                  <label htmlFor="enableOnlineAdmissionForm" className="ml-2 text-sm font-medium text-gray-700">
-                    Enable Online Admission Applications
-                  </label>
-                </div>
-                
-                {settings.enableOnlineAdmissionForm && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Admission Form Price (₦)
-                      </label>
-                      <input
-                        type="number"
-                        name="admissionFormPrice"
-                        min="0"
-                        value={settings.admissionFormPrice}
-                        onChange={handleInputChange}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2"
-                        placeholder="e.g. 5000"
-                      />
-                      <p className="mt-1 text-xs text-gray-500">Set to 0 to make the application form free of charge.</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Default Interview Date
-                      </label>
-                      <input
-                        type="datetime-local"
-                        name="defaultInterviewDate"
-                        value={settings.defaultInterviewDate || ''}
-                        onChange={handleInputChange}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2"
-                      />
-                      <p className="mt-1 text-xs text-gray-500">Automatically assigned to applicants when they submit their form.</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+
 
               <div className="flex justify-end">
                 <button

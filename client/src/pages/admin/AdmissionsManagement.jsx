@@ -13,6 +13,16 @@ const AdmissionsManagement = () => {
   const [paymentFilter, setPaymentFilter] = useState('all');
   
   const { settings: schoolSettings } = useSchoolSettings();
+  const [activeTab, setActiveTab] = useState('applications');
+  
+  // Settings State
+  const [settings, setSettings] = useState({
+    enableOnlineAdmissionForm: false,
+    admissionFormPrice: 0,
+    defaultInterviewDate: ''
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [generateForm, setGenerateForm] = useState({ purchaserName: '', purchaserPhone: '', gradeLevel: '' });
   const [isGenerating, setIsGenerating] = useState(false);
@@ -31,7 +41,49 @@ const AdmissionsManagement = () => {
   useEffect(() => {
     fetchApplications();
     fetchClasses();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await api.get('/api/settings');
+      if (res.ok) {
+        const data = await res.json();
+        setSettings({
+          enableOnlineAdmissionForm: data.enableOnlineAdmissionForm || false,
+          admissionFormPrice: data.admissionFormPrice || 0,
+          defaultInterviewDate: data.defaultInterviewDate ? new Date(data.defaultInterviewDate).toISOString().slice(0, 16) : ''
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSettingsChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setSettings(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const saveSettings = async (e) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      const res = await api.put('/api/settings', settings);
+      if (res.ok) {
+        toast.success('Admissions settings saved successfully');
+      } else {
+        toast.error('Failed to save settings');
+      }
+    } catch (err) {
+      toast.error('Network error saving settings');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const handleGenerateToken = async (e) => {
     e.preventDefault();
@@ -221,7 +273,24 @@ const AdmissionsManagement = () => {
         </button>
       </div>
 
-      {/* Filters & Search */}
+      <div className="flex border-b border-gray-200 mb-6">
+        <button
+          onClick={() => setActiveTab('applications')}
+          className={`pb-3 px-6 text-sm font-bold border-b-2 transition-colors ${activeTab === 'applications' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+        >
+          Applications
+        </button>
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`pb-3 px-6 text-sm font-bold border-b-2 transition-colors ${activeTab === 'settings' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+        >
+          Settings
+        </button>
+      </div>
+
+      {activeTab === 'applications' ? (
+        <>
+          {/* Filters & Search */}
       <div className="bg-white p-4 rounded-xl border border-gray-150 shadow-xs grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Search */}
         <div className="relative col-span-2">
@@ -448,6 +517,72 @@ const AdmissionsManagement = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+        </>
+      ) : (
+        /* Settings Tab */
+        <div className="bg-white p-6 rounded-xl border border-gray-150 shadow-xs max-w-3xl">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">Admission Settings</h2>
+          <form onSubmit={saveSettings} className="space-y-6">
+            <div className="flex items-center mb-2">
+              <input
+                type="checkbox"
+                id="enableOnlineAdmissionForm"
+                name="enableOnlineAdmissionForm"
+                checked={settings.enableOnlineAdmissionForm}
+                onChange={handleSettingsChange}
+                className="h-4 w-4 text-primary"
+              />
+              <label htmlFor="enableOnlineAdmissionForm" className="ml-2 text-sm font-medium text-gray-700">
+                Enable Online Admission Applications
+              </label>
+            </div>
+            
+            {settings.enableOnlineAdmissionForm && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-gray-100">
+                <div className="pt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Admission Form Price (₦)
+                  </label>
+                  <input
+                    type="number"
+                    name="admissionFormPrice"
+                    min="0"
+                    value={settings.admissionFormPrice}
+                    onChange={handleSettingsChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    placeholder="e.g. 5000"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Set to 0 to make the application form free of charge.</p>
+                </div>
+                <div className="pt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Default Interview Date
+                  </label>
+                  <input
+                    type="datetime-local"
+                    name="defaultInterviewDate"
+                    value={settings.defaultInterviewDate || ''}
+                    onChange={handleSettingsChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Automatically assigned to applicants when they submit their form.</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-4 border-t border-gray-100">
+              <button
+                type="submit"
+                disabled={savingSettings}
+                className="px-6 py-2 bg-primary text-white rounded-md hover:brightness-90 disabled:bg-gray-400 font-bold text-sm"
+              >
+                {savingSettings ? 'Saving...' : 'Save Settings'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
