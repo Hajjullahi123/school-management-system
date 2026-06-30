@@ -14,9 +14,11 @@ const TeacherAssignments = () => {
   const [formData, setFormData] = useState({
     teacherId: '',
     classSubjectIds: [],
-    selectedClassId: '' // Helper for filtering subjects
+    selectedClassId: '', // Helper for filtering subjects
+    selectedSubjectId: '' // Helper for filtering classes (By Subject mode)
   });
   const [editingId, setEditingId] = useState(null);
+  const [assignMode, setAssignMode] = useState('byClass'); // 'byClass' or 'bySubject'
   const [groupBy, setGroupBy] = useState('class'); // 'teacher' or 'class'
 
   useEffect(() => {
@@ -83,7 +85,7 @@ const TeacherAssignments = () => {
     e.preventDefault();
     try {
       if (formData.classSubjectIds.length === 0) {
-        return alert("Please select at least one subject.");
+        return alert(assignMode === 'bySubject' ? "Please select at least one class." : "Please select at least one subject.");
       }
 
       if (editingId) {
@@ -96,7 +98,7 @@ const TeacherAssignments = () => {
         
         if (response.ok) {
           alert('Assignment updated!');
-          setFormData({ teacherId: '', classSubjectIds: [], selectedClassId: '' });
+          setFormData({ teacherId: '', classSubjectIds: [], selectedClassId: '', selectedSubjectId: '' });
           setEditingId(null);
           setShowForm(false);
           fetchAssignments();
@@ -115,7 +117,7 @@ const TeacherAssignments = () => {
           const result = await response.json();
           if (response.ok) {
             alert('Teacher assigned successfully!');
-            setFormData({ teacherId: '', classSubjectIds: [], selectedClassId: '' });
+            setFormData({ teacherId: '', classSubjectIds: [], selectedClassId: '', selectedSubjectId: '' });
             setEditingId(null);
             setShowForm(false);
             fetchAssignments();
@@ -133,7 +135,7 @@ const TeacherAssignments = () => {
           const result = await response.json();
           if (response.ok) {
             alert('Teachers assigned successfully!');
-            setFormData({ teacherId: '', classSubjectIds: [], selectedClassId: '' });
+            setFormData({ teacherId: '', classSubjectIds: [], selectedClassId: '', selectedSubjectId: '' });
             setEditingId(null);
             setShowForm(false);
             fetchAssignments();
@@ -154,9 +156,11 @@ const TeacherAssignments = () => {
     setFormData({
       teacherId: assignment.teacherId,
       classSubjectIds: [assignment.classSubjectId],
-      selectedClassId: assignment.classId
+      selectedClassId: assignment.classId,
+      selectedSubjectId: ''
     });
     setEditingId(assignment.id);
+    setAssignMode('byClass');
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -272,6 +276,20 @@ const TeacherAssignments = () => {
     return !cs.isAssigned;
   });
 
+  // Get unique subjects across all classes for "By Subject" mode
+  const uniqueSubjects = [...new Map(
+    classSubjects.map(cs => [cs.subject.id, cs.subject])
+  ).values()].sort((a, b) => a.name.localeCompare(b.name));
+
+  // Get available classes for the selected subject (By Subject mode)
+  const availableClassesForSubject = formData.selectedSubjectId
+    ? classSubjects.filter(cs => {
+        if (cs.subject.id !== parseInt(formData.selectedSubjectId)) return false;
+        // Only show unassigned
+        return !cs.isAssigned;
+      })
+    : [];
+
   const activeTerm = terms.find(t => t.isCurrent);
 
   return (
@@ -320,7 +338,7 @@ const TeacherAssignments = () => {
               }
               if (showForm) {
                 setEditingId(null);
-                setFormData({ teacherId: '', classSubjectIds: [], selectedClassId: '' });
+                setFormData({ teacherId: '', classSubjectIds: [], selectedClassId: '', selectedSubjectId: '' });
               }
             }}
             className="flex-1 md:flex-none bg-primary text-white px-6 py-2 rounded-md hover:brightness-90 text-sm font-bold shadow-sm"
@@ -367,7 +385,33 @@ const TeacherAssignments = () => {
       {/* Assignment Form */}
       {showForm && (
         <div id="assignment-form" className="bg-white p-6 rounded-lg shadow transition-all duration-500">
-          <h3 className="text-lg font-semibold mb-4">{editingId ? 'Edit Assignment' : 'Assign Teacher to Subject'}</h3>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+            <h3 className="text-lg font-semibold">{editingId ? 'Edit Assignment' : 'Assign Teacher to Subject'}</h3>
+            {!editingId && (
+              <div className="bg-gray-100 p-1 rounded-md flex">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssignMode('byClass');
+                    setFormData(prev => ({ ...prev, classSubjectIds: [], selectedClassId: '', selectedSubjectId: '' }));
+                  }}
+                  className={`px-3 py-1.5 text-xs md:text-sm rounded-md transition-all ${assignMode === 'byClass' ? 'bg-white shadow text-primary font-medium' : 'text-gray-600 hover:text-gray-900'}`}
+                >
+                  By Class
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssignMode('bySubject');
+                    setFormData(prev => ({ ...prev, classSubjectIds: [], selectedClassId: '', selectedSubjectId: '' }));
+                  }}
+                  className={`px-3 py-1.5 text-xs md:text-sm rounded-md transition-all ${assignMode === 'bySubject' ? 'bg-white shadow text-primary font-medium' : 'text-gray-600 hover:text-gray-900'}`}
+                >
+                  By Subject
+                </button>
+              </div>
+            )}
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -388,62 +432,144 @@ const TeacherAssignments = () => {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Class <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.selectedClassId}
-                  onChange={(e) => setFormData({ ...formData, selectedClassId: e.target.value, classSubjectIds: [] })}
-                  className="w-full border rounded-md px-3 py-2"
-                  required
-                >
-                  <option value="">Select Class</option>
-                  {classes.map((cls) => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.name} {cls.arm || ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {assignMode === 'byClass' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Class <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.selectedClassId}
+                    onChange={(e) => setFormData({ ...formData, selectedClassId: e.target.value, classSubjectIds: [] })}
+                    className="w-full border rounded-md px-3 py-2"
+                    required
+                  >
+                    <option value="">Select Class</option>
+                    {classes.map((cls) => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.name} {cls.arm || ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {assignMode === 'bySubject' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Subject <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.selectedSubjectId}
+                    onChange={(e) => setFormData({ ...formData, selectedSubjectId: e.target.value, classSubjectIds: [] })}
+                    className="w-full border rounded-md px-3 py-2"
+                    required
+                  >
+                    <option value="">Select Subject</option>
+                    {uniqueSubjects.map((subject) => (
+                      <option key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Subjects <span className="text-red-500">*</span>
-              </label>
-              {formData.selectedClassId ? (
-                availableClassSubjects.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {availableClassSubjects.map((cs) => (
-                      <label key={cs.id} className="flex items-center space-x-2 border rounded p-2 hover:bg-gray-50 cursor-pointer">
+            {/* By Class mode: Subject checkboxes */}
+            {assignMode === 'byClass' && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Subjects <span className="text-red-500">*</span>
+                </label>
+                {formData.selectedClassId ? (
+                  availableClassSubjects.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {availableClassSubjects.map((cs) => (
+                        <label key={cs.id} className="flex items-center space-x-2 border rounded p-2 hover:bg-gray-50 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.classSubjectIds.includes(cs.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData(prev => ({ ...prev, classSubjectIds: [...prev.classSubjectIds, cs.id] }));
+                              } else {
+                                setFormData(prev => ({ ...prev, classSubjectIds: prev.classSubjectIds.filter(id => id !== cs.id) }));
+                              }
+                            }}
+                            className="rounded text-primary focus:ring-primary w-4 h-4"
+                          />
+                          <span className="text-sm font-medium text-gray-700">{cs.subject.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-orange-600 mt-1">
+                      No unassigned subjects available for this class
+                    </p>
+                  )
+                ) : (
+                  <p className="text-sm text-gray-500 mt-1 bg-gray-50 p-3 rounded-md border border-gray-100">
+                    Please select a class first to view available subjects.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* By Subject mode: Class checkboxes */}
+            {assignMode === 'bySubject' && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Classes <span className="text-red-500">*</span>
+                </label>
+                {formData.selectedSubjectId ? (
+                  availableClassesForSubject.length > 0 ? (
+                    <>
+                      <label className="flex items-center space-x-2 mb-3 cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={formData.classSubjectIds.includes(cs.id)}
+                          checked={availableClassesForSubject.length > 0 && availableClassesForSubject.every(cs => formData.classSubjectIds.includes(cs.id))}
                           onChange={(e) => {
                             if (e.target.checked) {
-                              setFormData(prev => ({ ...prev, classSubjectIds: [...prev.classSubjectIds, cs.id] }));
+                              setFormData(prev => ({ ...prev, classSubjectIds: availableClassesForSubject.map(cs => cs.id) }));
                             } else {
-                              setFormData(prev => ({ ...prev, classSubjectIds: prev.classSubjectIds.filter(id => id !== cs.id) }));
+                              setFormData(prev => ({ ...prev, classSubjectIds: [] }));
                             }
                           }}
                           className="rounded text-primary focus:ring-primary w-4 h-4"
                         />
-                        <span className="text-sm font-medium text-gray-700">{cs.subject.name}</span>
+                        <span className="text-sm font-bold text-primary">Select All ({availableClassesForSubject.length} classes)</span>
                       </label>
-                    ))}
-                  </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {availableClassesForSubject.map((cs) => (
+                          <label key={cs.id} className="flex items-center space-x-2 border rounded p-2 hover:bg-gray-50 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.classSubjectIds.includes(cs.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData(prev => ({ ...prev, classSubjectIds: [...prev.classSubjectIds, cs.id] }));
+                                } else {
+                                  setFormData(prev => ({ ...prev, classSubjectIds: prev.classSubjectIds.filter(id => id !== cs.id) }));
+                                }
+                              }}
+                              className="rounded text-primary focus:ring-primary w-4 h-4"
+                            />
+                            <span className="text-sm font-medium text-gray-700">{cs.class.name} {cs.class.arm || ''}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-orange-600 mt-1">
+                      This subject is already assigned to a teacher in all configured classes.
+                    </p>
+                  )
                 ) : (
-                  <p className="text-sm text-orange-600 mt-1">
-                    No unassigned subjects available for this class
+                  <p className="text-sm text-gray-500 mt-1 bg-gray-50 p-3 rounded-md border border-gray-100">
+                    Please select a subject first to view available classes.
                   </p>
-                )
-              ) : (
-                <p className="text-sm text-gray-500 mt-1 bg-gray-50 p-3 rounded-md border border-gray-100">
-                  Please select a class first to view available subjects.
-                </p>
-              )}
-            </div>
+                )}
+              </div>
+            )}
             <div className="flex gap-2">
               <button
                 type="submit"
@@ -456,7 +582,7 @@ const TeacherAssignments = () => {
                 onClick={() => {
                   setShowForm(false);
                   setEditingId(null);
-                  setFormData({ teacherId: '', classSubjectIds: [], selectedClassId: '' });
+                  setFormData({ teacherId: '', classSubjectIds: [], selectedClassId: '', selectedSubjectId: '' });
                 }}
                 className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600"
               >
@@ -567,8 +693,10 @@ const TeacherAssignments = () => {
                                 setFormData({ 
                                   ...formData, 
                                   selectedClassId: cs.classId.toString(), 
-                                  classSubjectIds: [cs.id] 
+                                  classSubjectIds: [cs.id],
+                                  selectedSubjectId: ''
                                 });
+                                setAssignMode('byClass');
                                 setShowForm(true);
                                 setTimeout(() => {
                                   const formElement = document.getElementById('assignment-form');
