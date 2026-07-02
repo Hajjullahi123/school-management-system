@@ -124,13 +124,22 @@ const DirectoryExport = () => {
         
         const studentsRaw = users.filter(u => u.role === 'student' && u.student?.status !== 'graduated' && u.student?.status !== 'alumni');
         const studentsByClass = studentsRaw.reduce((acc, u) => {
-          const className = u.student?.classModel?.name || 'Unassigned';
+          const className = u.student?.classModel
+            ? `${u.student.classModel.name}${u.student.classModel.arm ? ' ' + u.student.classModel.arm : ''}`
+            : 'Unassigned';
           if (!acc[className]) acc[className] = [];
           acc[className].push(u);
           return acc;
         }, {});
 
         Object.keys(studentsByClass).sort().forEach(className => {
+          // Sort students alphabetically by first name, then last name
+          studentsByClass[className].sort((a, b) => {
+            const firstCmp = (a.firstName || '').localeCompare(b.firstName || '', undefined, { sensitivity: 'base' });
+            if (firstCmp !== 0) return firstCmp;
+            return (a.lastName || '').localeCompare(b.lastName || '', undefined, { sensitivity: 'base' });
+          });
+
           const classRow = ws.addRow([`CLASS: ${className.toUpperCase()}`]);
           classRow.font = { bold: true, size: 11 };
           classRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
