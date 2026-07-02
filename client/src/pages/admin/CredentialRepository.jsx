@@ -10,10 +10,11 @@ const CredentialRepository = () => {
   const { settings: schoolSettings } = useSchoolSettings();
   const [students, setStudents] = useState([]);
   const [parents, setParents] = useState([]);
+  const [teachers, setTeachers] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewType, setViewType] = useState('students'); // 'students' or 'parents'
+  const [viewType, setViewType] = useState('students'); // 'students', 'parents', or 'teachers'
   const [selectedClass, setSelectedClass] = useState('all');
   const [showPasswords, setShowPasswords] = useState({});
 
@@ -24,10 +25,11 @@ const CredentialRepository = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [studentsRes, classesRes, parentsRes] = await Promise.all([
+      const [studentsRes, classesRes, parentsRes, teachersRes] = await Promise.all([
         api.get('/api/students'),
         api.get('/api/classes'),
-        api.get('/api/parents')
+        api.get('/api/parents'),
+        api.get('/api/users?role=teacher')
       ]);
 
       if (studentsRes.ok) {
@@ -43,6 +45,11 @@ const CredentialRepository = () => {
       if (parentsRes.ok) {
         const parentsData = await parentsRes.json();
         setParents(Array.isArray(parentsData) ? parentsData : []);
+      }
+
+      if (teachersRes.ok) {
+        const teachersData = await teachersRes.json();
+        setTeachers(Array.isArray(teachersData) ? teachersData : []);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -69,11 +76,19 @@ const CredentialRepository = () => {
         const matchesClass = selectedClass === 'all' || student.classId?.toString() === selectedClass;
         return matchesSearch && matchesClass;
       })
-    : parents.filter(parent => {
+    : viewType === 'parents'
+    ? parents.filter(parent => {
         const matchesSearch = 
           `${parent.user?.firstName} ${parent.user?.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
           parent.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           parent.user?.username?.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesSearch;
+      })
+    : teachers.filter(teacher => {
+        const matchesSearch = 
+          `${teacher.firstName} ${teacher.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          teacher.teacher?.staffId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          teacher.username?.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesSearch;
       });
 
@@ -122,10 +137,10 @@ const CredentialRepository = () => {
         </div>
 
         {/* View Switcher */}
-        <div className="flex p-1 bg-gray-100 rounded-2xl w-full sm:w-fit">
+        <div className="flex p-1 bg-gray-100 rounded-2xl w-full sm:w-fit overflow-x-auto">
           <button
             onClick={() => setViewType('students')}
-            className={`flex-1 sm:flex-none px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${
+            className={`flex-1 sm:flex-none px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all whitespace-nowrap ${
               viewType === 'students' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -133,11 +148,19 @@ const CredentialRepository = () => {
           </button>
           <button
             onClick={() => setViewType('parents')}
-            className={`flex-1 sm:flex-none px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${
+            className={`flex-1 sm:flex-none px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all whitespace-nowrap ${
               viewType === 'parents' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             Parents
+          </button>
+          <button
+            onClick={() => setViewType('teachers')}
+            className={`flex-1 sm:flex-none px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all whitespace-nowrap ${
+              viewType === 'teachers' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Teachers
           </button>
         </div>
 
@@ -147,7 +170,7 @@ const CredentialRepository = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder={`Search by name, ${viewType === 'students' ? 'admission no' : 'phone'}, or username...`}
+              placeholder={`Search by name, ${viewType === 'students' ? 'admission no' : viewType === 'parents' ? 'phone' : 'staff ID'}, or username...`}
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -190,7 +213,10 @@ const CredentialRepository = () => {
             <div key={item.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:border-indigo-200 transition-all group">
               <div className="flex justify-between items-start mb-4">
                 <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 font-black">
-                  {item.user?.firstName?.[0]}{item.user?.lastName?.[0]}
+                  {viewType === 'teachers' 
+                    ? `${item.firstName?.[0] || ''}${item.lastName?.[0] || ''}`
+                    : `${item.user?.firstName?.[0] || ''}${item.user?.lastName?.[0] || ''}`
+                  }
                 </div>
                 <button 
                   onClick={() => togglePasswordVisibility(item.id)}
@@ -199,24 +225,32 @@ const CredentialRepository = () => {
                   {showPasswords[item.id] ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <h3 className="font-bold text-gray-900 truncate">{item.user?.firstName} {item.user?.lastName}</h3>
+              <h3 className="font-bold text-gray-900 truncate">
+                {viewType === 'teachers' ? `${item.firstName} ${item.lastName}` : `${item.user?.firstName} ${item.user?.lastName}`}
+              </h3>
               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-4">
                 {viewType === 'students' 
                   ? `${getClassName(item.classId)} • ${item.admissionNumber}`
-                  : `Parent Portal • ${item.phone}`
+                  : viewType === 'parents' 
+                    ? `Parent Portal • ${item.phone}`
+                    : `Staff Portal • ${item.teacher?.staffId || 'No ID'}`
                 }
               </p>
               
               <div className="space-y-2">
                 <div className="bg-gray-50 rounded-lg p-2 flex justify-between items-center">
                   <span className="text-[9px] font-black text-gray-400 uppercase">Username</span>
-                  <span className="text-xs font-mono font-bold text-gray-700">{item.user?.username}</span>
+                  <span className="text-xs font-mono font-bold text-gray-700">
+                    {viewType === 'teachers' ? item.username : item.user?.username}
+                  </span>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-2 flex justify-between items-center">
                   <span className="text-[9px] font-black text-gray-400 uppercase">Password</span>
                   <span className="text-xs font-mono font-bold text-gray-700">
                     {showPasswords[item.id] 
-                      ? (viewType === 'students' ? (item.user?.tempPassword || '123456') : 'parent123') 
+                      ? (viewType === 'students' ? (item.user?.tempPassword || '123456') 
+                         : viewType === 'parents' ? 'parent123'
+                         : `${item.firstName}${(item.lastName ? item.lastName.charAt(0).toUpperCase() : '')}@123`) 
                       : '••••••••'
                     }
                   </span>
@@ -242,7 +276,7 @@ const CredentialRepository = () => {
             {schoolSettings?.schoolName || 'EduTechAI School Manager'}
           </h1>
           <h2 className="text-xl font-bold text-gray-600 italic">{viewType.charAt(0).toUpperCase() + viewType.slice(1)} Login Credentials Repository</h2>
-          <p className="text-xs text-gray-400 mt-2">Generated on {new Date().toLocaleDateString()} • {viewType === 'students' && (selectedClass === 'all' ? 'All Classes' : classes.find(c => c.id.toString() === selectedClass)?.name)}</p>
+          <p className="text-xs text-gray-400 mt-2">Generated on {new Date().toLocaleDateString()} {viewType === 'students' && `• ${selectedClass === 'all' ? 'All Classes' : classes.find(c => c.id.toString() === selectedClass)?.name}`}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-0 border-l border-t border-gray-300">
@@ -255,25 +289,30 @@ const CredentialRepository = () => {
               <div>
                 <div className="flex justify-between items-center mb-1">
                    <h3 className="text-base font-black uppercase text-gray-900 leading-none">
-                     {item.user?.firstName} {item.user?.lastName}
+                     {viewType === 'teachers' ? `${item.firstName} ${item.lastName}` : `${item.user?.firstName} ${item.user?.lastName}`}
                    </h3>
                    <span className="text-[10px] font-mono font-bold bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
-                     {viewType === 'students' ? item.admissionNumber : item.phone}
+                     {viewType === 'students' ? item.admissionNumber : viewType === 'parents' ? item.phone : item.teacher?.staffId || 'Staff'}
                    </span>
                 </div>
                 <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-4">
-                  Type: {viewType === 'students' ? `Student (${getClassName(item.classId)})` : 'Parent Guardian'}
+                  Type: {viewType === 'students' ? `Student (${getClassName(item.classId)})` : viewType === 'parents' ? 'Parent Guardian' : 'Staff / Teacher'}
                 </p>
                 
                 <div className="space-y-2 mt-auto">
                   <div className="flex justify-between border-b border-gray-100 py-1">
                     <span className="text-[10px] uppercase font-black text-gray-400">Username:</span>
-                    <span className="text-xs font-mono font-bold text-gray-800">{item.user?.username}</span>
+                    <span className="text-xs font-mono font-bold text-gray-800">
+                      {viewType === 'teachers' ? item.username : item.user?.username}
+                    </span>
                   </div>
                   <div className="flex justify-between border-b border-gray-100 py-1">
-                    <span className="text-[10px] uppercase font-black text-gray-400">Password:</span>
+                    <span className="text-[10px] uppercase font-black text-gray-400">Default Password:</span>
                     <span className="text-xs font-mono font-bold text-gray-800">
-                      {viewType === 'students' ? (item.user?.tempPassword || '123456') : 'parent123'}
+                      {viewType === 'students' ? (item.user?.tempPassword || '123456') 
+                        : viewType === 'parents' ? 'parent123'
+                        : `${item.firstName}${(item.lastName ? item.lastName.charAt(0).toUpperCase() : '')}@123`
+                      }
                     </span>
                   </div>
                 </div>
