@@ -332,6 +332,14 @@ const ClassManagement = () => {
                     showAttendanceOnReport: true,
                     reportLayout: ''
                   });
+                  
+                  // Scroll to form on mobile
+                  setTimeout(() => {
+                    const formElement = document.getElementById('class-form-container');
+                    if (formElement) {
+                      formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }, 100);
                 }
               }
             }}
@@ -393,6 +401,14 @@ const ClassManagement = () => {
                             reportLayout: cls.reportLayout || ''
                           });
                           setShowClassForm(true);
+                          
+                          // Scroll to the form on mobile
+                          setTimeout(() => {
+                            const formElement = document.getElementById('class-form-container');
+                            if (formElement) {
+                              formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }, 100);
                         }}
                         className={`flex-1 text-sm py-2 rounded transition-colors ${editingClass?.id === cls.id
                           ? 'bg-primary text-white'
@@ -429,7 +445,7 @@ const ClassManagement = () => {
 
           {/* Sidebar Form - Sticky */}
           {showClassForm && (
-            <div className="lg:w-96">
+            <div className="lg:w-96" id="class-form-container">
               <div className="sticky top-6 bg-white p-6 rounded-lg shadow-lg border border-primary/20 transition-all duration-300 animate-in slide-in-from-right-4">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-bold text-gray-900">
