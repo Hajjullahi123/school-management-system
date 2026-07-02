@@ -228,7 +228,7 @@ const TeacherAssignments = () => {
   // Group assignments based on selection
   const groupedAssignments = (Array.isArray(assignments) ? assignments : []).reduce((acc, assignment) => {
     if (groupBy === 'teacher') {
-      const teacherName = assignment.teacher ? `${assignment.teacher.firstName} ${assignment.teacher.lastName}` : 'Unidentified Teacher';
+      const teacherName = assignment.teacher ? [assignment.teacher.firstName, assignment.teacher.middleName, assignment.teacher.lastName].filter(Boolean).join(' ') : 'Unidentified Teacher';
       if (!acc[teacherName]) {
         acc[teacherName] = {
           title: teacherName,
@@ -425,9 +425,9 @@ const TeacherAssignments = () => {
                   required
                 >
                   <option value="">Select Teacher</option>
-                  {[...teachers].sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)).map((teacher) => (
+                  {[...teachers].sort((a, b) => [a.firstName, a.middleName, a.lastName].filter(Boolean).join(' ').localeCompare([b.firstName, b.middleName, b.lastName].filter(Boolean).join(' '))).map((teacher) => (
                     <option key={teacher.id} value={teacher.id}>
-                      {teacher.firstName} {teacher.lastName}
+                      {[teacher.firstName, teacher.middleName, teacher.lastName].filter(Boolean).join(' ')}
                     </option>
                   ))}
                 </select>
@@ -631,7 +631,7 @@ const TeacherAssignments = () => {
                         ) : (
                           <>
                             <p className="font-medium text-gray-900">{assignment.subject?.name || 'Unknown Subject'}</p>
-                            <p className="text-sm text-gray-600">Tr. {assignment.teacher?.firstName || ''} {assignment.teacher?.lastName || 'Unidentified'}</p>
+                            <p className="text-sm text-gray-600">Tr. {[assignment.teacher?.firstName, assignment.teacher?.middleName, assignment.teacher?.lastName].filter(Boolean).join(' ') || 'Unidentified'}</p>
                           </>
                         )}
                       </div>
