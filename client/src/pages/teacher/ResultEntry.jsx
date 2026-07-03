@@ -613,18 +613,106 @@ const ResultEntry = () => {
         </div>
       ) : students.length > 0 ? (
         <div className="bg-white rounded-xl shadow-lg ring-1 ring-black ring-opacity-5 overflow-hidden border border-gray-100">
-          {/* Scroll Hint for Mobile */}
-          <div className="md:hidden bg-indigo-50 px-4 py-2 border-b border-indigo-100 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-600 uppercase tracking-wider">
-              <svg className="w-4 h-4 animate-bounce-x" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-              Swipe left for more scores
-            </div>
-            <span className="text-[10px] font-black bg-indigo-600 text-white px-2 py-0.5 rounded-full uppercase">Excel Available</span>
+          {/* Mobile Card View (Hidden on Desktop) */}
+          <div className="md:hidden divide-y divide-gray-100 bg-gray-50">
+            {(Array.isArray(students) ? students : []).map((student, index) => {
+              const studentResult = results[student.id] || {};
+              return (
+                <div key={student.id} className="p-4 bg-white shadow-sm mb-2 border-y border-gray-100">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h4 className="font-black text-slate-900 uppercase tracking-tight">{student.user?.firstName} {student.user?.lastName}</h4>
+                      <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">{student.admissionNumber}</span>
+                    </div>
+                    <div className="text-right flex flex-col items-end">
+                      <div className={`text-lg font-black ${getScoreColor(studentResult.totalScore, 100)}`}>
+                        {studentResult.totalScore?.toFixed(1) || '-'}
+                      </div>
+                      <span className={`inline-block px-2 py-0.5 mt-1 rounded text-[10px] font-bold ${studentResult.grade === 'A' ? 'bg-green-100 text-green-800' :
+                          studentResult.grade === 'B' ? 'bg-blue-100 text-blue-800' :
+                            studentResult.grade === 'C' ? 'bg-yellow-100 text-yellow-800' :
+                              studentResult.grade === 'D' ? 'bg-orange-100 text-orange-800' :
+                                studentResult.grade === 'F' ? 'bg-red-100 text-red-800' :
+                                  'bg-gray-100 text-gray-800'
+                          }`}>
+                        Grade: {studentResult.grade || '-'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="flex flex-col">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 text-center">A1 ({weights.assignment1})</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={weights.assignment1}
+                        step="0.5"
+                        value={studentResult.assignment1Score ?? ''}
+                        onChange={(e) => handleScoreChange(student.id, 'assignment1Score', e.target.value)}
+                        disabled={isDemo}
+                        className="border border-gray-300 rounded px-2 py-2 text-sm focus:ring-primary focus:border-primary w-full text-center bg-gray-50/50"
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 text-center">A2 ({weights.assignment2})</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={weights.assignment2}
+                        step="0.5"
+                        value={studentResult.assignment2Score ?? ''}
+                        onChange={(e) => handleScoreChange(student.id, 'assignment2Score', e.target.value)}
+                        disabled={isDemo}
+                        className="border border-gray-300 rounded px-2 py-2 text-sm focus:ring-primary focus:border-primary w-full text-center bg-gray-50/50"
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 text-center">T1 ({weights.test1})</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={weights.test1}
+                        step="0.5"
+                        value={studentResult.test1Score ?? ''}
+                        onChange={(e) => handleScoreChange(student.id, 'test1Score', e.target.value)}
+                        disabled={isDemo}
+                        className="border border-gray-300 rounded px-2 py-2 text-sm focus:ring-primary focus:border-primary w-full text-center bg-gray-50/50"
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 text-center">T2 ({weights.test2})</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={weights.test2}
+                        step="0.5"
+                        value={studentResult.test2Score ?? ''}
+                        onChange={(e) => handleScoreChange(student.id, 'test2Score', e.target.value)}
+                        disabled={isDemo}
+                        className="border border-gray-300 rounded px-2 py-2 text-sm focus:ring-primary focus:border-primary w-full text-center bg-gray-50/50"
+                      />
+                    </div>
+                    <div className="flex flex-col col-span-2">
+                      <label className="text-[10px] font-bold text-primary uppercase mb-1 text-center">Exam ({weights.exam})</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={weights.exam}
+                        step="0.5"
+                        value={studentResult.examScore ?? ''}
+                        onChange={(e) => handleScoreChange(student.id, 'examScore', e.target.value)}
+                        disabled={isDemo}
+                        className="border-2 border-primary/30 rounded px-2 py-2 text-sm font-bold focus:ring-primary focus:border-primary w-full text-center bg-primary/5"
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
-          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200">
+          <div className="hidden md:block overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200">
             <table className="min-w-full divide-y divide-gray-200 table-fixed md:table-auto">
               <thead className="bg-primary/5">
                 <tr>
