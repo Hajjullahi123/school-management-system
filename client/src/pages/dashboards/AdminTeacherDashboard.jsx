@@ -605,7 +605,7 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
                       {subjects.map(a => (
                         <Link 
                           key={a.id} 
-                          to={`/dashboard/result-entry?classId=${a.classId}&subjectId=${a.subjectId}`} 
+                          to={`/dashboard/result-entry?classId=${a.classId}&subjectId=${a.subjectId}&sessionId=${selectedDashboardSession?.id || ''}&termId=${selectedDashboardTerm?.id || ''}`} 
                           className="group flex items-center justify-between p-4 bg-gray-50 hover:bg-white hover:ring-2 hover:ring-primary/20 rounded-xl transition-all border border-transparent hover:border-primary/10 shadow-sm hover:shadow-md active:scale-[0.98]"
                         >
                           <div className="flex items-center gap-3">

@@ -91,7 +91,7 @@ const ResultEntry = () => {
       setAcademicSessions(sessionsArr);
       // Auto-select current session if not already set
       if (!selectedSession) {
-        const current = sessionsArr.find(s => s.isCurrent);
+        const current = sessionsArr.find(s => s.isCurrent) || sessionsArr[0];
         if (current) setSelectedSession(current.id);
       }
     } catch (error) {
@@ -107,7 +107,7 @@ const ResultEntry = () => {
       setTerms(termsArr);
       // Auto-select current term if not already set
       if (!selectedTerm) {
-        const current = termsArr.find(t => t.isCurrent);
+        const current = termsArr.find(t => t.isCurrent) || termsArr[0];
         if (current) setSelectedTerm(current.id);
       }
     } catch (error) {
@@ -452,7 +452,7 @@ const ResultEntry = () => {
       </div>
 
       {/* Filters Card */}
-      {!new URLSearchParams(location.search).get('classId') && (
+      {!(new URLSearchParams(location.search).get('classId') && new URLSearchParams(location.search).get('sessionId') && new URLSearchParams(location.search).get('termId')) && (
         <div className="bg-white p-6 rounded-lg shadow border border-gray-100">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
