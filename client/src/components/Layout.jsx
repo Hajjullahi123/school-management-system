@@ -224,7 +224,7 @@ const Layout = () => {
   // Academic Setup Group
   if (user?.role === 'admin' || user?.role === 'sub_admin' || user?.role === 'principal' || user?.role === 'examination_officer' || user?.role === 'attendance_admin') {
     // Academic Setup Group - NOT for examination officer or attendance admin
-    if (true) { // Allow all admin-level roles to see items in this group
+    if (user?.role !== 'examination_officer' && user?.role !== 'attendance_admin') {
       menuItems.push({
         type: 'group',
         label: 'Academic Setup',
@@ -341,7 +341,7 @@ const Layout = () => {
 
 
     // User Management Group - NOT for examination officer or attendance admin
-    if (true) { // Allow all admin-level roles to see items in this group
+    if (user?.role !== 'examination_officer' && user?.role !== 'attendance_admin') {
       menuItems.push({
         type: 'group',
         label: 'User Management',
@@ -450,7 +450,7 @@ const Layout = () => {
     // (Moved to after Timetable & Scheduling)
 
 
-    // Exam Tracker as standalone item for examination officer
+    // Exam Tracker and Result Entry as standalone items for examination officer
     if (user?.role === 'examination_officer') {
       menuItems.push({
         path: '/dashboard/exam-tracker',
@@ -460,6 +460,15 @@ const Layout = () => {
           </svg>
         ),
         label: 'CA Submission Tracker'
+      });
+      menuItems.push({
+        path: '/dashboard/result-entry',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        ),
+        label: 'Global Result Entry'
       });
     }
   }
@@ -701,7 +710,9 @@ const Layout = () => {
       });
     }
 
-    teacherItems.push(hrHubItem);
+    if (user?.role !== 'examination_officer') {
+      teacherItems.push(hrHubItem);
+    }
 
     if (user?.role === 'teacher') {
       menuItems.push(...teacherItems);
