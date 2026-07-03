@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api, API_BASE_URL } from '../../api';
+import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 
 const UserManagement = () => {
+  const { settings: schoolSettings } = useSchoolSettings();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -39,6 +41,13 @@ const UserManagement = () => {
 
   const { user: currentUser, impersonateUser } = useAuth();
   const location = useLocation();
+
+  const logoUrl = schoolSettings?.logoUrl
+    ? (schoolSettings.logoUrl.startsWith('http') || schoolSettings.logoUrl.startsWith('https') || schoolSettings.logoUrl.startsWith('data:')
+      ? schoolSettings.logoUrl
+      : `${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${schoolSettings.logoUrl.startsWith('/') ? schoolSettings.logoUrl : '/' + schoolSettings.logoUrl}`)
+    : undefined;
+  const schoolName = currentUser?.role === 'superadmin' ? "EduTechAI System" : (schoolSettings?.schoolName || currentUser?.schoolName || currentUser?.school?.name || "School Management");
   const [classes, setClasses] = useState([]);
   const [expandedRoles, setExpandedRoles] = useState({});
   const [filter, setFilter] = useState('all'); // all, student, teacher, admin
@@ -792,25 +801,34 @@ const UserManagement = () => {
 
       {/* Print-only View */}
       {generatedCredentials && (
-        <div className="hidden print:block print:absolute print:inset-0 print:bg-white print:z-[9999]">
-          <div className="p-10 text-gray-900 border-[8px] border-primary/10 rounded-[3rem] bg-white h-auto max-w-3xl mx-auto mt-10">
-            <div className="flex justify-between items-end mb-12 border-b-4 border-gray-100 pb-6">
-              <div>
-                <h1 className="text-5xl font-black uppercase tracking-tighter mb-2">Security ID</h1>
-                <p className="text-primary font-black tracking-[0.4em] uppercase text-xs">Official System Credentials</p>
+        <div className="hidden print:flex print:fixed print:inset-0 print:bg-white print:z-[9999] print:items-center print:justify-center print:p-8">
+          <div className="w-full text-gray-900 border-[8px] border-primary/10 rounded-[3rem] bg-white max-w-4xl mx-auto p-12 shadow-2xl">
+            <div className="flex justify-between items-center mb-10 border-b-4 border-gray-100 pb-8">
+              <div className="flex items-center gap-6">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Logo" className="w-20 h-20 object-contain" />
+                ) : (
+                  <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <span className="text-3xl font-black text-primary">{schoolName.substring(0, 2).toUpperCase()}</span>
+                  </div>
+                )}
+                <div>
+                  <h1 className="text-2xl font-black uppercase tracking-tighter text-gray-900 mb-1">{schoolName}</h1>
+                  <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest">Security ID - Official Credentials</h2>
+                </div>
               </div>
               <div className="text-right">
                 <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Generation Date</p>
-                <p className="text-lg font-black">{new Date().toLocaleDateString()}</p>
+                <p className="text-lg font-black text-gray-900">{new Date().toLocaleDateString()}</p>
               </div>
             </div>
 
-            <div className="flex gap-8 mb-12">
-              <div className="flex-1 bg-gray-50 p-8 rounded-[2rem]">
+            <div className="flex gap-8 mb-10">
+              <div className="flex-1 bg-gray-50 p-8 rounded-[2rem] border-2 border-gray-100">
                 <p className="text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Account Holder</p>
                 <p className="text-2xl font-black text-gray-900 uppercase tracking-tighter break-all">{generatedCredentials?.name}</p>
               </div>
-              <div className="flex-1 bg-gray-50 p-8 rounded-[2rem]">
+              <div className="flex-1 bg-gray-50 p-8 rounded-[2rem] border-2 border-gray-100">
                 <p className="text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Access Role</p>
                 <p className="text-2xl font-black text-primary uppercase tracking-tighter">{generatedCredentials?.role}</p>
               </div>
@@ -821,17 +839,17 @@ const UserManagement = () => {
               <div className="flex gap-6 mb-2">
                 <div className="flex-1 border-r border-white/10 px-4">
                   <p className="text-[10px] font-black uppercase opacity-40 mb-2">Username</p>
-                  <p className="text-xl font-mono font-black tracking-tighter break-all">{generatedCredentials?.username}</p>
+                  <p className="text-2xl font-mono font-black tracking-tighter break-all">{generatedCredentials?.username}</p>
                 </div>
                 <div className="flex-1 px-4">
                   <p className="text-[10px] font-black uppercase opacity-40 mb-2">Access Key</p>
-                  <p className="text-xl font-mono font-black text-rose-400 tracking-[0.2em] break-all">{generatedCredentials?.password}</p>
+                  <p className="text-2xl font-mono font-black text-rose-400 tracking-[0.2em] break-all">{generatedCredentials?.password}</p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-12 text-center">
-              <p className="text-[10px] font-black text-gray-400 uppercase max-w-sm mx-auto leading-relaxed">Please update your password immediately after initial login. Keep this document in a safe environment.</p>
+            <div className="mt-10 text-center">
+              <p className="text-[10px] font-black text-gray-400 uppercase max-w-md mx-auto leading-relaxed">Please update your password immediately after initial login. Keep this document in a safe environment.</p>
             </div>
           </div>
         </div>
