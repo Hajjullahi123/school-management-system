@@ -194,6 +194,20 @@ const Layout = () => {
     });
   }
 
+  // Everyone (except superadmin and alumni) gets My Profile right after Dashboard
+  if (user?.role !== 'superadmin' && user?.role !== 'alumni') {
+    menuItems.push({
+      path: '/dashboard/profile',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      ),
+      label: 'My Profile'
+    });
+  }
+
+
   // HOD Monitoring Override
   if (user?.departmentAsHead) {
     menuItems.push({
@@ -488,16 +502,7 @@ const Layout = () => {
   if (user?.role === 'teacher' || user?.teacher || user?.role === 'principal' || isFormMaster) {
     const teacherItems = [];
 
-    // Always include profile if they have a teacher role/profile
-    teacherItems.push({
-      path: '/dashboard/profile',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-        </svg>
-      ),
-      label: 'My Profile'
-    });
+    // Profile moved to the top of the sidebar
 
     // Form Master specific items
     if (isFormMaster) {
@@ -1230,15 +1235,7 @@ const Layout = () => {
 
     // Exam Officer specific items for result management
     if (user?.role === 'examination_officer') {
-      menuItems.push({
-        path: '/dashboard/profile',
-        icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-        ),
-        label: 'My Profile'
-      });
+    // Profile moved to the top of the sidebar
       menuItems.push({
         path: '/dashboard/bulk-result-upload',
         icon: (
