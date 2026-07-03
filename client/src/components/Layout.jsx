@@ -1425,7 +1425,7 @@ const Layout = () => {
     });
     } // end analytics guard
 
-    if (true) { // Allow all admin-level roles to see items in this group
+    if (user?.role !== 'examination_officer') { // Exclude examination officer from seeing ID cards
       menuItems.push({
         path: '/dashboard/id-cards', icon: (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
