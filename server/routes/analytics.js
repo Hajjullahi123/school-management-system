@@ -349,11 +349,10 @@ router.get('/submission-tracking', authenticate, authorize(['admin', 'principal'
     });
 
     const currentSession = await prisma.academicSession.findFirst({ where: { schoolId: req.schoolId, isCurrent: true } });
-    const currentTerm = await prisma.term.findFirst({ where: { schoolId: req.schoolId, isCurrent: true, academicSessionId: currentSession?.id } });
+    const currentTerm = await prisma.term.findFirst({ where: { schoolId: req.schoolId, isCurrent: true } });
 
-    if (!currentSession || !currentTerm) {
-      return res.status(400).json({ error: 'Current session or term not set' });
-    }
+    // Allow fetching assignments even if term/session isn't perfectly configured
+    // so the teacher dashboard doesn't just show 'No Subjects Assigned' with a silent 400 error.
 
     const { teacherId } = req.query;
 
@@ -364,11 +363,14 @@ router.get('/submission-tracking', authenticate, authorize(['admin', 'principal'
       }
     }
 
-    // 1. Get teacher assignments
+    // 1. Get teacher assignments filtered by current term
+    const termFilter = currentTerm ? { OR: [{ termId: currentTerm.id }, { termId: null }] } : {};
+    
     const assignments = await prisma.teacherAssignment.findMany({
       where: {
         schoolId: req.schoolId,
-        ...(teacherId ? { teacherId: parseInt(teacherId) } : {})
+        ...(teacherId ? { teacherId: parseInt(teacherId) } : {}),
+        ...termFilter
       },
       include: {
         teacher: { select: { firstName: true, lastName: true } },
@@ -382,25 +384,28 @@ router.get('/submission-tracking', authenticate, authorize(['admin', 'principal'
     });
 
     // 2. Get results for current term
-    const results = await prisma.result.findMany({
-      where: {
-        schoolId: req.schoolId,
-        academicSessionId: currentSession.id,
-        termId: currentTerm.id
-      },
-      select: {
-        id: true,
-        studentId: true,
-        classId: true,
-        subjectId: true,
-        assignment1Score: true,
-        assignment2Score: true,
-        test1Score: true,
-        test2Score: true,
-        examScore: true,
-        isSubmitted: true
-      }
-    });
+    let results = [];
+    if (currentSession && currentTerm) {
+      results = await prisma.result.findMany({
+        where: {
+          schoolId: req.schoolId,
+          academicSessionId: currentSession.id,
+          termId: currentTerm.id
+        },
+        select: {
+          id: true,
+          studentId: true,
+          classId: true,
+          subjectId: true,
+          assignment1Score: true,
+          assignment2Score: true,
+          test1Score: true,
+          test2Score: true,
+          examScore: true,
+          isSubmitted: true
+        }
+      });
+    }
 
     // 3. Get student counts per class
     const studentCounts = await prisma.student.groupBy({
@@ -476,10 +481,10 @@ router.get('/submission-tracking', authenticate, authorize(['admin', 'principal'
     res.json({
       tracking: trackingData,
       config: {
-        examMode: school.examMode,
-        examModeType: school.examModeType,
-        term: currentTerm.name,
-        session: currentSession.name
+        examMode: school?.examMode,
+        examModeType: school?.examModeType,
+        term: currentTerm?.name || 'Unknown Term',
+        session: currentSession?.name || 'Unknown Session'
       }
     });
   } catch (error) {
