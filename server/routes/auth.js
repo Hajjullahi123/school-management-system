@@ -636,5 +636,76 @@ router.post('/reset-password', authenticate, authorize(['admin', 'principal']), 
     res.status(500).json({ error: 'Failed to reset password' });
   }
 });
+/**
+ * @route   POST /api/auth/impersonate
+ * @desc    Admin impersonate a user account (Ghost Login)
+ * @access  Private (Admin/Superadmin only)
+ */
+router.post('/impersonate', authenticate, authorize(['admin', 'superadmin']), async (req, res) => {
+  try {
+    const { targetUserId } = req.body;
+    
+    if (!targetUserId) {
+      return res.status(400).json({ error: 'Target user ID is required' });
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: parseInt(targetUserId) }
+    });
+
+    if (!targetUser) {
+      return res.status(404).json({ error: 'Target user not found' });
+    }
+
+    // Ensure they don't impersonate superadmin unless they are superadmin
+    if (targetUser.role === 'superadmin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Cannot impersonate a superadmin' });
+    }
+
+    // Only allow impersonating users in the same school (superadmin can bypass)
+    if (req.user.role !== 'superadmin' && targetUser.schoolId !== req.user.schoolId) {
+      return res.status(403).json({ error: 'Cannot impersonate users from other schools' });
+    }
+
+    const fullUser = await getFullUserPayload(targetUser.id, targetUser.schoolId, targetUser.role);
+
+    // Create a special JWT token with impersonator ID
+    const payload = {
+      user: {
+        id: targetUser.id,
+        role: targetUser.role,
+        schoolId: targetUser.schoolId,
+        impersonatorId: req.user.id // Add marker in JWT payload
+      }
+    };
+
+    jwt.sign(
+      payload,
+      JWT_SECRET,
+      { expiresIn: '1h' }, // Short expiry for impersonation tokens
+      (err, token) => {
+        if (err) throw err;
+        
+        // Log the impersonation action
+        logAction({
+          schoolId: targetUser.schoolId || 1,
+          userId: req.user.id,
+          action: 'IMPERSONATE',
+          resource: 'USER_ACCOUNT',
+          details: { 
+            targetUserId: targetUser.id,
+            targetUsername: targetUser.username
+          },
+          ipAddress: req.ip
+        });
+
+        res.json({ token, user: fullUser });
+      }
+    );
+  } catch (error) {
+    console.error('Impersonate error:', error);
+    res.status(500).json({ error: 'Failed to impersonate user' });
+  }
+});
 
 module.exports = router;

@@ -37,7 +37,7 @@ const UserManagement = () => {
     parentGuardianName: ''
   });
 
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, impersonateUser } = useAuth();
   const location = useLocation();
   const [classes, setClasses] = useState([]);
   const [expandedRoles, setExpandedRoles] = useState({});
@@ -214,6 +214,24 @@ const UserManagement = () => {
     } catch (error) {
       console.error('Error deleting user:', error);
       alert('Failed to delete user');
+    }
+  };
+
+  const handleImpersonate = async (userId) => {
+    if (!confirm('Are you sure you want to securely log into this account?')) return;
+    
+    // Fallback if impersonateUser is not correctly pulled from context
+    if (typeof impersonateUser !== 'function') {
+      alert('Impersonation context not ready. Please refresh the page.');
+      return;
+    }
+    
+    const result = await impersonateUser(userId);
+    if (result.success) {
+      // Redirect to dashboard explicitly so the components reload with new context
+      window.location.href = '/dashboard';
+    } else {
+      alert(result.error || 'Failed to impersonate user');
     }
   };
 
@@ -529,9 +547,16 @@ const UserManagement = () => {
                                     </Link>
                                   )}
                                   {user.id !== currentUser?.id && (
-                                    <button onClick={() => handleDelete(user.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Delete">
-                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                    </button>
+                                    <>
+                                      {(currentUser?.role === 'admin' || currentUser?.role === 'superadmin') && user.role !== 'superadmin' && (
+                                        <button onClick={() => handleImpersonate(user.id)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Ghost Login (Login As)">
+                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                                        </button>
+                                      )}
+                                      <button onClick={() => handleDelete(user.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Delete">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                      </button>
+                                    </>
                                   )}
                                 </div>
                               </td>

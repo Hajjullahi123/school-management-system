@@ -6,6 +6,7 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isImpersonating, setIsImpersonating] = useState(!!localStorage.getItem('originalAdminToken'));
 
   const [dashboardUnlocked] = useState(true);
 
@@ -121,6 +122,56 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const impersonateUser = async (targetUserId) => {
+    try {
+      const response = await api.post('/api/auth/impersonate', { targetUserId });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to impersonate user');
+      }
+
+      // Save the current admin token securely
+      const currentToken = localStorage.getItem('token');
+      localStorage.setItem('originalAdminToken', currentToken);
+      
+      // Set the new ghost token
+      localStorage.setItem('token', data.token);
+      
+      setUser(data.user);
+      setIsImpersonating(true);
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
+
+  const returnToAdmin = async () => {
+    try {
+      const originalToken = localStorage.getItem('originalAdminToken');
+      if (!originalToken) {
+        throw new Error('No original admin session found');
+      }
+
+      // Restore the admin token
+      localStorage.setItem('token', originalToken);
+      localStorage.removeItem('originalAdminToken');
+      
+      setIsImpersonating(false);
+      setLoading(true);
+      
+      // Re-fetch admin session
+      await checkAuth();
+      
+      return { success: true };
+    } catch (error) {
+      // If restoration fails, force a full logout
+      logout();
+      return { success: false, error: error.message };
+    }
+  };
+
   const unlockDashboard = async () => ({ success: true });
 
   const lockDashboard = () => {};
@@ -164,7 +215,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isDemo, login, demoLogin, logout, lockDashboard, unlockDashboard, dashboardUnlocked, loading, refreshUser }}>
+    <AuthContext.Provider value={{ user, isDemo, login, demoLogin, logout, lockDashboard, unlockDashboard, dashboardUnlocked, loading, refreshUser, isImpersonating, impersonateUser, returnToAdmin }}>
       {loading ? (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white">
           <div className="w-16 h-16 border-4 border-indigo-500 border-t-white rounded-full animate-spin mb-6"></div>
