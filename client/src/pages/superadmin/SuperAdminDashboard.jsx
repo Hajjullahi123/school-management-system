@@ -1413,8 +1413,6 @@ const SuperAdminDashboard = () => {
 
       {/* Credentials Viewing/Printing Modal */}
       {showCredsModal && resetCreds && (
-      {/* Credentials Viewing/Printing Modal */}
-      {showCredsModal && resetCreds && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 print:p-0 print:bg-white print:block print:absolute print:top-0 print:left-0 print:right-0 print:bottom-0">
           
           {/* Main Card Container */}
