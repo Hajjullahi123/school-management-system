@@ -1413,43 +1413,76 @@ const SuperAdminDashboard = () => {
 
       {/* Credentials Viewing/Printing Modal */}
       {showCredsModal && resetCreds && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 print:p-0 print:bg-white">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden print:shadow-none print:w-full print:max-w-none">
-            <div className={`p-6 text-white print:bg-white print:text-black print:border-b-2 print:border-gray-200 ${resetCreds.isNewRegistration ? 'bg-indigo-600' : 'bg-amber-600'}`}>
-              <h3 className="text-xl font-bold flex items-center">
+      {/* Credentials Viewing/Printing Modal */}
+      {showCredsModal && resetCreds && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 print:p-0 print:bg-white print:block print:absolute print:top-0 print:left-0 print:right-0 print:bottom-0">
+          
+          {/* Main Card Container */}
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden print:shadow-none print:w-full print:max-w-none print:rounded-none print:h-screen print:flex print:flex-col relative">
+            
+            {/* Watermark for Print */}
+            <div className="hidden print:flex absolute inset-0 items-center justify-center opacity-[0.03] pointer-events-none z-0">
+              <FiUnlock size={400} />
+            </div>
+
+            {/* Header section */}
+            <div className={`p-6 text-white relative z-10 print:bg-white print:text-gray-900 print:border-b-4 print:border-indigo-900 print:p-10 ${resetCreds.isNewRegistration ? 'bg-indigo-600' : 'bg-amber-600'}`}>
+              <div className="hidden print:flex justify-between items-start mb-6">
+                 <div>
+                   <h1 className="text-4xl font-black tracking-tighter text-indigo-900 uppercase">EduTechAI</h1>
+                   <p className="text-sm font-bold text-gray-500 uppercase tracking-widest mt-1">Super Admin Issuance</p>
+                 </div>
+                 <div className="text-right">
+                   <p className="text-sm font-bold text-gray-400">Date Issued:</p>
+                   <p className="text-lg font-black text-gray-800">{new Date().toLocaleDateString()}</p>
+                 </div>
+              </div>
+
+              <h3 className="text-xl print:text-3xl font-black flex items-center print:uppercase print:tracking-tight print:mb-2">
                 <FiUnlock className="mr-2 print:hidden" />
                 {resetCreds.isNewRegistration ? 'School Registration Protocol' : resetCreds.isReprint ? 'School Access Details' : 'Temporary Access Protocol'}
               </h3>
-              <p className="text-indigo-100 text-xs text-opacity-80 print:text-black">
-                {resetCreds.isNewRegistration ? 'Welcome to the platform!' : 'Access credentials for'} {resetCreds.schoolName}
+              <p className="text-indigo-100 text-xs text-opacity-80 print:text-gray-600 print:text-lg print:font-medium">
+                {resetCreds.isNewRegistration ? 'Welcome to the platform!' : 'Official access credentials for:'} <span className="print:font-black print:text-indigo-900">{resetCreds.schoolName}</span>
               </p>
             </div>
 
-            <div className="p-8 space-y-6 print:p-10">
-              <div className="space-y-4">
-                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 print:bg-white print:border-gray-200">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Portal URL</p>
-                  <p className="text-sm font-mono font-bold text-indigo-600 break-all">{window.location.origin}/dashboard</p>
+            <div className="p-8 space-y-6 print:p-12 print:flex-1 relative z-10">
+              
+              <div className="space-y-4 print:space-y-6">
+                
+                {/* URLs Row for Print */}
+                <div className="print:flex print:gap-6 print:space-y-0 space-y-4">
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 print:bg-gray-50 print:border-gray-200 print:flex-1 print:p-6 print:rounded-2xl">
+                    <p className="text-[10px] print:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 print:mb-2">General Portal URL</p>
+                    <p className="text-sm print:text-base font-mono font-bold text-indigo-600 break-all">{window.location.origin}/dashboard</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 print:bg-gray-50 print:border-gray-200 print:flex-1 print:p-6 print:rounded-2xl">
+                    <p className="text-[10px] print:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 print:mb-2">Direct School Login URL</p>
+                    <p className="text-sm print:text-base font-mono font-bold text-indigo-600 break-all">{window.location.origin}/s/{resetCreds.schoolSlug}</p>
+                  </div>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 print:bg-white print:border-gray-200">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Direct School Login URL</p>
-                  <p className="text-sm font-mono font-bold text-indigo-600 break-all">{window.location.origin}/s/{resetCreds.schoolSlug}</p>
+
+                {/* Credentials Row for Print */}
+                <div className="print:flex print:gap-6 print:space-y-0 space-y-4 mt-6 print:mt-10">
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 print:bg-indigo-50 print:border-indigo-200 print:flex-1 print:p-8 print:rounded-3xl">
+                    <p className="text-[10px] print:text-sm font-bold text-gray-400 print:text-indigo-400 uppercase tracking-widest mb-1 print:mb-3">Administrator Username</p>
+                    <p className="text-lg print:text-2xl font-mono font-black text-gray-800 print:text-indigo-900">{resetCreds.username}</p>
+                  </div>
+                  <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 print:bg-rose-50 print:border-rose-200 print:flex-1 print:p-8 print:rounded-3xl">
+                    <p className="text-[10px] print:text-sm font-bold text-amber-500 print:text-rose-400 uppercase tracking-widest mb-1 print:mb-3">
+                      {resetCreds.isReprint ? 'Password Status' : 'Temporary Password'}
+                    </p>
+                    <p className={`${resetCreds.isReprint ? 'text-lg' : 'text-2xl'} print:text-3xl font-mono font-black text-amber-700 print:text-rose-700`}>
+                      {resetCreds.password}
+                    </p>
+                  </div>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 print:bg-white print:border-gray-200">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Administrator Username</p>
-                  <p className="text-lg font-mono font-bold text-gray-800">{resetCreds.username}</p>
-                </div>
-                <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 print:bg-white print:border-gray-200">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                    {resetCreds.isReprint ? 'Password Status' : 'Temporary Password'}
-                  </p>
-                  <p className={`${resetCreds.isReprint ? 'text-lg' : 'text-2xl'} font-mono font-bold text-amber-700 print:text-black`}>
-                    {resetCreds.password}
-                  </p>
-                </div>
+
               </div>
 
-              <div className="bg-rose-50 p-4 rounded-lg flex items-start gap-3 print:hidden">
+              {/* Web-only Warning */}
+              <div className="bg-rose-50 p-4 rounded-lg flex items-start gap-3 print:hidden mt-6">
                 <FiAlertCircle className="text-rose-600 mt-1 flex-shrink-0" />
                 <p className="text-[11px] text-rose-700 leading-relaxed font-bold">
                   SECURITY WARNING: This password will expire immediately after the first login.
@@ -1457,7 +1490,22 @@ const SuperAdminDashboard = () => {
                 </p>
               </div>
 
-              <div className="flex gap-3 print:hidden">
+              {/* Print-only Warning / Instructions */}
+              <div className="hidden print:block mt-16 p-8 border-2 border-dashed border-gray-300 bg-gray-50 rounded-3xl">
+                <h4 className="text-lg font-black text-gray-900 uppercase tracking-widest mb-4 flex items-center gap-3">
+                  <FiAlertCircle className="text-gray-400" size={24} />
+                  Important Security Instructions
+                </h4>
+                <ul className="space-y-3 text-sm text-gray-700 font-medium list-disc list-inside">
+                  <li>Please keep this document secure and destroy it after first use.</li>
+                  <li>This temporary password will <strong className="text-rose-600 font-black">expire immediately</strong> upon your first successful login.</li>
+                  <li>You will be required to set a new, highly secure permanent password.</li>
+                  <li>Do not share your administrator credentials with any unauthorized personnel.</li>
+                </ul>
+              </div>
+
+              {/* Web-only buttons */}
+              <div className="flex gap-3 print:hidden mt-6">
                 <button
                   onClick={() => setShowCredsModal(false)}
                   className="flex-1 py-3 px-6 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-colors"
@@ -1468,15 +1516,18 @@ const SuperAdminDashboard = () => {
                   onClick={handlePrintCreds}
                   className="flex-1 py-3 px-6 rounded-xl bg-gray-900 text-white font-bold hover:bg-black shadow-lg flex items-center justify-center gap-2"
                 >
-                  <FiPrinter /> Print Slip
+                  <FiPrinter /> Print Official Slip
                 </button>
               </div>
 
-              <div className="hidden print:block text-center pt-20 border-t border-dashed border-gray-300">
-                <p className="text-sm font-bold text-gray-800">System Generated Credential Slip</p>
-                <p className="text-[10px] text-gray-400 mt-1">Generated by Super Admin on {new Date().toLocaleString()}</p>
-              </div>
             </div>
+            
+            {/* Print Footer */}
+            <div className="hidden print:block text-center py-6 bg-gray-900 text-white mt-auto">
+              <p className="text-xs font-bold uppercase tracking-[0.3em]">Confidential & Official Document</p>
+              <p className="text-[9px] text-gray-400 mt-2">EduTechAI School Management System &copy; {new Date().getFullYear()}</p>
+            </div>
+
           </div>
         </div>
       )}
