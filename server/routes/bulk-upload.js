@@ -492,10 +492,66 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
         });
 
         if (existingStudentCheck) {
-          results.failed.push({
-            data: studentData,
-            error: `Student ${studentData.firstName} ${studentData.lastName} ${studentData.middleName || ''} already exists in this class. Skipping to prevent duplicates.`
-          });
+          // If student exists, update their parent/guardian info if provided
+          if (studentData.parentGuardianPhone || studentData.parentGuardianName || studentData.parentEmail) {
+            const updateData = {};
+            if (studentData.parentGuardianPhone) updateData.parentGuardianPhone = studentData.parentGuardianPhone;
+            if (studentData.parentGuardianName && studentData.parentGuardianName !== `${studentData.lastName} Family`) updateData.parentGuardianName = studentData.parentGuardianName;
+            if (studentData.parentEmail) updateData.parentEmail = studentData.parentEmail;
+            
+            // Need the actual student record to update it
+            const existingStudentObj = await prisma.student.findUnique({
+              where: { userId: existingStudentCheck.id }
+            });
+
+            if (existingStudentObj) {
+              await prisma.student.update({
+                where: { id: existingStudentObj.id },
+                data: updateData
+              });
+
+              // Auto-link to parent account if phone matches
+              if (studentData.parentGuardianPhone) {
+                try {
+                  const sanitizedPhone = studentData.parentGuardianPhone.replace(/[^\d+]/g, '');
+                  if (sanitizedPhone.length >= 7) {
+                    const matchingParent = await prisma.parent.findFirst({
+                      where: {
+                        schoolId: schoolIdInt,
+                        OR: [
+                          { phone: sanitizedPhone },
+                          { phone: { contains: sanitizedPhone.startsWith('0') ? sanitizedPhone.substring(1) : sanitizedPhone } }
+                        ]
+                      }
+                    });
+                    if (matchingParent) {
+                      await prisma.student.update({
+                        where: { id: existingStudentObj.id },
+                        data: { parentId: matchingParent.id }
+                      });
+                    }
+                  }
+                } catch (autoLinkErr) {
+                  console.error('[BulkAutoLink Update] Error:', autoLinkErr.message);
+                }
+              }
+
+              results.successful.push({
+                data: studentData,
+                message: `Updated existing student (${studentData.firstName} ${studentData.lastName}) with parent details.`
+              });
+            } else {
+              results.failed.push({
+                data: studentData,
+                error: `Student ${studentData.firstName} ${studentData.lastName} found as user but missing student record.`
+              });
+            }
+          } else {
+            results.failed.push({
+              data: studentData,
+              error: `Student ${studentData.firstName} ${studentData.lastName} already exists. No parent info provided to update.`
+            });
+          }
           continue;
         }
 
