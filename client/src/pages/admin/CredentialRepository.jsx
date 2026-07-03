@@ -286,6 +286,20 @@ const CredentialRepository = () => {
                  <Shield size={60} />
               </div>
 
+              {/* Card Header (School Name & Logo) */}
+              <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
+                {schoolSettings?.logoUrl ? (
+                  <img src={schoolSettings.logoUrl} alt="Logo" className="w-6 h-6 object-contain grayscale" />
+                ) : (
+                  <Shield className="w-5 h-5 text-indigo-600" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-[11px] font-black uppercase text-gray-800 tracking-tighter leading-tight truncate">
+                    {schoolSettings?.schoolName || 'EduTechAI School Manager'}
+                  </h4>
+                </div>
+              </div>
+
               <div>
                 <div className="flex justify-between items-center mb-1">
                    <h3 className="text-base font-black uppercase text-gray-900 leading-none">
