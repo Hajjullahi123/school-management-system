@@ -1557,7 +1557,7 @@ const Layout = () => {
   const schoolMotto = user?.role === 'superadmin' ? "Global Management Console" : (schoolSettings?.schoolMotto || user?.schoolMotto || user?.school?.motto || "Management System");
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 overflow-hidden print:h-auto print:overflow-visible print:block">
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
@@ -1688,7 +1688,7 @@ const Layout = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar pb-[safe-area-inset-bottom]">
+      <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar pb-[safe-area-inset-bottom] print:overflow-visible print:h-auto print:block">
         {/* Demo Mode Banner */}
         {user?.username === 'demo_admin' && (
           <div className="bg-gradient-to-r from-amber-600 to-amber-500 text-white px-4 py-2 flex items-center justify-between text-xs font-black uppercase tracking-widest shadow-lg z-50">
