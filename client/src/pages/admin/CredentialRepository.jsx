@@ -318,9 +318,9 @@ const CredentialRepository = () => {
                 </div>
               </div>
 
-              <div className="mt-4 pt-2 border-t border-gray-50">
-                 <p className="text-[8px] italic text-gray-400 leading-tight">
-                    Visit {window.location.origin}/login to access your dashboard. Please change your password after your first login for security.
+              <div className="mt-4 pt-2 border-t border-gray-200">
+                 <p className="text-[10px] font-bold text-gray-900 leading-tight">
+                    Instruction: Visit {window.location.origin}/login to access your dashboard. Please change your password after your first login for security.
                  </p>
               </div>
             </div>
