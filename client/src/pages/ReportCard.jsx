@@ -191,7 +191,8 @@ const ReportCard = () => {
       const canvas = await html2canvas(container, {
         scale: 3,
         useCORS: true,
-        logging: false
+        logging: false,
+        windowWidth: 850
       });
       const imgData = canvas.toDataURL('image/png');
       

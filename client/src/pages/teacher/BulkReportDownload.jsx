@@ -232,6 +232,16 @@ const BulkReportDownload = () => {
     alert('Generating PDF bundle, please wait... This may take up to a minute for large classes.');
 
     try {
+      const scaler = document.querySelector('.report-card-scaler');
+      const originalTransform = scaler ? scaler.style.transform : '';
+      if (scaler) {
+        scaler.style.transform = 'scale(1)';
+        scaler.classList.remove('scale-[0.45]', 'xs:scale-[0.55]', 'sm:scale-100');
+      }
+      
+      // Wait a tick for DOM to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const pdf = new jsPDF({
         orientation: 'p',
         unit: 'mm',
@@ -248,11 +258,17 @@ const BulkReportDownload = () => {
         const canvas = await html2canvas(cards[i], {
           scale: 2,
           useCORS: true,
-          logging: false
+          logging: false,
+          windowWidth: 850
         });
         
         const imgData = canvas.toDataURL('image/png');
         pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+      }
+
+      if (scaler) {
+        scaler.style.transform = originalTransform;
+        scaler.classList.add('scale-[0.45]', 'xs:scale-[0.55]', 'sm:scale-100');
       }
 
       safeDocumentDownload(pdf, `BulkReports-${selectedClass}-${selectedTerm}.pdf`);
@@ -260,6 +276,13 @@ const BulkReportDownload = () => {
     } catch (error) {
       console.error('Bulk PDF Generation failed:', error);
       alert('Failed to generate PDF bundle: ' + error.message);
+      
+      // Attempt to restore scaler on error
+      const scaler = document.querySelector('.report-card-scaler');
+      if (scaler) {
+        scaler.style.transform = '';
+        scaler.classList.add('scale-[0.45]', 'xs:scale-[0.55]', 'sm:scale-100');
+      }
     } finally {
       setDownloadingPDF(false);
     }
@@ -426,7 +449,7 @@ const BulkReportDownload = () => {
                   </div>
 
                   <div className="report-card-mobile-wrapper overflow-x-auto pb-8 print:overflow-visible">
-                    <div className="report-card-scaler origin-top-left sm:origin-top scale-[0.45] xs:scale-[0.55] sm:scale-100 transition-transform duration-500">
+                    <div className="report-card-scaler origin-top-left sm:origin-top scale-[0.45] xs:scale-[0.55] sm:scale-100 transition-transform duration-500 print:scale-100 print:transform-none">
                       <div key={idx} className={`relative bg-white p-8 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] break-after-page`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
 
                         {/* PROTECTION WATERMARK */}
