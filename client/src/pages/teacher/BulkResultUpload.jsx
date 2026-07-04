@@ -111,25 +111,18 @@ export default function BulkResultUpload() {
   }), [weights]);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (user && schoolSettings) {
+      fetchData();
+    }
+  }, [user, schoolSettings]);
 
   const fetchData = async () => {
     try {
-      // Get current term and session
-      const [termsRes, sessionsRes] = await Promise.all([
-        api.get('/api/terms'),
-        api.get('/api/academic-sessions')
-      ]);
+      const activeTerm = schoolSettings?.currentTerm;
+      const activeSession = schoolSettings?.currentSession;
 
-      const terms = await termsRes.json();
-      const sessions = await sessionsRes.json();
-
-      const activeTerm = terms.find(t => t.isCurrent);
-      const activeSession = sessions.find(s => s.isCurrent);
-
-      setCurrentTerm(activeTerm);
-      setCurrentSession(activeSession);
+      setCurrentTerm(activeTerm || null);
+      setCurrentSession(activeSession || null);
 
       if (activeTerm && activeSession && user) {
         // Fetch teacher's scoresheets
@@ -138,12 +131,16 @@ export default function BulkResultUpload() {
           `/api/scoresheet/teacher/${user.id}?termId=${activeTerm.id}&academicSessionId=${activeSession.id}`
         );
 
-        const data = await scoresheetRes.json();
-        setAssignments(data || []);
+        if (scoresheetRes.ok) {
+          const data = await scoresheetRes.json();
+          setAssignments(data || []);
+        } else {
+          setAssignments([]);
+        }
       }
     } catch (error) {
       console.error('Error fetching data:', error);
-      alert('Failed to load data');
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
