@@ -271,6 +271,7 @@ const SuperAdminDashboard = () => {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('schoolSlug');
+      localStorage.removeItem('originalAdminToken'); // Clear stale ghost-login state to prevent false impersonation banner
       
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
