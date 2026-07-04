@@ -193,9 +193,20 @@ const BulkReportDownload = () => {
     return { affective, psychomotor };
   };
 
+  const getDocumentTitle = () => {
+    let title = 'Bulk_Reports';
+    if (selectedClass && selectedTerm) {
+      const classData = classes.find(c => c.id.toString() === selectedClass.toString());
+      const className = classData ? `${classData.name}${classData.arm ? '_' + classData.arm : ''}` : 'Class';
+      const termName = terms.find(t => t.id.toString() === selectedTerm.toString())?.name || 'Term';
+      title = `${className}_${termName}_Bulk_Reports`;
+    }
+    return title.replace(/[^a-zA-Z0-9]/g, '_');
+  };
+
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
-    documentTitle: `Bulk_Reports`,
+    documentTitle: getDocumentTitle(),
     pageStyle: `
       @media print {
         @page { size: A4; margin: 0 !important; }

@@ -214,7 +214,16 @@ const ReportCard = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (reportData?.student && reportData?.term) {
+      const oldTitle = document.title;
+      const cleanName = (reportData.student.name || 'Student').replace(/[^a-zA-Z0-9]/g, '_');
+      const cleanTerm = (reportData.term.name || 'Term').replace(/[^a-zA-Z0-9]/g, '_');
+      document.title = `${cleanName}_${cleanTerm}_ReportCard`;
+      window.print();
+      document.title = oldTitle;
+    } else {
+      window.print();
+    }
   };
 
   const sendEmail = async (e) => {
