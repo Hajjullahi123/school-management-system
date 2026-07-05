@@ -673,39 +673,33 @@ router.post('/impersonate', authenticate, authorize(['admin', 'superadmin']), as
 
     const fullUser = await getFullUserPayload(targetUser.id, targetUser.schoolId, targetUser.role);
 
-    // Create a special JWT token with impersonator ID
-    const payload = {
-      user: {
+    // Create JWT token with FLAT structure matching the login endpoint
+    // so the authenticate middleware can read decoded.id, decoded.role, etc.
+    const token = jwt.sign(
+      {
         id: targetUser.id,
         role: targetUser.role,
         schoolId: targetUser.schoolId,
-        impersonatorId: req.user.id // Add marker in JWT payload
-      }
-    };
-
-    jwt.sign(
-      payload,
+        impersonatorId: req.user.id // Mark this as an impersonation session
+      },
       JWT_SECRET,
-      { expiresIn: '1h' }, // Short expiry for impersonation tokens
-      (err, token) => {
-        if (err) throw err;
-        
-        // Log the impersonation action
-        logAction({
-          schoolId: targetUser.schoolId || 1,
-          userId: req.user.id,
-          action: 'IMPERSONATE',
-          resource: 'USER_ACCOUNT',
-          details: { 
-            targetUserId: targetUser.id,
-            targetUsername: targetUser.username
-          },
-          ipAddress: req.ip
-        });
-
-        res.json({ token, user: fullUser });
-      }
+      { expiresIn: '1h' } // Short expiry for impersonation tokens
     );
+
+    // Log the impersonation action
+    logAction({
+      schoolId: targetUser.schoolId || 1,
+      userId: req.user.id,
+      action: 'IMPERSONATE',
+      resource: 'USER_ACCOUNT',
+      details: { 
+        targetUserId: targetUser.id,
+        targetUsername: targetUser.username
+      },
+      ipAddress: req.ip
+    });
+
+    res.json({ token, user: fullUser });
   } catch (error) {
     console.error('Impersonate error:', error);
     res.status(500).json({ error: 'Failed to impersonate user' });
