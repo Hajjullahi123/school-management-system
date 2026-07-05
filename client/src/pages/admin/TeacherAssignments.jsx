@@ -482,7 +482,23 @@ const TeacherAssignments = () => {
                 </label>
                 {formData.selectedClassId ? (
                   availableClassSubjects.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <>
+                      <label className="flex items-center space-x-2 mb-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={availableClassSubjects.length > 0 && availableClassSubjects.every(cs => formData.classSubjectIds.includes(cs.id))}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData(prev => ({ ...prev, classSubjectIds: availableClassSubjects.map(cs => cs.id) }));
+                            } else {
+                              setFormData(prev => ({ ...prev, classSubjectIds: [] }));
+                            }
+                          }}
+                          className="rounded text-primary focus:ring-primary w-4 h-4"
+                        />
+                        <span className="text-sm font-bold text-primary">Assign All ({availableClassSubjects.length} subjects)</span>
+                      </label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {availableClassSubjects.map((cs) => (
                         <label key={cs.id} className="flex items-center space-x-2 border rounded p-2 hover:bg-gray-50 cursor-pointer">
                           <input
@@ -501,6 +517,7 @@ const TeacherAssignments = () => {
                         </label>
                       ))}
                     </div>
+                    </>
                   ) : (
                     <p className="text-sm text-orange-600 mt-1">
                       No unassigned subjects available for this class
