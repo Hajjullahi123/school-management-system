@@ -191,8 +191,8 @@ router.get('/teacher/:teacherId', authenticate, authorize(['admin', 'teacher', '
 
     let classSubjectPairs;
 
-    if (req.user.role === 'examination_officer' || req.user.role === 'admin') {
-      // Examination officer & admin: get ALL class-subject pairs for the school
+    if ((req.user.role === 'examination_officer' || req.user.role === 'admin') && req.user.id === teacherId) {
+      // Admin/Exam Officer viewing their OWN scoresheets: show ALL class-subject pairs
       const classSubjects = await prisma.classSubject.findMany({
         where: { schoolId: req.schoolId },
         include: {
@@ -213,7 +213,7 @@ router.get('/teacher/:teacherId', authenticate, authorize(['admin', 'teacher', '
         subject: cs.subject
       }));
     } else {
-      // Teacher: get only assigned class-subject pairs
+      // Viewing a SPECIFIC teacher's scoresheets: show only their assignments
       const assignments = await prisma.teacherAssignment.findMany({
         where: {
           teacherId,
