@@ -209,8 +209,8 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
         role: 'superadmin',
         schoolId: null,
         OR: [
-          { username: { equals: searchId } },
-          { email: { equals: searchId } }
+          { username: { equals: searchId, mode: 'insensitive' } },
+          { email: { equals: searchId, mode: 'insensitive' } }
         ]
       },
       select: { role: true }
@@ -224,8 +224,8 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
     const globalMatches = await prisma.user.findMany({
       where: { 
         OR: [
-          { username: { equals: searchId } }, 
-          { email: { equals: searchId } }
+          { username: { equals: searchId, mode: 'insensitive' } }, 
+          { email: { equals: searchId, mode: 'insensitive' } }
         ] 
       },
       select: { 
@@ -274,11 +274,11 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
       if (school) {
         const [studentMatch, teacherMatch] = await Promise.all([
           prisma.student.findFirst({
-            where: { schoolId: school.id, admissionNumber: { equals: searchId } },
+            where: { schoolId: school.id, admissionNumber: { equals: searchId, mode: 'insensitive' } },
             select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
           }),
           prisma.teacher.findFirst({
-            where: { schoolId: school.id, staffId: { equals: searchId } },
+            where: { schoolId: school.id, staffId: { equals: searchId, mode: 'insensitive' } },
             select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
           })
         ]);
@@ -308,7 +308,7 @@ router.post('/login', validate(loginSchema), async (req, res) => {
       // Global login (superadmin)
       user = await prisma.user.findFirst({
         where: {
-          username: { equals: searchId },
+          username: { equals: searchId, mode: 'insensitive' },
           schoolId: null,
           role: 'superadmin'
         },
@@ -363,27 +363,30 @@ router.post('/login', validate(loginSchema), async (req, res) => {
         
         if (isEmail) {
           user = await prisma.user.findFirst({
-            where: { schoolId: school.id, email: { equals: searchId } },
+            where: { schoolId: school.id, email: { equals: searchId, mode: 'insensitive' } },
             select: userSelect
           });
         } else {
-          // Look up student or teacher by their ID numbers
-          const [studentRecord, teacherRecord] = await Promise.all([
-            prisma.student.findUnique({
+          // First check username case-insensitively
+          user = await prisma.user.findFirst({
+            where: { schoolId: school.id, username: { equals: searchId, mode: 'insensitive' } },
+            select: userSelect
+          });
+
+          if (!user) {
+            // Look up student or teacher by their ID numbers
+            const [studentRecord, teacherRecord] = await Promise.all([
+              prisma.student.findFirst({
               where: {
-                schoolId_admissionNumber: {
                   schoolId: school.id,
-                  admissionNumber: searchId
-                }
+                  admissionNumber: { equals: searchId, mode: 'insensitive' }
               },
               select: { userId: true, user: { select: userSelect } }
             }),
-            prisma.teacher.findUnique({
+            prisma.teacher.findFirst({
               where: {
-                schoolId_staffId: {
                   schoolId: school.id,
-                  staffId: searchId
-                }
+                  staffId: { equals: searchId, mode: 'insensitive' }
               },
               select: { userId: true, user: { select: userSelect } }
             })
@@ -402,6 +405,7 @@ router.post('/login', validate(loginSchema), async (req, res) => {
           }
         }
       }
+    }
     }
 
     if (!user || user.isActive === false) {
