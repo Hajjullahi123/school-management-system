@@ -62,7 +62,7 @@ const CBTManagement = () => {
   const { currentTerm, currentSession, loading: termLoading } = useTermContext();
 
   useEffect(() => {
-    if (!termLoading && currentTerm) {
+    if (!termLoading) {
       fetchInitialData();
     }
   }, [termLoading, currentTerm]);
@@ -630,6 +630,12 @@ const CBTManagement = () => {
 
   return (
     <div className="space-y-6 pr-2 pb-10">
+      {!currentTerm && (
+        <div className="bg-amber-50 border-2 border-amber-200 text-amber-800 px-6 py-4 rounded-2xl flex items-center gap-3">
+          <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+          <span className="text-sm font-semibold">No active term is set. Exams from all terms are being shown. Please ask your admin to set a current term for filtered results.</span>
+        </div>
+      )}
       {/* Header Section - Glassmorphism */}
 
       {/* Header Section - Glassmorphism */}
