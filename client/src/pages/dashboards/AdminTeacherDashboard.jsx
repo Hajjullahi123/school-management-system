@@ -529,7 +529,7 @@ const AdminTeacherDashboard = ({ user, schoolSettings }) => {
                   </div>
                   <div>
                     <h3 className="text-white font-black uppercase tracking-wider text-sm">Bulk Term Reports</h3>
-                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-0.5">Collect {user.formMasterClass.name} Reports</p>
+                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-0.5">Generate {user.formMasterClass.name} Reports</p>
                   </div>
                 </div>
               </Link>

@@ -2,9 +2,14 @@ import { saveAs } from 'file-saver';
 
 export const safeDocumentDownload = (doc, fileName) => {
   try {
-    const blob = doc.output('blob');
-    // Ensure the blob has the correct type
-    const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+    // Get arraybuffer directly and construct a clean non-nested Blob
+    const buffer = doc.output('arraybuffer');
+    const pdfBlob = new Blob([buffer], { type: 'application/pdf' });
+    
+    if (pdfBlob.size === 0) {
+      console.error("PDF generation resulted in a 0-byte file");
+      return;
+    }
     
     // Check if we are on a mobile device
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -18,21 +23,33 @@ export const safeDocumentDownload = (doc, fileName) => {
           files: [file]
         }).catch(err => {
            console.log("Share API cancelled or failed, falling back...", err);
-           fallbackDownload(pdfBlob, fileName);
+           fallbackDownload(pdfBlob, fileName, isMobile);
         });
         return;
       }
     }
     
     // Fallback for desktop or unsupported mobile
-    fallbackDownload(pdfBlob, fileName);
+    fallbackDownload(pdfBlob, fileName, isMobile);
   } catch(e) {
     console.error("PDF Download error", e);
   }
 };
 
-function fallbackDownload(blob, fileName) {
-    // If file-saver fails, this is a clean vanilla fallback
+function fallbackDownload(blob, fileName, isMobile) {
+    if (isMobile) {
+      try {
+        const url = window.URL.createObjectURL(blob);
+        const newWindow = window.open(url, '_blank');
+        if (newWindow) {
+          return;
+        }
+      } catch (e) {
+        console.error("Failed to open PDF in new tab", e);
+      }
+    }
+
+    // Default download fallback
     try {
         saveAs(blob, fileName);
     } catch (e) {

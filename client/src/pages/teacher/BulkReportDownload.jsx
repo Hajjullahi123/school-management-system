@@ -837,6 +837,29 @@ const BulkReportDownload = () => {
               );
             })}
           </div>
+          {reports.length > 0 && (
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-8 print:hidden">
+              <button 
+                onClick={handleDownloadPDF} 
+                disabled={downloadingPDF}
+                className="group/btn bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-3 border border-emerald-500 w-full sm:w-auto"
+              >
+                {downloadingPDF ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
+                ) : (
+                  <span>💾</span>
+                )}
+                Download PDF Bundle
+              </button>
+              <button 
+                onClick={handlePrint} 
+                className="group/btn bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border border-slate-800 w-full sm:w-auto"
+              >
+                <Printer className="w-5 h-5 transition-transform group-hover/btn:rotate-12" />
+                Print All {reports.length} Reports
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
