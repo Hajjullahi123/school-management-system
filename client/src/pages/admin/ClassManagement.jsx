@@ -379,7 +379,7 @@ const ClassManagement = () => {
                         <p className="text-xs text-gray-500">Form Master</p>
                         <p className="text-sm font-medium text-gray-900">
                           {cls.classTeacher
-                            ? `${cls.classTeacher.firstName} ${cls.classTeacher.lastName}`
+                            ? `${cls.classTeacher.firstName} ${cls.classTeacher.middleName ? cls.classTeacher.middleName + ' ' : ''}${cls.classTeacher.lastName}`
                             : 'Not Assigned'}
                         </p>
                       </div>
@@ -528,7 +528,7 @@ const ClassManagement = () => {
                         const isAssigned = classes.some(c => Number(c.classTeacherId) === Number(teacher.id) && (!editingClass || c.id !== editingClass.id));
                         return (
                           <option key={teacher.id} value={teacher.id} disabled={isAssigned}>
-                            {teacher.firstName} {teacher.lastName} {isAssigned ? '(Assigned)' : ''}
+                            {teacher.firstName} {teacher.middleName ? teacher.middleName + ' ' : ''}{teacher.lastName} {isAssigned ? '(Assigned)' : ''}
                           </option>
                         );
                       })}
@@ -963,7 +963,7 @@ const ClassManagement = () => {
             <p className="text-white/90 text-sm">Form Master</p>
             <p className="text-lg font-semibold">
               {selectedClass.classTeacher
-                ? `${selectedClass.classTeacher.firstName} ${selectedClass.classTeacher.lastName}`
+                ? `${selectedClass.classTeacher.firstName} ${selectedClass.classTeacher.middleName ? selectedClass.classTeacher.middleName + ' ' : ''}${selectedClass.classTeacher.lastName}`
                 : 'Not Assigned'}
             </p>
           </div>
