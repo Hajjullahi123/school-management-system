@@ -923,7 +923,7 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
     }
 
     // Fallback for parentGuardianName
-    const effectiveParentName = parentGuardianName || `${lastName} Family`;
+    const effectiveParentName = parentGuardianName || `Mr. ${lastName}`;
 
     // Validate blood group if provided
     if (bloodGroup && !isValidBloodGroup(bloodGroup)) {

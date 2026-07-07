@@ -424,7 +424,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
 
         // Fallback for parentGuardianName if missing
         if (!studentData.parentGuardianName) {
-          studentData.parentGuardianName = `${studentData.lastName} Family`;
+          studentData.parentGuardianName = `Mr. ${studentData.lastName}`;
         }
 
         let classIdVal = studentData.classId.toString().trim();
@@ -496,7 +496,7 @@ router.post('/upload', authenticate, authorize(['admin', 'teacher', 'principal']
           if (studentData.parentGuardianPhone || studentData.parentGuardianName || studentData.parentEmail) {
             const updateData = {};
             if (studentData.parentGuardianPhone) updateData.parentGuardianPhone = studentData.parentGuardianPhone;
-            if (studentData.parentGuardianName && studentData.parentGuardianName !== `${studentData.lastName} Family`) updateData.parentGuardianName = studentData.parentGuardianName;
+            if (studentData.parentGuardianName && studentData.parentGuardianName !== `Mr. ${studentData.lastName}`) updateData.parentGuardianName = studentData.parentGuardianName;
             if (studentData.parentEmail) updateData.parentEmail = studentData.parentEmail;
             
             // Need the actual student record to update it
@@ -761,7 +761,7 @@ router.post('/bulk-upload', authenticate, authorize(['admin', 'teacher', 'princi
 
         // Fallback for parentGuardianName if missing
         if (!studentData.parentGuardianName) {
-          studentData.parentGuardianName = `${studentData.lastName} Family`;
+          studentData.parentGuardianName = `Mr. ${studentData.lastName}`;
         }
 
         // Check permission for teacher
