@@ -574,7 +574,7 @@ const TermReportCard = () => {
                       <div className="col-span-3 grid grid-cols-3 gap-2">
                          <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
                            <p className="text-[8px] text-gray-400 mb-0.5">FULL NAME</p>
-                           <p className="text-xs truncate text-emerald-800" style={{ color: reportColor }}>{getStudentDisplayName(data.student)}</p>
+                           <p className="text-xs break-words leading-tight text-emerald-800" style={{ color: reportColor }}>{getStudentDisplayName(data.student)}</p>
                          </div>
                          <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
                            <p className="text-[8px] text-gray-400 mb-0.5">ADMISSION NO</p>
