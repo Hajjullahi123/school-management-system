@@ -563,15 +563,7 @@ const TermReportCard = () => {
 
                   {/* STUDENT INFO TABLE */}
                   {layout === 'modern' ? (
-                    <div className="grid grid-cols-4 gap-2 text-[10px] uppercase font-bold">
-                      <div className="col-span-1 bg-gray-50 p-2 rounded-xl border border-gray-100 flex flex-col items-center justify-center">
-                        {photoUri ? (
-                          <img src={photoUri} className="w-16 h-16 rounded-full object-cover border-2 shadow-sm" style={{ borderColor: reportColor }} alt="Student" />
-                        ) : (
-                          <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-[8px] text-gray-400">NO PHOTO</div>
-                        )}
-                      </div>
-                      <div className="col-span-3 grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-2 text-[10px] uppercase font-bold">
                          <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
                            <p className="text-[8px] text-black font-black mb-0.5">FULL NAME</p>
                            <p className="text-xs break-words leading-tight text-black font-black">{getStudentDisplayName(data.student)}</p>
@@ -598,7 +590,6 @@ const TermReportCard = () => {
                            <p className="text-xs text-black font-black">{data.attendance?.present}/{data.attendance?.total}</p>
                          </div>
                          )}
-                      </div>
                     </div>
                   ) : (
                     <table className="w-full border-2 border-black border-collapse text-sm font-bold uppercase">
