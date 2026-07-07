@@ -496,6 +496,9 @@ const TermReportCard = () => {
             const domainSplit = splitDomains(data.psychomotorRatings);
             const gradeAnalysis = getGradeAnalysis(data.subjects || []);
             const termNumber = data.term?.number || data.academic?.termNumber;
+            
+            const studentPhoto = data.student?.user?.photoUrl || data.student?.photoUrl;
+            const photoUri = studentPhoto ? (studentPhoto.startsWith('data:') || studentPhoto.startsWith('http') ? studentPhoto : `${API_BASE_URL}${studentPhoto}`) : null;
 
             return (
               <div key={idx} className="mb-20 last:mb-0">
@@ -550,14 +553,11 @@ const TermReportCard = () => {
                     </div>
 
                     <div className="w-24 h-28 border-2 border-black bg-gray-50 flex-shrink-0 relative overflow-hidden">
-                      {(() => {
-                        const photo = data.student?.user?.photoUrl || data.student?.photoUrl;
-                        return photo ? (
-                          <img src={photo.startsWith('data:') || photo.startsWith('http') ? photo : `${API_BASE_URL}${photo}`} alt="Student" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 font-bold text-gray-300">PHOTO</div>
-                        );
-                      })()}
+                      {photoUri ? (
+                        <img src={photoUri} alt="Student" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[10px] text-center p-1 font-bold text-gray-300">PHOTO</div>
+                      )}
                     </div>
                   </div>
 
