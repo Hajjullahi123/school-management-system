@@ -266,16 +266,16 @@ const CumulativeReport = () => {
           {layout === 'modern' ? (
             <div className="grid grid-cols-4 gap-2 mb-4">
               <div className="col-span-1 bg-gray-50 p-2 rounded-xl border-l-4" style={{ borderLeftColor: reportColor }}>
-                <p className="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5">Full Name</p>
-                <p className="text-[11px] font-black leading-tight break-words">{data.student?.name}</p>
+                <p className="text-[8px] font-black text-black uppercase tracking-tighter mb-0.5">Full Name</p>
+                <p className="text-[11px] font-black leading-tight break-words text-black">{data.student?.name}</p>
               </div>
               <div className="col-span-1 bg-gray-50 p-2 rounded-xl">
-                <p className="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5">Admission No</p>
-                <p className="text-[11px] font-black leading-none">{data.student?.admissionNumber}</p>
+                <p className="text-[8px] font-black text-black uppercase tracking-tighter mb-0.5">Admission No</p>
+                <p className="text-[11px] font-black leading-none text-black">{data.student?.admissionNumber}</p>
               </div>
               <div className="col-span-1 bg-gray-50 p-2 rounded-xl">
-                <p className="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5">Academic Session</p>
-                <p className="text-[11px] font-black leading-none">{data.session?.name}</p>
+                <p className="text-[8px] font-black text-black uppercase tracking-tighter mb-0.5">Academic Session</p>
+                <p className="text-[11px] font-black leading-none text-black">{data.session?.name}</p>
               </div>
             </div>
           ) : (
