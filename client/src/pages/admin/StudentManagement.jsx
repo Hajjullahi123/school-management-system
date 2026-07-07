@@ -1208,7 +1208,17 @@ Note: Password must be changed on first login.
                     <input
                       type="text"
                       value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => {
+                          const updated = { ...prev, lastName: val };
+                          const oldDeduction = prev.lastName ? `Mr. ${prev.lastName}` : '';
+                          if (!prev.parentGuardianName || prev.parentGuardianName === oldDeduction) {
+                            updated.parentGuardianName = val ? `Mr. ${val}` : '';
+                          }
+                          return updated;
+                        });
+                      }}
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
                       required
                     />
