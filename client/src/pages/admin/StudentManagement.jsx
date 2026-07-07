@@ -1201,6 +1201,18 @@ Note: Password must be changed on first login.
                    Basic Identification
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                   <div className="space-y-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Surname <span className="text-red-500 font-black">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      required
+                    />
+                  </div>
                   <div className="space-y-1">
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
                       First Name <span className="text-red-500 font-black">*</span>
@@ -1223,18 +1235,6 @@ Note: Password must be changed on first login.
                       onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
                       placeholder="Optional"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      Surname <span className="text-red-500 font-black">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
-                      required
                     />
                   </div>
                   {editingStudent && (
