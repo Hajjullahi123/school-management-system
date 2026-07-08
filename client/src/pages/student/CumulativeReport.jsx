@@ -34,7 +34,30 @@ const CumulativeReport = () => {
   };
 
   const printRef = useRef();
-  const handlePrint = useReactToPrint({ contentRef: printRef });
+
+  const getDocumentTitle = () => {
+    const session = sessions.find(s => s.id.toString() === selectedSession);
+    const sessionName = session ? session.name.replace(/\s+/g, '_') : 'Session';
+    
+    if (searchMode === 'bulk' && bulkReports && bulkReports.length > 0) {
+      const cls = classes.find(c => c.id.toString() === selectedClassId);
+      const className = cls ? cls.name.replace(/\s+/g, '_') : 'Class';
+      return `Cumulative_Reports_${className}_${sessionName}`.replace(/[^a-zA-Z0-9_]/g, '');
+    }
+    
+    if (reportData && reportData.student) {
+      const studentName = getStudentDisplayName(reportData.student).replace(/\s+/g, '_');
+      const admNo = (reportData.student.admissionNumber || '').replace(/[^a-zA-Z0-9]/g, '_');
+      return `Cumulative_Report_${studentName}_${admNo}_${sessionName}`.replace(/[^a-zA-Z0-9_]/g, '');
+    }
+    
+    return `Cumulative_Reports_${sessionName}`;
+  };
+
+  const handlePrint = useReactToPrint({ 
+    contentRef: printRef,
+    documentTitle: getDocumentTitle()
+  });
 
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);

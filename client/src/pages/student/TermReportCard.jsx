@@ -307,7 +307,30 @@ const TermReportCard = () => {
   };
 
   const printRef = useRef();
-  const printReport = useReactToPrint({ contentRef: printRef });
+
+  const getDocumentTitle = () => {
+    const term = terms.find(t => t.id.toString() === selectedTerm);
+    const termName = term ? term.name.replace(/\s+/g, '_') : 'Term';
+    
+    if (bulkReports && bulkReports.length > 0) {
+      const cls = classes.find(c => c.id.toString() === selectedClassId);
+      const className = cls ? `${cls.name}_${cls.arm || ''}`.trim().replace(/\s+/g, '_') : 'Class';
+      return `Bulk_Reports_${className}_${termName}`.replace(/[^a-zA-Z0-9_]/g, '');
+    }
+    
+    if (reportData && reportData.student) {
+      const studentName = getStudentDisplayName(reportData.student).replace(/\s+/g, '_');
+      const admNo = (reportData.student.admissionNumber || '').replace(/[^a-zA-Z0-9]/g, '_');
+      return `Report_Card_${studentName}_${admNo}_${termName}`.replace(/[^a-zA-Z0-9_]/g, '');
+    }
+    
+    return `Report_Card_${termName}`;
+  };
+
+  const printReport = useReactToPrint({ 
+    contentRef: printRef,
+    documentTitle: getDocumentTitle()
+  });
 
   return (
     <div className="space-y-6 pb-20">
