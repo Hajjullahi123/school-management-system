@@ -609,8 +609,8 @@ Note: Password must be changed on first login.
     if (student.user?.firstName || student.user?.lastName) {
       const parts = [
         student.user.firstName,
-        student.middleName,
-        student.user.lastName
+        student.user.lastName,
+        student.middleName
       ].filter(p => p && p.trim() !== '');
       if (parts.length > 0) return parts.join(' ');
     }
@@ -844,7 +844,7 @@ Note: Password must be changed on first login.
     // Personal Information
     y = drawSectionHeader('PERSONAL INFORMATION', y);
     y = drawField('First Name:', y, 170);
-    y = drawField('Surname:', y, 170);
+    y = drawField('Last Name:', y, 170);
     y = drawField('Other Name:', y, 170);
 
     // Row 1: Gender & DOB
@@ -1201,9 +1201,21 @@ Note: Password must be changed on first login.
                    Basic Identification
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                   <div className="space-y-1">
+                  <div className="space-y-1">
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      Surname <span className="text-red-500 font-black">*</span>
+                      First Name <span className="text-red-500 font-black">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Last Name <span className="text-red-500 font-black">*</span>
                     </label>
                     <input
                       type="text"
@@ -1219,18 +1231,6 @@ Note: Password must be changed on first login.
                           return updated;
                         });
                       }}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      First Name <span className="text-red-500 font-black">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.firstName}
-                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:bg-white focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-gray-700"
                       required
                     />

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { formatDateVerbose } from '../../utils/formatters';
 import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { QRCodeSVG } from 'qrcode.react';
+import { useReactToPrint } from 'react-to-print';
 
 const TermReportCard = () => {
   const { user } = useAuth();
@@ -305,9 +306,8 @@ const TermReportCard = () => {
     return { affective, psychomotor };
   };
 
-  const printReport = () => {
-    window.print();
-  };
+  const printRef = useRef();
+  const printReport = useReactToPrint({ contentRef: printRef });
 
   return (
     <div className="space-y-6 pb-20">
@@ -461,12 +461,12 @@ const TermReportCard = () => {
                           disabled={!selectedClassId}
                         >
                           <option value="">Choose Student</option>
-                          <option value="all">-- COLLECT ENTIRE CLASS --</option>
+                          <option value="all">-- GENERATE ENTIRE CLASS --</option>
                           {classStudents.map(s => <option key={s.id} value={s.id}>{getStudentDisplayName(s)}</option>)}
                         </select>
                       </div>
                       <button onClick={fetchReport} disabled={loading || !selectedStudentId} className="h-[54px] bg-primary text-white px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl active:scale-95 disabled:bg-slate-200 transition-all">
-                        {loading ? '...' : 'COLLECT'}
+                        {loading ? '...' : 'GENERATE'}
                       </button>
                     </div>
                   </div>
@@ -482,7 +482,8 @@ const TermReportCard = () => {
       {/* Report Card Display */}
       {(reportData || bulkReports.length > 0) && (
         <>
-          {(Array.isArray(bulkReports) && bulkReports.length > 0 ? bulkReports : [reportData]).map((data, idx) => {
+          <div ref={printRef} className="space-y-20">
+            {(Array.isArray(bulkReports) && bulkReports.length > 0 ? bulkReports : [reportData]).map((data, idx) => {
             if (!data || !data.student) return null;
 
             const reportColor = data.reportSettings?.reportColorScheme || (data.schoolSettings || schoolSettings)?.reportColorScheme || (data.schoolSettings || schoolSettings)?.primaryColor;
@@ -918,8 +919,21 @@ const TermReportCard = () => {
         </div>
       );
     })}
-  </>
-)}
+          </div>
+          {/* Bottom Print Button */}
+          <div className="flex justify-center mt-12 mb-8 print:hidden">
+            <button 
+              onClick={printReport} 
+              className="group/btn bg-slate-900 text-white hover:bg-slate-800 px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
+            >
+              <svg className="w-5 h-5 transition-transform group-hover/btn:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Print {bulkReports.length > 1 ? 'All Reports' : 'Report'}
+            </button>
+          </div>
+        </>
+      )}
 
   <style>{`
     @media (max-width: 640px) {

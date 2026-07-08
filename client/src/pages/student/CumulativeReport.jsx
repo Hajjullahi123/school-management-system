@@ -517,7 +517,7 @@ const CumulativeReport = () => {
                         checked={searchMode === mode} 
                         onChange={(e) => setSearchMode(e.target.value)} 
                       />
-                      {mode === 'admission' ? 'By ID' : mode === 'class' ? 'Single' : 'Bulk Collection'}
+                      {mode === 'admission' ? 'By ID' : mode === 'class' ? 'Single' : 'Bulk Generation'}
                     </label>
                   ))}
                 </div>
@@ -576,7 +576,7 @@ const CumulativeReport = () => {
                       disabled={loading || !selectedClassId || !selectedSession || (searchMode !== 'bulk' && !selectedStudentId)} 
                       className={`h-[54px] rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl active:scale-95 disabled:bg-slate-200 transition-all px-8 ${searchMode === 'bulk' ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-primary text-white'}`}
                     >
-                      {loading ? 'Processing...' : searchMode === 'bulk' ? `Collect all Reports` : 'Generate'}
+                      {loading ? 'Processing...' : searchMode === 'bulk' ? `Generate all Reports` : 'Generate'}
                     </button>
                   </div>
                 )}
