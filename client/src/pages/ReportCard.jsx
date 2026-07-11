@@ -188,13 +188,18 @@ const ReportCard = () => {
         return;
       }
 
+      // Use a lower scale on mobile devices to prevent RAM exhaustion (which causes 0 KB files)
+      const isMobile = window.innerWidth <= 768;
       const canvas = await html2canvas(container, {
-        scale: 3,
+        scale: isMobile ? 1.5 : 2, // Reduced from 3 to prevent crashes
         useCORS: true,
         logging: false,
         windowWidth: 850
       });
-      const imgData = canvas.toDataURL('image/png');
+      
+      // Use JPEG compression instead of PNG. This dramatically reduces the memory footprint
+      // required to generate the data URL, preventing silent browser crashes.
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
       
       const pdf = new jsPDF({
         orientation: 'p',
@@ -202,7 +207,7 @@ const ReportCard = () => {
         format: 'a4'
       });
 
-      pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
       safeDocumentDownload(pdf, `ReportCard-${reportData.student.admissionNumber.replace(/\//g, '-')}.pdf`);
       toast.success('PDF downloaded successfully!');
     } catch (error) {
