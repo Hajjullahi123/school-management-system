@@ -1058,11 +1058,11 @@ router.post('/bulk-update-phones', authenticate, authorize(['admin', 'principal'
           let lastName = '';
           if (parentName) {
             const nameParts = parentName.split(' ');
-            firstName = nameParts[0];
-            lastName = nameParts.slice(1).join(' ') || student.lastName;
+            firstName = nameParts[0] || student.firstName || 'Parent';
+            lastName = nameParts.slice(1).join(' ') || student.lastName || '';
           } else {
-            firstName = student.parentGuardianName || student.firstName;
-            lastName = student.lastName;
+            firstName = student.parentGuardianName || student.firstName || 'Parent';
+            lastName = student.lastName || '';
           }
 
           const passwordHash = await bcrypt.hash('parent123', 10);
