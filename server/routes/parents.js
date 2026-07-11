@@ -958,7 +958,11 @@ router.post('/bulk-update-phones', authenticate, authorize(['admin', 'principal'
     let headers = {};
     for (let i = 0; i < jsonData.length; i++) {
       const row = jsonData[i];
-      if (row && row.some(cell => cell && cell.toString().toLowerCase().includes('registration number'))) {
+      if (row && row.some(cell => {
+        if (!cell) return false;
+        const c = cell.toString().toLowerCase();
+        return c.includes('registration') || c.includes('admission') || c.includes('adm no') || c.includes('reg no');
+      })) {
         headerRowIndex = i;
         row.forEach((cell, colIndex) => {
           if (cell) {
@@ -970,15 +974,24 @@ router.post('/bulk-update-phones', authenticate, authorize(['admin', 'principal'
     }
 
     if (headerRowIndex === -1) {
-      return res.status(400).json({ error: 'Could not find header row with "Registration Number" column' });
+      return res.status(400).json({ error: 'Could not find header row with "Registration Number" or "Admission Number" column' });
     }
 
-    const regNumberCol = headers['registration number'];
-    const phoneNumberCol = headers['phone number'];
-    const parentNameCol = headers['parent name'];
+    let regNumberCol, phoneNumberCol, parentNameCol;
+    for (const [header, index] of Object.entries(headers)) {
+      if (header.includes('registration') || header.includes('admission') || header.includes('reg no') || header.includes('adm no')) {
+        if (regNumberCol === undefined) regNumberCol = index;
+      }
+      if (header.includes('phone') || header.includes('contact')) {
+        if (phoneNumberCol === undefined) phoneNumberCol = index;
+      }
+      if (header.includes('parent') || header.includes('guardian')) {
+        if (parentNameCol === undefined) parentNameCol = index;
+      }
+    }
 
     if (regNumberCol === undefined || phoneNumberCol === undefined) {
-      return res.status(400).json({ error: 'Required columns (Registration Number, Phone Number) not found' });
+      return res.status(400).json({ error: 'Required columns (Registration/Admission Number, Phone Number) not found' });
     }
 
     const results = {
