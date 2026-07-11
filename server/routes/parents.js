@@ -6,6 +6,9 @@ const bcrypt = require('bcryptjs');
 const { logAction } = require('../utils/audit');
 const { generateAutoEmail } = require('../utils/usernameGenerator');
 const { getStudentFeeSummary } = require('../utils/feeCalculations');
+const ExcelJS = require('exceljs');
+const xlsx = require('xlsx');
+const multer = require('multer');
 // 1. Get My Children (Parent Dashboard)
 router.get('/my-wards', authenticate, authorize(['parent', 'admin', 'principal']), async (req, res) => {
   try {
@@ -825,6 +828,310 @@ router.post('/sync-by-phone', authenticate, authorize(['admin', 'principal']), a
   } catch (error) {
     console.error('Sync error:', error);
     res.status(500).json({ error: 'Failed to sync parents' });
+  }
+});
+
+// ===== Bulk Phone Management Endpoints =====
+
+// GET /phone-template - Download pre-populated Excel template with parent phone numbers
+router.get('/phone-template', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    const schoolIdInt = parseInt(req.schoolId);
+    const school = await prisma.school.findUnique({ where: { id: schoolIdInt } });
+
+    // Query all students with parent info (linked or guardian fields)
+    const students = await prisma.student.findMany({
+      where: {
+        schoolId: schoolIdInt,
+        OR: [
+          { parentId: { not: null } },
+          { parentGuardianName: { not: null } }
+        ]
+      },
+      include: {
+        classModel: true,
+        user: true,
+        parent: {
+          include: {
+            user: true
+          }
+        }
+      }
+    });
+
+    // Build rows
+    const rows = students.map(student => {
+      let parentName = '';
+      let phoneNumber = '';
+
+      if (student.parent) {
+        parentName = `${student.parent.user.firstName} ${student.parent.user.lastName}`;
+        phoneNumber = student.parent.phone || '';
+      } else {
+        parentName = student.parentGuardianName || '';
+        phoneNumber = student.parentGuardianPhone || '';
+      }
+
+      const className = student.classModel ? `${student.classModel.name}${student.classModel.arm ? ' ' + student.classModel.arm : ''}` : '';
+      const studentName = student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || '');
+
+      return {
+        className,
+        studentName,
+        regNumber: student.admissionNumber || '',
+        parentName,
+        phoneNumber
+      };
+    });
+
+    // Sort by class name, then student name
+    rows.sort((a, b) => {
+      const classCompare = a.className.localeCompare(b.className);
+      if (classCompare !== 0) return classCompare;
+      return a.studentName.localeCompare(b.studentName);
+    });
+
+    // Build Excel workbook
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Parent Phone Numbers');
+
+    worksheet.columns = [
+      { header: 'S/N', key: 'sn', width: 6 },
+      { header: 'Class', key: 'className', width: 20 },
+      { header: 'Student Name', key: 'studentName', width: 30 },
+      { header: 'Registration Number', key: 'regNumber', width: 22 },
+      { header: 'Parent Name', key: 'parentName', width: 30 },
+      { header: 'Phone Number', key: 'phoneNumber', width: 20 }
+    ];
+
+    // Style header row
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B3A5C' } };
+    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+    worksheet.getRow(1).height = 28;
+
+    // Add data rows
+    rows.forEach((row, index) => {
+      const rowIndex = index + 2;
+      worksheet.addRow({
+        sn: index + 1,
+        className: row.className,
+        studentName: row.studentName,
+        regNumber: row.regNumber,
+        parentName: row.parentName,
+        phoneNumber: row.phoneNumber
+      });
+
+      // Highlight Phone Number column (F) with light yellow
+      worksheet.getCell(`F${rowIndex}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFCC' } };
+    });
+
+    // Set response headers
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=Parent_Phone_Numbers_Template.xlsx');
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error generating phone template:', error);
+    res.status(500).json({ error: 'Failed to generate phone template' });
+  }
+});
+
+// POST /bulk-update-phones - Upload filled Excel and update parent phone numbers
+const phoneUpload = multer({ storage: multer.memoryStorage() });
+router.post('/bulk-update-phones', authenticate, authorize(['admin', 'principal']), phoneUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const schoolIdInt = parseInt(req.schoolId);
+    const school = await prisma.school.findUnique({ where: { id: schoolIdInt } });
+
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const jsonData = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+
+    // Find header row
+    let headerRowIndex = -1;
+    let headers = {};
+    for (let i = 0; i < jsonData.length; i++) {
+      const row = jsonData[i];
+      if (row && row.some(cell => cell && cell.toString().toLowerCase().includes('registration number'))) {
+        headerRowIndex = i;
+        row.forEach((cell, colIndex) => {
+          if (cell) {
+            headers[cell.toString().trim().toLowerCase()] = colIndex;
+          }
+        });
+        break;
+      }
+    }
+
+    if (headerRowIndex === -1) {
+      return res.status(400).json({ error: 'Could not find header row with "Registration Number" column' });
+    }
+
+    const regNumberCol = headers['registration number'];
+    const phoneNumberCol = headers['phone number'];
+    const parentNameCol = headers['parent name'];
+
+    if (regNumberCol === undefined || phoneNumberCol === undefined) {
+      return res.status(400).json({ error: 'Required columns (Registration Number, Phone Number) not found' });
+    }
+
+    const results = {
+      updated: [],
+      created: [],
+      skipped: [],
+      failed: []
+    };
+
+    const processedParents = new Set();
+
+    // Process data rows
+    for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
+      const row = jsonData[i];
+      if (!row) continue;
+
+      const regNumber = row[regNumberCol] ? row[regNumberCol].toString().trim() : '';
+      const phoneNumber = row[phoneNumberCol] ? row[phoneNumberCol].toString().trim() : '';
+      const parentName = row[parentNameCol] ? row[parentNameCol].toString().trim() : '';
+
+      if (!regNumber) continue;
+      if (!phoneNumber) {
+        continue;
+      }
+
+      try {
+        // Find student by admission number
+        const student = await prisma.student.findFirst({
+          where: { admissionNumber: regNumber, schoolId: schoolIdInt },
+          include: {
+            user: true,
+            parent: {
+              include: { user: true }
+            }
+          }
+        });
+
+        if (!student) {
+          results.failed.push({ regNumber, error: 'Student not found' });
+          continue;
+        }
+
+        const studentName = student.user ? `${student.user.firstName} ${student.user.lastName}` : (student.name || regNumber);
+
+        if (student.parentId) {
+          // Student has a linked parent
+          const parentKey = `parent-${student.parentId}`;
+          if (processedParents.has(parentKey)) {
+            results.skipped.push({ regNumber, reason: 'Duplicate parent already processed' });
+            continue;
+          }
+
+          const oldPhone = student.parent?.phone || '';
+          if (oldPhone === phoneNumber) {
+            results.skipped.push({ regNumber, reason: 'Phone unchanged' });
+            processedParents.add(parentKey);
+            continue;
+          }
+
+          await prisma.$transaction(async (tx) => {
+            await tx.parent.update({
+              where: { id: student.parentId },
+              data: { phone: phoneNumber }
+            });
+            const parent = await tx.parent.findUnique({ where: { id: student.parentId } });
+            await tx.user.update({
+              where: { id: parent.userId },
+              data: { username: phoneNumber }
+            });
+          });
+
+          processedParents.add(parentKey);
+          results.updated.push({ regNumber, studentName, oldPhone, newPhone: phoneNumber });
+        } else {
+          // Student has no linked parent - create new parent account
+          let firstName = '';
+          let lastName = '';
+          if (parentName) {
+            const nameParts = parentName.split(' ');
+            firstName = nameParts[0];
+            lastName = nameParts.slice(1).join(' ') || student.lastName;
+          } else {
+            firstName = student.parentGuardianName || student.firstName;
+            lastName = student.lastName;
+          }
+
+          const passwordHash = await bcrypt.hash('parent123', 10);
+          const email = generateAutoEmail(firstName, lastName, school?.name);
+
+          await prisma.$transaction(async (tx) => {
+            const newUser = await tx.user.create({
+              data: {
+                firstName,
+                lastName,
+                username: phoneNumber,
+                email,
+                passwordHash,
+                role: 'parent',
+                schoolId: schoolIdInt
+              }
+            });
+
+            const newParent = await tx.parent.create({
+              data: {
+                userId: newUser.id,
+                phone: phoneNumber,
+                schoolId: schoolIdInt
+              }
+            });
+
+            await tx.student.update({
+              where: { id: student.id },
+              data: {
+                parentId: newParent.id,
+                parentGuardianPhone: phoneNumber
+              }
+            });
+          });
+
+          results.created.push({
+            regNumber,
+            studentName,
+            parentName: `${firstName} ${lastName}`,
+            phone: phoneNumber,
+            username: phoneNumber,
+            password: 'parent123'
+          });
+        }
+      } catch (rowError) {
+        results.failed.push({ regNumber, error: rowError.message });
+      }
+    }
+
+    // Log the action
+    logAction({
+      schoolId: req.schoolId,
+      userId: req.user.id,
+      action: 'BULK_UPDATE_PHONES',
+      resource: 'PARENT',
+      details: { updatedCount: results.updated.length, createdCount: results.created.length, failedCount: results.failed.length },
+      ipAddress: req.ip
+    });
+
+    res.json({
+      message: `Bulk phone update complete. ${results.updated.length} updated, ${results.created.length} created, ${results.skipped.length} skipped, ${results.failed.length} failed.`,
+      updated: results.updated,
+      created: results.created,
+      skipped: results.skipped,
+      failed: results.failed
+    });
+  } catch (error) {
+    console.error('Bulk phone update error:', error);
+    res.status(500).json({ error: 'Failed to process bulk phone update' });
   }
 });
 

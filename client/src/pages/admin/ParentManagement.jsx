@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api, API_BASE_URL } from '../../api';
 
 const ParentManagement = () => {
@@ -21,6 +21,14 @@ const ParentManagement = () => {
   const [createSearchTerm, setCreateSearchTerm] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
+
+  // Bulk phone update state
+  const [showBulkPhoneModal, setShowBulkPhoneModal] = useState(false);
+  const [bulkPhoneFile, setBulkPhoneFile] = useState(null);
+  const [bulkPhoneLoading, setBulkPhoneLoading] = useState(false);
+  const [bulkPhoneResults, setBulkPhoneResults] = useState(null);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const bulkFileRef = useRef(null);
 
   const [editData, setEditData] = useState({
     id: '', firstName: '', lastName: '', email: '', phone: '', address: ''
@@ -123,6 +131,65 @@ const ParentManagement = () => {
       alert('Sync error: ' + e.message);
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  // Download pre-populated phone template
+  const handleDownloadPhoneTemplate = async () => {
+    setDownloadingTemplate(true);
+    try {
+      const res = await api.get('/api/parents/phone-template');
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Parent_Phone_Numbers_Template.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to download template');
+      }
+    } catch (e) {
+      alert('Error downloading template: ' + e.message);
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
+
+  // Upload bulk phone numbers
+  const handleBulkPhoneUpload = async () => {
+    if (!bulkPhoneFile) {
+      alert('Please select a file first');
+      return;
+    }
+    setBulkPhoneLoading(true);
+    setBulkPhoneResults(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', bulkPhoneFile);
+      const res = await fetch(`${API_BASE_URL}/api/parents/bulk-update-phones`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBulkPhoneResults(data);
+        fetchParents();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Upload failed');
+      }
+    } catch (e) {
+      alert('Upload error: ' + e.message);
+    } finally {
+      setBulkPhoneLoading(false);
     }
   };
 
@@ -242,15 +309,36 @@ const ParentManagement = () => {
           <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight leading-none mb-1">Parent Management</h1>
           <p className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-widest">Home-School Connectivity Hub</p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="w-full sm:w-auto bg-primary text-white px-5 py-3 rounded-2xl hover:brightness-110 flex items-center justify-center gap-2 shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
-        >
-          <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          Register Parent
-        </button>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <button
+            onClick={handleDownloadPhoneTemplate}
+            disabled={downloadingTemplate}
+            className="flex-1 sm:flex-none bg-emerald-600 text-white px-4 py-3 rounded-2xl hover:brightness-110 flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            {downloadingTemplate ? 'Downloading...' : '📥 Phone Template'}
+          </button>
+          <button
+            onClick={() => { setShowBulkPhoneModal(true); setBulkPhoneFile(null); setBulkPhoneResults(null); }}
+            className="flex-1 sm:flex-none bg-amber-600 text-white px-4 py-3 rounded-2xl hover:brightness-110 flex items-center justify-center gap-2 shadow-lg shadow-amber-600/20 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            📤 Upload Phones
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex-1 sm:flex-none bg-primary text-white px-4 py-3 rounded-2xl hover:brightness-110 flex items-center justify-center gap-2 shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
+          >
+            <svg className="w-4 h-4 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Register Parent
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -848,6 +936,185 @@ const ParentManagement = () => {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Phone Upload Modal */}
+      {showBulkPhoneModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl p-6 sm:p-8 w-full max-w-lg animate-in zoom-in-95 duration-300 border border-gray-100 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-black text-gray-900">📤 Bulk Phone Number Upload</h3>
+              <button onClick={() => setShowBulkPhoneModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+
+            {!bulkPhoneResults ? (
+              <div>
+                <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded mb-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Instructions:</strong> First download the Phone Template using the green button, fill in/update the phone numbers in the highlighted column, then upload the file here.
+                  </p>
+                </div>
+
+                <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center mb-4 hover:border-primary/50 transition-colors">
+                  <input
+                    ref={bulkFileRef}
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={(e) => setBulkPhoneFile(e.target.files[0])}
+                    className="hidden"
+                  />
+                  <svg className="w-10 h-10 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <button
+                    onClick={() => bulkFileRef.current?.click()}
+                    className="text-primary font-bold text-sm hover:underline"
+                  >
+                    Click to select file
+                  </button>
+                  {bulkPhoneFile && (
+                    <p className="text-sm text-gray-600 mt-2 font-medium">📎 {bulkPhoneFile.name}</p>
+                  )}
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowBulkPhoneModal(false)}
+                    className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200 font-bold text-sm transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleBulkPhoneUpload}
+                    disabled={!bulkPhoneFile || bulkPhoneLoading}
+                    className="flex-1 px-4 py-3 bg-amber-600 text-white rounded-2xl hover:brightness-110 font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {bulkPhoneLoading ? (
+                      <><div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div> Processing...</>
+                    ) : (
+                      'Upload & Update'
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                {/* Results Summary */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                  <div className="bg-green-50 rounded-xl p-3 text-center border border-green-200">
+                    <div className="text-2xl font-black text-green-700">{bulkPhoneResults.updated?.length || 0}</div>
+                    <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Updated</div>
+                  </div>
+                  <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-200">
+                    <div className="text-2xl font-black text-blue-700">{bulkPhoneResults.created?.length || 0}</div>
+                    <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Created</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-200">
+                    <div className="text-2xl font-black text-gray-700">{bulkPhoneResults.skipped?.length || 0}</div>
+                    <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">Skipped</div>
+                  </div>
+                  <div className="bg-red-50 rounded-xl p-3 text-center border border-red-200">
+                    <div className="text-2xl font-black text-red-700">{bulkPhoneResults.failed?.length || 0}</div>
+                    <div className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Failed</div>
+                  </div>
+                </div>
+
+                {/* Created accounts with credentials */}
+                {bulkPhoneResults.created?.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-sm font-bold text-blue-800 mb-2">✨ New Parent Accounts Created</h4>
+                    <div className="bg-blue-50 rounded-xl border border-blue-200 overflow-hidden">
+                      <div className="max-h-40 overflow-y-auto">
+                        <table className="w-full text-xs">
+                          <thead className="bg-blue-100 sticky top-0">
+                            <tr>
+                              <th className="px-3 py-2 text-left font-bold">Student</th>
+                              <th className="px-3 py-2 text-left font-bold">Username</th>
+                              <th className="px-3 py-2 text-left font-bold">Password</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-blue-100">
+                            {bulkPhoneResults.created.map((c, i) => (
+                              <tr key={i} className="hover:bg-blue-50">
+                                <td className="px-3 py-2">{c.studentName}</td>
+                                <td className="px-3 py-2 font-mono font-bold">{c.username}</td>
+                                <td className="px-3 py-2 font-mono">{c.password}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Updated list */}
+                {bulkPhoneResults.updated?.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-sm font-bold text-green-800 mb-2">✅ Phone Numbers Updated</h4>
+                    <div className="bg-green-50 rounded-xl border border-green-200 overflow-hidden">
+                      <div className="max-h-32 overflow-y-auto">
+                        <table className="w-full text-xs">
+                          <thead className="bg-green-100 sticky top-0">
+                            <tr>
+                              <th className="px-3 py-2 text-left font-bold">Student</th>
+                              <th className="px-3 py-2 text-left font-bold">Old Phone</th>
+                              <th className="px-3 py-2 text-left font-bold">New Phone</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-green-100">
+                            {bulkPhoneResults.updated.map((u, i) => (
+                              <tr key={i} className="hover:bg-green-50">
+                                <td className="px-3 py-2">{u.studentName}</td>
+                                <td className="px-3 py-2 text-gray-500 line-through">{u.oldPhone || '—'}</td>
+                                <td className="px-3 py-2 font-bold text-green-700">{u.newPhone}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Failed list */}
+                {bulkPhoneResults.failed?.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-sm font-bold text-red-800 mb-2">❌ Failed</h4>
+                    <div className="bg-red-50 rounded-xl border border-red-200 p-3 max-h-32 overflow-y-auto">
+                      {bulkPhoneResults.failed.map((f, i) => (
+                        <div key={i} className="text-xs text-red-700 mb-1">
+                          <strong>{f.regNumber || 'Unknown'}:</strong> {f.error}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  {bulkPhoneResults.created?.length > 0 && (
+                    <button
+                      onClick={() => {
+                        const lines = bulkPhoneResults.created.map(c => `${c.studentName} | Parent: ${c.parentName} | Username: ${c.username} | Password: ${c.password}`);
+                        navigator.clipboard.writeText('NEW PARENT ACCOUNTS\n' + lines.join('\n'));
+                        alert('Credentials copied to clipboard!');
+                      }}
+                      className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-2xl hover:brightness-110 font-bold text-sm flex items-center justify-center gap-2"
+                    >
+                      📋 Copy Credentials
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowBulkPhoneModal(false)}
+                    className="flex-1 px-4 py-3 bg-gray-500 text-white rounded-2xl hover:bg-gray-600 font-bold text-sm"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
