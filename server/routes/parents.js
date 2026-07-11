@@ -1066,59 +1066,90 @@ router.post('/bulk-update-phones', authenticate, authorize(['admin', 'principal'
           processedParents.add(parentKey);
           results.updated.push({ regNumber, studentName, oldPhone, newPhone: phoneNumber });
         } else {
-          // Student has no linked parent - create new parent account
-          let firstName = '';
-          let lastName = '';
-          if (parentName) {
-            const nameParts = parentName.split(' ');
-            firstName = nameParts[0] || student.firstName || 'Parent';
-            lastName = nameParts.slice(1).join(' ') || student.lastName || '';
+          // Student has no linked parent - check if user with this phone already exists
+          const existingUser = await prisma.user.findFirst({
+            where: { schoolId: schoolIdInt, username: phoneNumber }
+          });
+
+          if (existingUser) {
+            if (existingUser.role !== 'parent') {
+              results.failed.push({ regNumber, error: 'Phone number already used by a non-parent account' });
+              continue;
+            }
+
+            let existingParent = await prisma.parent.findFirst({
+              where: { userId: existingUser.id }
+            });
+
+            await prisma.$transaction(async (tx) => {
+              if (!existingParent) {
+                existingParent = await tx.parent.create({
+                  data: { userId: existingUser.id, phone: phoneNumber, schoolId: schoolIdInt }
+                });
+              }
+
+              await tx.student.update({
+                where: { id: student.id },
+                data: { parentId: existingParent.id, parentGuardianPhone: phoneNumber }
+              });
+            });
+
+            results.updated.push({ regNumber, studentName, oldPhone: student.parentGuardianPhone || 'None', newPhone: phoneNumber });
           } else {
-            firstName = student.parentGuardianName || student.firstName || 'Parent';
-            lastName = student.lastName || '';
+            // Create new parent account
+            let firstName = '';
+            let lastName = '';
+            if (parentName) {
+              const nameParts = parentName.split(' ');
+              firstName = nameParts[0] || student.firstName || 'Parent';
+              lastName = nameParts.slice(1).join(' ') || student.lastName || '';
+            } else {
+              firstName = student.parentGuardianName || student.firstName || 'Parent';
+              lastName = student.lastName || '';
+            }
+
+            const passwordHash = await bcrypt.hash('parent123', 10);
+            const email = generateAutoEmail(firstName, lastName, school?.name);
+
+            await prisma.$transaction(async (tx) => {
+              const newUser = await tx.user.create({
+                data: {
+                  firstName,
+                  lastName,
+                  username: phoneNumber,
+                  email,
+                  passwordHash,
+                  role: 'parent',
+                  schoolId: schoolIdInt
+                }
+              });
+
+              const newParent = await tx.parent.create({
+                data: {
+                  userId: newUser.id,
+                  phone: phoneNumber,
+                  schoolId: schoolIdInt
+                }
+              });
+
+              await tx.student.update({
+                where: { id: student.id },
+                data: {
+                  parentId: newParent.id,
+                  parentGuardianPhone: phoneNumber
+                }
+              });
+            });
+
+            results.created.push({
+              regNumber,
+              studentName,
+              parentName: `${firstName} ${lastName}`,
+              phone: phoneNumber,
+              username: phoneNumber,
+              password: 'parent123'
+            });
           }
-
-          const passwordHash = await bcrypt.hash('parent123', 10);
-          const email = generateAutoEmail(firstName, lastName, school?.name);
-
-          await prisma.$transaction(async (tx) => {
-            const newUser = await tx.user.create({
-              data: {
-                firstName,
-                lastName,
-                username: phoneNumber,
-                email,
-                passwordHash,
-                role: 'parent',
-                schoolId: schoolIdInt
-              }
-            });
-
-            const newParent = await tx.parent.create({
-              data: {
-                userId: newUser.id,
-                phone: phoneNumber,
-                schoolId: schoolIdInt
-              }
-            });
-
-            await tx.student.update({
-              where: { id: student.id },
-              data: {
-                parentId: newParent.id,
-                parentGuardianPhone: phoneNumber
-              }
-            });
-          });
-
-          results.created.push({
-            regNumber,
-            studentName,
-            parentName: `${firstName} ${lastName}`,
-            phone: phoneNumber,
-            username: phoneNumber,
-            password: 'parent123'
-          });
         }
       } catch (rowError) {
         results.failed.push({ regNumber, error: rowError.message });
