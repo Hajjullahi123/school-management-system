@@ -555,10 +555,13 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
         });
 
         // Delete Parent-Teacher messages involving this user
-        // Note: receiverId and senderId are Ints, handled by tx.executeRaw if relations are missing in schema
-        // but since we found they are in the schema, we can use model methods
         await tx.parentTeacherMessage.deleteMany({
           where: { OR: [{ senderId: userId }, { receiverId: userId }] }
+        });
+
+        // Delete Push Subscriptions (in case DB-level cascade is missing)
+        await tx.pushSubscription.deleteMany({
+          where: { userId: userId }
         });
       }
 
@@ -587,11 +590,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
     res.json({ message: 'Parent account and profile deleted successfully' });
   } catch (error) {
     console.error('[DeleteParent] Failed to delete parent:', error);
-    res.status(500).json({ 
-      error: 'Failed to delete parent account', 
-      details: error.message,
-      message: 'Ensure no critical dependencies exist or the account is not shared with a staff role.' 
-    });
+    res.status(500).json({ error: `Failed to delete parent account: ${error.message}` });
   }
 });
 
