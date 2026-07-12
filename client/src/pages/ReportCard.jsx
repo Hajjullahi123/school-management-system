@@ -175,10 +175,50 @@ const ReportCard = () => {
 
   const [downloading, setDownloading] = useState(false);
 
-  const handleDownloadPDF = () => {
-    toast.success('Opening Print Dialog. Please select "Save as PDF" as the destination.', { autoClose: 5000 });
-    // Delegate entirely to the native browser print engine for 100% reliability and vector quality
-    handlePrint();
+  const handleDownloadPDF = async () => {
+    setDownloading(true);
+    try {
+      const element = document.getElementById('result-sheet');
+      if (!element) { toast.error('Report not found'); return; }
+      
+      // Temporarily reset zoom/scale for accurate capture
+      const originalZoom = element.style.zoom;
+      const originalTransform = element.style.transform;
+      element.style.zoom = '1';
+      element.style.transform = 'none';
+      
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: element.scrollWidth,
+        height: element.scrollHeight,
+      });
+      
+      // Restore original zoom/scale
+      element.style.zoom = originalZoom;
+      element.style.transform = originalTransform;
+      
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = 210;
+      const pdfHeight = 297;
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      
+      const cleanName = (reportData?.student?.name || 'Student').replace(/[^a-zA-Z0-9]/g, '_');
+      const cleanTerm = (reportData?.term?.name || 'Term').replace(/[^a-zA-Z0-9]/g, '_');
+      const fileName = `${cleanName}_${cleanTerm}_ReportCard.pdf`;
+      
+      safeDocumentDownload(pdf, fileName);
+      toast.success('PDF downloaded successfully!');
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      toast.error('PDF generation failed. Using print fallback...');
+      handlePrint();
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handlePrint = () => {
@@ -415,7 +455,7 @@ const ReportCard = () => {
       </div>
 
       {reportData && (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[210mm] mx-auto pb-10">
+        <div className="space-y-4 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[210mm] mx-auto pb-4 md:pb-10">
           <div className="flex justify-end gap-3 print:hidden">
             <button
               onClick={() => setShowEmailModal(true)}
@@ -460,7 +500,7 @@ const ReportCard = () => {
             const layout = schoolSettings?.reportLayout || 'classic';
             const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
             return (
-          <div className="report-card-wrapper overflow-x-auto md:overflow-visible pb-4">
+          <div className="report-card-wrapper overflow-hidden md:overflow-visible pb-0 md:pb-4">
             <div id="result-sheet" className={`relative bg-white p-8 print:p-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] md:min-w-0`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
             {/* PROTECTION WATERMARK */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
@@ -946,26 +986,12 @@ const ReportCard = () => {
           .report-card-wrapper {
             margin: 0 -1rem;
             padding: 0 1rem;
-            display: flex;
-            justify-content: flex-start;
+            overflow: hidden;
           }
           #result-sheet {
-            zoom: 0.45;
-            -moz-transform: scale(0.45);
-            -moz-transform-origin: top center;
-          }
-        }
-
-        /* Responsive scaling using container query logic via CSS variables if supported, 
-           otherwise fallback to horizontal scroll */
-        @media screen and (max-width: 210mm) {
-          #result-sheet {
-            zoom: 0.45; /* Quick fix for many mobile browsers */
-            -moz-transform: scale(0.45);
-            -moz-transform-origin: top center;
-          }
-          @viewport {
-            width: device-width;
+            transform: scale(0.45);
+            transform-origin: top left;
+            margin-bottom: -55% !important;
           }
         }
       `}</style>

@@ -213,10 +213,59 @@ const BulkReportDownload = () => {
 
   const [downloadingPDF, setDownloadingPDF] = useState(false);
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (reports.length === 0) return;
-    alert('Opening Print Dialog. Please select "Save as PDF" as the destination printer. This guarantees high quality and prevents memory crashes.');
-    handlePrint();
+    setDownloadingPDF(true);
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = 210;
+      const pdfHeight = 297;
+      const reportElements = componentRef.current?.querySelectorAll('.report-card-scaler > div') || [];
+      
+      for (let i = 0; i < reportElements.length; i++) {
+        const el = reportElements[i];
+        // Temporarily reset transform for capture
+        const parent = el.parentElement;
+        const origTransform = parent?.style.transform;
+        const hadScale045 = parent?.classList.contains('scale-[0.45]');
+        const hadScale055 = parent?.classList.contains('scale-[0.55]');
+        if (parent) {
+          parent.style.transform = 'none';
+          parent.classList.remove('scale-[0.45]', 'scale-[0.55]');
+          parent.classList.add('scale-100');
+        }
+        
+        const canvas = await html2canvas(el, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          width: el.scrollWidth,
+          height: el.scrollHeight,
+        });
+        
+        // Restore transform
+        if (parent) {
+          parent.style.transform = origTransform || '';
+          parent.classList.remove('scale-100');
+          if (hadScale045) parent.classList.add('scale-[0.45]');
+          if (hadScale055) parent.classList.add('scale-[0.55]');
+        }
+        
+        const imgData = canvas.toDataURL('image/jpeg', 0.85);
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      }
+      
+      const fileName = `${getDocumentTitle()}.pdf`;
+      safeDocumentDownload(pdf, fileName);
+    } catch (err) {
+      console.error('Bulk PDF generation error:', err);
+      alert('PDF generation failed on this device. Using print fallback...');
+      handlePrint();
+    } finally {
+      setDownloadingPDF(false);
+    }
   };
 
   return (
@@ -370,7 +419,7 @@ const BulkReportDownload = () => {
               const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
               return (
-                <div key={idx} className="mb-20 print:mb-0 last:mb-0">
+                <div key={idx} className="mb-8 md:mb-20 print:mb-0 last:mb-0">
                   {/* Mobile Scroll Hint (Synced with Single Report) */}
                   <div className="md:hidden flex items-center justify-center gap-2 mb-4 text-primary font-bold text-xs uppercase tracking-widest animate-pulse no-print">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -379,9 +428,9 @@ const BulkReportDownload = () => {
                     Swipe to view full sheet
                   </div>
 
-                  <div className="report-card-mobile-wrapper overflow-x-auto pb-8 print:overflow-visible">
-                    <div className="report-card-scaler origin-top-left sm:origin-top scale-[0.45] xs:scale-[0.55] sm:scale-100 transition-transform duration-500 print:scale-100 print:transform-none">
-                      <div key={idx} className={`relative bg-white p-8 print:p-0 my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] break-after-page`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
+                  <div className="report-card-mobile-wrapper overflow-hidden pb-2 md:pb-8 print:overflow-visible">
+                    <div className="report-card-scaler origin-top-left sm:origin-top scale-[0.45] xs:scale-[0.55] sm:scale-100 transition-transform duration-500 print:scale-100 print:transform-none" style={{ marginBottom: 'calc((0.45 - 1) * 297mm)' }}>
+                      <div key={idx} className={`relative bg-white p-8 print:p-0 my-0 sm:my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] break-after-page`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
 
                         {/* PROTECTION WATERMARK */}
                         <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
