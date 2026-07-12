@@ -621,7 +621,7 @@ const ResultEntry = () => {
                 <div key={student.id} className="p-4 bg-white shadow-sm mb-2 border-y border-gray-100">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h4 className="font-black text-slate-900 uppercase tracking-tight">{student.user?.firstName} {student.middleName ? `${student.middleName} ` : ''}{student.user?.lastName}</h4>
+                      <h4 className="font-black text-slate-900 uppercase tracking-tight">{student.user?.firstName} {student.user?.lastName}{student.middleName ? ` ${student.middleName}` : ''}</h4>
                       <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">{student.admissionNumber}</span>
                     </div>
                     <div className="text-right flex flex-col items-end">
@@ -752,7 +752,7 @@ const ResultEntry = () => {
                         style={{ backgroundColor: index % 2 === 0 ? 'white' : '#fcfcfd' }}
                       >
                         <div className="min-w-[180px] md:min-w-0 break-words leading-tight">
-                          <p className="font-black text-slate-900 uppercase tracking-tight">{student.user?.firstName} {student.middleName ? `${student.middleName} ` : ''}{student.user?.lastName}</p>
+                          <p className="font-black text-slate-900 uppercase tracking-tight">{student.user?.firstName} {student.user?.lastName}{student.middleName ? ` ${student.middleName}` : ''}</p>
                           <p className="text-[10px] text-primary font-black uppercase tracking-widest mt-1 opacity-70">{student.admissionNumber}</p>
                         </div>
                       </td>

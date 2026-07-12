@@ -279,8 +279,8 @@ const UserManagement = () => {
   const getDisplayName = (user) => {
     const parts = [
       user.firstName,
-      user.middleName || user.student?.middleName,
-      user.lastName
+      user.lastName,
+      user.middleName || user.student?.middleName
     ].filter(part => part && part.trim() !== '');
     return parts.join(' ') || user.username || '(No Name)';
   };
