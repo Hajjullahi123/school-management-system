@@ -675,7 +675,7 @@ const CumulativeReport = () => {
         * { box-sizing: border-box !important; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @media (max-width: 640px) {
+        @media screen and (max-width: 640px) {
           .report-card-mobile-wrapper {
              min-height: auto !important;
              padding-bottom: 0px !important;
@@ -685,19 +685,19 @@ const CumulativeReport = () => {
              margin-left: 0;
              transform-origin: top left;
           }
-          @media (max-width: 400px) { 
+          @media screen and (max-width: 400px) { 
             .report-card-scaler { 
               transform: scale(0.42); 
               margin-bottom: calc((0.42 - 1) * 297mm) !important;
             } 
           }
-          @media (min-width: 401px) and (max-width: 500px) { 
+          @media screen and (min-width: 401px) and (max-width: 500px) { 
             .report-card-scaler { 
               transform: scale(0.52); 
               margin-bottom: calc((0.52 - 1) * 297mm) !important;
             } 
           }
-          @media (min-width: 501px) and (max-width: 639px) { 
+          @media screen and (min-width: 501px) and (max-width: 639px) { 
             .report-card-scaler { 
               transform: scale(0.7); 
               margin-bottom: calc((0.70 - 1) * 297mm) !important;
@@ -710,6 +710,7 @@ const CumulativeReport = () => {
             transform: none !important; 
             width: auto !important;
             margin: 0 !important;
+            margin-bottom: 0 !important;
           }
           .report-card-mobile-wrapper {
             overflow: visible !important;

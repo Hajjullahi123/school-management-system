@@ -207,7 +207,7 @@ nav a svg,
     width: 210mm !important;
     height: 297mm !important;
     min-height: 297mm !important;
-    max-height: 297mm !important;
+    max-height: 100vh !important; /* Constrain to print page viewport height to prevent overflow on Letter paper */
     padding: 10mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
@@ -223,7 +223,7 @@ nav a svg,
     width: 297mm !important;
     height: 210mm !important;
     min-height: 210mm !important;
-    max-height: 210mm !important;
+    max-height: 100vh !important; /* Constrain to print page viewport height */
     padding: 10mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
