@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { api } from '../api';
+import toast from 'react-hot-toast';
 
 const AuthContext = createContext(null);
 
@@ -207,6 +208,52 @@ export const AuthProvider = ({ children }) => {
     // Return the slug so callers can redirect to the school's landing page
     return { schoolSlug: isSuperAdmin ? null : savedSlug };
   };
+
+  // Inactivity / Idle Timeout detection
+  useEffect(() => {
+    if (!user) return;
+
+    let timeoutId;
+    let lastActivityTime = Date.now();
+
+    const handleInactivity = () => {
+      console.log('[Auth] User inactive. Logging out automatically.');
+      toast.error('Session expired due to inactivity. Please log in again.', {
+        id: 'inactivity-logout', // Prevent duplicate toasts
+        duration: 5000,
+      });
+      logout();
+    };
+
+    const resetTimer = (force = false) => {
+      const now = Date.now();
+      // Throttle timer reset calls to reduce overhead (max once every 5 seconds)
+      if (!force && now - lastActivityTime < 5000) return;
+      lastActivityTime = now;
+
+      if (timeoutId) clearTimeout(timeoutId);
+      
+      // Default to 10 minutes timeout (600,000ms)
+      const TIMEOUT_DURATION = 10 * 60 * 1000;
+      timeoutId = setTimeout(handleInactivity, TIMEOUT_DURATION);
+    };
+
+    // Events to monitor for user activity
+    const activityEvents = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
+
+    const onActivity = () => resetTimer(false);
+
+    // Add event listeners
+    activityEvents.forEach(event => window.addEventListener(event, onActivity));
+
+    // Initialize timer
+    resetTimer(true);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      activityEvents.forEach(event => window.removeEventListener(event, onActivity));
+    };
+  }, [user]);
 
   const isDemo = user?.username === 'demo_admin';
 
