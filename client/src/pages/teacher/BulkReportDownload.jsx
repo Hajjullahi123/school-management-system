@@ -237,66 +237,10 @@ const BulkReportDownload = () => {
 
   const [downloadingPDF, setDownloadingPDF] = useState(false);
 
-  const handleDownloadPDF = async () => {
-    if (downloadingPDF || reports.length === 0) return;
-    setDownloadingPDF(true);
-    alert('Generating PDF bundle, please wait... This may take up to a minute for large classes.');
-
-    try {
-      const scaler = document.querySelector('.report-card-scaler');
-      const originalTransform = scaler ? scaler.style.transform : '';
-      if (scaler) {
-        scaler.style.transform = 'scale(1)';
-        scaler.classList.remove('scale-[0.45]', 'xs:scale-[0.55]', 'sm:scale-100');
-      }
-      
-      // Wait a tick for DOM to update
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const pdf = new jsPDF({
-        orientation: 'p',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      const cards = componentRef.current.querySelectorAll('.break-after-page');
-      
-      for (let i = 0; i < cards.length; i++) {
-        if (i > 0) {
-          pdf.addPage();
-        }
-
-        const canvas = await html2canvas(cards[i], {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          windowWidth: 850
-        });
-        
-        const imgData = canvas.toDataURL('image/png');
-        pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
-      }
-
-      if (scaler) {
-        scaler.style.transform = originalTransform;
-        scaler.classList.add('scale-[0.45]', 'xs:scale-[0.55]', 'sm:scale-100');
-      }
-
-      safeDocumentDownload(pdf, `BulkReports-${selectedClass}-${selectedTerm}.pdf`);
-      alert('PDF bundle downloaded successfully!');
-    } catch (error) {
-      console.error('Bulk PDF Generation failed:', error);
-      alert('Failed to generate PDF bundle: ' + error.message);
-      
-      // Attempt to restore scaler on error
-      const scaler = document.querySelector('.report-card-scaler');
-      if (scaler) {
-        scaler.style.transform = '';
-        scaler.classList.add('scale-[0.45]', 'xs:scale-[0.55]', 'sm:scale-100');
-      }
-    } finally {
-      setDownloadingPDF(false);
-    }
+  const handleDownloadPDF = () => {
+    if (reports.length === 0) return;
+    alert('Opening Print Dialog. Please select "Save as PDF" as the destination printer. This guarantees high quality and prevents memory crashes.');
+    handlePrint();
   };
 
   return (
