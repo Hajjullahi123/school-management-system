@@ -1482,11 +1482,17 @@ const QuranReportCard = ({ student, records, type, schoolSettings, teacher }) =>
   }
 
   @media (max-width: 1024px) {
-    .report-card-scaler { transform: scale(0.85); }
+    .report-card-scaler { 
+      transform: scale(0.85); 
+      margin-bottom: calc((0.85 - 1) * 297mm) !important;
+    }
   }
 
   @media (max-width: 768px) {
-    .report-card-scaler { transform: scale(0.7); }
+    .report-card-scaler { 
+      transform: scale(0.7); 
+      margin-bottom: calc((0.7 - 1) * 297mm) !important;
+    }
   }
 
   @media (max-width: 640px) {
@@ -1494,15 +1500,22 @@ const QuranReportCard = ({ student, records, type, schoolSettings, teacher }) =>
        transform: scale(0.55);
        transform-origin: top left;
        margin-left: 0;
-    }
+       margin-bottom: calc((0.55 - 1) * 297mm) !important;
+     }
   }
 
   @media (max-width: 480px) {
-    .report-card-scaler { transform: scale(0.42); }
+    .report-card-scaler { 
+      transform: scale(0.42); 
+      margin-bottom: calc((0.42 - 1) * 297mm) !important;
+    }
   }
 
   @media (max-width: 380px) {
-    .report-card-scaler { transform: scale(0.35); }
+    .report-card-scaler { 
+      transform: scale(0.35); 
+      margin-bottom: calc((0.35 - 1) * 297mm) !important;
+    }
   }
   
   @media print {
@@ -1510,6 +1523,7 @@ const QuranReportCard = ({ student, records, type, schoolSettings, teacher }) =>
       transform: none !important; 
       width: 210mm !important;
       margin: 0 !important;
+      margin-bottom: 0 !important;
     }
   }
 `}</style>

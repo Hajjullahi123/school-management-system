@@ -961,16 +961,32 @@ const TermReportCard = () => {
   <style>{`
     @media (max-width: 640px) {
       .report-card-mobile-wrapper {
-         min-height: 500px;
-         padding-bottom: 40px;
+         min-height: auto !important;
+         padding-bottom: 0px !important;
       }
       .report-card-scaler {
          width: 210mm;
          margin-left: 0;
+         transform-origin: top left;
       }
-      @media (max-width: 400px) { .report-card-scaler { transform: scale(0.42); } }
-      @media (min-width: 401px) and (max-width: 500px) { .report-card-scaler { transform: scale(0.52); } }
-      @media (min-width: 501px) and (max-width: 639px) { .report-card-scaler { transform: scale(0.7); } }
+      @media (max-width: 400px) { 
+        .report-card-scaler { 
+          transform: scale(0.42); 
+          margin-bottom: calc((0.42 - 1) * 297mm) !important;
+        } 
+      }
+      @media (min-width: 401px) and (max-width: 500px) { 
+        .report-card-scaler { 
+          transform: scale(0.52); 
+          margin-bottom: calc((0.52 - 1) * 297mm) !important;
+        } 
+      }
+      @media (min-width: 501px) and (max-width: 639px) { 
+        .report-card-scaler { 
+          transform: scale(0.7); 
+          margin-bottom: calc((0.70 - 1) * 297mm) !important;
+        } 
+      }
     }
     
     @media print {

@@ -986,15 +986,13 @@ const ReportCard = () => {
           .report-card-wrapper {
             margin: 0 -1rem;
             padding: 0 1rem;
-            overflow: hidden;
+            height: auto !important;
+            overflow: visible !important;
           }
           #result-sheet {
             transform: scale(0.45);
             transform-origin: top left;
-          }
-          /* Collapse the dead space left by scale(0.45): element is 297mm tall but visually only 45% */
-          .report-card-wrapper {
-            height: calc(297mm * 0.45 + 2rem);
+            margin-bottom: calc((0.45 - 1) * 297mm) !important;
           }
         }
       `}</style>
