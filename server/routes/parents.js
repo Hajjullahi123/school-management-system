@@ -510,7 +510,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
     const parent = await prisma.parent.findUnique({
       where: { id: parentId },
       include: { 
-        User: true, 
+        user: true, 
         parentChildren: { select: { id: true } } 
       }
     });
@@ -535,7 +535,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
 
       // 3. Handle User-level dependencies if deleting the user account
       // This prevents "Foreign Key Constraint" errors when the parent has sent/received messages or nudges
-      if (parent.User && parent.User.role === 'parent') {
+      if (parent.user && parent.user.role === 'parent') {
         const userId = parent.userId;
 
         // Delete nudges sent to or by this parent
@@ -571,7 +571,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'principal']), async (re
       });
 
       // 5. Delete the associated user account if they only have the parent role
-      if (parent.User && parent.User.role === 'parent') {
+      if (parent.user && parent.user.role === 'parent') {
         await tx.user.delete({
           where: { id: parent.userId }
         });
