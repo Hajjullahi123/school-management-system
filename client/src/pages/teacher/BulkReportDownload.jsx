@@ -204,36 +204,12 @@ const BulkReportDownload = () => {
     return title.replace(/[^a-zA-Z0-9]/g, '_');
   };
 
-  const handlePrint = useReactToPrint({
-    contentRef: componentRef,
-    documentTitle: getDocumentTitle(),
-    pageStyle: `
-      @media print {
-        @page { size: A4; margin: 0 !important; }
-        body { background: white !important; margin: 0; padding: 0; }
-        .emerald-print-A4 {
-          width: 210mm !important;
-          height: 297mm !important;
-          min-height: 297mm !important;
-          max-height: 297mm !important;
-          padding: 10mm !important;
-          margin: 0 auto !important;
-          box-sizing: border-box !important;
-          overflow: hidden !important;
-          position: relative !important;
-          display: flex !important;
-          flex-direction: column !important;
-          page-break-after: always !important;
-        }
-        table { border-collapse: collapse !important; width: 100% !important; }
-        td, th { border: 1px solid black !important; padding: 1px !important; }
-        * { box-sizing: border-box !important; }
-        .no-print { display: none !important; }
-      }
-      * { box-sizing: border-box !important; }
-      .border-black { border-color: black !important; }
-    `
-  });
+  const handlePrint = () => {
+    const oldTitle = document.title;
+    document.title = getDocumentTitle();
+    window.print();
+    document.title = oldTitle;
+  };
 
   const [downloadingPDF, setDownloadingPDF] = useState(false);
 
@@ -394,7 +370,7 @@ const BulkReportDownload = () => {
               const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
               return (
-                <div key={idx} className="mb-20 last:mb-0">
+                <div key={idx} className="mb-20 print:mb-0 last:mb-0">
                   {/* Mobile Scroll Hint (Synced with Single Report) */}
                   <div className="md:hidden flex items-center justify-center gap-2 mb-4 text-primary font-bold text-xs uppercase tracking-widest animate-pulse no-print">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
