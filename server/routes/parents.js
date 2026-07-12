@@ -912,7 +912,7 @@ router.get('/phone-template', authenticate, authorize(['admin', 'principal']), a
     // Add data rows
     rows.forEach((row, index) => {
       const rowIndex = index + 2;
-      worksheet.addRow({
+      const rowObj = worksheet.addRow({
         sn: index + 1,
         className: row.className,
         studentName: row.studentName,
@@ -921,8 +921,39 @@ router.get('/phone-template', authenticate, authorize(['admin', 'principal']), a
         phoneNumber: row.phoneNumber
       });
 
-      // Highlight Phone Number column (F) with light yellow
-      worksheet.getCell(`F${rowIndex}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFCC' } };
+      // Apply borders to all cells in this row
+      rowObj.eachCell((cell) => {
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+
+      // Get Phone Number column (F) cell
+      const phoneCell = worksheet.getCell(`F${rowIndex}`);
+      
+      // Highlight with light yellow
+      phoneCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFCC' } };
+
+      // Set cell format to text so leading zeros aren't dropped
+      phoneCell.numFmt = '@';
+
+      // Add data validation to only accept phone numbers
+      // Formula checks if the value becomes a number after removing '+' and spaces
+      phoneCell.dataValidation = {
+        type: 'custom',
+        allowBlank: true,
+        showInputMessage: true,
+        promptTitle: 'Phone Number',
+        prompt: 'Enter digits only (e.g., 08012345678 or +234...)',
+        showErrorMessage: true,
+        errorStyle: 'error',
+        errorTitle: 'Invalid Input',
+        error: 'Please enter a valid phone number. Text is not allowed.',
+        formulae: [`ISNUMBER(VALUE(SUBSTITUTE(SUBSTITUTE(F${rowIndex}, "+", ""), " ", "")))`]
+      };
     });
 
     // Set response headers
