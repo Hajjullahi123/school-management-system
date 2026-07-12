@@ -175,47 +175,10 @@ const ReportCard = () => {
 
   const [downloading, setDownloading] = useState(false);
 
-  const handleDownloadPDF = async () => {
-    if (downloading) return;
-    setDownloading(true);
-    toast.info('Generating high-fidelity PDF, please wait...');
-
-    try {
-      const container = document.getElementById('result-sheet');
-      if (!container) {
-        toast.error('Report card element not found');
-        setDownloading(false);
-        return;
-      }
-
-      // Use a lower scale on mobile devices to prevent RAM exhaustion (which causes 0 KB files)
-      const isMobile = window.innerWidth <= 768;
-      const canvas = await html2canvas(container, {
-        scale: isMobile ? 1.5 : 2, // Reduced from 3 to prevent crashes
-        useCORS: true,
-        logging: false,
-        windowWidth: 850
-      });
-      
-      // Use JPEG compression instead of PNG. This dramatically reduces the memory footprint
-      // required to generate the data URL, preventing silent browser crashes.
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      
-      const pdf = new jsPDF({
-        orientation: 'p',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
-      safeDocumentDownload(pdf, `ReportCard-${reportData.student.admissionNumber.replace(/\//g, '-')}.pdf`);
-      toast.success('PDF downloaded successfully!');
-    } catch (error) {
-      console.error('PDF Generation failed:', error);
-      toast.error('Failed to generate PDF');
-    } finally {
-      setDownloading(false);
-    }
+  const handleDownloadPDF = () => {
+    toast.success('Opening Print Dialog. Please select "Save as PDF" as the destination.', { autoClose: 5000 });
+    // Delegate entirely to the native browser print engine for 100% reliability and vector quality
+    handlePrint();
   };
 
   const handlePrint = () => {
