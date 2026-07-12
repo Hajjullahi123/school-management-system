@@ -991,7 +991,10 @@ const ReportCard = () => {
           #result-sheet {
             transform: scale(0.45);
             transform-origin: top left;
-            margin-bottom: -55% !important;
+          }
+          /* Collapse the dead space left by scale(0.45): element is 297mm tall but visually only 45% */
+          .report-card-wrapper {
+            height: calc(297mm * 0.45 + 2rem);
           }
         }
       `}</style>
