@@ -6,6 +6,9 @@ import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { QRCodeSVG } from 'qrcode.react';
 import { useReactToPrint } from 'react-to-print';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { safeDocumentDownload } from '../../utils/mobileDownload';
 
 const TermReportCard = () => {
   const { user } = useAuth();
@@ -18,6 +21,7 @@ const TermReportCard = () => {
   const [bulkReports, setBulkReports] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   const getStudentDisplayName = (student) => {
     if (!student) return 'Unknown Student';
@@ -332,6 +336,48 @@ const TermReportCard = () => {
     documentTitle: getDocumentTitle()
   });
 
+  const handleDownloadPDF = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const cards = printRef.current?.querySelectorAll('.emerald-print-A4');
+      if (!cards || cards.length === 0) {
+        alert('No report card found to download.');
+        return;
+      }
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = 210;
+      const pdfHeight = 297;
+      for (let i = 0; i < cards.length; i++) {
+        const el = cards[i];
+        // Temporarily force full-size rendering for accurate capture
+        const originalStyle = el.getAttribute('style') || '';
+        el.style.transform = 'none';
+        el.style.width = '210mm';
+        el.style.height = '297mm';
+        const canvas = await html2canvas(el, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          width: el.scrollWidth,
+          height: el.scrollHeight,
+        });
+        el.setAttribute('style', originalStyle);
+        const imgData = canvas.toDataURL('image/jpeg', 0.92);
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      }
+      const fileName = `${getDocumentTitle()}.pdf`;
+      safeDocumentDownload(pdf, fileName);
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      alert('PDF generation failed. Please use the Print button instead.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-20">
 
@@ -350,15 +396,38 @@ const TermReportCard = () => {
           </div>
           
           {(reportData || bulkReports.length > 0) && (
-            <button 
-              onClick={printReport} 
-              className="group/btn bg-white text-primary px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white"
-            >
-              <svg className="w-5 h-5 transition-transform group-hover/btn:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              Print {bulkReports.length > 1 ? 'All Reports' : 'Master Report'}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button 
+                onClick={printReport} 
+                className="group/btn bg-white/20 border border-white/40 text-white px-5 py-3 rounded-[20px] font-black uppercase tracking-widest text-xs shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print
+              </button>
+              <button 
+                onClick={handleDownloadPDF}
+                disabled={downloading}
+                className="group/btn bg-white text-primary px-5 py-3 rounded-[20px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border border-white disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {downloading ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Generating…
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download PDF
+                  </>
+                )}
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -505,7 +574,7 @@ const TermReportCard = () => {
       {/* Report Card Display */}
       {(reportData || bulkReports.length > 0) && (
         <>
-          <div ref={printRef} className="space-y-20">
+          <div ref={printRef} className="space-y-20 print:space-y-0">
             {(Array.isArray(bulkReports) && bulkReports.length > 0 ? bulkReports : [reportData]).map((data, idx) => {
             if (!data || !data.student) return null;
 
@@ -525,7 +594,7 @@ const TermReportCard = () => {
             const photoUri = studentPhoto ? (studentPhoto.startsWith('data:') || studentPhoto.startsWith('http') ? studentPhoto : `${API_BASE_URL}${studentPhoto}`) : null;
 
             return (
-              <div key={idx} className="mb-20 last:mb-0">
+              <div key={idx} className="mb-20 last:mb-0 print:mb-0">
                 {/* Mobile Scroll Hint */}
                 <div className="md:hidden flex items-center justify-center gap-2 mb-4 text-primary font-bold text-xs uppercase tracking-widest animate-pulse no-print">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -943,16 +1012,37 @@ const TermReportCard = () => {
       );
     })}
           </div>
-          {/* Bottom Print Button */}
-          <div className="flex justify-center mt-12 mb-8 print:hidden">
+          {/* Bottom Print & Download Buttons */}
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mt-12 mb-8 print:hidden">
             <button 
               onClick={printReport} 
               className="group/btn bg-slate-900 text-white hover:bg-slate-800 px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
             >
-              <svg className="w-5 h-5 transition-transform group-hover/btn:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               </svg>
               Print {bulkReports.length > 1 ? 'All Reports' : 'Report'}
+            </button>
+            <button 
+              onClick={handleDownloadPDF}
+              disabled={downloading}
+              className="group/btn bg-primary text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {downloading ? (
+                <>
+                  <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Generating PDF…
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Download PDF
+                </>
+              )}
             </button>
           </div>
         </>
