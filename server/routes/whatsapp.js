@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
+const { authenticate } = require('../middleware/auth');
 const WhatsAppService = require('../services/WhatsAppService');
 const { getWhatsAppHandler } = require('../utils/whatsappConfig');
 const { logAction } = require('../utils/audit');
@@ -364,6 +365,192 @@ router.get('/logs', async (req, res) => {
   } catch (error) {
     console.error('[WhatsApp Logs] Error:', error);
     res.status(500).json({ error: 'Failed to fetch logs' });
+  }
+});
+
+// Send Report Card to Parent WhatsApp
+router.post('/send-report', authenticate, async (req, res) => {
+  try {
+    const { studentId, termId, customPhone, origin } = req.body;
+    const schoolId = req.schoolId;
+
+    if (!studentId || !termId) {
+      return res.status(400).json({ error: 'studentId and termId are required' });
+    }
+
+    // 1. Fetch School Settings
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId }
+    });
+
+    if (!school) {
+      return res.status(404).json({ error: 'School not found' });
+    }
+
+    // 2. Fetch Student with Parent relation
+    const student = await prisma.student.findFirst({
+      where: { id: parseInt(studentId), schoolId },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            middleName: true,
+            lastName: true
+          }
+        },
+        parent: {
+          select: {
+            phone: true
+          }
+        },
+        classModel: {
+          select: {
+            name: true,
+            arm: true
+          }
+        }
+      }
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // 3. Resolve parent phone number
+    let parentPhone = customPhone || student.parent?.phone || student.parentPhone || student.parentGuardianPhone;
+    if (!parentPhone) {
+      return res.status(400).json({ 
+        error: 'No parent phone number found linked to this student. Please enter a phone number.' 
+      });
+    }
+
+    // Normalize phone number (ensure no spaces, dashes, etc.)
+    parentPhone = parentPhone.replace(/[\s\+\-\(\)]/g, '');
+    
+    // Convert to international format (234...) if standard local Nigerian format
+    if (parentPhone.startsWith('0') && parentPhone.length === 11) {
+      parentPhone = '234' + parentPhone.substring(1);
+    } else if (!parentPhone.startsWith('234') && parentPhone.length === 10) {
+      parentPhone = '234' + parentPhone;
+    }
+
+    // 4. Fetch Results and Term info
+    const term = await prisma.term.findFirst({
+      where: { id: parseInt(termId), schoolId },
+      include: { academicSession: true }
+    });
+
+    if (!term) {
+      return res.status(404).json({ error: 'Term not found' });
+    }
+
+    const results = await prisma.result.findMany({
+      where: { studentId: parseInt(studentId), termId: parseInt(termId), schoolId }
+    });
+
+    // 5. Generate message content
+    const studentName = `${student.user?.firstName || ''} ${student.user?.lastName || ''} ${student.middleName || ''}`.replace(/\s+/g, ' ').trim() || student.name || 'Student';
+    const className = student.classModel ? `${student.classModel.name} ${student.classModel.arm || ''}`.trim() : 'N/A';
+    
+    // Calculate performance stats
+    const totalScore = results.reduce((sum, r) => sum + (r.totalScore || 0), 0);
+    const average = results.length > 0 ? (totalScore / results.length).toFixed(1) : '0';
+    
+    // Resolve verification url
+    const siteOrigin = origin || req.headers.origin || `http://${req.headers.host}`;
+    const verifyUrl = `${siteOrigin}/verify/term/${studentId}/${termId}`;
+
+    let msg = `*STUDENT REPORT CARD SUMMARY*\n\n`;
+    msg += `🏫 *School:* ${school.name}\n`;
+    msg += `👤 *Student:* ${studentName}\n`;
+    msg += `🆔 *Admission No:* ${student.admissionNumber}\n`;
+    msg += `📚 *Class:* ${className}\n`;
+    msg += `📅 *Term:* ${term.name} (${term.academicSession.name})\n\n`;
+    msg += `📊 *Performance Summary:*\n`;
+    msg += `- *Average:* ${average}%\n`;
+    
+    // Add subject details if any
+    if (results.length > 0) {
+      msg += `\n📝 *Subject Breakdown:*\n`;
+      // Fetch subject names
+      const subjectIds = results.map(r => r.subjectId);
+      const subjects = await prisma.subject.findMany({
+        where: { id: { in: subjectIds } },
+        select: { id: true, name: true }
+      });
+      
+      results.forEach(r => {
+        const sub = subjects.find(s => s.id === r.subjectId);
+        const subName = sub ? sub.name : 'Subject';
+        msg += `- ${subName}: ${r.totalScore || 0}% (${r.grade || 'N/A'})\n`;
+      });
+    }
+    
+    msg += `\n🔗 *View Full Report Card:*\n${verifyUrl}`;
+
+    // 6. Check if WhatsApp bot is enabled and credentials exist
+    const isBotConfigured = school.whatsappBotEnabled && 
+      ((school.whatsappProvider === 'twilio' && school.twilioAccountSid && school.twilioAuthToken && school.whatsappPhoneNumber) ||
+       (school.whatsappProvider === 'meta' && school.metaAccessToken && school.metaPhoneNumberId));
+
+    if (!isBotConfigured) {
+      // Return the message content and parent phone number so frontend can use wa.me redirect
+      return res.json({
+        success: false,
+        code: 'BOT_NOT_CONFIGURED',
+        message: 'WhatsApp bot is not configured for this school. Pre-filling manual send details...',
+        parentPhone,
+        textMessage: msg
+      });
+    }
+
+    // 7. Send message via WhatsApp Service
+    const whatsappService = new WhatsAppService({
+      whatsappProvider: school.whatsappProvider,
+      twilioAccountSid: school.twilioAccountSid,
+      twilioAuthToken: school.twilioAuthToken,
+      whatsappPhoneNumber: school.whatsappPhoneNumber,
+      metaAccessToken: school.metaAccessToken,
+      metaPhoneNumberId: school.metaPhoneNumberId
+    });
+
+    await whatsappService.send(parentPhone, msg);
+
+    // Log successful interaction
+    await prisma.whatsAppLog.create({
+      data: {
+        schoolId,
+        phoneNumber: parentPhone,
+        parentId: student.parentId,
+        message: `System Send Report Card (Student ID: ${studentId}, Term ID: ${termId})`,
+        response: 'SUCCESS',
+        intent: 'send_report',
+        success: true
+      }
+    });
+
+    // Audit log
+    logAction({
+      schoolId,
+      userId: req.user.id,
+      action: 'SEND_REPORT_WHATSAPP',
+      resource: 'WHATSAPP_BOT',
+      details: {
+        studentId,
+        termId,
+        parentPhone
+      },
+      ipAddress: req.ip
+    });
+
+    res.json({
+      success: true,
+      message: 'Report card sent to parent WhatsApp successfully'
+    });
+
+  } catch (error) {
+    console.error('[WhatsApp Send Report Error]:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 

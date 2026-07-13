@@ -59,6 +59,11 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
             photoUrl: true
           }
         },
+        parent: {
+          select: {
+            phone: true
+          }
+        },
         classModel: {
           select: {
             id: true,
@@ -396,7 +401,8 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         formMaster: student.classModel?.classTeacher
           ? `${student.classModel.classTeacher.firstName} ${student.classModel.classTeacher.lastName}`
           : 'Not Assigned',
-        formMasterSignatureUrl: student.classModel?.classTeacher?.signatureUrl || null
+        formMasterSignatureUrl: student.classModel?.classTeacher?.signatureUrl || null,
+        parentPhone: student.parent?.phone || student.parentPhone || student.parentGuardianPhone || null
       },
       term: {
         id: term.id,

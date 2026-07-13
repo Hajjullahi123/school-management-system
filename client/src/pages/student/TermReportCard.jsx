@@ -23,6 +23,11 @@ const TermReportCard = () => {
   const [error, setError] = useState(null);
   const [downloading, setDownloading] = useState(false);
 
+  // WhatsApp states
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [whatsAppPhone, setWhatsAppPhone] = useState('');
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
+
   const getStudentDisplayName = (student) => {
     if (!student) return 'Unknown Student';
     const fName = (student.user?.firstName || '').trim();
@@ -385,6 +390,46 @@ const TermReportCard = () => {
     }
   };
 
+  const sendWhatsApp = async (e) => {
+    e.preventDefault();
+    if (!whatsAppPhone) {
+      alert('Phone number is required');
+      return;
+    }
+
+    setSendingWhatsApp(true);
+    try {
+      const response = await api.post('/api/whatsapp/send-report', {
+        studentId: reportData.student.id,
+        termId: selectedTerm,
+        customPhone: whatsAppPhone,
+        origin: window.location.origin
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (data.success) {
+          alert(data.message || 'Report card sent successfully via WhatsApp Bot!');
+          setShowWhatsAppModal(false);
+        } else if (data.code === 'BOT_NOT_CONFIGURED') {
+          alert('WhatsApp bot not configured. Opening manual send URL...');
+          setShowWhatsAppModal(false);
+          // Launch wa.me manual link
+          const waUrl = `https://api.whatsapp.com/send?phone=${data.parentPhone}&text=${encodeURIComponent(data.textMessage)}`;
+          window.open(waUrl, '_blank');
+        }
+      } else {
+        alert(data.error || 'Failed to send WhatsApp message');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Failed to send WhatsApp message');
+    } finally {
+      setSendingWhatsApp(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-20">
 
@@ -404,6 +449,20 @@ const TermReportCard = () => {
           
           {(reportData || bulkReports.length > 0) && (
             <div className="flex flex-col sm:flex-row gap-3">
+              {reportData && user?.role !== 'student' && user?.role !== 'parent' && (
+                <button 
+                  onClick={() => {
+                    setWhatsAppPhone(reportData?.student?.parentPhone || '');
+                    setShowWhatsAppModal(true);
+                  }}
+                  className="group/btn bg-[#25D366] text-white px-5 py-3 rounded-[20px] font-black uppercase tracking-widest text-xs shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border border-none"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.733-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.413 9.863-9.847.002-2.632-1.02-5.107-2.875-6.963C16.595 1.989 14.128 1.01 11.5 1.01c-5.448 0-9.882 4.414-9.885 9.851-.001 1.761.47 3.487 1.365 5.011l-.99 3.618 3.733-.979zm11.585-6.38c-.328-.164-1.942-.959-2.242-1.069-.3-.11-.518-.164-.736.164-.218.327-.847 1.069-1.038 1.287-.19.219-.382.245-.71.082-.328-.164-1.386-.511-2.64-1.63-1.053-.94-1.763-2.1-1.97-2.455-.207-.354-.022-.547.142-.71.147-.146.328-.382.492-.573.164-.19.218-.328.328-.546.11-.219.055-.41-.028-.573-.082-.164-.736-1.775-1.01-2.429-.267-.642-.56-.554-.736-.563-.17-.008-.367-.01-.563-.01-.196 0-.518.073-.79.364-.272.291-1.037 1.01-1.037 2.463 0 1.452 1.055 2.858 1.202 3.056.147.199 2.074 3.167 5.025 4.444.702.304 1.25.485 1.678.62.705.224 1.347.193 1.854.117.565-.084 1.942-.793 2.214-1.527.272-.735.272-1.363.19-1.5-.082-.137-.3-.219-.628-.383z"/>
+                  </svg>
+                  WhatsApp
+                </button>
+              )}
               <button 
                 onClick={printReport} 
                 className="group/btn bg-white/20 border border-white/40 text-white px-5 py-3 rounded-[20px] font-black uppercase tracking-widest text-xs shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
@@ -1116,6 +1175,65 @@ const TermReportCard = () => {
        padding: 0 !important;
     }
   `}</style>
+
+      {showWhatsAppModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] print:hidden animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200 text-slate-800">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <svg className="w-6 h-6 text-[#25D366]" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.733-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.413 9.863-9.847.002-2.632-1.02-5.107-2.875-6.963C16.595 1.989 14.128 1.01 11.5 1.01c-5.448 0-9.882 4.414-9.885 9.851-.001 1.761.47 3.487 1.365 5.011l-.99 3.618 3.733-.979zm11.585-6.38c-.328-.164-1.942-.959-2.242-1.069-.3-.11-.518-.164-.736.164-.218.327-.847 1.069-1.038 1.287-.19.219-.382.245-.71.082-.328-.164-1.386-.511-2.64-1.63-1.053-.94-1.763-2.1-1.97-2.455-.207-.354-.022-.547.142-.71.147-.146.328-.382.492-.573.164-.19.218-.328.328-.546.11-.219.055-.41-.028-.573-.082-.164-.736-1.775-1.01-2.429-.267-.642-.56-.554-.736-.563-.17-.008-.367-.01-.563-.01-.196 0-.518.073-.79.364-.272.291-1.037 1.01-1.037 2.463 0 1.452 1.055 2.858 1.202 3.056.147.199 2.074 3.167 5.025 4.444.702.304 1.25.485 1.678.62.705.224 1.347.193 1.854.117.565-.084 1.942-.793 2.214-1.527.272-.735.272-1.363.19-1.5-.082-.137-.3-.219-.628-.383z"/>
+                </svg>
+                WhatsApp to Parent
+              </h3>
+              <button onClick={() => setShowWhatsAppModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={sendWhatsApp} className="space-y-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-slate-700">Recipient Phone Number</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 08031234567 or 2348031234567"
+                  value={whatsAppPhone}
+                  onChange={(e) => setWhatsAppPhone(e.target.value)}
+                  className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium transition-all text-slate-800"
+                  required
+                />
+                <p className="text-xs text-slate-500">
+                  Enter the parent's WhatsApp number. If the school WhatsApp bot is enabled and configured, it will send automatically. Otherwise, it will launch manual send via WhatsApp Web/app.
+                </p>
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowWhatsAppModal(false)}
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-all text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={sendingWhatsApp}
+                  className="px-6 py-2.5 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold rounded-xl transition-all shadow-md text-sm flex items-center gap-2 disabled:opacity-50"
+                >
+                  {sendingWhatsApp ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
+                      Sending...
+                    </>
+                  ) : (
+                    'Send Report'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 </div>
 );
 };
