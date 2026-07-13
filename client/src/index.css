@@ -200,14 +200,19 @@ nav a svg,
     print-color-adjust: exact !important;
     margin: 0 !important;
     padding: 0 !important;
+    height: 100% !important;
   }
 
   /* Strict A4 Container */
   .emerald-print-A4 {
     width: 210mm !important;
-    height: 297mm !important;
-    min-height: 297mm !important;
-    max-height: 297mm !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    height: 100vh !important;
+    min-height: 100% !important;
+    min-height: 100vh !important;
+    max-height: 100% !important;
+    max-height: 100vh !important;
     padding: 10mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
@@ -218,6 +223,8 @@ nav a svg,
     overflow: hidden !important;
     page-break-after: always !important;
     break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   /* Prevent trailing blank page after last card */
@@ -228,9 +235,13 @@ nav a svg,
 
   .emerald-print-A4-landscape {
     width: 297mm !important;
-    height: 210mm !important;
-    min-height: 210mm !important;
-    max-height: 210mm !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    height: 100vh !important;
+    min-height: 100% !important;
+    min-height: 100vh !important;
+    max-height: 100% !important;
+    max-height: 100vh !important;
     padding: 10mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
@@ -241,6 +252,8 @@ nav a svg,
     overflow: hidden !important;
     page-break-after: always !important;
     break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   .emerald-print-A4-landscape:last-child {
