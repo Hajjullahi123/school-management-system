@@ -202,8 +202,10 @@ const ReportCard = () => {
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        width: element.scrollWidth,
-        height: element.scrollHeight,
+        width: 794,
+        height: 1123,
+        windowWidth: 794,
+        windowHeight: 1123,
       });
       
       // Restore original zoom/scale

@@ -507,8 +507,8 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       overallGrade: results.length > 0 ? getGrade(termAverage, schoolSettings.gradingSystem) : null,
       overallRemark: results.length > 0 ? getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : null,
       // Extras
-      formMasterRemark: reportExtras?.formMasterRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
-      principalRemark: reportExtras?.principalRemark || getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem),
+      formMasterRemark: reportExtras?.formMasterRemark || (results.length > 0 ? getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : ""),
+      principalRemark: reportExtras?.principalRemark || (results.length > 0 ? getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : ""),
       psychomotorRatings: psychomotorDomains.map(d => {
         const rating = ratings.find(r => r.domainId === d.id);
         return {

@@ -371,8 +371,10 @@ const TermReportCard = () => {
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',
-          width: el.scrollWidth,
-          height: el.scrollHeight,
+          width: 794,
+          height: 1123,
+          windowWidth: 794,
+          windowHeight: 1123,
         });
         el.setAttribute('style', originalStyle);
         const imgData = canvas.toDataURL('image/jpeg', 0.92);
@@ -907,7 +909,7 @@ const TermReportCard = () => {
                           )}
                           <div className="flex flex-col items-center justify-center p-1">
                             <span className="text-[7px] text-gray-400 uppercase font-black">Average</span>
-                            <span className="text-sm font-black italic">{data.termAverage?.toFixed(1)}%</span>
+                            <span className="text-sm font-black italic">{data.termAverage !== null && data.termAverage !== undefined ? `${data.termAverage.toFixed(1)}%` : '-'}</span>
                           </div>
                         </div>
 
