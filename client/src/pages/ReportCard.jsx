@@ -181,6 +181,11 @@ const ReportCard = () => {
       const element = document.getElementById('result-sheet');
       if (!element) { toast.error('Report not found'); return; }
       
+      // Add temporary class to body to disable scaling and transitions during PDF rendering
+      document.body.classList.add('is-generating-pdf');
+      // Wait for layout updates
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       // Temporarily reset zoom/scale for accurate capture
       const originalZoom = element.style.zoom;
       const originalTransform = element.style.transform;
@@ -217,6 +222,7 @@ const ReportCard = () => {
       toast.error('PDF generation failed. Using print fallback...');
       handlePrint();
     } finally {
+      document.body.classList.remove('is-generating-pdf');
       setDownloading(false);
     }
   };
@@ -994,6 +1000,21 @@ const ReportCard = () => {
             transform-origin: top left;
             margin-bottom: calc((0.45 - 1) * 297mm) !important;
           }
+        }
+
+        /* Disable scale, transitions, and animations when generating PDF to prevent scaled-down screenshotting */
+        body.is-generating-pdf * {
+          transition: none !important;
+          animation: none !important;
+        }
+        body.is-generating-pdf #result-sheet {
+          transform: none !important;
+          margin-bottom: 0 !important;
+        }
+        body.is-generating-pdf .report-card-wrapper {
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
         }
       `}</style>
     </div>

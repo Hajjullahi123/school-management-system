@@ -345,6 +345,12 @@ const TermReportCard = () => {
         alert('No report card found to download.');
         return;
       }
+
+      // Add temporary class to body to disable scaling and transitions during PDF rendering
+      document.body.classList.add('is-generating-pdf');
+      // Wait for layout updates
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = 210;
       const pdfHeight = 297;
@@ -374,6 +380,7 @@ const TermReportCard = () => {
       console.error('PDF generation error:', err);
       alert('PDF generation failed. Please use the Print button instead.');
     } finally {
+      document.body.classList.remove('is-generating-pdf');
       setDownloading(false);
     }
   };
@@ -1090,6 +1097,23 @@ const TermReportCard = () => {
         overflow: visible !important;
         padding: 0 !important;
       }
+    }
+
+    /* Disable scale, transitions, and animations when generating PDF to prevent scaled-down screenshotting */
+    body.is-generating-pdf * {
+      transition: none !important;
+      animation: none !important;
+    }
+    body.is-generating-pdf .report-card-scaler {
+      transform: none !important;
+      scale: none !important;
+      width: auto !important;
+      margin: 0 !important;
+      margin-bottom: 0 !important;
+    }
+    body.is-generating-pdf .report-card-mobile-wrapper {
+       overflow: visible !important;
+       padding: 0 !important;
     }
   `}</style>
 </div>
