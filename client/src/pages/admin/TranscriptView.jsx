@@ -97,7 +97,7 @@ const TranscriptView = () => {
         <div className="overflow-x-auto md:overflow-visible no-scrollbar">
           <div
             ref={componentRef}
-            className="mx-auto bg-white shadow-2xl rounded-none relative overflow-hidden transcript-container print:shadow-none print:emerald-print-A4"
+            className="mx-auto bg-white shadow-2xl rounded-none relative overflow-hidden transcript-container print:shadow-none emerald-print-A4"
             style={{
               width: '210mm',
               minWidth: '210mm',

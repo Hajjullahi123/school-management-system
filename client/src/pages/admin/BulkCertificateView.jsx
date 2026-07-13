@@ -137,7 +137,7 @@ const BulkCertificateView = () => {
           };
 
           return (
-            <div key={cert.id} className="certificate-page bg-white p-0 m-0 relative mx-auto my-4 shadow-xl md:shadow-none print:emerald-print-A4-landscape" style={{ width: '297mm', minWidth: '297mm', height: '210mm', overflow: 'hidden', fontFamily: certFont }}>
+            <div key={cert.id} className="certificate-page bg-white p-0 m-0 relative mx-auto my-4 shadow-xl md:shadow-none emerald-print-A4-landscape" style={{ width: '297mm', minWidth: '297mm', height: '210mm', overflow: 'hidden', fontFamily: certFont }}>
               <div className="absolute inset-0" style={{ ...getBorderStyle(certBorder, primaryCol, secondaryCol), margin: '0' }}>
                 {/* Watermark */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none"

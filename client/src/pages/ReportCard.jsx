@@ -501,7 +501,7 @@ const ReportCard = () => {
             const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
             return (
           <div className="report-card-wrapper overflow-hidden md:overflow-visible pb-0 md:pb-4">
-            <div id="result-sheet" className={`relative bg-white p-8 print:p-0 shadow-2xl print:shadow-none text-black ${borderStyle} print:emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] md:min-w-0`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
+            <div id="result-sheet" className={`relative bg-white p-8 print:p-0 shadow-2xl print:shadow-none text-black ${borderStyle} emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] md:min-w-0`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
             {/* PROTECTION WATERMARK */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.06] select-none rotate-12 overflow-hidden">
               <div className="text-[100px] font-black uppercase text-gray-900 leading-[0.8] text-center">
