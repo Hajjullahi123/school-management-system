@@ -400,7 +400,12 @@ router.post('/send-report', authenticate, async (req, res) => {
         },
         parent: {
           select: {
-            phone: true
+            phone: true,
+            user: {
+              select: {
+                username: true
+              }
+            }
           }
         },
         classModel: {
@@ -459,6 +464,8 @@ router.post('/send-report', authenticate, async (req, res) => {
     // Resolve verification url
     const siteOrigin = origin || req.headers.origin || `http://${req.headers.host}`;
     const verifyUrl = `${siteOrigin}/verify/term/${studentId}/${termId}`;
+    const loginUrl = `${siteOrigin}/login`;
+    const parentUsername = student.parent?.user?.username || student.parent?.phone || student.parentPhone || 'Your phone number';
 
     let msg = `*STUDENT REPORT CARD SUMMARY*\n\n`;
     msg += `🏫 *School:* ${school.name}\n`;
@@ -486,7 +493,14 @@ router.post('/send-report', authenticate, async (req, res) => {
       });
     }
     
-    msg += `\n🔗 *View Full Report Card:*\n${verifyUrl}`;
+    msg += `\n🔑 *Parent Portal Login:*\n`;
+    msg += `- *Login URL:* ${loginUrl}\n`;
+    msg += `- *Username:* ${parentUsername}\n`;
+    msg += `- *Default Password:* parent123 (or 123456)\n\n`;
+    
+    msg += `📝 *Instructions:* Log into the dashboard with the credentials above to access the full child report and other academic information.\n\n`;
+    
+    msg += `🔗 *Quick View Link:*\n${verifyUrl}`;
 
     // 6. Check if WhatsApp bot is enabled and credentials exist
     const isBotConfigured = school.whatsappBotEnabled && 
