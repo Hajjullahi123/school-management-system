@@ -26,22 +26,7 @@ export const safeDocumentDownload = (doc, fileName) => {
     // Check if we are on a mobile device
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
-    // Web Share API is the most robust way on mobile (iOS/Android)
-    if (isMobile && navigator.share && navigator.canShare) {
-      const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
-      if (navigator.canShare({ files: [file] })) {
-        navigator.share({
-          title: fileName,
-          files: [file]
-        }).catch(err => {
-           console.log("Share API cancelled or failed, falling back...", err);
-           fallbackDownload(pdfBlob, fileName, isMobile);
-        });
-        return;
-      }
-    }
-    
-    // Fallback for desktop or unsupported mobile
+    // Fallback for desktop or mobile (direct download instead of sharing intent)
     fallbackDownload(pdfBlob, fileName, isMobile);
   } catch(e) {
     console.error("PDF Download error", e);

@@ -496,7 +496,7 @@ router.post('/send-report', authenticate, async (req, res) => {
     msg += `\n🔑 *Parent Portal Login:*\n`;
     msg += `- *Login URL:* ${loginUrl}\n`;
     msg += `- *Username:* ${parentUsername}\n`;
-    msg += `- *Default Password:* parent123 (or 123456)\n\n`;
+    msg += `- *Default Password:* parent123\n\n`;
     
     msg += `📝 *Instructions:* Log into the dashboard with the credentials above to access the full child report and other academic information.\n\n`;
     
