@@ -351,6 +351,12 @@ const TermReportCard = () => {
         return;
       }
 
+      // Add temporary class to body to disable scaling and transitions during PDF rendering
+      document.body.classList.add('is-generating-pdf');
+      
+      // Wait for layout updates
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = 210;
       const pdfHeight = 297;
@@ -358,9 +364,11 @@ const TermReportCard = () => {
       for (let i = 0; i < cards.length; i++) {
         const el = cards[i];
         
-        const oldId = el.id;
-        const tempId = `pdf-gen-target-${i}-${Date.now()}`;
-        el.id = tempId;
+        // Temporarily force full-size rendering for accurate capture
+        const originalStyle = el.getAttribute('style') || '';
+        el.style.transform = 'none';
+        el.style.width = '210mm';
+        el.style.height = '297mm';
         
         const canvas = await html2canvas(el, {
           scale: 2,
@@ -370,19 +378,10 @@ const TermReportCard = () => {
           width: 794,
           height: 1123,
           windowWidth: 794,
-          windowHeight: 1123,
-          onclone: (clonedDoc) => {
-            clonedDoc.body.classList.add('is-generating-pdf');
-            const clonedEl = clonedDoc.getElementById(tempId);
-            if (clonedEl) {
-              clonedEl.style.transform = 'none';
-              clonedEl.style.width = '210mm';
-              clonedEl.style.height = '297mm';
-            }
-          }
+          windowHeight: 1123
         });
         
-        el.id = oldId;
+        el.setAttribute('style', originalStyle);
 
         const imgData = canvas.toDataURL('image/jpeg', 0.92);
         if (i > 0) pdf.addPage();
@@ -394,6 +393,7 @@ const TermReportCard = () => {
       console.error('PDF generation error:', err);
       alert('PDF generation failed. Please use the Print button instead.');
     } finally {
+      document.body.classList.remove('is-generating-pdf');
       setDownloading(false);
     }
   };
@@ -441,7 +441,13 @@ const TermReportCard = () => {
   return (
     <div className="space-y-6 pb-20">
 
-
+      {downloading && (
+        <div className="fixed inset-0 z-[99999] bg-slate-50 flex flex-col items-center justify-center print:hidden">
+          <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <h2 className="text-xl font-black text-slate-900 uppercase tracking-widest text-center px-4">Generating PDF Document</h2>
+          <p className="text-sm text-slate-500 mt-2 font-medium text-center px-4">Please wait while we format your report card...</p>
+        </div>
+      )}
       {/* Header Section - Glassmorphism */}
       <div className="relative group overflow-hidden rounded-[32px] p-1 bg-gradient-to-br from-indigo-600 via-primary to-emerald-600 shadow-2xl print:hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"></div>
@@ -1192,6 +1198,9 @@ const TermReportCard = () => {
     body.is-generating-pdf .report-card-mobile-wrapper {
        overflow: visible !important;
        padding: 0 !important;
+    }
+    body.is-generating-pdf .impersonation-banner {
+      display: none !important;
     }
   `}</style>
 
