@@ -2756,43 +2756,40 @@ router.get('/verify/:type/:studentId/:targetId', async (req, res) => {
       const results = await prisma.result.findMany({
         where: { studentId: parseInt(studentId), termId: parseInt(targetId) }
       });
-      if (results.length === 0) return res.status(404).json({ error: 'No results found for this term.' });
 
       const totalScore = results.reduce((sum, r) => sum + (r.totalScore || 0), 0);
-      const average = totalScore / (results.length || 1);
+      const average = results.length > 0 ? totalScore / results.length : 0;
       performance = {
         totalScore,
         average,
-        grade: getGrade(average, gradingSystem),
-        remark: getRemark(getGrade(average, gradingSystem), gradingSystem)
+        grade: results.length > 0 ? getGrade(average, gradingSystem) : 'N/A',
+        remark: results.length > 0 ? getRemark(getGrade(average, gradingSystem), gradingSystem) : 'N/A'
       };
     } else if (type === 'progressive') {
       const results = await prisma.result.findMany({
         where: { studentId: parseInt(studentId), termId: parseInt(targetId) }
       });
-      if (results.length === 0) return res.status(404).json({ error: 'No results found for this period.' });
 
       const caTotal = results.reduce((sum, r) => sum + (r.assignment1Score || 0) + (r.assignment2Score || 0) + (r.test1Score || 0) + (r.test2Score || 0), 0);
-      const caAverage = caTotal / (results.length || 1);
+      const caAverage = results.length > 0 ? caTotal / results.length : 0;
       performance = {
         totalScore: caTotal,
         average: caAverage,
-        grade: getGrade(caAverage, gradingSystem),
-        remark: getRemark(getGrade(caAverage, gradingSystem), gradingSystem)
+        grade: results.length > 0 ? getGrade(caAverage, gradingSystem) : 'N/A',
+        remark: results.length > 0 ? getRemark(getGrade(caAverage, gradingSystem), gradingSystem) : 'N/A'
       };
     } else if (type === 'cumulative') {
       const results = await prisma.result.findMany({
         where: { studentId: parseInt(studentId), term: { academicSessionId: parseInt(targetId) } }
       });
-      if (results.length === 0) return res.status(404).json({ error: 'No results found for this session.' });
 
       const totalScore = results.reduce((sum, r) => sum + (r.totalScore || 0), 0);
-      const average = totalScore / (results.length || 1);
+      const average = results.length > 0 ? totalScore / results.length : 0;
       performance = {
         totalScore,
         average,
-        grade: getGrade(average, gradingSystem),
-        remark: getRemark(getGrade(average, gradingSystem), gradingSystem)
+        grade: results.length > 0 ? getGrade(average, gradingSystem) : 'N/A',
+        remark: results.length > 0 ? getRemark(getGrade(average, gradingSystem), gradingSystem) : 'N/A'
       };
     }
 
