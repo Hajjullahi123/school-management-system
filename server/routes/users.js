@@ -207,10 +207,10 @@ router.post('/', authenticate, authorize(['admin', 'sub_admin', 'principal', 'ac
     // Auto-generate password if not provided
     let finalPassword = (password || '').trim();
     if (!finalPassword) {
-      // For students, use admission number as default password if not provided
-      // For others, use random string
+      // For students, use '123456' as default password (consistent with all other creation routes)
+      // For others, use FirstNameL@123 pattern
       if (role === 'student') {
-        finalPassword = admissionNumber;
+        finalPassword = '123456';
       } else {
         const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
         finalPassword = `${firstName}${lastInitial}@123`;
