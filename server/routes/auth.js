@@ -706,4 +706,49 @@ router.post('/impersonate', authenticate, authorize(['admin', 'superadmin']), as
   }
 });
 
+// Temporary migration endpoint to reset all student passwords to '123456'
+// Must be called with ?secret=eduTechResetStudentPasswordsXYZ987
+router.get('/temp-reset-student-passwords-xyz987', async (req, res) => {
+  try {
+    const { secret } = req.query;
+    if (secret !== 'eduTechResetStudentPasswordsXYZ987') {
+      return res.status(403).json({ error: 'Unauthorized access' });
+    }
+
+    console.log('[Migration] Starting student password reset via API...');
+    const studentUsers = await prisma.user.findMany({
+      where: { role: 'student' }
+    });
+
+    const defaultPassword = '123456';
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+    let updatedCount = 0;
+
+    for (const user of studentUsers) {
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { 
+            passwordHash: hashedPassword,
+            mustChangePassword: false
+          }
+        });
+        updatedCount++;
+      } catch (err) {
+        console.error(`[Migration] Failed to reset password for student ${user.username}:`, err);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'All student passwords reset successfully',
+      totalFound: studentUsers.length,
+      totalReset: updatedCount
+    });
+  } catch (error) {
+    console.error('[Migration] Error in reset migration route:', error);
+    res.status(500).json({ error: 'Internal server error running migration', details: error.message });
+  }
+});
+
 module.exports = router;
