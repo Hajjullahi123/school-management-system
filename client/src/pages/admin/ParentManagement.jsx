@@ -502,10 +502,10 @@ const ParentManagement = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Phone Number (Login Username) *</label>
-                <input type="text" className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:border-transparent" required
+                <label className="block text-sm font-medium mb-1">Phone Number (Login Username) (Optional)</label>
+                <input type="text" className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={createData.phone} onChange={e => setCreateData({ ...createData, phone: e.target.value })} />
-                <p className="text-xs text-gray-500 mt-1">This will be used as the login username</p>
+                <p className="text-xs text-gray-500 mt-1">Used for login. If empty, a Parent ID will be generated.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Email</label>
@@ -623,8 +623,8 @@ const ParentManagement = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Phone Number *</label>
-                <input type="text" className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:border-transparent" required
+                <label className="block text-sm font-medium mb-1">Phone Number (Optional)</label>
+                <input type="text" className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-primary focus:border-transparent"
                   value={editData.phone} onChange={e => setEditData({ ...editData, phone: e.target.value })} />
               </div>
               <div>
@@ -883,7 +883,7 @@ const ParentManagement = () => {
             <div className="bg-gradient-to-r from-primary/5 to-primary/10 border-2 border-primary/20 rounded-lg p-6 mb-6">
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-semibold text-gray-700 block mb-1">Username (Phone Number)</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-1">Username (Login ID)</label>
                   <div className="bg-white rounded-lg p-3 border border-primary/30">
                     <span className="text-lg font-mono font-bold text-gray-900">{parentCredentials.username}</span>
                   </div>

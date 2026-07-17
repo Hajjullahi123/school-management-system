@@ -221,11 +221,14 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
 
     // 1. PERFORM GLOBAL DISCOVERY
     // We search across all schools to see if this identifier exists anywhere
+    const sanitizedPhone = searchId.replace(/\s+/g, '');
     const globalMatches = await prisma.user.findMany({
       where: { 
         OR: [
           { username: { equals: searchId, mode: 'insensitive' } }, 
-          { email: { equals: searchId, mode: 'insensitive' } }
+          { email: { equals: searchId, mode: 'insensitive' } },
+          { phone: { equals: sanitizedPhone } },
+          { Parent: { phone: { equals: sanitizedPhone } } }
         ] 
       },
       select: { 
@@ -372,6 +375,22 @@ router.post('/login', validate(loginSchema), async (req, res) => {
             where: { schoolId: school.id, username: { equals: searchId, mode: 'insensitive' } },
             select: userSelect
           });
+
+          if (!user) {
+            // Check if it matches a parent phone number
+            const sanitizedPhone = searchId.replace(/\s+/g, '');
+            user = await prisma.user.findFirst({
+              where: {
+                schoolId: school.id,
+                role: 'parent',
+                OR: [
+                  { phone: sanitizedPhone },
+                  { Parent: { phone: sanitizedPhone } }
+                ]
+              },
+              select: userSelect
+            });
+          }
 
           if (!user) {
             // Look up student or teacher by their ID numbers

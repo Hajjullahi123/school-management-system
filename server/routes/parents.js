@@ -4,7 +4,7 @@ const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
 const { logAction } = require('../utils/audit');
-const { generateAutoEmail } = require('../utils/usernameGenerator');
+const { generateAutoEmail, generateParentUsername } = require('../utils/usernameGenerator');
 const { getStudentFeeSummary } = require('../utils/feeCalculations');
 const ExcelJS = require('exceljs');
 const xlsx = require('xlsx');
@@ -214,15 +214,26 @@ router.post('/register', authenticate, authorize(['admin', 'principal', 'account
     // Generate default email if not provided
     const parentEmail = email || generateAutoEmail(firstName, lastName, school?.name);
 
-    // Check if phone already registered in THIS school
-    const existingPhone = await prisma.user.findFirst({
-      where: {
-        username: phone,
-        schoolId: req.schoolId
-      }
-    });
+    let parentUsername;
+    let sanitizedPhone = null;
 
-    if (existingPhone) return res.status(400).json({ error: 'Parent with this phone number already exists' });
+    if (phone && phone.trim()) {
+      sanitizedPhone = phone.trim().replace(/\s+/g, '');
+      parentUsername = sanitizedPhone;
+
+      // Check if phone already registered in THIS school
+      const existingPhone = await prisma.user.findFirst({
+        where: {
+          username: sanitizedPhone,
+          schoolId: req.schoolId
+        }
+      });
+
+      if (existingPhone) return res.status(400).json({ error: 'Parent with this phone number already exists' });
+    } else {
+      // Generate a unique parent username/ID if no phone is provided
+      parentUsername = await generateParentUsername(req.schoolId, school?.code || school?.slug || 'SCH');
+    }
 
     // Check if email already registered in THIS school
     const existingEmail = await prisma.user.findFirst({
@@ -258,7 +269,7 @@ router.post('/register', authenticate, authorize(['admin', 'principal', 'account
       }
     }
 
-    // Create User (Username = Phone Number)
+    // Create User
     const passwordHash = await bcrypt.hash('parent123', 10);
 
     // Transaction to create User + Parent + Link Students
@@ -269,11 +280,12 @@ router.post('/register', authenticate, authorize(['admin', 'principal', 'account
           firstName,
           lastName,
           email: parentEmail,
-          username: phone, // Phone as username for simplicity
+          username: parentUsername,
+          phone: sanitizedPhone,
           passwordHash,
           role: 'parent',
           isActive: true,
-          mustChangePassword: false // No longer forced
+          mustChangePassword: false
         }
       });
 
@@ -281,7 +293,7 @@ router.post('/register', authenticate, authorize(['admin', 'principal', 'account
         data: {
           schoolId: req.schoolId,
           userId: user.id,
-          phone,
+          phone: sanitizedPhone,
           address,
           // Link students if provided
           parentChildren: studentIds && studentIds.length > 0 ? {
@@ -294,7 +306,7 @@ router.post('/register', authenticate, authorize(['admin', 'principal', 'account
     });
 
     console.log('Parent created successfully:', {
-      username: phone,
+      username: parentUsername,
       password: 'parent123',
       userId: result.user.id,
       parentId: result.parent.id
@@ -304,7 +316,7 @@ router.post('/register', authenticate, authorize(['admin', 'principal', 'account
       message: 'Parent account created',
       parentId: result.parent.id,
       credentials: {
-        username: phone,
+        username: parentUsername,
         password: 'parent123'
       }
     });
@@ -317,7 +329,7 @@ router.post('/register', authenticate, authorize(['admin', 'principal', 'account
       resource: 'PARENT_ACCOUNT',
       details: {
         parentId: result.parent.id,
-        phone,
+        phone: sanitizedPhone,
         studentCount: studentIds?.length || 0
       },
       ipAddress: req.ip
@@ -452,6 +464,27 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
       return res.status(404).json({ error: 'Parent not found' });
     }
 
+    const sanitizedPhone = phone && phone.trim() ? phone.trim().replace(/\s+/g, '') : null;
+    let newUsername = parent.user.username;
+
+    if (sanitizedPhone) {
+      if (!parent.user.username.includes('/PAR/')) {
+        newUsername = sanitizedPhone;
+      }
+
+      const existingPhone = await prisma.user.findFirst({
+        where: {
+          username: newUsername,
+          schoolId: req.schoolId,
+          id: { not: parent.userId }
+        }
+      });
+
+      if (existingPhone) {
+        return res.status(400).json({ error: 'Parent with this phone number already exists' });
+      }
+    }
+
     // Update user and parent in transaction
     await prisma.$transaction(async (prisma) => {
       // Update user fields
@@ -464,7 +497,8 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
           firstName,
           lastName,
           email: email || parent.user.email,
-          username: phone // Update username if phone changes
+          username: newUsername,
+          phone: sanitizedPhone
         }
       });
 
@@ -475,7 +509,7 @@ router.put('/:id', authenticate, authorize(['admin', 'principal']), async (req, 
           schoolId: req.schoolId
         },
         data: {
-          phone,
+          phone: sanitizedPhone,
           address
         }
       });

@@ -171,6 +171,42 @@ async function generateStudentUsername(schoolId, schoolCode, firstName, lastName
 }
 
 /**
+ * Generates a unique parent username in the format:
+ * SCHOOL_CODE/PAR/YEAR/SERIAL + RANDOM_2_LETTERS
+ * Example: AAM/PAR/2026/001AG
+ */
+async function generateParentUsername(schoolId, schoolCode) {
+  const sCode = (schoolCode || 'SCH').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  
+  const parentCount = await prisma.parent.count({
+    where: { schoolId: parseInt(schoolId) }
+  });
+
+  const serial = String(parentCount + 1).padStart(3, '0');
+  const randomSuffix = generateRandomSuffix();
+  const year = new Date().getFullYear();
+  let baseId = `${sCode}/PAR/${year}/${serial}${randomSuffix}`;
+  let uniqueId = baseId;
+  let counter = 1;
+
+  while (true) {
+    const existing = await prisma.user.findFirst({
+      where: {
+        schoolId: parseInt(schoolId),
+        username: uniqueId
+      }
+    });
+
+    if (!existing) break;
+
+    uniqueId = `${baseId}-${counter}`;
+    counter++;
+  }
+
+  return uniqueId;
+}
+
+/**
  * Generates an auto-assigned email when none is provided
  * Format: userinitials.schoolnamefirstword.fourrandomnumbers@edutech.com
  */
@@ -190,5 +226,6 @@ module.exports = {
   generateAdminUsername,
   generateTeacherUsername,
   generateStudentUsername,
+  generateParentUsername,
   generateAutoEmail
 };

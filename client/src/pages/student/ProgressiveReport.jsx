@@ -442,38 +442,26 @@ const ProgressiveReport = () => {
                     </div>
 
                     {rs.reportLayout === 'modern' ? (
-                      <div className="grid grid-cols-4 gap-2 text-[10px] uppercase font-bold mb-3">
-                        <div className="col-span-1 bg-gray-50/50 p-2 rounded-xl border border-gray-100 flex flex-col items-center justify-center">
-                          {(() => {
-                            const photo = data.student.user?.photoUrl || data.student.photoUrl;
-                            return photo ? (
-                              <img src={photo.startsWith('http') || photo.startsWith('data:') ? photo : `${API_BASE_URL}${photo}`} className="w-20 h-20 rounded-full object-cover border-2 shadow-sm" style={{ borderColor: reportColor }} alt="Student" />
-                            ) : (
-                              <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-[8px] text-gray-400">NO PHOTO</div>
-                            );
-                          })()}
-                        </div>
-                        <div className="col-span-3 grid grid-cols-2 gap-2">
-                           <div className="bg-gray-50/50 p-1.5 rounded-xl border border-gray-100">
-                             <p className="text-[8px] text-gray-400 mb-0.5 uppercase">Full Name</p>
-                             <p className="text-xs truncate font-black" style={{ color: reportColor }}>{data.student.name}</p>
+                      <div className="grid grid-cols-2 gap-2 text-[10px] uppercase font-bold mb-3">
+                         <div className="bg-gray-50/50 p-1.5 rounded-xl border border-gray-100">
+                           <p className="text-[8px] text-gray-400 mb-0.5 uppercase">Full Name</p>
+                           <p className="text-xs truncate font-black" style={{ color: reportColor }}>{data.student.name}</p>
+                         </div>
+                         <div className="bg-gray-50/50 p-2 rounded-xl border border-gray-100">
+                           <p className="text-[8px] text-gray-400 mb-0.5">ADMISSION NO</p>
+                           <p className="text-xs font-black">{data.student.admissionNumber}</p>
+                         </div>
+                         <div className="bg-gray-50/50 p-2 rounded-xl border border-gray-100">
+                           <p className="text-[8px] text-gray-400 mb-0.5">CLASS / SESSION</p>
+                           <p className="text-xs font-bold">{data.student.class} | {data.term.session}</p>
+                         </div>
+                         <div className="bg-gray-50/50 p-2 rounded-xl border border-gray-100">
+                           <p className="text-[8px] text-gray-400 mb-0.5">POS / STATUS</p>
+                           <div className="flex justify-between items-center pr-2">
+                             <p className="text-xs font-bold">{showPosition ? `${getSuffix(data.performance.position)} / ${data.performance.outOf}` : 'HIDDEN'}</p>
+                             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                            </div>
-                           <div className="bg-gray-50/50 p-2 rounded-xl border border-gray-100">
-                             <p className="text-[8px] text-gray-400 mb-0.5">ADMISSION NO</p>
-                             <p className="text-xs font-black">{data.student.admissionNumber}</p>
-                           </div>
-                           <div className="bg-gray-50/50 p-2 rounded-xl border border-gray-100">
-                             <p className="text-[8px] text-gray-400 mb-0.5">CLASS / SESSION</p>
-                             <p className="text-xs font-bold">{data.student.class} | {data.term.session}</p>
-                           </div>
-                           <div className="bg-gray-50/50 p-2 rounded-xl border border-gray-100">
-                             <p className="text-[8px] text-gray-400 mb-0.5">POS / STATUS</p>
-                             <div className="flex justify-between items-center pr-2">
-                               <p className="text-xs font-bold">{showPosition ? `${getSuffix(data.performance.position)} / ${data.performance.outOf}` : 'HIDDEN'}</p>
-                               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                             </div>
-                           </div>
-                        </div>
+                         </div>
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-0 border-2 border-black mb-3 divide-y divide-black lg:divide-y-0 lg:divide-x bg-gray-50/50 text-sm">
