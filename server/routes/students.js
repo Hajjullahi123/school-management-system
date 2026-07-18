@@ -1519,13 +1519,13 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'sub_admin',
   try {
     const studentId = parseInt(req.params.id);
 
-    // 1. Find student with parent details (include user for name fallback)
+    // 1. Find student with parent details (include user and school for fallbacks)
     const student = await prisma.student.findFirst({
       where: {
         id: studentId,
         schoolId: parseInt(req.schoolId)
       },
-      include: { user: true }
+      include: { user: true, school: true }
     });
 
     if (!student) {
@@ -1548,9 +1548,24 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'sub_admin',
       }
     }
 
-    // Phone is optional — generate a fallback username if no phone
+    // Phone is optional — generate a short, memorable fallback username if no phone
     const phone = student.parentGuardianPhone ? student.parentGuardianPhone.replace(/\s+/g, '') : null;
-    const parentUsername = phone || `parent-${student.admissionNumber || student.id}`;
+    let parentUsername = phone;
+    if (!parentUsername) {
+      const schoolCode = student.school?.code || 'SCH';
+      // Count existing parents in this school to generate a sequential number
+      const parentCount = await prisma.parent.count({ where: { schoolId: student.schoolId } });
+      const nextNum = String(parentCount + 1).padStart(3, '0');
+      parentUsername = `${schoolCode}-P${nextNum}`;
+      // Ensure uniqueness — if this username already exists, keep incrementing
+      let exists = await prisma.user.findFirst({ where: { schoolId: student.schoolId, username: parentUsername } });
+      let offset = 1;
+      while (exists) {
+        parentUsername = `${schoolCode}-P${String(parentCount + 1 + offset).padStart(3, '0')}`;
+        exists = await prisma.user.findFirst({ where: { schoolId: student.schoolId, username: parentUsername } });
+        offset++;
+      }
+    }
 
     const nameParts = fullName.split(' ');
     const firstName = nameParts[0];
