@@ -1553,17 +1553,23 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'sub_admin',
     let parentUsername = phone;
     if (!parentUsername) {
       const schoolCode = student.school?.code || 'SCH';
-      // Count existing parents in this school to generate a sequential number
       const parentCount = await prisma.parent.count({ where: { schoolId: student.schoolId } });
-      const nextNum = String(parentCount + 1).padStart(3, '0');
-      parentUsername = `${schoolCode}-P${nextNum}`;
-      // Ensure uniqueness — if this username already exists, keep incrementing
-      let exists = await prisma.user.findFirst({ where: { schoolId: student.schoolId, username: parentUsername } });
-      let offset = 1;
-      while (exists) {
-        parentUsername = `${schoolCode}-P${String(parentCount + 1 + offset).padStart(3, '0')}`;
-        exists = await prisma.user.findFirst({ where: { schoolId: student.schoolId, username: parentUsername } });
-        offset++;
+      const randomLetters = () => {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // excluded I and O to avoid confusion with 1 and 0
+        return chars[Math.floor(Math.random() * chars.length)] + chars[Math.floor(Math.random() * chars.length)];
+      };
+      // Generate username: schoolCode-P###XX (e.g. ALQ-P001AB)
+      const baseNum = String(parentCount + 1).padStart(3, '0');
+      parentUsername = `${schoolCode}-P${baseNum}${randomLetters()}`;
+      // Collision avoidance: retry with new random letters (max 20 attempts, then fall back to timestamp)
+      let attempts = 0;
+      while (await prisma.user.findFirst({ where: { schoolId: student.schoolId, username: parentUsername } })) {
+        attempts++;
+        if (attempts >= 20) {
+          parentUsername = `${schoolCode}-P${Date.now().toString(36).slice(-5).toUpperCase()}`;
+          break;
+        }
+        parentUsername = `${schoolCode}-P${baseNum}${randomLetters()}`;
       }
     }
 
