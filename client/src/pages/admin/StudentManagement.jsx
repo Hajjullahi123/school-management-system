@@ -44,6 +44,7 @@ const StudentManagement = () => {
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
   const [bulkPhotoResults, setBulkPhotoResults] = useState(null);
   const [showBulkPhotoModal, setShowBulkPhotoModal] = useState(false);
+  const [isBulkCreatingParents, setIsBulkCreatingParents] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -322,6 +323,37 @@ const StudentManagement = () => {
     } catch (error) {
       console.error('Error creating parent account:', error);
       toast.error('An error occurred while creating the parent account.');
+    }
+  };
+
+  const handleBulkCreateParents = async () => {
+    if (!confirm('Are you sure you want to create parent accounts for ALL active students who currently do not have one? This will automatically link existing parent profiles with matching phone numbers, or create new parent credentials (using the schoolCode/P###XX format) for students without parent phone numbers.')) {
+      return;
+    }
+
+    setIsBulkCreatingParents(true);
+    const loadingToast = toast.loading('Bulk creating parent accounts...');
+
+    try {
+      const response = await api.post('/api/students/bulk-create-parents');
+      const data = await response.json();
+
+      toast.dismiss(loadingToast);
+
+      if (response.ok) {
+        toast.success(data.message || 'Bulk parent creation completed!');
+        alert(`Bulk Parent Creation Complete!\n\n${data.message}`);
+        fetchStudents(); // Refresh student list to show linked parents
+        fetchParents();  // Refresh parents list
+      } else {
+        toast.error(`Failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      console.error('Error in bulk creating parents:', error);
+      toast.error('An error occurred during bulk parent creation.');
+    } finally {
+      setIsBulkCreatingParents(false);
     }
   };
 
@@ -1122,6 +1154,16 @@ Note: Password must be changed on first login.
                     >
                       <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
                       Fix Admission Numbers
+                    </button>
+                    <button
+                      onClick={() => { handleBulkCreateParents(); setShowToolsMenu(false); }}
+                      disabled={isBulkCreatingParents}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 disabled:opacity-50"
+                    >
+                      <svg className={`w-4 h-4 text-green-600 ${isBulkCreatingParents ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                      {isBulkCreatingParents ? 'Creating...' : 'Bulk Create Parents'}
                     </button>
                     <div className="border-t border-gray-100 my-1" />
                     <div className="relative">

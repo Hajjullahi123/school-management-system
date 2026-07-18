@@ -1705,4 +1705,176 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'sub_admin',
   }
 });
 
+
+
+// Bulk Create Parent Accounts for all students without parentId
+router.post('/bulk-create-parents', authenticate, authorize(['admin', 'sub_admin', 'principal']), async (req, res) => {
+  try {
+    const schoolId = parseInt(req.schoolId);
+
+    // Find all students without a parent account in this school
+    const studentsWithoutParent = await prisma.student.findMany({
+      where: {
+        schoolId,
+        parentId: null,
+        isDeleted: false,
+        status: 'active'
+      },
+      include: { user: true, school: true }
+    });
+
+    if (studentsWithoutParent.length === 0) {
+      return res.json({ message: 'All students already have parent accounts linked.', created: 0, linked: 0, failed: 0, results: [] });
+    }
+
+    const results = [];
+    let created = 0;
+    let linked = 0;
+    let failed = 0;
+
+    const randomLetters = () => {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+      return chars[Math.floor(Math.random() * chars.length)] + chars[Math.floor(Math.random() * chars.length)];
+    };
+
+    for (const student of studentsWithoutParent) {
+      try {
+        // Auto-derive parent name
+        let fullName = student.parentGuardianName;
+        if (!fullName || !fullName.trim()) {
+          if (student.user?.firstName) {
+            fullName = `${student.user.firstName} ${student.user.lastName || ''}`.trim() + ' (Parent)';
+          } else if (student.name) {
+            fullName = student.name.trim() + ' (Parent)';
+          } else {
+            fullName = 'Parent';
+          }
+        }
+
+        const nameParts = fullName.split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Parent';
+
+        // Generate username
+        const phone = student.parentGuardianPhone ? student.parentGuardianPhone.replace(/\s+/g, '') : null;
+        let parentUsername = phone;
+        if (!parentUsername) {
+          const schoolCode = student.school?.code || 'SCH';
+          const parentCount = await prisma.parent.count({ where: { schoolId } });
+          const baseNum = String(parentCount + 1).padStart(3, '0');
+          parentUsername = `${schoolCode}/P${baseNum}${randomLetters()}`;
+          let attempts = 0;
+          while (await prisma.user.findFirst({ where: { schoolId, username: parentUsername } })) {
+            attempts++;
+            if (attempts >= 20) {
+              parentUsername = `${schoolCode}/P${Date.now().toString(36).slice(-5).toUpperCase()}`;
+              break;
+            }
+            parentUsername = `${schoolCode}/P${baseNum}${randomLetters()}`;
+          }
+        }
+
+        // Check if user already exists with this username
+        const existingUser = await prisma.user.findFirst({
+          where: { schoolId, username: parentUsername }
+        });
+
+        let isNew = !existingUser;
+
+        const result = await prisma.$transaction(async (tx) => {
+          const userData = {
+            schoolId,
+            firstName,
+            lastName,
+            email: student.parentEmail || `${parentUsername.replace(/\//g, '-')}@parent.school`,
+            username: parentUsername,
+            passwordHash: await bcrypt.hash('parent123', 10),
+            role: 'parent',
+            isActive: true
+          };
+
+          const finalUser = await tx.user.upsert({
+            where: {
+              schoolId_username: { schoolId, username: parentUsername }
+            },
+            update: { role: 'parent' },
+            create: userData
+          });
+
+          const finalParent = await tx.parent.upsert({
+            where: { userId: finalUser.id },
+            update: { phone: phone || null, address: student.address || '', schoolId },
+            create: {
+              schoolId,
+              userId: finalUser.id,
+              phone: phone || null,
+              address: student.address || ''
+            }
+          });
+
+          await tx.student.update({
+            where: { id: student.id },
+            data: { parentId: finalParent.id }
+          });
+
+          return { user: finalUser, parent: finalParent };
+        });
+
+        if (isNew) created++;
+        else linked++;
+
+        const studentName = student.user
+          ? `${student.user.firstName} ${student.user.lastName}`.trim()
+          : (student.name || student.admissionNumber);
+
+        results.push({
+          studentId: student.id,
+          studentName,
+          admissionNumber: student.admissionNumber,
+          parentUsername,
+          status: isNew ? 'created' : 'linked',
+          password: isNew ? 'parent123' : '(Existing Password)'
+        });
+
+      } catch (err) {
+        failed++;
+        const studentName = student.user
+          ? `${student.user.firstName} ${student.user.lastName}`.trim()
+          : (student.name || student.admissionNumber);
+        results.push({
+          studentId: student.id,
+          studentName,
+          admissionNumber: student.admissionNumber,
+          status: 'failed',
+          error: err.message
+        });
+        console.error(`Failed to create parent for student ${student.id}:`, err.message);
+      }
+    }
+
+    // Log action
+    logAction({
+      schoolId,
+      userId: req.user.id,
+      action: 'BULK_CREATE',
+      resource: 'PARENT_ACCOUNTS',
+      details: { total: studentsWithoutParent.length, created, linked, failed },
+      ipAddress: req.ip
+    });
+
+    res.json({
+      message: `Processed ${studentsWithoutParent.length} students: ${created} new parent accounts created, ${linked} linked to existing, ${failed} failed.`,
+      total: studentsWithoutParent.length,
+      created,
+      linked,
+      failed,
+      results
+    });
+
+  } catch (error) {
+    console.error('Error bulk creating parents:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
