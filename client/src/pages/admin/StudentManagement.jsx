@@ -299,11 +299,6 @@ const StudentManagement = () => {
   };
 
   const handleAutoCreateParent = async (student) => {
-    if (!student.parentGuardianPhone || !student.parentGuardianName) {
-      alert('This student record is missing parent name or phone number. Please edit the student first.');
-      return;
-    }
-
     try {
       const response = await api.post(`/api/students/${student.id}/create-parent`);
       const data = await response.json();
@@ -311,8 +306,8 @@ const StudentManagement = () => {
       if (response.ok) {
         toast.success(data.isNewAccount ? 'Parent account created successfully!' : 'Student linked to existing parent!');
         setNewParentCredentials({
-          name: student.parentGuardianName,
-          phone: student.parentGuardianPhone,
+          name: student.parentGuardianName || data.credentials.username,
+          phone: student.parentGuardianPhone || '',
           username: data.credentials.username,
           password: data.credentials.password || 'parent123',
           isNewAccount: data.isNewAccount,
@@ -326,7 +321,7 @@ const StudentManagement = () => {
       }
     } catch (error) {
       console.error('Error creating parent account:', error);
-      alert('An error occurred while creating the parent account.');
+      toast.error('An error occurred while creating the parent account.');
     }
   };
 
@@ -1828,6 +1823,8 @@ Note: Password must be changed on first login.
           </div>
         )
       }
+
+
 
       {/* Bulk Upload Results Modal */}
       {showBulkUploadModal && bulkUploadResults && (

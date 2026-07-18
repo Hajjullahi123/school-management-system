@@ -1519,12 +1519,13 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'sub_admin',
   try {
     const studentId = parseInt(req.params.id);
 
-    // 1. Find student with parent details
+    // 1. Find student with parent details (include user for name fallback)
     const student = await prisma.student.findFirst({
       where: {
         id: studentId,
         schoolId: parseInt(req.schoolId)
-      }
+      },
+      include: { user: true }
     });
 
     if (!student) {
@@ -1535,12 +1536,22 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'sub_admin',
       return res.status(400).json({ error: 'Student already has a linked parent account' });
     }
 
-    if (!student.parentGuardianPhone || !student.parentGuardianName) {
-      return res.status(400).json({ error: 'Parent details (Name and Phone) are missing from student record' });
+    // Auto-derive parent name if missing: use parentGuardianName, or student's user name, or student.name
+    let fullName = student.parentGuardianName;
+    if (!fullName || !fullName.trim()) {
+      if (student.user?.firstName) {
+        fullName = `${student.user.firstName} ${student.user.lastName || ''}`.trim() + ' (Parent)';
+      } else if (student.name) {
+        fullName = student.name.trim() + ' (Parent)';
+      } else {
+        fullName = 'Parent';
+      }
     }
 
-    const phone = student.parentGuardianPhone.replace(/\s+/g, '');
-    const fullName = student.parentGuardianName;
+    // Phone is optional — generate a fallback username if no phone
+    const phone = student.parentGuardianPhone ? student.parentGuardianPhone.replace(/\s+/g, '') : null;
+    const parentUsername = phone || `parent-${student.admissionNumber || student.id}`;
+
     const nameParts = fullName.split(' ');
     const firstName = nameParts[0];
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Parent';
@@ -1551,11 +1562,11 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'sub_admin',
     let parent = null;
     try {
       const result = await prisma.$transaction(async (tx) => {
-        // 1. Check if user exists by phone/username
+        // 1. Check if user exists by username (phone or fallback)
         const existingUser = await tx.user.findFirst({
           where: {
-            schoolId: student.schoolId, // Use student's schoolId
-            username: phone
+            schoolId: student.schoolId,
+            username: parentUsername
           }
         });
 
@@ -1564,8 +1575,8 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'sub_admin',
           schoolId: student.schoolId,
           firstName,
           lastName,
-          email: student.parentEmail || `${phone}@parent.school`,
-          username: phone,
+          email: student.parentEmail || `${parentUsername}@parent.school`,
+          username: parentUsername,
           passwordHash: await bcrypt.hash('parent123', 10),
           role: 'parent',
           isActive: true
@@ -1575,7 +1586,7 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'sub_admin',
           where: {
             schoolId_username: {
               schoolId: student.schoolId,
-              username: phone
+              username: parentUsername
             }
           },
           update: { role: 'parent' }, 
@@ -1587,11 +1598,11 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'sub_admin',
         // 3. Create/Update Parent Profile
         const finalParent = await tx.parent.upsert({
           where: { userId: finalUser.id },
-          update: { phone: phone, address: student.address || '', schoolId: student.schoolId },
+          update: { phone: phone || null, address: student.address || '', schoolId: student.schoolId },
           create: {
             schoolId: student.schoolId,
             userId: finalUser.id,
-            phone: phone,
+            phone: phone || null,
             address: student.address || ''
           }
         });
@@ -1630,7 +1641,7 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'sub_admin',
           user: finalUser, 
           parent: finalParent,
           credentials: {
-            username: phone,
+            username: parentUsername,
             password: 'parent123'
           }
         };
@@ -1662,7 +1673,7 @@ router.post('/:id/create-parent', authenticate, authorize(['admin', 'sub_admin',
       message: isNew ? 'Parent account created successfully' : 'Student linked to existing parent account',
       isNewAccount: isNew,
       credentials: {
-        username: phone,
+        username: parentUsername,
         password: isNew ? 'parent123' : '(Existing Password)'
       }
     });
