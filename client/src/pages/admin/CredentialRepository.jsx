@@ -80,7 +80,7 @@ const CredentialRepository = () => {
     ? parents.filter(parent => {
         const matchesSearch = 
           `${parent.user?.firstName} ${parent.user?.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          parent.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (parent.phone?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
           parent.user?.username?.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesSearch;
       })
@@ -232,7 +232,7 @@ const CredentialRepository = () => {
                 {viewType === 'students' 
                   ? `${getClassName(item.classId)} • ${item.admissionNumber}`
                   : viewType === 'parents' 
-                    ? `Parent Portal • ${item.phone}`
+                    ? `Parent Portal • ${item.phone || 'No Phone'}`
                     : `Staff Portal • ${item.teacher?.staffId || 'No ID'}`
                 }
               </p>
@@ -306,7 +306,7 @@ const CredentialRepository = () => {
                      {viewType === 'teachers' ? `${item.firstName} ${item.lastName}` : `${item.user?.firstName} ${item.user?.lastName}`}
                    </h3>
                    <span className="text-[10px] font-mono font-bold bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
-                     {viewType === 'students' ? item.admissionNumber : viewType === 'parents' ? item.phone : item.teacher?.staffId || 'Staff'}
+                     {viewType === 'students' ? item.admissionNumber : viewType === 'parents' ? (item.phone || 'No Phone') : item.teacher?.staffId || 'Staff'}
                    </span>
                 </div>
                 <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-4">
