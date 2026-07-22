@@ -446,7 +446,7 @@ const CBTManagement = () => {
                 <div class="question">
                   <div class="question-text">${i + 1}. ${q.questionText} (${q.points} marks)</div>
                   <div class="options">
-                    ${q.options.map(o => `<div class="option">(${o.id.toUpperCase()}) ${o.text}</div>`).join('')}
+                    ${Array.isArray(q.options) ? q.options.map(o => `<div class="option">(${o.id.toUpperCase()}) ${o.text}</div>`).join('') : '<div class="option"><em>Essay / Theory Paper Question</em></div>'}
                   </div>
                 </div>
               `).join('')}
@@ -1567,8 +1567,17 @@ const CBTManagement = () => {
                                 <div className="flex-1">
                                   <p className="font-medium text-gray-900 mb-1">{q.questionText}</p>
                                   <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
-                                    <span>Options: {JSON.parse(q.options).length}</span>
-                                    <span>Correct: {q.correctOption.toUpperCase()}</span>
+                                    <span>
+                                      Type/Options: {q.questionType === 'essay' ? 'Essay / Theory' : (() => {
+                                        try {
+                                          const parsed = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+                                          return Array.isArray(parsed) ? `${parsed.length} Choices` : 'CBT';
+                                        } catch (e) {
+                                          return 'CBT';
+                                        }
+                                      })()}
+                                    </span>
+                                    <span>Correct: {(q.correctOption || 'A').toUpperCase()}</span>
                                     <span>Level: {q.difficulty || 'Medium'}</span>
                                     <span>Points: {q.points}</span>
                                   </div>
@@ -1628,15 +1637,21 @@ const CBTManagement = () => {
                   </div>
                 </div>
                 <div className="space-y-1 ml-2">
-                  {q.options.map(opt => (
-                    <div key={opt.id} className={`flex items-center space-x-2 ${q.correctOption === opt.id ? 'text-green-700 font-bold' : 'text-gray-600'}`}>
-                      <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs border ${q.correctOption === opt.id ? 'border-green-600 bg-green-100' : 'border-gray-300'}`}>
-                        {opt.id.toUpperCase()}
-                      </span>
-                      <span>{opt.text}</span>
-                      {q.correctOption === opt.id && <span className="text-[10px] bg-green-100 px-1 rounded ml-1">✓</span>}
+                  {Array.isArray(q.options) ? (
+                    q.options.map(opt => (
+                      <div key={opt.id} className={`flex items-center space-x-2 ${q.correctOption === opt.id ? 'text-green-700 font-bold' : 'text-gray-600'}`}>
+                        <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs border ${q.correctOption === opt.id ? 'border-green-600 bg-green-100' : 'border-gray-300'}`}>
+                          {opt.id?.toUpperCase()}
+                        </span>
+                        <span>{opt.text}</span>
+                        {q.correctOption === opt.id && <span className="text-[10px] bg-green-100 px-1 rounded ml-1">✓</span>}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-xs text-purple-700 font-semibold italic bg-purple-50 p-2 rounded inline-block border border-purple-100">
+                      Essay / Theory Question (Written Paper Examination)
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             ))}

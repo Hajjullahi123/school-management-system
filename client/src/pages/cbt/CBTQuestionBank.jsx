@@ -25,6 +25,7 @@ const CBTQuestionBank = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [sessionAddedCount, setSessionAddedCount] = useState(0);
+  const [validationError, setValidationError] = useState('');
 
   const [questionForm, setQuestionForm] = useState({
     subjectId: '',
@@ -67,10 +68,11 @@ const CBTQuestionBank = () => {
   };
 
   const toggleSubjectExpand = (id) => {
+    const strId = String(id);
     setExpandedSubjectIds(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(strId)) next.delete(strId);
+      else next.add(strId);
       return next;
     });
   };
@@ -135,6 +137,13 @@ const CBTQuestionBank = () => {
   const openAddModal = (defaultType = 'multiple_choice') => {
     setEditingQuestion(null);
     setSessionAddedCount(0);
+    setValidationError('');
+
+    // Ensure essay questions are visible on current tab
+    if (defaultType === 'essay' && bankTab === 'multiple_choice') {
+      setBankTab('essay');
+    }
+
     setQuestionForm({
       subjectId: filters.subjectId || (subjects[0]?.id ? String(subjects[0].id) : ''),
       classId: filters.classId || '',
@@ -168,6 +177,8 @@ const CBTQuestionBank = () => {
         }
       } else if (Array.isArray(q.options)) {
         parsedOptions = q.options;
+      } else if (q.options && typeof q.options === 'object') {
+        guide = q.options.markingGuide || '';
       }
     } catch (e) {
       parsedOptions = [];
@@ -183,6 +194,7 @@ const CBTQuestionBank = () => {
     }
 
     setEditingQuestion(q);
+    setValidationError('');
     setQuestionForm({
       subjectId: q.subjectId ? String(q.subjectId) : '',
       classId: q.classId ? String(q.classId) : '',
@@ -257,19 +269,26 @@ const CBTQuestionBank = () => {
 
   const handleSaveQuestion = async (e, closeModalAfter = true) => {
     if (e) e.preventDefault();
+    setValidationError('');
 
     if (!questionForm.subjectId) {
-      toast.error('Please select a subject');
+      const errMsg = 'Please select a Subject';
+      setValidationError(errMsg);
+      toast.error(errMsg);
       return;
     }
     if (!questionForm.questionText.trim()) {
-      toast.error('Question text is required');
+      const errMsg = 'Question Text is required. Please type the question prompt for students.';
+      setValidationError(errMsg);
+      toast.error(errMsg);
       return;
     }
 
     if (questionForm.questionType === 'multiple_choice') {
       if (questionForm.options.some(o => !o.text.trim())) {
-        toast.error('All option choices must have text for multiple choice');
+        const errMsg = 'All option choices must have text for multiple choice questions';
+        setValidationError(errMsg);
+        toast.error(errMsg);
         return;
       }
     }
@@ -282,7 +301,6 @@ const CBTQuestionBank = () => {
         attachmentUrl: questionForm.attachmentUrl || ''
       };
     } else if (questionForm.attachmentUrl) {
-      // Append attachment info
       if (!Array.isArray(payloadOptions)) payloadOptions = [];
     }
 
@@ -312,12 +330,20 @@ const CBTQuestionBank = () => {
         const nextCount = sessionAddedCount + 1;
         setSessionAddedCount(nextCount);
 
+        // Auto expand subject accordion and switch tab if necessary
+        if (questionForm.subjectId) {
+          setExpandedSubjectIds(prev => new Set([...prev, String(questionForm.subjectId)]));
+        }
+        if (questionForm.questionType === 'essay' && bankTab === 'multiple_choice') {
+          setBankTab('essay');
+        }
+
         if (closeModalAfter) {
           toast.success(editingQuestion ? 'Question updated' : 'Question added to bank');
           setShowModal(false);
         } else {
           toast.success(`Question #${nextCount} saved! Ready for next question.`);
-          // Clear text fields while retaining Subject, Class, and Type
+          // Clear text fields while retaining Subject, Class, and Question Type
           setQuestionForm(prev => ({
             ...prev,
             questionText: '',
@@ -335,10 +361,14 @@ const CBTQuestionBank = () => {
         }
         fetchQuestions();
       } else {
-        toast.error(data.error || 'Failed to save question');
+        const errMsg = data.error || 'Failed to save question';
+        setValidationError(errMsg);
+        toast.error(errMsg);
       }
     } catch (error) {
-      toast.error('Error saving question');
+      const errMsg = 'Error saving question to server';
+      setValidationError(errMsg);
+      toast.error(errMsg);
     } finally {
       setSaving(false);
     }
@@ -943,6 +973,18 @@ const CBTQuestionBank = () => {
             </div>
 
             <div className="space-y-4">
+              {validationError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-lg flex items-center justify-between animate-in fade-in duration-150">
+                  <div className="flex items-center gap-2">
+                    <span>⚠️</span>
+                    <span>{validationError}</span>
+                  </div>
+                  <button type="button" onClick={() => setValidationError('')} className="text-red-400 hover:text-red-600">
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
               {/* Question Type Toggle */}
               <div>
                 <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Question Format / Type</label>

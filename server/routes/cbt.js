@@ -837,14 +837,29 @@ router.get('/bank/download', authenticate, authorize(['superadmin', 'admin', 'te
     ];
 
     questions.forEach(q => {
-      const opts = JSON.parse(q.options);
+      let opts = [];
+      let guide = '';
+      try {
+        if (typeof q.options === 'string') {
+          const parsed = JSON.parse(q.options);
+          if (Array.isArray(parsed)) opts = parsed;
+          else if (parsed && typeof parsed === 'object') guide = parsed.markingGuide || '';
+        } else if (Array.isArray(q.options)) {
+          opts = q.options;
+        } else if (q.options && typeof q.options === 'object') {
+          guide = q.options.markingGuide || '';
+        }
+      } catch (e) {}
+
+      const isEssay = q.questionType === 'essay';
+
       worksheet.addRow({
         subject: q.Subject?.name || 'N/A',
         questionText: q.questionText,
-        a: opts.find(o => o.id === 'a')?.text,
-        b: opts.find(o => o.id === 'b')?.text,
-        c: opts.find(o => o.id === 'c')?.text,
-        d: opts.find(o => o.id === 'd')?.text,
+        a: isEssay ? (guide ? `[Marking Guide]: ${guide}` : 'Theory / Essay Paper') : (Array.isArray(opts) ? opts.find(o => o.id === 'a')?.text || '' : ''),
+        b: isEssay ? '' : (Array.isArray(opts) ? opts.find(o => o.id === 'b')?.text || '' : ''),
+        c: isEssay ? '' : (Array.isArray(opts) ? opts.find(o => o.id === 'c')?.text || '' : ''),
+        d: isEssay ? '' : (Array.isArray(opts) ? opts.find(o => o.id === 'd')?.text || '' : ''),
         correctOption: q.correctOption,
         points: q.points,
         teacher: q.User ? `${q.User.firstName} ${q.User.lastName}` : 'Unknown'

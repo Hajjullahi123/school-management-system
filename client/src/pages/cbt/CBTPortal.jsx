@@ -396,33 +396,48 @@ const CBTPortal = () => {
                   </h2>
 
                   <div className="space-y-3">
-                    {currentQ.options.map(opt => (
-                      <label
-                        key={opt.id}
-                        className={`group flex items-center p-4 sm:p-5 border-2 rounded-xl cursor-pointer transition-all ${answers[currentQ.id] === opt.id
-                          ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
-                          : 'border-gray-100 hover:border-gray-300 hover:bg-gray-50'
-                          }`}
-                      >
-                        <div className={`w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center rounded-lg border-2 transition-colors ${answers[currentQ.id] === opt.id
-                          ? 'bg-primary border-primary text-white font-black'
-                          : 'border-gray-200 text-gray-400 bg-white group-hover:border-primary/50 text-xs sm:text-sm font-bold'
-                          }`}>
-                          {opt.id.toUpperCase()}
-                        </div>
-                        <input
-                          type="radio"
-                          name={`question-${currentQ.id}`}
-                          value={opt.id}
-                          checked={answers[currentQ.id] === opt.id}
-                          onChange={() => handleOptionSelect(currentQ.id, opt.id)}
-                          className="hidden"
+                    {currentQ.questionType === 'essay' || !Array.isArray(currentQ.options) ? (
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-purple-900">
+                          Written Answer / Response (Essay Paper Exam)
+                        </label>
+                        <textarea
+                          rows={6}
+                          className="w-full p-4 border-2 border-purple-100 rounded-xl focus:ring-purple-500 focus:border-purple-500 text-sm text-gray-800 bg-purple-50/20"
+                          placeholder="Type your answer or response here..."
+                          value={answers[currentQ.id] || ''}
+                          onChange={(e) => handleOptionSelect(currentQ.id, e.target.value)}
                         />
-                        <div className="ml-4 flex-1">
-                          <span className="text-sm sm:text-lg text-gray-700 font-medium">{opt.text}</span>
-                        </div>
-                      </label>
-                    ))}
+                      </div>
+                    ) : (
+                      currentQ.options.map(opt => (
+                        <label
+                          key={opt.id}
+                          className={`group flex items-center p-4 sm:p-5 border-2 rounded-xl cursor-pointer transition-all ${answers[currentQ.id] === opt.id
+                            ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
+                            : 'border-gray-100 hover:border-gray-300 hover:bg-gray-50'
+                            }`}
+                        >
+                          <div className={`w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center rounded-lg border-2 transition-colors ${answers[currentQ.id] === opt.id
+                            ? 'bg-primary border-primary text-white font-black'
+                            : 'border-gray-200 text-gray-400 bg-white group-hover:border-primary/50 text-xs sm:text-sm font-bold'
+                            }`}>
+                            {opt.id?.toUpperCase()}
+                          </div>
+                          <input
+                            type="radio"
+                            name={`question-${currentQ.id}`}
+                            value={opt.id}
+                            checked={answers[currentQ.id] === opt.id}
+                            onChange={() => handleOptionSelect(currentQ.id, opt.id)}
+                            className="hidden"
+                          />
+                          <div className="ml-4 flex-1">
+                            <span className="text-sm sm:text-lg text-gray-700 font-medium">{opt.text}</span>
+                          </div>
+                        </label>
+                      ))
+                    )}
                   </div>
                 </div>
 
