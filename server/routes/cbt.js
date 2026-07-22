@@ -6,8 +6,10 @@ const { logAction } = require('../utils/audit');
 const { calculateTotalScore, getGrade, calculateClassAverage, calculatePositions } = require('../utils/grading');
 const multer = require('multer');
 const ExcelJS = require('exceljs');
+const { uploadFile } = require('../services/storageService');
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+
 
 // ============ TEACHER ROUTES ============
 
@@ -540,14 +542,29 @@ router.get('/student/available', authenticate, authorize(['student']), async (re
 
 // ============ QUESTION BANK ROUTES ============
 
+// Upload Question Attachment (Images / Diagrams)
+router.post('/bank/upload-attachment', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), upload.single('attachment'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const attachmentUrl = await uploadFile(req.file, 'questions');
+    res.json({ attachmentUrl });
+  } catch (error) {
+    console.error('Question attachment upload error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get Questions from Bank
 router.get('/bank', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
-    const { subjectId, teacherId, classId } = req.query;
+    const { subjectId, teacherId, classId, questionType } = req.query;
     const where = { schoolId: req.schoolId };
 
     if (subjectId && !isNaN(parseInt(subjectId))) where.subjectId = parseInt(subjectId);
     if (classId && !isNaN(parseInt(classId))) where.classId = parseInt(classId);
+    if (questionType && ['multiple_choice', 'essay'].includes(questionType)) {
+      where.questionType = questionType;
+    }
 
     // Teachers usually only see their own bank questions unless they are admin
     if (req.user.role === 'teacher') {
@@ -586,14 +603,23 @@ router.get('/bank', authenticate, authorize(['superadmin', 'admin', 'teacher', '
 // Add Single Question to Bank
 router.post('/bank', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
-    const { subjectId, classId, questionText, options, correctOption, points } = req.body;
+    const { subjectId, classId, questionText, questionType, options, correctOption, points } = req.body;
+
+    const qType = questionType === 'essay' ? 'essay' : 'multiple_choice';
 
     if (!subjectId) return res.status(400).json({ error: 'Subject is required' });
     if (!questionText || !questionText.trim()) return res.status(400).json({ error: 'Question text is required' });
-    if (!options || !Array.isArray(options) || options.length < 2) {
-      return res.status(400).json({ error: 'At least 2 options are required' });
+    
+    if (qType === 'multiple_choice') {
+      if (!options || !Array.isArray(options) || options.length < 2) {
+        return res.status(400).json({ error: 'At least 2 options are required for multiple choice' });
+      }
+      if (!correctOption) return res.status(400).json({ error: 'Correct option is required for multiple choice' });
     }
-    if (!correctOption) return res.status(400).json({ error: 'Correct option is required' });
+
+    const formattedOptions = qType === 'essay'
+      ? (typeof options === 'string' ? options : JSON.stringify(options || []))
+      : (typeof options === 'string' ? options : JSON.stringify(options));
 
     const newBankQuestion = await prisma.cBTQuestionBank.create({
       data: {
@@ -602,8 +628,9 @@ router.post('/bank', authenticate, authorize(['superadmin', 'admin', 'teacher', 
         subjectId: parseInt(subjectId),
         classId: classId ? parseInt(classId) : null,
         questionText: questionText.trim(),
-        options: typeof options === 'string' ? options : JSON.stringify(options),
-        correctOption: correctOption.toLowerCase(),
+        questionType: qType,
+        options: formattedOptions,
+        correctOption: qType === 'essay' ? 'essay' : (correctOption ? correctOption.toLowerCase() : 'a'),
         points: points ? parseFloat(points) : 1
       },
       include: {
@@ -642,7 +669,8 @@ router.put('/bank/:id', authenticate, authorize(['superadmin', 'admin', 'teacher
       return res.status(403).json({ error: 'Unauthorized to edit this question' });
     }
 
-    const { subjectId, classId, questionText, options, correctOption, points } = req.body;
+    const { subjectId, classId, questionText, questionType, options, correctOption, points } = req.body;
+    const qType = questionType || existing.questionType || 'multiple_choice';
 
     const updated = await prisma.cBTQuestionBank.update({
       where: { id },
@@ -650,8 +678,9 @@ router.put('/bank/:id', authenticate, authorize(['superadmin', 'admin', 'teacher
         subjectId: subjectId ? parseInt(subjectId) : existing.subjectId,
         classId: classId !== undefined ? (classId ? parseInt(classId) : null) : existing.classId,
         questionText: questionText !== undefined ? questionText.trim() : existing.questionText,
+        questionType: qType,
         options: options ? (typeof options === 'string' ? options : JSON.stringify(options)) : existing.options,
-        correctOption: correctOption ? correctOption.toLowerCase() : existing.correctOption,
+        correctOption: qType === 'essay' ? 'essay' : (correctOption ? correctOption.toLowerCase() : existing.correctOption),
         points: points !== undefined ? parseFloat(points) : existing.points
       },
       include: {
@@ -671,6 +700,7 @@ router.put('/bank/:id', authenticate, authorize(['superadmin', 'admin', 'teacher
     };
 
     res.json(normalized);
+
   } catch (error) {
     console.error('Update bank question error:', error);
     res.status(500).json({ error: error.message });
