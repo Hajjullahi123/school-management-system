@@ -583,6 +583,100 @@ router.get('/bank', authenticate, authorize(['superadmin', 'admin', 'teacher', '
   }
 });
 
+// Add Single Question to Bank
+router.post('/bank', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
+  try {
+    const { subjectId, classId, questionText, options, correctOption, points } = req.body;
+
+    if (!subjectId) return res.status(400).json({ error: 'Subject is required' });
+    if (!questionText || !questionText.trim()) return res.status(400).json({ error: 'Question text is required' });
+    if (!options || !Array.isArray(options) || options.length < 2) {
+      return res.status(400).json({ error: 'At least 2 options are required' });
+    }
+    if (!correctOption) return res.status(400).json({ error: 'Correct option is required' });
+
+    const newBankQuestion = await prisma.cBTQuestionBank.create({
+      data: {
+        schoolId: req.schoolId,
+        teacherId: req.user.id,
+        subjectId: parseInt(subjectId),
+        classId: classId ? parseInt(classId) : null,
+        questionText: questionText.trim(),
+        options: typeof options === 'string' ? options : JSON.stringify(options),
+        correctOption: correctOption.toLowerCase(),
+        points: points ? parseFloat(points) : 1
+      },
+      include: {
+        Subject: true,
+        User: {
+          select: { firstName: true, lastName: true }
+        }
+      }
+    });
+
+    const normalized = {
+      ...newBankQuestion,
+      subject: newBankQuestion.Subject,
+      teacher: newBankQuestion.User,
+      Subject: undefined,
+      User: undefined
+    };
+
+    res.json(normalized);
+  } catch (error) {
+    console.error('Create bank question error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update Question in Bank
+router.put('/bank/:id', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid question ID' });
+
+    const existing = await prisma.cBTQuestionBank.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'Question not found' });
+
+    if (req.user.role === 'teacher' && existing.teacherId !== req.user.id) {
+      return res.status(403).json({ error: 'Unauthorized to edit this question' });
+    }
+
+    const { subjectId, classId, questionText, options, correctOption, points } = req.body;
+
+    const updated = await prisma.cBTQuestionBank.update({
+      where: { id },
+      data: {
+        subjectId: subjectId ? parseInt(subjectId) : existing.subjectId,
+        classId: classId !== undefined ? (classId ? parseInt(classId) : null) : existing.classId,
+        questionText: questionText !== undefined ? questionText.trim() : existing.questionText,
+        options: options ? (typeof options === 'string' ? options : JSON.stringify(options)) : existing.options,
+        correctOption: correctOption ? correctOption.toLowerCase() : existing.correctOption,
+        points: points !== undefined ? parseFloat(points) : existing.points
+      },
+      include: {
+        Subject: true,
+        User: {
+          select: { firstName: true, lastName: true }
+        }
+      }
+    });
+
+    const normalized = {
+      ...updated,
+      subject: updated.Subject,
+      teacher: updated.User,
+      Subject: undefined,
+      User: undefined
+    };
+
+    res.json(normalized);
+  } catch (error) {
+    console.error('Update bank question error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Bulk Upload to Question Bank
 router.post('/bank/upload', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), upload.single('file'), async (req, res) => {
   try {

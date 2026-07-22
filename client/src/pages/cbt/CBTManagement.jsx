@@ -4,6 +4,8 @@ import { toast } from '../../utils/toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useAuth } from '../../context/AuthContext';
 import useTermContext from '../../hooks/useTermContext';
+import MathToolbar from '../../components/common/MathToolbar';
+
 
 const CBTManagement = () => {
   const [view, setView] = useState('list'); // 'list', 'create', 'questions'
@@ -58,6 +60,28 @@ const CBTManagement = () => {
   const [saveToBank, setSaveToBank] = useState(false);
   const [bankSearchTerm, setBankSearchTerm] = useState('');
   const [editingQuestion, setEditingQuestion] = useState(null);
+  const [activeQuestionField, setActiveQuestionField] = useState('questionText');
+
+  const handleInsertMathSymbolInExam = (char) => {
+    if (activeQuestionField === 'questionText') {
+      setNewQuestion(prev => ({
+        ...prev,
+        questionText: prev.questionText + char
+      }));
+    } else if (activeQuestionField.startsWith('option-')) {
+      const index = parseInt(activeQuestionField.split('-')[1]);
+      setNewQuestion(prev => {
+        const nextOptions = [...prev.options];
+        if (nextOptions[index]) {
+          nextOptions[index] = {
+            ...nextOptions[index],
+            text: nextOptions[index].text + char
+          };
+        }
+        return { ...prev, options: nextOptions };
+      });
+    }
+  };
 
   const { currentTerm, currentSession, loading: termLoading } = useTermContext();
 
@@ -1278,11 +1302,15 @@ const CBTManagement = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Question Text</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Question Text</label>
+                  <MathToolbar onInsert={handleInsertMathSymbolInExam} />
+                </div>
                 <textarea
-                  className="w-full rounded-md border-gray-300 focus:ring-primary focus:border-primary"
+                  className="w-full rounded-md border-gray-300 focus:ring-primary focus:border-primary text-sm p-2.5"
                   rows="3"
                   value={newQuestion.questionText}
+                  onFocus={() => setActiveQuestionField('questionText')}
                   onChange={(e) => setNewQuestion({ ...newQuestion, questionText: e.target.value })}
                 ></textarea>
               </div>
@@ -1303,13 +1331,15 @@ const CBTManagement = () => {
                       <input
                         type="text"
                         value={option.text}
+                        onFocus={() => setActiveQuestionField(`option-${index}`)}
                         onChange={(e) => updateOptionText(index, e.target.value)}
                         placeholder={`Option ${option.id.toUpperCase()}`}
-                        className="flex-1 rounded-md border-gray-300 text-sm focus:ring-primary focus:border-primary"
+                        className="flex-1 rounded-md border-gray-300 text-sm focus:ring-primary focus:border-primary px-3 py-1.5"
                       />
                     </div>
                   ))}
                 </div>
+
                 <p className="text-xs text-gray-500 mt-2">Select the radio button next to the correct answer.</p>
               </div>
 
