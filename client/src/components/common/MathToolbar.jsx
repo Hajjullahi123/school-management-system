@@ -87,7 +87,7 @@ const MathToolbar = ({ onInsert, className = '' }) => {
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 left-0 top-full mt-1.5 w-72 bg-white rounded-lg shadow-xl border border-gray-200 p-3 text-left animate-in fade-in zoom-in duration-150">
+        <div className="absolute z-50 right-0 top-full mt-1.5 w-72 max-w-[85vw] sm:max-w-xs bg-white rounded-xl shadow-2xl border border-indigo-100 p-3 text-left animate-in fade-in zoom-in duration-150">
           <div className="flex justify-between items-center pb-2 mb-2 border-b border-gray-100">
             <span className="text-xs font-bold text-gray-700 flex items-center gap-1">
               <Calculator size={13} className="text-indigo-600" /> Special Characters

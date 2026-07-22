@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { api, API_BASE_URL } from '../../api';
+
 import { toast } from '../../utils/toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useAuth } from '../../context/AuthContext';
@@ -606,9 +608,9 @@ const CBTQuestionBank = () => {
       </div>
 
       {/* Live Add / Edit Question Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 space-y-5 relative max-h-[90vh] overflow-y-auto border border-gray-100 animate-in fade-in zoom-in duration-150">
+      {showModal && createPortal(
+        <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-4 sm:p-6 space-y-5 relative max-h-[92vh] overflow-y-auto border border-gray-100 animate-in fade-in zoom-in duration-150 my-auto">
             <div className="flex justify-between items-center pb-3 border-b border-gray-100">
               <div>
                 <h2 className="text-xl font-bold text-gray-800">
@@ -736,8 +738,10 @@ const CBTQuestionBank = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
+
     </div>
   );
 };
