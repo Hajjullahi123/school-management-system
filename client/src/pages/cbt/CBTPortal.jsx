@@ -3,6 +3,7 @@ import { api } from '../../api';
 import { toast } from '../../utils/toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import useTermContext from '../../hooks/useTermContext';
+import { parseQuestionContent } from '../../utils/cbtUtils';
 
 const CBTPortal = () => {
   const [view, setView] = useState('list'); // 'list', 'taking', 'result'
@@ -11,6 +12,7 @@ const CBTPortal = () => {
   const [error, setError] = useState(null);
   const { settings: schoolSettings } = useSchoolSettings();
   const { currentTerm } = useTermContext();
+  const [lightboxUrl, setLightboxUrl] = useState(null);
 
   // Active Exam State
   const [activeExam, setActiveExam] = useState(null);
@@ -316,6 +318,10 @@ const CBTPortal = () => {
   // VIEW: Taking Exam
   if (view === 'taking' && activeExam) {
     const currentQ = questions[currentQuestionIndex];
+    const { cleanText, diagramUrl } = parseQuestionContent(
+      currentQ?.questionText, 
+      currentQ?.imageUrl || currentQ?.attachmentUrl
+    );
 
     return (
       <div className="flex flex-col h-screen overflow-hidden fixed inset-0 z-[100] bg-gray-50">
@@ -396,9 +402,23 @@ const CBTPortal = () => {
                       {flaggedQuestions[currentQ.id] ? 'Flagged' : 'Flag it'}
                     </button>
                   </div>
-                  <h2 className="text-lg sm:text-2xl font-semibold text-gray-800 mb-8 leading-snug">
-                    {currentQ.questionText}
+                  <h2 className="text-lg sm:text-2xl font-semibold text-gray-800 mb-6 leading-snug">
+                    {cleanText}
                   </h2>
+
+                  {diagramUrl && (
+                    <div className="mb-8 flex flex-col items-center justify-center bg-gray-50/80 p-3 rounded-xl border border-gray-200">
+                      <img
+                        src={diagramUrl}
+                        alt="Question Diagram"
+                        className="max-h-72 sm:max-h-96 w-auto object-contain rounded-lg shadow-sm border border-gray-200 bg-white cursor-pointer hover:opacity-95 transition"
+                        onClick={() => setLightboxUrl(diagramUrl)}
+                      />
+                      <span className="text-[11px] text-gray-400 mt-2 font-medium italic flex items-center gap-1">
+                        🔍 Click image to view full screen
+                      </span>
+                    </div>
+                  )}
 
                   <div className="space-y-3">
                     {currentQ.questionType === 'essay' || !Array.isArray(currentQ.options) ? (
@@ -653,6 +673,20 @@ const CBTPortal = () => {
           </div>
         )}
       </div>
+
+      {lightboxUrl && (
+        <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4" onClick={() => setLightboxUrl(null)}>
+          <div className="relative max-w-4xl max-h-[90vh] bg-white p-2 rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <button 
+              onClick={() => setLightboxUrl(null)}
+              className="absolute top-3 right-3 bg-gray-900/80 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg hover:bg-black transition z-10"
+            >
+              ✕
+            </button>
+            <img src={lightboxUrl} alt="Enlarged Diagram" className="max-w-full max-h-[85vh] object-contain rounded-xl" />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

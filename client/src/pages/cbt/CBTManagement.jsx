@@ -5,6 +5,7 @@ import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useAuth } from '../../context/AuthContext';
 import useTermContext from '../../hooks/useTermContext';
 import MathToolbar from '../../components/common/MathToolbar';
+import { parseQuestionContent } from '../../utils/cbtUtils';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -349,9 +350,10 @@ const CBTManagement = () => {
   };
 
   const handleEditIndividualQuestion = (q) => {
+    const { cleanText } = parseQuestionContent(q.questionText);
     setEditingQuestion(q);
     setNewQuestion({
-      questionText: q.questionText,
+      questionText: cleanText,
       questionType: q.questionType,
       options: q.options,
       correctOption: q.correctOption,
@@ -464,14 +466,18 @@ const CBTManagement = () => {
               </div>
             </div>
             <div class="questions">
-              ${qs.map((q, i) => `
+              ${qs.map((q, i) => {
+                const { cleanText, diagramUrl } = parseQuestionContent(q.questionText, q.imageUrl || q.attachmentUrl);
+                return `
                 <div class="question">
-                  <div class="question-text">${i + 1}. ${q.questionText} (${q.points} marks)</div>
+                  <div class="question-text">${i + 1}. ${cleanText} (${q.points} marks)</div>
+                  ${diagramUrl ? `<div style="margin: 10px 0;"><img src="${diagramUrl}" style="max-height: 220px; max-width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 4px;" alt="Diagram" /></div>` : ''}
                   <div class="options">
                     ${Array.isArray(q.options) ? q.options.map(o => `<div class="option">(${o.id.toUpperCase()}) ${o.text}</div>`).join('') : '<div class="option"><em>Essay / Theory Paper Question</em></div>'}
                   </div>
                 </div>
-              `).join('')}
+              `;
+              }).join('')}
             </div>
             <script>
               window.onload = () => {
@@ -1833,7 +1839,19 @@ const CBTManagement = () => {
                                   className="mt-1 h-5 w-5 text-primary rounded border-gray-300 pointer-events-none"
                                 />
                                 <div className="flex-1">
-                                  <p className="font-medium text-gray-900 mb-1">{q.questionText}</p>
+                                  {(() => {
+                                    const { cleanText, diagramUrl } = parseQuestionContent(q.questionText, q.imageUrl || q.attachmentUrl);
+                                    return (
+                                      <>
+                                        <p className="font-medium text-gray-900 mb-1">{cleanText}</p>
+                                        {diagramUrl && (
+                                          <div className="my-1.5">
+                                            <img src={diagramUrl} alt="Diagram" className="max-h-24 rounded border border-gray-200" />
+                                          </div>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
                                   <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
                                     <span>
                                       Type/Options: {q.questionType === 'essay' ? 'Essay / Theory' : (() => {
@@ -1876,10 +1894,19 @@ const CBTManagement = () => {
               </div>
             )}
 
-            {questions.map((q, qIndex) => (
-              <div key={q.id} className={`bg-white rounded-lg shadow p-4 border transition ${editingQuestion?.id === q.id ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-gray-200'}`}>
-                <div className="flex justify-between items-start mb-2 group">
-                  <h4 className="font-semibold text-gray-800 text-lg pr-4">Q{qIndex + 1}. {q.questionText}</h4>
+            {questions.map((q, qIndex) => {
+              const { cleanText, diagramUrl } = parseQuestionContent(q.questionText, q.imageUrl || q.attachmentUrl);
+              return (
+                <div key={q.id} className={`bg-white rounded-lg shadow p-4 border transition ${editingQuestion?.id === q.id ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-gray-200'}`}>
+                  <div className="flex justify-between items-start mb-2 group">
+                    <div>
+                      <h4 className="font-semibold text-gray-800 text-lg pr-4">Q{qIndex + 1}. {cleanText}</h4>
+                      {diagramUrl && (
+                        <div className="mt-3 mb-2">
+                          <img src={diagramUrl} alt="Diagram" className="max-h-56 w-auto object-contain rounded-lg border border-gray-200 shadow-sm" />
+                        </div>
+                      )}
+                    </div>
                   <div className="flex items-center gap-2">
                     <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded whitespace-nowrap">{q.points} Marks</span>
                     <div className="flex gap-1">
@@ -1922,7 +1949,8 @@ const CBTManagement = () => {
                   )}
                 </div>
               </div>
-            ))}
+            );
+          })}
 
             {questions.length === 0 && (
               <div className="bg-white rounded-lg shadow p-10 text-center text-gray-500">

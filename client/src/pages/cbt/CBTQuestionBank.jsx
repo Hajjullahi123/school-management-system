@@ -6,6 +6,7 @@ import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useAuth } from '../../context/AuthContext';
 import { ChevronDown, ChevronUp, Trash2, Plus, Edit2, X, Printer, Image as ImageIcon, Paperclip, FileText, CheckCircle, Copy, ZoomIn, AlignLeft, AlignCenter, AlignRight, Check } from 'lucide-react';
 import MathToolbar from '../../components/common/MathToolbar';
+import { parseQuestionContent } from '../../utils/cbtUtils';
 
 const CBTQuestionBank = () => {
   const [questions, setQuestions] = useState([]);
@@ -208,15 +209,17 @@ const CBTQuestionBank = () => {
       ];
     }
 
+    const { cleanText, diagramUrl } = parseQuestionContent(q.questionText, q.imageUrl || q.attachmentUrl);
+
     setEditingQuestion(q);
     setValidationError('');
     setQuestionForm({
       subjectId: q.subjectId ? String(q.subjectId) : '',
       classId: q.classId ? String(q.classId) : '',
       questionType: q.questionType || 'multiple_choice',
-      questionText: q.questionText || '',
+      questionText: cleanText,
       markingGuide: guide,
-      attachmentUrl: q.imageUrl || q.attachmentUrl || '',
+      attachmentUrl: diagramUrl || '',
       imageSize: 'medium',
       imageAlignment: 'left',
       imageCaption: '',
@@ -433,8 +436,7 @@ const CBTQuestionBank = () => {
       ];
     }
 
-    let cleanText = q.questionText || '';
-    cleanText = cleanText.replace(/!\[Diagram\]\((.*?)\)/g, '').trim();
+    const { cleanText } = parseQuestionContent(q.questionText);
 
     setEditingQuestion(null);
     setSessionAddedCount(0);
@@ -632,10 +634,7 @@ const CBTQuestionBank = () => {
         <p style="font-weight: bold; font-size: 13px; font-style: italic;">Instruction: Answer all questions clearly in the space provided.</p>
         <hr style="margin-bottom: 20px;" />
         ${essayQuestions.map((q, idx) => {
-          let cleanText = q.questionText || '';
-          let diagramMatch = cleanText.match(/!\[Diagram\]\((.*?)\)/);
-          let diagramUrl = diagramMatch ? diagramMatch[1] : null;
-          cleanText = cleanText.replace(/!\[Diagram\]\((.*?)\)/g, '').trim();
+          const { cleanText, diagramUrl } = parseQuestionContent(q.questionText, q.imageUrl || q.attachmentUrl);
 
           return `
             <div class="question">
@@ -923,10 +922,7 @@ const CBTQuestionBank = () => {
                                 }
                               } catch (e) {}
 
-                              let cleanQuestionText = q.questionText || '';
-                              let diagramMatch = cleanQuestionText.match(/!\[Diagram\]\((.*?)\)/);
-                              let diagramUrl = diagramMatch ? diagramMatch[1] : (q.imageUrl || q.attachmentUrl || null);
-                              cleanQuestionText = cleanQuestionText.replace(/!\[Diagram\]\((.*?)\)/g, '').trim();
+                              const { cleanText: cleanQuestionText, diagramUrl } = parseQuestionContent(q.questionText, q.imageUrl || q.attachmentUrl);
 
                               return (
                                 <React.Fragment key={q.id}>
@@ -1072,8 +1068,7 @@ const CBTQuestionBank = () => {
                       <div className="md:hidden p-3 space-y-3">
                         {subjectQuestions.map((q) => {
                           const isEssay = q.questionType === 'essay';
-                          let cleanQuestionText = q.questionText || '';
-                          cleanQuestionText = cleanQuestionText.replace(/!\[Diagram\]\((.*?)\)/g, '').trim();
+                          const { cleanText: cleanQuestionText } = parseQuestionContent(q.questionText);
 
                           return (
                             <div key={q.id} className="bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-3">
