@@ -4,9 +4,10 @@ import { api, API_BASE_URL } from '../../api';
 import { toast } from '../../utils/toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useAuth } from '../../context/AuthContext';
+import useTermContext from '../../hooks/useTermContext';
 import { ChevronDown, ChevronUp, Trash2, Plus, Edit2, X, Printer, Image as ImageIcon, Paperclip, FileText, CheckCircle, Copy, ZoomIn, AlignLeft, AlignCenter, AlignRight, Check } from 'lucide-react';
 import MathToolbar from '../../components/common/MathToolbar';
-import { parseQuestionContent } from '../../utils/cbtUtils';
+import { parseQuestionContent, IMAGE_SIZE_CLASSES } from '../../utils/cbtUtils';
 
 const CBTQuestionBank = () => {
   const [questions, setQuestions] = useState([]);
@@ -18,6 +19,7 @@ const CBTQuestionBank = () => {
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const { settings: schoolSettings } = useSchoolSettings();
   const { user } = useAuth();
+  const { currentTerm, currentSession } = useTermContext();
 
   // Tab Filter: 'all' | 'multiple_choice' | 'essay'
   const [bankTab, setBankTab] = useState('all');
@@ -94,12 +96,7 @@ const CBTQuestionBank = () => {
     classId: ''
   });
 
-  const IMAGE_SIZES = {
-    small: { label: 'S', maxH: 'max-h-[150px]', printMaxH: '150px' },
-    medium: { label: 'M', maxH: 'max-h-[300px]', printMaxH: '300px' },
-    large: { label: 'L', maxH: 'max-h-[500px]', printMaxH: '500px' },
-    full: { label: 'Full', maxH: 'max-h-none w-full', printMaxH: '100%' }
-  };
+  const IMAGE_SIZES = IMAGE_SIZE_CLASSES;
 
   useEffect(() => {
     fetchInitialData();
@@ -332,8 +329,8 @@ const CBTQuestionBank = () => {
         classId: questionForm.classId,
         questionType: questionForm.questionType,
         questionText: questionForm.attachmentUrl 
-          ? `${questionForm.questionText}\n![Diagram](${questionForm.attachmentUrl})`
-          : questionForm.questionText,
+          ? `${questionForm.questionText.trim()}\n![Diagram#${questionForm.imageSize || 'medium'}](${questionForm.attachmentUrl})`
+          : questionForm.questionText.trim(),
         options: payloadOptions,
         correctOption: questionForm.questionType === 'essay' ? 'essay' : questionForm.correctOption,
         points: questionForm.points
@@ -596,51 +593,79 @@ const CBTQuestionBank = () => {
     }
 
     const printWindow = window.open('', '_blank');
-    const subjectName = subjects.find(s => String(s.id) === String(filters.subjectId))?.name || 'Theory / Essay Examination';
-    
+    const subjectName = subjects.find(s => String(s.id) === String(filters.subjectId))?.name || 'General Subject';
+    const className = classes.find(c => String(c.id) === String(filters.classId))?.name || 'All Classes';
+    const termName = currentTerm?.name || 'Third Term';
+    const sessionName = currentSession?.name || '2025/2026 Academic Session';
+    const schoolName = schoolSettings?.schoolName || schoolSettings?.name || 'SCHOOL MANAGEMENT SYSTEM';
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Theory Examination Paper - ${schoolSettings?.name || 'School'}</title>
+        <title>Theory Examination Paper - ${schoolName}</title>
         <style>
-          body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #111; line-height: 1.6; }
-          .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 30px; }
-          .header h1 { margin: 0; font-size: 24px; text-transform: uppercase; }
-          .header h2 { margin: 5px 0 0 0; font-size: 16px; color: #555; font-weight: normal; }
-          .meta { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 20px; font-size: 14px; border-bottom: 1px dashed #ccc; padding-bottom: 10px; }
-          .question { margin-bottom: 25px; page-break-inside: avoid; }
-          .q-num { font-weight: bold; }
-          .q-text { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
-          .q-points { float: right; font-style: italic; color: #666; font-size: 13px; }
-          .diagram { margin: 10px 0; max-height: 250px; border: 1px solid #ddd; border-radius: 8px; padding: 5px; }
-          .answer-space { height: 100px; border-bottom: 1px dotted #ccc; margin-top: 15px; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; color: #111; line-height: 1.6; background-color: #fff; }
+          .no-print { background: #1e1b4b; color: white; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin: -30px -30px 25px -30px; }
+          .no-print button { background: #6366f1; color: white; font-weight: bold; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all; }
+          .no-print button:hover { background: #4f46e5; }
+          .header { text-align: center; border-bottom: 2px solid #1e1b4b; padding-bottom: 15px; margin-bottom: 25px; }
+          .header h1 { margin: 0; font-size: 24px; text-transform: uppercase; color: #1e1b4b; font-weight: 800; }
+          .header h2 { margin: 6px 0 0 0; font-size: 16px; color: #475569; font-weight: 600; }
+          .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 20px; font-weight: 600; margin-bottom: 20px; font-size: 13px; border: 1px solid #e2e8f0; padding: 12px 16px; border-radius: 8px; background: #f8fafc; }
+          .meta-item span[contenteditable="true"] { outline: none; border-bottom: 1px dotted #94a3b8; padding: 0 4px; color: #0f172a; }
+          .question { margin-bottom: 25px; page-break-inside: avoid; border-bottom: 1px dashed #f1f5f9; padding-bottom: 15px; }
+          .q-num { font-weight: bold; color: #1e1b4b; }
+          .q-text { font-size: 15px; font-weight: 600; margin-bottom: 8px; color: #1e293b; }
+          .q-points { float: right; font-style: italic; color: #64748b; font-size: 13px; font-weight: bold; }
+          .diagram { margin: 10px 0; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px; object-fit: contain; }
+          .answer-space { height: 100px; border-bottom: 1px dotted #cbd5e1; margin-top: 15px; }
+          [contenteditable="true"]:hover { background-color: #f1f5f9; cursor: pointer; }
           @media print {
-            body { padding: 0; }
+            .no-print { display: none !important; }
+            body { padding: 0 !important; margin: 0 !important; }
+            .meta-grid { border: 1px solid #333 !important; background: transparent !important; }
             .answer-space { height: 120px; }
+            [contenteditable="true"] { border: none !important; background: transparent !important; }
           }
         </style>
       </head>
       <body>
+        <div class="no-print">
+          <div style="font-size: 13px;">
+            ✏️ <strong>Interactive Print Preview:</strong> Click any header text (Class, Subject, Term, Session, Time) below to edit before printing.
+          </div>
+          <button onclick="window.print()">🖨️ Print Question Paper</button>
+        </div>
+
         <div class="header">
-          <h1>${schoolSettings?.name || 'SCHOOL EXAMINATION PAPER'}</h1>
-          <h2>${subjectName} - Written Theory Assessment</h2>
+          <h1 contenteditable="true" title="Click to edit school name">${schoolName}</h1>
+          <h2 contenteditable="true" title="Click to edit paper title">${subjectName} - Written Theory / Essay Examination</h2>
         </div>
-        <div class="meta">
-          <span>Student Name: __________________________</span>
-          <span>Class: ________</span>
-          <span>Time Allowed: ________</span>
+
+        <div class="meta-grid">
+          <div class="meta-item">Subject: <span contenteditable="true" title="Click to edit subject">${subjectName}</span></div>
+          <div class="meta-item">Class: <span contenteditable="true" title="Click to edit class">${className}</span></div>
+          <div class="meta-item">Term: <span contenteditable="true" title="Click to edit term">${termName}</span></div>
+          <div class="meta-item">Academic Session: <span contenteditable="true" title="Click to edit session">${sessionName}</span></div>
+          <div class="meta-item">Time Allowed: <span contenteditable="true" title="Click to edit duration">1 Hour 30 Minutes</span></div>
+          <div class="meta-item">Student Name: <span contenteditable="true" title="Click to edit name">__________________________</span></div>
         </div>
-        <p style="font-weight: bold; font-size: 13px; font-style: italic;">Instruction: Answer all questions clearly in the space provided.</p>
-        <hr style="margin-bottom: 20px;" />
+
+        <p style="font-weight: bold; font-size: 13px; font-style: italic; color: #334155; margin-bottom: 15px;">
+          Instruction: <span contenteditable="true">Answer all questions clearly in the space provided. Show all step-by-step working where applicable.</span>
+        </p>
+        <hr style="margin-bottom: 20px; border: 0; border-top: 2px solid #e2e8f0;" />
+
         ${essayQuestions.map((q, idx) => {
-          const { cleanText, diagramUrl } = parseQuestionContent(q.questionText, q.imageUrl || q.attachmentUrl);
+          const { cleanText, diagramUrl, imageSize } = parseQuestionContent(q.questionText, q.imageUrl || q.attachmentUrl);
+          const maxHStyle = IMAGE_SIZE_CLASSES[imageSize]?.printMaxH ? `max-height: ${IMAGE_SIZE_CLASSES[imageSize].printMaxH};` : 'max-height: 250px;';
 
           return `
             <div class="question">
               <span class="q-points">[${q.points || 1} Marks]</span>
               <div class="q-text"><span class="q-num">Q${idx + 1}.</span> ${cleanText}</div>
-              ${diagramUrl ? `<img src="${diagramUrl}" class="diagram" alt="Question Diagram" />` : ''}
+              ${diagramUrl ? `<img src="${diagramUrl}" class="diagram" style="${maxHStyle}" alt="Question Diagram" />` : ''}
               <div class="answer-space"></div>
             </div>
           `;
@@ -650,9 +675,6 @@ const CBTQuestionBank = () => {
     `);
     printWindow.document.close();
     printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
   };
 
   return (

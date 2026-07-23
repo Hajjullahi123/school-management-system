@@ -3,7 +3,7 @@ import { api } from '../../api';
 import { toast } from '../../utils/toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import useTermContext from '../../hooks/useTermContext';
-import { parseQuestionContent } from '../../utils/cbtUtils';
+import { parseQuestionContent, IMAGE_SIZE_CLASSES } from '../../utils/cbtUtils';
 
 const CBTPortal = () => {
   const [view, setView] = useState('list'); // 'list', 'taking', 'result'
@@ -318,7 +318,7 @@ const CBTPortal = () => {
   // VIEW: Taking Exam
   if (view === 'taking' && activeExam) {
     const currentQ = questions[currentQuestionIndex];
-    const { cleanText, diagramUrl } = parseQuestionContent(
+    const { cleanText, diagramUrl, imageSize } = parseQuestionContent(
       currentQ?.questionText, 
       currentQ?.imageUrl || currentQ?.attachmentUrl
     );
@@ -411,7 +411,7 @@ const CBTPortal = () => {
                       <img
                         src={diagramUrl}
                         alt="Question Diagram"
-                        className="max-h-72 sm:max-h-96 w-auto object-contain rounded-lg shadow-sm border border-gray-200 bg-white cursor-pointer hover:opacity-95 transition"
+                        className={`${IMAGE_SIZE_CLASSES[imageSize]?.maxH || 'max-h-72'} w-auto object-contain rounded-lg shadow-sm border border-gray-200 bg-white cursor-pointer hover:opacity-95 transition`}
                         onClick={() => setLightboxUrl(diagramUrl)}
                       />
                       <span className="text-[11px] text-gray-400 mt-2 font-medium italic flex items-center gap-1">

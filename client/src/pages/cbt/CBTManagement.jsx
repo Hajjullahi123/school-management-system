@@ -434,61 +434,84 @@ const CBTManagement = () => {
         options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options
       }));
 
+      const subjectName = exam.subject?.name || 'General Subject';
+      const className = exam.class?.name || 'All Classes';
+      const termName = currentTerm?.name || 'Third Term';
+      const sessionName = currentSession?.name || '2025/2026 Academic Session';
+      const schoolName = schoolSettings?.schoolName || schoolSettings?.name || 'School Management System';
+
       const printWindow = window.open('', '_blank');
       printWindow.document.write(`
+        <!DOCTYPE html>
         <html>
           <head>
-            <title>${exam.title} - Questions</title>
+            <title>${exam.title} - Printable Paper</title>
             <style>
-              body { font-family: Arial, sans-serif; padding: 40px; line-height: 1.6; }
-              .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
-              .school-name { font-size: 24px; font-bold; margin: 0; }
-              .exam-title { font-size: 20px; margin: 10px 0; color: #555; }
-              .meta { font-size: 14px; display: flex; justify-content: space-between; margin-top: 10px; }
-              .question { margin-bottom: 25px; page-break-inside: avoid; }
-              .question-text { font-weight: bold; margin-bottom: 10px; }
+              body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; color: #111; line-height: 1.6; background-color: #fff; }
+              .no-print { background: #1e1b4b; color: white; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin: -30px -30px 25px -30px; }
+              .no-print button { background: #6366f1; color: white; font-weight: bold; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all; }
+              .no-print button:hover { background: #4f46e5; }
+              .header { text-align: center; border-bottom: 2px solid #1e1b4b; padding-bottom: 15px; margin-bottom: 25px; }
+              .header h1 { margin: 0; font-size: 24px; text-transform: uppercase; color: #1e1b4b; font-weight: 800; }
+              .header h2 { margin: 6px 0 0 0; font-size: 16px; color: #475569; font-weight: 600; }
+              .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 20px; font-weight: 600; margin-bottom: 20px; font-size: 13px; border: 1px solid #e2e8f0; padding: 12px 16px; border-radius: 8px; background: #f8fafc; }
+              .meta-item span[contenteditable="true"] { outline: none; border-bottom: 1px dotted #94a3b8; padding: 0 4px; color: #0f172a; }
+              .question { margin-bottom: 25px; page-break-inside: avoid; border-bottom: 1px dashed #f1f5f9; padding-bottom: 15px; }
+              .question-text { font-weight: bold; margin-bottom: 10px; color: #0f172a; }
               .options { margin-left: 20px; }
-              .option { margin-bottom: 5px; }
+              .option { margin-bottom: 5px; color: #334155; }
+              .diagram { margin: 10px 0; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px; object-fit: contain; }
+              [contenteditable="true"]:hover { background-color: #f1f5f9; cursor: pointer; }
               @media print {
-                .no-print { display: none; }
-                body { padding: 0; }
+                .no-print { display: none !important; }
+                body { padding: 0 !important; margin: 0 !important; }
+                .meta-grid { border: 1px solid #333 !important; background: transparent !important; }
+                [contenteditable="true"] { border: none !important; background: transparent !important; }
               }
             </style>
           </head>
           <body>
-            <div class="header">
-              <h1 class="school-name">${schoolSettings?.schoolName || 'School Management System'}</h1>
-              <h2 class="exam-title">${exam.title}</h2>
-              <div class="meta">
-                <span>Subject: ${exam.subject?.name}</span>
-                <span>Class: ${exam.class?.name}</span>
-                <span>Time: ${exam.durationMinutes} mins</span>
+            <div class="no-print">
+              <div style="font-size: 13px;">
+                ✏️ <strong>Interactive Print Preview:</strong> Click any header text (Class, Subject, Term, Session, Time) below to edit before printing.
               </div>
+              <button onclick="window.print()">🖨️ Print Question Paper</button>
             </div>
+
+            <div class="header">
+              <h1 contenteditable="true" title="Click to edit school name">${schoolName}</h1>
+              <h2 contenteditable="true" title="Click to edit paper title">${exam.title}</h2>
+            </div>
+
+            <div class="meta-grid">
+              <div class="meta-item">Subject: <span contenteditable="true" title="Click to edit subject">${subjectName}</span></div>
+              <div class="meta-item">Class: <span contenteditable="true" title="Click to edit class">${className}</span></div>
+              <div class="meta-item">Term: <span contenteditable="true" title="Click to edit term">${termName}</span></div>
+              <div class="meta-item">Academic Session: <span contenteditable="true" title="Click to edit session">${sessionName}</span></div>
+              <div class="meta-item">Time Allowed: <span contenteditable="true" title="Click to edit duration">${exam.durationMinutes} Minutes</span></div>
+              <div class="meta-item">Student Name: <span contenteditable="true" title="Click to edit name">__________________________</span></div>
+            </div>
+
             <div class="questions">
               ${qs.map((q, i) => {
-                const { cleanText, diagramUrl } = parseQuestionContent(q.questionText, q.imageUrl || q.attachmentUrl);
+                const { cleanText, diagramUrl, imageSize } = parseQuestionContent(q.questionText, q.imageUrl || q.attachmentUrl);
+                const maxHStyle = IMAGE_SIZE_CLASSES[imageSize]?.printMaxH ? `max-height: ${IMAGE_SIZE_CLASSES[imageSize].printMaxH};` : 'max-height: 220px;';
                 return `
                 <div class="question">
                   <div class="question-text">${i + 1}. ${cleanText} (${q.points} marks)</div>
-                  ${diagramUrl ? `<div style="margin: 10px 0;"><img src="${diagramUrl}" style="max-height: 220px; max-width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 4px;" alt="Diagram" /></div>` : ''}
+                  ${diagramUrl ? `<div style="margin: 10px 0;"><img src="${diagramUrl}" class="diagram" style="${maxHStyle}" alt="Diagram" /></div>` : ''}
                   <div class="options">
-                    ${Array.isArray(q.options) ? q.options.map(o => `<div class="option">(${o.id.toUpperCase()}) ${o.text}</div>`).join('') : '<div class="option"><em>Essay / Theory Paper Question</em></div>'}
+                    ${Array.isArray(q.options) ? q.options.map(o => `<div class="option">(${o.id.toUpperCase()}) ${o.text}</div>`).join('') : '<div class="option"><em>Essay / Theory Paper Question (Written Answer Space Provided)</em></div><div style="height:100px; border-bottom:1px dotted #cbd5e1; margin-top:10px;"></div>'}
                   </div>
                 </div>
               `;
               }).join('')}
             </div>
-            <script>
-              window.onload = () => {
-                window.print();
-                // window.close();
-              };
-            </script>
           </body>
         </html>
       `);
       printWindow.document.close();
+      printWindow.focus();
     } catch (error) {
       toast.error('Failed to generate printable exam');
     }
