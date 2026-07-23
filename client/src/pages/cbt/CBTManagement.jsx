@@ -488,18 +488,25 @@ const CBTManagement = () => {
     const url = `${API_BASE_URL}/api/cbt/${selectedExam.id}/results/download`;
     const token = localStorage.getItem('token');
 
-    // Use a hidden anchor tag to trigger download with auth token
     fetch(url, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     })
-      .then(response => response.blob())
-      .then(blob => {
+      .then(response => {
+        const disposition = response.headers.get('Content-Disposition');
+        let filename = `CBT_Results_${selectedExam.title.replace(/\s+/g, '_')}.xlsx`;
+        if (disposition && disposition.includes('filename=')) {
+          const match = disposition.match(/filename="?([^"]+)"?/);
+          if (match && match[1]) filename = match[1];
+        }
+        return response.blob().then(blob => ({ blob, filename }));
+      })
+      .then(({ blob, filename }) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `CBT_Results_${selectedExam.title.replace(/\s+/g, '_')}.csv`;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);

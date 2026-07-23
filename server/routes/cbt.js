@@ -1091,10 +1091,21 @@ router.get('/:id/results/download', authenticate, authorize(['superadmin', 'admi
   try {
     const examId = parseInt(req.params.id);
 
-    const exam = await prisma.cBTExam.findFirst({
-      where: { id: examId, schoolId: req.schoolId },
-      include: { Class: true, Subject: true }
-    });
+    const [exam, schoolSettings] = await Promise.all([
+      prisma.cBTExam.findFirst({
+        where: { id: examId, schoolId: req.schoolId },
+        include: {
+          Class: true,
+          Subject: true,
+          AcademicSession: true,
+          Term: true,
+          School: true
+        }
+      }),
+      prisma.school.findUnique({
+        where: { id: req.schoolId }
+      })
+    ]);
 
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
     if (req.user.role === 'teacher' && exam.teacherId !== req.user.id) {
@@ -1115,33 +1126,225 @@ router.get('/:id/results/download', authenticate, authorize(['superadmin', 'admi
       orderBy: { score: 'desc' }
     });
 
-    // Generate CSV
-    const headers = ['Student Name', 'Admission Number', 'Score', 'Total Questions', 'Correct Answers', 'Percentage', 'Submission Date'];
-    const rows = results.map(r => {
-      const name = r.Student?.user ? `${r.Student.user.firstName} ${r.Student.user.lastName}` : (r.Student?.name || r.Student?.admissionNumber || 'Student');
-      const percentage = exam.totalMarks > 0 ? ((r.score / exam.totalMarks) * 100).toFixed(2) : 0;
-      return [
-        name,
-        r.Student?.admissionNumber,
-        r.score,
-        r.totalQuestions,
-        r.correctAnswers,
-        `${percentage}%`,
-        new Date(r.submittedAt).toLocaleString()
-      ];
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('CBT Results');
+
+    const schoolName = schoolSettings?.name || exam.School?.name || 'SCHOOL MANAGEMENT SYSTEM';
+    const examTitle = exam.title || 'CBT Assessment';
+    const subjectName = exam.Subject?.name || 'N/A';
+    const className = exam.Class?.name || 'N/A';
+    const termName = exam.Term?.name || 'N/A';
+    const sessionName = exam.AcademicSession?.name || 'N/A';
+
+    // 1. School Header Row (Row 1)
+    const titleRow = worksheet.addRow([schoolName.toUpperCase()]);
+    worksheet.mergeCells('A1:K1');
+    titleRow.font = { name: 'Calibri', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+    titleRow.alignment = { horizontal: 'center', vertical: 'middle' };
+    titleRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+    titleRow.height = 36;
+
+    // 2. Subheader Row (Row 2)
+    const subTitleRow = worksheet.addRow(['CBT EXAMINATION & ASSESSMENT RESULTS REPORT']);
+    worksheet.mergeCells('A2:K2');
+    subTitleRow.font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FF1E3A8A' } };
+    subTitleRow.alignment = { horizontal: 'center', vertical: 'middle' };
+    subTitleRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF6FF' } };
+    subTitleRow.height = 24;
+
+    // 3. Blank Row (Row 3)
+    worksheet.addRow([]);
+
+    // 4. Metadata Block (Rows 4 - 6)
+    const totalQCount = results[0]?.totalQuestions || exam.totalMarks || 'N/A';
+    worksheet.addRow(['Exam Title:', examTitle, '', 'Academic Session:', sessionName, '', 'Total Questions:', totalQCount]);
+    worksheet.addRow(['Subject Name:', subjectName, '', 'Term:', termName, '', 'Time Allowed:', `${exam.durationMinutes || 60} Minutes`]);
+    worksheet.addRow(['Class Level:', className, '', 'Total Candidates:', results.length, '', 'Total Obtainable Score:', exam.totalMarks || 100]);
+
+    // Style Metadata block
+    for (let r = 4; r <= 6; r++) {
+      const row = worksheet.getRow(r);
+      row.font = { name: 'Calibri', size: 10 };
+      [1, 4, 7].forEach(colIdx => {
+        const cell = row.getCell(colIdx);
+        cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF334155' } };
+      });
+      [2, 5, 8].forEach(colIdx => {
+        const cell = row.getCell(colIdx);
+        cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF0F172A' } };
+      });
+    }
+
+    // 5. Statistics Summary Box Header (Row 7 to 9)
+    worksheet.addRow([]); // Row 7 blank
+    
+    const totalCandidates = results.length;
+    const scoresArr = results.map(r => r.score);
+    const avgScore = totalCandidates > 0 ? (scoresArr.reduce((a, b) => a + b, 0) / totalCandidates).toFixed(1) : 0;
+    const maxScore = totalCandidates > 0 ? Math.max(...scoresArr) : 0;
+    const minScore = totalCandidates > 0 ? Math.min(...scoresArr) : 0;
+    const passCount = results.filter(r => (exam.totalMarks > 0 ? (r.score / exam.totalMarks) >= 0.5 : r.score >= 50)).length;
+    const failCount = totalCandidates - passCount;
+
+    const statsHeader = worksheet.addRow(['EXAM PERFORMANCE SUMMARY']);
+    worksheet.mergeCells('A9:K9');
+    statsHeader.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF0F172A' } };
+    statsHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+    statsHeader.alignment = { horizontal: 'left', vertical: 'middle' };
+    statsHeader.height = 22;
+
+    const statsRow = worksheet.addRow([
+      `Candidates: ${totalCandidates}`,
+      `Class Avg: ${avgScore}`,
+      `Highest Score: ${maxScore}`,
+      `Lowest Score: ${minScore}`,
+      `Pass Rate: ${totalCandidates > 0 ? ((passCount / totalCandidates) * 100).toFixed(1) : 0}% (${passCount} Passed / ${failCount} Failed)`
+    ]);
+    worksheet.mergeCells('E10:K10');
+    statsRow.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF475569' } };
+
+    worksheet.addRow([]); // Row 11 blank
+
+    // 6. Data Table Headers (Row 12)
+    const tableHeaderRow = worksheet.addRow([
+      'S/N',
+      'Student Name',
+      'Admission Number',
+      'Total Questions',
+      'Passed (Correct)',
+      'Failed (Incorrect)',
+      'Unattempted (Skipped)',
+      'Score Obtained',
+      'Percentage (%)',
+      'Time Taken',
+      'Submission Date & Time'
+    ]);
+
+    tableHeaderRow.height = 28;
+    tableHeaderRow.eachCell((cell) => {
+      cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF94A3B8' } },
+        bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+        left: { style: 'thin', color: { argb: 'FF334155' } },
+        right: { style: 'thin', color: { argb: 'FF334155' } }
+      };
     });
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
+    // 7. Add Data Rows (Row 13+)
+    results.forEach((r, index) => {
+      const studentName = r.Student?.user 
+        ? `${r.Student.user.firstName} ${r.Student.user.lastName}` 
+        : (r.Student?.name || 'N/A');
+      const admissionNum = r.Student?.admissionNumber || 'N/A';
+      
+      const totalQ = r.totalQuestions || 0;
+      const correctQ = r.correctAnswers || 0;
+
+      // Parse answers to compute attempted vs unattempted
+      let attemptedCount = correctQ;
+      if (r.answers) {
+        try {
+          const parsed = JSON.parse(r.answers);
+          if (parsed && typeof parsed === 'object') {
+            attemptedCount = Object.keys(parsed).filter(k => parsed[k] !== undefined && parsed[k] !== null && parsed[k] !== '').length;
+          }
+        } catch (e) {}
+      } else {
+        attemptedCount = totalQ;
+      }
+
+      const unattemptedQ = Math.max(0, totalQ - attemptedCount);
+      const failedQ = Math.max(0, attemptedCount - correctQ);
+
+      const percentage = exam.totalMarks > 0 ? ((r.score / exam.totalMarks) * 100).toFixed(2) : '0.00';
+
+      // Compute Total Time Taken
+      let timeTakenStr = 'N/A';
+      if (r.startedAt && r.submittedAt) {
+        const start = new Date(r.startedAt).getTime();
+        const end = new Date(r.submittedAt).getTime();
+        const diffSecs = Math.max(0, Math.floor((end - start) / 1000));
+        if (diffSecs > 0) {
+          const m = Math.floor(diffSecs / 60);
+          const s = diffSecs % 60;
+          timeTakenStr = `${m}m ${s < 10 ? '0' : ''}${s}s`;
+        }
+      }
+
+      const subDateStr = r.submittedAt 
+        ? new Date(r.submittedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+        : 'N/A';
+
+      const row = worksheet.addRow([
+        index + 1,
+        studentName,
+        admissionNum,
+        totalQ,
+        correctQ,
+        failedQ,
+        unattemptedQ,
+        r.score,
+        `${percentage}%`,
+        timeTakenStr,
+        subDateStr
+      ]);
+
+      row.height = 20;
+
+      row.eachCell((cell, colNumber) => {
+        cell.font = { name: 'Calibri', size: 10 };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+        };
+
+        if (colNumber === 1 || colNumber === 3) {
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        } else if (colNumber === 2) {
+          cell.alignment = { horizontal: 'left', vertical: 'middle' };
+          cell.font = { name: 'Calibri', size: 10, bold: true };
+        } else if (colNumber >= 4 && colNumber <= 8) {
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          if (colNumber === 5) cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF16A34A' } };
+          if (colNumber === 6) cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FADC2626' } };
+          if (colNumber === 7) cell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF64748B' } };
+          if (colNumber === 8) cell.font = { name: 'Calibri', size: 10, bold: true };
+        } else {
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        }
+      });
+    });
+
+    // Set Column Widths
+    worksheet.columns = [
+      { key: 'sn', width: 6 },
+      { key: 'name', width: 28 },
+      { key: 'adm', width: 18 },
+      { key: 'totalQ', width: 15 },
+      { key: 'passedQ', width: 18 },
+      { key: 'failedQ', width: 18 },
+      { key: 'unattemptedQ', width: 22 },
+      { key: 'score', width: 15 },
+      { key: 'percentage', width: 15 },
+      { key: 'timeTaken', width: 15 },
+      { key: 'submissionDate', width: 24 }
+    ];
 
     const safeExamTitle = exam.title.replace(/[^\x00-\x7F]/g, '').replace(/\s+/g, '_') || 'Exam';
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="CBT_Results_${safeExamTitle}.csv"`);
-    res.send(csvContent);
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="CBT_Results_${safeExamTitle}.xlsx"`);
+
+    await workbook.xlsx.write(res);
+    res.end();
 
   } catch (error) {
+    console.error('CBT Results download error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1346,7 +1549,7 @@ router.post('/:id/import-from-bank', authenticate, authorize(['superadmin', 'adm
 router.post('/:id/submit', authenticate, authorize(['student']), async (req, res) => {
   try {
     const examId = parseInt(req.params.id);
-    const { answers } = req.body; // { questionId: selectedOptionId }
+    const { answers, startedAt, durationSeconds } = req.body; // { questionId: selectedOptionId }
 
     const student = await prisma.student.findFirst({
       where: {
@@ -1390,12 +1593,19 @@ router.post('/:id/submit', authenticate, authorize(['student']), async (req, res
 
     const examQuestions = exam.CBTQuestion || [];
     examQuestions.forEach(q => {
-      const studentAnswer = answers[q.id];
+      const studentAnswer = answers ? answers[q.id] : undefined;
       if (studentAnswer === q.correctOption) {
         score += q.points;
         correctCount++;
       }
     });
+
+    let startTimeDate = new Date();
+    if (startedAt) {
+      startTimeDate = new Date(startedAt);
+    } else if (durationSeconds) {
+      startTimeDate = new Date(Date.now() - (parseInt(durationSeconds) * 1000));
+    }
 
     // Save result
     const result = await prisma.cBTResult.create({
@@ -1406,7 +1616,8 @@ router.post('/:id/submit', authenticate, authorize(['student']), async (req, res
         score,
         totalQuestions: examQuestions.length,
         correctAnswers: correctCount,
-        answers: JSON.stringify(answers),
+        answers: JSON.stringify(answers || {}),
+        startedAt: startTimeDate,
         submittedAt: new Date()
       }
     });

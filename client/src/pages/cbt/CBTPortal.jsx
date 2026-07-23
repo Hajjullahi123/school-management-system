@@ -20,6 +20,7 @@ const CBTPortal = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0); // in seconds
   const [submissionResult, setSubmissionResult] = useState(null);
+  const [examStartedAt, setExamStartedAt] = useState(null);
 
   const timerRef = useRef(null);
 
@@ -168,6 +169,7 @@ const CBTPortal = () => {
       setFlaggedQuestions(savedFlags);
       setCurrentQuestionIndex(savedIndex);
       setTimeLeft(savedTime);
+      setExamStartedAt(Date.now());
       setView('taking');
 
       // Start Timer
@@ -231,7 +233,10 @@ const CBTPortal = () => {
     clearInterval(timerRef.current);
 
     try {
-      const response = await api.post(`/api/cbt/${activeExam.id}/submit`, { answers });
+      const response = await api.post(`/api/cbt/${activeExam.id}/submit`, { 
+        answers, 
+        startedAt: examStartedAt || Date.now() 
+      });
       const data = await response.json();
 
       if (response.ok) {
