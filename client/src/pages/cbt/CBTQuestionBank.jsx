@@ -4,7 +4,7 @@ import { api, API_BASE_URL } from '../../api';
 import { toast } from '../../utils/toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useAuth } from '../../context/AuthContext';
-import { ChevronDown, ChevronUp, Trash2, Plus, Edit2, X, Printer, Image as ImageIcon, Paperclip, FileText, CheckCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, Plus, Edit2, X, Printer, Image as ImageIcon, Paperclip, FileText, CheckCircle, Copy, ZoomIn, AlignLeft, AlignCenter, AlignRight, Check } from 'lucide-react';
 import MathToolbar from '../../components/common/MathToolbar';
 
 const CBTQuestionBank = () => {
@@ -26,6 +26,8 @@ const CBTQuestionBank = () => {
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [sessionAddedCount, setSessionAddedCount] = useState(0);
   const [validationError, setValidationError] = useState('');
+  const [lightboxUrl, setLightboxUrl] = useState(null);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState(new Set());
 
   const [questionForm, setQuestionForm] = useState({
     subjectId: '',
@@ -34,6 +36,9 @@ const CBTQuestionBank = () => {
     questionText: '',
     markingGuide: '',
     attachmentUrl: '',
+    imageSize: 'medium',
+    imageAlignment: 'left',
+    imageCaption: '',
     options: [
       { id: 'a', text: '' },
       { id: 'b', text: '' },
@@ -87,6 +92,13 @@ const CBTQuestionBank = () => {
     subjectId: '',
     classId: ''
   });
+
+  const IMAGE_SIZES = {
+    small: { label: 'S', maxH: 'max-h-[150px]', printMaxH: '150px' },
+    medium: { label: 'M', maxH: 'max-h-[300px]', printMaxH: '300px' },
+    large: { label: 'L', maxH: 'max-h-[500px]', printMaxH: '500px' },
+    full: { label: 'Full', maxH: 'max-h-none w-full', printMaxH: '100%' }
+  };
 
   useEffect(() => {
     fetchInitialData();
@@ -151,6 +163,9 @@ const CBTQuestionBank = () => {
       questionText: '',
       markingGuide: '',
       attachmentUrl: '',
+      imageSize: 'medium',
+      imageAlignment: 'left',
+      imageCaption: '',
       options: [
         { id: 'a', text: '' },
         { id: 'b', text: '' },
@@ -202,6 +217,9 @@ const CBTQuestionBank = () => {
       questionText: q.questionText || '',
       markingGuide: guide,
       attachmentUrl: q.imageUrl || q.attachmentUrl || '',
+      imageSize: 'medium',
+      imageAlignment: 'left',
+      imageCaption: '',
       options: parsedOptions,
       correctOption: q.correctOption || 'a',
       points: q.points || 1
@@ -349,6 +367,9 @@ const CBTQuestionBank = () => {
             questionText: '',
             markingGuide: '',
             attachmentUrl: '',
+            imageSize: 'medium',
+            imageAlignment: 'left',
+            imageCaption: '',
             options: [
               { id: 'a', text: '' },
               { id: 'b', text: '' },
@@ -388,6 +409,86 @@ const CBTQuestionBank = () => {
     } catch (error) {
       toast.error('Error deleting question');
     }
+  };
+
+  const handleDuplicateQuestion = (q) => {
+    let parsedOptions = [];
+    let guide = '';
+    try {
+      if (typeof q.options === 'string') {
+        const parsed = JSON.parse(q.options);
+        if (Array.isArray(parsed)) parsedOptions = parsed;
+        else if (parsed && typeof parsed === 'object') guide = parsed.markingGuide || '';
+      } else if (Array.isArray(q.options)) {
+        parsedOptions = q.options;
+      } else if (q.options && typeof q.options === 'object') {
+        guide = q.options.markingGuide || '';
+      }
+    } catch (e) { parsedOptions = []; }
+
+    if (!Array.isArray(parsedOptions) || parsedOptions.length === 0) {
+      parsedOptions = [
+        { id: 'a', text: '' }, { id: 'b', text: '' },
+        { id: 'c', text: '' }, { id: 'd', text: '' }
+      ];
+    }
+
+    let cleanText = q.questionText || '';
+    cleanText = cleanText.replace(/!\[Diagram\]\((.*?)\)/g, '').trim();
+
+    setEditingQuestion(null);
+    setSessionAddedCount(0);
+    setValidationError('');
+    setQuestionForm({
+      subjectId: q.subjectId ? String(q.subjectId) : '',
+      classId: q.classId ? String(q.classId) : '',
+      questionType: q.questionType || 'multiple_choice',
+      questionText: cleanText,
+      markingGuide: guide,
+      attachmentUrl: '',
+      imageSize: 'medium',
+      imageAlignment: 'left',
+      imageCaption: '',
+      options: parsedOptions,
+      correctOption: q.correctOption || 'a',
+      points: q.points || 1
+    });
+    setActiveField('questionText');
+    setShowModal(true);
+    toast.success('Question duplicated! Edit and save as a new entry.');
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedQuestionIds.size === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedQuestionIds.size} selected question(s)? This cannot be undone.`)) return;
+    
+    let deleted = 0;
+    for (const id of selectedQuestionIds) {
+      try {
+        const response = await api.delete(`/api/cbt/bank/${id}`);
+        if (response.ok) deleted++;
+      } catch (e) {}
+    }
+    toast.success(`${deleted} question(s) deleted`);
+    setSelectedQuestionIds(new Set());
+    fetchQuestions();
+  };
+
+  const toggleSelectQuestion = (id) => {
+    setSelectedQuestionIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (questionIds) => {
+    setSelectedQuestionIds(prev => {
+      const allSelected = questionIds.every(id => prev.has(id));
+      if (allSelected) return new Set();
+      return new Set(questionIds);
+    });
   };
 
   const handleSubjectDelete = async (subjectId, subjectName) => {
@@ -563,7 +664,7 @@ const CBTQuestionBank = () => {
           <h1 className="text-2xl font-bold text-gray-800">CBT & Theory Question Bank</h1>
           <p className="text-sm text-gray-500">Centralized repository for CBT multiple choice & paper exam theory questions</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 overflow-x-auto pb-1">
           <button
             onClick={() => openAddModal('multiple_choice')}
             className="px-4 py-2 bg-primary text-white rounded-md hover:brightness-90 transition text-sm font-medium flex items-center gap-2 shadow-sm"
@@ -783,156 +884,236 @@ const CBTQuestionBank = () => {
 
                   {/* Questions Table */}
                   {isSubjectExpanded && (
-                    <div className="overflow-x-auto bg-white border-t border-gray-200">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50 border-b border-gray-100">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Type</th>
-                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Question</th>
-                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Correct / Guide</th>
-                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Points</th>
-                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Teacher</th>
-                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {subjectQuestions.map((q) => {
-                            const isExpanded = expandedIds.has(q.id);
-                            const isEssay = q.questionType === 'essay';
-                            let options = [];
-                            let guide = '';
-                            try {
-                              if (typeof q.options === 'string') {
-                                const parsed = JSON.parse(q.options);
-                                if (Array.isArray(parsed)) options = parsed;
-                                else if (parsed && typeof parsed === 'object') guide = parsed.markingGuide || '';
-                              } else if (Array.isArray(q.options)) {
-                                options = q.options;
-                              }
-                            } catch (e) {}
+                    <div className="bg-white border-t border-gray-200">
+                      {/* Desktop Table - hidden on mobile */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                              <th className="px-3 py-3 text-center w-10">
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 text-primary rounded border-gray-300 cursor-pointer"
+                                  checked={subjectQuestions.length > 0 && subjectQuestions.every(q => selectedQuestionIds.has(q.id))}
+                                  onChange={() => toggleSelectAll(subjectQuestions.map(q => q.id))}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </th>
+                              <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Type</th>
+                              <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Question</th>
+                              <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Correct / Guide</th>
+                              <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Points</th>
+                              <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Teacher</th>
+                              <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {subjectQuestions.map((q) => {
+                              const isExpanded = expandedIds.has(q.id);
+                              const isEssay = q.questionType === 'essay';
+                              let options = [];
+                              let guide = '';
+                              try {
+                                if (typeof q.options === 'string') {
+                                  const parsed = JSON.parse(q.options);
+                                  if (Array.isArray(parsed)) options = parsed;
+                                  else if (parsed && typeof parsed === 'object') guide = parsed.markingGuide || '';
+                                } else if (Array.isArray(q.options)) {
+                                  options = q.options;
+                                }
+                              } catch (e) {}
 
-                            let cleanQuestionText = q.questionText || '';
-                            let diagramMatch = cleanQuestionText.match(/!\[Diagram\]\((.*?)\)/);
-                            let diagramUrl = diagramMatch ? diagramMatch[1] : (q.imageUrl || q.attachmentUrl || null);
-                            cleanQuestionText = cleanQuestionText.replace(/!\[Diagram\]\((.*?)\)/g, '').trim();
+                              let cleanQuestionText = q.questionText || '';
+                              let diagramMatch = cleanQuestionText.match(/!\[Diagram\]\((.*?)\)/);
+                              let diagramUrl = diagramMatch ? diagramMatch[1] : (q.imageUrl || q.attachmentUrl || null);
+                              cleanQuestionText = cleanQuestionText.replace(/!\[Diagram\]\((.*?)\)/g, '').trim();
 
-                            return (
-                              <React.Fragment key={q.id}>
-                                <tr
-                                  className={`hover:bg-gray-50 transition-colors cursor-pointer ${isExpanded ? 'bg-blue-50/30' : ''}`}
-                                  onClick={() => toggleExpand(q.id)}
-                                >
-                                  <td className="px-6 py-4 whitespace-nowrap text-xs">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                      isEssay ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-indigo-100 text-indigo-700'
-                                    }`}>
-                                      {isEssay ? 'Essay / Paper' : 'CBT'}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <div className="flex items-start gap-3 min-w-[200px]">
-                                      <div className="mt-0.5 text-gray-400">
-                                        {isExpanded ? <ChevronUp size={18} className="text-primary" /> : <ChevronDown size={18} />}
-                                      </div>
-                                      <div>
-                                        <div className={`text-sm font-medium text-gray-900 ${isExpanded ? '' : 'line-clamp-2'} max-w-md`}>
-                                          {cleanQuestionText}
-                                        </div>
-                                        {diagramUrl && (
-                                          <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 bg-indigo-50 font-bold px-1.5 py-0.5 rounded mt-1">
-                                            <ImageIcon size={11} /> Has Diagram / Image
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                                    {isEssay ? (
-                                      <span className="text-xs font-semibold text-purple-600 italic">Theory Paper</span>
-                                    ) : (
-                                      <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-bold uppercase">
-                                        {q.correctOption}
+                              return (
+                                <React.Fragment key={q.id}>
+                                  <tr
+                                    className={`hover:bg-gray-50 transition-colors cursor-pointer ${isExpanded ? 'bg-blue-50/30' : ''}`}
+                                    onClick={() => toggleExpand(q.id)}
+                                  >
+                                    <td className="px-3 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                                      <input
+                                        type="checkbox"
+                                        className="w-4 h-4 text-primary rounded border-gray-300 cursor-pointer"
+                                        checked={selectedQuestionIds.has(q.id)}
+                                        onChange={() => toggleSelectQuestion(q.id)}
+                                      />
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-xs">
+                                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                        isEssay ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-indigo-100 text-indigo-700'
+                                      }`}>
+                                        {isEssay ? 'Essay / Paper' : 'CBT'}
                                       </span>
-                                    )}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center font-bold">
-                                    {q.points}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 italic">
-                                    {q.teacher?.firstName} {q.teacher?.lastName}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                                      <button
-                                        onClick={() => openEditModal(q)}
-                                        className="text-blue-600 hover:text-blue-800 bg-blue-50 p-2 rounded-full transition-colors"
-                                        title="Edit Question"
-                                      >
-                                        <Edit2 size={16} />
-                                      </button>
-                                      <button
-                                        onClick={() => handleDelete(q.id)}
-                                        className="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-full transition-colors"
-                                        title="Delete Question"
-                                      >
-                                        <Trash2 size={16} />
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                                {isExpanded && (
-                                  <tr className="bg-blue-50/30">
-                                    <td colSpan="6" className="px-6 pb-6 pt-0">
-                                      <div className="ml-8 border-l-2 border-blue-200 pl-4 py-2 space-y-3">
-                                        {diagramUrl && (
-                                          <div>
-                                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Attached Diagram / Figure</p>
-                                            <img src={diagramUrl} alt="Diagram" className="max-h-48 rounded border border-gray-200 p-1 bg-white" />
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <div className="flex items-start gap-3 min-w-[200px]">
+                                        <div className="mt-0.5 text-gray-400">
+                                          {isExpanded ? <ChevronUp size={18} className="text-primary" /> : <ChevronDown size={18} />}
+                                        </div>
+                                        <div>
+                                          <div className={`text-sm font-medium text-gray-900 ${isExpanded ? '' : 'line-clamp-2'} max-w-md`}>
+                                            {cleanQuestionText}
                                           </div>
-                                        )}
-
-                                        {isEssay ? (
-                                          <div>
-                                            <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-1">Marking Scheme / Model Answer</p>
-                                            <div className="p-3 bg-purple-50 rounded border border-purple-100 text-sm text-purple-900 italic">
-                                              {guide || 'No marking scheme specified.'}
-                                            </div>
-                                          </div>
-                                        ) : (
-                                          <div>
-                                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Options</p>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                              {options.map(opt => (
-                                                <div
-                                                  key={opt.id}
-                                                  className={`flex items-start gap-2 p-3 rounded border ${q.correctOption === opt.id
-                                                    ? 'bg-green-50 border-green-200 ring-1 ring-green-100'
-                                                    : 'bg-white border-gray-100'
-                                                    }`}
-                                                >
-                                                  <span className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${q.correctOption === opt.id
-                                                    ? 'bg-green-600 text-white'
-                                                    : 'bg-gray-100 text-gray-500'
-                                                    }`}>
-                                                    {opt.id?.toUpperCase()}
-                                                  </span>
-                                                  <span className={`text-sm ${q.correctOption === opt.id ? 'text-green-800 font-medium' : 'text-gray-600'}`}>
-                                                    {opt.text}
-                                                  </span>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )}
+                                          {diagramUrl && (
+                                            <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 bg-indigo-50 font-bold px-1.5 py-0.5 rounded mt-1">
+                                              <ImageIcon size={11} /> Has Diagram / Image
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                      {isEssay ? (
+                                        <span className="text-xs font-semibold text-purple-600 italic">Theory Paper</span>
+                                      ) : (
+                                        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-bold uppercase">
+                                          {q.correctOption}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center font-bold">
+                                      {q.points}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 italic">
+                                      {q.teacher?.firstName} {q.teacher?.lastName}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                        <button
+                                          onClick={() => openEditModal(q)}
+                                          className="text-blue-600 hover:text-blue-800 bg-blue-50 p-2 rounded-full transition-colors"
+                                          title="Edit Question"
+                                        >
+                                          <Edit2 size={16} />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDuplicateQuestion(q)}
+                                          className="text-amber-600 hover:text-amber-800 bg-amber-50 p-2 rounded-full transition-colors"
+                                          title="Duplicate Question"
+                                        >
+                                          <Copy size={16} />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDelete(q.id)}
+                                          className="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-full transition-colors"
+                                          title="Delete Question"
+                                        >
+                                          <Trash2 size={16} />
+                                        </button>
                                       </div>
                                     </td>
                                   </tr>
-                                )}
-                              </React.Fragment>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                                  {isExpanded && (
+                                    <tr className="bg-blue-50/30">
+                                      <td colSpan="7" className="px-6 pb-6 pt-0">
+                                        <div className="ml-8 border-l-2 border-blue-200 pl-4 py-2 space-y-3">
+                                          {diagramUrl && (
+                                            <div>
+                                              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Attached Diagram / Figure</p>
+                                              <img
+                                                src={diagramUrl}
+                                                alt="Diagram"
+                                                className="max-h-48 rounded border border-gray-200 p-1 bg-white cursor-pointer hover:shadow-lg transition-shadow"
+                                                onClick={(e) => { e.stopPropagation(); setLightboxUrl(diagramUrl); }}
+                                                title="Click to zoom"
+                                              />
+                                            </div>
+                                          )}
+
+                                          {isEssay ? (
+                                            <div>
+                                              <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-1">Marking Scheme / Model Answer</p>
+                                              <div className="p-3 bg-purple-50 rounded border border-purple-100 text-sm text-purple-900 italic">
+                                                {guide || 'No marking scheme specified.'}
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <div>
+                                              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Options</p>
+                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {options.map(opt => (
+                                                  <div
+                                                    key={opt.id}
+                                                    className={`flex items-start gap-2 p-3 rounded border ${q.correctOption === opt.id
+                                                      ? 'bg-green-50 border-green-200 ring-1 ring-green-100'
+                                                      : 'bg-white border-gray-100'
+                                                      }`}
+                                                  >
+                                                    <span className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${q.correctOption === opt.id
+                                                      ? 'bg-green-600 text-white'
+                                                      : 'bg-gray-100 text-gray-500'
+                                                      }`}>
+                                                      {opt.id?.toUpperCase()}
+                                                    </span>
+                                                    <span className={`text-sm ${q.correctOption === opt.id ? 'text-green-800 font-medium' : 'text-gray-600'}`}>
+                                                      {opt.text}
+                                                    </span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )}
+                                </React.Fragment>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Mobile Card Grid - shown only on mobile */}
+                      <div className="md:hidden p-3 space-y-3">
+                        {subjectQuestions.map((q) => {
+                          const isEssay = q.questionType === 'essay';
+                          let cleanQuestionText = q.questionText || '';
+                          cleanQuestionText = cleanQuestionText.replace(/!\[Diagram\]\((.*?)\)/g, '').trim();
+
+                          return (
+                            <div key={q.id} className="bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-start gap-2 flex-1 min-w-0">
+                                  <input
+                                    type="checkbox"
+                                    className="w-4 h-4 text-primary rounded border-gray-300 mt-1 flex-shrink-0"
+                                    checked={selectedQuestionIds.has(q.id)}
+                                    onChange={() => toggleSelectQuestion(q.id)}
+                                  />
+                                  <div className="min-w-0">
+                                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mb-1.5 ${
+                                      isEssay ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-indigo-100 text-indigo-700'
+                                    }`}>
+                                      {isEssay ? 'Essay' : 'CBT'}
+                                    </span>
+                                    <p className="text-sm font-medium text-gray-900 line-clamp-3">{cleanQuestionText}</p>
+                                  </div>
+                                </div>
+                                <span className="text-xs font-bold text-gray-500 bg-white px-2 py-1 rounded border flex-shrink-0">{q.points} pts</span>
+                              </div>
+                              <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                                <span className="text-[11px] text-gray-500 italic">{q.teacher?.firstName} {q.teacher?.lastName}</span>
+                                <div className="flex items-center gap-1">
+                                  <button onClick={() => openEditModal(q)} className="text-blue-600 bg-blue-50 p-2 rounded-full" title="Edit">
+                                    <Edit2 size={14} />
+                                  </button>
+                                  <button onClick={() => handleDuplicateQuestion(q)} className="text-amber-600 bg-amber-50 p-2 rounded-full" title="Duplicate">
+                                    <Copy size={14} />
+                                  </button>
+                                  <button onClick={() => handleDelete(q.id)} className="text-red-500 bg-red-50 p-2 rounded-full" title="Delete">
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -942,10 +1123,34 @@ const CBTQuestionBank = () => {
         </div>
       </div>
 
+      {/* Bulk Selection Action Bar */}
+      {selectedQuestionIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] bg-gray-900 text-white rounded-2xl shadow-2xl px-6 py-3 flex items-center gap-4 animate-in slide-in-from-bottom duration-200">
+          <div className="flex items-center gap-2">
+            <Check size={16} className="text-green-400" />
+            <span className="text-sm font-bold">{selectedQuestionIds.size} selected</span>
+          </div>
+          <div className="w-px h-6 bg-gray-700" />
+          <button
+            onClick={handleBulkDelete}
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-red-500/20 text-red-300 hover:bg-red-500/30 hover:text-red-200 rounded-lg transition text-xs font-bold"
+          >
+            <Trash2 size={14} />
+            Delete Selected
+          </button>
+          <button
+            onClick={() => setSelectedQuestionIds(new Set())}
+            className="px-3 py-1.5 text-gray-400 hover:text-white transition text-xs font-medium"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {/* Live Add / Edit Question Modal */}
       {showModal && createPortal(
-        <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-4 sm:p-6 space-y-4 relative max-h-[92vh] overflow-y-auto border border-gray-100 animate-in fade-in zoom-in duration-150 my-auto">
+        <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-0 sm:p-6">
+          <div className="bg-white sm:rounded-2xl shadow-2xl max-w-2xl w-full p-4 sm:p-6 space-y-4 relative h-full sm:h-auto sm:max-h-[92vh] overflow-y-auto border-0 sm:border border-gray-100 animate-in fade-in zoom-in duration-150 sm:my-auto">
             
             {/* Modal Header */}
             <div className="flex justify-between items-center pb-3 border-b border-gray-100">
@@ -1062,7 +1267,7 @@ const CBTQuestionBank = () => {
               </div>
 
               {/* File / Diagram Attachment Upload */}
-              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 space-y-2">
+              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
                     <ImageIcon size={14} className="text-indigo-600" /> Diagram / Image Attachment (Optional)
@@ -1070,7 +1275,7 @@ const CBTQuestionBank = () => {
                   {questionForm.attachmentUrl && (
                     <button
                       type="button"
-                      onClick={() => setQuestionForm({ ...questionForm, attachmentUrl: '' })}
+                      onClick={() => setQuestionForm({ ...questionForm, attachmentUrl: '', imageCaption: '' })}
                       className="text-xs text-red-500 font-semibold hover:underline"
                     >
                       Remove Diagram
@@ -1079,14 +1284,79 @@ const CBTQuestionBank = () => {
                 </div>
 
                 {questionForm.attachmentUrl ? (
-                  <div className="flex items-center gap-3 bg-white p-2 rounded border border-gray-200">
-                    <img src={questionForm.attachmentUrl} alt="Attachment" className="h-12 w-12 object-cover rounded border" />
-                    <span className="text-xs text-gray-600 font-mono truncate flex-1">{questionForm.attachmentUrl}</span>
-                    <CheckCircle size={16} className="text-green-600 flex-shrink-0" />
+                  <div className="space-y-3">
+                    {/* Image Preview */}
+                    <div className={`${questionForm.imageAlignment === 'center' ? 'flex justify-center' : questionForm.imageAlignment === 'right' ? 'flex justify-end' : ''}`}>
+                      <img
+                        src={questionForm.attachmentUrl}
+                        alt="Attachment Preview"
+                        className={`rounded-lg border border-gray-200 p-1 bg-white cursor-pointer hover:shadow-lg transition-shadow ${IMAGE_SIZES[questionForm.imageSize]?.maxH || 'max-h-[300px]'} object-contain`}
+                        onClick={() => setLightboxUrl(questionForm.attachmentUrl)}
+                        title="Click to zoom"
+                      />
+                    </div>
+
+                    {/* Size Selector */}
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase mr-1">Size:</span>
+                        {Object.entries(IMAGE_SIZES).map(([key, val]) => (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => setQuestionForm({ ...questionForm, imageSize: key })}
+                            className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${
+                              questionForm.imageSize === key
+                                ? 'bg-indigo-600 text-white shadow-sm'
+                                : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-100'
+                            }`}
+                          >
+                            {val.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase mr-1">Align:</span>
+                        {[{ key: 'left', Icon: AlignLeft }, { key: 'center', Icon: AlignCenter }, { key: 'right', Icon: AlignRight }].map(({ key, Icon }) => (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => setQuestionForm({ ...questionForm, imageAlignment: key })}
+                            className={`p-1 rounded transition-all ${
+                              questionForm.imageAlignment === key
+                                ? 'bg-indigo-600 text-white shadow-sm'
+                                : 'bg-white text-gray-400 border border-gray-200 hover:bg-gray-100'
+                            }`}
+                          >
+                            <Icon size={12} />
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setLightboxUrl(questionForm.attachmentUrl)}
+                        className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 rounded hover:bg-indigo-100 transition"
+                      >
+                        <ZoomIn size={11} /> Preview Full
+                      </button>
+                    </div>
+
+                    {/* Caption */}
+                    <input
+                      type="text"
+                      placeholder="Figure caption (e.g., Figure 1.1: Photosynthesis Cycle)..."
+                      className="w-full rounded-md border-gray-300 shadow-sm text-xs focus:ring-indigo-500 focus:border-indigo-500 px-3 py-1.5 bg-white"
+                      value={questionForm.imageCaption}
+                      onChange={(e) => setQuestionForm({ ...questionForm, imageCaption: e.target.value })}
+                    />
                   </div>
                 ) : (
-                  <label className="flex justify-center items-center px-4 py-2 border border-gray-300 border-dashed rounded-md text-xs font-medium text-gray-600 bg-white hover:bg-gray-100 cursor-pointer transition gap-2">
-                    {uploadingAttachment ? 'Uploading Diagram...' : '📷 Click to upload diagram image (PNG, JPG)'}
+                  <label className="flex justify-center items-center px-4 py-3 border border-gray-300 border-dashed rounded-lg text-xs font-medium text-gray-600 bg-white hover:bg-gray-50 hover:border-indigo-300 cursor-pointer transition-all gap-2">
+                    {uploadingAttachment ? (
+                      <span className="flex items-center gap-2"><svg className="animate-spin h-4 w-4 text-indigo-500" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Uploading...</span>
+                    ) : (
+                      <><ImageIcon size={16} className="text-indigo-400" /> Click to upload diagram image (PNG, JPG)</>  
+                    )}
                     <input type="file" className="hidden" accept="image/*" onChange={handleAttachmentUpload} disabled={uploadingAttachment} />
                   </label>
                 )}
@@ -1190,6 +1460,29 @@ const CBTQuestionBank = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Image Lightbox */}
+      {lightboxUrl && createPortal(
+        <div
+          className="fixed inset-0 z-[10000] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer animate-in fade-in duration-150"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={lightboxUrl}
+              alt="Full size preview"
+              className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
+            />
+            <button
+              onClick={() => setLightboxUrl(null)}
+              className="absolute -top-3 -right-3 w-8 h-8 bg-white text-gray-800 rounded-full shadow-lg flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition"
+            >
+              <X size={16} />
+            </button>
           </div>
         </div>,
         document.body
