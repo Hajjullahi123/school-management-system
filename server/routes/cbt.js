@@ -11,6 +11,56 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 
+// Public Verification Endpoint for Scanned QR Code Result Card
+router.get('/verify-result/:id', async (req, res) => {
+  try {
+    const resultId = parseInt(req.params.id);
+    const result = await prisma.cBTResult.findUnique({
+      where: { id: resultId },
+      include: {
+        CBTExam: {
+          include: {
+            Class: true,
+            Subject: true,
+            Term: true,
+            AcademicSession: true
+          }
+        },
+        Student: {
+          include: {
+            user: { select: { firstName: true, lastName: true } }
+          }
+        },
+        School: { select: { name: true, logoUrl: true } }
+      }
+    });
+
+    if (!result) {
+      return res.status(404).json({ valid: false, error: 'Result record not found' });
+    }
+
+    res.json({
+      valid: true,
+      resultId: result.id,
+      schoolName: result.School?.name || 'School System',
+      studentName: result.Student?.user ? `${result.Student.user.firstName} ${result.Student.user.lastName}` : result.Student?.name,
+      admissionNumber: result.Student?.admissionNumber,
+      examTitle: result.CBTExam?.title,
+      subjectName: result.CBTExam?.Subject?.name,
+      className: result.CBTExam?.Class?.name,
+      termName: result.CBTExam?.Term?.name,
+      academicSession: result.CBTExam?.AcademicSession?.name,
+      score: result.score,
+      totalMarks: result.CBTExam?.totalMarks || 100,
+      totalQuestions: result.totalQuestions,
+      correctAnswers: result.correctAnswers,
+      submittedAt: result.submittedAt
+    });
+  } catch (error) {
+    res.status(500).json({ valid: false, error: error.message });
+  }
+});
+
 // ============ TEACHER ROUTES ============
 
 // Download Bulk Question Template (CSV)

@@ -5,7 +5,28 @@ import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useAuth } from '../../context/AuthContext';
 import useTermContext from '../../hooks/useTermContext';
 import MathToolbar from '../../components/common/MathToolbar';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title as ChartTitle,
+  Tooltip as ChartTooltip,
+  Legend as ChartLegend
+} from 'chart.js';
+import { Bar, Doughnut } from 'react-chartjs-2';
+import { Printer, BarChart2, PieChart, CheckCircle2, ShieldCheck, X } from 'lucide-react';
 
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  ChartTitle,
+  ChartTooltip,
+  ChartLegend
+);
 
 const CBTManagement = () => {
   const [view, setView] = useState('list'); // 'list', 'create', 'questions'
@@ -39,6 +60,7 @@ const CBTManagement = () => {
   const [examResults, setExamResults] = useState([]);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [newQuestion, setNewQuestion] = useState({
     questionText: '',
     questionType: 'multiple_choice',
@@ -537,6 +559,245 @@ const CBTManagement = () => {
     } finally {
       setImporting(false);
     }
+  };
+
+  // Printable Official PDF Transcript Generator (Feature 3)
+  const handlePrintPDFTranscript = (singleResult = null) => {
+    if (!selectedExam) return;
+    const resultsToPrint = singleResult ? [singleResult] : examResults;
+
+    if (resultsToPrint.length === 0) {
+      toast.error('No results available to print.');
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    const schoolName = schoolSettings?.name || 'SCHOOL MANAGEMENT SYSTEM';
+    const schoolAddress = schoolSettings?.address || '';
+    const schoolPhone = schoolSettings?.phone || '';
+    const logoUrl = schoolSettings?.logoUrl || '';
+
+    const getLetterGrade = (percentage) => {
+      if (percentage >= 70) return { grade: 'A', remark: 'EXCELLENT', color: '#16a34a' };
+      if (percentage >= 60) return { grade: 'B', remark: 'VERY GOOD', color: '#2563eb' };
+      if (percentage >= 50) return { grade: 'C', remark: 'CREDIT', color: '#d97706' };
+      if (percentage >= 40) return { grade: 'D', remark: 'PASS', color: '#ca8a04' };
+      return { grade: 'F', remark: 'FAIL', color: '#dc2626' };
+    };
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Official CBT Assessment Transcript - ${selectedExam.title}</title>
+        <style>
+          body { font-family: 'Segoe UI', Arial, sans-serif; padding: 25px; color: #0f172a; line-height: 1.5; background: #fff; }
+          .page { page-break-after: always; max-width: 800px; margin: 0 auto 40px auto; border: 2px solid #1e3a8a; padding: 25px; border-radius: 12px; position: relative; }
+          .page:last-child { page-break-after: avoid; }
+          .header-table { width: 100%; border-bottom: 3px double #1e3a8a; padding-bottom: 15px; margin-bottom: 20px; }
+          .school-title { font-size: 22px; font-weight: 900; color: #1e3a8a; text-transform: uppercase; margin: 0; }
+          .school-sub { font-size: 12px; color: #475569; margin-top: 3px; }
+          .doc-title { text-align: center; background: #1e3a8a; color: #fff; font-weight: 800; font-size: 14px; padding: 8px; text-transform: uppercase; letter-spacing: 1px; border-radius: 6px; margin-bottom: 20px; }
+          .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+          .info-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }
+          .info-box h4 { margin: 0 0 8px 0; font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 800; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; }
+          .info-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+          .info-row span.label { color: #475569; font-weight: 600; }
+          .info-row span.val { font-weight: 700; color: #0f172a; }
+          
+          .score-card { display: flex; align-items: center; justify-content: space-between; background: #eff6ff; border: 2px solid #bfdbfe; border-radius: 10px; padding: 15px 20px; margin-bottom: 20px; }
+          .score-main { text-align: center; }
+          .score-num { font-size: 32px; font-weight: 900; color: #1e3a8a; }
+          .score-denom { font-size: 14px; color: #64748b; font-weight: 600; }
+          .grade-badge { text-align: center; padding: 10px 20px; border-radius: 8px; color: #fff; font-weight: 900; }
+          .grade-letter { font-size: 28px; line-height: 1; }
+          .grade-remark { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+          .stats-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+          .stats-table th, .stats-table td { border: 1px solid #cbd5e1; padding: 10px; text-align: center; font-size: 12px; }
+          .stats-table th { background: #f1f5f9; font-weight: 800; color: #334155; text-transform: uppercase; font-size: 11px; }
+
+          .footer-section { display: flex; justify-content: space-between; align-items: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+          .sig-block { text-align: center; width: 200px; }
+          .sig-line { border-bottom: 1.5px dashed #475569; height: 40px; margin-bottom: 6px; }
+          .sig-label { font-size: 11px; font-weight: 700; color: #334155; text-transform: uppercase; }
+
+          .qr-block { display: flex; align-items: center; gap: 10px; background: #fafafa; border: 1px solid #e5e5e5; padding: 8px 12px; border-radius: 8px; }
+          .qr-img { width: 65px; height: 65px; }
+          .qr-text { font-size: 9px; color: #525252; max-width: 130px; line-height: 1.3; }
+
+          @media print {
+            body { padding: 0; background: #fff; }
+            .page { border: none; padding: 0; margin-bottom: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        ${resultsToPrint.map(r => {
+          const studentName = r.student?.user ? `${r.student.user.firstName} ${r.student.user.lastName}` : (r.student?.name || 'Student');
+          const admNum = r.student?.admissionNumber || 'N/A';
+          const totalQ = r.totalQuestions || 0;
+          const correctQ = r.correctAnswers || 0;
+          
+          let attemptedCount = correctQ;
+          if (r.answers) {
+            try {
+              const parsed = JSON.parse(r.answers);
+              if (parsed && typeof parsed === 'object') {
+                attemptedCount = Object.keys(parsed).filter(k => parsed[k] !== undefined && parsed[k] !== null && parsed[k] !== '').length;
+              }
+            } catch(e) {}
+          } else { attemptedCount = totalQ; }
+
+          const unattemptedQ = Math.max(0, totalQ - attemptedCount);
+          const failedQ = Math.max(0, attemptedCount - correctQ);
+          const pct = selectedExam.totalMarks > 0 ? Math.round((r.score / selectedExam.totalMarks) * 100) : 0;
+          const gradeObj = getLetterGrade(pct);
+
+          let timeTakenStr = 'N/A';
+          if (r.startedAt && r.submittedAt) {
+            const diffSecs = Math.max(0, Math.floor((new Date(r.submittedAt) - new Date(r.startedAt)) / 1000));
+            if (diffSecs > 0) {
+              const m = Math.floor(diffSecs / 60);
+              const s = diffSecs % 60;
+              timeTakenStr = `${m}m ${s < 10 ? '0' : ''}${s}s`;
+            }
+          }
+
+          const subDateStr = r.submittedAt ? new Date(r.submittedAt).toLocaleString() : 'N/A';
+          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/api/cbt/verify-result/${r.id}`)}`;
+
+          return `
+            <div class="page">
+              <table class="header-table">
+                <tr>
+                  ${logoUrl ? `<td style="width: 80px;"><img src="${logoUrl}" style="max-height: 70px; max-width: 70px;" /></td>` : ''}
+                  <td>
+                    <h1 class="school-title">${schoolName}</h1>
+                    <div class="school-sub">${schoolAddress ? schoolAddress + ' • ' : ''}${schoolPhone ? 'Tel: ' + schoolPhone : ''}</div>
+                  </td>
+                </tr>
+              </table>
+
+              <div class="doc-title">OFFICIAL CBT ASSESSMENT RESULT TRANSCRIPT</div>
+
+              <div class="grid-2">
+                <div class="info-box">
+                  <h4>Candidate Information</h4>
+                  <div class="info-row"><span class="label">Full Name:</span> <span class="val">${studentName}</span></div>
+                  <div class="info-row"><span class="label">Admission No:</span> <span class="val">${admNum}</span></div>
+                  <div class="info-row"><span class="label">Class Level:</span> <span class="val">${selectedExam.class?.name || 'N/A'}</span></div>
+                </div>
+                <div class="info-box">
+                  <h4>Assessment Metadata</h4>
+                  <div class="info-row"><span class="label">Exam Title:</span> <span class="val">${selectedExam.title}</span></div>
+                  <div class="info-row"><span class="label">Subject:</span> <span class="val">${selectedExam.subject?.name || 'N/A'}</span></div>
+                  <div class="info-row"><span class="label">Submitted Date:</span> <span class="val">${subDateStr}</span></div>
+                </div>
+              </div>
+
+              <div class="score-card">
+                <div>
+                  <div style="font-size: 11px; font-weight: 800; color: #475569; uppercase">Total Score Obtained</div>
+                  <div class="score-main">
+                    <span class="score-num">${r.score}</span>
+                    <span class="score-denom"> / ${selectedExam.totalMarks} (${pct}%)</span>
+                  </div>
+                </div>
+                <div class="grade-badge" style="background: ${gradeObj.color};">
+                  <div class="grade-letter">${gradeObj.grade}</div>
+                  <div class="grade-remark">${gradeObj.remark}</div>
+                </div>
+              </div>
+
+              <table class="stats-table">
+                <thead>
+                  <tr>
+                    <th>Total Questions</th>
+                    <th>Correct (Passed)</th>
+                    <th>Incorrect (Failed)</th>
+                    <th>Skipped (Unattempted)</th>
+                    <th>Time Taken</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>${totalQ}</b></td>
+                    <td style="color: #16a34a; font-weight: bold;">${correctQ}</td>
+                    <td style="color: #dc2626; font-weight: bold;">${failedQ}</td>
+                    <td style="color: #64748b;">${unattemptedQ}</td>
+                    <td><b>${timeTakenStr}</b></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="footer-section">
+                <div class="qr-block">
+                  <img src="${qrUrl}" class="qr-img" alt="QR Verification" />
+                  <div class="qr-text">
+                    <b>AUTHENTIC DIGITAL TRANSCRIPT</b><br/>
+                    Scan QR code to verify validity on school system portal.<br/>
+                    Ref ID: #${r.id}
+                  </div>
+                </div>
+                <div class="sig-block">
+                  <div class="sig-line"></div>
+                  <div class="sig-label">Examination Officer / Principal</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 500);
+  };
+
+  // Visual Performance Analytics Generators (Feature 4)
+  const getGradeChartData = () => {
+    const counts = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+    examResults.forEach(r => {
+      const pct = selectedExam?.totalMarks > 0 ? (r.score / selectedExam.totalMarks) * 100 : 0;
+      if (pct >= 70) counts.A++;
+      else if (pct >= 60) counts.B++;
+      else if (pct >= 50) counts.C++;
+      else if (pct >= 40) counts.D++;
+      else counts.F++;
+    });
+
+    return {
+      labels: ['Grade A (70%+)', 'Grade B (60-69%)', 'Grade C (50-59%)', 'Grade D (40-49%)', 'Grade F (<40%)'],
+      datasets: [{
+        data: [counts.A, counts.B, counts.C, counts.D, counts.F],
+        backgroundColor: ['#16a34a', '#2563eb', '#d97706', '#ca8a04', '#dc2626'],
+        borderWidth: 1
+      }]
+    };
+  };
+
+  const getHistogramChartData = () => {
+    const bins = { '0-20%': 0, '21-40%': 0, '41-60%': 0, '61-80%': 0, '81-100%': 0 };
+    examResults.forEach(r => {
+      const pct = selectedExam?.totalMarks > 0 ? (r.score / selectedExam.totalMarks) * 100 : 0;
+      if (pct <= 20) bins['0-20%']++;
+      else if (pct <= 40) bins['21-40%']++;
+      else if (pct <= 60) bins['41-60%']++;
+      else if (pct <= 80) bins['61-80%']++;
+      else bins['81-100%']++;
+    });
+
+    return {
+      labels: Object.keys(bins),
+      datasets: [{
+        label: 'Number of Students',
+        data: Object.values(bins),
+        backgroundColor: '#4f46e5',
+        borderRadius: 6
+      }]
+    };
   };
 
   const handleDownloadTemplate = () => {
@@ -1675,88 +1936,144 @@ const CBTManagement = () => {
       {/* VIEW: Results */}
       {view === 'results' && selectedExam && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center bg-blue-50 p-4 rounded-lg">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-blue-50 p-5 rounded-xl border border-blue-200 gap-4">
             <div>
-              <h2 className="text-xl font-bold text-blue-900">{selectedExam.title} - Results</h2>
-              <p className="text-sm text-blue-700">Total Attempts: {examResults.length}</p>
+              <h2 className="text-xl font-bold text-blue-900">{selectedExam.title} - Assessment Results</h2>
+              <p className="text-sm text-blue-700">Subject: {selectedExam.subject?.name} • Class: {selectedExam.class?.name} • Total Attempts: {examResults.length}</p>
             </div>
-            <div className="text-right flex flex-col items-end gap-2">
-              <p className="text-sm text-gray-600">Total Marks: {selectedExam.totalMarks}</p>
+            <div className="flex flex-wrap gap-2 items-center justify-end">
+              <button
+                onClick={() => setShowAnalyticsModal(true)}
+                className="px-3.5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-1.5 text-xs font-bold transition-all shadow-sm"
+              >
+                <BarChart2 size={16} /> Visual Analytics
+              </button>
+              <button
+                onClick={() => handlePrintPDFTranscript(null)}
+                className="px-3.5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-1.5 text-xs font-bold transition-all shadow-sm"
+              >
+                <Printer size={16} /> Print Transcripts (PDF)
+              </button>
               <button
                 onClick={handleDownloadResults}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-2 text-sm font-medium transition-colors shadow-sm"
+                className="px-3.5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1.5 text-xs font-bold transition-all shadow-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                Download Excel (CSV)
+                Export Excel (.xlsx)
               </button>
               <button
                 onClick={handleImportResults}
                 disabled={importing || examResults.length === 0}
-                className={`px-4 py-2 text-white rounded flex items-center gap-2 text-sm font-medium transition-colors shadow-sm ${importing ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:brightness-90'
+                className={`px-3.5 py-2 text-white rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all shadow-sm ${importing ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:brightness-90'
                   }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                {importing ? 'Importing...' : 'Import to Records'}
+                {importing ? 'Importing...' : 'Import Records'}
               </button>
             </div>
           </div>
 
           {resultsLoading ? (
-            <div className="text-center py-10">Loading results...</div>
+            <div className="text-center py-10 text-gray-500">Loading results...</div>
           ) : (
-            <div className="bg-white rounded-lg shadow overflow-x-auto">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
                     <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Student Name</th>
+                    <th className="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Score & %</th>
+                    <th className="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Passed / Failed / Skipped</th>
+                    <th className="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Time Taken</th>
                     <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Submission Date</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Score</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Percentage</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Correct Answers</th>
                     <th className="px-4 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {examResults.map((result) => (
-                    <tr key={result.id}>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {result.student.user.firstName} {result.student.user.lastName}
-                        </div>
-                        <div className="text-xs text-gray-500">{result.student.admissionNumber}</div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(result.submittedAt).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                        {result.score}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${(result.score / selectedExam.totalMarks) >= 0.5 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                          {selectedExam.totalMarks > 0 ? Math.round((result.score / selectedExam.totalMarks) * 100) : 0}%
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {result.correctAnswers} / {result.totalQuestions}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleDeleteResult(result.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {examResults.map((result) => {
+                    const totalQ = result.totalQuestions || 0;
+                    const correctQ = result.correctAnswers || 0;
+
+                    let attemptedCount = correctQ;
+                    if (result.answers) {
+                      try {
+                        const parsed = JSON.parse(result.answers);
+                        if (parsed && typeof parsed === 'object') {
+                          attemptedCount = Object.keys(parsed).filter(k => parsed[k] !== undefined && parsed[k] !== null && parsed[k] !== '').length;
+                        }
+                      } catch(e) {}
+                    } else { attemptedCount = totalQ; }
+
+                    const unattemptedQ = Math.max(0, totalQ - attemptedCount);
+                    const failedQ = Math.max(0, attemptedCount - correctQ);
+
+                    let timeTakenStr = 'N/A';
+                    if (result.startedAt && result.submittedAt) {
+                      const diffSecs = Math.max(0, Math.floor((new Date(result.submittedAt) - new Date(result.startedAt)) / 1000));
+                      if (diffSecs > 0) {
+                        const m = Math.floor(diffSecs / 60);
+                        const s = diffSecs % 60;
+                        timeTakenStr = `${m}m ${s < 10 ? '0' : ''}${s}s`;
+                      }
+                    }
+
+                    const pct = selectedExam.totalMarks > 0 ? Math.round((result.score / selectedExam.totalMarks) * 100) : 0;
+
+                    return (
+                      <tr key={result.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="text-sm font-bold text-gray-900">
+                            {result.student.user.firstName} {result.student.user.lastName}
+                          </div>
+                          <div className="text-xs text-gray-500 font-mono">{result.student.admissionNumber}</div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-center">
+                          <div className="text-sm font-extrabold text-gray-900">{result.score} / {selectedExam.totalMarks}</div>
+                          <span className={`px-2 py-0.5 inline-flex text-[10px] font-bold rounded-full mt-0.5 ${pct >= 50 ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'
+                            }`}>
+                            {pct}%
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-center text-xs">
+                          <span className="font-bold text-green-600" title="Correct">{correctQ} ✓</span>
+                          <span className="text-gray-300 mx-1.5">|</span>
+                          <span className="font-bold text-red-500" title="Incorrect">{failedQ} ✗</span>
+                          <span className="text-gray-300 mx-1.5">|</span>
+                          <span className="text-gray-400 italic" title="Unattempted">{unattemptedQ} skipped</span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-center text-xs font-semibold text-gray-700">
+                          {timeTakenStr}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
+                          {new Date(result.submittedAt).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-right text-xs font-medium">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handlePrintPDFTranscript(result)}
+                              className="text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2.5 py-1 rounded-md transition-colors font-bold flex items-center gap-1"
+                              title="Print Official Result Card PDF"
+                            >
+                              <Printer size={13} /> Transcript
+                            </button>
+                            <button
+                              onClick={() => handleDeleteResult(result.id)}
+                              className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                              title="Delete Result"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {examResults.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="px-6 py-10 text-center text-gray-500">
+                      <td colSpan="6" className="px-6 py-10 text-center text-gray-500">
                         No submissions yet.
                       </td>
                     </tr>
@@ -1765,6 +2082,77 @@ const CBTManagement = () => {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Visual Analytics & Distribution Modal (Feature 4) */}
+      {showAnalyticsModal && selectedExam && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto relative animate-in fade-in zoom-in duration-150">
+            <div className="flex justify-between items-center pb-4 border-b">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <BarChart2 className="text-indigo-600" size={24} /> Performance Analytics & Distribution
+                </h2>
+                <p className="text-xs text-gray-500">{selectedExam.title} • {selectedExam.subject?.name} • Class: {selectedExam.class?.name}</p>
+              </div>
+              <button onClick={() => setShowAnalyticsModal(false)} className="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center">
+                <p className="text-xs font-bold text-blue-600 uppercase">Candidates</p>
+                <p className="text-2xl font-black text-blue-900 mt-1">{examResults.length}</p>
+              </div>
+              <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-center">
+                <p className="text-xs font-bold text-green-600 uppercase">Class Average</p>
+                <p className="text-2xl font-black text-green-900 mt-1">
+                  {examResults.length > 0 ? (examResults.reduce((a, b) => a + b.score, 0) / examResults.length).toFixed(1) : 0}
+                  <span className="text-xs font-semibold text-green-700 ml-1">
+                    ({selectedExam.totalMarks > 0 ? ((examResults.reduce((a, b) => a + b.score, 0) / examResults.length / selectedExam.totalMarks) * 100).toFixed(0) : 0}%)
+                  </span>
+                </p>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl text-center">
+                <p className="text-xs font-bold text-amber-600 uppercase">Highest Score</p>
+                <p className="text-2xl font-black text-amber-900 mt-1">
+                  {examResults.length > 0 ? Math.max(...examResults.map(r => r.score)) : 0}
+                </p>
+              </div>
+              <div className="bg-purple-50 border border-purple-200 p-4 rounded-xl text-center">
+                <p className="text-xs font-bold text-purple-600 uppercase">Pass Rate</p>
+                <p className="text-2xl font-black text-purple-900 mt-1">
+                  {examResults.length > 0 ? Math.round((examResults.filter(r => (selectedExam.totalMarks > 0 ? (r.score / selectedExam.totalMarks) >= 0.5 : r.score >= 50)).length / examResults.length) * 100) : 0}%
+                </p>
+              </div>
+            </div>
+
+            {/* Visual Charts */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Grade Breakdown Doughnut */}
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-2">
+                <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                  <PieChart size={16} className="text-indigo-600" /> Grade Distribution (A-F)
+                </h3>
+                <div className="h-64 flex items-center justify-center">
+                  <Doughnut data={getGradeChartData()} options={{ responsive: true, maintainAspectRatio: false }} />
+                </div>
+              </div>
+
+              {/* Score Ranges Histogram Bar Chart */}
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-2">
+                <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                  <BarChart2 size={16} className="text-indigo-600" /> Score Frequency Bell Curve
+                </h3>
+                <div className="h-64 flex items-center justify-center">
+                  <Bar data={getHistogramChartData()} options={{ responsive: true, maintainAspectRatio: false }} />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
