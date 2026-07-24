@@ -87,6 +87,11 @@ const CBTQuestionBank = () => {
     });
   };
 
+  const expandAllSubjects = () => {
+    const allSubIds = new Set(questions.map(q => String(q.subject?.id || 'unknown')));
+    setExpandedSubjectIds(allSubIds);
+  };
+
   const collapseAll = () => {
     setExpandedIds(new Set());
     setExpandedSubjectIds(new Set());
@@ -1030,7 +1035,7 @@ const CBTQuestionBank = () => {
         <div className="p-4 border-b bg-gray-50 flex flex-wrap gap-4 items-center justify-between">
           <div className="flex flex-wrap gap-3 items-center">
             <select
-              className="rounded-md border-gray-300 text-sm py-1.5 px-3"
+              className="rounded-md border-gray-300 text-sm py-1.5 px-3 font-medium focus:ring-primary focus:border-primary"
               value={filters.subjectId}
               onChange={(e) => setFilters({ ...filters, subjectId: e.target.value })}
             >
@@ -1038,19 +1043,35 @@ const CBTQuestionBank = () => {
               {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
             <select
-              className="rounded-md border-gray-300 text-sm py-1.5 px-3"
+              className="rounded-md border-gray-300 text-sm py-1.5 px-3 font-medium focus:ring-primary focus:border-primary"
               value={filters.classId}
               onChange={(e) => setFilters({ ...filters, classId: e.target.value })}
             >
               <option value="">All Class Levels</option>
               {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
+            {(filters.subjectId || filters.classId) && (
+              <button
+                onClick={() => setFilters({ subjectId: '', classId: '', teacherId: '' })}
+                className="text-xs px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full font-medium flex items-center gap-1.5 hover:bg-amber-100 transition-colors"
+                title="Clear Active Filters"
+              >
+                <span>Filter Active</span>
+                <X size={12} className="font-bold" />
+              </button>
+            )}
           </div>
-          <div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={expandAllSubjects}
+              className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
+            >
+              <ChevronDown size={14} /> Expand All
+            </button>
             {(expandedIds.size > 0 || expandedSubjectIds.size > 0) && (
               <button
                 onClick={collapseAll}
-                className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
+                className="text-xs font-semibold text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors"
               >
                 <ChevronUp size={14} /> Collapse All
               </button>
