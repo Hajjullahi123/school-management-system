@@ -657,24 +657,27 @@ const CBTQuestionBank = () => {
           .header h1 { margin: 0; font-size: 24px; text-transform: uppercase; color: #1e1b4b; font-weight: 800; }
           .header h2 { margin: 6px 0 0 0; font-size: 16px; color: #475569; font-weight: 600; }
           .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 20px; font-weight: 600; margin-bottom: 20px; font-size: 13px; border: 1px solid #e2e8f0; padding: 12px 16px; border-radius: 8px; background: #f8fafc; }
+          .meta-item span[contenteditable="true"] { outline: none; border-bottom: 1px dotted #94a3b8; padding: 0 4px; color: #0f172a; }
           .question { margin-bottom: 25px; page-break-inside: avoid; border-bottom: 1px dashed #f1f5f9; padding-bottom: 15px; }
           .q-num { font-weight: bold; color: #1e1b4b; }
           .q-text { font-size: 15px; font-weight: 600; margin-bottom: 8px; color: #1e293b; }
           .q-points { float: right; font-style: italic; color: #64748b; font-size: 13px; font-weight: bold; }
           .diagram { margin: 10px 0; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px; object-fit: contain; }
           .answer-space { height: 100px; border-bottom: 1px dotted #cbd5e1; margin-top: 15px; }
+          [contenteditable="true"]:hover { background-color: #f1f5f9; cursor: pointer; }
           @media print {
             .no-print { display: none !important; }
             body { padding: 0 !important; margin: 0 !important; }
             .meta-grid { border: 1px solid #333 !important; background: transparent !important; }
             .answer-space { height: 120px; }
+            [contenteditable="true"] { border: none !important; background: transparent !important; }
           }
         </style>
       </head>
       <body>
         <div class="no-print">
           <div style="font-size: 13px;">
-            📄 <strong>Theory Paper Preview</strong> — Ready to print or save as PDF using your browser's print dialog.
+            ✏️ <strong>Interactive Print Preview:</strong> Click any text below to edit before printing.
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
             <button onclick="window.print()">🖨️ Print</button>
@@ -685,21 +688,21 @@ const CBTQuestionBank = () => {
 
         <div class="header">
           ${logoUrl ? `<img src="${logoUrl}" class="school-logo" alt="School Logo" />` : ''}
-          <h1>${schoolName}</h1>
-          <h2>${subjectName} - Written Theory / Essay Examination</h2>
+          <h1 contenteditable="true" title="Click to edit school name">${schoolName}</h1>
+          <h2 contenteditable="true" title="Click to edit paper title">${subjectName} - Written Theory / Essay Examination</h2>
         </div>
 
         <div class="meta-grid">
-          <div class="meta-item">Subject: <strong>${subjectName}</strong></div>
-          <div class="meta-item">Class: <strong>${className}</strong></div>
-          <div class="meta-item">Term: <strong>${termName}</strong></div>
-          <div class="meta-item">Academic Session: <strong>${sessionName}</strong></div>
-          <div class="meta-item">Time Allowed: <strong>${timeAllowed}</strong></div>
-          <div class="meta-item">Student Name: __________________________</div>
+          <div class="meta-item">Subject: <span contenteditable="true" title="Click to edit subject">${subjectName}</span></div>
+          <div class="meta-item">Class: <span contenteditable="true" title="Click to edit class">${className}</span></div>
+          <div class="meta-item">Term: <span contenteditable="true" title="Click to edit term">${termName}</span></div>
+          <div class="meta-item">Academic Session: <span contenteditable="true" title="Click to edit session">${sessionName}</span></div>
+          <div class="meta-item">Time Allowed: <span contenteditable="true" title="Click to edit duration">${timeAllowed}</span></div>
+          <div class="meta-item">Student Name: <span contenteditable="true" title="Click to edit">__________________________</span></div>
         </div>
 
         <p style="font-weight: bold; font-size: 13px; font-style: italic; color: #334155; margin-bottom: 15px;">
-          Instruction: Answer all questions clearly in the space provided. Show all step-by-step working where applicable.
+          Instruction: <span contenteditable="true">Answer all questions clearly in the space provided. Show all step-by-step working where applicable.</span>
         </p>
         <hr style="margin-bottom: 20px; border: 0; border-top: 2px solid #e2e8f0;" />
 
