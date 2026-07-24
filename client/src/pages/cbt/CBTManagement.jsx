@@ -475,7 +475,11 @@ const CBTManagement = () => {
               <div style="font-size: 13px;">
                 ✏️ <strong>Interactive Print Preview:</strong> Click any header text (Class, Subject, Term, Session, Time) below to edit before printing.
               </div>
-              <button onclick="window.print()">🖨️ Print Question Paper</button>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <button onclick="window.print()">🖨️ Print</button>
+                <button onclick="downloadAsPDF()" style="background: #dc2626;">📄 Download PDF</button>
+                <button onclick="downloadAsWord()" style="background: #2563eb;">📝 Download Word</button>
+              </div>
             </div>
 
             <div class="header">
@@ -507,6 +511,29 @@ const CBTManagement = () => {
               `;
               }).join('')}
             </div>
+          <script>
+            function downloadAsPDF() {
+              var noPrint = document.querySelector('.no-print');
+              if (noPrint) noPrint.style.display = 'none';
+              window.print();
+              if (noPrint) noPrint.style.display = '';
+            }
+
+            function downloadAsWord() {
+              var noPrint = document.querySelector('.no-print');
+              if (noPrint) noPrint.style.display = 'none';
+              var content = document.documentElement.outerHTML;
+              if (noPrint) noPrint.style.display = '';
+              var blob = new Blob(['\\ufeff' + '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' + content + '</html>'], { type: 'application/msword' });
+              var url = URL.createObjectURL(blob);
+              var a = document.createElement('a');
+              a.href = url;
+              a.download = '${exam.title || 'Exam'}_Paper.doc';
+              document.body.appendChild(a);
+              a.click();
+              setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+            }
+          </script>
           </body>
         </html>
       `);

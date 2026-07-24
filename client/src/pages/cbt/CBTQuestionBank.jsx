@@ -5,9 +5,11 @@ import { toast } from '../../utils/toast';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useAuth } from '../../context/AuthContext';
 import useTermContext from '../../hooks/useTermContext';
-import { ChevronDown, ChevronUp, Trash2, Plus, Edit2, X, Printer, Image as ImageIcon, Paperclip, FileText, CheckCircle, Copy, ZoomIn, AlignLeft, AlignCenter, AlignRight, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, Plus, Edit2, X, Printer, Image as ImageIcon, Paperclip, FileText, CheckCircle, Copy, ZoomIn, AlignLeft, AlignCenter, AlignRight, Check, Download } from 'lucide-react';
 import MathToolbar from '../../components/common/MathToolbar';
 import { parseQuestionContent, IMAGE_SIZE_CLASSES } from '../../utils/cbtUtils';
+import { jsPDF } from 'jspdf';
+import { saveAs } from 'file-saver';
 
 const CBTQuestionBank = () => {
   const [questions, setQuestions] = useState([]);
@@ -635,7 +637,11 @@ const CBTQuestionBank = () => {
           <div style="font-size: 13px;">
             ✏️ <strong>Interactive Print Preview:</strong> Click any header text (Class, Subject, Term, Session, Time) below to edit before printing.
           </div>
-          <button onclick="window.print()">🖨️ Print Question Paper</button>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button onclick="window.print()">🖨️ Print</button>
+            <button onclick="downloadAsPDF()" style="background: #dc2626;">📄 Download PDF</button>
+            <button onclick="downloadAsWord()" style="background: #2563eb;">📝 Download Word</button>
+          </div>
         </div>
 
         <div class="header">
@@ -670,11 +676,175 @@ const CBTQuestionBank = () => {
             </div>
           `;
         }).join('')}
+      <script>
+        function getDocContent() {
+          var noPrint = document.querySelector('.no-print');
+          if (noPrint) noPrint.style.display = 'none';
+          var content = document.documentElement.outerHTML;
+          if (noPrint) noPrint.style.display = '';
+          return content;
+        }
+
+        function downloadAsPDF() {
+          var noPrint = document.querySelector('.no-print');
+          if (noPrint) noPrint.style.display = 'none';
+          window.print();
+          if (noPrint) noPrint.style.display = '';
+        }
+
+        function downloadAsWord() {
+          var noPrint = document.querySelector('.no-print');
+          if (noPrint) noPrint.style.display = 'none';
+          var content = document.documentElement.outerHTML;
+          if (noPrint) noPrint.style.display = '';
+          var blob = new Blob(['\\ufeff' + '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' + content + '</html>'], { type: 'application/msword' });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = '${subjectName}_Theory_Paper.doc';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+        }
+      </script>
       </body>
       </html>
     `);
     printWindow.document.close();
     printWindow.focus();
+  };
+
+  // Generate theory paper HTML content for downloads
+  const generateTheoryPaperHTML = () => {
+    const essayQuestions = questions.filter(q => q.questionType === 'essay');
+    if (essayQuestions.length === 0) {
+      toast.error('No Essay / Theory questions available. Add essay questions first.');
+      return null;
+    }
+
+    const subjectName = subjects.find(s => String(s.id) === String(filters.subjectId))?.name || 'General Subject';
+    const className = classes.find(c => String(c.id) === String(filters.classId))?.name || 'All Classes';
+    const termName = currentTerm?.name || 'Third Term';
+    const sessionName = currentSession?.name || '2025/2026 Academic Session';
+    const schoolName = schoolSettings?.schoolName || schoolSettings?.name || 'SCHOOL MANAGEMENT SYSTEM';
+
+    const questionsHTML = essayQuestions.map((q, idx) => {
+      const { cleanText, diagramUrl, imageSize } = parseQuestionContent(q.questionText, q.imageUrl || q.attachmentUrl);
+      const maxHStyle = IMAGE_SIZE_CLASSES[imageSize]?.printMaxH ? `max-height: ${IMAGE_SIZE_CLASSES[imageSize].printMaxH};` : 'max-height: 250px;';
+      return `
+        <div style="margin-bottom: 25px; page-break-inside: avoid; border-bottom: 1px dashed #f1f5f9; padding-bottom: 15px;">
+          <span style="float: right; font-style: italic; color: #64748b; font-size: 13px; font-weight: bold;">[${q.points || 1} Marks]</span>
+          <div style="font-size: 15px; font-weight: 600; margin-bottom: 8px; color: #1e293b;">
+            <span style="font-weight: bold; color: #1e1b4b;">Q${idx + 1}.</span> ${cleanText}
+          </div>
+          ${diagramUrl ? `<img src="${diagramUrl}" style="margin: 10px 0; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px; object-fit: contain; ${maxHStyle}" alt="Question Diagram" />` : ''}
+          <div style="height: 100px; border-bottom: 1px dotted #cbd5e1; margin-top: 15px;"></div>
+        </div>
+      `;
+    }).join('');
+
+    return {
+      html: `
+        <div style="text-align: center; border-bottom: 2px solid #1e1b4b; padding-bottom: 15px; margin-bottom: 25px;">
+          <h1 style="margin: 0; font-size: 24px; text-transform: uppercase; color: #1e1b4b; font-weight: 800;">${schoolName}</h1>
+          <h2 style="margin: 6px 0 0 0; font-size: 16px; color: #475569; font-weight: 600;">${subjectName} - Written Theory / Essay Examination</h2>
+        </div>
+        <table style="width: 100%; font-weight: 600; margin-bottom: 20px; font-size: 13px; border: 1px solid #e2e8f0; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Subject: ${subjectName}</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Class: ${className}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Term: ${termName}</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Academic Session: ${sessionName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Time Allowed: 1 Hour 30 Minutes</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Student Name: __________________________</td>
+          </tr>
+        </table>
+        <p style="font-weight: bold; font-size: 13px; font-style: italic; color: #334155; margin-bottom: 15px;">
+          Instruction: Answer all questions clearly in the space provided. Show all step-by-step working where applicable.
+        </p>
+        <hr style="margin-bottom: 20px; border: 0; border-top: 2px solid #e2e8f0;" />
+        ${questionsHTML}
+      `,
+      subjectName,
+      schoolName,
+      essayQuestions
+    };
+  };
+
+  // Download Theory Paper as PDF using jsPDF + html rendering
+  const handleDownloadTheoryPDF = async () => {
+    const data = generateTheoryPaperHTML();
+    if (!data) return;
+
+    toast.success('Generating PDF... Please wait.');
+
+    try {
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const container = document.createElement('div');
+      container.style.cssText = 'position: absolute; left: -9999px; top: 0; width: 794px; padding: 30px; font-family: Segoe UI, Arial, sans-serif; color: #111; line-height: 1.6; background: #fff;';
+      container.innerHTML = data.html;
+      document.body.appendChild(container);
+
+      await pdf.html(container, {
+        callback: function (doc) {
+          doc.save(`${data.subjectName}_Theory_Paper.pdf`);
+          document.body.removeChild(container);
+          toast.success('PDF downloaded successfully!');
+        },
+        x: 5,
+        y: 5,
+        width: 190,
+        windowWidth: 794,
+        html2canvas: { scale: 0.26, useCORS: true, logging: false }
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast.error('Failed to generate PDF. Try printing to PDF instead.');
+    }
+  };
+
+  // Download Theory Paper as Word Document (.doc)
+  const handleDownloadTheoryWord = () => {
+    const data = generateTheoryPaperHTML();
+    if (!data) return;
+
+    const fullHTML = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office"
+            xmlns:w="urn:schemas-microsoft-com:office:word"
+            xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <title>${data.subjectName} - Theory Paper</title>
+        <!--[if gte mso 9]>
+        <xml>
+          <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>100</w:Zoom>
+            <w:DoNotOptimizeForBrowser/>
+          </w:WordDocument>
+        </xml>
+        <![endif]-->
+        <style>
+          body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; color: #111; line-height: 1.6; }
+          table { border-collapse: collapse; width: 100%; }
+          td { padding: 8px 12px; border: 1px solid #ccc; }
+          h1 { font-size: 22px; text-transform: uppercase; text-align: center; margin: 0; }
+          h2 { font-size: 15px; text-align: center; color: #475569; margin: 6px 0 0 0; }
+        </style>
+      </head>
+      <body>
+        ${data.html}
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\ufeff' + fullHTML], { type: 'application/msword' });
+    saveAs(blob, `${data.subjectName}_Theory_Paper.doc`);
+    toast.success('Word document downloaded successfully!');
   };
 
   return (
@@ -722,6 +892,22 @@ const CBTQuestionBank = () => {
           >
             <Printer size={16} />
             Print Theory Paper
+          </button>
+          <button
+            onClick={() => handleDownloadTheoryPDF()}
+            className="px-3.5 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm font-medium flex items-center gap-1.5 shadow-sm"
+            title="Download Theory Paper as PDF"
+          >
+            <Download size={16} />
+            PDF
+          </button>
+          <button
+            onClick={() => handleDownloadTheoryWord()}
+            className="px-3.5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm font-medium flex items-center gap-1.5 shadow-sm"
+            title="Download Theory Paper as Word Document"
+          >
+            <Download size={16} />
+            Word
           </button>
         </div>
       </div>
