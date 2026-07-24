@@ -594,37 +594,88 @@ const CBTQuestionBank = () => {
   // ── Print Settings Modal State ──
   const [showPrintSettings, setShowPrintSettings] = useState(false);
   const [printAction, setPrintAction] = useState('print'); // 'print' | 'pdf' | 'word'
-  const [printTimeAllowed, setPrintTimeAllowed] = useState('');
+  const [printSubjectId, setPrintSubjectId] = useState('');
+  const [printClassId, setPrintClassId] = useState('');
+  const [printTimeAllowed, setPrintTimeAllowed] = useState('1 Hour 30 Minutes');
+  const [printSelectedQuestionIds, setPrintSelectedQuestionIds] = useState(new Set());
 
-  // Validate required fields before any print/download action
-  const validateAndOpenPrintSettings = (action) => {
-    if (!filters.subjectId) {
-      toast.error('Please select a Subject before printing/downloading the theory paper.');
-      return;
-    }
-    if (!filters.classId) {
-      toast.error('Please select a Class before printing/downloading the theory paper.');
-      return;
-    }
-    const essayQuestions = questions.filter(q => q.questionType === 'essay');
-    if (essayQuestions.length === 0) {
-      toast.error('No Essay / Theory questions available. Add essay questions first.');
-      return;
-    }
+  // Open modal directly without blocking errors
+  const openPrintSettingsModal = (action = 'print') => {
     setPrintAction(action);
-    setPrintTimeAllowed('');
+    const initialSubId = filters.subjectId || (subjects[0]?.id ? String(subjects[0].id) : '');
+    const initialClassId = filters.classId || '';
+    setPrintSubjectId(initialSubId);
+    setPrintClassId(initialClassId);
+    setPrintTimeAllowed('1 Hour 30 Minutes');
+
+    // Filter matching essay questions for initial subject & class
+    const matchingEssays = questions.filter(q => 
+      q.questionType === 'essay' &&
+      (!initialSubId || String(q.subject?.id) === String(initialSubId)) &&
+      (!initialClassId || String(q.class?.id || q.classId) === String(initialClassId))
+    );
+    setPrintSelectedQuestionIds(new Set(matchingEssays.map(q => q.id)));
     setShowPrintSettings(true);
   };
 
+  // Handle changing Subject or Class inside the modal
+  const handlePrintSubjectOrClassChange = (newSubId, newClassId) => {
+    setPrintSubjectId(newSubId);
+    setPrintClassId(newClassId);
+    const matchingEssays = questions.filter(q => 
+      q.questionType === 'essay' &&
+      (!newSubId || String(q.subject?.id) === String(newSubId)) &&
+      (!newClassId || String(q.class?.id || q.classId) === String(newClassId))
+    );
+    setPrintSelectedQuestionIds(new Set(matchingEssays.map(q => q.id)));
+  };
+
+  // Toggle individual question selection in modal
+  const togglePrintQuestionSelect = (qId) => {
+    setPrintSelectedQuestionIds(prev => {
+      const next = new Set(prev);
+      if (next.has(qId)) next.delete(qId);
+      else next.add(qId);
+      return next;
+    });
+  };
+
+  // Toggle select all matching essay questions in modal
+  const togglePrintSelectAll = (matchingEssays) => {
+    const allSelected = matchingEssays.every(q => printSelectedQuestionIds.has(q.id));
+    if (allSelected) {
+      setPrintSelectedQuestionIds(new Set());
+    } else {
+      setPrintSelectedQuestionIds(new Set(matchingEssays.map(q => q.id)));
+    }
+  };
+
   const handleConfirmPrint = () => {
+    if (!printSubjectId) {
+      toast.error('Please select a Subject for the examination paper.');
+      return;
+    }
     if (!printTimeAllowed.trim()) {
       toast.error('Please enter the time allowed for this examination.');
       return;
     }
+
+    const selectedEssays = questions.filter(q => 
+      q.questionType === 'essay' && 
+      printSelectedQuestionIds.has(q.id) &&
+      (!printSubjectId || String(q.subject?.id) === String(printSubjectId)) &&
+      (!printClassId || String(q.class?.id || q.classId) === String(printClassId))
+    );
+
+    if (selectedEssays.length === 0) {
+      toast.error('Please select at least one essay question to generate the paper.');
+      return;
+    }
+
     setShowPrintSettings(false);
-    if (printAction === 'print') handlePrintTheoryPaper(printTimeAllowed.trim());
-    else if (printAction === 'pdf') handleDownloadTheoryPDF(printTimeAllowed.trim());
-    else if (printAction === 'word') handleDownloadTheoryWord(printTimeAllowed.trim());
+    if (printAction === 'print') handlePrintTheoryPaper(selectedEssays, printSubjectId, printClassId, printTimeAllowed.trim());
+    else if (printAction === 'pdf') handleDownloadTheoryPDF(selectedEssays, printSubjectId, printClassId, printTimeAllowed.trim());
+    else if (printAction === 'word') handleDownloadTheoryWord(selectedEssays, printSubjectId, printClassId, printTimeAllowed.trim());
   };
 
   // Resolve logo URL
@@ -637,13 +688,12 @@ const CBTQuestionBank = () => {
   };
 
   // Print Theory / Essay Paper for Examination Officer
-  const handlePrintTheoryPaper = (timeAllowed) => {
-    const essayQuestions = questions.filter(q => q.questionType === 'essay');
-    const subjectName = subjects.find(s => String(s.id) === String(filters.subjectId))?.name;
-    const className = classes.find(c => String(c.id) === String(filters.classId))?.name;
-    const termName = currentTerm?.name || '';
-    const sessionName = currentSession?.name || '';
-    const schoolName = schoolSettings?.schoolName || schoolSettings?.name || '';
+  const handlePrintTheoryPaper = (essayQuestions, subjectId, classId, timeAllowed) => {
+    const subjectName = subjects.find(s => String(s.id) === String(subjectId))?.name || 'General Subject';
+    const className = classes.find(c => String(c.id) === String(classId))?.name || 'All Classes';
+    const termName = currentTerm?.name || 'Third Term';
+    const sessionName = currentSession?.name || '2025/2026 Academic Session';
+    const schoolName = schoolSettings?.schoolName || schoolSettings?.name || 'SCHOOL MANAGEMENT SYSTEM';
     const logoUrl = getLogoUrl();
 
     const printWindow = window.open('', '_blank');
@@ -755,13 +805,12 @@ const CBTQuestionBank = () => {
   };
 
   // Generate theory paper HTML content for direct downloads
-  const generateTheoryPaperHTML = (timeAllowed) => {
-    const essayQuestions = questions.filter(q => q.questionType === 'essay');
-    const subjectName = subjects.find(s => String(s.id) === String(filters.subjectId))?.name;
-    const className = classes.find(c => String(c.id) === String(filters.classId))?.name;
-    const termName = currentTerm?.name || '';
-    const sessionName = currentSession?.name || '';
-    const schoolName = schoolSettings?.schoolName || schoolSettings?.name || '';
+  const generateTheoryPaperHTML = (essayQuestions, subjectId, classId, timeAllowed) => {
+    const subjectName = subjects.find(s => String(s.id) === String(subjectId))?.name || 'General Subject';
+    const className = classes.find(c => String(c.id) === String(classId))?.name || 'All Classes';
+    const termName = currentTerm?.name || 'Third Term';
+    const sessionName = currentSession?.name || '2025/2026 Academic Session';
+    const schoolName = schoolSettings?.schoolName || schoolSettings?.name || 'SCHOOL MANAGEMENT SYSTEM';
     const logoUrl = getLogoUrl();
 
     const questionsHTML = essayQuestions.map((q, idx) => {
@@ -813,8 +862,8 @@ const CBTQuestionBank = () => {
   };
 
   // Download Theory Paper as PDF using jsPDF + html rendering
-  const handleDownloadTheoryPDF = async (timeAllowed) => {
-    const data = generateTheoryPaperHTML(timeAllowed);
+  const handleDownloadTheoryPDF = async (essayQuestions, subjectId, classId, timeAllowed) => {
+    const data = generateTheoryPaperHTML(essayQuestions, subjectId, classId, timeAllowed);
     if (!data) return;
 
     toast.success('Generating PDF... Please wait.');
@@ -845,8 +894,8 @@ const CBTQuestionBank = () => {
   };
 
   // Download Theory Paper as Word Document (.doc)
-  const handleDownloadTheoryWord = (timeAllowed) => {
-    const data = generateTheoryPaperHTML(timeAllowed);
+  const handleDownloadTheoryWord = (essayQuestions, subjectId, classId, timeAllowed) => {
+    const data = generateTheoryPaperHTML(essayQuestions, subjectId, classId, timeAllowed);
     if (!data) return;
 
     const fullHTML = `
@@ -893,111 +942,141 @@ const CBTQuestionBank = () => {
           <p className="text-xs sm:text-sm text-gray-500">Centralized repository for CBT multiple choice & paper exam theory questions</p>
         </div>
 
-        {/* Action Buttons Group */}
+        {/* Action Buttons Group (Visible Grid on Mobile, Flex on Desktop) */}
         <div className="w-full lg:w-auto space-y-2">
-          {/* Add Questions Row */}
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2">
+          {/* Mobile Grid Layout (100% visible, no hidden horizontal sliding) */}
+          <div className="sm:hidden grid grid-cols-2 gap-2 w-full pt-1">
             <button
               onClick={() => openAddModal('multiple_choice')}
-              className="w-full sm:w-auto px-3.5 py-2.5 bg-primary text-white rounded-lg hover:brightness-90 transition text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-sm"
+              className="px-3 py-2.5 bg-primary text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
             >
-              <Plus size={16} />
-              + Add CBT
+              <Plus size={15} /> + Add CBT
             </button>
             <button
               onClick={() => openAddModal('essay')}
-              className="w-full sm:w-auto px-3.5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-sm"
+              className="px-3 py-2.5 bg-purple-600 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
             >
-              <FileText size={16} />
-              + Add Essay
+              <FileText size={15} /> + Add Essay
+            </button>
+            <button
+              onClick={() => openPrintSettingsModal('print')}
+              className="col-span-2 px-3 py-2.5 bg-slate-800 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <Printer size={15} /> Print Theory Paper
+            </button>
+            <button
+              onClick={() => openPrintSettingsModal('pdf')}
+              className="px-3 py-2 bg-red-600 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <Download size={14} /> Save PDF
+            </button>
+            <button
+              onClick={() => openPrintSettingsModal('word')}
+              className="px-3 py-2 bg-blue-600 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <Download size={14} /> Download Word
+            </button>
+            <button
+              onClick={handleDownloadBank}
+              className="px-3 py-2 bg-green-600 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              Export Bank
+            </button>
+            <button
+              onClick={handleDownloadTemplate}
+              className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5"
+            >
+              CSV Template
             </button>
           </div>
 
-          {/* Tools & Export Row */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none whitespace-nowrap w-full">
+          {/* Desktop Flex Layout */}
+          <div className="hidden sm:flex sm:flex-wrap sm:items-center sm:gap-2">
+            <button
+              onClick={() => openAddModal('multiple_choice')}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:brightness-90 transition text-sm font-bold flex items-center gap-1.5 shadow-sm"
+            >
+              <Plus size={16} /> + Add CBT Question
+            </button>
+            <button
+              onClick={() => openAddModal('essay')}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-bold flex items-center gap-1.5 shadow-sm"
+            >
+              <FileText size={16} /> + Add Essay / Theory
+            </button>
             <button
               onClick={handleDownloadTemplate}
-              className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition text-xs font-semibold shrink-0"
+              className="px-3.5 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium"
             >
               Template
             </button>
             <button
               onClick={handleDownloadBank}
-              className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition text-xs font-semibold flex items-center gap-1 shrink-0 shadow-sm"
+              className="px-3.5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium flex items-center gap-1.5 shadow-sm"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Export
-            </button>
-            <span className="h-4 w-px bg-gray-300 mx-0.5 shrink-0" />
-            <button
-              onClick={() => validateAndOpenPrintSettings('print')}
-              className="px-3 py-1.5 bg-slate-800 text-white rounded-md hover:bg-slate-900 transition text-xs font-semibold flex items-center gap-1 shrink-0 shadow-sm"
-              title="Print Theory Question Paper"
-            >
-              <Printer size={14} />
-              Print Theory
+              Export Bank
             </button>
             <button
-              onClick={() => validateAndOpenPrintSettings('pdf')}
-              className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition text-xs font-semibold flex items-center gap-1 shrink-0 shadow-sm"
-              title="Download Theory Paper as PDF"
+              onClick={() => openPrintSettingsModal('print')}
+              className="px-3.5 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition text-sm font-medium flex items-center gap-1.5 shadow-sm"
             >
-              <Download size={14} />
-              PDF
+              <Printer size={16} /> Print Theory Paper
             </button>
             <button
-              onClick={() => validateAndOpenPrintSettings('word')}
-              className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition text-xs font-semibold flex items-center gap-1 shrink-0 shadow-sm"
-              title="Download Theory Paper as Word Document"
+              onClick={() => openPrintSettingsModal('pdf')}
+              className="px-3.5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium flex items-center gap-1.5 shadow-sm"
             >
-              <Download size={14} />
-              Word
+              <Download size={16} /> PDF
+            </button>
+            <button
+              onClick={() => openPrintSettingsModal('word')}
+              className="px-3.5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium flex items-center gap-1.5 shadow-sm"
+            >
+              <Download size={16} /> Word
             </button>
           </div>
         </div>
       </div>
 
       {/* Category Tabs: All | CBT | Essay */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none whitespace-nowrap -mx-3 px-3 sm:mx-0 sm:px-0 border-b border-gray-200">
+      <div className="grid grid-cols-3 gap-1.5 sm:flex sm:items-center sm:gap-2 border-b border-gray-200 pb-2">
         <button
           onClick={() => setBankTab('all')}
-          className={`px-3.5 py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shrink-0 ${
+          className={`px-2 sm:px-3.5 py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors flex items-center justify-center sm:justify-start gap-1.5 ${
             bankTab === 'all'
               ? 'bg-primary text-white shadow-sm'
               : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
           }`}
         >
-          <span>All Questions</span>
-          <span className="px-2 py-0.5 rounded-full text-xs bg-white/20 font-mono">
+          <span>All</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs bg-white/20 font-mono">
             {questions.length}
           </span>
         </button>
         <button
           onClick={() => setBankTab('multiple_choice')}
-          className={`px-3.5 py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shrink-0 ${
+          className={`px-2 sm:px-3.5 py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors flex items-center justify-center sm:justify-start gap-1.5 ${
             bankTab === 'multiple_choice'
               ? 'bg-indigo-600 text-white shadow-sm'
               : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
           }`}
         >
-          <span>CBT (Multiple Choice)</span>
-          <span className="px-2 py-0.5 rounded-full text-xs bg-indigo-500/20 font-mono">
+          <span>CBT</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs bg-indigo-500/20 font-mono">
             {questions.filter(q => q.questionType !== 'essay').length}
           </span>
         </button>
         <button
           onClick={() => setBankTab('essay')}
-          className={`px-3.5 py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shrink-0 ${
+          className={`px-2 sm:px-3.5 py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors flex items-center justify-center sm:justify-start gap-1.5 ${
             bankTab === 'essay'
               ? 'bg-purple-600 text-white shadow-sm'
               : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
           }`}
         >
-          <FileText size={15} />
-          <span>Essay / Theory Bank</span>
-          <span className="px-2 py-0.5 rounded-full text-xs bg-purple-500/20 font-mono">
+          <FileText size={14} className="hidden sm:inline" />
+          <span>Essay</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs bg-purple-500/20 font-mono">
             {questions.filter(q => q.questionType === 'essay').length}
           </span>
         </button>
@@ -1731,12 +1810,13 @@ const CBTQuestionBank = () => {
         document.body
       )}
 
-      {/* ── Print Settings Modal ── */}
+      {/* ── Print Settings & Essay Question Selection Modal ── */}
       {showPrintSettings && createPortal(
-        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5 animate-in fade-in zoom-in duration-150">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-5 sm:p-6 space-y-4 my-auto max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-150">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b pb-3 shrink-0">
+              <h3 className="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2">
                 <Printer size={20} className="text-indigo-600" />
                 {printAction === 'print' ? 'Print' : printAction === 'pdf' ? 'Download PDF' : 'Download Word'} — Theory Paper
               </h3>
@@ -1745,19 +1825,40 @@ const CBTQuestionBank = () => {
               </button>
             </div>
 
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Subject</label>
-                <div className="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-semibold text-gray-800">
-                  {subjects.find(s => String(s.id) === String(filters.subjectId))?.name || '—'}
+            {/* Modal Content / Controls */}
+            <div className="space-y-4 overflow-y-auto pr-1 flex-1">
+              {/* Subject & Class Selectors */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">
+                    Subject <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none"
+                    value={printSubjectId}
+                    onChange={(e) => handlePrintSubjectOrClassChange(e.target.value, printClassId)}
+                  >
+                    <option value="">Select Subject...</option>
+                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">
+                    Target Class
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none"
+                    value={printClassId}
+                    onChange={(e) => handlePrintSubjectOrClassChange(printSubjectId, e.target.value)}
+                  >
+                    <option value="">All Classes</option>
+                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Class</label>
-                <div className="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-semibold text-gray-800">
-                  {classes.find(c => String(c.id) === String(filters.classId))?.name || '—'}
-                </div>
-              </div>
+
+              {/* Time Allowed */}
               <div>
                 <label className="block text-xs font-bold text-gray-600 uppercase mb-1">
                   Time Allowed <span className="text-red-500">*</span>
@@ -1767,25 +1868,94 @@ const CBTQuestionBank = () => {
                   value={printTimeAllowed}
                   onChange={e => setPrintTimeAllowed(e.target.value)}
                   placeholder="e.g. 1 Hour 30 Minutes"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition"
-                  autoFocus
-                  onKeyDown={e => { if (e.key === 'Enter') handleConfirmPrint(); }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition"
                 />
               </div>
+
+              {/* Available Essay Questions Selection List */}
+              {(() => {
+                const matchingEssays = questions.filter(q => 
+                  q.questionType === 'essay' &&
+                  (!printSubjectId || String(q.subject?.id) === String(printSubjectId)) &&
+                  (!printClassId || String(q.class?.id || q.classId) === String(printClassId))
+                );
+
+                const selectedCount = matchingEssays.filter(q => printSelectedQuestionIds.has(q.id)).length;
+                const isAllSelected = matchingEssays.length > 0 && selectedCount === matchingEssays.length;
+
+                return (
+                  <div className="space-y-2 pt-2 border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold text-gray-700 uppercase">
+                        Select Questions for Paper ({selectedCount} of {matchingEssays.length})
+                      </label>
+                      {matchingEssays.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => togglePrintSelectAll(matchingEssays)}
+                          className="text-xs text-indigo-600 font-bold hover:underline"
+                        >
+                          {isAllSelected ? 'Deselect All' : 'Select All'}
+                        </button>
+                      )}
+                    </div>
+
+                    {matchingEssays.length === 0 ? (
+                      <div className="p-4 bg-gray-50 rounded-lg text-center text-xs text-gray-500 border border-dashed border-gray-200">
+                        No essay questions available for this subject/class combination. Please select another subject or add essay questions to the bank.
+                      </div>
+                    ) : (
+                      <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100 bg-gray-50/50">
+                        {matchingEssays.map((q, idx) => {
+                          const { cleanText } = parseQuestionContent(q.questionText);
+                          const isChecked = printSelectedQuestionIds.has(q.id);
+                          return (
+                            <label
+                              key={q.id}
+                              className={`flex items-start gap-2.5 p-2.5 text-xs cursor-pointer transition-colors ${
+                                isChecked ? 'bg-indigo-50/70 text-indigo-950 font-medium' : 'hover:bg-gray-100 text-gray-700'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer shrink-0"
+                                checked={isChecked}
+                                onChange={() => togglePrintQuestionSelect(q.id)}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2 mb-0.5">
+                                  <span className="font-bold text-indigo-900">Q{idx + 1}.</span>
+                                  <span className="text-[10px] font-bold text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-200">
+                                    [{q.points || 1} Marks]
+                                  </span>
+                                </div>
+                                <p className="line-clamp-2 text-gray-800">{cleanText}</p>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
-            <div className="flex gap-3 justify-end pt-2">
+            {/* Modal Footer / Submit */}
+            <div className="flex gap-3 justify-end pt-3 border-t border-gray-100 shrink-0">
               <button
+                type="button"
                 onClick={() => setShowPrintSettings(false)}
-                className="px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                className="px-4 py-2 text-xs sm:text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleConfirmPrint}
-                className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition flex items-center gap-2"
+                className="px-5 py-2 text-xs sm:text-sm font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition flex items-center gap-2"
               >
-                {printAction === 'print' ? <><Printer size={16} /> Print Paper</> : printAction === 'pdf' ? <><Download size={16} /> Download PDF</> : <><Download size={16} /> Download Word</>}
+                {printAction === 'print' ? <><Printer size={16} /> Generate & Print</> : printAction === 'pdf' ? <><Download size={16} /> Download PDF</> : <><Download size={16} /> Download Word</>}
               </button>
             </div>
           </div>
