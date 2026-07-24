@@ -885,75 +885,85 @@ const CBTQuestionBank = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-3 sm:p-6 w-full max-w-7xl mx-auto space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">CBT & Theory Question Bank</h1>
-          <p className="text-sm text-gray-500">Centralized repository for CBT multiple choice & paper exam theory questions</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight">CBT & Theory Question Bank</h1>
+          <p className="text-xs sm:text-sm text-gray-500">Centralized repository for CBT multiple choice & paper exam theory questions</p>
         </div>
-        <div className="flex flex-wrap gap-2 overflow-x-auto pb-1">
-          <button
-            onClick={() => openAddModal('multiple_choice')}
-            className="px-4 py-2 bg-primary text-white rounded-md hover:brightness-90 transition text-sm font-medium flex items-center gap-2 shadow-sm"
-          >
-            <Plus size={18} />
-            + Add CBT Question
-          </button>
-          <button
-            onClick={() => openAddModal('essay')}
-            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition text-sm font-medium flex items-center gap-2 shadow-sm"
-          >
-            <FileText size={18} />
-            + Add Essay / Theory
-          </button>
-          <button
-            onClick={handleDownloadTemplate}
-            className="px-3.5 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition text-sm font-medium"
-          >
-            Template
-          </button>
-          <button
-            onClick={handleDownloadBank}
-            className="px-3.5 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm font-medium flex items-center gap-1.5"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Export Bank
-          </button>
-          <button
-            onClick={() => validateAndOpenPrintSettings('print')}
-            className="px-3.5 py-2 bg-slate-800 text-white rounded hover:bg-slate-900 transition text-sm font-medium flex items-center gap-1.5 shadow-sm"
-            title="Print Theory Question Paper for Written Exams"
-          >
-            <Printer size={16} />
-            Print Theory Paper
-          </button>
-          <button
-            onClick={() => validateAndOpenPrintSettings('pdf')}
-            className="px-3.5 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm font-medium flex items-center gap-1.5 shadow-sm"
-            title="Download Theory Paper as PDF"
-          >
-            <Download size={16} />
-            PDF
-          </button>
-          <button
-            onClick={() => validateAndOpenPrintSettings('word')}
-            className="px-3.5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm font-medium flex items-center gap-1.5 shadow-sm"
-            title="Download Theory Paper as Word Document"
-          >
-            <Download size={16} />
-            Word
-          </button>
+
+        {/* Action Buttons Group */}
+        <div className="w-full lg:w-auto space-y-2">
+          {/* Add Questions Row */}
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2">
+            <button
+              onClick={() => openAddModal('multiple_choice')}
+              className="w-full sm:w-auto px-3.5 py-2.5 bg-primary text-white rounded-lg hover:brightness-90 transition text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <Plus size={16} />
+              + Add CBT
+            </button>
+            <button
+              onClick={() => openAddModal('essay')}
+              className="w-full sm:w-auto px-3.5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <FileText size={16} />
+              + Add Essay
+            </button>
+          </div>
+
+          {/* Tools & Export Row */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none whitespace-nowrap w-full">
+            <button
+              onClick={handleDownloadTemplate}
+              className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition text-xs font-semibold shrink-0"
+            >
+              Template
+            </button>
+            <button
+              onClick={handleDownloadBank}
+              className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition text-xs font-semibold flex items-center gap-1 shrink-0 shadow-sm"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export
+            </button>
+            <span className="h-4 w-px bg-gray-300 mx-0.5 shrink-0" />
+            <button
+              onClick={() => validateAndOpenPrintSettings('print')}
+              className="px-3 py-1.5 bg-slate-800 text-white rounded-md hover:bg-slate-900 transition text-xs font-semibold flex items-center gap-1 shrink-0 shadow-sm"
+              title="Print Theory Question Paper"
+            >
+              <Printer size={14} />
+              Print Theory
+            </button>
+            <button
+              onClick={() => validateAndOpenPrintSettings('pdf')}
+              className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition text-xs font-semibold flex items-center gap-1 shrink-0 shadow-sm"
+              title="Download Theory Paper as PDF"
+            >
+              <Download size={14} />
+              PDF
+            </button>
+            <button
+              onClick={() => validateAndOpenPrintSettings('word')}
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition text-xs font-semibold flex items-center gap-1 shrink-0 shadow-sm"
+              title="Download Theory Paper as Word Document"
+            >
+              <Download size={14} />
+              Word
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Category Tabs: All | CBT | Essay */}
-      <div className="flex gap-2 border-b border-gray-200 pb-2">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none whitespace-nowrap -mx-3 px-3 sm:mx-0 sm:px-0 border-b border-gray-200">
         <button
           onClick={() => setBankTab('all')}
-          className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors flex items-center gap-2 ${
+          className={`px-3.5 py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shrink-0 ${
             bankTab === 'all'
               ? 'bg-primary text-white shadow-sm'
               : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
@@ -966,7 +976,7 @@ const CBTQuestionBank = () => {
         </button>
         <button
           onClick={() => setBankTab('multiple_choice')}
-          className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors flex items-center gap-2 ${
+          className={`px-3.5 py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shrink-0 ${
             bankTab === 'multiple_choice'
               ? 'bg-indigo-600 text-white shadow-sm'
               : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
@@ -979,7 +989,7 @@ const CBTQuestionBank = () => {
         </button>
         <button
           onClick={() => setBankTab('essay')}
-          className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors flex items-center gap-2 ${
+          className={`px-3.5 py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shrink-0 ${
             bankTab === 'essay'
               ? 'bg-purple-600 text-white shadow-sm'
               : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
@@ -994,7 +1004,7 @@ const CBTQuestionBank = () => {
       </div>
 
       {/* Bulk Upload Section */}
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-primary">
+      <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-primary">
         <h2 className="text-base font-semibold mb-3 text-gray-800 flex items-center gap-2">
           <Paperclip size={18} className="text-primary" /> Bulk Upload CBT Questions via Excel/CSV
         </h2>
