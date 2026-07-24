@@ -63,36 +63,130 @@ router.get('/verify-result/:id', async (req, res) => {
 
 // ============ TEACHER ROUTES ============
 
-// Download Bulk Question Template (CSV)
+// Download Bulk Question Template (Excel .xlsx)
 router.get('/template/questions', authenticate, authorize(['superadmin', 'admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
+    const school = await prisma.school.findUnique({ where: { id: req.schoolId } });
+    const schoolName = school?.name || 'SCHOOL MANAGEMENT SYSTEM';
+
     const workbook = new ExcelJS.Workbook();
+    workbook.creator = schoolName;
+    workbook.created = new Date();
+
     const worksheet = workbook.addWorksheet('CBT Questions');
 
+    // Setup column widths
     worksheet.columns = [
-      { header: 'Question Text', key: 'questionText', width: 50 },
-      { header: 'Option A', key: 'a', width: 25 },
-      { header: 'Option B', key: 'b', width: 25 },
-      { header: 'Option C', key: 'c', width: 25 },
-      { header: 'Option D', key: 'd', width: 25 },
-      { header: 'Correct Option (a, b, c, or d)', key: 'correctOption', width: 25 },
-      { header: 'Points', key: 'points', width: 10 }
+      { width: 55 }, // Question Text
+      { width: 25 }, // Option A
+      { width: 25 }, // Option B
+      { width: 25 }, // Option C
+      { width: 25 }, // Option D
+      { width: 32 }, // Correct Option
+      { width: 12 }  // Points
     ];
 
-    // Add example row
-    worksheet.addRow({
-      questionText: 'What is the capital of France?',
-      a: 'Berlin',
-      b: 'Madrid',
-      c: 'Paris',
-      d: 'London',
-      correctOption: 'c',
-      points: 1
+    // Row 1: School Name Banner Header (Merged A1:G1)
+    worksheet.mergeCells('A1:G1');
+    const r1 = worksheet.getCell('A1');
+    r1.value = schoolName.toUpperCase();
+    r1.font = { name: 'Calibri', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+    r1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E1B4B' } };
+    r1.alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getRow(1).height = 36;
+
+    // Row 2: Document Subtitle (Merged A2:G2)
+    worksheet.mergeCells('A2:G2');
+    const r2 = worksheet.getCell('A2');
+    r2.value = 'COMPUTER BASED TESTING (CBT) & THEORY QUESTIONS IMPORT TEMPLATE';
+    r2.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF475569' } };
+    r2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+    r2.alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getRow(2).height = 24;
+
+    // Row 3: Metadata & Instructions (Merged A3:G3)
+    worksheet.mergeCells('A3:G3');
+    const r3 = worksheet.getCell('A3');
+    r3.value = `TEMPLATE METADATA: ${schoolName} | Generated: ${new Date().toLocaleDateString()} | INSTRUCTION: Enter questions below. For CBT, Correct Option must be a, b, c, or d. For Essay, leave options blank and set Correct Option to "essay".`;
+    r3.font = { name: 'Calibri', size: 9, italic: true, color: { argb: 'FF334155' } };
+    r3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+    r3.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    worksheet.getRow(3).height = 26;
+
+    // Row 4: Blank spacing row
+    worksheet.getRow(4).height = 10;
+
+    // Row 5: Column Headers
+    const headers = [
+      'Question Text',
+      'Option A',
+      'Option B',
+      'Option C',
+      'Option D',
+      'Correct Option (a, b, c, d, or essay)',
+      'Points'
+    ];
+
+    const headerRow = worksheet.getRow(5);
+    headerRow.height = 28;
+    headers.forEach((headerText, colIndex) => {
+      const cell = headerRow.getCell(colIndex + 1);
+      cell.value = headerText;
+      cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        bottom: { style: 'medium', color: { argb: 'FF312E81' } },
+        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+      };
     });
 
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=CBT_Questions_Template.csv');
-    await workbook.csv.write(res);
+    // Sample Row 1: CBT Question
+    const sample1 = worksheet.getRow(6);
+    sample1.values = [
+      'What is the capital of France?',
+      'Berlin',
+      'Madrid',
+      'Paris',
+      'London',
+      'c',
+      1
+    ];
+
+    // Sample Row 2: Essay Question
+    const sample2 = worksheet.getRow(7);
+    sample2.values = [
+      'Explain the process of photosynthesis in green plants in detail.',
+      '',
+      '',
+      '',
+      '',
+      'essay',
+      5
+    ];
+
+    // Format Data Rows (6 & 7)
+    [6, 7].forEach(rowNum => {
+      const row = worksheet.getRow(rowNum);
+      row.height = 24;
+      for (let col = 1; col <= 7; col++) {
+        const cell = row.getCell(col);
+        cell.font = { name: 'Calibri', size: 10 };
+        cell.alignment = { vertical: 'middle', wrapText: true };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+        };
+      }
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=CBT_Questions_Template.xlsx');
+    await workbook.xlsx.write(res);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -125,7 +219,17 @@ router.post('/:id/questions/bulk', authenticate, authorize(['superadmin', 'admin
     }
 
     const worksheet = workbook.worksheets[0];
-    const headerRow = worksheet.getRow(1);
+    let headerRowNumber = 1;
+
+    // Find the row containing column headers
+    worksheet.eachRow((row, rowNumber) => {
+      const firstCell = row.getCell(1).value?.toString()?.toLowerCase() || '';
+      if (firstCell.includes('question text') || firstCell.includes('question')) {
+        headerRowNumber = rowNumber;
+      }
+    });
+
+    const headerRow = worksheet.getRow(headerRowNumber);
     const expectedHeaders = ['Question Text', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Option'];
     const actualHeaders = [
       headerRow.getCell(1).value?.toString() || '',
@@ -142,29 +246,30 @@ router.post('/:id/questions/bulk', authenticate, authorize(['superadmin', 'admin
     }
 
     worksheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return; // Skip header
+      if (rowNumber <= headerRowNumber) return; // Skip title, metadata & header rows
 
       const questionText = row.getCell(1).value?.toString()?.trim();
-      const optA = row.getCell(2).value?.toString()?.trim();
-      const optB = row.getCell(3).value?.toString()?.trim();
-      const optC = row.getCell(4).value?.toString()?.trim();
-      const optD = row.getCell(5).value?.toString()?.trim();
+      const optA = row.getCell(2).value?.toString()?.trim() || '';
+      const optB = row.getCell(3).value?.toString()?.trim() || '';
+      const optC = row.getCell(4).value?.toString()?.trim() || '';
+      const optD = row.getCell(5).value?.toString()?.trim() || '';
       const correct = row.getCell(6).value?.toString()?.trim()?.toLowerCase();
       const points = parseFloat(row.getCell(7).value) || 1;
 
-      if (questionText && optA && optB && optC && optD && correct) {
-        // Validate correct option
-        if (!['a', 'b', 'c', 'd'].includes(correct)) return;
+      if (questionText && correct) {
+        const isEssay = correct === 'essay';
+        if (!isEssay && (!optA || !optB || !optC || !optD || !['a', 'b', 'c', 'd'].includes(correct))) return;
 
         rows.push({
           questionText,
-          options: [
+          questionType: isEssay ? 'essay' : 'multiple_choice',
+          options: isEssay ? [] : [
             { id: 'a', text: optA },
             { id: 'b', text: optB },
             { id: 'c', text: optC },
             { id: 'd', text: optD }
           ],
-          correctOption: correct,
+          correctOption: isEssay ? 'essay' : correct,
           points
         });
       }
@@ -778,8 +883,17 @@ router.post('/bank/upload', authenticate, authorize(['superadmin', 'admin', 'tea
     }
 
     const worksheet = workbook.worksheets[0];
-    const headerRow = worksheet.getRow(1);
-    // Question Bank download has different headers, but upload should follow Template
+    let headerRowNumber = 1;
+
+    // Find the row containing column headers
+    worksheet.eachRow((row, rowNumber) => {
+      const firstCell = row.getCell(1).value?.toString()?.toLowerCase() || '';
+      if (firstCell.includes('question text') || firstCell.includes('question')) {
+        headerRowNumber = rowNumber;
+      }
+    });
+
+    const headerRow = worksheet.getRow(headerRowNumber);
     const expectedHeaders = ['Question Text', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Option'];
     const actualHeaders = [
       headerRow.getCell(1).value?.toString() || '',
@@ -796,29 +910,30 @@ router.post('/bank/upload', authenticate, authorize(['superadmin', 'admin', 'tea
     }
 
     worksheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return; // Skip header
+      if (rowNumber <= headerRowNumber) return; // Skip title, metadata & header rows
 
       const questionText = row.getCell(1).value?.toString()?.trim();
-      const optA = row.getCell(2).value?.toString()?.trim();
-      const optB = row.getCell(3).value?.toString()?.trim();
-      const optC = row.getCell(4).value?.toString()?.trim();
-      const optD = row.getCell(5).value?.toString()?.trim();
+      const optA = row.getCell(2).value?.toString()?.trim() || '';
+      const optB = row.getCell(3).value?.toString()?.trim() || '';
+      const optC = row.getCell(4).value?.toString()?.trim() || '';
+      const optD = row.getCell(5).value?.toString()?.trim() || '';
       const correct = row.getCell(6).value?.toString()?.trim()?.toLowerCase();
       const points = parseFloat(row.getCell(7).value) || 1;
 
-      if (questionText && optA && optB && optC && optD && correct) {
-        // Validate correct option
-        if (!['a', 'b', 'c', 'd'].includes(correct)) return;
+      if (questionText && correct) {
+        const isEssay = correct === 'essay';
+        if (!isEssay && (!optA || !optB || !optC || !optD || !['a', 'b', 'c', 'd'].includes(correct))) return;
 
         rows.push({
           questionText,
-          options: JSON.stringify([
+          questionType: isEssay ? 'essay' : 'multiple_choice',
+          options: isEssay ? '[]' : JSON.stringify([
             { id: 'a', text: optA },
             { id: 'b', text: optB },
             { id: 'c', text: optC },
             { id: 'd', text: optD }
           ]),
-          correctOption: correct,
+          correctOption: isEssay ? 'essay' : correct,
           points
         });
       }
@@ -835,6 +950,7 @@ router.post('/bank/upload', authenticate, authorize(['superadmin', 'admin', 'tea
           subjectId: parseInt(subjectId),
           classId: classId ? parseInt(classId) : null,
           questionText: q.questionText,
+          questionType: q.questionType,
           options: q.options,
           correctOption: q.correctOption,
           points: q.points
