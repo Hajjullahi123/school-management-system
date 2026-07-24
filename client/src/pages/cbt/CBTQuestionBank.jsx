@@ -586,21 +586,62 @@ const CBTQuestionBank = () => {
       });
   };
 
-  // Print Theory / Essay Paper for Examination Officer
-  const handlePrintTheoryPaper = () => {
-    const essayQuestions = questions.filter(q => q.questionType === 'essay');
-    if (essayQuestions.length === 0) {
-      toast.error('No Essay / Theory questions available to print. Select or add essay questions first.');
+  // ── Print Settings Modal State ──
+  const [showPrintSettings, setShowPrintSettings] = useState(false);
+  const [printAction, setPrintAction] = useState('print'); // 'print' | 'pdf' | 'word'
+  const [printTimeAllowed, setPrintTimeAllowed] = useState('');
+
+  // Validate required fields before any print/download action
+  const validateAndOpenPrintSettings = (action) => {
+    if (!filters.subjectId) {
+      toast.error('Please select a Subject before printing/downloading the theory paper.');
       return;
     }
+    if (!filters.classId) {
+      toast.error('Please select a Class before printing/downloading the theory paper.');
+      return;
+    }
+    const essayQuestions = questions.filter(q => q.questionType === 'essay');
+    if (essayQuestions.length === 0) {
+      toast.error('No Essay / Theory questions available. Add essay questions first.');
+      return;
+    }
+    setPrintAction(action);
+    setPrintTimeAllowed('');
+    setShowPrintSettings(true);
+  };
+
+  const handleConfirmPrint = () => {
+    if (!printTimeAllowed.trim()) {
+      toast.error('Please enter the time allowed for this examination.');
+      return;
+    }
+    setShowPrintSettings(false);
+    if (printAction === 'print') handlePrintTheoryPaper(printTimeAllowed.trim());
+    else if (printAction === 'pdf') handleDownloadTheoryPDF(printTimeAllowed.trim());
+    else if (printAction === 'word') handleDownloadTheoryWord(printTimeAllowed.trim());
+  };
+
+  // Resolve logo URL
+  const getLogoUrl = () => {
+    if (!schoolSettings?.logoUrl) return null;
+    const cleanBaseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+    return schoolSettings.logoUrl.startsWith('http') || schoolSettings.logoUrl.startsWith('data:')
+      ? schoolSettings.logoUrl
+      : `${cleanBaseUrl}${schoolSettings.logoUrl.startsWith('/') ? '' : '/'}${schoolSettings.logoUrl}`;
+  };
+
+  // Print Theory / Essay Paper for Examination Officer
+  const handlePrintTheoryPaper = (timeAllowed) => {
+    const essayQuestions = questions.filter(q => q.questionType === 'essay');
+    const subjectName = subjects.find(s => String(s.id) === String(filters.subjectId))?.name;
+    const className = classes.find(c => String(c.id) === String(filters.classId))?.name;
+    const termName = currentTerm?.name || '';
+    const sessionName = currentSession?.name || '';
+    const schoolName = schoolSettings?.schoolName || schoolSettings?.name || '';
+    const logoUrl = getLogoUrl();
 
     const printWindow = window.open('', '_blank');
-    const subjectName = subjects.find(s => String(s.id) === String(filters.subjectId))?.name || 'General Subject';
-    const className = classes.find(c => String(c.id) === String(filters.classId))?.name || 'All Classes';
-    const termName = currentTerm?.name || 'Third Term';
-    const sessionName = currentSession?.name || '2025/2026 Academic Session';
-    const schoolName = schoolSettings?.schoolName || schoolSettings?.name || 'SCHOOL MANAGEMENT SYSTEM';
-
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
@@ -612,54 +653,53 @@ const CBTQuestionBank = () => {
           .no-print button { background: #6366f1; color: white; font-weight: bold; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all; }
           .no-print button:hover { background: #4f46e5; }
           .header { text-align: center; border-bottom: 2px solid #1e1b4b; padding-bottom: 15px; margin-bottom: 25px; }
+          .header img.school-logo { height: 70px; width: auto; max-width: 200px; object-fit: contain; margin-bottom: 8px; }
           .header h1 { margin: 0; font-size: 24px; text-transform: uppercase; color: #1e1b4b; font-weight: 800; }
           .header h2 { margin: 6px 0 0 0; font-size: 16px; color: #475569; font-weight: 600; }
           .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 20px; font-weight: 600; margin-bottom: 20px; font-size: 13px; border: 1px solid #e2e8f0; padding: 12px 16px; border-radius: 8px; background: #f8fafc; }
-          .meta-item span[contenteditable="true"] { outline: none; border-bottom: 1px dotted #94a3b8; padding: 0 4px; color: #0f172a; }
           .question { margin-bottom: 25px; page-break-inside: avoid; border-bottom: 1px dashed #f1f5f9; padding-bottom: 15px; }
           .q-num { font-weight: bold; color: #1e1b4b; }
           .q-text { font-size: 15px; font-weight: 600; margin-bottom: 8px; color: #1e293b; }
           .q-points { float: right; font-style: italic; color: #64748b; font-size: 13px; font-weight: bold; }
           .diagram { margin: 10px 0; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px; object-fit: contain; }
           .answer-space { height: 100px; border-bottom: 1px dotted #cbd5e1; margin-top: 15px; }
-          [contenteditable="true"]:hover { background-color: #f1f5f9; cursor: pointer; }
           @media print {
             .no-print { display: none !important; }
             body { padding: 0 !important; margin: 0 !important; }
             .meta-grid { border: 1px solid #333 !important; background: transparent !important; }
             .answer-space { height: 120px; }
-            [contenteditable="true"] { border: none !important; background: transparent !important; }
           }
         </style>
       </head>
       <body>
         <div class="no-print">
           <div style="font-size: 13px;">
-            ✏️ <strong>Interactive Print Preview:</strong> Click any header text (Class, Subject, Term, Session, Time) below to edit before printing.
+            📄 <strong>Theory Paper Preview</strong> — Ready to print or save as PDF using your browser's print dialog.
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
             <button onclick="window.print()">🖨️ Print</button>
-            <button onclick="downloadAsPDF()" style="background: #dc2626;">📄 Download PDF</button>
+            <button onclick="downloadAsPDF()" style="background: #dc2626;">📄 Save as PDF</button>
             <button onclick="downloadAsWord()" style="background: #2563eb;">📝 Download Word</button>
           </div>
         </div>
 
         <div class="header">
-          <h1 contenteditable="true" title="Click to edit school name">${schoolName}</h1>
-          <h2 contenteditable="true" title="Click to edit paper title">${subjectName} - Written Theory / Essay Examination</h2>
+          ${logoUrl ? `<img src="${logoUrl}" class="school-logo" alt="School Logo" />` : ''}
+          <h1>${schoolName}</h1>
+          <h2>${subjectName} - Written Theory / Essay Examination</h2>
         </div>
 
         <div class="meta-grid">
-          <div class="meta-item">Subject: <span contenteditable="true" title="Click to edit subject">${subjectName}</span></div>
-          <div class="meta-item">Class: <span contenteditable="true" title="Click to edit class">${className}</span></div>
-          <div class="meta-item">Term: <span contenteditable="true" title="Click to edit term">${termName}</span></div>
-          <div class="meta-item">Academic Session: <span contenteditable="true" title="Click to edit session">${sessionName}</span></div>
-          <div class="meta-item">Time Allowed: <span contenteditable="true" title="Click to edit duration">1 Hour 30 Minutes</span></div>
-          <div class="meta-item">Student Name: <span contenteditable="true" title="Click to edit name">__________________________</span></div>
+          <div class="meta-item">Subject: <strong>${subjectName}</strong></div>
+          <div class="meta-item">Class: <strong>${className}</strong></div>
+          <div class="meta-item">Term: <strong>${termName}</strong></div>
+          <div class="meta-item">Academic Session: <strong>${sessionName}</strong></div>
+          <div class="meta-item">Time Allowed: <strong>${timeAllowed}</strong></div>
+          <div class="meta-item">Student Name: __________________________</div>
         </div>
 
         <p style="font-weight: bold; font-size: 13px; font-style: italic; color: #334155; margin-bottom: 15px;">
-          Instruction: <span contenteditable="true">Answer all questions clearly in the space provided. Show all step-by-step working where applicable.</span>
+          Instruction: Answer all questions clearly in the space provided. Show all step-by-step working where applicable.
         </p>
         <hr style="margin-bottom: 20px; border: 0; border-top: 2px solid #e2e8f0;" />
 
@@ -677,14 +717,6 @@ const CBTQuestionBank = () => {
           `;
         }).join('')}
       <script>
-        function getDocContent() {
-          var noPrint = document.querySelector('.no-print');
-          if (noPrint) noPrint.style.display = 'none';
-          var content = document.documentElement.outerHTML;
-          if (noPrint) noPrint.style.display = '';
-          return content;
-        }
-
         function downloadAsPDF() {
           var noPrint = document.querySelector('.no-print');
           if (noPrint) noPrint.style.display = 'none';
@@ -714,19 +746,15 @@ const CBTQuestionBank = () => {
     printWindow.focus();
   };
 
-  // Generate theory paper HTML content for downloads
-  const generateTheoryPaperHTML = () => {
+  // Generate theory paper HTML content for direct downloads
+  const generateTheoryPaperHTML = (timeAllowed) => {
     const essayQuestions = questions.filter(q => q.questionType === 'essay');
-    if (essayQuestions.length === 0) {
-      toast.error('No Essay / Theory questions available. Add essay questions first.');
-      return null;
-    }
-
-    const subjectName = subjects.find(s => String(s.id) === String(filters.subjectId))?.name || 'General Subject';
-    const className = classes.find(c => String(c.id) === String(filters.classId))?.name || 'All Classes';
-    const termName = currentTerm?.name || 'Third Term';
-    const sessionName = currentSession?.name || '2025/2026 Academic Session';
-    const schoolName = schoolSettings?.schoolName || schoolSettings?.name || 'SCHOOL MANAGEMENT SYSTEM';
+    const subjectName = subjects.find(s => String(s.id) === String(filters.subjectId))?.name;
+    const className = classes.find(c => String(c.id) === String(filters.classId))?.name;
+    const termName = currentTerm?.name || '';
+    const sessionName = currentSession?.name || '';
+    const schoolName = schoolSettings?.schoolName || schoolSettings?.name || '';
+    const logoUrl = getLogoUrl();
 
     const questionsHTML = essayQuestions.map((q, idx) => {
       const { cleanText, diagramUrl, imageSize } = parseQuestionContent(q.questionText, q.imageUrl || q.attachmentUrl);
@@ -746,20 +774,21 @@ const CBTQuestionBank = () => {
     return {
       html: `
         <div style="text-align: center; border-bottom: 2px solid #1e1b4b; padding-bottom: 15px; margin-bottom: 25px;">
+          ${logoUrl ? `<img src="${logoUrl}" style="height: 70px; width: auto; max-width: 200px; object-fit: contain; margin-bottom: 8px;" alt="School Logo" />` : ''}
           <h1 style="margin: 0; font-size: 24px; text-transform: uppercase; color: #1e1b4b; font-weight: 800;">${schoolName}</h1>
           <h2 style="margin: 6px 0 0 0; font-size: 16px; color: #475569; font-weight: 600;">${subjectName} - Written Theory / Essay Examination</h2>
         </div>
         <table style="width: 100%; font-weight: 600; margin-bottom: 20px; font-size: 13px; border: 1px solid #e2e8f0; border-collapse: collapse;">
           <tr>
-            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Subject: ${subjectName}</td>
-            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Class: ${className}</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Subject: <strong>${subjectName}</strong></td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Class: <strong>${className}</strong></td>
           </tr>
           <tr>
-            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Term: ${termName}</td>
-            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Academic Session: ${sessionName}</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Term: <strong>${termName}</strong></td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Academic Session: <strong>${sessionName}</strong></td>
           </tr>
           <tr>
-            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Time Allowed: 1 Hour 30 Minutes</td>
+            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Time Allowed: <strong>${timeAllowed}</strong></td>
             <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Student Name: __________________________</td>
           </tr>
         </table>
@@ -776,8 +805,8 @@ const CBTQuestionBank = () => {
   };
 
   // Download Theory Paper as PDF using jsPDF + html rendering
-  const handleDownloadTheoryPDF = async () => {
-    const data = generateTheoryPaperHTML();
+  const handleDownloadTheoryPDF = async (timeAllowed) => {
+    const data = generateTheoryPaperHTML(timeAllowed);
     if (!data) return;
 
     toast.success('Generating PDF... Please wait.');
@@ -808,8 +837,8 @@ const CBTQuestionBank = () => {
   };
 
   // Download Theory Paper as Word Document (.doc)
-  const handleDownloadTheoryWord = () => {
-    const data = generateTheoryPaperHTML();
+  const handleDownloadTheoryWord = (timeAllowed) => {
+    const data = generateTheoryPaperHTML(timeAllowed);
     if (!data) return;
 
     const fullHTML = `
@@ -886,7 +915,7 @@ const CBTQuestionBank = () => {
             Export Bank
           </button>
           <button
-            onClick={handlePrintTheoryPaper}
+            onClick={() => validateAndOpenPrintSettings('print')}
             className="px-3.5 py-2 bg-slate-800 text-white rounded hover:bg-slate-900 transition text-sm font-medium flex items-center gap-1.5 shadow-sm"
             title="Print Theory Question Paper for Written Exams"
           >
@@ -894,7 +923,7 @@ const CBTQuestionBank = () => {
             Print Theory Paper
           </button>
           <button
-            onClick={() => handleDownloadTheoryPDF()}
+            onClick={() => validateAndOpenPrintSettings('pdf')}
             className="px-3.5 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm font-medium flex items-center gap-1.5 shadow-sm"
             title="Download Theory Paper as PDF"
           >
@@ -902,7 +931,7 @@ const CBTQuestionBank = () => {
             PDF
           </button>
           <button
-            onClick={() => handleDownloadTheoryWord()}
+            onClick={() => validateAndOpenPrintSettings('word')}
             className="px-3.5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm font-medium flex items-center gap-1.5 shadow-sm"
             title="Download Theory Paper as Word Document"
           >
@@ -1662,6 +1691,68 @@ const CBTQuestionBank = () => {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Print Settings Modal ── */}
+      {showPrintSettings && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5 animate-in fade-in zoom-in duration-150">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <Printer size={20} className="text-indigo-600" />
+                {printAction === 'print' ? 'Print' : printAction === 'pdf' ? 'Download PDF' : 'Download Word'} — Theory Paper
+              </h3>
+              <button onClick={() => setShowPrintSettings(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+                <X size={18} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Subject</label>
+                <div className="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-semibold text-gray-800">
+                  {subjects.find(s => String(s.id) === String(filters.subjectId))?.name || '—'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Class</label>
+                <div className="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-semibold text-gray-800">
+                  {classes.find(c => String(c.id) === String(filters.classId))?.name || '—'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">
+                  Time Allowed <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={printTimeAllowed}
+                  onChange={e => setPrintTimeAllowed(e.target.value)}
+                  placeholder="e.g. 1 Hour 30 Minutes"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition"
+                  autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter') handleConfirmPrint(); }}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                onClick={() => setShowPrintSettings(false)}
+                className="px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmPrint}
+                className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition flex items-center gap-2"
+              >
+                {printAction === 'print' ? <><Printer size={16} /> Print Paper</> : printAction === 'pdf' ? <><Download size={16} /> Download PDF</> : <><Download size={16} /> Download Word</>}
+              </button>
             </div>
           </div>
         </div>,
