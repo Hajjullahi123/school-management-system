@@ -892,21 +892,21 @@ const TermReportCard = () => {
                   <div className="grid grid-cols-[62%_37%] gap-2 mt-1">
                     <div className="grid grid-cols-[60%_40%] gap-0 border-2 border-black rounded-lg overflow-hidden divide-x-2 divide-black">
                       {/* DYNAMIC GRADE INFO */}
-                      <div className="p-2 text-[9px] bg-gray-50/50 leading-tight flex flex-col justify-center">
-                        <p className="font-black border-b border-black mb-1 uppercase text-gray-500 text-[8px]">Grading Legend</p>
-                        <div className="grid grid-cols-2 gap-x-2 font-bold">
+                      <div className="p-2 text-[9.5px] bg-gray-50/50 leading-tight flex flex-col justify-center">
+                        <p className="font-black border-b border-black mb-1 uppercase text-black text-[10px]">Grading Legend</p>
+                        <div className="grid grid-cols-2 gap-x-2 font-bold text-black">
                           {(() => {
                             try {
                               const scales = JSON.parse(schoolSettings?.gradingSystem || '[]');
                               return scales.sort((a, b) => b.min - a.min).map(s => (
-                                <span key={s.grade} className={s.grade === 'F' ? 'text-red-600' : ''}>{s.grade}: {s.min}-{s.max || 100}</span>
+                                <span key={s.grade} className={s.grade === 'F' ? 'text-red-600 font-black' : 'text-black'}>{s.grade}: {s.min}-{s.max || 100}</span>
                               ));
                             } catch (e) {
-                              return <span>Legend could not be loaded</span>;
+                              return <span className="text-black">Legend could not be loaded</span>;
                             }
                           })()}
                         </div>
-                        <p className="mt-1 border-t border-black/10 pt-1 text-[8px] italic">5: Exceptional, 4: Commendable, 3: Satisfactory, 2: Fair, 1: Poor</p>
+                        <p className="mt-1 border-t border-black/10 pt-1 text-[9px] font-bold text-black">5: Exceptional, 4: Commendable, 3: Satisfactory, 2: Fair, 1: Poor</p>
                       </div>
 
                       {/* POSITION & AVG */}
@@ -915,13 +915,13 @@ const TermReportCard = () => {
                         <div className="bg-white flex-1 grid grid-cols-2 divide-x divide-black/10">
                           {showPosition && (
                           <div className="flex flex-col items-center justify-center p-1">
-                            <span className="text-[7px] text-gray-400 uppercase font-black">Position</span>
-                            <span className="text-sm font-black italic">{data.termPosition || '-'} / {data.totalStudents || '-'}</span>
+                            <span className="text-[9px] text-black uppercase font-black">Position</span>
+                            <span className="text-sm font-black italic text-black">{data.termPosition || '-'} / {data.totalStudents || '-'}</span>
                           </div>
                           )}
                           <div className="flex flex-col items-center justify-center p-1">
-                            <span className="text-[7px] text-gray-400 uppercase font-black">Average</span>
-                            <span className="text-sm font-black italic">{data.termAverage !== null && data.termAverage !== undefined ? `${data.termAverage.toFixed(1)}%` : '-'}</span>
+                            <span className="text-[9px] text-black uppercase font-black">Average</span>
+                            <span className="text-sm font-black italic text-black">{data.termAverage !== null && data.termAverage !== undefined ? `${data.termAverage.toFixed(1)}%` : '-'}</span>
                           </div>
                         </div>
 
@@ -929,31 +929,31 @@ const TermReportCard = () => {
                         {data.passFailSummary?.show && (
                           <div className="border-t border-black grid grid-cols-2 divide-x divide-black/10 bg-white items-center py-0.5">
                              <div className="flex items-center justify-between px-2 h-full">
-                                <span className="text-[7px] font-black text-gray-400 uppercase">Passed</span>
-                                <span className="text-[10px] font-black text-emerald-700">{data.passFailSummary.totalPassed}</span>
+                                <span className="text-[9px] font-black text-black uppercase">Passed</span>
+                                <span className="text-[11px] font-black text-emerald-700">{data.passFailSummary.totalPassed}</span>
                              </div>
                              <div className="flex items-center justify-between px-2 h-full">
-                                <span className="text-[7px] font-black text-gray-400 uppercase">Failed</span>
-                                <span className="text-[10px] font-black text-red-600">{data.passFailSummary.totalFailed}</span>
+                                <span className="text-[9px] font-black text-black uppercase">Failed</span>
+                                <span className="text-[11px] font-black text-red-600">{data.passFailSummary.totalFailed}</span>
                              </div>
                           </div>
                         )}
 
                         <div className="border-t border-black p-1 flex items-center justify-between bg-emerald-50" style={{ backgroundColor: `${reportColor}10` }}>
-                          <span className="text-[10px] font-black uppercase text-gray-500">Overall Grade:</span>
-                          <span className="text-lg font-black text-emerald-800" style={{ color: reportColor }}>{data.overallGrade}</span>
+                          <span className="text-xs font-black uppercase text-black">Overall Grade:</span>
+                          <span className="text-xl font-black text-emerald-800" style={{ color: reportColor }}>{data.overallGrade}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-center justify-center border-2 border-black rounded-lg bg-gray-50/50 font-mono text-[7px] uppercase tracking-[0.3em] text-gray-700 relative overflow-hidden">
+                    <div className="flex flex-col items-center justify-center border-2 border-black rounded-lg bg-gray-100 font-mono text-[9px] uppercase tracking-[0.2em] text-black relative overflow-hidden">
                       <div className="absolute inset-0 flex items-center justify-center opacity-10">
                         <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                         </svg>
                       </div>
-                      <span className="z-10 bg-white px-2 font-black">Official Result Certification</span>
-                      <div className="absolute inset-x-0 h-[1px] bg-gray-200"></div>
+                      <span className="z-10 bg-white px-2 font-black text-black text-[9px]">Official Result Certification</span>
+                      <div className="absolute inset-x-0 h-[1px] bg-black/20"></div>
                     </div>
                   </div>
 
@@ -965,31 +965,31 @@ const TermReportCard = () => {
                       </div>
                       <div className="p-1.5 px-3 grid grid-cols-4 gap-2 text-center divide-x divide-black/10">
                         <div className="space-y-1">
-                          <p className="text-[8px] font-black text-gray-500 uppercase">Arrears (Opening)</p>
+                          <p className="text-[9px] font-black text-black uppercase">Arrears (Opening)</p>
                           <p className={`text-sm font-black ${data.feeSummary.openingBalance > 0 ? 'text-red-600' : 'text-gray-900'}`}>
                             ₦{data.feeSummary.openingBalance?.toLocaleString()}
                           </p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[8px] font-black text-gray-500 uppercase">Current Term Fee</p>
+                          <p className="text-[9px] font-black text-black uppercase">Current Term Fee</p>
                           <p className="text-sm font-black text-gray-900">
                             ₦{data.feeSummary.currentTermFee?.toLocaleString()}
                           </p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[8px] font-black text-gray-500 uppercase">Total Paid</p>
+                          <p className="text-[9px] font-black text-black uppercase">Total Paid</p>
                           <p className="text-sm font-black text-emerald-700">
                             ₦{data.feeSummary.totalPaid?.toLocaleString()}
                           </p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[8px] font-black text-gray-500 uppercase">Outstanding Balance</p>
+                          <p className="text-[9px] font-black text-black uppercase">Outstanding Balance</p>
                           <p className={`text-lg font-black leading-none ${data.feeSummary.grandTotal > 0 ? 'text-red-700' : 'text-emerald-700'}`}>
                             ₦{data.feeSummary.grandTotal?.toLocaleString()}
                           </p>
                         </div>
                       </div>
-                      <div className="px-3 pb-1 text-[7px] text-center italic text-gray-500 border-t border-black/5 pt-0.5">
+                      <div className="px-3 pb-1 text-[8.5px] text-center font-bold text-black border-t border-black/10 pt-0.5">
                         Note: Full payment is required for continued portal access.
                       </div>
                     </div>
@@ -999,33 +999,33 @@ const TermReportCard = () => {
                   <div className="border-2 border-black bg-white rounded-lg overflow-hidden mt-2">
                     <div className="grid grid-cols-2 divide-x-2 divide-black">
                       <div className="p-2 space-y-1">
-                        <p className="text-[10px] font-black uppercase text-gray-500">Form Master's Remark</p>
-                        <p className="text-xs font-medium italic leading-none min-h-[25px] flex items-center">
+                        <p className="text-xs font-black uppercase text-black">Form Master's Remark</p>
+                        <p className="text-xs font-medium italic leading-none min-h-[25px] flex items-center text-black">
                           "{data.formMasterRemark || 'No specific remark recorded.'}"
                         </p>
                         <div className="pt-1 border-t border-black/10 flex justify-between items-center">
-                          <span className="text-[9px] font-bold">Name: {data.student?.formMaster || '......................'}</span>
+                          <span className="text-[10px] font-black text-black">Name: {data.student?.formMaster || '......................'}</span>
                           <div className="flex items-center gap-1">
                             <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
-                            <span className="text-[7px] font-mono text-gray-400">VERIFIED</span>
+                            <span className="text-[8px] font-bold text-black">VERIFIED</span>
                           </div>
                         </div>
                       </div>
                       <div className="p-2 space-y-1">
-                        <p className="text-[10px] font-black uppercase text-gray-500">Principal's Remark</p>
-                        <p className="text-xs font-medium italic leading-none min-h-[25px] flex items-center">
+                        <p className="text-xs font-black uppercase text-black">Principal's Remark</p>
+                        <p className="text-xs font-medium italic leading-none min-h-[25px] flex items-center text-black">
                           "{data.principalRemark || 'Satisfactory result. Keep striving for excellence.'}"
                         </p>
-                        <div className="pt-1 border-t border-black/10 flex justify-between items-center text-[9px] font-bold">
+                        <div className="pt-1 border-t border-black/10 flex justify-between items-center text-[10px] font-black text-black">
                           <div>
-                            <span className="mr-1">Term Ends:</span>
-                            <span className="underline font-black">{data.term?.endDate ? formatDateVerbose(data.term.endDate) : '....................'}</span>
+                            <span className="mr-1 text-black font-black">Term Ends:</span>
+                            <span className="underline font-black text-black">{data.term?.endDate ? formatDateVerbose(data.term.endDate) : '....................'}</span>
                           </div>
                           <div>
-                            <span className="mr-1">Next Term Begins:</span>
-                            <span className="underline font-black">{data.term?.nextTermBegins ? formatDateVerbose(data.term.nextTermBegins) : '....................'}</span>
+                            <span className="mr-1 text-black font-black">Next Term Begins:</span>
+                            <span className="underline font-black text-black">{data.term?.nextTermBegins ? formatDateVerbose(data.term.nextTermBegins) : '....................'}</span>
                           </div>
                         </div>
                       </div>
@@ -1039,20 +1039,20 @@ const TermReportCard = () => {
                         {data.student?.formMasterSignatureUrl ? (
                           <img src={data.student.formMasterSignatureUrl.startsWith('data:') || data.student.formMasterSignatureUrl.startsWith('http') ? data.student.formMasterSignatureUrl : `${API_BASE_URL}${data.student.formMasterSignatureUrl}`} alt="Teacher Signature" className="h-[35px] w-auto mix-blend-multiply" />
                         ) : (
-                          <span className="font-signature italic text-lg">{data.student?.formMaster}</span>
+                          <span className="font-signature italic text-lg text-black">{data.student?.formMaster}</span>
                         )}
                       </div>
-                      <span className="text-[8px] font-black block uppercase text-gray-600">CLASS TEACHER'S SIGNATURE</span>
+                      <span className="text-[10px] font-black block uppercase text-black">CLASS TEACHER'S SIGNATURE</span>
                     </div>
                     <div className="space-y-1 text-center">
                       <div className="border-b-2 border-black py-0.5 min-h-[20px] flex items-center justify-center">
                         {data.term?.principalSignatureUrl ? (
                           <img src={data.term.principalSignatureUrl.startsWith('data:') || data.term.principalSignatureUrl.startsWith('http') ? data.term.principalSignatureUrl : `${API_BASE_URL}${data.term.principalSignatureUrl}`} alt="Principal Signature" className="h-[40px] w-auto mix-blend-multiply" />
                         ) : (
-                          <span className="text-[8px] text-gray-300 italic opacity-50 underline decoration-dotted">FOR OFFICIAL USE - PRINCIPAL</span>
+                          <span className="text-[9px] text-black font-bold underline decoration-dotted">FOR OFFICIAL USE - PRINCIPAL</span>
                         )}
                       </div>
-                      <span className="text-[8px] font-black block uppercase text-gray-600">PRINCIPAL'S SIGNATURE</span>
+                      <span className="text-[10px] font-black block uppercase text-black">PRINCIPAL'S SIGNATURE</span>
                     </div>
                   </div>
 
@@ -1069,19 +1069,19 @@ const TermReportCard = () => {
                         />
                       </div>
                       <div className="space-y-0.5">
-                        <div className="text-[8px] font-black text-slate-900 flex items-center gap-1 uppercase tracking-tighter">
+                        <div className="text-[9px] font-black text-black flex items-center gap-1 uppercase tracking-tighter">
                           <svg className="w-2.5 h-2.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M2.166 4.9L10 1.55l7.834 3.35a1 1 0 01.583.912v5.188a10 10 0 01-5.188 8.163l-3.229 1.737a1 1 0 01-.912 0l-3.229-1.737A10 10 0 011.583 11V5.812a1 1 0 01.583-.912z" clipRule="evenodd" />
                           </svg>
                           DIGITALLY VERIFIED REPORT
                         </div>
-                        <div className="text-[7px] font-bold text-gray-400 tracking-tight uppercase">Authentic Educational Credential</div>
+                        <div className="text-[8px] font-bold text-black tracking-tight uppercase">Authentic Educational Credential</div>
                       </div>
                     </div>
 
                     <div className="text-right">
-                      <div className="text-[8px] font-black text-slate-900 uppercase tracking-tighter">Academic Status</div>
-                      <div className="text-[7px] font-bold text-gray-400">TERM: {data.term?.name?.toUpperCase()} • GEN: {formatDateVerbose(new Date())}</div>
+                      <div className="text-[9px] font-black text-black uppercase tracking-tighter">Academic Status</div>
+                      <div className="text-[8px] font-bold text-black uppercase">TERM: {data.term?.name?.toUpperCase()} • GEN: {formatDateVerbose(new Date())}</div>
                     </div>
                   </div>
                 </div>
