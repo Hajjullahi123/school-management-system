@@ -289,7 +289,7 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="attendance" element={
-                <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
+                <ProtectedRoute roles={['admin', 'teacher', 'principal', 'examination_officer']}>
                   <Attendance />
                 </ProtectedRoute>
               } />
@@ -441,12 +441,12 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="my-class" element={
-                <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
+                <ProtectedRoute roles={['admin', 'teacher', 'principal', 'examination_officer']}>
                   <MyClass />
                 </ProtectedRoute>
               } />
               <Route path="my-students" element={
-                <ProtectedRoute roles={['admin', 'teacher', 'principal']}>
+                <ProtectedRoute roles={['admin', 'teacher', 'principal', 'examination_officer']}>
                   <MyStudents />
                 </ProtectedRoute>
               } />

@@ -33,11 +33,21 @@ async function getTopStudentForClass(schoolId, classItem, termId, sessionId) {
     }
   });
 
+  // Fetch valid subject IDs for this class
+  const classSubjects = await prisma.classSubject.findMany({
+    where: { classId: classItem.id, schoolId },
+    select: { subjectId: true }
+  });
+  const validSubjectIds = new Set(classSubjects.map(cs => cs.subjectId));
+
   const withAverages = students
     .map(s => {
-      if (s.results.length === 0) return null;
-      const total = s.results.reduce((sum, r) => sum + r.totalScore, 0);
-      return { ...s, average: total / s.results.length };
+      // Filter results to only include current class subjects
+      const filteredResults = s.results.filter(r => validSubjectIds.has(r.subjectId));
+      if (filteredResults.length === 0) return null;
+      const total = filteredResults.reduce((sum, r) => sum + r.totalScore, 0);
+      const divisor = Math.max(classSubjects.length, 1);
+      return { ...s, results: filteredResults, average: total / divisor };
     })
     .filter(Boolean);
 
@@ -190,9 +200,26 @@ router.get('/top-performers', async (req, res) => {
       }
       if (student.results.length === 0) return null;
 
-      const totalScore = student.results.reduce((sum, r) => sum + r.totalScore, 0);
-      const average = totalScore / student.results.length;
-      const bestSubjects = student.results
+      // Fetch valid subject IDs for this student's class
+      let validSubjectIds = null;
+      if (student.classId) {
+        const classSubjects = await prisma.classSubject.findMany({
+          where: { classId: student.classId, schoolId: finalSchoolId },
+          select: { subjectId: true }
+        });
+        validSubjectIds = new Set(classSubjects.map(cs => cs.subjectId));
+      }
+
+      // Filter results to only include current class subjects
+      const filteredResults = validSubjectIds
+        ? student.results.filter(r => validSubjectIds.has(r.subjectId))
+        : student.results;
+      if (filteredResults.length === 0) return null;
+
+      const totalScore = filteredResults.reduce((sum, r) => sum + r.totalScore, 0);
+      const divisor = validSubjectIds ? Math.max(validSubjectIds.size, 1) : filteredResults.length;
+      const average = totalScore / divisor;
+      const bestSubjects = filteredResults
         .slice().sort((a, b) => b.totalScore - a.totalScore)
         .slice(0, 3).map(r => r.subject.name).join(', ');
 
@@ -212,7 +239,7 @@ router.get('/top-performers', async (req, res) => {
         photo: student.user?.photoUrl || student.photoUrl || null,
         achievement,
         admissionNumber: student.admissionNumber,
-        totalSubjects: student.results.length
+        totalSubjects: filteredResults.length
       };
     });
 

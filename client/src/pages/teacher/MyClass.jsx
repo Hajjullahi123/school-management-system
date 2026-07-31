@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
+import { useAuth } from '../../context/AuthContext';
 
 const MyClass = () => {
   const [classData, setClassData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { settings: schoolSettings } = useSchoolSettings();
+  const { user } = useAuth();
+
+  // Exam officer class toggle state
+  const isExamOfficer = user?.role === 'examination_officer';
+  const unassignedClasses = user?.unassignedClasses || [];
+  const [selectedClassId, setSelectedClassId] = useState(null);
 
   // Grading State
   const [gradingStudent, setGradingStudent] = useState(null);
@@ -34,7 +41,7 @@ const MyClass = () => {
     fetchMyClass();
     fetchDomains();
     fetchCurrentTerm();
-  }, []);
+  }, [selectedClassId]);
 
   useEffect(() => {
     if (classData?.id && currentTerm?.id) {
@@ -172,7 +179,8 @@ const MyClass = () => {
 
   const fetchMyClass = async () => {
     try {
-      const response = await api.get('/api/classes/my-class');
+      const classIdParam = isExamOfficer && selectedClassId ? `?classId=${selectedClassId}` : '';
+      const response = await api.get(`/api/classes/my-class${classIdParam}`);
 
       if (response.status === 404) {
         const data = await response.json();
@@ -278,6 +286,39 @@ const MyClass = () => {
 
   return (
     <div className="space-y-6">
+      {/* Exam Officer Class Toggle */}
+      {isExamOfficer && unassignedClasses.length > 0 && (
+        <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 border border-indigo-200 rounded-xl p-4 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2 text-indigo-700">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              <span className="text-sm font-bold">Switch Class</span>
+            </div>
+            <select
+              value={selectedClassId || classData?.id || ''}
+              onChange={(e) => {
+                const newId = parseInt(e.target.value);
+                setSelectedClassId(newId);
+                setLoading(true);
+                setError(null);
+              }}
+              className="flex-1 sm:flex-none sm:min-w-[250px] px-4 py-2.5 bg-white border-2 border-indigo-300 rounded-lg text-sm font-semibold text-gray-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all cursor-pointer"
+            >
+              {unassignedClasses.map((cls) => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.name}{cls.arm ? ` ${cls.arm}` : ''}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-indigo-500 font-medium">
+              {unassignedClasses.length} class{unassignedClasses.length !== 1 ? 'es' : ''} without Form Master
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div className="flex items-center gap-4">
           {schoolSettings?.logoUrl && (
@@ -286,7 +327,11 @@ const MyClass = () => {
           <div>
             <h1 className="text-xl font-bold text-gray-900">Class Management</h1>
             <p className="text-sm text-gray-600">
-              Form Master: <span className="font-bold text-primary">{classData.name} {classData.arm}</span>
+              {isExamOfficer ? 'Managing' : 'Form Master'}:{' '}
+              <span className="font-bold text-primary">{classData.name} {classData.arm}</span>
+              {isExamOfficer && (
+                <span className="ml-2 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">Exam Officer</span>
+              )}
             </p>
           </div>
         </div>

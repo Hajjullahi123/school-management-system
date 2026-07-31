@@ -180,13 +180,17 @@ async function calculatePositions(prisma, classId, subjectId, termId, schoolId) 
 /**
  * Calculate student's average for a term (all subjects)
  */
-async function calculateStudentTermAverage(prisma, studentId, termId, schoolId, totalSubjectsCount = null) {
+async function calculateStudentTermAverage(prisma, studentId, termId, schoolId, totalSubjectsCount = null, validSubjectIds = null) {
+  const where = {
+    schoolId,
+    studentId,
+    termId
+  };
+  if (validSubjectIds && validSubjectIds.length > 0) {
+    where.subjectId = { in: validSubjectIds };
+  }
   const results = await prisma.result.findMany({
-    where: {
-      schoolId,
-      studentId,
-      termId
-    },
+    where,
     select: {
       totalScore: true
     }
@@ -202,13 +206,17 @@ async function calculateStudentTermAverage(prisma, studentId, termId, schoolId, 
 /**
  * Calculate student's cumulative average across all three terms
  */
-async function calculateStudentSessionAverage(prisma, studentId, academicSessionId, schoolId, totalSubjectsCount = null) {
+async function calculateStudentSessionAverage(prisma, studentId, academicSessionId, schoolId, totalSubjectsCount = null, validSubjectIds = null) {
+  const where = {
+    schoolId,
+    studentId,
+    academicSessionId
+  };
+  if (validSubjectIds && validSubjectIds.length > 0) {
+    where.subjectId = { in: validSubjectIds };
+  }
   const results = await prisma.result.findMany({
-    where: {
-      schoolId,
-      studentId,
-      academicSessionId
-    },
+    where,
     select: {
       totalScore: true
     }

@@ -85,7 +85,7 @@ const getFullUserPayload = async (userId, schoolId, role) => {
   if (!user) return null;
 
   // Perform essential lookups in parallel
-  const [unreadCount, formMasterClass, hasQuranAccess] = await Promise.all([
+  const [unreadCount, formMasterClass, hasQuranAccess, unassignedClasses] = await Promise.all([
     // Unread message count
     prisma.parentTeacherMessage.count({
       where: { receiverId: userId, isRead: false, schoolId: schoolId || undefined }
@@ -156,7 +156,17 @@ const getFullUserPayload = async (userId, schoolId, role) => {
         return !!quranSubject;
       }
       return false;
-    })()
+    })(),
+    // Unassigned classes for examination officer
+    role === 'examination_officer' ? prisma.class.findMany({
+      where: {
+        schoolId: schoolId || undefined,
+        isActive: true,
+        classTeacherId: null
+      },
+      select: { id: true, name: true, arm: true },
+      orderBy: [{ name: 'asc' }, { arm: 'asc' }]
+    }) : null
   ]);
 
   const parentProfile = user.Parent ? {
@@ -189,8 +199,9 @@ const getFullUserPayload = async (userId, schoolId, role) => {
     classesAsTeacher: user.classesAsTeacher,
     photoUrl: user.photoUrl,
     unreadMessageCount: unreadCount,
-    isFormMaster: !!formMasterClass,
-    formMasterClass: formMasterClass,
+    isFormMaster: !!formMasterClass || (role === 'examination_officer' && unassignedClasses && unassignedClasses.length > 0),
+    formMasterClass: formMasterClass || (unassignedClasses && unassignedClasses.length > 0 ? unassignedClasses[0] : null),
+    unassignedClasses: unassignedClasses || [],
     hasQuranAccess: hasQuranAccess,
     departmentAsHead: user.departmentAsHead
   };

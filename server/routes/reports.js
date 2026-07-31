@@ -137,12 +137,21 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Term not found' });
     }
 
-    // Fetch all results for this student in this term
+    // Fetch all subjects for the class to ensure all appear on report
+    const classSubjects = await prisma.classSubject.findMany({
+      where: { classId: student.classId, schoolId: req.schoolId },
+      include: { subject: true }
+    });
+    const validSubjectIds = classSubjects.map(cs => cs.subjectId);
+    const totalSubjectsCount = classSubjects.length || 1;
+
+    // Fetch all results for this student in this term (only for current class subjects)
     const results = await prisma.result.findMany({
       where: {
         studentId: parseInt(studentId),
         termId: parseInt(termId),
-        schoolId: req.schoolId
+        schoolId: req.schoolId,
+        subjectId: { in: validSubjectIds }
       },
       include: {
         subject: true
@@ -159,20 +168,14 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'This student is not assigned to any class. Please assign the student to a class first.' });
     }
 
-    // Fetch all subjects for the class to ensure all appear on report
-    const classSubjects = await prisma.classSubject.findMany({
-      where: { classId: student.classId, schoolId: req.schoolId },
-      include: { subject: true }
-    });
-    const totalSubjectsCount = classSubjects.length || results.length || 1;
-
     // Calculate term average based on all MUST-TAKE subjects in class
     const termAverage = await calculateStudentTermAverage(
       prisma,
       parseInt(studentId),
       parseInt(termId),
       req.schoolId,
-      totalSubjectsCount
+      totalSubjectsCount,
+      validSubjectIds
     );
 
     // Calculate term position (rank among classmates) using Competition Ranking (1,1,3)
@@ -183,7 +186,8 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         classId: student.classId,
         termId: parseInt(termId),
         schoolId: req.schoolId,
-        student: { status: 'active' }
+        student: { status: 'active' },
+        subjectId: { in: validSubjectIds }
       },
       _sum: {
         totalScore: true
@@ -434,11 +438,6 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       subjects: (() => {
         const uniqueSubjects = new Map();
         classSubjects.forEach(cs => uniqueSubjects.set(cs.subjectId, { id: cs.subjectId, name: cs.subject?.name }));
-        results.forEach(r => {
-          if (!uniqueSubjects.has(r.subjectId)) {
-            uniqueSubjects.set(r.subjectId, { id: r.subjectId, name: r.subject?.name });
-          }
-        });
         const combinedSubjects = Array.from(uniqueSubjects.values());
 
         return combinedSubjects.map(cs => {
@@ -905,12 +904,14 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       include: { subject: true }
     });
 
-    // Fetch ALL results for these students at once (efficient and consistent)
+    // Fetch ALL results for these students at once (only for current class subjects)
+    const validSubjectIds = classSubjects.map(cs => cs.subjectId);
     const allResults = await prisma.result.findMany({
       where: { 
         studentId: { in: students.map(s => s.id) }, 
         termId: parseInt(termId), 
-        schoolId: req.schoolId 
+        schoolId: req.schoolId,
+        subjectId: { in: validSubjectIds }
       },
       include: { subject: true }
     });
@@ -920,7 +921,8 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
       by: ['studentId'],
       where: {
         classId: parseInt(classId), termId: parseInt(termId), schoolId: req.schoolId,
-        student: { status: 'active' }
+        student: { status: 'active' },
+        subjectId: { in: validSubjectIds }
       },
       _sum: { totalScore: true },
       _count: { subjectId: true }
@@ -928,8 +930,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
 
     const sortedAverages = resultsSummary
       .map(entry => {
-        const studentSubjCount = Math.max(classSubjects.length, entry._count.subjectId, 1);
-        return { studentId: entry.studentId, average: (entry._sum.totalScore || 0) / studentSubjCount };
+        return { studentId: entry.studentId, average: (entry._sum.totalScore || 0) / Math.max(classSubjects.length, 1) };
       })
       .sort((a, b) => b.average - a.average);
 
@@ -1124,7 +1125,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
     const reports = students.map((student) => {
       try {
       const studentResults = allResults.filter(r => r.studentId === student.id);
-      const studentSubjCount = Math.max(classSubjects.length, studentResults.length, 1);
+      const studentSubjCount = Math.max(classSubjects.length, 1);
       const reportExtras = extrasMap[student.id];
       const rawAverage = (studentResults.reduce((sum, r) => sum + (r.totalScore || 0), 0)) / studentSubjCount;
       const termAverage = isNaN(rawAverage) ? 0 : rawAverage;
@@ -1193,11 +1194,6 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         subjects: (() => {
           const uniqueSubjects = new Map();
           classSubjects.forEach(cs => uniqueSubjects.set(cs.subjectId, { id: cs.subjectId, name: cs.subject?.name }));
-          studentResults.forEach(r => {
-            if (!uniqueSubjects.has(r.subjectId)) {
-              uniqueSubjects.set(r.subjectId, { id: r.subjectId, name: r.subject?.name });
-            }
-          });
           const combinedSubjects = Array.from(uniqueSubjects.values());
 
           return combinedSubjects.map(cs => {
@@ -1608,6 +1604,7 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       include: { subject: true }
     });
     const totalSubjectsCount = classSubjects.length || 1;
+    const validSubjectIds = classSubjects.map(cs => cs.subjectId);
 
     // Fetch results for all terms in this session
     const termsData = [];
@@ -1634,7 +1631,8 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
         where: {
           studentId: parseInt(studentId),
           termId: term.id,
-          schoolId: req.schoolId
+          schoolId: req.schoolId,
+          subjectId: { in: validSubjectIds }
         },
         include: {
           subject: true
@@ -1648,7 +1646,8 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
         parseInt(studentId),
         term.id,
         req.schoolId,
-        totalSubjectsCount
+        totalSubjectsCount,
+        validSubjectIds
       );
 
       // Map results to subjects map for side-by-side view
@@ -1691,7 +1690,8 @@ router.get('/cumulative/:studentId/:sessionId', authenticate, async (req, res) =
       parseInt(studentId),
       parseInt(sessionId),
       req.schoolId,
-      totalSubjectsCount * (termsWithResults || 1)
+      totalSubjectsCount * (termsWithResults || 1),
+      validSubjectIds
     );
 
     // Attendance (Session-wide)

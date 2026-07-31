@@ -81,7 +81,7 @@ const Layout = () => {
   };
 
   const menuItems = [];
-  const isFormMaster = (['teacher', 'principal'].includes(user?.role) && user?.classesAsTeacher && user.classesAsTeacher.length > 0) || isFormMasterDynamic || user?.isFormMaster;
+  const isFormMaster = (['teacher', 'principal'].includes(user?.role) && user?.classesAsTeacher && user.classesAsTeacher.length > 0) || isFormMasterDynamic || user?.isFormMaster || (user?.role === 'examination_officer' && user?.unassignedClasses?.length > 0);
 
 
   // Logic-based Dashboard Link

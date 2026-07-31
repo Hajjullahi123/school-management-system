@@ -64,12 +64,89 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// Get class assigned to the logged-in teacher
+// Get class assigned to the logged-in teacher (or unassigned class for exam officer)
 router.get('/my-class', authenticate, async (req, res) => {
   try {
     const userId = parseInt(req.user.id);
     const schoolId = parseInt(req.schoolId);
+    const userRole = req.user.role;
 
+    // Examination Officer: access classes without a form master
+    if (userRole === 'examination_officer') {
+      const requestedClassId = req.query.classId ? parseInt(req.query.classId) : null;
+
+      let whereClause = {
+        schoolId: schoolId,
+        isActive: true,
+        classTeacherId: null
+      };
+
+      // If a specific classId is requested, add it to the filter
+      if (requestedClassId) {
+        whereClause.id = requestedClassId;
+      }
+
+      const classData = await prisma.class.findFirst({
+        where: whereClause,
+        include: {
+          students: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  isActive: true
+                }
+              },
+              parent: {
+                select: {
+                  id: true,
+                  userId: true,
+                  phone: true,
+                  user: {
+                    select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                      email: true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          _count: {
+            select: { students: { where: { status: 'active' } } }
+          }
+        },
+        orderBy: [{ name: 'asc' }, { arm: 'asc' }]
+      });
+
+      if (!classData) {
+        return res.status(404).json({
+          message: requestedClassId
+            ? 'The requested class either has a form master assigned or does not exist'
+            : 'No unassigned classes found in this school',
+          debug: { userId, schoolId }
+        });
+      }
+
+      // Sort students alphabetically before returning
+      if (classData.students) {
+        classData.students.sort((a, b) => {
+          const nameA = `${a.user?.firstName || ''} ${a.user?.lastName || ''}`.trim().toLowerCase();
+          const nameB = `${b.user?.firstName || ''} ${b.user?.lastName || ''}`.trim().toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+      }
+
+      console.log(`[MY-CLASS] Exam officer userId=${userId} accessing unassigned class: ${classData.name} ${classData.arm || ''}`);
+      return res.json(classData);
+    }
+
+    // Standard teacher/principal form master flow
     console.log(`[MY-CLASS] Looking for class with classTeacherId=${userId}, schoolId=${schoolId}, user=${req.user.firstName} ${req.user.lastName}`);
 
     const classData = await prisma.class.findFirst({
@@ -382,7 +459,7 @@ router.delete('/:id', authenticate, authorize(['admin', 'sub_admin', 'principal'
 });
 
 // Toggle result publishing status
-router.put('/:id/publish-results', authenticate, authorize(['admin', 'sub_admin', 'teacher', 'principal']), async (req, res) => {
+router.put('/:id/publish-results', authenticate, authorize(['admin', 'sub_admin', 'teacher', 'principal', 'examination_officer']), async (req, res) => {
   try {
     const { id } = req.params;
     const { isPublished, isProgressivePublished, termId } = req.body;
@@ -396,6 +473,17 @@ router.put('/:id/publish-results', authenticate, authorize(['admin', 'sub_admin'
       });
       if (!classInfo || classInfo.classTeacherId !== req.user.id) {
         return res.status(403).json({ error: 'You can only publish results for your own class' });
+      }
+    }
+
+    // If examination officer, verify the class has no form master
+    if (req.user.role === 'examination_officer') {
+      const classInfo = await prisma.class.findFirst({
+        where: { id: classId, schoolId: req.schoolId },
+        select: { classTeacherId: true }
+      });
+      if (!classInfo || classInfo.classTeacherId !== null) {
+        return res.status(403).json({ error: 'You can only publish results for classes without a Form Master' });
       }
     }
 
