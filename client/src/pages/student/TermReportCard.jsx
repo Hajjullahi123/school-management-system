@@ -737,28 +737,28 @@ const TermReportCard = () => {
                   {/* STUDENT INFO TABLE */}
                   {layout === 'modern' ? (
                     <div className="grid grid-cols-3 gap-2 text-[10px] uppercase font-bold">
-                         <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                         <div className="bg-slate-200 p-2 rounded-xl border border-slate-300">
                            <p className="text-[8px] text-black font-black mb-0.5">FULL NAME</p>
                            <p className="text-xs break-words leading-tight text-black font-black">{getStudentDisplayName(data.student)}</p>
                          </div>
-                         <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                         <div className="bg-slate-200 p-2 rounded-xl border border-slate-300">
                            <p className="text-[8px] text-black font-black mb-0.5">ADMISSION NO</p>
                            <p className="text-xs text-black font-black">{data.student?.admissionNumber}</p>
                          </div>
-                         <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                         <div className="bg-slate-200 p-2 rounded-xl border border-slate-300">
                            <p className="text-[8px] text-black font-black mb-0.5">DATE OF BIRTH</p>
                            <p className="text-xs text-black font-black">{data.student?.dateOfBirth ? formatDateVerbose(data.student.dateOfBirth) : 'N/A'}</p>
                          </div>
-                         <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                         <div className="bg-slate-200 p-2 rounded-xl border border-slate-300">
                            <p className="text-[8px] text-black font-black mb-0.5">CLASS LEVEL</p>
                            <p className="text-xs text-black font-black">{data.student?.class}</p>
                          </div>
-                         <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                         <div className="bg-slate-200 p-2 rounded-xl border border-slate-300">
                            <p className="text-[8px] text-black font-black mb-0.5">AGE / GENDER</p>
                            <p className="text-xs text-black font-black">{data.student?.age || '-'} / {data.student?.gender || '-'}</p>
                          </div>
                          {showAttendance && (
-                         <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                         <div className="bg-slate-200 p-2 rounded-xl border border-slate-300">
                            <p className="text-[8px] text-black font-black mb-0.5">ATTENDANCE</p>
                            <p className="text-xs text-black font-black">{data.attendance?.present}/{data.attendance?.total}</p>
                          </div>

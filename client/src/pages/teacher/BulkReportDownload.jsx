@@ -482,48 +482,79 @@ const BulkReportDownload = () => {
                           </div>
 
                           {/* STUDENT INFO TABLE */}
-                          <table className="w-full border-2 border-black border-collapse text-sm font-bold uppercase">
-                            <tbody>
-                              <tr className="border-b border-black">
-                                <td className="border-r border-black p-0.5 w-[12%] text-[9px]">NAME:</td>
-                                <td className="border-r border-black p-0.5 w-[43%] font-black text-black">{data.student?.name}</td>
-                                <td className="border-r border-black p-0.5 w-[15%] text-[9px]">GENDER:</td>
-                                <td className="p-0.5 w-[30%]">{data.student?.gender}</td>
-                              </tr>
-                              <tr className="border-b border-black">
-                                <td className="border-r border-black p-0.5">CLASS:</td>
-                                <td className="border-r border-black p-0.5">{data.student?.class}</td>
-                                <td className="border-r border-black p-0.5">SESSION:</td>
-                                <td className="p-0.5">{data.term?.session}</td>
-                              </tr>
-                              <tr className="border-b border-black">
-                                <td className="border-r border-black p-0.5">ADM NO:</td>
-                                <td className="border-r border-black p-0.5">{data.student?.admissionNumber}</td>
-                                <td className="border-r border-black p-0.5">D.O.B:</td>
-                                <td className="p-0.5">{data.student?.dateOfBirth ? formatDateVerbose(data.student.dateOfBirth) : 'N/A'}</td>
-                              </tr>
-                              <tr className="border-b border-black">
-                                <td className="border-r border-black p-0.5">AGE:</td>
-                                <td className="border-r border-black p-0.5">{data.student?.age || '-'}</td>
-                                <td className="border-r border-black p-0.5">CLUB:</td>
-                                <td className="p-0.5">{data.student?.clubs !== 'None Assigned' ? data.student?.clubs : 'N/A'}</td>
-                              </tr>
+                          {layout === 'modern' ? (
+                            <div className="grid grid-cols-3 gap-2 text-[10px] uppercase font-bold">
+                              <div className="bg-slate-200 p-2 rounded-xl border border-slate-300">
+                                <p className="text-[8px] text-black font-black mb-0.5">FULL NAME</p>
+                                <p className="text-xs break-words leading-tight text-black font-black">{data.student?.name}</p>
+                              </div>
+                              <div className="bg-slate-200 p-2 rounded-xl border border-slate-300">
+                                <p className="text-[8px] text-black font-black mb-0.5">ADMISSION NO</p>
+                                <p className="text-xs text-black font-black">{data.student?.admissionNumber}</p>
+                              </div>
+                              <div className="bg-slate-200 p-2 rounded-xl border border-slate-300">
+                                <p className="text-[8px] text-black font-black mb-0.5">DATE OF BIRTH</p>
+                                <p className="text-xs text-black font-black">{data.student?.dateOfBirth ? formatDateVerbose(data.student.dateOfBirth) : 'N/A'}</p>
+                              </div>
+                              <div className="bg-slate-200 p-2 rounded-xl border border-slate-300">
+                                <p className="text-[8px] text-black font-black mb-0.5">CLASS LEVEL</p>
+                                <p className="text-xs text-black font-black">{data.student?.class}</p>
+                              </div>
+                              <div className="bg-slate-200 p-2 rounded-xl border border-slate-300">
+                                <p className="text-[8px] text-black font-black mb-0.5">AGE / GENDER</p>
+                                <p className="text-xs text-black font-black">{data.student?.age || '-'} / {data.student?.gender || '-'}</p>
+                              </div>
                               {showAttendance && (
-                                <tr>
-                                  <td className="border-r border-black p-1">ATTENDANCE:</td>
-                                  <td className="border-r border-black p-1 font-black text-black">{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
-                                  <td className="border-r border-black p-1">TERM:</td>
-                                  <td className="p-1">{data.term?.name}</td>
-                                </tr>
+                                <div className="bg-slate-200 p-2 rounded-xl border border-slate-300">
+                                  <p className="text-[8px] text-black font-black mb-0.5">ATTENDANCE</p>
+                                  <p className="text-xs text-black font-black">{data.attendance?.present}/{data.attendance?.total}</p>
+                                </div>
                               )}
-                              {!showAttendance && (
-                                <tr>
-                                  <td className="border-r border-black p-1">TERM:</td>
-                                  <td className="p-1" colSpan="3">{data.term?.name}</td>
+                            </div>
+                          ) : (
+                            <table className="w-full border-2 border-black border-collapse text-sm font-bold uppercase">
+                              <tbody>
+                                <tr className="border-b border-black">
+                                  <td className="border-r border-black p-0.5 w-[12%] text-[9px]">NAME:</td>
+                                  <td className="border-r border-black p-0.5 w-[43%] font-black text-black">{data.student?.name}</td>
+                                  <td className="border-r border-black p-0.5 w-[15%] text-[9px]">GENDER:</td>
+                                  <td className="p-0.5 w-[30%]">{data.student?.gender}</td>
                                 </tr>
-                              )}
-                            </tbody>
-                          </table>
+                                <tr className="border-b border-black">
+                                  <td className="border-r border-black p-0.5">CLASS:</td>
+                                  <td className="border-r border-black p-0.5">{data.student?.class}</td>
+                                  <td className="border-r border-black p-0.5">SESSION:</td>
+                                  <td className="p-0.5">{data.term?.session}</td>
+                                </tr>
+                                <tr className="border-b border-black">
+                                  <td className="border-r border-black p-0.5">ADM NO:</td>
+                                  <td className="border-r border-black p-0.5">{data.student?.admissionNumber}</td>
+                                  <td className="border-r border-black p-0.5">D.O.B:</td>
+                                  <td className="p-0.5">{data.student?.dateOfBirth ? formatDateVerbose(data.student.dateOfBirth) : 'N/A'}</td>
+                                </tr>
+                                <tr className="border-b border-black">
+                                  <td className="border-r border-black p-0.5">AGE:</td>
+                                  <td className="border-r border-black p-0.5">{data.student?.age || '-'}</td>
+                                  <td className="border-r border-black p-0.5">CLUB:</td>
+                                  <td className="p-0.5">{data.student?.clubs !== 'None Assigned' ? data.student?.clubs : 'N/A'}</td>
+                                </tr>
+                                {showAttendance && (
+                                  <tr>
+                                    <td className="border-r border-black p-1">ATTENDANCE:</td>
+                                    <td className="border-r border-black p-1 font-black text-black">{data.attendance?.present} / {data.attendance?.total} DAYS ({data.attendance?.percentage}%)</td>
+                                    <td className="border-r border-black p-1">TERM:</td>
+                                    <td className="p-1">{data.term?.name}</td>
+                                  </tr>
+                                )}
+                                {!showAttendance && (
+                                  <tr>
+                                    <td className="border-r border-black p-1">TERM:</td>
+                                    <td className="p-1" colSpan="3">{data.term?.name}</td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          )}
 
                           {/* ACADEMIC SECTION */}
                           <div className="grid grid-cols-[68%_31%] gap-2 items-stretch">
