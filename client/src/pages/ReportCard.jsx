@@ -166,11 +166,12 @@ const ReportCard = () => {
   };
 
   const renderRatingTicks = (score) => {
-    const rounded = Math.round(score);
+    const valNum = (score !== null && score !== undefined && !isNaN(parseFloat(score)) && parseFloat(score) > 0) ? parseFloat(score) : 3;
+    const rounded = Math.round(valNum);
     return (
       <>
         {[5, 4, 3, 2, 1].map(val => (
-          <td key={val} className="border border-black text-center w-6 h-6">
+          <td key={val} className="border border-black text-center w-6 h-6 font-black text-black">
             {rounded === val ? '✔' : ''}
           </td>
         ))}

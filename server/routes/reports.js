@@ -512,7 +512,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         const rating = ratings.find(r => r.domainId === d.id);
         return {
           name: d.name,
-          score: rating ? rating.score : null,
+          score: rating && rating.score !== null && rating.score !== undefined ? rating.score : 3,
           maxScore: d.maxScore || 5
         };
       }),
@@ -1258,7 +1258,7 @@ router.get('/bulk/:classId/:termId', authenticate, authorize(['admin', 'teacher'
         principalRemark: reportExtras?.principalRemark || (studentResults.length > 0 ? getRemark(getGrade(termAverage, schoolSettings.gradingSystem), schoolSettings.gradingSystem) : null),
         psychomotorRatings: psychomotorDomains.map(d => {
           const rating = Array.isArray(ratings) ? ratings.find(r => r.domainId === d.id) : null;
-          return { name: d.name, score: rating ? rating.score : null, maxScore: d.maxScore || 5 };
+          return { name: d.name, score: rating && rating.score !== null && rating.score !== undefined ? rating.score : 3, maxScore: d.maxScore || 5 };
         }),
         feeSummary: feeSummary,
         reportSettings: {
