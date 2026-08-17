@@ -297,7 +297,7 @@ const BulkReportDownload = () => {
     if (reports.length === 0 || downloadingPDF) return;
     setDownloadingPDF(true);
     setPdfProgress(0);
-    setPdfProgressLabel('Connecting to server...');
+    setPdfProgressLabel('Initializing PDF Engine...');
     cancelPdfRef.current = false;
 
     try {
@@ -305,75 +305,97 @@ const BulkReportDownload = () => {
       if (!printContent) throw new Error('No content to print');
 
       const title = getDocumentTitle();
-
-      const linkTags = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-        .map(link => link.outerHTML).join('\n');
-      let inlineStyles = '';
-      document.querySelectorAll('style').forEach(tag => {
-        inlineStyles += tag.innerHTML + '\n';
+      
+      // Initialize jsPDF (A4 size)
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
       });
 
-      const clone = printContent.cloneNode(true);
-      clone.querySelectorAll('.report-card-scaler').forEach(scaler => {
-        scaler.style.transform = 'none';
-        scaler.classList.remove('scale-[0.45]', 'scale-[0.55]');
-      });
-      clone.querySelectorAll('.report-card-mobile-wrapper').forEach(wrapper => {
-        wrapper.style.height = 'auto';
-        wrapper.style.overflow = 'visible';
-      });
-      clone.querySelectorAll('.no-print, .print-hidden').forEach(el => el.remove());
+      // Find all report card wrappers (each represents one page)
+      const cards = Array.from(printContent.children).filter(el => 
+        el.classList.contains('report-card-mobile-wrapper') || el.classList.contains('emerald-print-A4') || el.classList.contains('mb-20')
+      );
+      
+      if (cards.length === 0) throw new Error('No report cards found');
+      
+      const total = cards.length;
 
-      const htmlPayload = `<!DOCTYPE html><html><head><title>${title}</title>
-        ${linkTags}
-        <style>
-          ${inlineStyles}
-          @page { size: A4; margin: 0 !important; }
-          html, body { background: white !important; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          nav, header, footer, .sidebar, .no-print, .print-hidden { display: none !important; }
-          .report-card-scaler { transform: none !important; }
-          .report-card-mobile-wrapper { height: auto !important; overflow: visible !important; }
-        </style>
-      </head><body>${clone.outerHTML}</body></html>`;
+      for (let i = 0; i < total; i++) {
+        if (cancelPdfRef.current) throw new Error('Cancelled by user');
 
-      setPdfProgress(20);
-      setPdfProgressLabel('Generating PDF on server...');
+        setPdfProgress(Math.round((i / total) * 100));
+        setPdfProgressLabel(`Processing report ${i + 1} of ${total}...`);
+        
+        // Wait slightly to allow UI to update and GC to run
+        await new Promise(resolve => setTimeout(resolve, 50));
 
-      const response = await api.post('/api/reports/generate-pdf', {
-        html: htmlPayload,
-        title: title
-      }, {
-        responseType: 'blob'
-      });
+        const card = cards[i];
+        
+        // Target the inner scaler for rendering
+        const scaler = card.querySelector('.report-card-scaler');
+        const originalTransform = scaler ? scaler.style.transform : '';
+        
+        if (scaler) {
+          scaler.style.transform = 'none'; // Unscale for crisp capture
+        }
+        
+        const canvas = await html2canvas(card, {
+          scale: 1.5, // Good balance of quality and memory
+          useCORS: true,
+          logging: false,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        });
+        
+        if (scaler) {
+          scaler.style.transform = originalTransform; // Restore scale
+        }
 
-      setPdfProgress(90);
-      setPdfProgressLabel('Saving file...');
+        const imgData = canvas.toDataURL('image/jpeg', 0.85);
+        
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+        
+        // Clear canvas to free memory immediately
+        canvas.width = 0;
+        canvas.height = 0;
+      }
+
+      setPdfProgress(95);
+      setPdfProgressLabel('Saving file to device...');
+      
+      // Allow UI update before heavy save operation
+      await new Promise(resolve => setTimeout(resolve, 50));
       
       const fileName = `${title}.pdf`;
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      saveBlobAsFile(response.data, fileName, isMobile);
+      if (isMobile) {
+         const pdfBlob = pdf.output('blob');
+         saveBlobAsFile(pdfBlob, fileName, true);
+      } else {
+         pdf.save(fileName);
+      }
+
       setPdfProgress(100);
+      setPdfProgressLabel('Download Complete!');
 
     } catch (err) {
       console.error('Bulk PDF generation error:', err);
-      let errMsg = 'PDF generation failed on the server.';
-      if (err.response?.data instanceof Blob) {
-        try {
-          const text = await err.response.data.text();
-          const json = JSON.parse(text);
-          if (json.error) errMsg += ` (${json.error})`;
-        } catch (e) {}
-      } else if (err.response?.data?.error) {
-        errMsg += ` (${err.response.data.error})`;
+      if (err.message !== 'Cancelled by user') {
+        alert('Direct download failed due to device memory limits. Using print fallback...');
+        handlePrint();
       }
-      alert(`${errMsg} Using print fallback...`);
-      handlePrint();
     } finally {
-      setDownloadingPDF(false);
-      setPdfProgress(0);
-      setPdfProgressLabel('');
-      cancelPdfRef.current = false;
+      setTimeout(() => {
+        setDownloadingPDF(false);
+        setPdfProgress(0);
+        setPdfProgressLabel('');
+        cancelPdfRef.current = false;
+      }, 2000);
     }
   };
 
