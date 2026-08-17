@@ -10,6 +10,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { formatDateVerbose } from '../../utils/formatters';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import { pdf } from '@react-pdf/renderer';
+import { ReportCardPDFDocument } from '../../components/reports/ReportCardPDFDocument';
 
 const BulkReportDownload = () => {
   const { user } = useAuth();
@@ -296,97 +298,38 @@ const BulkReportDownload = () => {
   const handleDownloadPDF = async () => {
     if (reports.length === 0 || downloadingPDF) return;
     setDownloadingPDF(true);
-    setPdfProgress(0);
-    setPdfProgressLabel('Initializing PDF Engine...');
+    setPdfProgress(20);
+    setPdfProgressLabel('Generating Native Vector PDF...');
     cancelPdfRef.current = false;
 
     try {
-      const printContent = componentRef.current;
-      if (!printContent) throw new Error('No content to print');
-
       const title = getDocumentTitle();
-      
-      // Initialize jsPDF (A4 size)
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        compress: true
-      });
 
-      // Find all report card wrappers (each represents one page)
-      const cards = Array.from(printContent.children).filter(el => 
-        el.classList.contains('report-card-mobile-wrapper') || el.classList.contains('emerald-print-A4') || el.classList.contains('mb-20')
-      );
-      
-      if (cards.length === 0) throw new Error('No report cards found');
-      
-      const total = cards.length;
+      // Ultra-fast vector PDF generation in pure memory
+      const blob = await pdf(
+        <ReportCardPDFDocument reports={reports} schoolSettings={schoolSettings} />
+      ).toBlob();
 
-      for (let i = 0; i < total; i++) {
-        if (cancelPdfRef.current) throw new Error('Cancelled by user');
+      if (cancelPdfRef.current) throw new Error('Cancelled by user');
 
-        setPdfProgress(Math.round((i / total) * 100));
-        setPdfProgressLabel(`Processing report ${i + 1} of ${total}...`);
-        
-        // Wait slightly to allow UI to update and GC to run
-        await new Promise(resolve => setTimeout(resolve, 50));
-
-        const card = cards[i];
-        
-        // Target the inner scaler for rendering
-        const scaler = card.querySelector('.report-card-scaler');
-        const originalTransform = scaler ? scaler.style.transform : '';
-        
-        if (scaler) {
-          scaler.style.transform = 'none'; // Unscale for crisp capture
-        }
-        
-        const canvas = await html2canvas(card, {
-          scale: 1.5, // Good balance of quality and memory
-          useCORS: true,
-          logging: false,
-          allowTaint: true,
-          backgroundColor: '#ffffff'
-        });
-        
-        if (scaler) {
-          scaler.style.transform = originalTransform; // Restore scale
-        }
-
-        const imgData = canvas.toDataURL('image/jpeg', 0.85);
-        
-        if (i > 0) pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
-        
-        // Clear canvas to free memory immediately
-        canvas.width = 0;
-        canvas.height = 0;
-      }
-
-      setPdfProgress(95);
+      setPdfProgress(90);
       setPdfProgressLabel('Saving file to device...');
-      
-      // Allow UI update before heavy save operation
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
+
       const fileName = `${title}.pdf`;
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
       if (isMobile) {
-         const pdfBlob = pdf.output('blob');
-         saveBlobAsFile(pdfBlob, fileName, true);
+        saveBlobAsFile(blob, fileName, true);
       } else {
-         pdf.save(fileName);
+        saveAs(blob, fileName);
       }
 
       setPdfProgress(100);
       setPdfProgressLabel('Download Complete!');
-
     } catch (err) {
-      console.error('Bulk PDF generation error:', err);
+      console.error('Bulk Vector PDF generation error:', err);
       if (err.message !== 'Cancelled by user') {
-        alert('Direct download failed due to device memory limits. Using print fallback...');
+        alert('Direct PDF generation failed. Using print fallback...');
         handlePrint();
       }
     } finally {
@@ -395,7 +338,7 @@ const BulkReportDownload = () => {
         setPdfProgress(0);
         setPdfProgressLabel('');
         cancelPdfRef.current = false;
-      }, 2000);
+      }, 1000);
     }
   };
 
