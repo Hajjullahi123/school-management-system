@@ -410,55 +410,8 @@ const TermReportCard = () => {
     cancelPdfRef.current = true;
   };
 
-  const handleDownloadPDF = async () => {
-    if (downloading) return;
-    setDownloading(true);
-    setPdfProgress(15);
-    setPdfProgressLabel('Initializing Vector PDF Engine...');
-    cancelPdfRef.current = false;
-
-    try {
-      const title = getDocumentTitle();
-      const targetReports = Array.isArray(bulkReports) && bulkReports.length > 0 ? bulkReports : [reportData];
-
-      setPdfProgress(40);
-      setPdfProgressLabel('Compiling high-definition vector document...');
-
-      const blob = await pdf(
-        <ReportCardPDFDocument reports={targetReports} schoolSettings={schoolSettings} />
-      ).toBlob();
-
-      if (cancelPdfRef.current) throw new Error('Cancelled by user');
-
-      setPdfProgress(85);
-      setPdfProgressLabel('Saving file to device...');
-
-      const fileName = `${title}.pdf`;
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-      if (isMobile) {
-        saveBlobAsFile(blob, fileName, true);
-      } else {
-        saveAs(blob, fileName);
-      }
-
-      setPdfProgress(100);
-      setPdfProgressLabel('Download Complete!');
-    } catch (err) {
-      console.error('PDF generation error:', err);
-      if (err.message !== 'Cancelled by user') {
-        alert('Direct PDF generation encountered an issue. Using Print preview as fallback...');
-        printReport();
-      }
-    } finally {
-      document.body.classList.remove('is-generating-pdf');
-      setTimeout(() => {
-        setDownloading(false);
-        setPdfProgress(0);
-        setPdfProgressLabel('');
-        cancelPdfRef.current = false;
-      }, 800);
-    }
+  const handleDownloadPDF = () => {
+    printReport();
   };
 
   const sendWhatsApp = async (e) => {
