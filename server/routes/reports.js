@@ -33,6 +33,7 @@ router.post('/generate-pdf', authenticate, async (req, res) => {
     // Launch a headless browser instance
     const browser = await puppeteer.launch({
       headless: 'new',
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || (process.env.NODE_ENV === 'production' ? '/usr/bin/chromium' : undefined),
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',

@@ -361,7 +361,17 @@ const BulkReportDownload = () => {
 
     } catch (err) {
       console.error('Bulk PDF generation error:', err);
-      alert('PDF generation failed on the server. Using print fallback...');
+      let errMsg = 'PDF generation failed on the server.';
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const json = JSON.parse(text);
+          if (json.error) errMsg += ` (${json.error})`;
+        } catch (e) {}
+      } else if (err.response?.data?.error) {
+        errMsg += ` (${err.response.data.error})`;
+      }
+      alert(`${errMsg} Using print fallback...`);
       handlePrint();
     } finally {
       setDownloadingPDF(false);
