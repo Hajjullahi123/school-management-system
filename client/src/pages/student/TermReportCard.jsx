@@ -22,6 +22,9 @@ const TermReportCard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [downloading, setDownloading] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState(0);
+  const [pdfProgressLabel, setPdfProgressLabel] = useState('');
+  const cancelPdfRef = useRef(false);
 
   // WhatsApp states
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
@@ -337,14 +340,82 @@ const TermReportCard = () => {
     return `Report_Card_${termName}`;
   };
 
-  const printReport = useReactToPrint({ 
-    contentRef: printRef,
-    documentTitle: getDocumentTitle()
-  });
+  const printReport = () => {
+    const printContent = printRef.current;
+    if (!printContent) return;
+
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) {
+      alert('Please allow pop-ups to print reports.');
+      // Fallback
+      const oldTitle = document.title;
+      document.title = getDocumentTitle();
+      window.print();
+      document.title = oldTitle;
+      return;
+    }
+
+    const title = getDocumentTitle();
+
+    const linkTags = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+      .map(link => link.outerHTML).join('\n');
+    let inlineStyles = '';
+    document.querySelectorAll('style').forEach(tag => {
+      inlineStyles += tag.innerHTML + '\n';
+    });
+
+    const clone = printContent.cloneNode(true);
+
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
+      ${linkTags}
+      <style>
+        ${inlineStyles}
+        @page { size: A4; margin: 0 !important; }
+        html, body { background: white !important; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        nav, header, footer, .sidebar, .no-print, .print-hidden { display: none !important; }
+      </style>
+    </head><body></body></html>`);
+    printWindow.document.close();
+    printWindow.document.body.appendChild(clone);
+
+    const triggerPrint = () => {
+      printWindow.focus();
+      printWindow.print();
+      setTimeout(() => { try { printWindow.close(); } catch(e) {} }, 1500);
+    };
+
+    const images = Array.from(printWindow.document.querySelectorAll('img'));
+    if (images.length === 0) {
+      setTimeout(triggerPrint, 800);
+    } else {
+      let loaded = 0;
+      let triggered = false;
+      const onImgReady = () => {
+        loaded++;
+        if (loaded >= images.length && !triggered) {
+          triggered = true;
+          setTimeout(triggerPrint, 500);
+        }
+      };
+      images.forEach(img => {
+        if (img.complete) onImgReady();
+        else { img.onload = onImgReady; img.onerror = onImgReady; }
+      });
+      setTimeout(() => { if (!triggered) { triggered = true; triggerPrint(); } }, 8000);
+    }
+  };
+
+  const handleCancelPdf = () => {
+    cancelPdfRef.current = true;
+  };
 
   const handleDownloadPDF = async () => {
     if (downloading) return;
     setDownloading(true);
+    setPdfProgress(0);
+    setPdfProgressLabel('Initializing...');
+    cancelPdfRef.current = false;
+
     try {
       const cards = printRef.current?.querySelectorAll('.emerald-print-A4');
       if (!cards || cards.length === 0) {
@@ -361,18 +432,38 @@ const TermReportCard = () => {
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = 210;
       const pdfHeight = 297;
+      const totalReports = cards.length;
       
-      for (let i = 0; i < cards.length; i++) {
+      for (let i = 0; i < totalReports; i++) {
+        if (cancelPdfRef.current) {
+          setPdfProgressLabel('Cancelled');
+          break;
+        }
+
         const el = cards[i];
         
+        // Attempt to extract student name from the card DOM for the progress label
+        let studentName = `Report ${i + 1}`;
+        if (totalReports > 1 && bulkReports[i]?.student) {
+          studentName = getStudentDisplayName(bulkReports[i].student);
+        } else if (reportData?.student) {
+          studentName = getStudentDisplayName(reportData.student);
+        }
+        
+        setPdfProgressLabel(studentName);
+        setPdfProgress(Math.round((i / totalReports) * 100));
+
+        // Yield to browser
+        await new Promise(r => setTimeout(r, 0));
+
         // Temporarily force full-size rendering for accurate capture
         const originalStyle = el.getAttribute('style') || '';
         el.style.transform = 'none';
         el.style.width = '210mm';
         el.style.height = '297mm';
         
-        const canvas = await html2canvas(el, {
-          scale: 2,
+        let canvas = await html2canvas(el, {
+          scale: totalReports > 5 ? 1.5 : 2, // Use lower scale for bulk to save memory
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',
@@ -384,18 +475,33 @@ const TermReportCard = () => {
         
         el.setAttribute('style', originalStyle);
 
-        const imgData = canvas.toDataURL('image/jpeg', 0.92);
+        let imgData = canvas.toDataURL('image/jpeg', totalReports > 5 ? 0.72 : 0.92);
         if (i > 0) pdf.addPage();
         pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
+        // Release memory
+        canvas = null;
+        imgData = null;
+
+        setPdfProgress(Math.round(((i + 1) / totalReports) * 100));
       }
-      const fileName = `${getDocumentTitle()}.pdf`;
-      safeDocumentDownload(pdf, fileName);
+
+      if (!cancelPdfRef.current) {
+        setPdfProgressLabel('Saving file...');
+        await new Promise(r => setTimeout(r, 50));
+        const fileName = `${getDocumentTitle()}.pdf`;
+        safeDocumentDownload(pdf, fileName);
+      }
     } catch (err) {
       console.error('PDF generation error:', err);
       alert('PDF generation failed. Please use the Print button instead.');
+      printReport();
     } finally {
       document.body.classList.remove('is-generating-pdf');
       setDownloading(false);
+      setPdfProgress(0);
+      setPdfProgressLabel('');
+      cancelPdfRef.current = false;
     }
   };
 
@@ -443,10 +549,29 @@ const TermReportCard = () => {
     <div className="space-y-6 pb-20">
 
       {downloading && (
-        <div className="fixed inset-0 z-[99999] bg-slate-50 flex flex-col items-center justify-center print:hidden">
-          <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <h2 className="text-xl font-black text-slate-900 uppercase tracking-widest text-center px-4">Generating PDF Document</h2>
-          <p className="text-sm text-slate-500 mt-2 font-medium text-center px-4">Please wait while we format your report card...</p>
+        <div className="fixed inset-0 z-[99999] bg-slate-50/90 backdrop-blur-sm flex flex-col items-center justify-center print:hidden px-6">
+          <div className="w-full max-w-md bg-white p-8 rounded-[32px] shadow-2xl border border-slate-100 text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-indigo-500"></div>
+            
+            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-widest mb-2 mt-4">Generating PDF</h2>
+            <p className="text-sm text-slate-500 font-medium mb-8">Please wait while we format your document...</p>
+            
+            <div className="mb-2 flex justify-between items-center px-1">
+              <span className="text-xs font-bold text-slate-600 truncate mr-4">{pdfProgressLabel}</span>
+              <span className="text-sm font-black text-emerald-600">{pdfProgress}%</span>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-3 mb-8 overflow-hidden">
+              <div className="bg-emerald-500 h-3 rounded-full transition-all duration-300 ease-out" style={{ width: `${pdfProgress}%` }}></div>
+            </div>
+
+            <button 
+              onClick={handleCancelPdf}
+              className="px-6 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-2xl font-bold text-sm transition-all hover:scale-105 active:scale-95 mx-auto flex items-center gap-2 border border-red-100"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              Cancel Generation
+            </button>
+          </div>
         </div>
       )}
       {/* Header Section - Glassmorphism */}
