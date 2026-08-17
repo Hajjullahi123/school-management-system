@@ -1,11 +1,59 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image, Font, Svg, Path } from '@react-pdf/renderer';
+
+/* ──────────────────────────────────────────────────────────
+   FONT REGISTRATION
+   - Noto Sans: Latin text, numbers, and common symbols
+   - Noto Naskh Arabic: Arabic script (with Latin fallback)
+   Fonts are loaded from public/fonts/ for offline reliability.
+   ────────────────────────────────────────────────────────── */
+
+const getFontUrl = (fontPath) => {
+  if (typeof window !== 'undefined' && window.location && window.location.origin) {
+    return `${window.location.origin}${fontPath}`;
+  }
+  return fontPath;
+};
+
+Font.register({
+  family: 'Noto Sans',
+  fonts: [
+    { src: getFontUrl('/fonts/NotoSans-Regular.woff'), fontWeight: 400 },
+    { src: getFontUrl('/fonts/NotoSans-Bold.woff'), fontWeight: 700 },
+    { src: getFontUrl('/fonts/NotoSans-Italic.woff'), fontWeight: 400, fontStyle: 'italic' },
+  ]
+});
+
+Font.register({
+  family: 'Noto Naskh Arabic',
+  fonts: [
+    { src: getFontUrl('/fonts/NotoNaskhArabic-Regular.woff'), fontWeight: 400 },
+    { src: getFontUrl('/fonts/NotoNaskhArabic-Bold.woff'), fontWeight: 700 },
+  ]
+});
+
+// Disable automatic hyphenation (prevents text splitting issues)
+Font.registerHyphenationCallback(word => [word]);
+
+/* ──────────────────────────────────────────────────────────
+   HELPERS
+   ────────────────────────────────────────────────────────── */
+
+// Detect Arabic characters in a string
+const containsArabic = (text) => /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(String(text || ''));
+
+// SVG Checkmark component — font-independent, always renders crisp
+const CheckMark = () => (
+  <Svg width={6} height={6} viewBox="0 0 24 24">
+    <Path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="#000000" />
+  </Svg>
+);
 
 const styles = StyleSheet.create({
   page: {
     padding: 14,
     fontSize: 7.5,
-    fontFamily: 'Helvetica',
+    fontFamily: 'Noto Sans',
     backgroundColor: '#ffffff',
     color: '#000000',
     lineHeight: 1.15
@@ -19,6 +67,15 @@ const styles = StyleSheet.create({
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between'
+  },
+  watermark: {
+    position: 'absolute',
+    top: 250,
+    left: 150,
+    width: 300,
+    height: 300,
+    opacity: 0.05,
+    zIndex: -1
   },
   header: {
     flexDirection: 'row',
@@ -39,21 +96,24 @@ const styles = StyleSheet.create({
   },
   schoolName: {
     fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     textTransform: 'uppercase',
-    marginBottom: 1.5
+    marginBottom: 1.5,
+    textAlign: 'center'
   },
   schoolMotto: {
     fontSize: 7.5,
-    fontFamily: 'Helvetica-Oblique',
+    fontStyle: 'italic',
     color: '#333333',
     marginBottom: 1.5,
-    textTransform: 'uppercase'
+    textTransform: 'uppercase',
+    textAlign: 'center'
   },
   schoolContact: {
     fontSize: 6.5,
     color: '#555555',
-    marginBottom: 3
+    marginBottom: 3,
+    textAlign: 'center'
   },
   reportTitleContainer: {
     borderBottomWidth: 1.5,
@@ -64,7 +124,7 @@ const styles = StyleSheet.create({
   },
   reportTitle: {
     fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: 0.5
   },
@@ -86,7 +146,7 @@ const styles = StyleSheet.create({
   photoPlaceholder: {
     fontSize: 6,
     color: '#999999',
-    fontFamily: 'Helvetica-Bold'
+    fontWeight: 700
   },
 
   /* Student Info Modern Cards */
@@ -106,14 +166,14 @@ const styles = StyleSheet.create({
   },
   modernLabel: {
     fontSize: 5.5,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     color: '#475569',
     textTransform: 'uppercase',
     marginBottom: 1
   },
   modernValue: {
     fontSize: 7,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     color: '#0f172a',
     textTransform: 'uppercase'
   },
@@ -136,7 +196,7 @@ const styles = StyleSheet.create({
     width: '14%',
     padding: 2.5,
     backgroundColor: '#f1f5f9',
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     fontSize: 6.5,
     borderRightWidth: 0.5,
     borderRightColor: '#000000'
@@ -145,15 +205,13 @@ const styles = StyleSheet.create({
     width: '36%',
     padding: 2.5,
     fontSize: 7,
-    fontFamily: 'Helvetica',
     borderRightWidth: 0.5,
     borderRightColor: '#000000'
   },
   infoCellValueLast: {
     width: '36%',
     padding: 2.5,
-    fontSize: 7,
-    fontFamily: 'Helvetica'
+    fontSize: 7
   },
 
   /* Academic & Psychomotor Layout */
@@ -172,7 +230,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     color: '#ffffff',
     fontSize: 7,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     textAlign: 'center',
     paddingVertical: 2,
     textTransform: 'uppercase'
@@ -196,25 +254,25 @@ const styles = StyleSheet.create({
     minHeight: 11.5,
     alignItems: 'center'
   },
-  thSubject: { width: '38%', padding: 1.5, fontFamily: 'Helvetica-Bold', fontSize: 6 },
-  thScore: { width: '7%', textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 5.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
-  thTotal: { width: '9%', textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 6, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
-  thGrade: { width: '8%', textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 6, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
-  thPos: { width: '7%', textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 5.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
-  thRemark: { width: '17%', padding: 1, fontFamily: 'Helvetica-Bold', fontSize: 5.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
+  thSubject: { width: '38%', padding: 1.5, fontWeight: 700, fontSize: 6 },
+  thScore: { width: '7%', textAlign: 'center', fontWeight: 700, fontSize: 5.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
+  thTotal: { width: '9%', textAlign: 'center', fontWeight: 700, fontSize: 6, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
+  thGrade: { width: '8%', textAlign: 'center', fontWeight: 700, fontSize: 6, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
+  thPos: { width: '7%', textAlign: 'center', fontWeight: 700, fontSize: 5.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
+  thRemark: { width: '17%', padding: 1, fontWeight: 700, fontSize: 5.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
 
-  tdSubject: { width: '38%', paddingHorizontal: 2, fontFamily: 'Helvetica-Bold', fontSize: 6.5, textTransform: 'uppercase' },
+  tdSubject: { width: '38%', paddingHorizontal: 2, fontWeight: 700, fontSize: 6.5, textTransform: 'uppercase' },
   tdScore: { width: '7%', textAlign: 'center', fontSize: 6.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
-  tdTotal: { width: '9%', textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 6.5, borderLeftWidth: 0.5, borderLeftColor: '#000000', backgroundColor: '#f8fafc' },
-  tdGrade: { width: '8%', textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 6.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
+  tdTotal: { width: '9%', textAlign: 'center', fontWeight: 700, fontSize: 6.5, borderLeftWidth: 0.5, borderLeftColor: '#000000', backgroundColor: '#f8fafc' },
+  tdGrade: { width: '8%', textAlign: 'center', fontWeight: 700, fontSize: 6.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
   tdPos: { width: '7%', textAlign: 'center', fontSize: 6, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
-  tdRemark: { width: '17%', paddingHorizontal: 1.5, fontSize: 5.5, fontFamily: 'Helvetica-Oblique', borderLeftWidth: 0.5, borderLeftColor: '#000000' },
+  tdRemark: { width: '17%', paddingHorizontal: 1.5, fontSize: 5.5, fontStyle: 'italic', borderLeftWidth: 0.5, borderLeftColor: '#000000' },
 
   /* Psychomotor Table */
-  thDomain: { width: '65%', padding: 1.5, fontFamily: 'Helvetica-Bold', fontSize: 6 },
-  thDomainTick: { width: '7%', textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 5.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
-  tdDomain: { width: '65%', paddingHorizontal: 2, fontSize: 6, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase' },
-  tdDomainTick: { width: '7%', textAlign: 'center', fontSize: 6, fontFamily: 'Helvetica-Bold', borderLeftWidth: 0.5, borderLeftColor: '#000000' },
+  thDomain: { width: '65%', padding: 1.5, fontWeight: 700, fontSize: 6 },
+  thDomainTick: { width: '7%', textAlign: 'center', fontWeight: 700, fontSize: 5.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
+  tdDomain: { width: '65%', paddingHorizontal: 2, fontSize: 6, fontWeight: 700, textTransform: 'uppercase' },
+  tdDomainTick: { width: '7%', textAlign: 'center', fontSize: 6, fontWeight: 700, borderLeftWidth: 0.5, borderLeftColor: '#000000', alignItems: 'center', justifyContent: 'center' },
 
   /* Summary Section: 3 Columns */
   summarySection: {
@@ -232,7 +290,7 @@ const styles = StyleSheet.create({
   },
   legendTitle: {
     fontSize: 6.5,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     textTransform: 'uppercase',
     borderBottomWidth: 0.5,
     borderBottomColor: '#000000',
@@ -256,7 +314,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#7c3aed',
     color: '#ffffff',
     fontSize: 6.5,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     textAlign: 'center',
     paddingVertical: 1.5,
     textTransform: 'uppercase'
@@ -283,13 +341,13 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     fontSize: 5.5,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     color: '#444444',
     textTransform: 'uppercase'
   },
   statusVal: {
     fontSize: 7.5,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     marginTop: 0.5
   },
   overallGradeBox: {
@@ -312,7 +370,7 @@ const styles = StyleSheet.create({
   },
   certText: {
     fontSize: 6,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     textAlign: 'center',
     textTransform: 'uppercase',
     color: '#334155'
@@ -330,7 +388,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#7c3aed',
     color: '#ffffff',
     fontSize: 6.5,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     textAlign: 'center',
     paddingVertical: 1,
     textTransform: 'uppercase'
@@ -352,13 +410,13 @@ const styles = StyleSheet.create({
   },
   feeLabel: {
     fontSize: 5.5,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     color: '#555555',
     textTransform: 'uppercase'
   },
   feeValue: {
     fontSize: 7.5,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     marginTop: 0.5
   },
 
@@ -384,13 +442,13 @@ const styles = StyleSheet.create({
   },
   remarkTitle: {
     fontSize: 6.5,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     textTransform: 'uppercase',
     marginBottom: 1
   },
   remarkText: {
     fontSize: 6.5,
-    fontFamily: 'Helvetica-Oblique',
+    fontStyle: 'italic',
     minHeight: 12,
     color: '#111111'
   },
@@ -400,7 +458,7 @@ const styles = StyleSheet.create({
     paddingTop: 1.5,
     marginTop: 1.5,
     fontSize: 5.5,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     flexDirection: 'row',
     justifyContent: 'space-between'
   },
@@ -423,7 +481,7 @@ const styles = StyleSheet.create({
   },
   sigText: {
     fontSize: 8,
-    fontFamily: 'Helvetica-Oblique',
+    fontStyle: 'italic',
     marginBottom: 1
   },
   sigLine: {
@@ -434,7 +492,7 @@ const styles = StyleSheet.create({
   },
   sigLabel: {
     fontSize: 6,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     textTransform: 'uppercase'
   },
 
@@ -450,13 +508,13 @@ const styles = StyleSheet.create({
   },
   footerLeft: {
     fontSize: 5.5,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     color: '#059669',
     textTransform: 'uppercase'
   },
   footerRight: {
     fontSize: 5.5,
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
     color: '#64748b',
     textTransform: 'uppercase'
   }
@@ -501,6 +559,17 @@ const getGradingScales = (schoolSettings) => {
   }
 };
 
+/* ──────────────────────────────────────────────────────────
+   SmartText — renders text with the right fontFamily
+   based on whether it contains Arabic characters.
+   ────────────────────────────────────────────────────────── */
+const SmartText = ({ style, children, ...props }) => {
+  const text = typeof children === 'string' ? children : '';
+  const arabicFont = containsArabic(text);
+  const extraStyle = arabicFont ? { fontFamily: 'Noto Naskh Arabic', textAlign: 'right' } : {};
+  return <Text style={[style, extraStyle]} {...props}>{children}</Text>;
+};
+
 export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => {
   const scales = getGradingScales(schoolSettings);
   const legendStr = scales
@@ -529,8 +598,14 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
         const teacherSig = student.formMasterSignatureUrl;
         const principalSig = term.principalSignatureUrl || schoolSettings.principalSignatureUrl;
 
+        const studentName = getStudentDisplayName(student);
+        const className = student.class || data.className || 'N/A';
+
         return (
           <Page key={student.id || index} size="A4" style={styles.page}>
+            {logoUrl && (
+              <Image src={logoUrl} style={styles.watermark} />
+            )}
             <View style={[styles.outerBorder, { borderColor: layout !== 'minimal' ? reportColor : '#000000' }]}>
               {/* Header */}
               <View style={styles.header}>
@@ -542,8 +617,8 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   )}
                 </View>
                 <View style={styles.headerCenter}>
-                  <Text style={styles.schoolName}>{schoolSettings.schoolName || 'SCHOOL NAME'}</Text>
-                  <Text style={styles.schoolMotto}>{schoolSettings.schoolMotto || 'Excellence and Dedication'}</Text>
+                  <SmartText style={styles.schoolName}>{schoolSettings.schoolName || 'SCHOOL NAME'}</SmartText>
+                  <SmartText style={styles.schoolMotto}>{schoolSettings.schoolMotto || 'Excellence and Dedication'}</SmartText>
                   <Text style={styles.schoolContact}>
                     {schoolSettings.address || 'Address'} | TEL: {schoolSettings.phone || '000'} | {schoolSettings.email || ''}
                   </Text>
@@ -567,7 +642,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                 <View style={styles.modernGrid}>
                   <View style={styles.modernCard}>
                     <Text style={styles.modernLabel}>FULL NAME</Text>
-                    <Text style={styles.modernValue}>{getStudentDisplayName(student)}</Text>
+                    <SmartText style={styles.modernValue}>{studentName}</SmartText>
                   </View>
                   <View style={styles.modernCard}>
                     <Text style={styles.modernLabel}>ADMISSION NO</Text>
@@ -579,7 +654,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   </View>
                   <View style={styles.modernCard}>
                     <Text style={styles.modernLabel}>CLASS LEVEL</Text>
-                    <Text style={styles.modernValue}>{student.class || data.className || 'N/A'}</Text>
+                    <SmartText style={styles.modernValue}>{className}</SmartText>
                   </View>
                   <View style={styles.modernCard}>
                     <Text style={styles.modernLabel}>AGE / GENDER</Text>
@@ -604,13 +679,13 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                 <View style={styles.infoTable}>
                   <View style={styles.infoRow}>
                     <Text style={styles.infoCellLabel}>NAME:</Text>
-                    <Text style={[styles.infoCellValue, { fontFamily: 'Helvetica-Bold' }]}>{getStudentDisplayName(student)}</Text>
+                    <SmartText style={[styles.infoCellValue, { fontWeight: 700 }]}>{studentName}</SmartText>
                     <Text style={styles.infoCellLabel}>GENDER:</Text>
                     <Text style={styles.infoCellValueLast}>{student.gender || 'N/A'}</Text>
                   </View>
                   <View style={styles.infoRow}>
                     <Text style={styles.infoCellLabel}>CLASS:</Text>
-                    <Text style={styles.infoCellValue}>{student.class || data.className || 'N/A'}</Text>
+                    <SmartText style={styles.infoCellValue}>{className}</SmartText>
                     <Text style={styles.infoCellLabel}>SESSION:</Text>
                     <Text style={styles.infoCellValueLast}>{term.session || data.sessionName || 'N/A'}</Text>
                   </View>
@@ -651,7 +726,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                     </View>
                     {subjects.map((sub, sIdx) => (
                       <View key={sIdx} style={styles.tableRow}>
-                        <Text style={styles.tdSubject}>{sub.name || ''}</Text>
+                        <SmartText style={styles.tdSubject}>{sub.name || ''}</SmartText>
                         <Text style={styles.tdScore}>{sub.assignment1 ?? ''}</Text>
                         <Text style={styles.tdScore}>{sub.assignment2 ?? ''}</Text>
                         <Text style={styles.tdScore}>{sub.test1 ?? ''}</Text>
@@ -682,12 +757,12 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                       const score = Math.round(Number(trait.score) || 3);
                       return (
                         <View key={tIdx} style={styles.tableRow}>
-                          <Text style={styles.tdDomain}>{trait.name}</Text>
-                          <Text style={styles.tdDomainTick}>{score === 5 ? '✓' : ''}</Text>
-                          <Text style={styles.tdDomainTick}>{score === 4 ? '✓' : ''}</Text>
-                          <Text style={styles.tdDomainTick}>{score === 3 ? '✓' : ''}</Text>
-                          <Text style={styles.tdDomainTick}>{score === 2 ? '✓' : ''}</Text>
-                          <Text style={styles.tdDomainTick}>{score === 1 ? '✓' : ''}</Text>
+                          <SmartText style={styles.tdDomain}>{trait.name}</SmartText>
+                          <View style={styles.tdDomainTick}>{score === 5 ? <CheckMark /> : <Text> </Text>}</View>
+                          <View style={styles.tdDomainTick}>{score === 4 ? <CheckMark /> : <Text> </Text>}</View>
+                          <View style={styles.tdDomainTick}>{score === 3 ? <CheckMark /> : <Text> </Text>}</View>
+                          <View style={styles.tdDomainTick}>{score === 2 ? <CheckMark /> : <Text> </Text>}</View>
+                          <View style={styles.tdDomainTick}>{score === 1 ? <CheckMark /> : <Text> </Text>}</View>
                         </View>
                       );
                     })}
@@ -727,7 +802,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
 
                 <View style={styles.certBox}>
                   <Text style={styles.certText}>Official Result</Text>
-                  <Text style={[styles.certText, { fontFamily: 'Helvetica', fontSize: 5, marginTop: 1 }]}>Certification</Text>
+                  <Text style={[styles.certText, { fontWeight: 400, fontSize: 5, marginTop: 1 }]}>Certification</Text>
                 </View>
               </View>
 
@@ -738,20 +813,20 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   <View style={styles.feesRow}>
                     <View style={styles.feeCol}>
                       <Text style={styles.feeLabel}>Arrears</Text>
-                      <Text style={styles.feeValue}>₦{Number(feeSummary.openingBalance || 0).toLocaleString()}</Text>
+                      <Text style={styles.feeValue}>{'\u20A6'}{Number(feeSummary.openingBalance || 0).toLocaleString()}</Text>
                     </View>
                     <View style={styles.feeCol}>
                       <Text style={styles.feeLabel}>Term Fee</Text>
-                      <Text style={styles.feeValue}>₦{Number(feeSummary.currentTermFee || 0).toLocaleString()}</Text>
+                      <Text style={styles.feeValue}>{'\u20A6'}{Number(feeSummary.currentTermFee || 0).toLocaleString()}</Text>
                     </View>
                     <View style={styles.feeCol}>
                       <Text style={styles.feeLabel}>Total Paid</Text>
-                      <Text style={[styles.feeValue, { color: '#047857' }]}>₦{Number(feeSummary.totalPaid || 0).toLocaleString()}</Text>
+                      <Text style={[styles.feeValue, { color: '#047857' }]}>{'\u20A6'}{Number(feeSummary.totalPaid || 0).toLocaleString()}</Text>
                     </View>
                     <View style={styles.feeColLast}>
                       <Text style={styles.feeLabel}>Balance Due</Text>
                       <Text style={[styles.feeValue, { color: feeSummary.grandTotal > 0 ? '#b91c1c' : '#047857' }]}>
-                        ₦{Number(feeSummary.grandTotal || 0).toLocaleString()}
+                        {'\u20A6'}{Number(feeSummary.grandTotal || 0).toLocaleString()}
                       </Text>
                     </View>
                   </View>
@@ -763,7 +838,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                 <View style={styles.remarksRow}>
                   <View style={styles.remarkCol}>
                     <Text style={styles.remarkTitle}>Form Master's Remark</Text>
-                    <Text style={styles.remarkText}>"{data.formMasterRemark || 'No specific remark recorded.'}"</Text>
+                    <SmartText style={styles.remarkText}>"{data.formMasterRemark || 'No specific remark recorded.'}"</SmartText>
                     <View style={styles.remarkFooter}>
                       <Text>Teacher: {student.formMaster || '......................'}</Text>
                       <Text style={{ color: '#047857' }}>[VERIFIED]</Text>
@@ -771,7 +846,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   </View>
                   <View style={styles.remarkColLast}>
                     <Text style={styles.remarkTitle}>Principal's Remark</Text>
-                    <Text style={styles.remarkText}>"{data.principalRemark || 'Satisfactory performance. Keep striving for excellence.'}"</Text>
+                    <SmartText style={styles.remarkText}>"{data.principalRemark || 'Satisfactory performance. Keep striving for excellence.'}"</SmartText>
                     <View style={styles.remarkFooter}>
                       <Text>Term Ends: {formatDateVerbose(term.endDate)}</Text>
                       <Text>Next Term: {formatDateVerbose(term.nextTermBegins)}</Text>
@@ -807,7 +882,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
               {/* Document Verification Footer */}
               <View style={styles.footerBanner}>
                 <Text style={styles.footerLeft}>[DIGITALLY VERIFIED REPORT] AUTHENTIC EDUCATIONAL CREDENTIAL</Text>
-                <Text style={styles.footerRight}>TERM: {term.name?.toUpperCase() || ''} • GEN: {formatDateVerbose(new Date())}</Text>
+                <Text style={styles.footerRight}>TERM: {term.name?.toUpperCase() || ''} {'\u2022'} GEN: {formatDateVerbose(new Date())}</Text>
               </View>
             </View>
           </Page>
