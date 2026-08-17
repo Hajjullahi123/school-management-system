@@ -26,6 +26,9 @@ const BulkReportDownload = () => {
   const [loadingStudents, setLoadingStudents] = useState(false);
 
   const componentRef = useRef();
+  const [pdfProgress, setPdfProgress] = useState(0);
+  const [pdfProgressLabel, setPdfProgressLabel] = useState('');
+  const cancelPdfRef = useRef(false);
 
   useEffect(() => {
     fetchClasses();
@@ -206,26 +209,121 @@ const BulkReportDownload = () => {
   };
 
   const handlePrint = () => {
-    const oldTitle = document.title;
-    document.title = getDocumentTitle();
-    window.print();
-    document.title = oldTitle;
+    const printContent = componentRef.current;
+    if (!printContent || reports.length === 0) return;
+
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) {
+      alert('Please allow pop-ups to print bulk reports.');
+      // Fallback to in-page print
+      const oldTitle = document.title;
+      document.title = getDocumentTitle();
+      window.print();
+      document.title = oldTitle;
+      return;
+    }
+
+    const title = getDocumentTitle();
+
+    // Collect stylesheets from the current page
+    const linkTags = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+      .map(link => link.outerHTML).join('\n');
+    let inlineStyles = '';
+    document.querySelectorAll('style').forEach(tag => {
+      inlineStyles += tag.innerHTML + '\n';
+    });
+
+    // Clone the report container (static HTML, no React overhead)
+    const clone = printContent.cloneNode(true);
+    clone.querySelectorAll('.report-card-scaler').forEach(scaler => {
+      scaler.style.transform = 'none';
+      scaler.classList.remove('scale-[0.45]', 'scale-[0.55]');
+    });
+    clone.querySelectorAll('.report-card-mobile-wrapper').forEach(wrapper => {
+      wrapper.style.height = 'auto';
+      wrapper.style.overflow = 'visible';
+    });
+    clone.querySelectorAll('.no-print, .print-hidden').forEach(el => el.remove());
+
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
+      ${linkTags}
+      <style>
+        ${inlineStyles}
+        @page { size: A4; margin: 0 !important; }
+        html, body { background: white !important; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        nav, header, footer, .sidebar, .no-print, .print-hidden { display: none !important; }
+        .report-card-scaler { transform: none !important; }
+        .report-card-mobile-wrapper { height: auto !important; overflow: visible !important; }
+      </style>
+    </head><body></body></html>`);
+    printWindow.document.close();
+    printWindow.document.body.appendChild(clone);
+
+    // Wait for stylesheets and images, then trigger print
+    const triggerPrint = () => {
+      printWindow.focus();
+      printWindow.print();
+      setTimeout(() => { try { printWindow.close(); } catch(e) {} }, 1500);
+    };
+
+    const images = Array.from(printWindow.document.querySelectorAll('img'));
+    if (images.length === 0) {
+      setTimeout(triggerPrint, 800);
+    } else {
+      let loaded = 0;
+      let triggered = false;
+      const onImgReady = () => {
+        loaded++;
+        if (loaded >= images.length && !triggered) {
+          triggered = true;
+          setTimeout(triggerPrint, 500);
+        }
+      };
+      images.forEach(img => {
+        if (img.complete) onImgReady();
+        else { img.onload = onImgReady; img.onerror = onImgReady; }
+      });
+      // Fallback timeout in case images stall
+      setTimeout(() => { if (!triggered) { triggered = true; triggerPrint(); } }, 8000);
+    }
   };
 
   const [downloadingPDF, setDownloadingPDF] = useState(false);
 
+  const handleCancelPdf = () => {
+    cancelPdfRef.current = true;
+  };
+
   const handleDownloadPDF = async () => {
     if (reports.length === 0) return;
     setDownloadingPDF(true);
+    setPdfProgress(0);
+    setPdfProgressLabel('Initializing...');
+    cancelPdfRef.current = false;
+
     try {
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = 210;
       const pdfHeight = 297;
       const reportElements = componentRef.current?.querySelectorAll('.report-card-scaler > div') || [];
-      
-      for (let i = 0; i < reportElements.length; i++) {
+      const totalReports = reportElements.length;
+
+      for (let i = 0; i < totalReports; i++) {
+        // Check for cancellation
+        if (cancelPdfRef.current) {
+          setPdfProgressLabel('Cancelled');
+          break;
+        }
+
         const el = reportElements[i];
-        // Temporarily reset transform for capture
+        const studentName = reports[i]?.student?.name || `Report ${i + 1}`;
+        setPdfProgressLabel(studentName);
+        setPdfProgress(Math.round((i / totalReports) * 100));
+
+        // Yield to the browser so it stays responsive and can update the progress UI
+        await new Promise(r => setTimeout(r, 0));
+
+        // Temporarily reset transform for accurate capture
         const parent = el.parentElement;
         const origTransform = parent?.style.transform;
         const hadScale045 = parent?.classList.contains('scale-[0.45]');
@@ -235,16 +333,16 @@ const BulkReportDownload = () => {
           parent.classList.remove('scale-[0.45]', 'scale-[0.55]');
           parent.classList.add('scale-100');
         }
-        
-        const canvas = await html2canvas(el, {
-          scale: 2,
+
+        let canvas = await html2canvas(el, {
+          scale: 1.5,
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',
           width: el.scrollWidth,
           height: el.scrollHeight,
         });
-        
+
         // Restore transform
         if (parent) {
           parent.style.transform = origTransform || '';
@@ -252,20 +350,33 @@ const BulkReportDownload = () => {
           if (hadScale045) parent.classList.add('scale-[0.45]');
           if (hadScale055) parent.classList.add('scale-[0.55]');
         }
-        
-        const imgData = canvas.toDataURL('image/jpeg', 0.85);
+
+        let imgData = canvas.toDataURL('image/jpeg', 0.72);
         if (i > 0) pdf.addPage();
         pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
+        // Release memory so GC can reclaim between iterations
+        canvas = null;
+        imgData = null;
+
+        setPdfProgress(Math.round(((i + 1) / totalReports) * 100));
       }
-      
-      const fileName = `${getDocumentTitle()}.pdf`;
-      safeDocumentDownload(pdf, fileName);
+
+      if (!cancelPdfRef.current) {
+        setPdfProgressLabel('Saving file...');
+        await new Promise(r => setTimeout(r, 50));
+        const fileName = `${getDocumentTitle()}.pdf`;
+        safeDocumentDownload(pdf, fileName);
+      }
     } catch (err) {
       console.error('Bulk PDF generation error:', err);
       alert('PDF generation failed on this device. Using print fallback...');
       handlePrint();
     } finally {
       setDownloadingPDF(false);
+      setPdfProgress(0);
+      setPdfProgressLabel('');
+      cancelPdfRef.current = false;
     }
   };
 
@@ -285,22 +396,40 @@ const BulkReportDownload = () => {
           </div>
           
           {reports.length > 0 && (
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button 
-                onClick={handleDownloadPDF} 
-                disabled={downloadingPDF}
-                className="group/btn bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-3 border border-emerald-500"
-              >
-                {downloadingPDF ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
-                ) : (
+            <div className="flex flex-col sm:flex-row gap-3 items-center">
+              {downloadingPDF ? (
+                <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm px-6 py-3 rounded-[24px] border border-white/20 min-w-[280px]">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-[9px] font-black text-white/80 uppercase tracking-widest">Generating PDF</span>
+                      <span className="text-xs font-black text-white">{pdfProgress}%</span>
+                    </div>
+                    <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                      <div className="bg-emerald-400 h-2 rounded-full transition-all duration-300 ease-out" style={{ width: `${pdfProgress}%` }}></div>
+                    </div>
+                    <p className="text-[8px] text-white/60 font-bold mt-1 truncate">{pdfProgressLabel}</p>
+                  </div>
+                  <button 
+                    onClick={handleCancelPdf} 
+                    className="text-white/70 hover:text-red-300 transition-colors p-1.5 rounded-lg hover:bg-white/10 flex-shrink-0"
+                    title="Cancel"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={handleDownloadPDF} 
+                  className="group/btn bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border border-emerald-500"
+                >
                   <span>💾</span>
-                )}
-                Download PDF Bundle
-              </button>
+                  Download PDF Bundle
+                </button>
+              )}
               <button 
                 onClick={handlePrint} 
-                className="group/btn bg-white text-primary px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white"
+                disabled={downloadingPDF}
+                className="group/btn bg-white text-primary px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-3 border border-white"
               >
                 <Printer className="w-5 h-5 transition-transform group-hover/btn:rotate-12" />
                 Print All {reports.length} Reports
@@ -840,21 +969,39 @@ const BulkReportDownload = () => {
           </div>
           {reports.length > 0 && (
             <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-8 print:hidden">
-              <button 
-                onClick={handleDownloadPDF} 
-                disabled={downloadingPDF}
-                className="group/btn bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-3 border border-emerald-500 w-full sm:w-auto"
-              >
-                {downloadingPDF ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
-                ) : (
+              {downloadingPDF ? (
+                <div className="flex items-center gap-3 bg-slate-100 px-6 py-4 rounded-[24px] border border-slate-200 min-w-[300px] w-full sm:w-auto">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Generating PDF</span>
+                      <span className="text-xs font-black text-slate-800">{pdfProgress}%</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                      <div className="bg-emerald-500 h-2.5 rounded-full transition-all duration-300 ease-out" style={{ width: `${pdfProgress}%` }}></div>
+                    </div>
+                    <p className="text-[8px] text-slate-400 font-bold mt-1 truncate">{pdfProgressLabel}</p>
+                  </div>
+                  <button 
+                    onClick={handleCancelPdf} 
+                    className="text-slate-400 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50 flex-shrink-0"
+                    title="Cancel PDF Generation"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={handleDownloadPDF} 
+                  className="group/btn bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border border-emerald-500 w-full sm:w-auto"
+                >
                   <span>💾</span>
-                )}
-                Download PDF Bundle
-              </button>
+                  Download PDF Bundle
+                </button>
+              )}
               <button 
                 onClick={handlePrint} 
-                className="group/btn bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border border-slate-800 w-full sm:w-auto"
+                disabled={downloadingPDF}
+                className="group/btn bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-3 border border-slate-800 w-full sm:w-auto"
               >
                 <Printer className="w-5 h-5 transition-transform group-hover/btn:rotate-12" />
                 Print All {reports.length} Reports
