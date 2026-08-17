@@ -11,9 +11,10 @@ const styles = StyleSheet.create({
     lineHeight: 1.15
   },
   outerBorder: {
-    borderWidth: 2,
-    borderColor: '#000000',
-    padding: 6,
+    borderWidth: 3,
+    borderColor: '#7c3aed',
+    borderRadius: 8,
+    padding: 8,
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
@@ -23,55 +24,54 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
-    paddingBottom: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000'
+    marginBottom: 6,
+    paddingBottom: 4
   },
   headerLogo: {
-    width: 48,
-    height: 48,
+    width: 52,
+    height: 52,
     objectFit: 'contain'
   },
   headerCenter: {
     flex: 1,
     textAlign: 'center',
-    paddingHorizontal: 6
+    paddingHorizontal: 8
   },
   schoolName: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
-    marginBottom: 1
+    marginBottom: 1.5
   },
   schoolMotto: {
-    fontSize: 7,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Oblique',
     color: '#333333',
-    marginBottom: 1
+    marginBottom: 1.5,
+    textTransform: 'uppercase'
   },
   schoolContact: {
-    fontSize: 6,
+    fontSize: 6.5,
     color: '#555555',
-    marginBottom: 2
+    marginBottom: 3
   },
   reportTitleContainer: {
-    marginTop: 2,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#7c3aed',
     alignSelf: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingBottom: 1
   },
   reportTitle: {
-    fontSize: 8.5,
+    fontSize: 9,
     fontFamily: 'Helvetica-Bold',
-    textTransform: 'uppercase'
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
   },
   photoBox: {
-    width: 48,
-    height: 54,
-    borderWidth: 1,
+    width: 52,
+    height: 58,
+    borderWidth: 1.5,
     borderColor: '#000000',
     backgroundColor: '#f8fafc',
     alignItems: 'center',
@@ -89,11 +89,40 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold'
   },
 
-  /* Student Info Table */
+  /* Student Info Modern Cards */
+  modernGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginBottom: 6
+  },
+  modernCard: {
+    width: '32.4%',
+    backgroundColor: '#e2e8f0',
+    borderRadius: 6,
+    borderWidth: 0.5,
+    borderColor: '#cbd5e1',
+    padding: 3.5
+  },
+  modernLabel: {
+    fontSize: 5.5,
+    fontFamily: 'Helvetica-Bold',
+    color: '#475569',
+    textTransform: 'uppercase',
+    marginBottom: 1
+  },
+  modernValue: {
+    fontSize: 7,
+    fontFamily: 'Helvetica-Bold',
+    color: '#0f172a',
+    textTransform: 'uppercase'
+  },
+
+  /* Classic Info Table */
   infoTable: {
     borderWidth: 1,
     borderColor: '#000000',
-    marginBottom: 4
+    marginBottom: 6
   },
   infoRow: {
     flexDirection: 'row',
@@ -105,7 +134,7 @@ const styles = StyleSheet.create({
   },
   infoCellLabel: {
     width: '14%',
-    padding: 2,
+    padding: 2.5,
     backgroundColor: '#f1f5f9',
     fontFamily: 'Helvetica-Bold',
     fontSize: 6.5,
@@ -114,7 +143,7 @@ const styles = StyleSheet.create({
   },
   infoCellValue: {
     width: '36%',
-    padding: 2,
+    padding: 2.5,
     fontSize: 7,
     fontFamily: 'Helvetica',
     borderRightWidth: 0.5,
@@ -122,22 +151,22 @@ const styles = StyleSheet.create({
   },
   infoCellValueLast: {
     width: '36%',
-    padding: 2,
+    padding: 2.5,
     fontSize: 7,
     fontFamily: 'Helvetica'
   },
 
-  /* Academic & Psychomotor Body */
+  /* Academic & Psychomotor Layout */
   mainBody: {
     flexDirection: 'row',
-    gap: 4,
-    marginBottom: 4
+    gap: 5,
+    marginBottom: 5
   },
   academicColumn: {
-    width: '68%'
+    width: '69%'
   },
   psychomotorColumn: {
-    width: '32%'
+    width: '31%'
   },
   sectionBanner: {
     backgroundColor: '#000000',
@@ -164,7 +193,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderBottomWidth: 0.5,
     borderBottomColor: '#000000',
-    minHeight: 11,
+    minHeight: 11.5,
     alignItems: 'center'
   },
   thSubject: { width: '38%', padding: 1.5, fontFamily: 'Helvetica-Bold', fontSize: 6 },
@@ -174,29 +203,30 @@ const styles = StyleSheet.create({
   thPos: { width: '7%', textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 5.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
   thRemark: { width: '17%', padding: 1, fontFamily: 'Helvetica-Bold', fontSize: 5.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
 
-  tdSubject: { width: '38%', paddingHorizontal: 1.5, fontFamily: 'Helvetica-Bold', fontSize: 6.5, textTransform: 'uppercase' },
+  tdSubject: { width: '38%', paddingHorizontal: 2, fontFamily: 'Helvetica-Bold', fontSize: 6.5, textTransform: 'uppercase' },
   tdScore: { width: '7%', textAlign: 'center', fontSize: 6.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
   tdTotal: { width: '9%', textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 6.5, borderLeftWidth: 0.5, borderLeftColor: '#000000', backgroundColor: '#f8fafc' },
   tdGrade: { width: '8%', textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 6.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
   tdPos: { width: '7%', textAlign: 'center', fontSize: 6, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
-  tdRemark: { width: '17%', paddingHorizontal: 1, fontSize: 5.5, fontFamily: 'Helvetica-Oblique', borderLeftWidth: 0.5, borderLeftColor: '#000000' },
+  tdRemark: { width: '17%', paddingHorizontal: 1.5, fontSize: 5.5, fontFamily: 'Helvetica-Oblique', borderLeftWidth: 0.5, borderLeftColor: '#000000' },
 
   /* Psychomotor Table */
   thDomain: { width: '65%', padding: 1.5, fontFamily: 'Helvetica-Bold', fontSize: 6 },
   thDomainTick: { width: '7%', textAlign: 'center', fontFamily: 'Helvetica-Bold', fontSize: 5.5, borderLeftWidth: 0.5, borderLeftColor: '#000000' },
-  tdDomain: { width: '65%', paddingHorizontal: 1.5, fontSize: 6, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase' },
+  tdDomain: { width: '65%', paddingHorizontal: 2, fontSize: 6, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase' },
   tdDomainTick: { width: '7%', textAlign: 'center', fontSize: 6, fontFamily: 'Helvetica-Bold', borderLeftWidth: 0.5, borderLeftColor: '#000000' },
 
-  /* Summary Grid */
+  /* Summary Section: 3 Columns */
   summarySection: {
     flexDirection: 'row',
     gap: 4,
-    marginBottom: 3
+    marginBottom: 4
   },
   legendBox: {
-    width: '60%',
+    width: '40%',
     borderWidth: 1,
     borderColor: '#000000',
+    borderRadius: 4,
     padding: 3,
     backgroundColor: '#fafafa'
   },
@@ -215,13 +245,15 @@ const styles = StyleSheet.create({
     lineHeight: 1.2
   },
   statusBox: {
-    width: '40%',
+    width: '35%',
     borderWidth: 1,
     borderColor: '#000000',
+    borderRadius: 4,
+    overflow: 'hidden',
     flexDirection: 'column'
   },
   statusHeader: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#7c3aed',
     color: '#ffffff',
     fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
@@ -256,28 +288,46 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase'
   },
   statusVal: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
     marginTop: 0.5
   },
   overallGradeBox: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#f8fafc',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 4,
-    paddingVertical: 2
+    paddingVertical: 1.5
+  },
+  certBox: {
+    width: '25%',
+    borderWidth: 1,
+    borderColor: '#000000',
+    borderRadius: 4,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4
+  },
+  certText: {
+    fontSize: 6,
+    fontFamily: 'Helvetica-Bold',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    color: '#334155'
   },
 
   /* Financial Standing */
   feesBox: {
     borderWidth: 1,
     borderColor: '#000000',
-    marginBottom: 3,
+    borderRadius: 4,
+    marginBottom: 4,
     backgroundColor: '#fdfdfd'
   },
   feesHeader: {
-    backgroundColor: '#047857',
+    backgroundColor: '#7c3aed',
     color: '#ffffff',
     fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
@@ -316,7 +366,8 @@ const styles = StyleSheet.create({
   remarksBox: {
     borderWidth: 1,
     borderColor: '#000000',
-    marginBottom: 3
+    borderRadius: 4,
+    marginBottom: 4
   },
   remarksRow: {
     flexDirection: 'row'
@@ -340,14 +391,14 @@ const styles = StyleSheet.create({
   remarkText: {
     fontSize: 6.5,
     fontFamily: 'Helvetica-Oblique',
-    minHeight: 14,
+    minHeight: 12,
     color: '#111111'
   },
   remarkFooter: {
     borderTopWidth: 0.5,
     borderTopColor: '#cccccc',
-    paddingTop: 1,
-    marginTop: 1,
+    paddingTop: 1.5,
+    marginTop: 1.5,
     fontSize: 5.5,
     fontFamily: 'Helvetica-Bold',
     flexDirection: 'row',
@@ -370,6 +421,11 @@ const styles = StyleSheet.create({
     objectFit: 'contain',
     marginBottom: 1
   },
+  sigText: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Oblique',
+    marginBottom: 1
+  },
   sigLine: {
     borderBottomWidth: 1,
     borderBottomColor: '#000000',
@@ -380,10 +436,33 @@ const styles = StyleSheet.create({
     fontSize: 6,
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase'
+  },
+
+  /* Footer verification banner */
+  footerBanner: {
+    marginTop: 3,
+    borderTopWidth: 0.5,
+    borderTopColor: '#cccccc',
+    paddingTop: 2,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  footerLeft: {
+    fontSize: 5.5,
+    fontFamily: 'Helvetica-Bold',
+    color: '#059669',
+    textTransform: 'uppercase'
+  },
+  footerRight: {
+    fontSize: 5.5,
+    fontFamily: 'Helvetica-Bold',
+    color: '#64748b',
+    textTransform: 'uppercase'
   }
 });
 
-const formatDate = (dateStr) => {
+const formatDateVerbose = (dateStr) => {
   if (!dateStr) return 'N/A';
   try {
     const d = new Date(dateStr);
@@ -394,12 +473,17 @@ const formatDate = (dateStr) => {
   }
 };
 
-const getStudentName = (student) => {
-  if (!student) return 'N/A';
-  const lastName = student.lastName || student.user?.lastName || '';
-  const firstName = student.firstName || student.user?.firstName || '';
-  const middleName = student.middleName || student.user?.middleName || '';
-  return `${lastName.toUpperCase()} ${firstName} ${middleName}`.trim() || 'N/A';
+const getStudentDisplayName = (student) => {
+  if (!student) return 'Unknown Student';
+  const fName = (student.user?.firstName || student.firstName || '').trim();
+  const mName = (student.middleName || '').trim();
+  const lName = (student.user?.lastName || student.lastName || '').trim();
+  const legacyName = (student.name || '').trim();
+
+  if (fName || lName) {
+    return `${fName} ${mName} ${lName}`.replace(/\s+/g, ' ').trim().toUpperCase();
+  }
+  return (legacyName || mName || `Student (${student.admissionNumber || student.id})`).toUpperCase();
 };
 
 const getGradingScales = (schoolSettings) => {
@@ -436,6 +520,9 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
         const feeSummary = data.feeSummary;
         const showFees = data.reportSettings?.showFeesOnReport !== false && feeSummary;
         const showPosition = data.reportSettings?.showPositionOnReport !== false;
+        const showAttendance = ((data.schoolSettings || schoolSettings)?.showAttendanceOnReport !== false) && (data.reportSettings?.showAttendanceOnReport !== false);
+        const layout = data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'modern';
+        const reportColor = data.reportSettings?.reportColorScheme || (data.schoolSettings || schoolSettings)?.reportColorScheme || (data.schoolSettings || schoolSettings)?.primaryColor || '#7c3aed';
 
         const logoUrl = schoolSettings.logoUrl;
         const photoUrl = student.user?.photoUrl || student.photoUrl;
@@ -444,10 +531,10 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
 
         return (
           <Page key={student.id || index} size="A4" style={styles.page}>
-            <View style={styles.outerBorder}>
+            <View style={[styles.outerBorder, { borderColor: layout !== 'minimal' ? reportColor : '#000000' }]}>
               {/* Header */}
               <View style={styles.header}>
-                <View style={{ width: 48, height: 48 }}>
+                <View style={{ width: 52, height: 52 }}>
                   {logoUrl ? (
                     <Image src={logoUrl} style={styles.headerLogo} />
                   ) : (
@@ -460,7 +547,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   <Text style={styles.schoolContact}>
                     {schoolSettings.address || 'Address'} | TEL: {schoolSettings.phone || '000'} | {schoolSettings.email || ''}
                   </Text>
-                  <View style={styles.reportTitleContainer}>
+                  <View style={[styles.reportTitleContainer, { borderBottomColor: reportColor }]}>
                     <Text style={styles.reportTitle}>
                       {term.name ? `${term.name.toUpperCase()} PERFORMANCE REPORT` : 'TERMINAL PERFORMANCE REPORT'}
                     </Text>
@@ -475,35 +562,74 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                 </View>
               </View>
 
-              {/* Student Info Table */}
-              <View style={styles.infoTable}>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoCellLabel}>NAME:</Text>
-                  <Text style={[styles.infoCellValue, { fontFamily: 'Helvetica-Bold' }]}>{getStudentName(student)}</Text>
-                  <Text style={styles.infoCellLabel}>GENDER:</Text>
-                  <Text style={styles.infoCellValueLast}>{student.gender || 'N/A'}</Text>
+              {/* Student Info: Modern Layout Cards */}
+              {layout === 'modern' ? (
+                <View style={styles.modernGrid}>
+                  <View style={styles.modernCard}>
+                    <Text style={styles.modernLabel}>FULL NAME</Text>
+                    <Text style={styles.modernValue}>{getStudentDisplayName(student)}</Text>
+                  </View>
+                  <View style={styles.modernCard}>
+                    <Text style={styles.modernLabel}>ADMISSION NO</Text>
+                    <Text style={styles.modernValue}>{student.admissionNumber || 'N/A'}</Text>
+                  </View>
+                  <View style={styles.modernCard}>
+                    <Text style={styles.modernLabel}>DATE OF BIRTH</Text>
+                    <Text style={styles.modernValue}>{formatDateVerbose(student.dateOfBirth)}</Text>
+                  </View>
+                  <View style={styles.modernCard}>
+                    <Text style={styles.modernLabel}>CLASS LEVEL</Text>
+                    <Text style={styles.modernValue}>{student.class || data.className || 'N/A'}</Text>
+                  </View>
+                  <View style={styles.modernCard}>
+                    <Text style={styles.modernLabel}>AGE / GENDER</Text>
+                    <Text style={styles.modernValue}>{student.age || '-'} / {student.gender || '-'}</Text>
+                  </View>
+                  {showAttendance ? (
+                    <View style={styles.modernCard}>
+                      <Text style={styles.modernLabel}>ATTENDANCE</Text>
+                      <Text style={styles.modernValue}>
+                        {data.attendance ? `${data.attendance.present || 0}/${data.attendance.total || 0}` : 'N/A'}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.modernCard}>
+                      <Text style={styles.modernLabel}>SESSION / TERM</Text>
+                      <Text style={styles.modernValue}>{term.session || '2025/2026'} - {term.name || 'TERM'}</Text>
+                    </View>
+                  )}
                 </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoCellLabel}>CLASS:</Text>
-                  <Text style={styles.infoCellValue}>{student.class || data.className || 'N/A'}</Text>
-                  <Text style={styles.infoCellLabel}>SESSION:</Text>
-                  <Text style={styles.infoCellValueLast}>{term.session || data.sessionName || 'N/A'}</Text>
+              ) : (
+                /* Classic Info Table */
+                <View style={styles.infoTable}>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoCellLabel}>NAME:</Text>
+                    <Text style={[styles.infoCellValue, { fontFamily: 'Helvetica-Bold' }]}>{getStudentDisplayName(student)}</Text>
+                    <Text style={styles.infoCellLabel}>GENDER:</Text>
+                    <Text style={styles.infoCellValueLast}>{student.gender || 'N/A'}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoCellLabel}>CLASS:</Text>
+                    <Text style={styles.infoCellValue}>{student.class || data.className || 'N/A'}</Text>
+                    <Text style={styles.infoCellLabel}>SESSION:</Text>
+                    <Text style={styles.infoCellValueLast}>{term.session || data.sessionName || 'N/A'}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoCellLabel}>ADM NO:</Text>
+                    <Text style={styles.infoCellValue}>{student.admissionNumber || 'N/A'}</Text>
+                    <Text style={styles.infoCellLabel}>D.O.B:</Text>
+                    <Text style={styles.infoCellValueLast}>{formatDateVerbose(student.dateOfBirth)}</Text>
+                  </View>
+                  <View style={styles.infoRowLast}>
+                    <Text style={styles.infoCellLabel}>ATTENDANCE:</Text>
+                    <Text style={styles.infoCellValue}>
+                      {data.attendance ? `${data.attendance.present || 0} / ${data.attendance.total || 0} DAYS (${data.attendance.percentage || 0}%)` : 'N/A'}
+                    </Text>
+                    <Text style={styles.infoCellLabel}>TERM:</Text>
+                    <Text style={styles.infoCellValueLast}>{term.name || 'N/A'}</Text>
+                  </View>
                 </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoCellLabel}>ADM NO:</Text>
-                  <Text style={styles.infoCellValue}>{student.admissionNumber || 'N/A'}</Text>
-                  <Text style={styles.infoCellLabel}>D.O.B:</Text>
-                  <Text style={styles.infoCellValueLast}>{formatDate(student.dateOfBirth)}</Text>
-                </View>
-                <View style={styles.infoRowLast}>
-                  <Text style={styles.infoCellLabel}>ATTENDANCE:</Text>
-                  <Text style={styles.infoCellValue}>
-                    {data.attendance ? `${data.attendance.present || 0} / ${data.attendance.total || 0} DAYS (${data.attendance.percentage || 0}%)` : 'N/A'}
-                  </Text>
-                  <Text style={styles.infoCellLabel}>TERM:</Text>
-                  <Text style={styles.infoCellValueLast}>{term.name || 'N/A'}</Text>
-                </View>
-              </View>
+              )}
 
               {/* Main Body: Academic (Left) + Psychomotor (Right) */}
               <View style={styles.mainBody}>
@@ -513,10 +639,10 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   <View style={styles.table}>
                     <View style={styles.tableHeaderRow}>
                       <Text style={styles.thSubject}>SUBJECTS</Text>
-                      <Text style={styles.thScore}>CA1{'\n'}{term.weights?.assignment1 || 5}</Text>
-                      <Text style={styles.thScore}>CA2{'\n'}{term.weights?.assignment2 || 5}</Text>
-                      <Text style={styles.thScore}>TST1{'\n'}{term.weights?.test1 || 10}</Text>
-                      <Text style={styles.thScore}>TST2{'\n'}{term.weights?.test2 || 10}</Text>
+                      <Text style={styles.thScore}>1ST CA{'\n'}{term.weights?.assignment1 || 5}</Text>
+                      <Text style={styles.thScore}>2ND CA{'\n'}{term.weights?.assignment2 || 5}</Text>
+                      <Text style={styles.thScore}>1ST TST{'\n'}{term.weights?.test1 || 10}</Text>
+                      <Text style={styles.thScore}>2ND TST{'\n'}{term.weights?.test2 || 10}</Text>
                       <Text style={styles.thScore}>EXM{'\n'}{term.weights?.exam || 70}</Text>
                       <Text style={styles.thTotal}>TOT{'\n'}100</Text>
                       <Text style={styles.thGrade}>GRD</Text>
@@ -569,7 +695,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                 </View>
               </View>
 
-              {/* Summary Grid */}
+              {/* Summary Section: 3 Boxes (Legend, Status Summary, Certification) */}
               <View style={styles.summarySection}>
                 <View style={styles.legendBox}>
                   <Text style={styles.legendTitle}>Grading Legend</Text>
@@ -580,7 +706,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                 </View>
 
                 <View style={styles.statusBox}>
-                  <Text style={styles.statusHeader}>Status Summary</Text>
+                  <Text style={[styles.statusHeader, { backgroundColor: reportColor }]}>Status Summary</Text>
                   <View style={styles.statusRow}>
                     {showPosition && (
                       <View style={styles.statusCell}>
@@ -595,15 +721,20 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   </View>
                   <View style={styles.overallGradeBox}>
                     <Text style={[styles.statusLabel, { fontSize: 6.5 }]}>Overall Grade:</Text>
-                    <Text style={[styles.statusVal, { fontSize: 10, color: '#047857' }]}>{data.overallGrade || '-'}</Text>
+                    <Text style={[styles.statusVal, { fontSize: 9.5, color: reportColor }]}>{data.overallGrade || '-'}</Text>
                   </View>
+                </View>
+
+                <View style={styles.certBox}>
+                  <Text style={styles.certText}>Official Result</Text>
+                  <Text style={[styles.certText, { fontFamily: 'Helvetica', fontSize: 5, marginTop: 1 }]}>Certification</Text>
                 </View>
               </View>
 
               {/* Financial Standing (if enabled) */}
               {showFees && (
                 <View style={styles.feesBox}>
-                  <Text style={styles.feesHeader}>Financial Standing & Fee Status</Text>
+                  <Text style={[styles.feesHeader, { backgroundColor: reportColor }]}>Financial Standing & Fee Status</Text>
                   <View style={styles.feesRow}>
                     <View style={styles.feeCol}>
                       <Text style={styles.feeLabel}>Arrears</Text>
@@ -642,8 +773,8 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                     <Text style={styles.remarkTitle}>Principal's Remark</Text>
                     <Text style={styles.remarkText}>"{data.principalRemark || 'Satisfactory performance. Keep striving for excellence.'}"</Text>
                     <View style={styles.remarkFooter}>
-                      <Text>Term Ends: {formatDate(term.endDate)}</Text>
-                      <Text>Next Term: {formatDate(term.nextTermBegins)}</Text>
+                      <Text>Term Ends: {formatDateVerbose(term.endDate)}</Text>
+                      <Text>Next Term: {formatDateVerbose(term.nextTermBegins)}</Text>
                     </View>
                   </View>
                 </View>
@@ -654,6 +785,8 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                 <View style={styles.sigBox}>
                   {teacherSig ? (
                     <Image src={teacherSig} style={styles.sigImage} />
+                  ) : student.formMaster ? (
+                    <Text style={styles.sigText}>{student.formMaster}</Text>
                   ) : (
                     <View style={{ height: 18 }} />
                   )}
@@ -669,6 +802,12 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   <View style={styles.sigLine} />
                   <Text style={styles.sigLabel}>Principal's Signature</Text>
                 </View>
+              </View>
+
+              {/* Document Verification Footer */}
+              <View style={styles.footerBanner}>
+                <Text style={styles.footerLeft}>[DIGITALLY VERIFIED REPORT] AUTHENTIC EDUCATIONAL CREDENTIAL</Text>
+                <Text style={styles.footerRight}>TERM: {term.name?.toUpperCase() || ''} • GEN: {formatDateVerbose(new Date())}</Text>
               </View>
             </View>
           </Page>
