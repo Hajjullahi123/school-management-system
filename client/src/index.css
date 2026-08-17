@@ -206,20 +206,14 @@ nav a svg,
   /* Strict A4 Container */
   .emerald-print-A4 {
     width: 210mm !important;
-    max-width: 100% !important;
-    height: 100% !important;
-    height: 100vh !important;
-    min-height: 100% !important;
-    min-height: 100vh !important;
-    max-height: 100% !important;
-    max-height: 100vh !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
     padding: 10mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
     position: relative !important;
     background: white !important;
-    display: flex !important;
-    flex-direction: column !important;
     overflow: hidden !important;
     page-break-after: always !important;
     break-after: page !important;
@@ -235,20 +229,14 @@ nav a svg,
 
   .emerald-print-A4-landscape {
     width: 297mm !important;
-    max-width: 100% !important;
-    height: 100% !important;
-    height: 100vh !important;
-    min-height: 100% !important;
-    min-height: 100vh !important;
-    max-height: 100% !important;
-    max-height: 100vh !important;
+    height: 210mm !important;
+    min-height: 210mm !important;
+    max-height: 210mm !important;
     padding: 10mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
     position: relative !important;
     background: white !important;
-    display: flex !important;
-    flex-direction: column !important;
     overflow: hidden !important;
     page-break-after: always !important;
     break-after: page !important;
