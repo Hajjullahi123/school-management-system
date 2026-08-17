@@ -14,7 +14,6 @@ WORKDIR /app
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
     openssl ca-certificates \
-    chromium \
     libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
     libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
     libgbm1 libasound2 libpango-1.0-0 libcairo2 \
@@ -50,6 +49,9 @@ FROM base
 
 # Copy built application
 COPY --from=build /app /app
+
+# Copy the Puppeteer downloaded Chrome binary from the build stage
+COPY --from=build /root/.cache/puppeteer /root/.cache/puppeteer
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
