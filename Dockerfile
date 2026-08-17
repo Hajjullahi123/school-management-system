@@ -21,6 +21,7 @@ RUN apt-get update -qq && \
 
 # Set production environment
 ENV NODE_ENV="production"
+ENV PUPPETEER_CACHE_DIR="/app/.puppeteer-cache"
 
 
 # Throw-away build stage to reduce size of final image
@@ -49,9 +50,6 @@ FROM base
 
 # Copy built application
 COPY --from=build /app /app
-
-# Copy the Puppeteer downloaded Chrome binary from the build stage
-COPY --from=build /root/.cache/puppeteer /root/.cache/puppeteer
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000

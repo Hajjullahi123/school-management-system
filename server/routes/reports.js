@@ -45,8 +45,8 @@ router.post('/generate-pdf', authenticate, async (req, res) => {
     
     // Set the content
     await page.setContent(html, {
-      waitUntil: 'networkidle0', // Wait until all resources (images, fonts) are loaded
-      timeout: 30000 
+      waitUntil: 'load', // Less strict than networkidle0, prevents stalling on 3rd party fonts/images
+      timeout: 60000 
     });
 
     // Emulate print media type
@@ -67,7 +67,7 @@ router.post('/generate-pdf', authenticate, async (req, res) => {
     res.send(pdfBuffer);
   } catch (error) {
     console.error('Server PDF Generation Error:', error);
-    res.status(500).json({ error: 'Failed to generate PDF on the server' });
+    res.status(500).json({ error: error.message || 'Failed to generate PDF on the server' });
   }
 });
 
