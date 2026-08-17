@@ -10,10 +10,14 @@ LABEL build_version="2026.06.27.1"
 # Node.js app lives here
 WORKDIR /app
 
-# Install runtime dependencies including openssl
+# Install runtime dependencies including openssl and Puppeteer (Chromium) requirements
 RUN apt-get update -qq && \
-    apt-get install -y --no-install-recommends openssl ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends \
+    openssl ca-certificates \
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libasound2 libpango-1.0-0 libcairo2 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set production environment
 ENV NODE_ENV="production"

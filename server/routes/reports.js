@@ -11,6 +11,65 @@ const {
 } = require('../utils/grading');
 const { getStudentFeeSummary } = require('../utils/feeCalculations');
 const { generateAINarrative } = require('../utils/aiNarrative');
+let puppeteer;
+try {
+  puppeteer = require('puppeteer');
+} catch (e) {
+  console.log('Puppeteer not installed or failed to load:', e.message);
+}
+
+// Generate PDF from HTML payload using Puppeteer
+router.post('/generate-pdf', authenticate, async (req, res) => {
+  try {
+    if (!puppeteer) {
+      return res.status(500).json({ error: 'Puppeteer is not available on the server' });
+    }
+
+    const { html, title } = req.body;
+    if (!html) {
+      return res.status(400).json({ error: 'HTML payload is required' });
+    }
+
+    // Launch a headless browser instance
+    const browser = await puppeteer.launch({
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage', // critical for docker/low memory environments
+        '--disable-gpu'
+      ]
+    });
+
+    const page = await browser.newPage();
+    
+    // Set the content
+    await page.setContent(html, {
+      waitUntil: 'networkidle0', // Wait until all resources (images, fonts) are loaded
+      timeout: 30000 
+    });
+
+    // Emulate print media type
+    await page.emulateMediaType('print');
+
+    // Generate the PDF buffer
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '0', right: '0', bottom: '0', left: '0' }
+    });
+
+    await browser.close();
+
+    // Send the buffer back to the client
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${title || 'report'}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Server PDF Generation Error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF on the server' });
+  }
+});
 
 // Get term report for a student
 router.get('/term/:studentId/:termId', authenticate, async (req, res) => {

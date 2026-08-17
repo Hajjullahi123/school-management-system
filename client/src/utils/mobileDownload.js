@@ -27,13 +27,13 @@ export const safeDocumentDownload = (doc, fileName) => {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     // Fallback for desktop or mobile (direct download instead of sharing intent)
-    fallbackDownload(pdfBlob, fileName, isMobile);
+    saveBlobAsFile(pdfBlob, fileName, isMobile);
   } catch(e) {
     console.error("PDF Download error", e);
   }
 };
 
-function fallbackDownload(blob, fileName, isMobile) {
+export function saveBlobAsFile(blob, fileName, isMobile = false) {
     if (isMobile) {
       try {
         const url = window.URL.createObjectURL(blob);

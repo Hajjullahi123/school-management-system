@@ -1,5 +1,5 @@
 import { saveAs } from 'file-saver';
-import { safeDocumentDownload } from '../../utils/mobileDownload';
+import { safeDocumentDownload, saveBlobAsFile } from '../../utils/mobileDownload';
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { api, API_BASE_URL } from '../../api';
@@ -298,79 +298,70 @@ const BulkReportDownload = () => {
     if (reports.length === 0) return;
     setDownloadingPDF(true);
     setPdfProgress(0);
-    setPdfProgressLabel('Initializing...');
+    setPdfProgressLabel('Connecting to server...');
     cancelPdfRef.current = false;
 
     try {
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = 210;
-      const pdfHeight = 297;
-      const reportElements = componentRef.current?.querySelectorAll('.report-card-scaler > div') || [];
-      const totalReports = reportElements.length;
+      const printContent = componentRef.current;
+      if (!printContent) throw new Error('No content to print');
 
-      for (let i = 0; i < totalReports; i++) {
-        // Check for cancellation
-        if (cancelPdfRef.current) {
-          setPdfProgressLabel('Cancelled');
-          break;
-        }
+      const title = getDocumentTitle();
 
-        const el = reportElements[i];
-        const studentName = reports[i]?.student?.name || `Report ${i + 1}`;
-        setPdfProgressLabel(studentName);
-        setPdfProgress(Math.round((i / totalReports) * 100));
+      // Collect stylesheets from the current page
+      const linkTags = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+        .map(link => link.outerHTML).join('\n');
+      let inlineStyles = '';
+      document.querySelectorAll('style').forEach(tag => {
+        inlineStyles += tag.innerHTML + '\n';
+      });
 
-        // Yield to the browser so it stays responsive and can update the progress UI
-        await new Promise(r => setTimeout(r, 0));
+      // Clone the report container
+      const clone = printContent.cloneNode(true);
+      clone.querySelectorAll('.report-card-scaler').forEach(scaler => {
+        scaler.style.transform = 'none';
+        scaler.classList.remove('scale-[0.45]', 'scale-[0.55]');
+      });
+      clone.querySelectorAll('.report-card-mobile-wrapper').forEach(wrapper => {
+        wrapper.style.height = 'auto';
+        wrapper.style.overflow = 'visible';
+      });
+      clone.querySelectorAll('.no-print, .print-hidden').forEach(el => el.remove());
 
-        // Temporarily reset transform for accurate capture
-        const parent = el.parentElement;
-        const origTransform = parent?.style.transform;
-        const hadScale045 = parent?.classList.contains('scale-[0.45]');
-        const hadScale055 = parent?.classList.contains('scale-[0.55]');
-        if (parent) {
-          parent.style.transform = 'none';
-          parent.classList.remove('scale-[0.45]', 'scale-[0.55]');
-          parent.classList.add('scale-100');
-        }
+      const htmlPayload = `<!DOCTYPE html><html><head><title>${title}</title>
+        ${linkTags}
+        <style>
+          ${inlineStyles}
+          @page { size: A4; margin: 0 !important; }
+          html, body { background: white !important; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          nav, header, footer, .sidebar, .no-print, .print-hidden { display: none !important; }
+          .report-card-scaler { transform: none !important; }
+          .report-card-mobile-wrapper { height: auto !important; overflow: visible !important; }
+        </style>
+      </head><body>${clone.outerHTML}</body></html>`;
 
-        let canvas = await html2canvas(el, {
-          scale: 1.5,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff',
-          width: el.scrollWidth,
-          height: el.scrollHeight,
-        });
+      setPdfProgress(20);
+      setPdfProgressLabel('Generating PDF on server...');
 
-        // Restore transform
-        if (parent) {
-          parent.style.transform = origTransform || '';
-          parent.classList.remove('scale-100');
-          if (hadScale045) parent.classList.add('scale-[0.45]');
-          if (hadScale055) parent.classList.add('scale-[0.55]');
-        }
+      // Send to server
+      const response = await api.post('/api/reports/generate-pdf', {
+        html: htmlPayload,
+        title: title
+      }, {
+        responseType: 'blob' // We expect a PDF binary file back
+      });
 
-        let imgData = canvas.toDataURL('image/jpeg', 0.72);
-        if (i > 0) pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      setPdfProgress(90);
+      setPdfProgressLabel('Saving file...');
+      
+      const fileName = `${title}.pdf`;
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      saveBlobAsFile(response.data, fileName, isMobile);
+      setPdfProgress(100);
 
-        // Release memory so GC can reclaim between iterations
-        canvas = null;
-        imgData = null;
-
-        setPdfProgress(Math.round(((i + 1) / totalReports) * 100));
-      }
-
-      if (!cancelPdfRef.current) {
-        setPdfProgressLabel('Saving file...');
-        await new Promise(r => setTimeout(r, 50));
-        const fileName = `${getDocumentTitle()}.pdf`;
-        safeDocumentDownload(pdf, fileName);
-      }
     } catch (err) {
       console.error('Bulk PDF generation error:', err);
-      alert('PDF generation failed on this device. Using print fallback...');
+      alert('PDF generation failed on the server. Using print fallback...');
       handlePrint();
     } finally {
       setDownloadingPDF(false);

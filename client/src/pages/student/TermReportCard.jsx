@@ -8,7 +8,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useReactToPrint } from 'react-to-print';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { safeDocumentDownload } from '../../utils/mobileDownload';
+import { safeDocumentDownload, saveBlobAsFile } from '../../utils/mobileDownload';
 
 const TermReportCard = () => {
   const { user } = useAuth();
@@ -413,88 +413,56 @@ const TermReportCard = () => {
     if (downloading) return;
     setDownloading(true);
     setPdfProgress(0);
-    setPdfProgressLabel('Initializing...');
+    setPdfProgressLabel('Connecting to server...');
     cancelPdfRef.current = false;
 
     try {
-      const cards = printRef.current?.querySelectorAll('.emerald-print-A4');
-      if (!cards || cards.length === 0) {
-        alert('No report card found to download.');
-        return;
-      }
-
-      // Add temporary class to body to disable scaling and transitions during PDF rendering
-      document.body.classList.add('is-generating-pdf');
+      const printContent = printRef.current;
+      if (!printContent) throw new Error('No content to print');
       
-      // Wait for layout updates
-      await new Promise(resolve => setTimeout(resolve, 50));
+      const title = getDocumentTitle();
 
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = 210;
-      const pdfHeight = 297;
-      const totalReports = cards.length;
+      const linkTags = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+        .map(link => link.outerHTML).join('\n');
+      let inlineStyles = '';
+      document.querySelectorAll('style').forEach(tag => {
+        inlineStyles += tag.innerHTML + '\n';
+      });
+
+      const clone = printContent.cloneNode(true);
+
+      const htmlPayload = `<!DOCTYPE html><html><head><title>${title}</title>
+        ${linkTags}
+        <style>
+          ${inlineStyles}
+          @page { size: A4; margin: 0 !important; }
+          html, body { background: white !important; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          nav, header, footer, .sidebar, .no-print, .print-hidden { display: none !important; }
+        </style>
+      </head><body>${clone.outerHTML}</body></html>`;
+
+      setPdfProgress(20);
+      setPdfProgressLabel('Generating PDF on server...');
+
+      const response = await api.post('/api/reports/generate-pdf', {
+        html: htmlPayload,
+        title: title
+      }, {
+        responseType: 'blob'
+      });
+
+      setPdfProgress(90);
+      setPdfProgressLabel('Saving file...');
+
+      const fileName = `${title}.pdf`;
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      for (let i = 0; i < totalReports; i++) {
-        if (cancelPdfRef.current) {
-          setPdfProgressLabel('Cancelled');
-          break;
-        }
+      saveBlobAsFile(response.data, fileName, isMobile);
+      setPdfProgress(100);
 
-        const el = cards[i];
-        
-        // Attempt to extract student name from the card DOM for the progress label
-        let studentName = `Report ${i + 1}`;
-        if (totalReports > 1 && bulkReports[i]?.student) {
-          studentName = getStudentDisplayName(bulkReports[i].student);
-        } else if (reportData?.student) {
-          studentName = getStudentDisplayName(reportData.student);
-        }
-        
-        setPdfProgressLabel(studentName);
-        setPdfProgress(Math.round((i / totalReports) * 100));
-
-        // Yield to browser
-        await new Promise(r => setTimeout(r, 0));
-
-        // Temporarily force full-size rendering for accurate capture
-        const originalStyle = el.getAttribute('style') || '';
-        el.style.transform = 'none';
-        el.style.width = '210mm';
-        el.style.height = '297mm';
-        
-        let canvas = await html2canvas(el, {
-          scale: totalReports > 5 ? 1.5 : 2, // Use lower scale for bulk to save memory
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff',
-          width: 794,
-          height: 1123,
-          windowWidth: 794,
-          windowHeight: 1123
-        });
-        
-        el.setAttribute('style', originalStyle);
-
-        let imgData = canvas.toDataURL('image/jpeg', totalReports > 5 ? 0.72 : 0.92);
-        if (i > 0) pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-
-        // Release memory
-        canvas = null;
-        imgData = null;
-
-        setPdfProgress(Math.round(((i + 1) / totalReports) * 100));
-      }
-
-      if (!cancelPdfRef.current) {
-        setPdfProgressLabel('Saving file...');
-        await new Promise(r => setTimeout(r, 50));
-        const fileName = `${getDocumentTitle()}.pdf`;
-        safeDocumentDownload(pdf, fileName);
-      }
     } catch (err) {
       console.error('PDF generation error:', err);
-      alert('PDF generation failed. Please use the Print button instead.');
+      alert('PDF generation failed on the server. Using print fallback...');
       printReport();
     } finally {
       document.body.classList.remove('is-generating-pdf');
