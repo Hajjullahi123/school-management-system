@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { useReactToPrint } from 'react-to-print';
-import { Printer } from 'lucide-react';
+import { Printer, Settings as SettingsIcon, Save } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { formatDateVerbose } from '../../utils/formatters';
 import { jsPDF } from 'jspdf';
@@ -294,10 +294,87 @@ const BulkReportDownload = () => {
     cancelPdfRef.current = true;
   };
   const handleDownloadPDF = async () => {
-    // We now bypass the server and use the native Print dialog directly.
-    // The native OS 'Save as PDF' handles massive 200+ page documents 
-    // instantly without server RAM issues or timeouts.
-    handlePrint();
+    if (reports.length === 0 || downloadingPDF) return;
+    setDownloadingPDF(true);
+    setPdfProgress(0);
+    setPdfProgressLabel('Connecting to server...');
+    cancelPdfRef.current = false;
+
+    try {
+      const printContent = componentRef.current;
+      if (!printContent) throw new Error('No content to print');
+
+      const title = getDocumentTitle();
+
+      const linkTags = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+        .map(link => link.outerHTML).join('\n');
+      let inlineStyles = '';
+      document.querySelectorAll('style').forEach(tag => {
+        inlineStyles += tag.innerHTML + '\n';
+      });
+
+      const clone = printContent.cloneNode(true);
+      clone.querySelectorAll('.report-card-scaler').forEach(scaler => {
+        scaler.style.transform = 'none';
+        scaler.classList.remove('scale-[0.45]', 'scale-[0.55]');
+      });
+      clone.querySelectorAll('.report-card-mobile-wrapper').forEach(wrapper => {
+        wrapper.style.height = 'auto';
+        wrapper.style.overflow = 'visible';
+      });
+      clone.querySelectorAll('.no-print, .print-hidden').forEach(el => el.remove());
+
+      const htmlPayload = `<!DOCTYPE html><html><head><title>${title}</title>
+        ${linkTags}
+        <style>
+          ${inlineStyles}
+          @page { size: A4; margin: 0 !important; }
+          html, body { background: white !important; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          nav, header, footer, .sidebar, .no-print, .print-hidden { display: none !important; }
+          .report-card-scaler { transform: none !important; }
+          .report-card-mobile-wrapper { height: auto !important; overflow: visible !important; }
+        </style>
+      </head><body>${clone.outerHTML}</body></html>`;
+
+      setPdfProgress(20);
+      setPdfProgressLabel('Generating PDF on server...');
+
+      const response = await api.post('/api/reports/generate-pdf', {
+        html: htmlPayload,
+        title: title
+      }, {
+        responseType: 'blob'
+      });
+
+      setPdfProgress(90);
+      setPdfProgressLabel('Saving file...');
+      
+      const fileName = `${title}.pdf`;
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      saveBlobAsFile(response.data, fileName, isMobile);
+      setPdfProgress(100);
+
+    } catch (err) {
+      console.error('Bulk PDF generation error:', err);
+      let errMsg = 'PDF generation failed on the server.';
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const json = JSON.parse(text);
+          if (json.error) errMsg += ` (${json.error})`;
+        } catch (e) {}
+      } else if (err.response?.data?.error) {
+        errMsg += ` (${err.response.data.error})`;
+      }
+      alert(`${errMsg} Using print fallback...`);
+      handlePrint();
+    } finally {
+      setDownloadingPDF(false);
+      setPdfProgress(0);
+      setPdfProgressLabel('');
+      cancelPdfRef.current = false;
+    }
   };
 
   return (
