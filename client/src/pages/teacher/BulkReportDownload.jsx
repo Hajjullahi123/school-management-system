@@ -6,7 +6,6 @@ import { useReactToPrint } from 'react-to-print';
 import { Printer, Settings as SettingsIcon, Save } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { formatDateVerbose } from '../../utils/formatters';
-import { downloadReportAsPdf } from '../../utils/reportPdfGenerator';
 
 const BulkReportDownload = () => {
   const { user } = useAuth();
@@ -23,9 +22,6 @@ const BulkReportDownload = () => {
   const [loadingStudents, setLoadingStudents] = useState(false);
 
   const componentRef = useRef();
-  const [pdfProgress, setPdfProgress] = useState(0);
-  const [pdfProgressLabel, setPdfProgressLabel] = useState('');
-  const cancelPdfRef = useRef(false);
 
   const getStudentDisplayName = (student) => {
     if (!student) return 'Unknown Student';
@@ -300,95 +296,9 @@ const BulkReportDownload = () => {
     }, 100);
   };
 
-  const handleDownloadPDF = async () => {
-    if (reports.length === 0 || downloadingPDF) return;
-    setDownloadingPDF(true);
-    setPdfProgress(5);
-    setPdfProgressLabel('Preparing reports for download...');
-    cancelPdfRef.current = false;
-
-    try {
-      const printContent = componentRef.current;
-      const title = getDocumentTitle();
-
-      await downloadReportAsPdf({
-        containerElement: printContent,
-        reports: reports,
-        schoolSettings: schoolSettings,
-        title: title,
-        onProgress: (percent, label) => {
-          setPdfProgress(percent);
-          if (label) setPdfProgressLabel(label);
-        },
-        cancelRef: cancelPdfRef
-      });
-    } catch (err) {
-      if (err.message === 'Cancelled by user') {
-        console.log('PDF generation cancelled by user');
-      } else {
-        console.error('Bulk PDF generation error:', err);
-        alert('PDF generation encountered an issue. Using Print preview as fallback...');
-        handlePrint();
-      }
-    } finally {
-      setTimeout(() => {
-        setDownloadingPDF(false);
-        setPdfProgress(0);
-        setPdfProgressLabel('');
-      }, 600);
-    }
-  };
-
-  const handleCancelPDF = () => {
-    cancelPdfRef.current = true;
-    setPdfProgressLabel('Cancelling...');
-  };
-
   return (
     <div className="space-y-6 pb-20">
-      {/* Progress Modal */}
-      {downloadingPDF && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in print:hidden">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-5">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center relative">
-              <svg className="w-8 h-8 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </div>
-
-            <div className="space-y-1">
-              <h3 className="text-lg font-black uppercase tracking-tight text-slate-900">
-                Generating PDF Bundle
-              </h3>
-              <p className="text-xs font-medium text-slate-500">
-                {pdfProgressLabel || `Processing ${reports.length} report cards...`}
-              </p>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200">
-              <div 
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-300 ease-out flex items-center justify-end pr-1"
-                style={{ width: `${Math.max(5, pdfProgress)}%` }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between w-full text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              <span>{reports.length} Student Reports</span>
-              <span className="font-mono font-bold text-emerald-600 text-xs">{pdfProgress}%</span>
-            </div>
-
-            <button
-              onClick={handleCancelPDF}
-              className="text-xs font-bold text-slate-500 hover:text-rose-600 uppercase tracking-wider px-4 py-2 rounded-xl hover:bg-rose-50 transition-colors"
-            >
-              Cancel Download
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Header Section - Glassmorphism (Synced with Single Report) */}
+      {/* Header Section - Glassmorphism */}
       <div className="relative group overflow-hidden rounded-[32px] p-1 bg-gradient-to-br from-indigo-600 via-primary to-emerald-600 shadow-2xl print:hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"></div>
         <div className="relative bg-white/5 backdrop-blur-sm p-6 sm:p-8 rounded-[31px] text-white flex flex-col sm:flex-row items-center justify-between gap-6">
@@ -404,31 +314,11 @@ const BulkReportDownload = () => {
           {reports.length > 0 && (
             <div className="flex flex-col sm:flex-row gap-3 items-center">
               <button 
-                onClick={handleDownloadPDF} 
-                disabled={downloadingPDF}
-                className="group/btn bg-emerald-600 hover:bg-emerald-700 disabled:opacity-75 text-white px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border border-emerald-500 min-w-[200px]"
-              >
-                {downloadingPDF ? (
-                  <>
-                    <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span>Downloading ({pdfProgress}%)...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>💾</span>
-                    Download PDF Bundle
-                  </>
-                )}
-              </button>
-              <button 
                 onClick={handlePrint} 
-                disabled={downloadingPDF}
-                className="group/btn bg-white text-primary px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-3 border border-white"
+                className="group/btn bg-white hover:bg-emerald-50 text-slate-900 px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white"
               >
-                <Printer className="w-5 h-5 transition-transform group-hover/btn:rotate-12" />
-                Print All {reports.length} Reports
+                <Printer className="w-5 h-5 text-emerald-600 transition-transform group-hover/btn:rotate-12" />
+                Print / Save as PDF ({reports.length} Reports)
               </button>
             </div>
           )}

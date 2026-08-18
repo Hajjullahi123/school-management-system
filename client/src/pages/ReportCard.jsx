@@ -536,27 +536,13 @@ const ReportCard = () => {
               WhatsApp to Parent
             </button>
             <button
-              onClick={handleDownloadPDF}
-              disabled={downloading}
-              className="bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
-            >
-              {downloading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-              )}
-              Download PDF
-            </button>
-            <button
               onClick={handlePrint}
-              className="bg-primary text-white px-8 py-2.5 rounded-xl font-bold shadow-lg hover:brightness-110 flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
+              className="bg-emerald-600 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               </svg>
-              Print Result
+              Print / Save as PDF
             </button>
           </div>
 

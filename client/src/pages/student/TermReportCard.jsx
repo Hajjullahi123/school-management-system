@@ -6,7 +6,7 @@ import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { QRCodeSVG } from 'qrcode.react';
 import { useReactToPrint } from 'react-to-print';
-import { downloadReportAsPdf } from '../../utils/reportPdfGenerator';
+import { Printer } from 'lucide-react';
 
 const TermReportCard = () => {
   const { user } = useAuth();
@@ -19,10 +19,6 @@ const TermReportCard = () => {
   const [bulkReports, setBulkReports] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [downloading, setDownloading] = useState(false);
-  const [pdfProgress, setPdfProgress] = useState(0);
-  const [pdfProgressLabel, setPdfProgressLabel] = useState('');
-  const cancelPdfRef = useRef(false);
 
   // WhatsApp states
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
@@ -417,51 +413,6 @@ const TermReportCard = () => {
     }, 100);
   };
 
-  const handleDownloadPDF = async () => {
-    if (downloading) return;
-    setDownloading(true);
-    setPdfProgress(5);
-    setPdfProgressLabel('Preparing report for download...');
-    cancelPdfRef.current = false;
-
-    try {
-      const printContent = printRef.current;
-      const title = getDocumentTitle();
-      const reportList = bulkReports.length > 0 ? bulkReports : (reportData ? [reportData] : null);
-
-      await downloadReportAsPdf({
-        containerElement: printContent,
-        reports: reportList,
-        schoolSettings: schoolSettings,
-        title: title,
-        onProgress: (percent, label) => {
-          setPdfProgress(percent);
-          if (label) setPdfProgressLabel(label);
-        },
-        cancelRef: cancelPdfRef
-      });
-    } catch (err) {
-      if (err.message === 'Cancelled by user') {
-        console.log('PDF generation cancelled');
-      } else {
-        console.error('PDF generation error:', err);
-        alert('PDF generation encountered an issue. Using Print preview as fallback...');
-        printReport();
-      }
-    } finally {
-      setTimeout(() => {
-        setDownloading(false);
-        setPdfProgress(0);
-        setPdfProgressLabel('');
-      }, 600);
-    }
-  };
-
-  const handleCancelPDF = () => {
-    cancelPdfRef.current = true;
-    setPdfProgressLabel('Cancelling...');
-  };
-
   const sendWhatsApp = async (e) => {
     e.preventDefault();
     if (!whatsAppPhone) {
@@ -504,48 +455,6 @@ const TermReportCard = () => {
 
   return (
     <div className="space-y-6 pb-20">
-      {/* Progress Modal */}
-      {downloading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in print:hidden">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-5">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center relative">
-              <svg className="w-8 h-8 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </div>
-
-            <div className="space-y-1">
-              <h3 className="text-lg font-black uppercase tracking-tight text-slate-900">
-                Generating Report PDF
-              </h3>
-              <p className="text-xs font-medium text-slate-500">
-                {pdfProgressLabel || 'Processing report card...'}
-              </p>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200">
-              <div 
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-300 ease-out flex items-center justify-end pr-1"
-                style={{ width: `${Math.max(5, pdfProgress)}%` }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between w-full text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              <span>{bulkReports.length > 0 ? `${bulkReports.length} Reports` : 'Single Report'}</span>
-              <span className="font-mono font-bold text-emerald-600 text-xs">{pdfProgress}%</span>
-            </div>
-
-            <button
-              onClick={handleCancelPDF}
-              className="text-xs font-bold text-slate-500 hover:text-rose-600 uppercase tracking-wider px-4 py-2 rounded-xl hover:bg-rose-50 transition-colors"
-            >
-              Cancel Download
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Header Section - Glassmorphism */}
       <div className="relative group overflow-hidden rounded-[32px] p-1 bg-gradient-to-br from-indigo-600 via-primary to-emerald-600 shadow-2xl print:hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"></div>
@@ -560,7 +469,7 @@ const TermReportCard = () => {
           </div>
           
           {(reportData || bulkReports.length > 0) && (
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 items-center">
               {reportData && user?.role !== 'student' && user?.role !== 'parent' && (
                 <button 
                   onClick={() => {
@@ -577,33 +486,10 @@ const TermReportCard = () => {
               )}
               <button 
                 onClick={printReport} 
-                className="group/btn bg-white/20 border border-white/40 text-white px-5 py-3 rounded-[20px] font-black uppercase tracking-widest text-xs shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                className="group/btn bg-white hover:bg-emerald-50 text-slate-900 px-6 py-3.5 rounded-[20px] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border border-white"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-                Print
-              </button>
-              <button 
-                onClick={handleDownloadPDF}
-                disabled={downloading}
-                className="group/btn bg-white text-primary px-5 py-3 rounded-[20px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border border-white disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {downloading ? (
-                  <>
-                    <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Generating…
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Download PDF
-                  </>
-                )}
+                <Printer className="w-4 h-4 text-emerald-600 transition-transform group-hover/btn:rotate-12" />
+                Print / Save as PDF
               </button>
             </div>
           )}
@@ -1190,42 +1076,18 @@ const TermReportCard = () => {
       );
     })}
           </div>
-          {/* Bottom Print & Download Buttons */}
           <div className="flex flex-col sm:flex-row justify-center gap-4 mt-12 mb-8 print:hidden">
             <button 
               onClick={printReport} 
-              className="group/btn bg-slate-900 text-white hover:bg-slate-800 px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
+              className="group/btn bg-emerald-600 text-white hover:bg-emerald-700 px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-emerald-500"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              Print {bulkReports.length > 1 ? 'All Reports' : 'Report'}
-            </button>
-            <button 
-              onClick={handleDownloadPDF}
-              disabled={downloading}
-              className="group/btn bg-primary text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {downloading ? (
-                <>
-                  <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  Generating PDF…
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Download PDF
-                </>
-              )}
+              <svg className="w-5 h-5 transition-transform group-hover/btn:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+              Print / Save as PDF {bulkReports.length > 1 ? `(${bulkReports.length} Reports)` : ''}
             </button>
             {reportData && user?.role !== 'student' && user?.role !== 'parent' && (
               <button
                 onClick={() => setShowWhatsAppModal(true)}
-                className="group/btn bg-[#25D366] text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
+                className="group/btn bg-[#25D366] text-white hover:bg-[#20ba5a] px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
