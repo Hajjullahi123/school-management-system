@@ -18,36 +18,86 @@ try {
   console.log('Puppeteer not installed or failed to load:', e.message);
 }
 
-// Generate PDF from HTML payload using Puppeteer
-router.post('/generate-pdf', authenticate, async (req, res) => {
-  try {
-    if (!puppeteer) {
-      return res.status(500).json({ error: 'Puppeteer is not available on the server' });
-    }
+// Helper to launch Puppeteer across different environments (Linux Docker, Windows, local dev)
+async function launchPuppeteerBrowser() {
+  if (!puppeteer) {
+    throw new Error('Puppeteer is not installed on the server');
+  }
 
+  const commonArgs = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--no-first-run',
+    '--no-zygote',
+    '--disable-extensions',
+    '--font-render-hinting=none'
+  ];
+
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    try {
+      return await puppeteer.launch({
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+        headless: true,
+        args: commonArgs
+      });
+    } catch (e) {
+      console.warn('Failed to launch with custom PUPPETEER_EXECUTABLE_PATH:', e.message);
+    }
+  }
+
+  try {
+    return await puppeteer.launch({
+      headless: true,
+      args: commonArgs
+    });
+  } catch (err) {
+    try {
+      return await puppeteer.launch({
+        channel: 'chrome',
+        headless: true,
+        args: commonArgs
+      });
+    } catch (err2) {
+      return await puppeteer.launch({
+        channel: 'msedge',
+        headless: true,
+        args: commonArgs
+      });
+    }
+  }
+}
+
+// Generate PDF from HTML payload using Puppeteer
+router.post('/generate-pdf', async (req, res) => {
+  let browser = null;
+  try {
     const { html, title } = req.body;
     if (!html) {
       return res.status(400).json({ error: 'HTML payload is required' });
     }
 
-    // Launch a headless browser instance
-    const browser = await puppeteer.launch({
-      headless: 'new',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage', // critical for docker/low memory environments
-        '--disable-gpu'
-      ]
-    });
-
+    browser = await launchPuppeteerBrowser();
     const page = await browser.newPage();
     
-    // Set the content
-    await page.setContent(html, {
-      waitUntil: 'load', // Less strict than networkidle0, prevents stalling on 3rd party fonts/images
-      timeout: 60000 
+    // Set viewport to standard A4 proportions
+    await page.setViewport({
+      width: 1200,
+      height: 1600,
+      deviceScaleFactor: 2
     });
+
+    // Set the content with safe timeout
+    await page.setContent(html, {
+      waitUntil: 'load',
+      timeout: 45000 
+    });
+
+    // Wait for fonts to finish loading
+    try {
+      await page.evaluateHandle('document.fonts.ready');
+    } catch (e) {}
 
     // Emulate print media type
     await page.emulateMediaType('print');
@@ -56,16 +106,22 @@ router.post('/generate-pdf', authenticate, async (req, res) => {
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
+      preferCSSPageSize: true,
       margin: { top: '0', right: '0', bottom: '0', left: '0' }
     });
 
     await browser.close();
+    browser = null;
 
     // Send the buffer back to the client
+    const cleanTitle = (title || 'report').replace(/[^a-zA-Z0-9_-]/g, '_');
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${title || 'report'}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.pdf"`);
     res.send(pdfBuffer);
   } catch (error) {
+    if (browser) {
+      try { await browser.close(); } catch (e) {}
+    }
     console.error('Server PDF Generation Error:', error);
     res.status(500).json({ error: error.message || 'Failed to generate PDF on the server' });
   }

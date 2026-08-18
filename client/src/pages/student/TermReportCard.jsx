@@ -6,10 +6,7 @@ import { api, API_BASE_URL } from '../../api';
 import useSchoolSettings from '../../hooks/useSchoolSettings';
 import { QRCodeSVG } from 'qrcode.react';
 import { useReactToPrint } from 'react-to-print';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
-import { saveBlobAsFile } from '../../utils/mobileDownload';
-import { saveAs } from 'file-saver';
+import { downloadReportAsPdf } from '../../utils/reportPdfGenerator';
 
 const TermReportCard = () => {
   const { user } = useAuth();
@@ -414,7 +411,7 @@ const TermReportCard = () => {
     if (downloading) return;
     setDownloading(true);
     setPdfProgress(5);
-    setPdfProgressLabel('Preparing report cards...');
+    setPdfProgressLabel('Initializing PDF generation...');
     cancelPdfRef.current = false;
 
     try {
@@ -423,121 +420,18 @@ const TermReportCard = () => {
 
       const title = getDocumentTitle();
 
-      // Find all report cards (.emerald-print-A4)
-      const cards = Array.from(printContent.querySelectorAll('.emerald-print-A4'));
-      if (cards.length === 0) throw new Error('No report cards found');
-
-      const total = cards.length;
-
-      // Temporarily normalize transforms so html2canvas renders exact A4 proportions
-      const scalers = Array.from(printContent.querySelectorAll('.report-card-scaler'));
-      const savedTransforms = scalers.map(s => ({
-        elem: s,
-        transform: s.style.transform,
-        transformOrigin: s.style.transformOrigin
-      }));
-
-      const wrappers = Array.from(printContent.querySelectorAll('.report-card-mobile-wrapper'));
-      const savedWrappers = wrappers.map(w => ({
-        elem: w,
-        overflow: w.style.overflow,
-        height: w.style.height
-      }));
-
-      scalers.forEach(s => {
-        s.style.transform = 'none';
-        s.style.transformOrigin = 'top left';
+      await downloadReportAsPdf({
+        containerElement: printContent,
+        title: title,
+        onProgress: (progress, label) => {
+          setPdfProgress(progress);
+          setPdfProgressLabel(label);
+        },
+        cancelRef: cancelPdfRef
       });
-      wrappers.forEach(w => {
-        w.style.overflow = 'visible';
-        w.style.height = 'auto';
-      });
-
-      const pdfDoc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        compress: true
-      });
-
-      for (let i = 0; i < total; i++) {
-        if (cancelPdfRef.current) throw new Error('Cancelled by user');
-
-        setPdfProgress(Math.round(5 + ((i) / total) * 85));
-        setPdfProgressLabel(`Capturing report ${i + 1} of ${total}...`);
-
-        // Yield for responsive UI
-        await new Promise(resolve => setTimeout(resolve, 30));
-
-        const card = cards[i];
-
-        const canvas = await html2canvas(card, {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          allowTaint: true,
-          backgroundColor: '#ffffff',
-          scrollX: 0,
-          scrollY: 0
-        });
-
-        if (cancelPdfRef.current) {
-          canvas.width = 0;
-          canvas.height = 0;
-          throw new Error('Cancelled by user');
-        }
-
-        const imgData = canvas.toDataURL('image/jpeg', 0.92);
-
-        if (i > 0) pdfDoc.addPage();
-        pdfDoc.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
-
-        // Free memory immediately
-        canvas.width = 0;
-        canvas.height = 0;
-      }
-
-      // Restore scalers & wrappers
-      savedTransforms.forEach(({ elem, transform, transformOrigin }) => {
-        elem.style.transform = transform;
-        elem.style.transformOrigin = transformOrigin;
-      });
-      savedWrappers.forEach(({ elem, overflow, height }) => {
-        elem.style.overflow = overflow;
-        elem.style.height = height;
-      });
-
-      setPdfProgress(95);
-      setPdfProgressLabel('Saving file to device...');
-      await new Promise(resolve => setTimeout(resolve, 30));
-
-      const fileName = `${title}.pdf`;
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      const pdfBlob = pdfDoc.output('blob');
-
-      if (isMobile) {
-        saveBlobAsFile(pdfBlob, fileName, true);
-      } else {
-        saveAs(pdfBlob, fileName);
-      }
-
-      setPdfProgress(100);
-      setPdfProgressLabel('Download complete!');
     } catch (err) {
-      console.error('PDF generation error:', err);
-      // Restore transforms if error occurs
-      if (printRef.current) {
-        printRef.current.querySelectorAll('.report-card-scaler').forEach(s => {
-          s.style.transform = '';
-          s.style.transformOrigin = '';
-        });
-        printRef.current.querySelectorAll('.report-card-mobile-wrapper').forEach(w => {
-          w.style.overflow = '';
-          w.style.height = '';
-        });
-      }
-
       if (err.message !== 'Cancelled by user') {
+        console.error('PDF generation error:', err);
         alert('PDF generation encountered an issue. Using Print preview as fallback...');
         printReport();
       }
@@ -547,7 +441,7 @@ const TermReportCard = () => {
         setPdfProgress(0);
         setPdfProgressLabel('');
         cancelPdfRef.current = false;
-      }, 1200);
+      }, 1000);
     }
   };
 
