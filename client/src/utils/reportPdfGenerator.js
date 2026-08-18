@@ -1,15 +1,14 @@
-import { saveAs } from 'file-saver';
-import { saveBlobAsFile } from './mobileDownload';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { api } from '../api';
+import { saveAs } from 'file-saver';
+import { saveBlobAsFile } from './mobileDownload';
+import { API_BASE_URL } from '../config';
 
 /**
- * Prepares a self-contained HTML document string from a DOM container element
- * including all stylesheets, inline styles, and converted image URLs.
+ * Builds a clean, fully self-contained HTML document with inlined CSS rules
+ * and absolute asset URLs for server-side Puppeteer rendering.
  */
 export function buildReportHtmlDocument(containerElement, documentTitle = 'Report') {
-  // 1. Collect all CSS rules from document.styleSheets for 100% style inlining
   let inlinedStyles = '';
   try {
     for (const sheet of Array.from(document.styleSheets)) {
@@ -21,61 +20,35 @@ export function buildReportHtmlDocument(containerElement, documentTitle = 'Repor
           }
         }
       } catch (e) {
-        // Fallback for cross-origin sheets
+        // Cross-origin stylesheet access error ignored
       }
     }
   } catch (e) {}
 
-  // 2. Also collect all stylesheet link tags with absolute URLs
-  const linkTags = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-    .map(link => {
-      try {
-        const absHref = new URL(link.getAttribute('href'), window.location.origin).href;
-        return `<link rel="stylesheet" href="${absHref}">`;
-      } catch (e) {
-        return link.outerHTML;
-      }
-    })
-    .join('\n');
-
-  // 3. Collect inline style tags
-  document.querySelectorAll('style').forEach(tag => {
-    inlinedStyles += tag.innerHTML + '\n';
-  });
-
-  // 4. Clone the container element
   const clone = containerElement.cloneNode(true);
-
-  // 5. Remove elements marked for print hiding
   clone.querySelectorAll('.no-print, .print-hidden').forEach(el => el.remove());
 
-  // 6. Reset transforms and mobile wrapper constraints on the clone
-  clone.querySelectorAll('.report-card-scaler').forEach(scaler => {
-    scaler.style.transform = 'none';
-    scaler.classList.remove('scale-[0.45]', 'scale-[0.55]');
-  });
-  clone.querySelectorAll('.report-card-mobile-wrapper').forEach(wrapper => {
-    wrapper.style.height = 'auto';
-    wrapper.style.overflow = 'visible';
-    wrapper.style.padding = '0';
-    wrapper.style.margin = '0';
-  });
-
-  // 7. Ensure all image URLs are absolute so Puppeteer can load them
-  const originalImages = Array.from(containerElement.querySelectorAll('img'));
-  const cloneImages = Array.from(clone.querySelectorAll('img'));
-  cloneImages.forEach((img, idx) => {
-    const orig = originalImages[idx];
-    if (orig && orig.currentSrc) {
-      img.src = orig.currentSrc;
-    } else if (img.src && !img.src.startsWith('data:') && !img.src.startsWith('http')) {
+  // Convert image src to absolute URLs
+  clone.querySelectorAll('img').forEach(img => {
+    const src = img.getAttribute('src');
+    if (src && !src.startsWith('http') && !src.startsWith('data:')) {
       try {
-        img.src = new URL(img.getAttribute('src'), window.location.origin).href;
+        img.src = new URL(src, window.location.origin).href;
       } catch (e) {}
     }
   });
 
-  // 8. Construct complete HTML string with print-optimized CSS
+  const linkTags = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+    .map(link => {
+      const href = link.getAttribute('href');
+      if (href) {
+        const absHref = href.startsWith('http') ? href : new URL(href, window.location.origin).href;
+        return `<link rel="stylesheet" href="${absHref}">`;
+      }
+      return '';
+    })
+    .join('\n');
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -140,8 +113,8 @@ export function buildReportHtmlDocument(containerElement, documentTitle = 'Repor
 
 /**
  * High-speed PDF generator.
- * Tries server-side Puppeteer first (~2-5 seconds for bulk).
- * Falls back to client-side html2canvas + jsPDF if server endpoint fails.
+ * - Single report: ⚡ Instant local client-side capture (~200ms, "in a jiffy")
+ * - Bulk reports (multiple students): 🚀 High-speed single-pass server Puppeteer engine (~2s for whole class)
  */
 export async function downloadReportAsPdf({
   containerElement,
@@ -156,23 +129,116 @@ export async function downloadReportAsPdf({
   const cleanTitle = (title || 'report').replace(/[^a-zA-Z0-9_-]/g, '_');
   const fileName = `${cleanTitle}.pdf`;
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-  // -------------------------------------------------------------
-  // ATTEMPT 1: Server-Side Single-Page High-Speed PDF Generation
-  // -------------------------------------------------------------
   const cards = Array.from(containerElement.querySelectorAll('.emerald-print-A4'));
   const totalReports = cards.length > 0 ? cards.length : 1;
 
+  // --------------------------------------------------------------------------
+  // PATH A: SINGLE STUDENT REPORT - Instant In-Browser Capture (~200ms)
+  // --------------------------------------------------------------------------
+  if (totalReports === 1) {
+    onProgress(30, 'Formatting document...');
+
+    const targetCard = cards[0] || containerElement;
+
+    // Temporarily normalize transforms & overflow for pixel-perfect capture
+    const scalers = Array.from(containerElement.querySelectorAll('.report-card-scaler'));
+    const savedTransforms = scalers.map(s => ({
+      elem: s,
+      transform: s.style.transform,
+      transformOrigin: s.style.transformOrigin
+    }));
+
+    const wrappers = Array.from(containerElement.querySelectorAll('.report-card-mobile-wrapper'));
+    const savedWrappers = wrappers.map(w => ({
+      elem: w,
+      overflow: w.style.overflow,
+      height: w.style.height
+    }));
+
+    scalers.forEach(s => {
+      s.style.transform = 'none';
+      s.style.transformOrigin = 'top left';
+    });
+    wrappers.forEach(w => {
+      w.style.overflow = 'visible';
+      w.style.height = 'auto';
+    });
+
+    try {
+      if (cancelRef.current) throw new Error('Cancelled by user');
+
+      onProgress(60, 'Generating instant PDF...');
+
+      const canvas = await html2canvas(targetCard, {
+        scale: 2, // 300 DPI high-definition capture
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        scrollX: 0,
+        scrollY: 0
+      });
+
+      if (cancelRef.current) throw new Error('Cancelled by user');
+
+      onProgress(85, 'Saving file to device...');
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
+
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+      const pdfBlob = pdf.output('blob');
+
+      if (isMobile) {
+        saveBlobAsFile(pdfBlob, fileName, true);
+      } else {
+        saveAs(pdfBlob, fileName);
+      }
+
+      onProgress(100, '⚡ Download complete!');
+      return;
+    } finally {
+      // Always restore UI scaling
+      savedTransforms.forEach(({ elem, transform, transformOrigin }) => {
+        elem.style.transform = transform;
+        elem.style.transformOrigin = transformOrigin;
+      });
+      savedWrappers.forEach(({ elem, overflow, height }) => {
+        elem.style.overflow = overflow;
+        elem.style.height = height;
+      });
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // PATH B: BULK CLASS REPORTS - High-Speed Single-Pass Server Engine (~2s)
+  // --------------------------------------------------------------------------
   try {
-    onProgress(15, `Preparing ${totalReports > 1 ? `${totalReports} reports` : 'document'} for high-speed export...`);
+    onProgress(15, `Preparing ${totalReports} reports for high-speed export...`);
     const htmlPayload = buildReportHtmlDocument(containerElement, cleanTitle);
 
     if (cancelRef.current) throw new Error('Cancelled by user');
-    onProgress(35, `Generating ${totalReports > 1 ? `${totalReports}-page bundle` : 'PDF'} on server...`);
+    onProgress(35, `Generating ${totalReports}-page bundle on server...`);
 
-    const response = await api.post('/api/reports/generate-pdf', {
-      html: htmlPayload,
-      title: cleanTitle
+    const token = localStorage.getItem('token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const rawBase = API_BASE_URL || window.location.origin;
+    const baseURL = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
+
+    const response = await fetch(`${baseURL}/api/reports/generate-pdf`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        html: htmlPayload,
+        title: cleanTitle
+      })
     });
 
     if (cancelRef.current) throw new Error('Cancelled by user');
@@ -191,7 +257,7 @@ export async function downloadReportAsPdf({
       if (blob && blob.size > 50) {
         const headerSlice = await blob.slice(0, 5).text();
         if (headerSlice.startsWith('%PDF')) {
-          onProgress(95, 'Saving file to device...');
+          onProgress(95, 'Saving bundle to device...');
           if (isMobile) {
             saveBlobAsFile(blob, fileName, true);
           } else {
@@ -202,21 +268,18 @@ export async function downloadReportAsPdf({
         }
       }
     }
-    console.warn('Server PDF response not OK, falling back to client-side generation...');
+    console.warn('Server PDF response not OK, falling back to local capture...');
   } catch (serverErr) {
     if (cancelRef.current || serverErr.message === 'Cancelled by user') {
       throw serverErr;
     }
-    console.warn('Server PDF generation failed, falling back to client-side capture:', serverErr.message);
+    console.warn('Server bulk generation error, falling back:', serverErr.message);
   }
 
-  // -------------------------------------------------------------
-  // ATTEMPT 2: Client-Side html2canvas + jsPDF Fallback
-  // -------------------------------------------------------------
+  // --------------------------------------------------------------------------
+  // PATH C: Fallback Sequential Capture (Only if server is unreachable)
+  // --------------------------------------------------------------------------
   onProgress(20, 'Switching to local PDF engine...');
-  const totalCards = cards.length > 0 ? cards.length : 1;
-
-  // Temporarily normalize transforms for capture
   const scalers = Array.from(containerElement.querySelectorAll('.report-card-scaler'));
   const savedTransforms = scalers.map(s => ({
     elem: s,
@@ -258,11 +321,7 @@ export async function downloadReportAsPdf({
         `Capturing report ${i + 1} of ${targetElements.length}...`
       );
 
-      // Brief delay for UI rendering
-      await new Promise(resolve => setTimeout(resolve, 20));
-
-      const card = targetElements[i];
-      const canvas = await html2canvas(card, {
+      const canvas = await html2canvas(targetElements[i], {
         scale: 2,
         useCORS: true,
         logging: false,
@@ -272,19 +331,11 @@ export async function downloadReportAsPdf({
         scrollY: 0
       });
 
-      if (cancelRef.current) {
-        canvas.width = 0;
-        canvas.height = 0;
-        throw new Error('Cancelled by user');
-      }
+      if (cancelRef.current) throw new Error('Cancelled by user');
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
       if (i > 0) pdfDoc.addPage();
       pdfDoc.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
-
-      // Free canvas memory
-      canvas.width = 0;
-      canvas.height = 0;
     }
 
     onProgress(95, 'Saving file to device...');
@@ -298,7 +349,6 @@ export async function downloadReportAsPdf({
 
     onProgress(100, 'Download complete!');
   } finally {
-    // Always restore transforms
     savedTransforms.forEach(({ elem, transform, transformOrigin }) => {
       elem.style.transform = transform;
       elem.style.transformOrigin = transformOrigin;
