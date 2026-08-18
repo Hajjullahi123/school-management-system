@@ -71,7 +71,7 @@ class PDFCacheManager {
           }
         } else {
           // Expired file
-          fs.unlinkSync(filePath);
+          try { fs.unlinkSync(filePath); } catch (e) {}
         }
       }
     } catch (err) {
@@ -100,9 +100,6 @@ class PDFCacheManager {
         if (err) console.warn(`[PDFCache] Disk write warning for ${key}:`, err.message);
       });
     } catch (err) {
-      console.warn(`[PDFCache] Failed to queue disk write for ${key}:`, err.message);
-    }
-  }
       console.warn(`[PDFCache] Failed to queue disk write for ${key}:`, err.message);
     }
   }
@@ -137,7 +134,7 @@ class PDFCacheManager {
         const files = fs.readdirSync(this.cacheDir);
         for (const file of files) {
           if (file.includes(keyPattern)) {
-            fs.unlinkSync(path.join(this.cacheDir, file));
+            try { fs.unlinkSync(path.join(this.cacheDir, file)); } catch (e) {}
           }
         }
       }
