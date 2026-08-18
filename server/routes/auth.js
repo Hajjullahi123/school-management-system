@@ -231,41 +231,65 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
     }
 
     // 1. PERFORM GLOBAL DISCOVERY
-    // We search across all schools to see if this identifier exists anywhere
+    // Search across Users (username, email, phone, parent phone), Students (admissionNumber), and Teachers (staffId)
     const sanitizedPhone = searchId.replace(/\s+/g, '');
-    const globalMatches = await prisma.user.findMany({
-      where: { 
-        OR: [
-          { username: { equals: searchId, mode: 'insensitive' } }, 
-          { email: { equals: searchId, mode: 'insensitive' } },
-          { phone: { equals: sanitizedPhone } },
-          { Parent: { phone: { equals: sanitizedPhone } } }
-        ] 
-      },
-      select: { 
-        school: { 
-          select: { id: true, name: true, slug: true, logoUrl: true } 
-        } 
+    
+    const [globalUserMatches, studentMatches, teacherMatches] = await Promise.all([
+      prisma.user.findMany({
+        where: { 
+          OR: [
+            { username: { equals: searchId, mode: 'insensitive' } }, 
+            { email: { equals: searchId, mode: 'insensitive' } },
+            { phone: { equals: sanitizedPhone } },
+            { Parent: { phone: { equals: sanitizedPhone } } }
+          ] 
+        },
+        select: { 
+          school: { 
+            select: { id: true, name: true, slug: true, logoUrl: true } 
+          } 
+        }
+      }),
+      prisma.student.findMany({
+        where: { 
+          admissionNumber: { equals: searchId, mode: 'insensitive' } 
+        },
+        select: { 
+          school: { 
+            select: { id: true, name: true, slug: true, logoUrl: true } 
+          } 
+        }
+      }),
+      prisma.teacher.findMany({
+        where: { 
+          staffId: { equals: searchId, mode: 'insensitive' } 
+        },
+        select: { 
+          school: { 
+            select: { id: true, name: true, slug: true, logoUrl: true } 
+          } 
+        }
+      })
+    ]);
+
+    // Aggregate and deduplicate all matching schools
+    const schoolMap = new Map();
+    [...globalUserMatches, ...studentMatches, ...teacherMatches].forEach(match => {
+      if (match?.school?.id) {
+        schoolMap.set(match.school.id, match.school);
       }
     });
 
-    const schools = globalMatches
-      .filter(m => m.school)
-      .map(m => m.school);
+    const schools = Array.from(schoolMap.values());
 
     // 2. LOGIC FOR RETURNING MATCHES
     if (schools.length > 0) {
-      // If a schoolSlug was provided, we check if it's in our global matches
+      // If a schoolSlug was provided, check if it's in our matches
       if (schoolSlug) {
         const currentSchoolMatch = schools.find(s => s.slug === schoolSlug);
-        
-        // If we found the current school AND no other schools, just return that one (normal flow)
         if (currentSchoolMatch && schools.length === 1) {
           return res.json({ schools: [currentSchoolMatch], count: 1 });
         }
-        
-        // If we found the current school PLUS others, or just other schools, return the whole list
-        // This is what unlocks the "discovery" for parents even on a school-specific PWA
         return res.json({ 
           schools, 
           count: schools.length,
@@ -273,34 +297,12 @@ router.post('/identify', validate(identifySchema), async (req, res) => {
         });
       }
 
-      // If no schoolSlug provided (Global Discovery Page), return all matches
+      // If no schoolSlug provided (Central Login / Discovery), return matches
       return res.json({ 
         schools, 
         count: schools.length,
         message: schools.length > 1 ? 'Multiple accounts found' : 'Account found'
       });
-    }
-
-    // 3. FALLBACK: Check non-user records (Students/Teachers) only if no direct User matches
-    // This is for legacy/first-time login scenarios
-    if (schoolSlug) {
-      const school = await prisma.school.findUnique({ where: { slug: schoolSlug }, select: { id: true } });
-      if (school) {
-        const [studentMatch, teacherMatch] = await Promise.all([
-          prisma.student.findFirst({
-            where: { schoolId: school.id, admissionNumber: { equals: searchId, mode: 'insensitive' } },
-            select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
-          }),
-          prisma.teacher.findFirst({
-            where: { schoolId: school.id, staffId: { equals: searchId, mode: 'insensitive' } },
-            select: { school: { select: { id: true, name: true, slug: true, logoUrl: true } } }
-          })
-        ]);
-        const legacyMatch = studentMatch || teacherMatch;
-        if (legacyMatch?.school) {
-          return res.json({ schools: [legacyMatch.school], count: 1 });
-        }
-      }
     }
 
     return res.status(404).json({ error: 'Account not found. Check your credentials.' });
