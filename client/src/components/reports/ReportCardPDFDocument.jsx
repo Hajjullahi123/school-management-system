@@ -15,6 +15,21 @@ const getFontUrl = (fontPath) => {
   return fontPath;
 };
 
+// Safe image URL resolver
+export const resolveImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed || trimmed === 'null' || trimmed === 'undefined') return null;
+  if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) return trimmed;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+
+  const base = (typeof window !== 'undefined' && window.location && window.location.origin)
+    ? window.location.origin
+    : '';
+  const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return `${base}${cleanPath}`;
+};
+
 Font.register({
   family: 'Noto Sans',
   fonts: [
@@ -637,10 +652,10 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
         const layout = data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
         const reportColor = data.reportSettings?.reportColorScheme || (data.schoolSettings || schoolSettings)?.reportColorScheme || (data.schoolSettings || schoolSettings)?.primaryColor || '#1e40af';
 
-        const logoUrl = schoolSettings.logoUrl;
-        const photoUrl = student.user?.photoUrl || student.photoUrl;
-        const teacherSig = student.formMasterSignatureUrl;
-        const principalSig = term.principalSignatureUrl || schoolSettings.principalSignatureUrl;
+        const logoUrl = resolveImageUrl(schoolSettings.logoUrl);
+        const photoUrl = resolveImageUrl(student.user?.photoUrl || student.photoUrl);
+        const teacherSig = resolveImageUrl(student.formMasterSignatureUrl);
+        const principalSig = resolveImageUrl(term.principalSignatureUrl || schoolSettings.principalSignatureUrl);
 
         const studentName = getStudentDisplayName(student);
         const className = (student.class || data.className || 'N/A').toUpperCase();

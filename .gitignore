@@ -46,6 +46,7 @@ uploads/pdf-cache/*
 # Temporary
 tmp/
 temp/
+scratch/
 
 # Desktop builds and release packages
 dist-desktop/

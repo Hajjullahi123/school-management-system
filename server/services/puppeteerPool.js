@@ -138,15 +138,18 @@ class PuppeteerPool {
         deviceScaleFactor: 2
       });
 
-      // Load HTML with inlined styles and wait for fonts
+      // Load HTML with inlined styles
       await page.setContent(html, {
-        waitUntil: 'load',
-        timeout: 30000
+        waitUntil: 'domcontentloaded',
+        timeout: 45000
       });
 
-      // Ensure fonts are rendered
+      // Ensure fonts are rendered with safe timeout guard
       try {
-        await page.evaluateHandle('document.fonts.ready');
+        await Promise.race([
+          page.evaluateHandle('document.fonts.ready'),
+          new Promise(r => setTimeout(r, 2500))
+        ]);
       } catch (e) {}
 
       // Generate standard A4 PDF buffer with exact scale

@@ -235,16 +235,23 @@ const BulkReportDownload = () => {
 
     const title = getDocumentTitle();
 
-    // Collect stylesheets from the current page
-    const linkTags = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-      .map(link => link.outerHTML).join('\n');
-    let inlineStyles = '';
-    document.querySelectorAll('style').forEach(tag => {
-      inlineStyles += tag.innerHTML + '\n';
-    });
+    let inlinedStyles = '';
+    try {
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          const rules = sheet.cssRules || sheet.rules;
+          if (rules) {
+            for (const rule of Array.from(rules)) {
+              inlinedStyles += rule.cssText + '\n';
+            }
+          }
+        } catch (e) {}
+      }
+    } catch (e) {}
 
     // Clone the report container (static HTML, no React overhead)
     const clone = printContent.cloneNode(true);
+    clone.querySelectorAll('.no-print, .print-hidden').forEach(el => el.remove());
     clone.querySelectorAll('.report-card-scaler').forEach(scaler => {
       scaler.style.transform = 'none';
       scaler.classList.remove('scale-[0.45]', 'scale-[0.55]');
@@ -253,78 +260,134 @@ const BulkReportDownload = () => {
       wrapper.style.height = 'auto';
       wrapper.style.overflow = 'visible';
     });
-    clone.querySelectorAll('.no-print, .print-hidden').forEach(el => el.remove());
 
-    printWindow.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
-      ${linkTags}
-      <style>
-        ${inlineStyles}
-        @page { size: A4; margin: 0 !important; }
-        html, body { background: white !important; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        nav, header, footer, .sidebar, .no-print, .print-hidden { display: none !important; }
-        .report-card-scaler { transform: none !important; }
-        .report-card-mobile-wrapper { height: auto !important; overflow: visible !important; }
-      </style>
-    </head><body></body></html>`);
+    // Make image URLs absolute
+    clone.querySelectorAll('img').forEach(img => {
+      const src = img.getAttribute('src');
+      if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+        try {
+          img.src = new URL(src, window.location.origin).href;
+        } catch (e) {}
+      }
+    });
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base href="${window.location.origin}/">
+  <title>${title}</title>
+  <style>
+    ${inlinedStyles}
+    @page { size: A4 portrait; margin: 0 !important; }
+    html, body { background: white !important; margin: 0 !important; padding: 0 !important; width: 210mm !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    nav, header, footer, .sidebar, .no-print, .print-hidden { display: none !important; }
+    .report-card-scaler { transform: none !important; }
+    .report-card-mobile-wrapper { height: auto !important; overflow: visible !important; }
+    .emerald-print-A4 { width: 210mm !important; max-width: 210mm !important; margin: 0 auto !important; page-break-after: always !important; break-after: page !important; }
+  </style>
+</head>
+<body></body>
+</html>`);
     printWindow.document.close();
     printWindow.document.body.appendChild(clone);
 
-    // Wait for stylesheets and images, then trigger print
-    const triggerPrint = () => {
+    // Trigger instant print
+    setTimeout(() => {
       printWindow.focus();
       printWindow.print();
-      setTimeout(() => { try { printWindow.close(); } catch(e) {} }, 1500);
-    };
-
-    const images = Array.from(printWindow.document.querySelectorAll('img'));
-    if (images.length === 0) {
-      setTimeout(triggerPrint, 800);
-    } else {
-      let loaded = 0;
-      let triggered = false;
-      const onImgReady = () => {
-        loaded++;
-        if (loaded >= images.length && !triggered) {
-          triggered = true;
-          setTimeout(triggerPrint, 500);
-        }
-      };
-      images.forEach(img => {
-        if (img.complete) onImgReady();
-        else { img.onload = onImgReady; img.onerror = onImgReady; }
-      });
-      // Fallback timeout in case images stall
-      setTimeout(() => { if (!triggered) { triggered = true; triggerPrint(); } }, 8000);
-    }
+      setTimeout(() => { try { printWindow.close(); } catch(e) {} }, 1000);
+    }, 100);
   };
-
-  const [downloadingPDF, setDownloadingPDF] = useState(false);
 
   const handleDownloadPDF = async () => {
     if (reports.length === 0 || downloadingPDF) return;
     setDownloadingPDF(true);
+    setPdfProgress(5);
+    setPdfProgressLabel('Preparing reports for download...');
+    cancelPdfRef.current = false;
 
     try {
       const printContent = componentRef.current;
-      if (!printContent) throw new Error('No content found to download');
-
       const title = getDocumentTitle();
 
       await downloadReportAsPdf({
         containerElement: printContent,
-        title: title
+        reports: reports,
+        schoolSettings: schoolSettings,
+        title: title,
+        onProgress: (percent, label) => {
+          setPdfProgress(percent);
+          if (label) setPdfProgressLabel(label);
+        },
+        cancelRef: cancelPdfRef
       });
     } catch (err) {
-      console.error('Bulk PDF generation error:', err);
-      alert('PDF generation encountered an issue. Using Print preview as fallback...');
-      handlePrint();
+      if (err.message === 'Cancelled by user') {
+        console.log('PDF generation cancelled by user');
+      } else {
+        console.error('Bulk PDF generation error:', err);
+        alert('PDF generation encountered an issue. Using Print preview as fallback...');
+        handlePrint();
+      }
     } finally {
-      setDownloadingPDF(false);
+      setTimeout(() => {
+        setDownloadingPDF(false);
+        setPdfProgress(0);
+        setPdfProgressLabel('');
+      }, 600);
     }
+  };
+
+  const handleCancelPDF = () => {
+    cancelPdfRef.current = true;
+    setPdfProgressLabel('Cancelling...');
   };
 
   return (
     <div className="space-y-6 pb-20">
+      {/* Progress Modal */}
+      {downloadingPDF && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in print:hidden">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-5">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center relative">
+              <svg className="w-8 h-8 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-lg font-black uppercase tracking-tight text-slate-900">
+                Generating PDF Bundle
+              </h3>
+              <p className="text-xs font-medium text-slate-500">
+                {pdfProgressLabel || `Processing ${reports.length} report cards...`}
+              </p>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200">
+              <div 
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-300 ease-out flex items-center justify-end pr-1"
+                style={{ width: `${Math.max(5, pdfProgress)}%` }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between w-full text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span>{reports.length} Student Reports</span>
+              <span className="font-mono font-bold text-emerald-600 text-xs">{pdfProgress}%</span>
+            </div>
+
+            <button
+              onClick={handleCancelPDF}
+              className="text-xs font-bold text-slate-500 hover:text-rose-600 uppercase tracking-wider px-4 py-2 rounded-xl hover:bg-rose-50 transition-colors"
+            >
+              Cancel Download
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header Section - Glassmorphism (Synced with Single Report) */}
       <div className="relative group overflow-hidden rounded-[32px] p-1 bg-gradient-to-br from-indigo-600 via-primary to-emerald-600 shadow-2xl print:hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"></div>
@@ -350,7 +413,7 @@ const BulkReportDownload = () => {
                     <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    <span>Downloading...</span>
+                    <span>Downloading ({pdfProgress}%)...</span>
                   </>
                 ) : (
                   <>
