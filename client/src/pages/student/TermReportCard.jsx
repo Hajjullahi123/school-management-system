@@ -403,16 +403,9 @@ const TermReportCard = () => {
     }
   };
 
-  const handleCancelPdf = () => {
-    cancelPdfRef.current = true;
-  };
-
   const handleDownloadPDF = async () => {
     if (downloading) return;
     setDownloading(true);
-    setPdfProgress(5);
-    setPdfProgressLabel('Initializing PDF generation...');
-    cancelPdfRef.current = false;
 
     try {
       const printContent = printRef.current;
@@ -422,26 +415,14 @@ const TermReportCard = () => {
 
       await downloadReportAsPdf({
         containerElement: printContent,
-        title: title,
-        onProgress: (progress, label) => {
-          setPdfProgress(progress);
-          setPdfProgressLabel(label);
-        },
-        cancelRef: cancelPdfRef
+        title: title
       });
     } catch (err) {
-      if (err.message !== 'Cancelled by user') {
-        console.error('PDF generation error:', err);
-        alert('PDF generation encountered an issue. Using Print preview as fallback...');
-        printReport();
-      }
+      console.error('PDF generation error:', err);
+      alert('PDF generation encountered an issue. Using Print preview as fallback...');
+      printReport();
     } finally {
-      setTimeout(() => {
-        setDownloading(false);
-        setPdfProgress(0);
-        setPdfProgressLabel('');
-        cancelPdfRef.current = false;
-      }, 1000);
+      setDownloading(false);
     }
   };
 
@@ -488,32 +469,6 @@ const TermReportCard = () => {
   return (
     <div className="space-y-6 pb-20">
 
-      {downloading && (
-        <div className="fixed inset-0 z-[99999] bg-slate-50/90 backdrop-blur-sm flex flex-col items-center justify-center print:hidden px-6">
-          <div className="w-full max-w-md bg-white p-8 rounded-[32px] shadow-2xl border border-slate-100 text-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-indigo-500"></div>
-            
-            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-widest mb-2 mt-4">Generating PDF</h2>
-            <p className="text-sm text-slate-500 font-medium mb-8">Please wait while we format your document...</p>
-            
-            <div className="mb-2 flex justify-between items-center px-1">
-              <span className="text-xs font-bold text-slate-600 truncate mr-4">{pdfProgressLabel}</span>
-              <span className="text-sm font-black text-emerald-600">{pdfProgress}%</span>
-            </div>
-            <div className="w-full bg-slate-100 rounded-full h-3 mb-8 overflow-hidden">
-              <div className="bg-emerald-500 h-3 rounded-full transition-all duration-300 ease-out" style={{ width: `${pdfProgress}%` }}></div>
-            </div>
-
-            <button 
-              onClick={handleCancelPdf}
-              className="px-6 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-2xl font-bold text-sm transition-all hover:scale-105 active:scale-95 mx-auto flex items-center gap-2 border border-red-100"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              Cancel Generation
-            </button>
-          </div>
-        </div>
-      )}
       {/* Header Section - Glassmorphism */}
       <div className="relative group overflow-hidden rounded-[32px] p-1 bg-gradient-to-br from-indigo-600 via-primary to-emerald-600 shadow-2xl print:hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"></div>

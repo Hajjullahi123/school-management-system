@@ -300,15 +300,9 @@ const BulkReportDownload = () => {
 
   const [downloadingPDF, setDownloadingPDF] = useState(false);
 
-  const handleCancelPdf = () => {
-    cancelPdfRef.current = true;
-  };
   const handleDownloadPDF = async () => {
     if (reports.length === 0 || downloadingPDF) return;
     setDownloadingPDF(true);
-    setPdfProgress(5);
-    setPdfProgressLabel('Initializing bulk PDF export...');
-    cancelPdfRef.current = false;
 
     try {
       const printContent = componentRef.current;
@@ -318,26 +312,14 @@ const BulkReportDownload = () => {
 
       await downloadReportAsPdf({
         containerElement: printContent,
-        title: title,
-        onProgress: (progress, label) => {
-          setPdfProgress(progress);
-          setPdfProgressLabel(label);
-        },
-        cancelRef: cancelPdfRef
+        title: title
       });
     } catch (err) {
-      if (err.message !== 'Cancelled by user') {
-        console.error('Bulk PDF generation error:', err);
-        alert('PDF generation encountered an issue. Using Print preview as fallback...');
-        handlePrint();
-      }
+      console.error('Bulk PDF generation error:', err);
+      alert('PDF generation encountered an issue. Using Print preview as fallback...');
+      handlePrint();
     } finally {
-      setTimeout(() => {
-        setDownloadingPDF(false);
-        setPdfProgress(0);
-        setPdfProgressLabel('');
-        cancelPdfRef.current = false;
-      }, 1000);
+      setDownloadingPDF(false);
     }
   };
 
@@ -358,35 +340,25 @@ const BulkReportDownload = () => {
           
           {reports.length > 0 && (
             <div className="flex flex-col sm:flex-row gap-3 items-center">
-              {downloadingPDF ? (
-                <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm px-6 py-3 rounded-[24px] border border-white/20 min-w-[280px]">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-[9px] font-black text-white/80 uppercase tracking-widest">Generating PDF</span>
-                      <span className="text-xs font-black text-white">{pdfProgress}%</span>
-                    </div>
-                    <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-                      <div className="bg-emerald-400 h-2 rounded-full transition-all duration-300 ease-out" style={{ width: `${pdfProgress}%` }}></div>
-                    </div>
-                    <p className="text-[8px] text-white/60 font-bold mt-1 truncate">{pdfProgressLabel}</p>
-                  </div>
-                  <button 
-                    onClick={handleCancelPdf} 
-                    className="text-white/70 hover:text-red-300 transition-colors p-1.5 rounded-lg hover:bg-white/10 flex-shrink-0"
-                    title="Cancel"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                </div>
-              ) : (
-                <button 
-                  onClick={handleDownloadPDF} 
-                  className="group/btn bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border border-emerald-500"
-                >
-                  <span>💾</span>
-                  Download PDF Bundle
-                </button>
-              )}
+              <button 
+                onClick={handleDownloadPDF} 
+                disabled={downloadingPDF}
+                className="group/btn bg-emerald-600 hover:bg-emerald-700 disabled:opacity-75 text-white px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border border-emerald-500 min-w-[200px]"
+              >
+                {downloadingPDF ? (
+                  <>
+                    <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>Downloading...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>💾</span>
+                    Download PDF Bundle
+                  </>
+                )}
+              </button>
               <button 
                 onClick={handlePrint} 
                 disabled={downloadingPDF}
