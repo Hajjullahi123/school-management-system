@@ -215,85 +215,11 @@ const BulkReportDownload = () => {
   };
 
   const handlePrint = () => {
-    const printContent = componentRef.current;
-    if (!printContent || reports.length === 0) return;
-
-    const printWindow = window.open('', '_blank', 'width=900,height=700');
-    if (!printWindow) {
-      alert('Please allow pop-ups to print bulk reports.');
-      // Fallback to in-page print
-      const oldTitle = document.title;
-      document.title = getDocumentTitle();
-      window.print();
-      document.title = oldTitle;
-      return;
-    }
-
-    const title = getDocumentTitle();
-
-    let inlinedStyles = '';
-    try {
-      for (const sheet of Array.from(document.styleSheets)) {
-        try {
-          const rules = sheet.cssRules || sheet.rules;
-          if (rules) {
-            for (const rule of Array.from(rules)) {
-              inlinedStyles += rule.cssText + '\n';
-            }
-          }
-        } catch (e) {}
-      }
-    } catch (e) {}
-
-    // Clone the report container (static HTML, no React overhead)
-    const clone = printContent.cloneNode(true);
-    clone.querySelectorAll('.no-print, .print-hidden').forEach(el => el.remove());
-    clone.querySelectorAll('.report-card-scaler').forEach(scaler => {
-      scaler.style.transform = 'none';
-      scaler.classList.remove('scale-[0.45]', 'scale-[0.55]');
-    });
-    clone.querySelectorAll('.report-card-mobile-wrapper').forEach(wrapper => {
-      wrapper.style.height = 'auto';
-      wrapper.style.overflow = 'visible';
-    });
-
-    // Make image URLs absolute
-    clone.querySelectorAll('img').forEach(img => {
-      const src = img.getAttribute('src');
-      if (src && !src.startsWith('http') && !src.startsWith('data:')) {
-        try {
-          img.src = new URL(src, window.location.origin).href;
-        } catch (e) {}
-      }
-    });
-
-    printWindow.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <base href="${window.location.origin}/">
-  <title>${title}</title>
-  <style>
-    ${inlinedStyles}
-    @page { size: A4 portrait; margin: 0 !important; }
-    html, body { background: white !important; margin: 0 !important; padding: 0 !important; width: 210mm !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    nav, header, footer, .sidebar, .no-print, .print-hidden { display: none !important; }
-    .report-card-scaler { transform: none !important; }
-    .report-card-mobile-wrapper { height: auto !important; overflow: visible !important; }
-    .emerald-print-A4 { width: 210mm !important; max-width: 210mm !important; margin: 0 auto !important; page-break-after: always !important; break-after: page !important; }
-  </style>
-</head>
-<body></body>
-</html>`);
-    printWindow.document.close();
-    printWindow.document.body.appendChild(clone);
-
-    // Trigger instant print
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-      setTimeout(() => { try { printWindow.close(); } catch(e) {} }, 1000);
-    }, 100);
+    if (reports.length === 0) return;
+    const oldTitle = document.title;
+    document.title = getDocumentTitle();
+    window.print();
+    document.title = oldTitle;
   };
 
   return (
@@ -855,43 +781,13 @@ const BulkReportDownload = () => {
             })}
           </div>
           {reports.length > 0 && (
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-8 print:hidden">
-              {downloadingPDF ? (
-                <div className="flex items-center gap-3 bg-slate-100 px-6 py-4 rounded-[24px] border border-slate-200 min-w-[300px] w-full sm:w-auto">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Generating PDF</span>
-                      <span className="text-xs font-black text-slate-800">{pdfProgress}%</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
-                      <div className="bg-emerald-500 h-2.5 rounded-full transition-all duration-300 ease-out" style={{ width: `${pdfProgress}%` }}></div>
-                    </div>
-                    <p className="text-[8px] text-slate-400 font-bold mt-1 truncate">{pdfProgressLabel}</p>
-                  </div>
-                  <button 
-                    onClick={handleCancelPdf} 
-                    className="text-slate-400 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50 flex-shrink-0"
-                    title="Cancel PDF Generation"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                </div>
-              ) : (
-                <button 
-                  onClick={handleDownloadPDF} 
-                  className="group/btn bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border border-emerald-500 w-full sm:w-auto"
-                >
-                  <span>💾</span>
-                  Download PDF Bundle
-                </button>
-              )}
+            <div className="flex justify-center items-center gap-4 mt-8 print:hidden">
               <button 
                 onClick={handlePrint} 
-                disabled={downloadingPDF}
-                className="group/btn bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-3 border border-slate-800 w-full sm:w-auto"
+                className="group/btn bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border border-emerald-500 w-full sm:w-auto"
               >
                 <Printer className="w-5 h-5 transition-transform group-hover/btn:rotate-12" />
-                Print All {reports.length} Reports
+                Print / Save as PDF ({reports.length} Reports)
               </button>
             </div>
           )}

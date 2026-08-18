@@ -190,7 +190,7 @@ nav a svg,
 
 @media print {
   @page {
-    size: A4;
+    size: A4 portrait;
     margin: 0 !important;
   }
 
@@ -200,7 +200,25 @@ nav a svg,
     print-color-adjust: exact !important;
     margin: 0 !important;
     padding: 0 !important;
-    height: 100% !important;
+    height: auto !important;
+  }
+
+  /* Hide app navigation, sidebar, and non-printable UI */
+  nav, header, aside, footer, .no-print, .print-hidden, [role="navigation"] {
+    display: none !important;
+  }
+
+  /* Reset scalers and mobile wrappers for crisp 1:1 print */
+  .report-card-scaler {
+    transform: none !important;
+    width: 210mm !important;
+    margin: 0 auto !important;
+  }
+
+  .report-card-mobile-wrapper {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
   }
 
   /* Strict A4 Container */

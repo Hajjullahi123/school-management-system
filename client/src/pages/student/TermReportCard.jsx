@@ -338,79 +338,10 @@ const TermReportCard = () => {
     const printContent = printRef.current;
     if (!printContent) return;
 
-    const printWindow = window.open('', '_blank', 'width=1100,height=900');
-    if (!printWindow) {
-      alert('Please allow pop-ups to print reports.');
-      const oldTitle = document.title;
-      document.title = getDocumentTitle();
-      window.print();
-      document.title = oldTitle;
-      return;
-    }
-
-    const title = getDocumentTitle();
-
-    let inlinedStyles = '';
-    try {
-      for (const sheet of Array.from(document.styleSheets)) {
-        try {
-          const rules = sheet.cssRules || sheet.rules;
-          if (rules) {
-            for (const rule of Array.from(rules)) {
-              inlinedStyles += rule.cssText + '\n';
-            }
-          }
-        } catch (e) {}
-      }
-    } catch (e) {}
-
-    const clone = printContent.cloneNode(true);
-    clone.querySelectorAll('.no-print, .print-hidden').forEach(el => el.remove());
-    clone.querySelectorAll('.report-card-scaler').forEach(scaler => {
-      scaler.style.transform = 'none';
-    });
-    clone.querySelectorAll('.report-card-mobile-wrapper').forEach(wrapper => {
-      wrapper.style.height = 'auto';
-      wrapper.style.overflow = 'visible';
-    });
-
-    // Make image URLs absolute
-    clone.querySelectorAll('img').forEach(img => {
-      const src = img.getAttribute('src');
-      if (src && !src.startsWith('http') && !src.startsWith('data:')) {
-        try {
-          img.src = new URL(src, window.location.origin).href;
-        } catch (e) {}
-      }
-    });
-
-    printWindow.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <base href="${window.location.origin}/">
-  <title>${title}</title>
-  <style>
-    ${inlinedStyles}
-    @page { size: A4 portrait; margin: 0 !important; }
-    html, body { background: white !important; margin: 0 !important; padding: 0 !important; width: 210mm !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    nav, header, footer, .sidebar, .no-print, .print-hidden { display: none !important; }
-    .report-card-scaler { transform: none !important; }
-    .report-card-mobile-wrapper { height: auto !important; overflow: visible !important; }
-    .emerald-print-A4 { width: 210mm !important; max-width: 210mm !important; margin: 0 auto !important; page-break-after: always !important; break-after: page !important; }
-  </style>
-</head>
-<body></body>
-</html>`);
-    printWindow.document.close();
-    printWindow.document.body.appendChild(clone);
-
-    // Trigger instant print
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-      setTimeout(() => { try { printWindow.close(); } catch(e) {} }, 1000);
-    }, 100);
+    const oldTitle = document.title;
+    document.title = getDocumentTitle();
+    window.print();
+    document.title = oldTitle;
   };
 
   const sendWhatsApp = async (e) => {
