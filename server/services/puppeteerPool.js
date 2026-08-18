@@ -138,26 +138,30 @@ class PuppeteerPool {
         deviceScaleFactor: 2
       });
 
-      // Load HTML with safe timeout
-      await page.setContent(html, {
-        waitUntil: options.waitUntil || 'load',
-        timeout: options.timeout || 45000
-      });
+      // Load HTML and wait for network assets (images, fonts) to finish loading
+      try {
+        await page.setContent(html, {
+          waitUntil: ['load', 'networkidle2'],
+          timeout: 45000
+        });
+      } catch (e) {
+        await page.setContent(html, {
+          waitUntil: 'load',
+          timeout: 45000
+        });
+      }
 
-      // Wait for fonts if present
+      // Wait for fonts to be ready
       try {
         await page.evaluateHandle('document.fonts.ready');
       } catch (e) {}
 
-      // Emulate print media type
-      await page.emulateMediaType('print');
-
-      // Generate standard A4 PDF buffer
+      // Generate standard A4 PDF buffer with exact scale
       const pdfBuffer = await page.pdf({
         format: 'A4',
         printBackground: true,
         preferCSSPageSize: true,
-        margin: { top: '0', right: '0', bottom: '0', left: '0' }
+        margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' }
       });
 
       return Buffer.from(pdfBuffer);

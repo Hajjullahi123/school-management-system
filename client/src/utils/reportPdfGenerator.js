@@ -9,24 +9,47 @@ import { api } from '../api';
  * including all stylesheets, inline styles, and converted image URLs.
  */
 export function buildReportHtmlDocument(containerElement, documentTitle = 'Report') {
-  // 1. Collect all stylesheet links
+  // 1. Collect all CSS rules from document.styleSheets for 100% style inlining
+  let inlinedStyles = '';
+  try {
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        const rules = sheet.cssRules || sheet.rules;
+        if (rules) {
+          for (const rule of Array.from(rules)) {
+            inlinedStyles += rule.cssText + '\n';
+          }
+        }
+      } catch (e) {
+        // Fallback for cross-origin sheets
+      }
+    }
+  } catch (e) {}
+
+  // 2. Also collect all stylesheet link tags with absolute URLs
   const linkTags = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-    .map(link => link.outerHTML)
+    .map(link => {
+      try {
+        const absHref = new URL(link.getAttribute('href'), window.location.origin).href;
+        return `<link rel="stylesheet" href="${absHref}">`;
+      } catch (e) {
+        return link.outerHTML;
+      }
+    })
     .join('\n');
 
-  // 2. Collect all inline style tags
-  let inlineStyles = '';
+  // 3. Collect inline style tags
   document.querySelectorAll('style').forEach(tag => {
-    inlineStyles += tag.innerHTML + '\n';
+    inlinedStyles += tag.innerHTML + '\n';
   });
 
-  // 3. Clone the container element
+  // 4. Clone the container element
   const clone = containerElement.cloneNode(true);
 
-  // 4. Remove elements marked for print hiding
+  // 5. Remove elements marked for print hiding
   clone.querySelectorAll('.no-print, .print-hidden').forEach(el => el.remove());
 
-  // 5. Reset transforms and mobile wrapper constraints on the clone
+  // 6. Reset transforms and mobile wrapper constraints on the clone
   clone.querySelectorAll('.report-card-scaler').forEach(scaler => {
     scaler.style.transform = 'none';
     scaler.classList.remove('scale-[0.45]', 'scale-[0.55]');
@@ -34,9 +57,11 @@ export function buildReportHtmlDocument(containerElement, documentTitle = 'Repor
   clone.querySelectorAll('.report-card-mobile-wrapper').forEach(wrapper => {
     wrapper.style.height = 'auto';
     wrapper.style.overflow = 'visible';
+    wrapper.style.padding = '0';
+    wrapper.style.margin = '0';
   });
 
-  // 6. Ensure all image URLs are absolute so Puppeteer/server can resolve them
+  // 7. Ensure all image URLs are absolute so Puppeteer can load them
   const originalImages = Array.from(containerElement.querySelectorAll('img'));
   const cloneImages = Array.from(clone.querySelectorAll('img'));
   cloneImages.forEach((img, idx) => {
@@ -50,15 +75,17 @@ export function buildReportHtmlDocument(containerElement, documentTitle = 'Repor
     }
   });
 
-  // 7. Construct complete HTML string with print-optimized CSS
+  // 8. Construct complete HTML string with print-optimized CSS
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <base href="${window.location.origin}/">
   <title>${documentTitle}</title>
   ${linkTags}
   <style>
-    ${inlineStyles}
+    ${inlinedStyles}
+    
     @page {
       size: A4 portrait;
       margin: 0 !important;
@@ -66,7 +93,7 @@ export function buildReportHtmlDocument(containerElement, documentTitle = 'Repor
     *, *::before, *::after {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
-      box-sizing: border-box;
+      box-sizing: border-box !important;
     }
     html, body {
       background: #ffffff !important;
@@ -85,13 +112,19 @@ export function buildReportHtmlDocument(containerElement, documentTitle = 'Repor
     .report-card-mobile-wrapper {
       height: auto !important;
       overflow: visible !important;
+      padding: 0 !important;
+      margin: 0 !important;
     }
     .emerald-print-A4 {
+      width: 210mm !important;
+      max-width: 210mm !important;
+      min-width: 210mm !important;
+      margin: 0 auto !important;
       page-break-after: always !important;
       break-after: page !important;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
-      margin: 0 auto !important;
+      box-sizing: border-box !important;
     }
     .emerald-print-A4:last-child {
       page-break-after: auto !important;
