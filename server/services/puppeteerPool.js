@@ -138,20 +138,13 @@ class PuppeteerPool {
         deviceScaleFactor: 2
       });
 
-      // Load HTML and wait for network assets (images, fonts) to finish loading
-      try {
-        await page.setContent(html, {
-          waitUntil: ['load', 'networkidle2'],
-          timeout: 45000
-        });
-      } catch (e) {
-        await page.setContent(html, {
-          waitUntil: 'load',
-          timeout: 45000
-        });
-      }
+      // Load HTML with inlined styles and wait for fonts
+      await page.setContent(html, {
+        waitUntil: 'load',
+        timeout: 30000
+      });
 
-      // Wait for fonts to be ready
+      // Ensure fonts are rendered
       try {
         await page.evaluateHandle('document.fonts.ready');
       } catch (e) {}

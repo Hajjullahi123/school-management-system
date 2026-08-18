@@ -56,16 +56,21 @@ router.post('/bulk-generate-pdf', async (req, res) => {
 
     const cleanTitle = (title || 'bulk_reports').replace(/[^a-zA-Z0-9_-]/g, '_');
     const pdfBuffers = [];
+    const CONCURRENCY = 3;
 
-    // Process students sequentially through warm pool to preserve VPS RAM
-    for (let i = 0; i < htmlList.length; i++) {
-      const html = htmlList[i];
-      const result = await pdfService.generatePdf({
-        html,
-        title: `student_${i + 1}`,
-        forceRefresh: !!forceRefresh
-      });
-      pdfBuffers.push(result.buffer);
+    // Process students in parallel batches of 3 to maximize speed while respecting RAM
+    for (let i = 0; i < htmlList.length; i += CONCURRENCY) {
+      const chunk = htmlList.slice(i, i + CONCURRENCY);
+      const chunkResults = await Promise.all(
+        chunk.map((html, idx) =>
+          pdfService.generatePdf({
+            html,
+            title: `student_${i + idx + 1}`,
+            forceRefresh: !!forceRefresh
+          })
+        )
+      );
+      chunkResults.forEach(r => pdfBuffers.push(r.buffer));
     }
 
     // Fast in-memory stitch using pdf-lib (50ms)
