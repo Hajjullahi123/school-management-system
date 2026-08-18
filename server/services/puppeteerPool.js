@@ -160,7 +160,7 @@ class PuppeteerPool {
         margin: { top: '0', right: '0', bottom: '0', left: '0' }
       });
 
-      return pdfBuffer;
+      return Buffer.from(pdfBuffer);
     } finally {
       if (page) {
         try { await page.close(); } catch (e) {}

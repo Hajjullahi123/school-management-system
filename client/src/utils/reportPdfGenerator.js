@@ -154,15 +154,21 @@ export async function downloadReportAsPdf({
 
       const blob = await response.blob();
 
-      if (blob && blob.size > 0) {
-        onProgress(95, 'Saving file to device...');
-        if (isMobile) {
-          saveBlobAsFile(blob, fileName, true);
+      if (blob && blob.size > 50) {
+        // Verify it starts with standard %PDF magic header
+        const headerSlice = await blob.slice(0, 5).text();
+        if (headerSlice.startsWith('%PDF')) {
+          onProgress(95, 'Saving file to device...');
+          if (isMobile) {
+            saveBlobAsFile(blob, fileName, true);
+          } else {
+            saveAs(blob, fileName);
+          }
+          onProgress(100, isCached ? '⚡ Download complete (Cached)!' : 'Download complete!');
+          return;
         } else {
-          saveAs(blob, fileName);
+          console.warn('Server response was not a valid binary PDF (%PDF header missing), falling back:', headerSlice);
         }
-        onProgress(100, isCached ? '⚡ Download complete (Cached)!' : 'Download complete!');
-        return;
       }
     }
     console.warn('Server PDF response not OK, falling back to client-side generation...');

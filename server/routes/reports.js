@@ -31,11 +31,15 @@ router.post('/generate-pdf', async (req, res) => {
       forceRefresh: !!forceRefresh
     });
 
+    // Ensure it's a real binary Node.js Buffer
+    const binaryBuffer = Buffer.isBuffer(result.buffer) ? result.buffer : Buffer.from(result.buffer);
+
     res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Length', binaryBuffer.length);
     res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.pdf"`);
     res.setHeader('X-Cache-Status', result.fromCache ? 'HIT' : 'MISS');
     res.setHeader('X-Cache-Key', result.cacheKey);
-    res.send(result.buffer);
+    res.end(binaryBuffer);
   } catch (error) {
     console.error('Server PDF Generation Error:', error);
     res.status(500).json({ error: error.message || 'Failed to generate PDF on the server' });
@@ -51,12 +55,14 @@ router.post('/merge-pdf', async (req, res) => {
     }
 
     const buffers = pdfBase64List.map(b64 => Buffer.from(b64, 'base64'));
-    const mergedBuffer = await pdfService.mergePdfs(buffers);
+    const mergedResult = await pdfService.mergePdfs(buffers);
+    const binaryBuffer = Buffer.isBuffer(mergedResult) ? mergedResult : Buffer.from(mergedResult);
 
     const cleanTitle = (title || 'bulk_reports').replace(/[^a-zA-Z0-9_-]/g, '_');
     res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Length', binaryBuffer.length);
     res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.pdf"`);
-    res.send(mergedBuffer);
+    res.end(binaryBuffer);
   } catch (error) {
     console.error('Server PDF Merge Error:', error);
     res.status(500).json({ error: error.message || 'Failed to merge PDFs on the server' });

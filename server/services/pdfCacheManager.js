@@ -9,7 +9,7 @@ class PDFCacheManager {
     this.ttlMs = options.ttlMs || 7 * 24 * 60 * 60 * 1000; // 7 days default
     
     // Directory on disk for persistent caching
-    this.cacheDir = path.join(__dirname, '../../uploads/pdf-cache');
+    this.cacheDir = path.join(process.cwd(), 'uploads/pdf-cache');
     this.ensureCacheDir();
 
     this.stats = {
@@ -49,7 +49,7 @@ class PDFCacheManager {
       if (Date.now() < item.expiresAt) {
         this.stats.hits++;
         this.stats.memoryHits++;
-        return item.buffer;
+        return Buffer.isBuffer(item.buffer) ? item.buffer : Buffer.from(item.buffer);
       } else {
         this.memoryCache.delete(key);
       }
@@ -65,8 +65,9 @@ class PDFCacheManager {
           if (buffer && buffer.length > 0) {
             this.stats.hits++;
             this.stats.diskHits++;
-            this.setMemory(key, buffer);
-            return buffer;
+            const nodeBuf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+            this.setMemory(key, nodeBuf);
+            return nodeBuf;
           }
         } else {
           // Expired file
@@ -86,18 +87,22 @@ class PDFCacheManager {
    */
   async set(key, buffer) {
     if (!buffer || buffer.length === 0) return;
+    const nodeBuf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
 
     // 1. Save to Memory (LRU eviction)
-    this.setMemory(key, buffer);
+    this.setMemory(key, nodeBuf);
 
     // 2. Save to Disk asynchronously
     try {
       this.ensureCacheDir();
       const filePath = path.join(this.cacheDir, `${key}.pdf`);
-      fs.writeFile(filePath, buffer, (err) => {
+      fs.writeFile(filePath, nodeBuf, (err) => {
         if (err) console.warn(`[PDFCache] Disk write warning for ${key}:`, err.message);
       });
     } catch (err) {
+      console.warn(`[PDFCache] Failed to queue disk write for ${key}:`, err.message);
+    }
+  }
       console.warn(`[PDFCache] Failed to queue disk write for ${key}:`, err.message);
     }
   }
