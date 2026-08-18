@@ -158,49 +158,81 @@ export async function downloadReportAsPdf({
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
   // -------------------------------------------------------------
-  // ATTEMPT 1: Server-Side Puppeteer Generation (Fastest & Identical)
+  // ATTEMPT 1: Server-Side High-Speed PDF Generation
   // -------------------------------------------------------------
+  const cards = Array.from(containerElement.querySelectorAll('.emerald-print-A4'));
+  const isBulk = cards.length > 1;
+
   try {
-    onProgress(15, 'Preparing document for high-speed export...');
-    const htmlPayload = buildReportHtmlDocument(containerElement, cleanTitle);
+    if (isBulk) {
+      onProgress(10, `Preparing bulk export for ${cards.length} students...`);
+      const htmlList = cards.map((card, idx) => buildReportHtmlDocument(card, `${cleanTitle}_${idx + 1}`));
 
-    if (cancelRef.current) throw new Error('Cancelled by user');
+      if (cancelRef.current) throw new Error('Cancelled by user');
+      onProgress(30, `Generating ${cards.length} report cards on server...`);
 
-    onProgress(35, 'Generating PDF on server...');
+      const response = await api.post('/api/reports/bulk-generate-pdf', {
+        htmlList,
+        title: cleanTitle
+      });
 
-    const response = await api.post('/api/reports/generate-pdf', {
-      html: htmlPayload,
-      title: cleanTitle
-    });
+      if (cancelRef.current) throw new Error('Cancelled by user');
 
-    if (cancelRef.current) throw new Error('Cancelled by user');
-
-    if (response.ok) {
-      const cacheStatus = response.headers.get('X-Cache-Status');
-      const isCached = cacheStatus === 'HIT';
-
-      if (isCached) {
-        onProgress(90, '⚡ Instant download from cache...');
-      } else {
-        onProgress(85, 'Downloading generated file...');
-      }
-
-      const blob = await response.blob();
-
-      if (blob && blob.size > 50) {
-        // Verify it starts with standard %PDF magic header
-        const headerSlice = await blob.slice(0, 5).text();
-        if (headerSlice.startsWith('%PDF')) {
-          onProgress(95, 'Saving file to device...');
-          if (isMobile) {
-            saveBlobAsFile(blob, fileName, true);
-          } else {
-            saveAs(blob, fileName);
+      if (response.ok) {
+        onProgress(90, 'Downloading complete bundle...');
+        const blob = await response.blob();
+        if (blob && blob.size > 50) {
+          const headerSlice = await blob.slice(0, 5).text();
+          if (headerSlice.startsWith('%PDF')) {
+            onProgress(95, 'Saving file to device...');
+            if (isMobile) {
+              saveBlobAsFile(blob, fileName, true);
+            } else {
+              saveAs(blob, fileName);
+            }
+            onProgress(100, `Bulk download complete (${cards.length} reports)!`);
+            return;
           }
-          onProgress(100, isCached ? '⚡ Download complete (Cached)!' : 'Download complete!');
-          return;
+        }
+      }
+    } else {
+      // Single Report Generation
+      onProgress(15, 'Preparing document for high-speed export...');
+      const htmlPayload = buildReportHtmlDocument(containerElement, cleanTitle);
+
+      if (cancelRef.current) throw new Error('Cancelled by user');
+      onProgress(35, 'Generating PDF on server...');
+
+      const response = await api.post('/api/reports/generate-pdf', {
+        html: htmlPayload,
+        title: cleanTitle
+      });
+
+      if (cancelRef.current) throw new Error('Cancelled by user');
+
+      if (response.ok) {
+        const cacheStatus = response.headers.get('X-Cache-Status');
+        const isCached = cacheStatus === 'HIT';
+
+        if (isCached) {
+          onProgress(90, '⚡ Instant download from cache...');
         } else {
-          console.warn('Server response was not a valid binary PDF (%PDF header missing), falling back:', headerSlice);
+          onProgress(85, 'Downloading generated file...');
+        }
+
+        const blob = await response.blob();
+        if (blob && blob.size > 50) {
+          const headerSlice = await blob.slice(0, 5).text();
+          if (headerSlice.startsWith('%PDF')) {
+            onProgress(95, 'Saving file to device...');
+            if (isMobile) {
+              saveBlobAsFile(blob, fileName, true);
+            } else {
+              saveAs(blob, fileName);
+            }
+            onProgress(100, isCached ? '⚡ Download complete (Cached)!' : 'Download complete!');
+            return;
+          }
         }
       }
     }
@@ -216,7 +248,6 @@ export async function downloadReportAsPdf({
   // ATTEMPT 2: Client-Side html2canvas + jsPDF Fallback
   // -------------------------------------------------------------
   onProgress(20, 'Switching to local PDF engine...');
-  const cards = Array.from(containerElement.querySelectorAll('.emerald-print-A4'));
   const totalCards = cards.length > 0 ? cards.length : 1;
 
   // Temporarily normalize transforms for capture
