@@ -143,7 +143,15 @@ export async function downloadReportAsPdf({
     if (cancelRef.current) throw new Error('Cancelled by user');
 
     if (response.ok) {
-      onProgress(85, 'Downloading generated file...');
+      const cacheStatus = response.headers.get('X-Cache-Status');
+      const isCached = cacheStatus === 'HIT';
+
+      if (isCached) {
+        onProgress(90, '⚡ Instant download from cache...');
+      } else {
+        onProgress(85, 'Downloading generated file...');
+      }
+
       const blob = await response.blob();
 
       if (blob && blob.size > 0) {
@@ -153,7 +161,7 @@ export async function downloadReportAsPdf({
         } else {
           saveAs(blob, fileName);
         }
-        onProgress(100, 'Download complete!');
+        onProgress(100, isCached ? '⚡ Download complete (Cached)!' : 'Download complete!');
         return;
       }
     }

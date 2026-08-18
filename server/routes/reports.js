@@ -11,120 +11,64 @@ const {
 } = require('../utils/grading');
 const { getStudentFeeSummary } = require('../utils/feeCalculations');
 const { generateAINarrative } = require('../utils/aiNarrative');
-let puppeteer;
-try {
-  puppeteer = require('puppeteer');
-} catch (e) {
-  console.log('Puppeteer not installed or failed to load:', e.message);
-}
+const { pdfService } = require('../services/pdfService');
 
-// Helper to launch Puppeteer across different environments (Linux Docker, Windows, local dev)
-async function launchPuppeteerBrowser() {
-  if (!puppeteer) {
-    throw new Error('Puppeteer is not installed on the server');
-  }
-
-  const commonArgs = [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--disable-gpu',
-    '--no-first-run',
-    '--no-zygote',
-    '--disable-extensions',
-    '--font-render-hinting=none'
-  ];
-
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    try {
-      return await puppeteer.launch({
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
-        headless: true,
-        args: commonArgs
-      });
-    } catch (e) {
-      console.warn('Failed to launch with custom PUPPETEER_EXECUTABLE_PATH:', e.message);
-    }
-  }
-
-  try {
-    return await puppeteer.launch({
-      headless: true,
-      args: commonArgs
-    });
-  } catch (err) {
-    try {
-      return await puppeteer.launch({
-        channel: 'chrome',
-        headless: true,
-        args: commonArgs
-      });
-    } catch (err2) {
-      return await puppeteer.launch({
-        channel: 'msedge',
-        headless: true,
-        args: commonArgs
-      });
-    }
-  }
-}
-
-// Generate PDF from HTML payload using Puppeteer
+// Generate PDF from HTML payload using warm Puppeteer Pool and multi-tiered Cache
 router.post('/generate-pdf', async (req, res) => {
-  let browser = null;
   try {
-    const { html, title } = req.body;
+    const { html, title, forceRefresh, cacheKey } = req.body;
     if (!html) {
       return res.status(400).json({ error: 'HTML payload is required' });
     }
 
-    browser = await launchPuppeteerBrowser();
-    const page = await browser.newPage();
-    
-    // Set viewport to standard A4 proportions
-    await page.setViewport({
-      width: 1200,
-      height: 1600,
-      deviceScaleFactor: 2
-    });
-
-    // Set the content with safe timeout
-    await page.setContent(html, {
-      waitUntil: 'load',
-      timeout: 45000 
-    });
-
-    // Wait for fonts to finish loading
-    try {
-      await page.evaluateHandle('document.fonts.ready');
-    } catch (e) {}
-
-    // Emulate print media type
-    await page.emulateMediaType('print');
-
-    // Generate the PDF buffer
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: { top: '0', right: '0', bottom: '0', left: '0' }
-    });
-
-    await browser.close();
-    browser = null;
-
-    // Send the buffer back to the client
     const cleanTitle = (title || 'report').replace(/[^a-zA-Z0-9_-]/g, '_');
+    
+    // Generate or retrieve cached PDF
+    const result = await pdfService.generatePdf({
+      html,
+      title: cleanTitle,
+      cacheKey,
+      forceRefresh: !!forceRefresh
+    });
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.pdf"`);
-    res.send(pdfBuffer);
+    res.setHeader('X-Cache-Status', result.fromCache ? 'HIT' : 'MISS');
+    res.setHeader('X-Cache-Key', result.cacheKey);
+    res.send(result.buffer);
   } catch (error) {
-    if (browser) {
-      try { await browser.close(); } catch (e) {}
-    }
     console.error('Server PDF Generation Error:', error);
     res.status(500).json({ error: error.message || 'Failed to generate PDF on the server' });
   }
+});
+
+// Merge multiple PDFs into a single bundle
+router.post('/merge-pdf', async (req, res) => {
+  try {
+    const { pdfBase64List, title } = req.body;
+    if (!Array.isArray(pdfBase64List) || pdfBase64List.length === 0) {
+      return res.status(400).json({ error: 'Array of PDF base64 strings is required' });
+    }
+
+    const buffers = pdfBase64List.map(b64 => Buffer.from(b64, 'base64'));
+    const mergedBuffer = await pdfService.mergePdfs(buffers);
+
+    const cleanTitle = (title || 'bulk_reports').replace(/[^a-zA-Z0-9_-]/g, '_');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.pdf"`);
+    res.send(mergedBuffer);
+  } catch (error) {
+    console.error('Server PDF Merge Error:', error);
+    res.status(500).json({ error: error.message || 'Failed to merge PDFs on the server' });
+  }
+});
+
+// Check PDF cache diagnostic stats
+router.get('/pdf-cache-stats', (req, res) => {
+  res.json({
+    status: 'active',
+    stats: pdfService.getCacheStats()
+  });
 });
 
 // Get term report for a student
