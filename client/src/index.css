@@ -200,41 +200,53 @@ nav a svg,
     print-color-adjust: exact !important;
     margin: 0 !important;
     padding: 0 !important;
+    width: 210mm !important;
     height: auto !important;
+    overflow: visible !important;
   }
 
   /* Hide app navigation, sidebar, and non-printable UI */
-  nav, header, aside, footer, .no-print, .print-hidden, [role="navigation"] {
+  nav, header, aside, footer, .no-print, .print-hidden, [role="navigation"], .sidebar {
     display: none !important;
+  }
+
+  /* Remove outer margins from layout containers during print */
+  main, .space-y-6, .space-y-8, .space-y-4, .print-container, #root {
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   /* Reset scalers and mobile wrappers for crisp 1:1 print */
   .report-card-scaler {
     transform: none !important;
     width: 210mm !important;
+    max-width: 210mm !important;
     margin: 0 auto !important;
+    padding: 0 !important;
   }
 
   .report-card-mobile-wrapper {
     height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
     overflow: visible !important;
+    margin: 0 !important;
     padding: 0 !important;
   }
 
-  /* Strict A4 Container */
+  /* Strict A4 Container - Exactly 296mm to guarantee no 1mm page overflow */
   .emerald-print-A4 {
     width: 210mm !important;
-    height: 297mm !important;
-    min-height: 297mm !important;
-    max-height: 297mm !important;
-    padding: 10mm !important;
+    max-width: 210mm !important;
+    height: 296mm !important;
+    min-height: 296mm !important;
+    max-height: 296mm !important;
+    padding: 6mm 8mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
     position: relative !important;
     background: white !important;
     overflow: hidden !important;
-    page-break-after: always !important;
-    break-after: page !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
@@ -247,17 +259,15 @@ nav a svg,
 
   .emerald-print-A4-landscape {
     width: 297mm !important;
-    height: 210mm !important;
-    min-height: 210mm !important;
-    max-height: 210mm !important;
-    padding: 10mm !important;
+    height: 209mm !important;
+    min-height: 209mm !important;
+    max-height: 209mm !important;
+    padding: 8mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
     position: relative !important;
     background: white !important;
     overflow: hidden !important;
-    page-break-after: always !important;
-    break-after: page !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
@@ -278,10 +288,6 @@ nav a svg,
   .emerald-print-A4 td {
     margin-top: 1px !important;
     margin-bottom: 1px !important;
-  }
-
-  nav, header, footer, .sidebar, .no-print, .print-hidden {
-    display: none !important;
   }
 
   .print-content {

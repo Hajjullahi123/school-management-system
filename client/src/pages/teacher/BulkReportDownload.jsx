@@ -370,9 +370,9 @@ const BulkReportDownload = () => {
                     Swipe to view full sheet
                   </div>
 
-                  <div className="report-card-mobile-wrapper overflow-hidden pb-2 md:pb-8 print:overflow-visible" style={{ height: typeof window !== 'undefined' && window.innerWidth < 640 ? 'calc(297mm * 0.45 + 2rem)' : 'auto' }}>
+                  <div className="report-card-mobile-wrapper overflow-hidden pb-2 md:pb-8 print:overflow-visible">
                     <div className="report-card-scaler origin-top-left sm:origin-top scale-[0.45] xs:scale-[0.55] sm:scale-100 transition-transform duration-500 print:scale-100 print:transform-none">
-                      <div key={idx} className={`relative bg-white p-8 print:p-0 my-0 sm:my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} emerald-print-A4 mx-auto w-[210mm] min-w-[210mm] break-after-page`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined }}>
+                      <div className={`relative bg-white p-8 print:p-0 my-0 sm:my-8 print:my-0 shadow-2xl print:shadow-none text-black ${borderStyle} emerald-print-A4 mx-auto w-[210mm] min-w-[210mm]`} style={{ fontFamily: reportFont, borderColor: layout !== 'minimal' ? reportColor : undefined, pageBreakAfter: idx < reports.length - 1 ? 'always' : 'avoid', breakAfter: idx < reports.length - 1 ? 'page' : 'avoid' }}>
 
                         {/* PROTECTION WATERMARK */}
                         <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] rotate-[-35deg] overflow-hidden z-0 print:opacity-[0.05]">
