@@ -1,14 +1,42 @@
 # Dependencies
 node_modules/
-# Keep package-lock if you want lock consistency, but usually ignored in some workflows. 
-# However, standard practice is to keeping package-lock.json. 
-# Re-thinking: node_modules is the big one.
-# I will NOT ignore package-lock.json as it's good practice to keep it.
+client/node_modules/
+server/node_modules/
+personal-website/node_modules/
+.npm/
 
-# Production
+# Git
+.git/
+.github/
+
+# Production output (built during docker build)
 dist/
+dist-desktop/
 build/
 out/
+client/dist/
+personal-website/dist/
+
+# Large binaries & release bundles
+latest-release*
+*.apk
+*.aab
+*.exe
+*.zip
+*.tar.gz
+*.blockmap
+android-builds/
+Backup_*
+Backup_20251211_144220/
+dist-desktop/
+latest.yml
+builder-debug.yml
+
+# Documentation & Marketing materials
+docs/
+MARKETING/
+TRAINING_MATERIALS/
+*.md
 
 # Environment
 .env
@@ -16,11 +44,11 @@ out/
 .env.*
 
 # Logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-logs/
-*.log
 
 # Editor
 .vscode/
@@ -35,9 +63,17 @@ Thumbs.db
 # Database
 server/prisma/dev.db
 server/prisma/dev.db-journal
+server/prisma/dev.db-shm
+server/prisma/dev.db-wal
 server/uploads/*
 !server/uploads/.gitkeep
+uploads/*
+!uploads/.gitkeep
+uploads/pdf-cache/*
+!uploads/pdf-cache/.gitkeep
 
 # Temporary
 tmp/
 temp/
+scratch/
+brain/

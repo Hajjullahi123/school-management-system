@@ -29,7 +29,8 @@ FROM base AS build
 
 # Install packages needed to build node modules
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
+    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install node modules
 COPY package-lock.json package.json ./
@@ -38,11 +39,13 @@ RUN npm ci --include=dev
 # Copy application code
 COPY . .
 
-# Build application
-RUN npm run build
+# Build application and remove frontend build-only node_modules to drastically reduce image size
+RUN npm run build && \
+    rm -rf client/node_modules personal-website/node_modules /root/.npm /root/.cache
 
 # Remove development dependencies
-RUN npm prune --omit=dev
+RUN npm prune --omit=dev && \
+    npm prune --prefix server --omit=dev
 
 
 # Final stage for app image
