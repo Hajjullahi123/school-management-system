@@ -30,12 +30,20 @@ export const resolveImageUrl = (url) => {
   return `${base}${cleanPath}`;
 };
 
+Font.register({
+  family: 'Noto Naskh Arabic',
+  src: getFontUrl('/fonts/NotoNaskhArabic-Regular.woff')
+});
+
 // Disable automatic hyphenation (prevents broken text fragments)
 Font.registerHyphenationCallback(word => [word]);
 
 /* ──────────────────────────────────────────────────────────
    HELPERS
    ────────────────────────────────────────────────────────── */
+
+// Detect Arabic characters in a string
+const containsArabic = (text) => /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(String(text || ''));
 
 // SVG Checkmark component — font-independent, always renders crisp
 const CheckMark = () => (
@@ -68,6 +76,13 @@ const getStudentDisplayName = (student) => {
   return (legacyName || mName || `STUDENT (${student.admissionNumber || student.id})`).toUpperCase();
 };
 
+const getTraitScore = (trait) => {
+  if (!trait) return 3;
+  const raw = trait.score !== undefined && trait.score !== null ? trait.score : (trait.rating !== undefined && trait.rating !== null ? trait.rating : trait.value);
+  const num = parseFloat(raw);
+  return (!isNaN(num) && num > 0) ? Math.round(num) : 3;
+};
+
 const getGradingScales = (schoolSettings) => {
   try {
     const parsed = JSON.parse(schoolSettings?.gradingSystem || '[]');
@@ -92,10 +107,16 @@ const getGradingScales = (schoolSettings) => {
 };
 
 /* ──────────────────────────────────────────────────────────
-   SmartText — standard text wrapper using built-in Helvetica
+   SmartText — renders with Noto Naskh Arabic if text has Arabic
    ────────────────────────────────────────────────────────── */
 const SmartText = ({ style, children, ...props }) => {
-  return <Text style={style} {...props}>{children}</Text>;
+  const text = typeof children === 'string' ? children : (Array.isArray(children) ? children.join('') : '');
+  const isArabic = containsArabic(text);
+  return (
+    <Text style={[style, isArabic ? { fontFamily: 'Noto Naskh Arabic' } : {}]} {...props}>
+      {children}
+    </Text>
+  );
 };
 
 /* ──────────────────────────────────────────────────────────
@@ -430,6 +451,40 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     fontWeight: 700,
     marginTop: 0.5
+  },
+  passFailRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 0.8,
+    borderBottomColor: '#000000',
+    backgroundColor: '#ffffff'
+  },
+  passFailCell: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    paddingVertical: 1.5,
+    borderRightWidth: 0.8,
+    borderRightColor: '#000000',
+    alignItems: 'center'
+  },
+  passFailCellLast: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    paddingVertical: 1.5,
+    alignItems: 'center'
+  },
+  passFailLabel: {
+    fontSize: 5.5,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    color: '#000000'
+  },
+  passFailVal: {
+    fontSize: 6.5,
+    fontWeight: 700
   },
   overallGradeBox: {
     backgroundColor: '#f8fafc',
@@ -817,7 +872,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                       <Text style={styles.thDomainTick}>1</Text>
                     </View>
                     {psychomotor.slice(0, 10).map((trait, tIdx) => {
-                      const score = Math.round(Number(trait.score) || 3);
+                      const score = getTraitScore(trait);
                       return (
                         <View key={tIdx} style={styles.tableRow}>
                           <SmartText style={styles.tdDomain}>{trait.name}</SmartText>
@@ -865,9 +920,21 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                       <Text style={styles.statusVal}>{data.termAverage != null ? `${Number(data.termAverage).toFixed(1)}%` : '-'}</Text>
                     </View>
                   </View>
-                  <View style={styles.overallGradeBox}>
-                    <Text style={[styles.statusLabel, { fontSize: 7 }]}>Overall Grade:</Text>
-                    <Text style={[styles.statusVal, { fontSize: 11, color: reportColor }]}>{data.overallGrade || '-'}</Text>
+                  {data.passFailSummary?.show && (
+                    <View style={styles.passFailRow}>
+                      <View style={styles.passFailCell}>
+                        <Text style={styles.passFailLabel}>Passed</Text>
+                        <Text style={[styles.passFailVal, { color: '#047857' }]}>{data.passFailSummary.totalPassed ?? 0}</Text>
+                      </View>
+                      <View style={styles.passFailCellLast}>
+                        <Text style={styles.passFailLabel}>Failed</Text>
+                        <Text style={[styles.passFailVal, { color: '#dc2626' }]}>{data.passFailSummary.totalFailed ?? 0}</Text>
+                      </View>
+                    </View>
+                  )}
+                  <View style={[styles.overallGradeBox, { backgroundColor: `${reportColor}15` }]}>
+                    <Text style={[styles.statusLabel, { fontSize: 7, color: '#000000' }]}>Overall Grade:</Text>
+                    <Text style={[styles.statusVal, { fontSize: 13, color: reportColor }]}>{data.overallGrade || '-'}</Text>
                   </View>
                 </View>
 
@@ -921,8 +988,8 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                     <Text style={styles.remarkTitle}>Principal's Remark</Text>
                     <SmartText style={styles.remarkText}>"{data.principalRemark || 'Satisfactory performance. Keep striving for excellence.'}"</SmartText>
                     <View style={styles.remarkFooter}>
-                      <Text>Term Ends: {formatDateVerbose(term.endDate)}</Text>
-                      <Text>Next Term: {formatDateVerbose(term.nextTermBegins)}</Text>
+                      <Text>Term Ends: {data.term?.endDate ? formatDateVerbose(data.term.endDate) : '....................'}</Text>
+                      <Text>Next Term Begins: {data.term?.nextTermBegins ? formatDateVerbose(data.term.nextTermBegins) : '....................'}</Text>
                     </View>
                   </View>
                 </View>
