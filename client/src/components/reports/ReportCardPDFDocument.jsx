@@ -30,32 +30,12 @@ export const resolveImageUrl = (url) => {
   return `${base}${cleanPath}`;
 };
 
-Font.register({
-  family: 'Noto Sans',
-  fonts: [
-    { src: getFontUrl('/fonts/NotoSans-Regular.woff'), fontWeight: 400 },
-    { src: getFontUrl('/fonts/NotoSans-Bold.woff'), fontWeight: 700 },
-    { src: getFontUrl('/fonts/NotoSans-Italic.woff'), fontWeight: 400, fontStyle: 'italic' },
-  ]
-});
-
-Font.register({
-  family: 'Noto Naskh Arabic',
-  fonts: [
-    { src: getFontUrl('/fonts/NotoNaskhArabic-Regular.woff'), fontWeight: 400 },
-    { src: getFontUrl('/fonts/NotoNaskhArabic-Bold.woff'), fontWeight: 700 },
-  ]
-});
-
 // Disable automatic hyphenation (prevents broken text fragments)
 Font.registerHyphenationCallback(word => [word]);
 
 /* ──────────────────────────────────────────────────────────
    HELPERS
    ────────────────────────────────────────────────────────── */
-
-// Detect Arabic characters in a string
-const containsArabic = (text) => /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(String(text || ''));
 
 // SVG Checkmark component — font-independent, always renders crisp
 const CheckMark = () => (
@@ -112,14 +92,10 @@ const getGradingScales = (schoolSettings) => {
 };
 
 /* ──────────────────────────────────────────────────────────
-   SmartText — renders text with Noto Naskh Arabic font
-   automatically if it contains Arabic characters.
+   SmartText — standard text wrapper using built-in Helvetica
    ────────────────────────────────────────────────────────── */
 const SmartText = ({ style, children, ...props }) => {
-  const text = typeof children === 'string' ? children : '';
-  const arabicFont = containsArabic(text);
-  const extraStyle = arabicFont ? { fontFamily: 'Noto Naskh Arabic' } : {};
-  return <Text style={[style, extraStyle]} {...props}>{children}</Text>;
+  return <Text style={style} {...props}>{children}</Text>;
 };
 
 /* ──────────────────────────────────────────────────────────
@@ -130,7 +106,7 @@ const styles = StyleSheet.create({
   page: {
     padding: 12,
     fontSize: 8,
-    fontFamily: 'Noto Sans',
+    fontFamily: 'Helvetica',
     backgroundColor: '#ffffff',
     color: '#000000',
     lineHeight: 1.15

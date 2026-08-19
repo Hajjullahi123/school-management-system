@@ -6,6 +6,7 @@ import { useReactToPrint } from 'react-to-print';
 import { Printer, Settings as SettingsIcon, Save } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { formatDateVerbose } from '../../utils/formatters';
+import { downloadReportAsPdf } from '../../utils/reportPdfGenerator';
 
 const BulkReportDownload = () => {
   const { user } = useAuth();
@@ -20,6 +21,11 @@ const BulkReportDownload = () => {
   const [loading, setLoading] = useState(false);
   const [classStudents, setClassStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
+
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState(0);
+  const [pdfProgressLabel, setPdfProgressLabel] = useState('');
+  const cancelPdfRef = useRef(false);
 
   const componentRef = useRef();
 
@@ -214,6 +220,33 @@ const BulkReportDownload = () => {
     return title.replace(/[^a-zA-Z0-9]/g, '_');
   };
 
+  const handleDownloadPDF = async () => {
+    if (reports.length === 0) return;
+    setDownloadingPDF(true);
+    setPdfProgress(15);
+    setPdfProgressLabel('Compiling vector PDF bundle...');
+    cancelPdfRef.current = false;
+
+    try {
+      await downloadReportAsPdf({
+        reports,
+        schoolSettings,
+        title: getDocumentTitle(),
+        onProgress: (p, label) => {
+          setPdfProgress(p);
+          setPdfProgressLabel(label);
+        },
+        cancelRef: cancelPdfRef
+      });
+    } catch (err) {
+      if (err.message !== 'Cancelled by user') {
+        alert(err.message || 'Failed to generate PDF bundle');
+      }
+    } finally {
+      setDownloadingPDF(false);
+    }
+  };
+
   const handlePrint = () => {
     if (reports.length === 0) return;
     const oldTitle = document.title;
@@ -239,12 +272,35 @@ const BulkReportDownload = () => {
           
           {reports.length > 0 && (
             <div className="flex flex-col sm:flex-row gap-3 items-center">
+              {downloadingPDF ? (
+                <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-6 py-3 rounded-[24px] border border-white/20 text-white min-w-[280px]">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-emerald-300">Generating PDF</span>
+                      <span className="text-xs font-black">{pdfProgress}%</span>
+                    </div>
+                    <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                      <div className="bg-emerald-400 h-2 rounded-full transition-all duration-300" style={{ width: `${pdfProgress}%` }}></div>
+                    </div>
+                    <p className="text-[8px] text-white/70 font-bold mt-1 truncate">{pdfProgressLabel}</p>
+                  </div>
+                </div>
+              ) : (
+                <button 
+                  onClick={handleDownloadPDF} 
+                  className="group/btn bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-emerald-400 w-full sm:w-auto"
+                >
+                  <span className="text-base">⚡</span>
+                  Download PDF ({reports.length} Reports)
+                </button>
+              )}
               <button 
                 onClick={handlePrint} 
-                className="group/btn bg-white hover:bg-emerald-50 text-slate-900 px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white"
+                disabled={downloadingPDF}
+                className="group/btn bg-white hover:bg-slate-100 text-slate-900 px-6 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white w-full sm:w-auto disabled:opacity-50"
               >
-                <Printer className="w-5 h-5 text-emerald-600 transition-transform group-hover/btn:rotate-12" />
-                Print / Save as PDF ({reports.length} Reports)
+                <Printer className="w-4 h-4 text-slate-700 transition-transform group-hover/btn:rotate-12" />
+                Print
               </button>
             </div>
           )}
@@ -781,13 +837,22 @@ const BulkReportDownload = () => {
             })}
           </div>
           {reports.length > 0 && (
-            <div className="flex justify-center items-center gap-4 mt-8 print:hidden">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-8 print:hidden">
+              <button 
+                onClick={handleDownloadPDF} 
+                disabled={downloadingPDF}
+                className="group/btn bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border border-emerald-500 w-full sm:w-auto disabled:opacity-50"
+              >
+                <span className="text-base">⚡</span>
+                Download PDF ({reports.length} Reports)
+              </button>
               <button 
                 onClick={handlePrint} 
-                className="group/btn bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border border-emerald-500 w-full sm:w-auto"
+                disabled={downloadingPDF}
+                className="group/btn bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border border-slate-800 w-full sm:w-auto disabled:opacity-50"
               >
                 <Printer className="w-5 h-5 transition-transform group-hover/btn:rotate-12" />
-                Print / Save as PDF ({reports.length} Reports)
+                Print
               </button>
             </div>
           )}
