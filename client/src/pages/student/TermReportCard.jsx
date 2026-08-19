@@ -437,27 +437,6 @@ const TermReportCard = () => {
           
           {(reportData || bulkReports.length > 0) && (
             <div className="flex flex-col sm:flex-row gap-3 items-center">
-              {downloading ? (
-                <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-[20px] border border-white/20 text-white min-w-[240px]">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[8px] font-black uppercase tracking-widest text-emerald-300">Generating PDF</span>
-                      <span className="text-xs font-black">{pdfProgress}%</span>
-                    </div>
-                    <div className="w-full bg-white/20 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-emerald-400 h-1.5 rounded-full transition-all duration-300" style={{ width: `${pdfProgress}%` }}></div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <button 
-                  onClick={handleDownloadPDF} 
-                  className="group/btn bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3.5 rounded-[20px] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border border-emerald-400"
-                >
-                  <span>⚡</span>
-                  Download PDF {bulkReports.length > 1 ? `(${bulkReports.length})` : ''}
-                </button>
-              )}
               {reportData && user?.role !== 'student' && user?.role !== 'parent' && (
                 <button 
                   onClick={() => {
@@ -474,11 +453,10 @@ const TermReportCard = () => {
               )}
               <button 
                 onClick={printReport} 
-                disabled={downloading}
-                className="group/btn bg-white hover:bg-slate-100 text-slate-900 px-5 py-3.5 rounded-[20px] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border border-white disabled:opacity-50"
+                className="group/btn bg-white hover:bg-emerald-50 text-slate-900 px-6 py-3.5 rounded-[20px] font-black uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border border-white"
               >
-                <Printer className="w-4 h-4 text-slate-700 transition-transform group-hover/btn:rotate-12" />
-                Print
+                <Printer className="w-4 h-4 text-emerald-600 transition-transform group-hover/btn:rotate-12" />
+                Print / Save as PDF {bulkReports.length > 1 ? `(${bulkReports.length} Reports)` : ''}
               </button>
             </div>
           )}
@@ -1067,20 +1045,11 @@ const TermReportCard = () => {
           </div>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-12 mb-8 print:hidden">
             <button 
-              onClick={handleDownloadPDF} 
-              disabled={downloading}
-              className="group/btn bg-emerald-600 text-white hover:bg-emerald-700 px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-emerald-500 disabled:opacity-50"
-            >
-              <span className="text-base">⚡</span>
-              Download PDF {bulkReports.length > 1 ? `(${bulkReports.length} Reports)` : ''}
-            </button>
-            <button 
               onClick={printReport} 
-              disabled={downloading}
-              className="group/btn bg-slate-900 text-white hover:bg-slate-800 px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-slate-800 disabled:opacity-50"
+              className="group/btn bg-emerald-600 text-white hover:bg-emerald-700 px-8 py-4 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-emerald-500"
             >
               <Printer className="w-5 h-5 transition-transform group-hover/btn:rotate-12" />
-              Print
+              Print / Save as PDF {bulkReports.length > 1 ? `(${bulkReports.length} Reports)` : ''}
             </button>
             {reportData && user?.role !== 'student' && user?.role !== 'parent' && (
               <button

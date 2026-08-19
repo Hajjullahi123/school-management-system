@@ -211,7 +211,7 @@ nav a svg,
   }
 
   /* Remove outer margins from layout containers during print */
-  main, .space-y-6, .space-y-8, .space-y-4, .print-container, #root {
+  main, .space-y-6, .space-y-8, .space-y-4, .space-y-12, .space-y-20, .mb-20, .my-8, .print-container, #root {
     margin: 0 !important;
     padding: 0 !important;
   }
@@ -234,14 +234,14 @@ nav a svg,
     padding: 0 !important;
   }
 
-  /* Strict A4 Container - Exactly 296mm to guarantee no 1mm page overflow */
+  /* Strict A4 Container - Exactly 280mm to guarantee 100% 1-page fit with zero spillover or overlap */
   .emerald-print-A4 {
     width: 210mm !important;
     max-width: 210mm !important;
-    height: 296mm !important;
-    min-height: 296mm !important;
-    max-height: 296mm !important;
-    padding: 6mm 8mm !important;
+    height: 280mm !important;
+    min-height: 280mm !important;
+    max-height: 280mm !important;
+    padding: 4mm 6mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
     position: relative !important;
@@ -249,6 +249,8 @@ nav a svg,
     overflow: hidden !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+    page-break-after: always !important;
+    break-after: page !important;
   }
 
   /* Prevent trailing blank page after last card */
@@ -259,10 +261,10 @@ nav a svg,
 
   .emerald-print-A4-landscape {
     width: 297mm !important;
-    height: 209mm !important;
-    min-height: 209mm !important;
-    max-height: 209mm !important;
-    padding: 8mm !important;
+    height: 205mm !important;
+    min-height: 205mm !important;
+    max-height: 205mm !important;
+    padding: 6mm !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
     position: relative !important;
@@ -270,6 +272,8 @@ nav a svg,
     overflow: hidden !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+    page-break-after: always !important;
+    break-after: page !important;
   }
 
   .emerald-print-A4-landscape:last-child {
@@ -280,14 +284,6 @@ nav a svg,
   /* Force shrink tables if they exceed space */
   .emerald-print-A4 table {
     table-layout: auto !important;
-  }
-
-  /* Compress padding/margins for print to fit content */
-  .emerald-print-A4 p, 
-  .emerald-print-A4 div, 
-  .emerald-print-A4 td {
-    margin-top: 1px !important;
-    margin-bottom: 1px !important;
   }
 
   .print-content {
