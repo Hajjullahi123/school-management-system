@@ -677,7 +677,7 @@ router.post('/reset-password', authenticate, authorize(['admin', 'principal']), 
  * @desc    Admin impersonate a user account (Ghost Login)
  * @access  Private (Admin/Superadmin only)
  */
-router.post('/impersonate', authenticate, authorize(['admin', 'superadmin']), async (req, res) => {
+router.post('/impersonate', authenticate, authorize(['admin', 'principal', 'superadmin']), async (req, res) => {
   try {
     const { targetUserId } = req.body;
     
