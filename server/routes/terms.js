@@ -16,13 +16,14 @@ const getTermOrder = (termName) => {
 // Get all terms
 router.get('/', authenticate, async (req, res) => {
   try {
-    const { academicSessionId } = req.query;
+    const { academicSessionId, sessionId } = req.query;
     const where = { schoolId: req.schoolId };
 
-    if (academicSessionId) {
-      const sessionId = parseInt(academicSessionId);
-      if (!isNaN(sessionId)) {
-        where.academicSessionId = sessionId;
+    const effectiveSessionId = academicSessionId || sessionId;
+    if (effectiveSessionId) {
+      const parsedSessionId = parseInt(effectiveSessionId);
+      if (!isNaN(parsedSessionId)) {
+        where.academicSessionId = parsedSessionId;
       }
     }
 

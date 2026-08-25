@@ -90,8 +90,12 @@ function validateScoreComponent(score, maxScore, componentName) {
     throw new Error(`${componentName} cannot be negative`);
   }
 
-  if (numScore > maxScore) {
-    throw new Error(`${componentName} cannot exceed ${maxScore}`);
+  const limit = (maxScore !== null && maxScore !== undefined && !isNaN(parseFloat(maxScore)))
+    ? parseFloat(maxScore)
+    : 100;
+
+  if (numScore > limit) {
+    throw new Error(`${componentName} cannot exceed ${limit}`);
   }
 
   return numScore;
@@ -101,12 +105,25 @@ function validateScoreComponent(score, maxScore, componentName) {
  * Validate all score components
  */
 function validateScores(assignment1, assignment2, test1, test2, exam, weights = DEFAULT_WEIGHTS) {
+  const w = (weights && typeof weights === 'object') ? weights : DEFAULT_WEIGHTS;
+
+  const a1Max = (w.assignment1Weight !== null && w.assignment1Weight !== undefined && !isNaN(parseFloat(w.assignment1Weight)))
+    ? parseFloat(w.assignment1Weight) : DEFAULT_WEIGHTS.assignment1Weight;
+  const a2Max = (w.assignment2Weight !== null && w.assignment2Weight !== undefined && !isNaN(parseFloat(w.assignment2Weight)))
+    ? parseFloat(w.assignment2Weight) : DEFAULT_WEIGHTS.assignment2Weight;
+  const t1Max = (w.test1Weight !== null && w.test1Weight !== undefined && !isNaN(parseFloat(w.test1Weight)))
+    ? parseFloat(w.test1Weight) : DEFAULT_WEIGHTS.test1Weight;
+  const t2Max = (w.test2Weight !== null && w.test2Weight !== undefined && !isNaN(parseFloat(w.test2Weight)))
+    ? parseFloat(w.test2Weight) : DEFAULT_WEIGHTS.test2Weight;
+  const examMax = (w.examWeight !== null && w.examWeight !== undefined && !isNaN(parseFloat(w.examWeight)))
+    ? parseFloat(w.examWeight) : DEFAULT_WEIGHTS.examWeight;
+
   return {
-    assignment1Score: validateScoreComponent(assignment1, weights.assignment1Weight, 'Assignment 1'),
-    assignment2Score: validateScoreComponent(assignment2, weights.assignment2Weight, 'Assignment 2'),
-    test1Score: validateScoreComponent(test1, weights.test1Weight, 'Test 1'),
-    test2Score: validateScoreComponent(test2, weights.test2Weight, 'Test 2'),
-    examScore: validateScoreComponent(exam, weights.examWeight, 'Examination')
+    assignment1Score: validateScoreComponent(assignment1, a1Max, 'Assignment 1'),
+    assignment2Score: validateScoreComponent(assignment2, a2Max, 'Assignment 2'),
+    test1Score: validateScoreComponent(test1, t1Max, 'Test 1'),
+    test2Score: validateScoreComponent(test2, t2Max, 'Test 2'),
+    examScore: validateScoreComponent(exam, examMax, 'Examination')
   };
 }
 
