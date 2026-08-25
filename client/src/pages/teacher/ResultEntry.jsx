@@ -354,12 +354,17 @@ const ResultEntry = () => {
     setSaving(true);
     setNotification(null);
     try {
+      // Validate required selections before saving
+      if (!selectedSession || !selectedTerm || !selectedClass || !selectedSubject) {
+        setNotification({ type: 'error', message: 'Please select Academic Session, Term, Class, and Subject before saving.' });
+        setSaving(false);
+        return;
+      }
+
       const resultsToSave = students.map(s => ({
         studentId: s.id,
         ...results[s.id]
-      })).filter(r => r.totalScore !== undefined); // Only save records with at least some data logic? 
-      // Actually backend upsert handles partials, but we usually want to send rows that have been touched.
-      // Better filter: rows that have at least one score field not null.
+      })).filter(r => r.totalScore !== undefined);
 
       if (resultsToSave.length === 0) {
         setNotification({ type: 'error', message: 'No results to save.' });
@@ -377,11 +382,20 @@ const ResultEntry = () => {
 
       const data = await response.json();
       if (response.ok) {
-        setNotification({ type: 'success', message: `Successfully saved ${data.success || resultsToSave.length} results!` });
+        const successCount = data.success || 0;
+        const errorCount = data.errorCount || 0;
+
+        if (successCount > 0 && errorCount === 0) {
+          setNotification({ type: 'success', message: `Successfully saved ${successCount} results!` });
+        } else if (successCount > 0 && errorCount > 0) {
+          setNotification({ type: 'error', message: `Saved ${successCount} results, but ${errorCount} failed. Please review and retry.` });
+        } else {
+          setNotification({ type: 'error', message: 'No results were saved. Please check your data and try again.' });
+        }
         // Refresh data to be sure
         fetchStudentsAndResults();
       } else {
-        throw new Error(data.error || 'Failed to save');
+        throw new Error(data.error || 'Failed to save results. Please try again.');
       }
     } catch (error) {
       console.error('Save error:', error);

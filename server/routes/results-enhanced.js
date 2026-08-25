@@ -330,6 +330,20 @@ router.post('/batch-entry', authenticate, authorize(['admin', 'teacher', 'princi
       results
     } = req.body;
 
+    // Validate required fields before processing any rows
+    const parsedSessionId = parseInt(academicSessionId);
+    const parsedTermId = parseInt(termId);
+    const parsedClassId = parseInt(classId);
+    const parsedSubjectId = parseInt(subjectId);
+
+    if (isNaN(parsedSessionId) || isNaN(parsedTermId) || isNaN(parsedClassId) || isNaN(parsedSubjectId)) {
+      return res.status(400).json({ error: 'Missing required fields: academicSessionId, termId, classId, and subjectId are all required.' });
+    }
+
+    if (!Array.isArray(results) || results.length === 0) {
+      return res.status(400).json({ error: 'No results data provided.' });
+    }
+
     const savedResults = [];
     const errors = [];
 
@@ -375,9 +389,9 @@ router.post('/batch-entry', authenticate, authorize(['admin', 'teacher', 'princi
             schoolId_studentId_subjectId_termId_academicSessionId: {
               schoolId: req.schoolId,
               studentId: parseInt(resultData.studentId),
-              subjectId: parseInt(subjectId),
-              termId: parseInt(termId),
-              academicSessionId: parseInt(academicSessionId)
+              subjectId: parsedSubjectId,
+              termId: parsedTermId,
+              academicSessionId: parsedSessionId
             }
           },
           update: {
@@ -389,10 +403,10 @@ router.post('/batch-entry', authenticate, authorize(['admin', 'teacher', 'princi
           create: {
             schoolId: req.schoolId,
             studentId: parseInt(resultData.studentId),
-            academicSessionId: parseInt(academicSessionId),
-            termId: parseInt(termId),
-            classId: parseInt(classId),
-            subjectId: parseInt(subjectId),
+            academicSessionId: parsedSessionId,
+            termId: parsedTermId,
+            classId: parsedClassId,
+            subjectId: parsedSubjectId,
             ...validatedScores,
             totalScore,
             grade,
@@ -410,27 +424,32 @@ router.post('/batch-entry', authenticate, authorize(['admin', 'teacher', 'princi
     }
 
     // Calculate positions and class average after batch entry (Must be school-aware? Usually classId is enough but schoolId is safer)
-    await calculatePositions(prisma, parseInt(classId), parseInt(subjectId), parseInt(termId), req.schoolId);
-    const classAverage = await calculateClassAverage(prisma, parseInt(classId), parseInt(subjectId), parseInt(termId), req.schoolId);
+    if (savedResults.length > 0) {
+      await calculatePositions(prisma, parsedClassId, parsedSubjectId, parsedTermId, req.schoolId);
+      const classAverage = await calculateClassAverage(prisma, parsedClassId, parsedSubjectId, parsedTermId, req.schoolId);
 
-    // Update class average for all results
-    await prisma.result.updateMany({
-      where: {
-        schoolId: req.schoolId,
-        classId: parseInt(classId),
-        subjectId: parseInt(subjectId),
-        termId: parseInt(termId)
-      },
-      data: {
-        classAverage
-      }
-    });
+      // Update class average for all results
+      await prisma.result.updateMany({
+        where: {
+          schoolId: req.schoolId,
+          classId: parsedClassId,
+          subjectId: parsedSubjectId,
+          termId: parsedTermId
+        },
+        data: {
+          classAverage
+        }
+      });
+    }
 
-    res.json({
+    // Return appropriate status: 400 if ALL rows failed, 200 otherwise
+    const statusCode = savedResults.length === 0 ? 400 : 200;
+
+    res.status(statusCode).json({
       success: savedResults.length,
-      errors: errors.length,
+      errorCount: errors.length,
       savedResults,
-      errors
+      errorDetails: errors
     });
 
     // Log the batch action
@@ -440,9 +459,9 @@ router.post('/batch-entry', authenticate, authorize(['admin', 'teacher', 'princi
       action: 'BATCH_UPSERT',
       resource: 'RESULT_ENHANCED',
       details: {
-        classId: parseInt(classId),
-        subjectId: parseInt(subjectId),
-        termId: parseInt(termId),
+        classId: parsedClassId,
+        subjectId: parsedSubjectId,
+        termId: parsedTermId,
         successCount: savedResults.length,
         errorCount: errors.length
       },
