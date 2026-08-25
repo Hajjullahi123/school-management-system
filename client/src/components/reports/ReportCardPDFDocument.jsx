@@ -827,34 +827,44 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
                   <Text style={[styles.sectionBanner, { backgroundColor: layout === 'modern' ? reportColor : '#000000' }]}>
                     COGNITIVE DOMAIN PERFORMANCE
                   </Text>
-                  <View style={styles.table}>
-                    <View style={styles.tableHeaderRow}>
-                      <Text style={styles.thSubject}>SUBJECTS</Text>
-                      <Text style={styles.thScore}>1ST CA{'\n'}{term.weights?.assignment1 || 5}</Text>
-                      <Text style={styles.thScore}>2ND CA{'\n'}{term.weights?.assignment2 || 5}</Text>
-                      <Text style={styles.thScore}>1ST TST{'\n'}{term.weights?.test1 || 10}</Text>
-                      <Text style={styles.thScore}>2ND TST{'\n'}{term.weights?.test2 || 10}</Text>
-                      <Text style={styles.thScore}>EXM{'\n'}{term.weights?.exam || 70}</Text>
-                      <Text style={styles.thTotal}>TOT{'\n'}100</Text>
-                      <Text style={styles.thGrade}>GRD</Text>
-                      {showPosition && <Text style={styles.thPos}>POS</Text>}
-                      <Text style={styles.thRemark}>REMARKS</Text>
-                    </View>
-                    {subjects.map((sub, sIdx) => (
-                      <View key={sIdx} style={styles.tableRow}>
-                        <SmartText style={styles.tdSubject}>{sub.name || ''}</SmartText>
-                        <Text style={styles.tdScore}>{sub.assignment1 ?? ''}</Text>
-                        <Text style={styles.tdScore}>{sub.assignment2 ?? ''}</Text>
-                        <Text style={styles.tdScore}>{sub.test1 ?? ''}</Text>
-                        <Text style={styles.tdScore}>{sub.test2 ?? ''}</Text>
-                        <Text style={styles.tdScore}>{sub.exam ?? ''}</Text>
-                        <Text style={styles.tdTotal}>{sub.total != null ? Number(sub.total).toFixed(0) : ''}</Text>
-                        <Text style={styles.tdGrade}>{sub.grade || ''}</Text>
-                        {showPosition && <Text style={styles.tdPos}>{sub.position || ''}</Text>}
-                        <Text style={styles.tdRemark}>{(sub.remark || '').toUpperCase()}</Text>
+                  {(() => {
+                    const wA1 = term.weights?.assignment1 !== undefined && term.weights?.assignment1 !== null ? Number(term.weights.assignment1) : 5;
+                    const wA2 = term.weights?.assignment2 !== undefined && term.weights?.assignment2 !== null ? Number(term.weights.assignment2) : 5;
+                    const wT1 = term.weights?.test1 !== undefined && term.weights?.test1 !== null ? Number(term.weights.test1) : 10;
+                    const wT2 = term.weights?.test2 !== undefined && term.weights?.test2 !== null ? Number(term.weights.test2) : 10;
+                    const wEx = term.weights?.exam !== undefined && term.weights?.exam !== null ? Number(term.weights.exam) : 70;
+
+                    return (
+                      <View style={styles.table}>
+                        <View style={styles.tableHeaderRow}>
+                          <Text style={[styles.thSubject, { flex: 1 }]}>SUBJECTS</Text>
+                          {wA1 > 0 && <Text style={styles.thScore}>1ST CA{'\n'}{wA1}</Text>}
+                          {wA2 > 0 && <Text style={styles.thScore}>2ND CA{'\n'}{wA2}</Text>}
+                          {wT1 > 0 && <Text style={styles.thScore}>1ST TST{'\n'}{wT1}</Text>}
+                          {wT2 > 0 && <Text style={styles.thScore}>2ND TST{'\n'}{wT2}</Text>}
+                          {wEx > 0 && <Text style={styles.thScore}>EXM{'\n'}{wEx}</Text>}
+                          <Text style={styles.thTotal}>TOT{'\n'}100</Text>
+                          <Text style={styles.thGrade}>GRD</Text>
+                          {showPosition && <Text style={styles.thPos}>POS</Text>}
+                          <Text style={styles.thRemark}>REMARKS</Text>
+                        </View>
+                        {subjects.map((sub, sIdx) => (
+                          <View key={sIdx} style={styles.tableRow}>
+                            <SmartText style={[styles.tdSubject, { flex: 1 }]}>{sub.name || ''}</SmartText>
+                            {wA1 > 0 && <Text style={styles.tdScore}>{sub.assignment1 ?? ''}</Text>}
+                            {wA2 > 0 && <Text style={styles.tdScore}>{sub.assignment2 ?? ''}</Text>}
+                            {wT1 > 0 && <Text style={styles.tdScore}>{sub.test1 ?? ''}</Text>}
+                            {wT2 > 0 && <Text style={styles.tdScore}>{sub.test2 ?? ''}</Text>}
+                            {wEx > 0 && <Text style={styles.tdScore}>{sub.exam ?? ''}</Text>}
+                            <Text style={styles.tdTotal}>{sub.total != null ? Number(sub.total).toFixed(0) : ''}</Text>
+                            <Text style={styles.tdGrade}>{sub.grade || ''}</Text>
+                            {showPosition && <Text style={styles.tdPos}>{sub.position || ''}</Text>}
+                            <Text style={styles.tdRemark}>{(sub.remark || '').toUpperCase()}</Text>
+                          </View>
+                        ))}
                       </View>
-                    ))}
-                  </View>
+                    );
+                  })()}
                 </View>
 
                 {/* Behavioral / Psychomotor Domains */}

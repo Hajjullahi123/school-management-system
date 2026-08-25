@@ -767,41 +767,49 @@ const TermReportCard = () => {
                       <div className="bg-black text-white text-center font-bold py-1 text-base border-2 border-b-0 border-black" style={{ backgroundColor: '#000000' }}>
                         COGNITIVE DOMAIN PERFORMANCE
                       </div>
-                      <table className="w-full border-2 border-black border-collapse">
-                        <thead>
-                          <tr className="bg-gray-200">
-                            <th className="border border-black p-0.5 text-left">SUBJECTS</th>
-                            <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">1ST CA<br />{data.term?.weights?.assignment1 || 5}</th>
-                            <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">2ND CA<br />{data.term?.weights?.assignment2 || 5}</th>
-                            <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">1ST TST<br />{data.term?.weights?.test1 || 10}</th>
-                            <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">2ND TST<br />{data.term?.weights?.test2 || 10}</th>
-                            <th className="border border-black p-0.5 text-center w-8">EXM<br />{data.term?.weights?.exam || 70}</th>
-                            <th className="border border-black p-0.5 text-center w-8 font-black">TOT<br />100</th>
-                            <th className="border border-black p-0.5 text-center w-6">GRD</th>
-                            {showPosition && <th className="border border-black p-0.5 text-center w-6 text-[7px]">POS</th>}
-                            <th className="border border-black p-0.5 text-left px-1 text-[8px]">REMARKS</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(() => {
-                            const subs = data.subjects || [];
-                            return subs.map((sub, i) => (
-                              <tr key={i} className="font-bold uppercase h-5">
-                                <td className="border border-black px-1 leading-tight text-[11px] font-black">{sub.isEmpty ? '\u00A0' : (sub.name || '')}</td>
-                                <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.assignment1 !== null && sub.assignment1 !== undefined ? sub.assignment1 : '')}</td>
-                                <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.assignment2 !== null && sub.assignment2 !== undefined ? sub.assignment2 : '')}</td>
-                                <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.test1 !== null && sub.test1 !== undefined ? sub.test1 : '')}</td>
-                                <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.test2 !== null && sub.test2 !== undefined ? sub.test2 : '')}</td>
-                                <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.exam !== null && sub.exam !== undefined ? sub.exam : '')}</td>
-                                <td className="border border-black text-center bg-gray-50 text-[10px] font-black">{sub.isEmpty ? '' : (sub.total !== null && sub.total !== undefined ? sub.total.toFixed(0) : '')}</td>
-                                <td className="border border-black text-center text-[10px] font-black">{sub.isEmpty ? '' : (sub.grade || '')}</td>
-                                {showPosition && <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.position || '')}</td>}
-                                <td className="border border-black px-1 text-[8px] leading-tight italic font-medium">{sub.isEmpty ? '' : (sub.remark || '')}</td>
+                      {(() => {
+                        const wA1 = data.term?.weights?.assignment1 !== undefined && data.term?.weights?.assignment1 !== null ? Number(data.term.weights.assignment1) : 5;
+                        const wA2 = data.term?.weights?.assignment2 !== undefined && data.term?.weights?.assignment2 !== null ? Number(data.term.weights.assignment2) : 5;
+                        const wT1 = data.term?.weights?.test1 !== undefined && data.term?.weights?.test1 !== null ? Number(data.term.weights.test1) : 10;
+                        const wT2 = data.term?.weights?.test2 !== undefined && data.term?.weights?.test2 !== null ? Number(data.term.weights.test2) : 10;
+                        const wEx = data.term?.weights?.exam !== undefined && data.term?.weights?.exam !== null ? Number(data.term.weights.exam) : 70;
+                        const subs = data.subjects || [];
+
+                        return (
+                          <table className="w-full border-2 border-black border-collapse">
+                            <thead>
+                              <tr className="bg-gray-200">
+                                <th className="border border-black p-0.5 text-left">SUBJECTS</th>
+                                {wA1 > 0 && <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">1ST CA<br />{wA1}</th>}
+                                {wA2 > 0 && <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">2ND CA<br />{wA2}</th>}
+                                {wT1 > 0 && <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">1ST TST<br />{wT1}</th>}
+                                {wT2 > 0 && <th className="border border-black p-0.5 text-center w-6 text-[7px] leading-tight">2ND TST<br />{wT2}</th>}
+                                {wEx > 0 && <th className="border border-black p-0.5 text-center w-8">EXM<br />{wEx}</th>}
+                                <th className="border border-black p-0.5 text-center w-8 font-black">TOT<br />100</th>
+                                <th className="border border-black p-0.5 text-center w-6">GRD</th>
+                                {showPosition && <th className="border border-black p-0.5 text-center w-6 text-[7px]">POS</th>}
+                                <th className="border border-black p-0.5 text-left px-1 text-[8px]">REMARKS</th>
                               </tr>
-                            ));
-                          })()}
-                        </tbody>
-                      </table>
+                            </thead>
+                            <tbody>
+                              {subs.map((sub, i) => (
+                                <tr key={i} className="font-bold uppercase h-5">
+                                  <td className="border border-black px-1 leading-tight text-[11px] font-black">{sub.isEmpty ? '\u00A0' : (sub.name || '')}</td>
+                                  {wA1 > 0 && <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.assignment1 !== null && sub.assignment1 !== undefined ? sub.assignment1 : '')}</td>}
+                                  {wA2 > 0 && <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.assignment2 !== null && sub.assignment2 !== undefined ? sub.assignment2 : '')}</td>}
+                                  {wT1 > 0 && <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.test1 !== null && sub.test1 !== undefined ? sub.test1 : '')}</td>}
+                                  {wT2 > 0 && <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.test2 !== null && sub.test2 !== undefined ? sub.test2 : '')}</td>}
+                                  {wEx > 0 && <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.exam !== null && sub.exam !== undefined ? sub.exam : '')}</td>}
+                                  <td className="border border-black text-center bg-gray-50 text-[10px] font-black">{sub.isEmpty ? '' : (sub.total !== null && sub.total !== undefined ? sub.total.toFixed(0) : '')}</td>
+                                  <td className="border border-black text-center text-[10px] font-black">{sub.isEmpty ? '' : (sub.grade || '')}</td>
+                                  {showPosition && <td className="border border-black text-center text-[10px]">{sub.isEmpty ? '' : (sub.position || '')}</td>}
+                                  <td className="border border-black px-1 text-[8px] leading-tight italic font-medium">{sub.isEmpty ? '' : (sub.remark || '')}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        );
+                      })()}
                     </div>
 
                     {/* RIGHT: DOMAINS */}

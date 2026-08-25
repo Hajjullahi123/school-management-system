@@ -661,43 +661,49 @@ const ReportCard = () => {
                   <div className="bg-black text-white text-center font-bold py-1 text-sm border-2 border-b-0 border-black" style={{ backgroundColor: '#000000' }}>
                     COGNITIVE DOMAIN PERFORMANCE
                   </div>
-                  <table className="w-full border-2 border-black border-collapse">
-                    <thead>
-                      <tr className="bg-gray-100 uppercase text-[8px] font-bold">
-                        <th className="border border-black px-2 py-1 text-left">Subject</th>
-                        <th className="border border-black px-1 py-1 text-center w-6">1CA<br />{reportData.term?.weights?.assignment1 || 5}</th>
-                        <th className="border border-black px-1 py-1 text-center w-6">2CA<br />{reportData.term?.weights?.assignment2 || 5}</th>
-                        <th className="border border-black px-1 py-1 text-center w-6">1TS<br />{reportData.term?.weights?.test1 || 10}</th>
-                        <th className="border border-black px-1 py-1 text-center w-6">2TS<br />{reportData.term?.weights?.test2 || 10}</th>
-                        <th className="border border-black px-1 py-1 text-center w-8">EXM<br />{reportData.term?.weights?.exam || 70}</th>
-                        <th className="border border-black px-1 py-1 text-center w-8 font-black">TOT<br />100</th>
+                  {(() => {
+                    const wA1 = reportData.term?.weights?.assignment1 !== undefined && reportData.term?.weights?.assignment1 !== null ? Number(reportData.term.weights.assignment1) : 5;
+                    const wA2 = reportData.term?.weights?.assignment2 !== undefined && reportData.term?.weights?.assignment2 !== null ? Number(reportData.term.weights.assignment2) : 5;
+                    const wT1 = reportData.term?.weights?.test1 !== undefined && reportData.term?.weights?.test1 !== null ? Number(reportData.term.weights.test1) : 10;
+                    const wT2 = reportData.term?.weights?.test2 !== undefined && reportData.term?.weights?.test2 !== null ? Number(reportData.term.weights.test2) : 10;
+                    const wEx = reportData.term?.weights?.exam !== undefined && reportData.term?.weights?.exam !== null ? Number(reportData.term.weights.exam) : 70;
+                    const subs = reportData.subjects || [];
 
-                        <th className="border border-black px-1 py-1 text-center w-6">GRD</th>
-                        {showPosition && <th className="border border-black px-1 py-1 text-center w-6">POS</th>}
-                        <th className="border border-black px-2 py-1 text-left italic text-[8px]">Remark</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-[10px] uppercase font-bold">
-                      {(() => {
-                        const subs = reportData.subjects || [];
-                        return subs.map((sub, i) => (
-                          <tr key={i} className="h-6">
-                            <td className="border border-black px-2 font-black leading-tight">{sub.isEmpty ? '' : (sub.name || '')}</td>
-                            <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.assignment1 !== null && sub.assignment1 !== undefined ? sub.assignment1 : '')}</td>
-                            <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.assignment2 !== null && sub.assignment2 !== undefined ? sub.assignment2 : '')}</td>
-                            <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.test1 !== null && sub.test1 !== undefined ? sub.test1 : '')}</td>
-                            <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.test2 !== null && sub.test2 !== undefined ? sub.test2 : '')}</td>
-                            <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.exam !== null && sub.exam !== undefined ? sub.exam : '')}</td>
-                            <td className="border border-black text-center bg-gray-50 font-black">{sub.isEmpty ? '' : (sub.total !== null && sub.total !== undefined ? sub.total.toFixed(0) : '')}</td>
-
-                            <td className="border border-black text-center font-black">{sub.isEmpty ? '' : (sub.grade || '')}</td>
-                            {showPosition && <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.position || '')}</td>}
-                            <td className="border border-black px-2 italic text-[8px] leading-tight font-medium">{sub.isEmpty ? '' : (sub.remark || '')}</td>
+                    return (
+                      <table className="w-full border-2 border-black border-collapse">
+                        <thead>
+                          <tr className="bg-gray-100 uppercase text-[8px] font-bold">
+                            <th className="border border-black px-2 py-1 text-left">Subject</th>
+                            {wA1 > 0 && <th className="border border-black px-1 py-1 text-center w-6">1CA<br />{wA1}</th>}
+                            {wA2 > 0 && <th className="border border-black px-1 py-1 text-center w-6">2CA<br />{wA2}</th>}
+                            {wT1 > 0 && <th className="border border-black px-1 py-1 text-center w-6">1TS<br />{wT1}</th>}
+                            {wT2 > 0 && <th className="border border-black px-1 py-1 text-center w-6">2TS<br />{wT2}</th>}
+                            {wEx > 0 && <th className="border border-black px-1 py-1 text-center w-8">EXM<br />{wEx}</th>}
+                            <th className="border border-black px-1 py-1 text-center w-8 font-black">TOT<br />100</th>
+                            <th className="border border-black px-1 py-1 text-center w-6">GRD</th>
+                            {showPosition && <th className="border border-black px-1 py-1 text-center w-6">POS</th>}
+                            <th className="border border-black px-2 py-1 text-left italic text-[8px]">Remark</th>
                           </tr>
-                        ));
-                      })()}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody className="text-[10px] uppercase font-bold">
+                          {subs.map((sub, i) => (
+                            <tr key={i} className="h-6">
+                              <td className="border border-black px-2 font-black leading-tight">{sub.isEmpty ? '' : (sub.name || '')}</td>
+                              {wA1 > 0 && <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.assignment1 !== null && sub.assignment1 !== undefined ? sub.assignment1 : '')}</td>}
+                              {wA2 > 0 && <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.assignment2 !== null && sub.assignment2 !== undefined ? sub.assignment2 : '')}</td>}
+                              {wT1 > 0 && <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.test1 !== null && sub.test1 !== undefined ? sub.test1 : '')}</td>}
+                              {wT2 > 0 && <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.test2 !== null && sub.test2 !== undefined ? sub.test2 : '')}</td>}
+                              {wEx > 0 && <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.exam !== null && sub.exam !== undefined ? sub.exam : '')}</td>}
+                              <td className="border border-black text-center bg-gray-50 font-black">{sub.isEmpty ? '' : (sub.total !== null && sub.total !== undefined ? sub.total.toFixed(0) : '')}</td>
+                              <td className="border border-black text-center font-black">{sub.isEmpty ? '' : (sub.grade || '')}</td>
+                              {showPosition && <td className="border border-black text-center">{sub.isEmpty ? '' : (sub.position || '')}</td>}
+                              <td className="border border-black px-2 italic text-[8px] leading-tight font-medium">{sub.isEmpty ? '' : (sub.remark || '')}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
                 </div>
 
                 {/* RIGHT: DOMAINS */}
