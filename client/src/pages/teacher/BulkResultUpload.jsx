@@ -95,11 +95,11 @@ export default function BulkResultUpload() {
   const { settings: schoolSettings } = useSchoolSettings();
 
   const weights = useMemo(() => ({
-    assignment1: schoolSettings?.assignment1Weight || 5,
-    assignment2: schoolSettings?.assignment2Weight || 5,
-    test1: schoolSettings?.test1Weight || 10,
-    test2: schoolSettings?.test2Weight || 10,
-    exam: schoolSettings?.examWeight || 70
+    assignment1: schoolSettings?.assignment1Weight !== undefined && schoolSettings?.assignment1Weight !== null ? Number(schoolSettings.assignment1Weight) : 5,
+    assignment2: schoolSettings?.assignment2Weight !== undefined && schoolSettings?.assignment2Weight !== null ? Number(schoolSettings.assignment2Weight) : 5,
+    test1: schoolSettings?.test1Weight !== undefined && schoolSettings?.test1Weight !== null ? Number(schoolSettings.test1Weight) : 10,
+    test2: schoolSettings?.test2Weight !== undefined && schoolSettings?.test2Weight !== null ? Number(schoolSettings.test2Weight) : 10,
+    exam: schoolSettings?.examWeight !== undefined && schoolSettings?.examWeight !== null ? Number(schoolSettings.examWeight) : 70
   }), [schoolSettings]);
 
   const headers = useMemo(() => ({

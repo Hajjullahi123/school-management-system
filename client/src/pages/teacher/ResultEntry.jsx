@@ -12,11 +12,11 @@ const ResultEntry = () => {
 
   // Assessment Weights
   const weights = useMemo(() => ({
-    assignment1: schoolSettings?.assignment1Weight || 5,
-    assignment2: schoolSettings?.assignment2Weight || 5,
-    test1: schoolSettings?.test1Weight || 10,
-    test2: schoolSettings?.test2Weight || 10,
-    exam: schoolSettings?.examWeight || 70
+    assignment1: schoolSettings?.assignment1Weight !== undefined && schoolSettings?.assignment1Weight !== null ? Number(schoolSettings.assignment1Weight) : 5,
+    assignment2: schoolSettings?.assignment2Weight !== undefined && schoolSettings?.assignment2Weight !== null ? Number(schoolSettings.assignment2Weight) : 5,
+    test1: schoolSettings?.test1Weight !== undefined && schoolSettings?.test1Weight !== null ? Number(schoolSettings.test1Weight) : 10,
+    test2: schoolSettings?.test2Weight !== undefined && schoolSettings?.test2Weight !== null ? Number(schoolSettings.test2Weight) : 10,
+    exam: schoolSettings?.examWeight !== undefined && schoolSettings?.examWeight !== null ? Number(schoolSettings.examWeight) : 70
   }), [schoolSettings]);
 
   // Data States
@@ -288,6 +288,15 @@ const ResultEntry = () => {
       };
 
       if (limits[field] !== undefined) {
+        if (limits[field] === 0) {
+          setNotification({
+            type: 'error',
+            message: `${field.replace('Score', '')} is disabled (0%) in school settings`
+          });
+          setTimeout(() => setNotification(null), 3000);
+          return; // REJECT the change
+        }
+
         if (numValue < 0 || numValue > limits[field]) {
           setNotification({
             type: 'error',
@@ -361,10 +370,19 @@ const ResultEntry = () => {
         return;
       }
 
-      const resultsToSave = students.map(s => ({
-        studentId: s.id,
-        ...results[s.id]
-      })).filter(r => r.totalScore !== undefined);
+      const resultsToSave = students.map(s => {
+        const studentRes = results[s.id] || {};
+        return {
+          studentId: s.id,
+          assignment1Score: weights.assignment1 > 0 ? (studentRes.assignment1Score ?? null) : null,
+          assignment2Score: weights.assignment2 > 0 ? (studentRes.assignment2Score ?? null) : null,
+          test1Score: weights.test1 > 0 ? (studentRes.test1Score ?? null) : null,
+          test2Score: weights.test2 > 0 ? (studentRes.test2Score ?? null) : null,
+          examScore: weights.exam > 0 ? (studentRes.examScore ?? null) : null,
+          totalScore: studentRes.totalScore,
+          grade: studentRes.grade
+        };
+      }).filter(r => r.totalScore !== undefined && r.totalScore !== null);
 
       if (resultsToSave.length === 0) {
         setNotification({ type: 'error', message: 'No results to save.' });
@@ -663,59 +681,63 @@ const ResultEntry = () => {
 
                   <div className="grid grid-cols-3 gap-3">
                     <div className="flex flex-col">
-                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 text-center">A1 ({weights.assignment1})</label>
+                      <label className={`text-[10px] font-bold uppercase mb-1 text-center ${weights.assignment1 === 0 ? 'text-gray-400' : 'text-gray-500'}`}>A1 ({weights.assignment1}%)</label>
                       <input
                         type="number"
                         min="0"
                         max={weights.assignment1}
                         step="0.5"
-                        value={studentResult.assignment1Score ?? ''}
+                        placeholder={weights.assignment1 === 0 ? 'N/A' : ''}
+                        value={weights.assignment1 === 0 ? '' : (studentResult.assignment1Score ?? '')}
                         onChange={(e) => handleScoreChange(student.id, 'assignment1Score', e.target.value)}
-                        disabled={isDemo}
-                        className="border border-gray-300 rounded px-2 py-2 text-sm focus:ring-primary focus:border-primary w-full text-center bg-gray-50/50"
+                        disabled={isDemo || weights.assignment1 === 0}
+                        className={`border border-gray-300 rounded px-2 py-2 text-sm focus:ring-primary focus:border-primary w-full text-center ${weights.assignment1 === 0 ? 'bg-gray-100/70 text-gray-400 cursor-not-allowed' : 'bg-gray-50/50'}`}
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 text-center">A2 ({weights.assignment2})</label>
+                      <label className={`text-[10px] font-bold uppercase mb-1 text-center ${weights.assignment2 === 0 ? 'text-gray-400' : 'text-gray-500'}`}>A2 ({weights.assignment2}%)</label>
                       <input
                         type="number"
                         min="0"
                         max={weights.assignment2}
                         step="0.5"
-                        value={studentResult.assignment2Score ?? ''}
+                        placeholder={weights.assignment2 === 0 ? 'N/A' : ''}
+                        value={weights.assignment2 === 0 ? '' : (studentResult.assignment2Score ?? '')}
                         onChange={(e) => handleScoreChange(student.id, 'assignment2Score', e.target.value)}
-                        disabled={isDemo}
-                        className="border border-gray-300 rounded px-2 py-2 text-sm focus:ring-primary focus:border-primary w-full text-center bg-gray-50/50"
+                        disabled={isDemo || weights.assignment2 === 0}
+                        className={`border border-gray-300 rounded px-2 py-2 text-sm focus:ring-primary focus:border-primary w-full text-center ${weights.assignment2 === 0 ? 'bg-gray-100/70 text-gray-400 cursor-not-allowed' : 'bg-gray-50/50'}`}
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 text-center">T1 ({weights.test1})</label>
+                      <label className={`text-[10px] font-bold uppercase mb-1 text-center ${weights.test1 === 0 ? 'text-gray-400' : 'text-gray-500'}`}>T1 ({weights.test1}%)</label>
                       <input
                         type="number"
                         min="0"
                         max={weights.test1}
                         step="0.5"
-                        value={studentResult.test1Score ?? ''}
+                        placeholder={weights.test1 === 0 ? 'N/A' : ''}
+                        value={weights.test1 === 0 ? '' : (studentResult.test1Score ?? '')}
                         onChange={(e) => handleScoreChange(student.id, 'test1Score', e.target.value)}
-                        disabled={isDemo}
-                        className="border border-gray-300 rounded px-2 py-2 text-sm focus:ring-primary focus:border-primary w-full text-center bg-gray-50/50"
+                        disabled={isDemo || weights.test1 === 0}
+                        className={`border border-gray-300 rounded px-2 py-2 text-sm focus:ring-primary focus:border-primary w-full text-center ${weights.test1 === 0 ? 'bg-gray-100/70 text-gray-400 cursor-not-allowed' : 'bg-gray-50/50'}`}
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 text-center">T2 ({weights.test2})</label>
+                      <label className={`text-[10px] font-bold uppercase mb-1 text-center ${weights.test2 === 0 ? 'text-gray-400' : 'text-gray-500'}`}>T2 ({weights.test2}%)</label>
                       <input
                         type="number"
                         min="0"
                         max={weights.test2}
                         step="0.5"
-                        value={studentResult.test2Score ?? ''}
+                        placeholder={weights.test2 === 0 ? 'N/A' : ''}
+                        value={weights.test2 === 0 ? '' : (studentResult.test2Score ?? '')}
                         onChange={(e) => handleScoreChange(student.id, 'test2Score', e.target.value)}
-                        disabled={isDemo}
-                        className="border border-gray-300 rounded px-2 py-2 text-sm focus:ring-primary focus:border-primary w-full text-center bg-gray-50/50"
+                        disabled={isDemo || weights.test2 === 0}
+                        className={`border border-gray-300 rounded px-2 py-2 text-sm focus:ring-primary focus:border-primary w-full text-center ${weights.test2 === 0 ? 'bg-gray-100/70 text-gray-400 cursor-not-allowed' : 'bg-gray-50/50'}`}
                       />
                     </div>
                     <div className="flex flex-col col-span-2">
-                      <label className="text-[10px] font-bold text-primary uppercase mb-1 text-center">Exam ({weights.exam})</label>
+                      <label className="text-[10px] font-bold text-primary uppercase mb-1 text-center">Exam ({weights.exam}%)</label>
                       <input
                         type="number"
                         min="0"
@@ -783,10 +805,11 @@ const ResultEntry = () => {
                           min="0"
                           max={weights.assignment1}
                           step="0.5"
-                          value={studentResult.assignment1Score ?? ''}
+                          placeholder={weights.assignment1 === 0 ? 'N/A' : ''}
+                          value={weights.assignment1 === 0 ? '' : (studentResult.assignment1Score ?? '')}
                           onChange={(e) => handleScoreChange(student.id, 'assignment1Score', e.target.value)}
-                          disabled={isDemo}
-                          className={`w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary ${isDemo ? 'bg-gray-50' : ''}`}
+                          disabled={isDemo || weights.assignment1 === 0}
+                          className={`w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary ${isDemo || weights.assignment1 === 0 ? 'bg-gray-100/70 text-gray-400 cursor-not-allowed' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-center">
@@ -795,10 +818,11 @@ const ResultEntry = () => {
                           min="0"
                           max={weights.assignment2}
                           step="0.5"
-                          value={studentResult.assignment2Score ?? ''}
+                          placeholder={weights.assignment2 === 0 ? 'N/A' : ''}
+                          value={weights.assignment2 === 0 ? '' : (studentResult.assignment2Score ?? '')}
                           onChange={(e) => handleScoreChange(student.id, 'assignment2Score', e.target.value)}
-                          disabled={isDemo}
-                          className={`w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary ${isDemo ? 'bg-gray-50' : ''}`}
+                          disabled={isDemo || weights.assignment2 === 0}
+                          className={`w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary ${isDemo || weights.assignment2 === 0 ? 'bg-gray-100/70 text-gray-400 cursor-not-allowed' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-center">
@@ -807,10 +831,11 @@ const ResultEntry = () => {
                           min="0"
                           max={weights.test1}
                           step="0.5"
-                          value={studentResult.test1Score ?? ''}
+                          placeholder={weights.test1 === 0 ? 'N/A' : ''}
+                          value={weights.test1 === 0 ? '' : (studentResult.test1Score ?? '')}
                           onChange={(e) => handleScoreChange(student.id, 'test1Score', e.target.value)}
-                          disabled={isDemo}
-                          className={`w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary ${isDemo ? 'bg-gray-50' : ''}`}
+                          disabled={isDemo || weights.test1 === 0}
+                          className={`w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary ${isDemo || weights.test1 === 0 ? 'bg-gray-100/70 text-gray-400 cursor-not-allowed' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-center">
@@ -819,10 +844,11 @@ const ResultEntry = () => {
                           min="0"
                           max={weights.test2}
                           step="0.5"
-                          value={studentResult.test2Score ?? ''}
+                          placeholder={weights.test2 === 0 ? 'N/A' : ''}
+                          value={weights.test2 === 0 ? '' : (studentResult.test2Score ?? '')}
                           onChange={(e) => handleScoreChange(student.id, 'test2Score', e.target.value)}
-                          disabled={isDemo}
-                          className={`w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary ${isDemo ? 'bg-gray-50' : ''}`}
+                          disabled={isDemo || weights.test2 === 0}
+                          className={`w-16 border border-gray-300 rounded px-1 py-1 text-center text-sm focus:ring-primary focus:border-primary ${isDemo || weights.test2 === 0 ? 'bg-gray-100/70 text-gray-400 cursor-not-allowed' : ''}`}
                         />
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-center">

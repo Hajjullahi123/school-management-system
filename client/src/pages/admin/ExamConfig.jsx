@@ -126,13 +126,13 @@ const ExamConfig = () => {
  setSettings({
  examMode: data.examMode || false,
  examModeType: data.examModeType || 'none',
- assignment1Weight: data.assignment1Weight || 5,
- assignment2Weight: data.assignment2Weight || 5,
- test1Weight: data.test1Weight || 10,
- test2Weight: data.test2Weight || 10,
- examWeight: data.examWeight || 70,
+ assignment1Weight: data.assignment1Weight !== undefined && data.assignment1Weight !== null ? Number(data.assignment1Weight) : 5,
+ assignment2Weight: data.assignment2Weight !== undefined && data.assignment2Weight !== null ? Number(data.assignment2Weight) : 5,
+ test1Weight: data.test1Weight !== undefined && data.test1Weight !== null ? Number(data.test1Weight) : 10,
+ test2Weight: data.test2Weight !== undefined && data.test2Weight !== null ? Number(data.test2Weight) : 10,
+ examWeight: data.examWeight !== undefined && data.examWeight !== null ? Number(data.examWeight) : 70,
  gradingSystem: data.gradingSystem ? (typeof data.gradingSystem === 'string' ? JSON.parse(data.gradingSystem) : data.gradingSystem) : settings.gradingSystem,
- passThreshold: data.passThreshold || 40
+ passThreshold: data.passThreshold !== undefined && data.passThreshold !== null ? Number(data.passThreshold) : 40
  });
  } catch (error) {
  console.error('Error fetching settings:', error);
