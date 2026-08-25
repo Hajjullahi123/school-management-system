@@ -449,7 +449,8 @@ router.post('/batch-entry', authenticate, authorize(['admin', 'teacher', 'princi
       success: savedResults.length,
       errorCount: errors.length,
       savedResults,
-      errorDetails: errors
+      errorDetails: errors,
+      ...(savedResults.length === 0 && errors.length > 0 ? { error: `All ${errors.length} result(s) failed to save. First error: ${errors[0]?.error || 'Unknown error'}` } : {})
     });
 
     // Log the batch action

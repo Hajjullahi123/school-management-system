@@ -395,15 +395,22 @@ const ResultEntry = () => {
         // Refresh data to be sure
         fetchStudentsAndResults();
       } else {
-        throw new Error(data.error || 'Failed to save results. Please try again.');
+        // Log full error details for debugging
+        if (data.errorDetails) {
+          console.error('Batch save error details:', data.errorDetails);
+        }
+        const errorMsg = data.error || (data.errorDetails?.length > 0
+          ? `Failed: ${data.errorDetails[0]?.error || 'Unknown error'}`
+          : 'Failed to save results. Please try again.');
+        throw new Error(errorMsg);
       }
     } catch (error) {
       console.error('Save error:', error);
       setNotification({ type: 'error', message: error.message || 'Error saving results' });
     } finally {
       setSaving(false);
-      // Auto-hide notification
-      setTimeout(() => setNotification(null), 5000);
+      // Auto-hide notification (longer for errors so teachers can read them)
+      setTimeout(() => setNotification(null), 8000);
     }
   };
 
