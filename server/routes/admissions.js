@@ -927,6 +927,92 @@ router.post('/admin/generate-token', authenticate, async (req, res) => {
 });
 
 /**
+ * @route   POST /api/admissions/admin/create-candidate
+ * @desc    Directly register a prospective student from the admin dashboard
+ */
+router.post('/admin/create-candidate', authenticate, async (req, res) => {
+  try {
+    const {
+      candidateFirstName,
+      candidateLastName,
+      candidateMiddleName,
+      gender,
+      dateOfBirth,
+      gradeLevel,
+      previousSchool,
+      parentName,
+      parentPhone,
+      parentEmail,
+      parentAddress,
+      paymentStatus,
+      status,
+      batchName,
+      examinationDate,
+      examVenue,
+      interviewDate,
+      interviewVenue
+    } = req.body;
+
+    if (!candidateFirstName || !candidateLastName || !gradeLevel || !parentName || !parentPhone) {
+      return res.status(400).json({ error: 'Please provide Candidate Names, Grade Level, Parent Name, and Parent Phone.' });
+    }
+
+    // Generate unique code: [2 nums][3 letters][3 nums][2-digit year]
+    const randomNums = (len) => Math.floor(Math.random() * Math.pow(10, len)).toString().padStart(len, '0');
+    const randomLetters = (len) => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      let result = '';
+      for (let i = 0; i < len; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
+      return result;
+    };
+
+    const year = new Date().getFullYear().toString().slice(-2);
+    const code = `${randomNums(2)}${randomLetters(3)}${randomNums(3)}${year}`;
+
+    // Get school defaults if specific dates/venues not provided
+    const school = await prisma.school.findUnique({
+      where: { id: req.schoolId },
+      select: {
+        defaultExaminationDate: true,
+        defaultExamVenue: true,
+        defaultInterviewDate: true,
+        defaultInterviewVenue: true
+      }
+    });
+
+    const newCandidate = await prisma.admissionApplication.create({
+      data: {
+        schoolId: req.schoolId,
+        applicationCode: code,
+        candidateFirstName: candidateFirstName.trim(),
+        candidateLastName: candidateLastName.trim(),
+        candidateMiddleName: candidateMiddleName ? candidateMiddleName.trim() : null,
+        gender: gender || 'male',
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : new Date('2010-01-01'),
+        gradeLevel: gradeLevel.trim(),
+        previousSchool: previousSchool ? previousSchool.trim() : null,
+        parentName: parentName.trim(),
+        parentPhone: parentPhone.trim(),
+        parentEmail: parentEmail ? parentEmail.trim() : '',
+        parentAddress: parentAddress ? parentAddress.trim() : null,
+        paymentStatus: paymentStatus || 'paid',
+        status: status || 'submitted',
+        batchName: batchName ? batchName.trim() : null,
+        examinationDate: examinationDate ? new Date(examinationDate) : (school?.defaultExaminationDate || null),
+        examVenue: examVenue ? examVenue.trim() : (school?.defaultExamVenue || null),
+        interviewDate: interviewDate ? new Date(interviewDate) : (school?.defaultInterviewDate || null),
+        interviewVenue: interviewVenue ? interviewVenue.trim() : (school?.defaultInterviewVenue || null)
+      }
+    });
+
+    res.json({ success: true, applicationCode: code, application: newCandidate });
+  } catch (error) {
+    console.error('Direct candidate registration error:', error);
+    res.status(500).json({ error: 'Failed to register candidate.' });
+  }
+});
+
+/**
  * @route   GET /api/admissions/admin/list
  * @desc    Retrieve all admissions applications for the current school
  */

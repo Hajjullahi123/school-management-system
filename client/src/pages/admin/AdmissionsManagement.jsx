@@ -48,6 +48,30 @@ const AdmissionsManagement = () => {
   });
   const [isBulkScheduling, setIsBulkScheduling] = useState(false);
 
+  // Direct Candidate Registration State
+  const [showDirectCreateModal, setShowDirectCreateModal] = useState(false);
+  const [isCreatingCandidate, setIsCreatingCandidate] = useState(false);
+  const [directCandidateForm, setDirectCandidateForm] = useState({
+    candidateFirstName: '',
+    candidateLastName: '',
+    candidateMiddleName: '',
+    gender: 'male',
+    dateOfBirth: '',
+    gradeLevel: '',
+    previousSchool: '',
+    parentName: '',
+    parentPhone: '',
+    parentEmail: '',
+    parentAddress: '',
+    paymentStatus: 'paid',
+    status: 'submitted',
+    batchName: '',
+    examinationDate: '',
+    examVenue: '',
+    interviewDate: '',
+    interviewVenue: ''
+  });
+
   // Token Generation State
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [generateForm, setGenerateForm] = useState({ purchaserName: '', purchaserPhone: '', gradeLevel: '' });
@@ -170,6 +194,60 @@ const AdmissionsManagement = () => {
       toast.error('Network error generating token');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleCreateCandidate = async (e) => {
+    e.preventDefault();
+    if (!directCandidateForm.candidateFirstName.trim() || !directCandidateForm.candidateLastName.trim()) {
+      toast.error('Please enter candidate first and last name');
+      return;
+    }
+    if (!directCandidateForm.gradeLevel.trim()) {
+      toast.error('Please select or specify target grade level');
+      return;
+    }
+    if (!directCandidateForm.parentName.trim() || !directCandidateForm.parentPhone.trim()) {
+      toast.error('Please provide parent/guardian name and phone number');
+      return;
+    }
+
+    setIsCreatingCandidate(true);
+    try {
+      const res = await api.post('/api/admissions/admin/create-candidate', directCandidateForm);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(`Candidate registered successfully! Code: ${data.applicationCode}`);
+        setShowDirectCreateModal(false);
+        setDirectCandidateForm({
+          candidateFirstName: '',
+          candidateLastName: '',
+          candidateMiddleName: '',
+          gender: 'male',
+          dateOfBirth: '',
+          gradeLevel: '',
+          previousSchool: '',
+          parentName: '',
+          parentPhone: '',
+          parentEmail: '',
+          parentAddress: '',
+          paymentStatus: 'paid',
+          status: 'submitted',
+          batchName: '',
+          examinationDate: '',
+          examVenue: '',
+          interviewDate: '',
+          interviewVenue: ''
+        });
+        fetchApplications();
+      } else {
+        toast.error(data.error || 'Failed to register candidate');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Network error registering candidate');
+    } finally {
+      setIsCreatingCandidate(false);
     }
   };
 
@@ -593,12 +671,22 @@ const AdmissionsManagement = () => {
           <h1 className="text-2xl font-bold text-gray-900">Online Admissions Portal</h1>
           <p className="text-gray-500 text-sm">Review applications, schedule center shifts, conduct entrance examinations, and admit candidates.</p>
         </div>
-        <button
-          onClick={() => { setGenerateForm({ purchaserName: '', purchaserPhone: '', gradeLevel: '' }); setShowGenerateModal(true); }}
-          className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition-all"
-        >
-          <FiPrinter /> Generate Admission Token
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowDirectCreateModal(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+          >
+            <FiUserPlus /> Register Candidate
+          </button>
+          <button
+            type="button"
+            onClick={() => { setGenerateForm({ purchaserName: '', purchaserPhone: '', gradeLevel: '' }); setShowGenerateModal(true); }}
+            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+          >
+            <FiPrinter /> Generate Token Slip
+          </button>
+        </div>
       </div>
 
       {/* Navigation Tabs */}
@@ -1945,6 +2033,275 @@ const AdmissionsManagement = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+      {/* DIRECT CANDIDATE REGISTRATION MODAL */}
+      {showDirectCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b flex justify-between items-center bg-indigo-50/70">
+              <div className="flex items-center gap-2 text-indigo-900 font-bold">
+                <FiUserPlus className="w-5 h-5 text-indigo-600" />
+                <span>Register Prospective Student (Front-Desk)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDirectCreateModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCandidate} className="p-6 space-y-6 overflow-y-auto text-sm">
+              {/* Section 1: Candidate Information */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-xs uppercase tracking-wider text-gray-500 border-b pb-1">
+                  1. Candidate Information
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">First Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Zainab"
+                      value={directCandidateForm.candidateFirstName}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, candidateFirstName: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Middle Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Amina"
+                      value={directCandidateForm.candidateMiddleName}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, candidateMiddleName: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Last Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Abubakar"
+                      value={directCandidateForm.candidateLastName}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, candidateLastName: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Gender *</label>
+                    <select
+                      value={directCandidateForm.gender}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, gender: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
+                    >
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Date of Birth</label>
+                    <input
+                      type="date"
+                      value={directCandidateForm.dateOfBirth}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, dateOfBirth: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Target Grade Level *</label>
+                    <select
+                      required
+                      value={directCandidateForm.gradeLevel}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, gradeLevel: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
+                    >
+                      <option value="">Select Grade</option>
+                      {classes.map(c => (
+                        <option key={c.id} value={c.name}>{c.name} {c.arm ? `(${c.arm})` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Previous School (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Al-Bayan Primary School"
+                    value={directCandidateForm.previousSchool}
+                    onChange={e => setDirectCandidateForm({ ...directCandidateForm, previousSchool: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Section 2: Parent / Guardian Information */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-xs uppercase tracking-wider text-gray-500 border-b pb-1">
+                  2. Parent / Guardian Details
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Parent / Guardian Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Alhaji Abubakar Usman"
+                      value={directCandidateForm.parentName}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, parentName: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Phone Number *</label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="+234..."
+                      value={directCandidateForm.parentPhone}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, parentPhone: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      placeholder="parent@example.com"
+                      value={directCandidateForm.parentEmail}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, parentEmail: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Home Address</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 14 Airport Road, Kano"
+                      value={directCandidateForm.parentAddress}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, parentAddress: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Status & Scheduling Details */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-xs uppercase tracking-wider text-gray-500 border-b pb-1">
+                  3. Admission Status & Scheduling (Optional)
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Form Payment Status</label>
+                    <select
+                      value={directCandidateForm.paymentStatus}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, paymentStatus: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg bg-white text-sm font-semibold"
+                    >
+                      <option value="paid">Paid (Cash/Bank)</option>
+                      <option value="waived">Waived / Free</option>
+                      <option value="pending">Pending</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Application Status</label>
+                    <select
+                      value={directCandidateForm.status}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, status: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg bg-white text-sm font-semibold"
+                    >
+                      <option value="submitted">Submitted</option>
+                      <option value="under_review">Under Review</option>
+                      <option value="draft">Draft</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Shift / Batch Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Batch 1 - Morning"
+                      value={directCandidateForm.batchName}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, batchName: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Examination Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      value={directCandidateForm.examinationDate}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, examinationDate: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Exam Center / Venue</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. ICT Lab 1"
+                      value={directCandidateForm.examVenue}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, examVenue: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Interview Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      value={directCandidateForm.interviewDate}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, interviewDate: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Interview Venue</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Principal's Office"
+                      value={directCandidateForm.interviewVenue}
+                      onChange={e => setDirectCandidateForm({ ...directCandidateForm, interviewVenue: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t sticky bottom-0 bg-white">
+                <button
+                  type="button"
+                  onClick={() => setShowDirectCreateModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingCandidate}
+                  className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs flex items-center gap-2 shadow-sm disabled:opacity-50"
+                >
+                  <FiCheck /> {isCreatingCandidate ? 'Registering...' : 'Register Candidate'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
