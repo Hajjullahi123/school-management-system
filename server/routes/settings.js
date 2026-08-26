@@ -179,6 +179,9 @@ router.get('/', async (req, res) => {
     delete sanitizedSettings.metaVerifyToken;
     delete sanitizedSettings.geminiApiKey;
     delete sanitizedSettings.groqApiKey;
+    if (schoolSlug || customDomain) {
+      delete sanitizedSettings.examInvigilatorToken;
+    }
 
     sanitizedSettings.schoolName = sanitizedSettings.name;
     sanitizedSettings.schoolAddress = sanitizedSettings.address;
@@ -201,7 +204,9 @@ router.put('/', authenticate, async (req, res) => {
     schoolName, schoolAddress, schoolPhone, schoolEmail, schoolMotto,
     primaryColor, secondaryColor, accentColor,
     paystackPublicKey, paystackSecretKey, flutterwavePublicKey, flutterwaveSecretKey, enableOnlinePayment,
-    enableOnlineAdmissionForm, admissionFormPrice, defaultInterviewDate,
+    enableOnlineAdmissionForm, admissionFormPrice, defaultInterviewDate, defaultInterviewVenue,
+    enableAdmissionExam, admissionExamPassMark, admissionExamDuration, defaultExaminationDate, defaultExamVenue,
+    requireExamInvigilatorToken, examInvigilatorToken,
     facebookUrl, instagramUrl, whatsappUrl, twitterUrl, youtubeUrl, linkedinUrl,
     academicCalendarUrl, eLibraryUrl, alumniNetworkUrl, brochureFileUrl, admissionGuideFileUrl,
     emailUser, emailPassword, emailHost, emailPort, emailSecure,
@@ -282,6 +287,14 @@ router.put('/', authenticate, async (req, res) => {
     if (enableOnlineAdmissionForm !== undefined) updateData.enableOnlineAdmissionForm = enableOnlineAdmissionForm === 'true' || enableOnlineAdmissionForm === true;
     if (admissionFormPrice !== undefined) updateData.admissionFormPrice = Number(admissionFormPrice);
     if (defaultInterviewDate !== undefined) updateData.defaultInterviewDate = defaultInterviewDate ? new Date(defaultInterviewDate) : null;
+    if (defaultInterviewVenue !== undefined) updateData.defaultInterviewVenue = defaultInterviewVenue ? defaultInterviewVenue.trim() : null;
+    if (enableAdmissionExam !== undefined) updateData.enableAdmissionExam = enableAdmissionExam === 'true' || enableAdmissionExam === true;
+    if (admissionExamPassMark !== undefined) updateData.admissionExamPassMark = Number(admissionExamPassMark);
+    if (admissionExamDuration !== undefined) updateData.admissionExamDuration = Number(admissionExamDuration);
+    if (defaultExaminationDate !== undefined) updateData.defaultExaminationDate = defaultExaminationDate ? new Date(defaultExaminationDate) : null;
+    if (defaultExamVenue !== undefined) updateData.defaultExamVenue = defaultExamVenue ? defaultExamVenue.trim() : null;
+    if (requireExamInvigilatorToken !== undefined) updateData.requireExamInvigilatorToken = !!requireExamInvigilatorToken;
+    if (examInvigilatorToken !== undefined) updateData.examInvigilatorToken = examInvigilatorToken ? examInvigilatorToken.trim() : null;
 
     if (facebookUrl !== undefined) updateData.facebookUrl = facebookUrl;
     if (instagramUrl !== undefined) updateData.instagramUrl = instagramUrl;

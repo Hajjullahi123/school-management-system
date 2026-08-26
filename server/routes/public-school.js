@@ -44,6 +44,13 @@ router.get('/:slug', async (req, res) => {
         enableOnlineAdmissionForm: true,
         admissionFormPrice: true,
         defaultInterviewDate: true,
+        defaultInterviewVenue: true,
+        enableAdmissionExam: true,
+        admissionExamPassMark: true,
+        admissionExamDuration: true,
+        defaultExaminationDate: true,
+        defaultExamVenue: true,
+        requireExamInvigilatorToken: true,
         paystackPublicKey: true,
         flutterwavePublicKey: true,
         customPages: {

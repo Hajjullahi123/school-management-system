@@ -141,6 +141,17 @@ router.get('/public/check', async (req, res) => {
         gradeLevel: true,
         status: true,
         interviewDate: true,
+        interviewVenue: true,
+        examinationDate: true,
+        examVenue: true,
+        batchName: true,
+        examScore: true,
+        examTotalMarks: true,
+        examCorrectAnswers: true,
+        examTotalQuestions: true,
+        examPassed: true,
+        examSubmittedAt: true,
+        adminRemarks: true,
         paymentStatus: true
       }
     });
@@ -153,6 +164,213 @@ router.get('/public/check', async (req, res) => {
   } catch (error) {
     console.error('Admission check error:', error);
     res.status(500).json({ error: 'Failed to retrieve application status' });
+  }
+});
+
+/**
+ * @route   GET /api/admissions/exam/:code
+ * @desc    Fetch entrance exam questions for an applicant
+ */
+router.get('/exam/:code', async (req, res) => {
+  const { code } = req.params;
+  const invigilatorToken = req.query.invigilatorToken || req.headers['x-invigilator-token'];
+
+  try {
+    const application = await prisma.admissionApplication.findUnique({
+      where: { applicationCode: code },
+      include: {
+        School: {
+          select: {
+            id: true,
+            name: true,
+            enableAdmissionExam: true,
+            admissionExamPassMark: true,
+            admissionExamDuration: true,
+            requireExamInvigilatorToken: true,
+            examInvigilatorToken: true
+          }
+        }
+      }
+    });
+
+    if (!application) {
+      return res.status(404).json({ error: 'Invalid application code' });
+    }
+
+    if (!application.School?.enableAdmissionExam) {
+      return res.status(400).json({ error: 'Entrance examination is not enabled for this school.' });
+    }
+
+    if (application.paymentStatus !== 'paid') {
+      return res.status(400).json({ error: 'Application form payment must be confirmed before taking the examination.' });
+    }
+
+    // Check if invigilator token is required for this school
+    if (application.School.requireExamInvigilatorToken) {
+      const validToken = (application.School.examInvigilatorToken || '').trim().toUpperCase();
+      const suppliedToken = (invigilatorToken || '').trim().toUpperCase();
+
+      if (!suppliedToken || suppliedToken !== validToken) {
+        return res.status(403).json({
+          error: 'An invigilator session token is required to start this exam in the testing center.',
+          requireToken: true
+        });
+      }
+    }
+
+    // If already submitted exam, return score summary
+    if (application.examSubmittedAt) {
+      return res.json({
+        alreadyTaken: true,
+        examScore: application.examScore,
+        examTotalMarks: application.examTotalMarks,
+        examCorrectAnswers: application.examCorrectAnswers,
+        examTotalQuestions: application.examTotalQuestions,
+        examPassed: application.examPassed,
+        examSubmittedAt: application.examSubmittedAt,
+        examVenue: application.examVenue,
+        batchName: application.batchName
+      });
+    }
+
+    // Fetch active exam questions for this school
+    const questions = await prisma.admissionExamQuestion.findMany({
+      where: {
+        schoolId: application.schoolId,
+        isActive: true
+      },
+      orderBy: { id: 'asc' }
+    });
+
+    if (questions.length === 0) {
+      return res.status(400).json({ error: 'No examination questions have been configured yet. Please contact the admissions office.' });
+    }
+
+    // Mark exam as started if not already started
+    if (!application.examStartedAt) {
+      await prisma.admissionApplication.update({
+        where: { id: application.id },
+        data: { examStartedAt: new Date() }
+      });
+    }
+
+    // Sanitize questions - DO NOT return correctOption to candidate
+    const sanitizedQuestions = questions.map((q, idx) => {
+      let parsedOptions = [];
+      try {
+        parsedOptions = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+      } catch (e) {
+        parsedOptions = [];
+      }
+      return {
+        id: q.id,
+        index: idx + 1,
+        questionText: q.questionText,
+        questionType: q.questionType,
+        options: parsedOptions,
+        points: q.points
+      };
+    });
+
+    res.json({
+      success: true,
+      alreadyTaken: false,
+      candidateName: `${application.candidateFirstName} ${application.candidateLastName}`,
+      gradeLevel: application.gradeLevel,
+      durationMinutes: application.School.admissionExamDuration || 60,
+      passMark: application.School.admissionExamPassMark || 50,
+      totalQuestions: sanitizedQuestions.length,
+      questions: sanitizedQuestions
+    });
+  } catch (error) {
+    console.error('Fetch entrance exam error:', error);
+    res.status(500).json({ error: 'Failed to load entrance exam' });
+  }
+});
+
+/**
+ * @route   POST /api/admissions/exam/:code/submit
+ * @desc    Submit answers for entrance examination and auto-score
+ */
+router.post('/exam/:code/submit', async (req, res) => {
+  const { code } = req.params;
+  const { answers } = req.body;
+
+  try {
+    const application = await prisma.admissionApplication.findUnique({
+      where: { applicationCode: code },
+      include: {
+        School: {
+          select: {
+            id: true,
+            name: true,
+            admissionExamPassMark: true
+          }
+        }
+      }
+    });
+
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    if (application.examSubmittedAt) {
+      return res.status(400).json({ error: 'This exam has already been submitted and cannot be retaken.' });
+    }
+
+    // Fetch all active questions with correct answers
+    const questions = await prisma.admissionExamQuestion.findMany({
+      where: {
+        schoolId: application.schoolId,
+        isActive: true
+      }
+    });
+
+    let totalPossibleMarks = 0;
+    let earnedScore = 0;
+    let correctCount = 0;
+
+    questions.forEach(q => {
+      const qPoints = q.points || 1.0;
+      totalPossibleMarks += qPoints;
+
+      const candidateAnswer = answers ? answers[q.id] : null;
+      if (candidateAnswer && String(candidateAnswer).trim().toUpperCase() === String(q.correctOption).trim().toUpperCase()) {
+        earnedScore += qPoints;
+        correctCount += 1;
+      }
+    });
+
+    const passMarkPercentage = application.School?.admissionExamPassMark ?? 50;
+    const scorePercentage = totalPossibleMarks > 0 ? (earnedScore / totalPossibleMarks) * 100 : 0;
+    const passed = scorePercentage >= passMarkPercentage;
+
+    const updated = await prisma.admissionApplication.update({
+      where: { id: application.id },
+      data: {
+        examScore: Math.round(earnedScore * 10) / 10,
+        examTotalMarks: totalPossibleMarks,
+        examCorrectAnswers: correctCount,
+        examTotalQuestions: questions.length,
+        examPassed: passed,
+        examSubmittedAt: new Date(),
+        examAnswers: answers ? JSON.stringify(answers) : null
+      }
+    });
+
+    res.json({
+      success: true,
+      score: updated.examScore,
+      totalMarks: updated.examTotalMarks,
+      correctAnswers: correctCount,
+      totalQuestions: questions.length,
+      percentage: Math.round(scorePercentage * 10) / 10,
+      passed,
+      passMark: passMarkPercentage
+    });
+  } catch (error) {
+    console.error('Submit entrance exam error:', error);
+    res.status(500).json({ error: 'Failed to submit entrance exam' });
   }
 });
 
@@ -498,7 +716,23 @@ router.get('/application/:code', async (req, res) => {
   try {
     const application = await prisma.admissionApplication.findUnique({
       where: { applicationCode: code },
-      include: { School: { select: { name: true, slug: true, admissionFormPrice: true } } }
+      include: {
+        School: {
+          select: {
+            name: true,
+            slug: true,
+            admissionFormPrice: true,
+            enableAdmissionExam: true,
+            admissionExamPassMark: true,
+            admissionExamDuration: true,
+            defaultInterviewDate: true,
+            defaultInterviewVenue: true,
+            defaultExaminationDate: true,
+            defaultExamVenue: true,
+            requireExamInvigilatorToken: true
+          }
+        }
+      }
     });
 
     if (!application) {
@@ -564,7 +798,16 @@ router.post('/application/:code/submit', async (req, res) => {
   try {
     const application = await prisma.admissionApplication.findUnique({
       where: { applicationCode: code },
-      include: { School: { select: { defaultInterviewDate: true } } }
+      include: {
+        School: {
+          select: {
+            defaultInterviewDate: true,
+            defaultInterviewVenue: true,
+            defaultExaminationDate: true,
+            defaultExamVenue: true
+          }
+        }
+      }
     });
 
     if (!application) return res.status(404).json({ error: 'Application not found' });
@@ -576,7 +819,10 @@ router.post('/application/:code/submit', async (req, res) => {
       where: { applicationCode: code },
       data: { 
         status: 'submitted',
-        interviewDate: application.School?.defaultInterviewDate || null
+        interviewDate: application.School?.defaultInterviewDate || null,
+        interviewVenue: application.School?.defaultInterviewVenue || null,
+        examinationDate: application.School?.defaultExaminationDate || null,
+        examVenue: application.School?.defaultExamVenue || null
       }
     });
 
@@ -703,7 +949,7 @@ router.get('/admin/list', authenticate, async (req, res) => {
  */
 router.put('/admin/:id/interview', authenticate, async (req, res) => {
   const { id } = req.params;
-  const { interviewDate } = req.body;
+  const { interviewDate, interviewVenue } = req.body;
 
   try {
     const application = await prisma.admissionApplication.findFirst({
@@ -714,15 +960,247 @@ router.put('/admin/:id/interview', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Application not found' });
     }
 
+    const updateData = {};
+    if (interviewDate !== undefined) updateData.interviewDate = interviewDate ? new Date(interviewDate) : null;
+    if (interviewVenue !== undefined) updateData.interviewVenue = interviewVenue ? interviewVenue.trim() : null;
+
     const updated = await prisma.admissionApplication.update({
       where: { id: parseInt(id) },
-      data: { interviewDate: interviewDate ? new Date(interviewDate) : null }
+      data: updateData
     });
 
     res.json({ success: true, application: updated });
   } catch (error) {
     console.error('Update interview date error:', error);
     res.status(500).json({ error: 'Failed to update interview date' });
+  }
+});
+
+/**
+ * @route   PUT /api/admissions/admin/:id/examination-date
+ * @desc    Set or reschedule examination date, venue, and batch for an application
+ */
+router.put('/admin/:id/examination-date', authenticate, async (req, res) => {
+  const { id } = req.params;
+  const { examinationDate, examVenue, batchName } = req.body;
+
+  try {
+    const application = await prisma.admissionApplication.findFirst({
+      where: { id: parseInt(id), schoolId: req.schoolId }
+    });
+
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    const updateData = {};
+    if (examinationDate !== undefined) updateData.examinationDate = examinationDate ? new Date(examinationDate) : null;
+    if (examVenue !== undefined) updateData.examVenue = examVenue ? examVenue.trim() : null;
+    if (batchName !== undefined) updateData.batchName = batchName ? batchName.trim() : null;
+
+    const updated = await prisma.admissionApplication.update({
+      where: { id: parseInt(id) },
+      data: updateData
+    });
+
+    res.json({ success: true, application: updated });
+  } catch (error) {
+    console.error('Update examination date error:', error);
+    res.status(500).json({ error: 'Failed to update examination date' });
+  }
+});
+
+/**
+ * @route   POST /api/admissions/admin/bulk-schedule
+ * @desc    Bulk assign examination date, venue, batch, and interview date to multiple applicants
+ */
+router.post('/admin/bulk-schedule', authenticate, async (req, res) => {
+  const { applicationIds, examinationDate, examVenue, interviewDate, interviewVenue, batchName } = req.body;
+
+  if (!Array.isArray(applicationIds) || applicationIds.length === 0) {
+    return res.status(400).json({ error: 'Please select at least one applicant to schedule.' });
+  }
+
+  try {
+    const updateData = {};
+    if (examinationDate !== undefined) updateData.examinationDate = examinationDate ? new Date(examinationDate) : null;
+    if (examVenue !== undefined) updateData.examVenue = examVenue ? examVenue.trim() : null;
+    if (interviewDate !== undefined) updateData.interviewDate = interviewDate ? new Date(interviewDate) : null;
+    if (interviewVenue !== undefined) updateData.interviewVenue = interviewVenue ? interviewVenue.trim() : null;
+    if (batchName !== undefined) updateData.batchName = batchName ? batchName.trim() : null;
+
+    const numericIds = applicationIds.map(id => parseInt(id)).filter(id => !isNaN(id));
+
+    const result = await prisma.admissionApplication.updateMany({
+      where: {
+        id: { in: numericIds },
+        schoolId: req.schoolId
+      },
+      data: updateData
+    });
+
+    res.json({ success: true, count: result.count, message: `Successfully scheduled ${result.count} applicant(s).` });
+  } catch (error) {
+    console.error('Bulk schedule error:', error);
+    res.status(500).json({ error: 'Failed to bulk schedule applicants.' });
+  }
+});
+
+/**
+ * @route   PUT /api/admissions/admin/:id/exam-score
+ * @desc    Manually record or override entrance exam score (for paper or CBT exams)
+ */
+router.put('/admin/:id/exam-score', authenticate, async (req, res) => {
+  const { id } = req.params;
+  const { examScore, examTotalMarks, examPassed, adminRemarks } = req.body;
+
+  try {
+    const application = await prisma.admissionApplication.findFirst({
+      where: { id: parseInt(id), schoolId: req.schoolId },
+      include: { School: { select: { admissionExamPassMark: true } } }
+    });
+
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    const scoreNum = examScore !== undefined && examScore !== null && examScore !== '' ? Number(examScore) : null;
+    const totalNum = examTotalMarks !== undefined && examTotalMarks !== null && examTotalMarks !== '' ? Number(examTotalMarks) : (application.examTotalMarks || 100);
+
+    let passBool = examPassed;
+    if (passBool === undefined && scoreNum !== null && totalNum > 0) {
+      const passPct = application.School?.admissionExamPassMark || 50;
+      passBool = (scoreNum / totalNum) * 100 >= passPct;
+    }
+
+    const updated = await prisma.admissionApplication.update({
+      where: { id: parseInt(id) },
+      data: {
+        examScore: scoreNum,
+        examTotalMarks: totalNum,
+        examPassed: passBool !== undefined ? Boolean(passBool) : null,
+        examSubmittedAt: scoreNum !== null ? (application.examSubmittedAt || new Date()) : null,
+        adminRemarks: adminRemarks !== undefined ? adminRemarks : application.adminRemarks
+      }
+    });
+
+    res.json({ success: true, application: updated });
+  } catch (error) {
+    console.error('Update exam score error:', error);
+    res.status(500).json({ error: 'Failed to update exam score' });
+  }
+});
+
+/**
+ * @route   GET /api/admissions/admin/exam-questions
+ * @desc    List all entrance exam questions for current school
+ */
+router.get('/admin/exam-questions', authenticate, async (req, res) => {
+  try {
+    const questions = await prisma.admissionExamQuestion.findMany({
+      where: { schoolId: req.schoolId },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(questions);
+  } catch (error) {
+    console.error('List exam questions error:', error);
+    res.status(500).json({ error: 'Failed to retrieve exam questions' });
+  }
+});
+
+/**
+ * @route   POST /api/admissions/admin/exam-questions
+ * @desc    Create a new entrance exam question
+ */
+router.post('/admin/exam-questions', authenticate, async (req, res) => {
+  const { questionText, questionType = 'multiple_choice', options, correctOption, points = 1.0, isActive = true } = req.body;
+
+  if (!questionText || !options || !correctOption) {
+    return res.status(400).json({ error: 'Question text, options, and correct option are required' });
+  }
+
+  try {
+    const optionsString = typeof options === 'string' ? options : JSON.stringify(options);
+    const question = await prisma.admissionExamQuestion.create({
+      data: {
+        schoolId: req.schoolId,
+        questionText: questionText.trim(),
+        questionType,
+        options: optionsString,
+        correctOption: String(correctOption).trim().toUpperCase(),
+        points: Number(points) || 1.0,
+        isActive: !!isActive
+      }
+    });
+
+    res.status(201).json({ success: true, question });
+  } catch (error) {
+    console.error('Create exam question error:', error);
+    res.status(500).json({ error: 'Failed to create exam question' });
+  }
+});
+
+/**
+ * @route   PUT /api/admissions/admin/exam-questions/:id
+ * @desc    Update an entrance exam question
+ */
+router.put('/admin/exam-questions/:id', authenticate, async (req, res) => {
+  const { id } = req.params;
+  const { questionText, questionType, options, correctOption, points, isActive } = req.body;
+
+  try {
+    const existing = await prisma.admissionExamQuestion.findFirst({
+      where: { id: parseInt(id), schoolId: req.schoolId }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+
+    const updateData = {};
+    if (questionText !== undefined) updateData.questionText = questionText.trim();
+    if (questionType !== undefined) updateData.questionType = questionType;
+    if (options !== undefined) updateData.options = typeof options === 'string' ? options : JSON.stringify(options);
+    if (correctOption !== undefined) updateData.correctOption = String(correctOption).trim().toUpperCase();
+    if (points !== undefined) updateData.points = Number(points);
+    if (isActive !== undefined) updateData.isActive = !!isActive;
+
+    const updated = await prisma.admissionExamQuestion.update({
+      where: { id: parseInt(id) },
+      data: updateData
+    });
+
+    res.json({ success: true, question: updated });
+  } catch (error) {
+    console.error('Update exam question error:', error);
+    res.status(500).json({ error: 'Failed to update exam question' });
+  }
+});
+
+/**
+ * @route   DELETE /api/admissions/admin/exam-questions/:id
+ * @desc    Delete an entrance exam question
+ */
+router.delete('/admin/exam-questions/:id', authenticate, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const existing = await prisma.admissionExamQuestion.findFirst({
+      where: { id: parseInt(id), schoolId: req.schoolId }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+
+    await prisma.admissionExamQuestion.delete({
+      where: { id: parseInt(id) }
+    });
+
+    res.json({ success: true, message: 'Question deleted successfully' });
+  } catch (error) {
+    console.error('Delete exam question error:', error);
+    res.status(500).json({ error: 'Failed to delete exam question' });
   }
 });
 
