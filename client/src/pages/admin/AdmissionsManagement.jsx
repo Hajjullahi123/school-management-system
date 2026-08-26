@@ -78,6 +78,7 @@ const AdmissionsManagement = () => {
   const [examQuestions, setExamQuestions] = useState([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [showQuestionModal, setShowQuestionModal] = useState(false);
+  const [printModalType, setPrintModalType] = useState(null); // 'paper' | 'marking_guide' | null
   const [editingQuestionId, setEditingQuestionId] = useState(null);
   const [questionForm, setQuestionForm] = useState({
     questionText: '',
@@ -790,17 +791,38 @@ const AdmissionsManagement = () => {
       {/* TAB 2: EXAM QUESTIONS (CBT Question Bank) */}
       {activeTab === 'questions' && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-150 shadow-xs">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-white p-4 rounded-xl border border-gray-150 shadow-xs">
             <div>
               <h2 className="text-lg font-bold text-gray-900">Entrance Examination Question Bank</h2>
-              <p className="text-xs text-gray-500">Manage multiple-choice questions for prospective students taking the online entrance exam.</p>
+              <p className="text-xs text-gray-500">Manage multiple-choice questions for prospective students taking the online or paper entrance exam.</p>
             </div>
-            <button
-              onClick={handleOpenAddQuestion}
-              className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm"
-            >
-              <FiPlus /> Add New Question
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPrintModalType('paper')}
+                disabled={examQuestions.length === 0}
+                className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-xs disabled:opacity-50 transition-colors"
+                title="Print physical exam question paper for students"
+              >
+                <FiPrinter /> Print Exam Paper
+              </button>
+              <button
+                type="button"
+                onClick={() => setPrintModalType('marking_guide')}
+                disabled={examQuestions.length === 0}
+                className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-xs disabled:opacity-50 transition-colors"
+                title="Print official answers and marking scheme for examiners"
+              >
+                <FiAward /> Print Marking Guide
+              </button>
+              <button
+                type="button"
+                onClick={handleOpenAddQuestion}
+                className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm"
+              >
+                <FiPlus /> Add New Question
+              </button>
+            </div>
           </div>
 
           <div className="bg-white rounded-xl border border-gray-150 shadow-xs overflow-hidden">
@@ -1755,6 +1777,173 @@ const AdmissionsManagement = () => {
               }} className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 rounded-lg">
                 <FiPrinter /> Print Slip
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PRINTABLE EXAMINATION PAPER & MARKING GUIDE MODAL */}
+      {printModalType && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
+            <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 print:hidden sticky top-0 z-10">
+              <div className="flex items-center gap-2 font-bold text-gray-900">
+                <FiPrinter className="text-primary" />
+                <span>{printModalType === 'paper' ? 'Print Physical Question Paper' : 'Print Examiner Marking Scheme & Answer Key'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const printContent = document.getElementById('printable-exam-paper-area').innerHTML;
+                    const originalContent = document.body.innerHTML;
+                    document.body.innerHTML = printContent;
+                    window.print();
+                    document.body.innerHTML = originalContent;
+                    window.location.reload();
+                  }}
+                  className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm hover:bg-primary/90"
+                >
+                  <FiPrinter /> Print Now
+                </button>
+                <button type="button" onClick={() => setPrintModalType(null)} className="text-gray-400 hover:text-gray-600 p-1">
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-8 bg-white text-gray-900 printable-document" id="printable-exam-paper-area">
+              {/* Official School Header */}
+              <div className="border-b-2 border-gray-900 pb-4 mb-6 text-center space-y-1.5">
+                {schoolSettings?.logoUrl && (
+                  <img
+                    src={`${API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL}${schoolSettings.logoUrl.startsWith('/') ? schoolSettings.logoUrl : '/' + schoolSettings.logoUrl}`}
+                    alt="Logo"
+                    className="w-16 h-16 mx-auto mb-1 object-contain grayscale"
+                  />
+                )}
+                <h1 className="text-xl font-black uppercase tracking-wider text-gray-900">{schoolSettings?.schoolName || 'SCHOOL ADMISSIONS'}</h1>
+                {schoolSettings?.schoolMotto && (
+                  <p className="text-xs italic font-serif text-gray-600">"{schoolSettings.schoolMotto}"</p>
+                )}
+                {schoolSettings?.schoolAddress && (
+                  <p className="text-[11px] text-gray-500">{schoolSettings.schoolAddress}</p>
+                )}
+                <div className="pt-2">
+                  <span className="inline-block bg-gray-900 text-white px-4 py-1 rounded text-xs font-black uppercase tracking-widest">
+                    {printModalType === 'paper' ? 'ENTRANCE EXAMINATION QUESTION PAPER' : 'OFFICIAL MARKING SCHEME & ANSWER KEY'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Student Header & Metadata (Only for Paper Exam) */}
+              {printModalType === 'paper' ? (
+                <div className="space-y-4 mb-6">
+                  <div className="grid grid-cols-2 gap-4 border border-gray-300 rounded-lg p-3 text-xs bg-gray-50/50">
+                    <div className="space-y-2">
+                      <p><strong>CANDIDATE NAME:</strong> ____________________________________________</p>
+                      <p><strong>APPLICATION CODE / SEAT NO:</strong> ________________________________</p>
+                    </div>
+                    <div className="space-y-2">
+                      <p><strong>DATE:</strong> _____________________ &nbsp;<strong>HALL/VENUE:</strong> _________________</p>
+                      <p><strong>TIME ALLOWED:</strong> {settings.admissionExamDuration || 60} Minutes &nbsp;|&nbsp; <strong>TOTAL MARKS:</strong> {examQuestions.reduce((acc, q) => acc + (q.points || 1), 0)}</p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-gray-100 rounded-lg text-xs space-y-1 text-gray-800 border border-gray-200">
+                    <p className="font-bold uppercase text-[10px] tracking-wider text-gray-600">INSTRUCTIONS TO CANDIDATES:</p>
+                    <ol className="list-decimal pl-4 space-y-0.5 text-[11px]">
+                      <li>Write your full name and application code clearly in the spaces provided above.</li>
+                      <li>Answer ALL questions. Each question carries the point(s) stated.</li>
+                      <li>For each question, select the best answer from options A, B, C, or D and circle/shade it clearly.</li>
+                      <li>Do not open this question paper until instructed to do so by the invigilator.</li>
+                    </ol>
+                  </div>
+                </div>
+              ) : (
+                /* Marking Guide Info Bar */
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs flex justify-between items-center mb-6">
+                  <div>
+                    <span className="font-bold text-emerald-950 block">EXAMINER'S CONFIDENTIAL ANSWER SCHEME</span>
+                    <span className="text-emerald-700 text-[11px]">Total Questions: {examQuestions.length} &nbsp;|&nbsp; Total Marks: {examQuestions.reduce((acc, q) => acc + (q.points || 1), 0)} Marks &nbsp;|&nbsp; Pass Threshold: {settings.admissionExamPassMark || 50}%</span>
+                  </div>
+                  <span className="px-2 py-1 bg-emerald-700 text-white font-bold text-[10px] rounded uppercase tracking-wider">CONFIDENTIAL</span>
+                </div>
+              )}
+
+              {/* Questions List */}
+              {printModalType === 'paper' ? (
+                /* Paper Questions View */
+                <div className="space-y-6">
+                  {examQuestions.filter(q => q.isActive).map((q, idx) => {
+                    let options = [];
+                    try {
+                      options = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+                    } catch (e) {
+                      options = [];
+                    }
+                    const optionLetters = ['A', 'B', 'C', 'D'];
+
+                    return (
+                      <div key={q.id} className="text-xs space-y-2 border-b border-gray-150 pb-4 break-inside-avoid">
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-bold text-sm text-gray-900">Q{idx + 1}.</span>
+                          <span className="font-semibold text-gray-900 text-sm flex-1 leading-relaxed">{q.questionText}</span>
+                          <span className="text-[10px] font-bold text-gray-500">({q.points} Mark{q.points > 1 ? 's' : ''})</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 pl-6 pt-1">
+                          {options.map((opt, optIdx) => (
+                            <div key={optIdx} className="flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-full border border-gray-400 flex items-center justify-center font-bold text-[10px] shrink-0">
+                                {optionLetters[optIdx]}
+                              </span>
+                              <span className="text-gray-800">{opt}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Marking Guide Table View */
+                <div className="space-y-6">
+                  <table className="w-full text-xs border-collapse border border-gray-300">
+                    <thead className="bg-gray-100 font-bold text-gray-800">
+                      <tr>
+                        <th className="border border-gray-300 px-3 py-2 w-12 text-center">Q#</th>
+                        <th className="border border-gray-300 px-3 py-2 text-left">Question Excerpt</th>
+                        <th className="border border-gray-300 px-3 py-2 w-24 text-center">Correct Option</th>
+                        <th className="border border-gray-300 px-3 py-2 w-20 text-center">Points</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {examQuestions.map((q, idx) => (
+                        <tr key={q.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          <td className="border border-gray-300 px-3 py-2 font-bold text-center">Q{idx + 1}</td>
+                          <td className="border border-gray-300 px-3 py-2 text-gray-800">{q.questionText}</td>
+                          <td className="border border-gray-300 px-3 py-2 text-center font-black text-emerald-700 bg-emerald-50">
+                            Option [{String(q.correctOption).toUpperCase()}]
+                          </td>
+                          <td className="border border-gray-300 px-3 py-2 text-center font-semibold">{q.points} pt</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  <div className="grid grid-cols-2 gap-8 pt-8 text-xs border-t border-gray-200">
+                    <div>
+                      <p><strong>Chief Examiner / Invigilator:</strong> __________________________</p>
+                      <p className="mt-4"><strong>Signature:</strong> ____________________ <strong>Date:</strong> ____________</p>
+                    </div>
+                    <div>
+                      <p><strong>Admissions Officer:</strong> __________________________________</p>
+                      <p className="mt-4"><strong>Signature:</strong> ____________________ <strong>Date:</strong> ____________</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
