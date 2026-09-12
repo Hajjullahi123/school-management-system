@@ -4,18 +4,85 @@ const prisma = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { logAction } = require('../utils/audit');
 
-// Get grading domains (psychomotor, etc)
+const DEFAULT_DOMAINS = [
+  { name: 'Punctuality', description: 'Time-keeping and attendance', maxScore: 5 },
+  { name: 'Neatness', description: 'Personal grooming and tidiness', maxScore: 5 },
+  { name: 'Politeness', description: 'Respect and courtesy towards others', maxScore: 5 },
+  { name: 'Honesty', description: 'Truthfulness and integrity', maxScore: 5 },
+  { name: 'Relationship with others', description: 'Interpersonal skills and friendliness', maxScore: 5 },
+  { name: 'Cooperation', description: 'Teamwork and willingness to help', maxScore: 5 },
+  { name: 'Leadership', description: 'Initiative and peer guidance', maxScore: 5 },
+  { name: 'Self Control', description: 'Emotional regulation and discipline', maxScore: 5 },
+  { name: 'Attentiveness', description: 'Concentration and focus in class', maxScore: 5 },
+  { name: 'Reliability', description: 'Dependability in duties', maxScore: 5 },
+  { name: 'Perseverance', description: 'Persistence and determination', maxScore: 5 },
+  { name: 'Handwriting', description: 'Legibility and handwriting style', maxScore: 5 },
+  { name: 'Games/Sports', description: 'Physical agility and sportsmanship', maxScore: 5 },
+  { name: 'Crafts', description: 'Creative hands-on skills', maxScore: 5 },
+  { name: 'Musical Skills', description: 'Rhythm and musical ability', maxScore: 5 },
+  { name: 'Drawing/Painting', description: 'Artistic and visual design skills', maxScore: 5 },
+  { name: 'Verbal Communication', description: 'Expression and clarity of speech', maxScore: 5 },
+  { name: 'Fluency in Speech', description: 'Speech rate and pronunciation', maxScore: 5 },
+  { name: 'Physical Agility', description: 'Coordination and physical stamina', maxScore: 5 }
+];
+
+// Get grading domains (psychomotor, etc) - Auto-seeds defaults if empty
 router.get('/domains', authenticate, async (req, res) => {
   try {
-    const domains = await prisma.psychomotorDomain.findMany({
-      where: {
-        schoolId: req.schoolId
-      },
-      orderBy: { name: 'asc' }
+    let domains = await prisma.psychomotorDomain.findMany({
+      where: { schoolId: req.schoolId },
+      orderBy: { id: 'asc' }
     });
+
+    if (domains.length === 0) {
+      // Auto-seed default domains out-of-the-box
+      await prisma.psychomotorDomain.createMany({
+        data: DEFAULT_DOMAINS.map(d => ({
+          ...d,
+          schoolId: req.schoolId,
+          isActive: true
+        })),
+        skipDuplicates: true
+      });
+
+      domains = await prisma.psychomotorDomain.findMany({
+        where: { schoolId: req.schoolId },
+        orderBy: { id: 'asc' }
+      });
+    }
+
     res.json(domains);
   } catch (error) {
+    console.error('Fetch domains error:', error);
     res.status(500).json({ error: 'Failed to fetch domains' });
+  }
+});
+
+// Reset domains to default standard set
+router.post('/domains/reset', authenticate, authorize(['admin', 'principal']), async (req, res) => {
+  try {
+    await prisma.psychomotorDomain.deleteMany({
+      where: { schoolId: req.schoolId }
+    });
+
+    await prisma.psychomotorDomain.createMany({
+      data: DEFAULT_DOMAINS.map(d => ({
+        ...d,
+        schoolId: req.schoolId,
+        isActive: true
+      })),
+      skipDuplicates: true
+    });
+
+    const domains = await prisma.psychomotorDomain.findMany({
+      where: { schoolId: req.schoolId },
+      orderBy: { id: 'asc' }
+    });
+
+    res.json(domains);
+  } catch (error) {
+    console.error('Reset domains error:', error);
+    res.status(500).json({ error: 'Failed to reset domains' });
   }
 });
 

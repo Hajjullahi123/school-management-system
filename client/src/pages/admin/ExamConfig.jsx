@@ -98,26 +98,41 @@ const ExamConfig = () => {
  }
  };
 
- const handleSeedDefaults = async () => {
- const DEFAULT_DOMAINS = [
- { name: 'Handwriting', description: 'Legibility, neatness, and presentation', maxScore: 5 },
- { name: 'Sports', description: 'Physical activity and sportsmanship', maxScore: 5 },
- { name: 'Punctuality', description: 'Attendance and time-keeping', maxScore: 5 },
- { name: 'Neatness', description: 'Personal grooming and tidiness', maxScore: 5 },
- { name: 'Attentiveness', description: 'Concentration and participation in class', maxScore: 5 },
- ];
+  const handleResetDefaults = async () => {
+    if (!confirm('This will reset your psychomotor & behavioral domains back to standard default settings. Any custom changes will be replaced. Continue?')) return;
+    setSeedingDomains(true);
+    try {
+      const res = await api.post('/api/report-extras/domains/reset');
+      if (res.ok) {
+        const data = await res.json();
+        setDomains(data);
+        toast.success('Domains reset to standard defaults!');
+      } else {
+        toast.error('Failed to reset domains');
+      }
+    } catch {
+      toast.error('Unexpected error resetting domains');
+    } finally {
+      setSeedingDomains(false);
+    }
+  };
 
- if (!confirm(`This will add default psychomotor domains. Continue?`)) return;
- setSeedingDomains(true);
- for (const d of DEFAULT_DOMAINS) {
- try {
- await api.post('/api/report-extras/domains', d);
- } catch {}
- }
- toast.success(`Defaults loaded successfully`);
- fetchDomains();
- setSeedingDomains(false);
- };
+  const handleUpdateDomainField = async (id, field, value) => {
+    const updated = domains.map(d => d.id === id ? { ...d, [field]: value } : d);
+    setDomains(updated);
+
+    try {
+      const targetDomain = updated.find(d => d.id === id);
+      await api.put(`/api/report-extras/domains/${id}`, {
+        name: targetDomain.name,
+        description: targetDomain.description,
+        maxScore: targetDomain.maxScore,
+        isActive: targetDomain.isActive
+      });
+    } catch (e) {
+      console.error('Failed to update domain field:', e);
+    }
+  };
 
  const fetchSettings = async () => {
  try {
@@ -349,99 +364,145 @@ const ExamConfig = () => {
  </div>
  </div>
 
- {/* Psychomotor Domains Card */}
- <div className="bg-white p-6 sm:p-10 rounded-[40px] border border-slate-100 shadow-sm">
- <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
- <div>
- <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Psychomotor & Affective Domains</h3>
- <p className="text-xs text-slate-500 font-bold mt-1">Configure assessment domains that appear on student report cards.</p>
- </div>
- <div className="flex gap-2 w-full sm:w-auto">
- <button 
- type="button"
- onClick={handleSeedDefaults}
- disabled={seedingDomains}
- className="flex-1 sm:flex-none text-xs font-bold text-amber-600 bg-amber-50 px-4 py-2 rounded-full hover:bg-amber-100 disabled:opacity-50"
- >
- {seedingDomains ? 'Loading...' : '⚡ Defaults'}
- </button>
- <button
- type="button"
- onClick={() => { resetDomainForm(); setShowDomainForm(true); }}
- className="flex-1 sm:flex-none text-xs font-bold text-primary bg-primary/10 px-4 py-2 rounded-full hover:bg-primary/20"
- >
- + Add New
- </button>
- </div>
- </div>
+  {/* Psychomotor & Affective Domains Card */}
+  <div className="bg-white p-6 sm:p-10 rounded-[40px] border border-slate-100 shadow-sm">
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+      <div>
+        <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Psychomotor & Affective Domains</h3>
+        <p className="text-xs text-slate-500 font-bold mt-1">Default domains appear automatically on report cards out-of-the-box. You can edit, replace, add, or delete domain names below.</p>
+      </div>
+      <div className="flex gap-2 w-full sm:w-auto">
+        <button 
+          type="button"
+          onClick={handleResetDefaults}
+          disabled={seedingDomains}
+          className="flex-1 sm:flex-none text-xs font-bold text-amber-600 bg-amber-50 px-4 py-2 rounded-full hover:bg-amber-100 disabled:opacity-50"
+        >
+          {seedingDomains ? 'Resetting...' : '⚡ Reset Defaults'}
+        </button>
+        <button
+          type="button"
+          onClick={() => { resetDomainForm(); setShowDomainForm(true); }}
+          className="flex-1 sm:flex-none text-xs font-bold text-primary bg-primary/10 px-4 py-2 rounded-full hover:bg-primary/20"
+        >
+          + Add New Domain
+        </button>
+      </div>
+    </div>
 
- {showDomainForm && (
- <div className="bg-slate-50 rounded-3xl p-6 mb-8 border border-slate-100 animate-in fade-in zoom-in duration-300">
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
- <div>
- <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">Domain Name</label>
- <input 
- type="text" 
- value={domainFormData.name}
- onChange={e => setDomainFormData({ ...domainFormData, name: e.target.value })}
- placeholder="e.g. Handwriting"
- className="w-full bg-white border-0 rounded-xl px-4 py-3 focus:ring-2 ring-primary outline-none font-bold text-slate-900 shadow-sm"
- />
- </div>
- <div>
- <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">Max Points</label>
- <select 
- value={domainFormData.maxScore}
- onChange={e => setDomainFormData({ ...domainFormData, maxScore: parseInt(e.target.value) })}
- className="w-full bg-white border-0 rounded-xl px-4 py-3 focus:ring-2 ring-primary outline-none font-bold text-slate-900 shadow-sm"
- >
- {[3, 4, 5, 10].map(n => <option key={n} value={n}>{n} Points</option>)}
- </select>
- </div>
- </div>
- <div className="mt-4">
- <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">Description</label>
- <input 
- type="text" 
- value={domainFormData.description}
- onChange={e => setDomainFormData({ ...domainFormData, description: e.target.value })}
- className="w-full bg-white border-0 rounded-xl px-4 py-3 focus:ring-2 ring-primary outline-none font-bold text-sm text-slate-900 shadow-sm"
- />
- </div>
- <div className="flex gap-2 mt-6">
- <button type="button" onClick={handleDomainSubmit} className="flex-1 bg-primary text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
- {editingDomain ? 'Update' : 'Create'} Domain
- </button>
- <button type="button" onClick={resetDomainForm} className="px-6 bg-white text-slate-400 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest border border-slate-200 text-sm">
- Cancel
- </button>
- </div>
- </div>
- )}
+    {showDomainForm && (
+      <div className="bg-slate-50 rounded-3xl p-6 mb-8 border border-slate-100 animate-in fade-in zoom-in duration-300">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">Domain Name</label>
+            <input 
+              type="text" 
+              value={domainFormData.name}
+              onChange={e => setDomainFormData({ ...domainFormData, name: e.target.value })}
+              placeholder="e.g. Handwriting or Punctuality"
+              className="w-full bg-white border-0 rounded-xl px-4 py-3 focus:ring-2 ring-primary outline-none font-bold text-slate-900 shadow-sm"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">Max Scale Points</label>
+            <select 
+              value={domainFormData.maxScore}
+              onChange={e => setDomainFormData({ ...domainFormData, maxScore: parseInt(e.target.value) })}
+              className="w-full bg-white border-0 rounded-xl px-4 py-3 focus:ring-2 ring-primary outline-none font-bold text-slate-900 shadow-sm"
+            >
+              {[3, 4, 5, 10].map(n => <option key={n} value={n}>{n} Points (1 to {n})</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="mt-4">
+          <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">Description / Guidance</label>
+          <input 
+            type="text" 
+            value={domainFormData.description}
+            onChange={e => setDomainFormData({ ...domainFormData, description: e.target.value })}
+            placeholder="e.g. Attendance and time-keeping"
+            className="w-full bg-white border-0 rounded-xl px-4 py-3 focus:ring-2 ring-primary outline-none font-bold text-sm text-slate-900 shadow-sm"
+          />
+        </div>
+        <div className="flex gap-2 mt-6">
+          <button type="button" onClick={handleDomainSubmit} className="flex-1 bg-primary text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
+            {editingDomain ? 'Update' : 'Create'} Domain
+          </button>
+          <button type="button" onClick={resetDomainForm} className="px-6 bg-white text-slate-400 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest border border-slate-200 text-sm">
+            Cancel
+          </button>
+        </div>
+      </div>
+    )}
 
- <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
- {domains.map(d => (
- <div key={d.id} className={`p-5 rounded-3xl border transition-all ${d.isActive ? 'bg-white border-slate-100 shadow-sm' : 'bg-slate-50 border-slate-200 grayscale opacity-60'}`}>
- <div className="flex justify-between items-start mb-2">
- <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black ${d.isActive ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-200 text-slate-400'}`}>
- {d.maxScore}
- </div>
- <div className="flex gap-2">
- <button onClick={() => { setEditingDomain(d); setDomainFormData({ name: d.name, description: d.description || '', maxScore: d.maxScore }); setShowDomainForm(true); }} className="text-[10px] font-black text-indigo-500 uppercase">Edit</button>
- <button onClick={() => handleDeleteDomain(d.id)} className="text-[10px] font-black text-red-400 uppercase">Delete</button>
- </div>
- </div>
- <h4 className="font-black text-slate-900 uppercase tracking-tight text-sm line-clamp-1">{d.name}</h4>
- <p className="text-[10px] text-slate-400 font-bold mb-4 line-clamp-1">{d.description || 'Graded Psychomotor Skill'}</p>
- <div className="flex justify-between items-center bg-slate-50 rounded-2xl p-2 px-3">
- <button onClick={() => handleToggleActive(d)} className={`text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full transition-all ${d.isActive ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-slate-300 text-slate-500'}`}>
- {d.isActive ? 'Active' : 'Disabled'}
- </button>
- </div>
- </div>
- ))}
- </div>
- </div>
+    {/* Inline Editable Domains Table */}
+    <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">
+      <table className="w-full min-w-[650px] text-sm">
+        <thead>
+          <tr className="text-left text-slate-500 font-bold uppercase tracking-widest text-[10px] border-b border-slate-100">
+            <th className="pb-3 pr-4">Domain Name (Editable)</th>
+            <th className="pb-3 px-4">Description</th>
+            <th className="pb-3 px-4 text-center">Max Score</th>
+            <th className="pb-3 px-4 text-center">Status</th>
+            <th className="pb-3 px-4 text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-50">
+          {domains.map((d) => (
+            <tr key={d.id} className="group hover:bg-slate-50/50 transition-colors">
+              <td className="py-3 pr-4">
+                <input
+                  type="text"
+                  value={d.name}
+                  onChange={(e) => handleUpdateDomainField(d.id, 'name', e.target.value)}
+                  className="w-full bg-slate-50 group-hover:bg-white border-0 rounded-xl px-3 py-2 font-bold text-slate-900 focus:ring-2 ring-primary transition-all text-sm"
+                />
+              </td>
+              <td className="py-3 px-4">
+                <input
+                  type="text"
+                  value={d.description || ''}
+                  placeholder="Domain description..."
+                  onChange={(e) => handleUpdateDomainField(d.id, 'description', e.target.value)}
+                  className="w-full bg-slate-50 group-hover:bg-white border-0 rounded-xl px-3 py-2 text-xs font-semibold text-slate-600 focus:ring-2 ring-primary transition-all"
+                />
+              </td>
+              <td className="py-3 px-4 text-center">
+                <select
+                  value={d.maxScore || 5}
+                  onChange={(e) => handleUpdateDomainField(d.id, 'maxScore', parseInt(e.target.value))}
+                  className="bg-slate-50 group-hover:bg-white border-0 rounded-xl px-2 py-2 font-bold text-xs text-slate-900 focus:ring-2 ring-primary"
+                >
+                  {[3, 4, 5, 10].map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </td>
+              <td className="py-3 px-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => handleToggleActive(d)}
+                  className={`text-[9px] font-black uppercase tracking-wider px-3 py-1 rounded-full transition-all ${
+                    d.isActive !== false ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'
+                  }`}
+                >
+                  {d.isActive !== false ? 'Active' : 'Disabled'}
+                </button>
+              </td>
+              <td className="py-3 px-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => handleDeleteDomain(d.id)}
+                  title="Delete domain"
+                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all font-bold text-xs"
+                >
+                  ✕
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
 
  {/* Grading System */}
  <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-sm">
