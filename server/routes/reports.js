@@ -634,7 +634,19 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         };
       }),
       feeSummary: feeSummary,
-      earlyYearsDomains: earlyYearsDomains,
+      earlyYearsDomains: earlyYearsDomains.map(d => ({
+        id: d.id,
+        name: d.name,
+        code: d.code,
+        skills: (d.skills || []).map(s => {
+          const rating = ratings.find(r => r.skillId === s.id || r.domainId === s.id || r.name === s.name || r.name === `${d.name} - ${s.name}`);
+          return {
+            id: s.id,
+            name: s.name,
+            score: rating && rating.score !== null && rating.score !== undefined ? rating.score : 4
+          };
+        })
+      })),
       aiNarrative: reportExtras?.aiNarrative || null,
       reportSettings: {
         showPositionOnReport: schoolSettings.showPositionOnReport && (student.classModel?.showPositionOnReport !== false),

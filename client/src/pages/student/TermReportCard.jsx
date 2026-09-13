@@ -760,6 +760,35 @@ const TermReportCard = () => {
                     </table>
                   )}
 
+                  {/* EARLY YEARS DOMAINS & SKILLS EVALUATION */}
+                  {layout === 'early_years' && data.earlyYearsDomains && data.earlyYearsDomains.length > 0 && (
+                    <div className="space-y-1.5 mb-2 text-[10px]">
+                      <div className="bg-black text-white text-center font-bold py-1 text-xs uppercase tracking-wider border-2 border-black" style={{ backgroundColor: '#000000' }}>
+                        EARLY YEARS DEVELOPMENTAL DOMAINS & SKILLS EVALUATION
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 items-start">
+                        {data.earlyYearsDomains.map((domain, dIdx) => (
+                          <div key={dIdx} className="border-2 border-black">
+                            <div className="bg-gray-200 px-2 py-0.5 font-black uppercase text-[9px] border-b border-black flex justify-between items-center">
+                              <span>{domain.name}</span>
+                              <span className="text-[7.5px] font-mono">5  4  3  2  1</span>
+                            </div>
+                            <table className="w-full border-collapse text-[9px]">
+                              <tbody>
+                                {(domain.skills || []).map((skill, sIdx) => (
+                                  <tr key={sIdx} className="border-b border-black last:border-b-0 h-4">
+                                    <td className="px-1 py-0.5 font-bold uppercase truncate border-r border-black">{skill.name}</td>
+                                    {renderRatingTicks(skill.score)}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* ACADEMIC SECTION */}
                   <div className="grid grid-cols-[68%_31%] gap-2 items-stretch">
                     {/* LEFT: COGNITIVE */}
@@ -851,22 +880,35 @@ const TermReportCard = () => {
                   <div className="grid grid-cols-[62%_37%] gap-2 mt-1">
                     <div className="grid grid-cols-[60%_40%] gap-0 border-2 border-black rounded-lg overflow-hidden divide-x-2 divide-black">
                       {/* DYNAMIC GRADE INFO */}
-                      <div className="p-2 text-[9.5px] bg-gray-50/50 leading-tight flex flex-col justify-center">
-                        <p className="font-black border-b border-black mb-1 uppercase text-black text-[10px]">Grading Legend</p>
-                        <div className="grid grid-cols-2 gap-x-2 font-bold text-black">
-                          {(() => {
-                            try {
-                              const scales = JSON.parse(schoolSettings?.gradingSystem || '[]');
-                              return scales.sort((a, b) => b.min - a.min).map(s => (
-                                <span key={s.grade} className={s.grade === 'F' ? 'text-red-600 font-black' : 'text-black'}>{s.grade}: {s.min}-{s.max || 100}</span>
-                              ));
-                            } catch (e) {
-                              return <span className="text-black">Legend could not be loaded</span>;
-                            }
-                          })()}
+                      {layout === 'early_years' ? (
+                        <div className="p-2 text-[9px] bg-gray-50/50 leading-tight flex flex-col justify-center font-bold text-black">
+                          <p className="font-black border-b border-black mb-1 uppercase text-[9.5px]">Early Years Rating Scale</p>
+                          <div className="grid grid-cols-1 gap-0.5 text-[8.5px]">
+                            <div>5: Mastered / Excellent</div>
+                            <div>4: Good Progress / Above Avg</div>
+                            <div>3: Developing / Satisfactory</div>
+                            <div>2: Emerging / Needs Practice</div>
+                            <div>1: Needs Support</div>
+                          </div>
                         </div>
-                        <p className="mt-1 border-t border-black/10 pt-1 text-[9px] font-bold text-black">5: Exceptional, 4: Commendable, 3: Satisfactory, 2: Fair, 1: Poor</p>
-                      </div>
+                      ) : (
+                        <div className="p-2 text-[9.5px] bg-gray-50/50 leading-tight flex flex-col justify-center">
+                          <p className="font-black border-b border-black mb-1 uppercase text-black text-[10px]">Grading Legend</p>
+                          <div className="grid grid-cols-2 gap-x-2 font-bold text-black">
+                            {(() => {
+                              try {
+                                const scales = JSON.parse(schoolSettings?.gradingSystem || '[]');
+                                return scales.sort((a, b) => b.min - a.min).map(s => (
+                                  <span key={s.grade} className={s.grade === 'F' ? 'text-red-600 font-black' : 'text-black'}>{s.grade}: {s.min}-{s.max || 100}</span>
+                                ));
+                              } catch (e) {
+                                return <span className="text-black">Legend could not be loaded</span>;
+                              }
+                            })()}
+                          </div>
+                          <p className="mt-1 border-t border-black/10 pt-1 text-[9px] font-bold text-black">5: Exceptional, 4: Commendable, 3: Satisfactory, 2: Fair, 1: Poor</p>
+                        </div>
+                      )}
 
                       {/* POSITION & AVG */}
                       <div className="p-0 flex flex-col">

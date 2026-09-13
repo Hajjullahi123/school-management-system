@@ -532,6 +532,35 @@ const BulkReportDownload = () => {
                             </table>
                           )}
 
+                          {/* EARLY YEARS DOMAINS & SKILLS EVALUATION */}
+                          {layout === 'early_years' && data.earlyYearsDomains && data.earlyYearsDomains.length > 0 && (
+                            <div className="space-y-1.5 mb-2 text-[10px]">
+                              <div className="bg-black text-white text-center font-bold py-1 text-xs uppercase tracking-wider border-2 border-black" style={{ backgroundColor: '#000000' }}>
+                                EARLY YEARS DEVELOPMENTAL DOMAINS & SKILLS EVALUATION
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 items-start">
+                                {data.earlyYearsDomains.map((domain, dIdx) => (
+                                  <div key={dIdx} className="border-2 border-black">
+                                    <div className="bg-gray-200 px-2 py-0.5 font-black uppercase text-[9px] border-b border-black flex justify-between items-center">
+                                      <span>{domain.name}</span>
+                                      <span className="text-[7.5px] font-mono">5  4  3  2  1</span>
+                                    </div>
+                                    <table className="w-full border-collapse text-[9px]">
+                                      <tbody>
+                                        {(domain.skills || []).map((skill, sIdx) => (
+                                          <tr key={sIdx} className="border-b border-black last:border-b-0 h-4">
+                                            <td className="px-1 py-0.5 font-bold uppercase truncate border-r border-black">{skill.name}</td>
+                                            {renderRatingTicks(skill.score)}
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           {/* ACADEMIC SECTION */}
                           <div className="grid grid-cols-[68%_31%] gap-2 items-stretch">
                             {/* LEFT: COGNITIVE */}
