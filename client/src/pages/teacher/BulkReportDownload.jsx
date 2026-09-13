@@ -390,7 +390,7 @@ const BulkReportDownload = () => {
               const showPosition = data.reportSettings?.showPositionOnReport !== undefined ? data.reportSettings.showPositionOnReport : (schoolSettings?.showPositionOnReport !== false);
               const showFees = data.reportSettings?.showFeesOnReport !== undefined ? data.reportSettings.showFeesOnReport : (schoolSettings?.showFeesOnReport !== false);
               const showAttendance = (schoolSettings?.showAttendanceOnReport !== false) && (data.reportSettings?.showAttendanceOnReport !== false);
-              const layout = data.reportSettings?.reportLayout || schoolSettings?.reportLayout || 'classic';
+              const layout = data.student?.classModel?.reportLayout || data.reportSettings?.reportLayout || schoolSettings?.reportLayout || 'classic';
               const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
               return (

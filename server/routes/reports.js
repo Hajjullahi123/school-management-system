@@ -437,6 +437,17 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
       orderBy: { name: 'asc' }
     });
 
+    const earlyYearsDomains = await prisma.earlyYearsDomain.findMany({
+      where: { schoolId: req.schoolId, isActive: true },
+      include: {
+        skills: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' }
+        }
+      },
+      orderBy: { sortOrder: 'asc' }
+    });
+
     // Fetch fee summary for the financial section of the report
     const feeSummary = await getStudentFeeSummary(
       req.schoolId,
@@ -623,6 +634,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         };
       }),
       feeSummary: feeSummary,
+      earlyYearsDomains: earlyYearsDomains,
       aiNarrative: reportExtras?.aiNarrative || null,
       reportSettings: {
         showPositionOnReport: schoolSettings.showPositionOnReport && (student.classModel?.showPositionOnReport !== false),

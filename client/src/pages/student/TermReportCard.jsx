@@ -614,7 +614,7 @@ const TermReportCard = () => {
             const showPosition = data.reportSettings?.showPositionOnReport !== undefined ? data.reportSettings.showPositionOnReport : ((data.schoolSettings || schoolSettings)?.showPositionOnReport !== false);
             const showFees = data.reportSettings?.showFeesOnReport !== undefined ? data.reportSettings.showFeesOnReport : ((data.schoolSettings || schoolSettings)?.showFeesOnReport !== false);
             const showAttendance = ((data.schoolSettings || schoolSettings)?.showAttendanceOnReport !== false) && (data.reportSettings?.showAttendanceOnReport !== false);
-            const layout = data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
+            const layout = data.student?.classModel?.reportLayout || data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
             const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
             const domainSplit = splitDomains(data.psychomotorRatings);
@@ -671,7 +671,7 @@ const TermReportCard = () => {
 
                       <div className="mt-1 border-b-2 inline-block px-4 pb-0" style={{ borderColor: reportColor }}>
                         <h2 className="text-lg font-black uppercase tracking-wider">
-                          {data.term?.name?.toUpperCase()} PERFORMANCE REPORT
+                          {layout === 'early_years' ? 'EARLY YEARS PROGRESS REPORT' : `${data.term?.name?.toUpperCase()} PERFORMANCE REPORT`}
                         </h2>
                       </div>
                     </div>

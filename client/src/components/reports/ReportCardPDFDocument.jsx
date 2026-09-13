@@ -680,7 +680,7 @@ export const ReportCardPDFDocument = ({ reports = [], schoolSettings = {} }) => 
         const showAttendance = ((data.schoolSettings || schoolSettings)?.showAttendanceOnReport !== false) && (data.reportSettings?.showAttendanceOnReport !== false);
         
         // Layout: Strictly default to 'classic' to mirror web behavior
-        const layout = data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
+        const layout = data.student?.classModel?.reportLayout || data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
         const reportColor = data.reportSettings?.reportColorScheme || (data.schoolSettings || schoolSettings)?.reportColorScheme || (data.schoolSettings || schoolSettings)?.primaryColor || '#1e40af';
 
         const logoUrl = resolveImageUrl(schoolSettings.logoUrl);
