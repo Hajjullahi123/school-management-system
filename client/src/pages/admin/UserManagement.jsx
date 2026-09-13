@@ -627,7 +627,7 @@ const UserManagement = () => {
                                   )}
                                   {user.id !== currentUser?.id && (
                                     <>
-                                      {(currentUser?.role === 'admin' || currentUser?.role === 'superadmin') && user.role !== 'superadmin' && (
+                                      {['admin', 'sub_admin', 'principal', 'examination_officer', 'attendance_admin', 'superadmin'].includes(currentUser?.role) && user.role !== 'superadmin' && (
                                         <button onClick={() => handleImpersonate(user.id)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Ghost Login (Login As)">
                                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                                         </button>
