@@ -5,10 +5,13 @@ ARG NODE_VERSION=22.19.0
 FROM node:${NODE_VERSION}-slim AS base
 
 LABEL fly_launch_runtime="Node.js"
-LABEL build_version="2026.09.13.6"
+LABEL build_version="2026.09.13.7"
 
 # Node.js app lives here
 WORKDIR /app
+
+# Prevent interactive prompts during apt package installation
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install runtime dependencies including openssl and Puppeteer (Chromium) requirements
 RUN apt-get update -qq && \
@@ -19,8 +22,6 @@ RUN apt-get update -qq && \
     libgbm1 libasound2 libpango-1.0-0 libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Set production environment
-ENV NODE_ENV="production"
 ENV PUPPETEER_CACHE_DIR="/app/.puppeteer-cache"
 
 
@@ -50,6 +51,9 @@ RUN npm prune --omit=dev && \
 
 # Final stage for app image
 FROM base
+
+# Set production environment for runtime
+ENV NODE_ENV="production"
 
 # Copy built application
 COPY --from=build /app /app
