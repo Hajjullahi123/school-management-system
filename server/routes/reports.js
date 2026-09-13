@@ -640,7 +640,7 @@ router.get('/term/:studentId/:termId', authenticate, async (req, res) => {
         showPositionOnReport: schoolSettings.showPositionOnReport && (student.classModel?.showPositionOnReport !== false),
         showFeesOnReport: schoolSettings.showFeesOnReport && (student.classModel?.showFeesOnReport !== false),
         showAttendanceOnReport: schoolSettings.showAttendanceOnReport && (student.classModel?.showAttendanceOnReport !== false),
-        reportLayout: student.classModel?.reportLayout ?? (schoolSettings.reportLayout || 'classic'),
+        reportLayout: (student.classModel?.reportLayout && student.classModel.reportLayout.trim() !== '') ? student.classModel.reportLayout : (schoolSettings.reportLayout || 'classic'),
         reportColorScheme: schoolSettings.reportColorScheme,
         reportFontFamily: schoolSettings.reportFontFamily
       }

@@ -614,7 +614,7 @@ const TermReportCard = () => {
             const showPosition = data.reportSettings?.showPositionOnReport !== undefined ? data.reportSettings.showPositionOnReport : ((data.schoolSettings || schoolSettings)?.showPositionOnReport !== false);
             const showFees = data.reportSettings?.showFeesOnReport !== undefined ? data.reportSettings.showFeesOnReport : ((data.schoolSettings || schoolSettings)?.showFeesOnReport !== false);
             const showAttendance = ((data.schoolSettings || schoolSettings)?.showAttendanceOnReport !== false) && (data.reportSettings?.showAttendanceOnReport !== false);
-            const layout = data.student?.classModel?.reportLayout || data.reportSettings?.reportLayout || (data.schoolSettings || schoolSettings)?.reportLayout || 'classic';
+            const layout = (data.student?.classModel?.reportLayout && data.student.classModel.reportLayout.trim() !== '') ? data.student.classModel.reportLayout : ((data.reportSettings?.reportLayout && data.reportSettings.reportLayout.trim() !== '') ? data.reportSettings.reportLayout : ((data.schoolSettings || schoolSettings)?.reportLayout || 'classic'));
             const borderStyle = layout === 'minimal' ? 'border-[2px] border-gray-400' : layout === 'modern' ? 'border-[6px] rounded-2xl' : 'border-[12px]';
 
             const domainSplit = splitDomains(data.psychomotorRatings);
