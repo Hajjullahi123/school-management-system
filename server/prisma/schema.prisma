@@ -223,6 +223,8 @@ model School {
   ParentTeacherMessage        ParentTeacherMessage[]
   promotionHistory            PromotionHistory[]
   PsychomotorDomain           PsychomotorDomain[]
+  earlyYearsDomains           EarlyYearsDomain[]
+  earlyYearsSkills            EarlyYearsSkill[]
   quranRecords                QuranRecord[]
   quranTargets                QuranTarget[]
   results                     Result[]
@@ -1479,6 +1481,37 @@ model PsychomotorDomain {
   School      School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, name])
+}
+
+model EarlyYearsDomain {
+  id        Int               @id @default(autoincrement())
+  schoolId  Int
+  name      String
+  code      String?
+  sortOrder Int               @default(0)
+  isActive  Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  School    School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  skills    EarlyYearsSkill[]
+
+  @@unique([schoolId, name])
+}
+
+model EarlyYearsSkill {
+  id          Int              @id @default(autoincrement())
+  schoolId    Int
+  domainId    Int
+  name        String
+  description String?
+  sortOrder   Int              @default(0)
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  Domain      EarlyYearsDomain @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  School      School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([domainId, name])
 }
 
 model ShowcaseSchool {

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from '../../utils/toast';
 import { api, API_BASE_URL } from '../../api';
+import EarlyYearsDomainConfig from './EarlyYearsDomainConfig';
 
 const ExamConfig = () => {
+  const [activeTab, setActiveTab] = useState('academic'); // 'academic' | 'early-years'
  const [settings, setSettings] = useState({
  examMode: false,
  examModeType: 'none',
@@ -222,14 +224,45 @@ const ExamConfig = () => {
  Number(settings.test2Weight || 0) +
  Number(settings.examWeight || 0);
 
- return (
- <div className="max-w-7xl mx-auto p-4 sm:p-6 animate-fadeIn">
- <div className="mb-8">
- <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Academic Configuration</h1>
- <p className="text-slate-500 font-bold mt-1">Configure assessment weights, grading system, and assessment domains.</p>
- </div>
+  return (
+  <div className="max-w-7xl mx-auto p-4 sm:p-6 animate-fadeIn">
+  <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Academic Configuration</h1>
+      <p className="text-slate-500 font-bold mt-1">Configure assessment weights, grading system, and report domains.</p>
+    </div>
 
- <form onSubmit={handleSaveSettings} className="space-y-8">
+    {/* Tab Navigation */}
+    <div className="flex bg-slate-100 dark:bg-gray-800 p-1.5 rounded-2xl border border-slate-200 dark:border-gray-700">
+      <button
+        type="button"
+        onClick={() => setActiveTab('academic')}
+        className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+          activeTab === 'academic'
+            ? 'bg-white dark:bg-gray-700 text-primary shadow-md'
+            : 'text-slate-500 hover:text-slate-800 dark:text-gray-400'
+        }`}
+      >
+        Academic Framework
+      </button>
+      <button
+        type="button"
+        onClick={() => setActiveTab('early-years')}
+        className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+          activeTab === 'early-years'
+            ? 'bg-white dark:bg-gray-700 text-primary shadow-md'
+            : 'text-slate-500 hover:text-slate-800 dark:text-gray-400'
+        }`}
+      >
+        Early Years Domains & Skills
+      </button>
+    </div>
+  </div>
+
+  {activeTab === 'early-years' ? (
+    <EarlyYearsDomainConfig />
+  ) : (
+  <form onSubmit={handleSaveSettings} className="space-y-8">
  {/* Exam Mode Section */}
  <div className={`p-8 rounded-[40px] border-2 transition-all ${settings.examMode ? 'bg-indigo-50 border-indigo-200 shadow-xl shadow-indigo-100' : 'bg-gray-50 border-gray-200'}`}>
  <div className="flex items-center justify-between">
@@ -635,9 +668,10 @@ const ExamConfig = () => {
  {saving ? 'Synchronizing Intelligence...' : 'Save Academic Framework'}
  </button>
  </div>
- </form>
- </div>
- );
+  </form>
+  )}
+  </div>
+);
 };
 
 export default ExamConfig;
